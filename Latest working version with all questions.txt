@@ -1,0 +1,1535 @@
+import React, { useState } from 'react';
+import { useEffect } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text, TextInput, Switch, FlatList, ScrollView, Alert } from 'react-native';
+
+// Specialized Permit Types
+const specializedPermitTypes = [
+  { key: 'hotWork', label: 'Hot Work Permit', description: 'Welding, cutting, grinding, brazing' },
+  { key: 'confinedSpace', label: 'Confined Space Entry', description: 'Tanks, vessels, pits, manholes' },
+  { key: 'workingAtHeight', label: 'Working at Height', description: 'Ladders, scaffolds, rooftops' },
+  { key: 'electrical', label: 'Electrical Work', description: 'Live electrical work, isolation' },
+  { key: 'excavation', label: 'Excavation and Demolition', description: 'Digging, trenching, demolition work' },
+  { key: 'lifting', label: 'Lifting with Crane or HIAB', description: 'Cranes, hoists, lifting equipment' },
+  { key: 'blasting', label: 'Marking, Drilling & Blasting', description: 'Explosive work, quarry operations' },
+  { key: 'plantServicing', label: 'Mobile and Fixed Plant Servicing', description: 'Equipment maintenance and repair' },
+  { key: 'stripping', label: 'Stripping Work', description: 'Site preparation, overburden removal' },
+  { key: 'surveying', label: 'Surveying and Pedestrian Access', description: 'Survey work, pedestrian access to operational areas' },
+  { key: 'conveyorServicing', label: 'Conveyor Servicing', description: 'Conveyor belt replacement and maintenance' }
+];
+
+const singleHazardTypes = [
+  { key: 'slip', label: 'Slip Hazard', description: 'Wet surfaces, spills' },
+  { key: 'trip', label: 'Trip Hazard', description: 'Cables, uneven surfaces' },
+  { key: 'fall', label: 'Fall Hazard', description: 'Open edges, holes' },
+  { key: 'crush', label: 'Crush Hazard', description: 'Heavy objects, machinery' },
+  { key: 'cut', label: 'Cut Hazard', description: 'Sharp edges, blades' },
+  { key: 'burn', label: 'Burn Hazard', description: 'Hot surfaces, steam' },
+  { key: 'chemical', label: 'Chemical Exposure', description: 'Skin/eye contact, inhalation' },
+  { key: 'electrical', label: 'Electrical Hazard', description: 'Live circuits, static' },
+  { key: 'noise', label: 'Noise Exposure', description: 'Loud machinery, tools' },
+  { key: 'vibration', label: 'Vibration Exposure', description: 'Power tools, machinery' },
+  { key: 'dust', label: 'Dust Exposure', description: 'Particulates, debris' },
+  { key: 'fumes', label: 'Fume Exposure', description: 'Welding, chemical fumes' }
+];
+
+// Full permitQuestionnaires object from attachment (truncated for brevity, but should be pasted in full)
+const permitQuestionnaires = {/* FULL OBJECT FROM ATTACHMENT HERE */};
+
+// Move renderNewPermitForm and renderQuestionnaire to main body below constants
+
+
+// PermitManagementApp main component definition
+function PermitManagementApp() {
+  // --- Specialized permit and hazard questions ---
+  // Complete questionnaires for each specialized permit (from attachment)
+  const permitQuestionnaires = {
+    confinedSpace: [
+      { id: 'isolations', text: 'Are all isolations necessary completed?', type: 'yesno', required: true },
+      { id: 'training', text: 'Are all workers entering the confined space trained and competent to perform the required task within the confined space as well as entering the confined space? NO CONFINED SPACE TRAINING = NO ENTRY', type: 'yesno', required: true },
+      { id: 'medical_check', text: 'All workers checked for any potential medical, health, psychological conditions that might pose a risk, prior to entry.', type: 'yesno', required: true },
+      { id: 'atmosphere_testing', text: 'Atmosphere testing arranged (O2, CO, H2S and flammables standard test requirement) - ensure gas testing equipment is within calibration and appropriate for the task', type: 'yesno', required: true },
+      { id: 'other_gases', text: 'Are any other toxic gases or asphyxiants to be tested?', type: 'yesno_text', textLabel: 'If yes, record type of gas' },
+      { id: 'ventilation', text: 'Is ventilation of the confined space required?', type: 'yesno_text', textLabel: 'Describe controls' },
+      { id: 'engulfment', text: 'Is there a possibility of engulfment, drowning or overhead hazards?', type: 'yesno_text', textLabel: 'If yes, describe any other requirements' },
+      { id: 'pressure', text: 'Is there a possibility of extreme suction, pressure or flow occurring while people are in this confined space?', type: 'yesno_text', textLabel: 'If yes, describe controls' },
+      { id: 'access_egress', text: 'Is the access and egress to the confined space restricted, difficult or hazardous?', type: 'yesno_text', textLabel: 'If yes, outline precautions to take' },
+      { id: 'barrier', text: 'Barrier to always be placed over the access point when workers leave the area.', type: 'yesno', required: true },
+      { id: 'vehicles', text: 'Are vehicles or combustion engines likely to be a hazard?', type: 'yesno_text', textLabel: 'If yes, describe controls' },
+      { id: 'harnesses', text: 'Are safety harnesses and a method of extraction required?', type: 'yesno', note: 'If yes, Review the Fall Arrest Equipment Checklist.' },
+      { id: 'communication_method', text: 'Method of communication in case of emergency with entrants into confined space', type: 'yesno_text', textLabel: 'Describe communication method (Phone/Radio/Audible Signal/Visual Signal/Rope Signal)' },
+      { id: 'safety_watch_name', text: 'Safety Watch Name assigned', type: 'text', required: true },
+      { id: 'emergency_contact', text: 'Site Manager/Supervisor in case of emergency name', type: 'text', required: true }
+    ],
+    hotWork: [
+      { id: 'workshop_alternative', text: 'Can the hot work be done in an approved hot work area such as the workshop?', type: 'text', required: true },
+      { id: 'flammable_materials', text: 'Is there flammable or combustible substances/material evident, including dry vegetation within 10m of the hot work, in containers, piping systems, drains, equipment in the area, or directly below the area?', type: 'yesno_text', textLabel: 'If yes, describe removal/purging/covering controls' },
+      { id: 'ignition_conveyance', text: 'Is it possible for ignition sources from hot work to be conveyed by conveyors, ducting, airflow or wind to combustible materials?', type: 'yesno', required: true },
+      { id: 'conveyors_nearby', text: 'Are there conveyors, rubber lined chutes and poly deck screens in the immediate area and/or below any hot work?', type: 'yesno_text', textLabel: 'If yes, describe fire protection measures (fire blankets, wet sacks, hose down etc.)' },
+      { id: 'wet_surfaces', text: 'Does floors and surface areas need to be wetted down?', type: 'yesno', required: true },
+      { id: 'flammable_gases', text: 'Are flammable gases present in the area?', type: 'yesno_text', textLabel: 'If yes, describe gas testing requirements and results', note: 'Gas test required if yes' },
+      { id: 'confined_space', text: 'Is hot work being undertaken in a confined space?', type: 'yesno_text', textLabel: 'If yes, list additional precautions and confirm Confined Space permit completed', note: 'Confined Space permit also required if yes' },
+      { id: 'hdpe_welding', text: 'Is High Density Polyethylene pipe being welded using electrofusion?', type: 'yesno_text', textLabel: 'If yes, describe blanking procedures and cooling time requirements', note: 'Blank off open end and follow manufacturer cooling times' },
+      { id: 'grinders', text: 'Are disk grinders being used?', type: 'yesno_text', textLabel: 'If yes, confirm double eye protection and qualified operator for 9" grinders', note: 'Double eye protection required' },
+      { id: 'wash_down', text: 'On processing plants, wash down hose in place and pumps turned on before commencing hot work.', type: 'yesno', required: true },
+      { id: 'fire_extinguishers', text: 'Adequate and suitable fire extinguishers available on the job? A minimum of 3.5kg CO2 or dry powder fire extinguishers must be on hand.', type: 'yesno', required: true },
+      { id: 'hot_marking', text: 'Did you mark all work items as HOT if someone else is working in the same area?', type: 'yesno', required: true },
+      { id: 'flashback_arrestors', text: 'Are the correct flash back arrestors fitted to all gas bottles?', type: 'yesno', required: true },
+      { id: 'alarm_plan', text: 'Is there a plan to raise the alarm if needed?', type: 'yesno_text', textLabel: 'Describe alarm procedure and communication method', required: true }
+    ],
+    electrical: [
+      { id: 'ewrb_licenses', text: 'Do all the workers engaged in the electrical work have current Electrical Worker Registration Board licences? Take copies for your records. No EWRB licence = No Work!', type: 'yesno', required: true },
+      { id: 'sops_attached', text: 'Attach all relevant SOPs or switching procedures to the work permit.', type: 'yesno', required: true },
+      { id: 'isolation_requirements', text: 'Isolation requirements completed? Test and prove all isolations. Personal locks to be used and in place during the job.', type: 'yesno_text', textLabel: 'Describe isolation requirements and lock placement', required: true },
+      { id: 'signage', text: 'Signage required to be placed by job to warn of hazard?', type: 'yesno_text', textLabel: 'Describe signage type and placement' },
+      { id: 'ladder_required', text: 'Will a ladder be required? If yes, non-metallic ladders to be used in switchyards and around live equipment.', type: 'yesno_text', textLabel: 'Confirm non-metallic ladder type and inspection status' },
+      { id: 'cordon_area', text: 'Area of work to be cordoned off.', type: 'yesno_text', textLabel: 'Describe cordoning method and boundaries' },
+      { id: 'switchyard_secured', text: 'Switchyard to be kept secured.', type: 'yesno', required: true },
+      { id: 'hv_gloves', text: 'High voltage gloves to be worn when switching.', type: 'yesno', required: true },
+      { id: 'ppe', text: 'Usual PPE of; high viz gear/flame retardant overalls or clothing, safety boots, safety glasses and hardhat worn.', type: 'yesno', required: true },
+      { id: 'oil_spillage', text: 'Oil spillage kit available for work on transformers or oil filled switch gear.', type: 'yesno', required: true },
+      { id: 'work_requirements', text: 'List any special work requirements and other work instructions or attach work plan', type: 'yesno_text', textLabel: 'Describe special requirements and work plan details' },
+      { id: 'competent_personnel', text: 'All personnel undertaking this work are suitably competent (or supervised) to perform the required tasks?', type: 'yesno', required: true },
+      { id: 'environmental', text: 'Consider: Are there any other environmental matters?', type: 'yesno_text', textLabel: 'If yes, describe environmental considerations and precautions' },
+      { id: 'communication', text: 'Communication: Who needs to be advised or notified? Consider: Production, other site personnel and external agencies', type: 'yesno_text', textLabel: 'Describe communication plan and notification list', required: true },
+      { id: 'take5', text: 'Take 5 - Any other hazards and controls required?', type: 'yesno_text', textLabel: 'Describe additional hazards and control measures' },
+      { id: 'job_completion', text: 'Job Completion: Any special requirements at the closure of the job, before handing permit back for sign off?', type: 'yesno_text', textLabel: 'If yes, describe completion requirements' }
+    ],
+    workingAtHeight: [
+      { id: 'trained_competent', text: 'Are all workers undertaking the task trained and competent in work at heights?', type: 'yesno', required: true },
+      { id: 'fitness', text: 'Are all persons fit for work at height? No persons are suffering from any ailment, illness or physical condition that could put any person at risk during work at height.', type: 'yesno', required: true },
+      { id: 'fall_prevention', text: 'Best fall prevention methods assessed and put in place?', type: 'yesno_text', textLabel: 'Describe fall prevention methods implemented', required: true },
+      { id: 'protection_system', text: 'Fall Protection System that will be used', type: 'yesno_text', textLabel: 'Specify: Total Restraint/Fall Restraint/Work Positioning/Limited Free Fall Arrest/Free Fall Arrest', required: true },
+      { id: 'safety_equipment', text: 'Specify Safety harnesses system/helmet/fall protection equipment to be used', type: 'text', required: true },
+      { id: 'anchor_points', text: 'Specify the anchor point(s)', type: 'text', required: true },
+      { id: 'fall_arrest_checklist', text: 'Mandatory completion of the Fall Arrest Equipment Checklist if harnesses and lanyards are used.', type: 'yesno', required: true },
+      { id: 'falling_objects', text: 'Provision made to prevent objects from falling below, such as screening.', type: 'yesno_text', textLabel: 'Describe object fall prevention measures' },
+      { id: 'tool_count', text: 'Tool count completed before and after work?', type: 'yesno', required: true },
+      { id: 'overhead_lines', text: 'Will work at height be conducted within 4 meters of overhead lines? All work closer than 4 meters to overhead conductors must be authorized by the network operator.', type: 'yesno_text', textLabel: 'If yes, attach network operator approval and describe safety measures', note: 'Network operator approval required if within 4m' },
+      { id: 'emergency_retrieval', text: 'Retrieval emergency plans/procedures, method of relief from suspension trauma required when fall arrest', type: 'yesno_text', textLabel: 'Describe emergency retrieval plan and suspension trauma relief procedures', required: true },
+      { id: 'safety_watch', text: 'Safety watch required? Safety Watch must be present if harness is in use.', type: 'yesno_text', textLabel: 'Name safety watch person and describe their specific duties', required: true }
+    ],
+    excavation: [
+      { id: 'before_you_dig', text: 'Before you dig notification completed?', type: 'yesno', required: true },
+      { id: 'underground_services', text: 'Underground services identified and marked?', type: 'yesno_text', textLabel: 'Describe services and marking method', required: true },
+      { id: 'shoring_required', text: 'Is shoring or slope protection required?', type: 'yesno_text', textLabel: 'Describe shoring/slope protection measures' },
+      { id: 'competent_person', text: 'Competent person assigned to supervise excavation?', type: 'text', required: true },
+      { id: 'emergency_egress', text: 'Emergency egress planned for workers in excavation?', type: 'yesno_text', textLabel: 'Describe egress plan', required: true }
+    ],
+    lifting: [
+      { id: 'lift_plan', text: 'Lift plan completed and approved?', type: 'yesno', required: true },
+      { id: 'crane_inspection', text: 'Crane pre-use inspection completed?', type: 'yesno', required: true },
+      { id: 'operator_competency', text: 'Crane operator competency verified?', type: 'yesno_text', textLabel: 'Operator name and certification details', required: true },
+      { id: 'exclusion_zone', text: 'Exclusion zone established around crane?', type: 'yesno_text', textLabel: 'Describe exclusion zone boundaries and controls', required: true },
+      { id: 'load_capacity', text: 'Load within crane capacity limits?', type: 'yesno_text', textLabel: 'Load weight and crane capacity', required: true }
+    ],
+    blasting: [
+      { id: 'blast_permit', text: 'Blast permit obtained from authorities?', type: 'yesno', required: true },
+      { id: 'licensed_personnel', text: 'Licensed shot firer assigned?', type: 'text', required: true },
+      { id: 'exclusion_zone', text: 'Blast exclusion zone established and communicated?', type: 'yesno_text', textLabel: 'Describe exclusion zone and communication method', required: true },
+      { id: 'vibration_monitoring', text: 'Vibration monitoring equipment in place?', type: 'yesno', required: true },
+      { id: 'weather_conditions', text: 'Weather conditions suitable for blasting?', type: 'yesno_text', textLabel: 'Current weather assessment', required: true }
+    ],
+    plantServicing: [
+      { id: 'lockout_tagout', text: 'Lockout/tagout procedures implemented?', type: 'yesno_text', textLabel: 'Describe LOTO procedure and energy isolation', required: true },
+      { id: 'competent_technician', text: 'Competent technician assigned for servicing?', type: 'text', required: true },
+      { id: 'service_manual', text: 'Manufacturer service manual available?', type: 'yesno', required: true },
+      { id: 'spare_parts', text: 'Correct spare parts and tools available?', type: 'yesno_text', textLabel: 'List key parts and tools required' },
+      { id: 'restart_procedure', text: 'Plant restart procedure documented?', type: 'yesno_text', textLabel: 'Describe restart sequence and checks', required: true }
+    ],
+    stripping: [
+      { id: 'environmental_clearance', text: 'Environmental clearance obtained?', type: 'yesno', required: true },
+      { id: 'archaeology_survey', text: 'Archaeological survey completed if required?', type: 'yesno_text', textLabel: 'Survey results and any restrictions' },
+      { id: 'equipment_inspection', text: 'Stripping equipment pre-start inspection completed?', type: 'yesno', required: true },
+      { id: 'dust_control', text: 'Dust suppression measures in place?', type: 'yesno_text', textLabel: 'Describe dust control methods', required: true },
+      { id: 'traffic_management', text: 'Traffic management plan implemented?', type: 'yesno_text', textLabel: 'Describe traffic control measures', required: true }
+    ],
+    surveying: [
+      { id: 'survey_plan', text: 'Survey plan and methodology approved?', type: 'yesno', required: true },
+      { id: 'qualified_surveyor', text: 'Qualified surveyor assigned to task?', type: 'text', required: true },
+      { id: 'equipment_calibration', text: 'Survey equipment calibration current?', type: 'yesno', required: true },
+      { id: 'site_access', text: 'Safe site access routes established?', type: 'yesno_text', textLabel: 'Describe access routes and safety measures', required: true },
+      { id: 'communication', text: 'Communication plan with operations established?', type: 'yesno_text', textLabel: 'Describe communication method and frequency', required: true }
+    ],
+    conveyorServicing: [
+      { id: 'conveyor_isolation', text: 'Conveyor fully isolated and locked out?', type: 'yesno_text', textLabel: 'Describe isolation points and LOTO procedure', required: true },
+      { id: 'belt_condition', text: 'Belt condition assessed before work?', type: 'yesno_text', textLabel: 'Describe belt condition and any defects noted' },
+      { id: 'lifting_equipment', text: 'Appropriate lifting equipment available for belt handling?', type: 'yesno_text', textLabel: 'List lifting equipment and capacity', required: true },
+      { id: 'emergency_stops', text: 'Emergency stop systems tested and operational?', type: 'yesno', required: true },
+      { id: 'restart_procedure', text: 'Conveyor restart procedure and safety checks documented?', type: 'yesno_text', textLabel: 'Describe restart sequence and safety verifications', required: true }
+    ]
+  };
+
+  const singleHazardTypes = [
+    { key: 'slip', label: 'Slip Hazard', description: 'Wet surfaces, spills' },
+    { key: 'trip', label: 'Trip Hazard', description: 'Cables, uneven surfaces' },
+    { key: 'fall', label: 'Fall Hazard', description: 'Open edges, holes' },
+    { key: 'crush', label: 'Crush Hazard', description: 'Heavy objects, machinery' },
+    { key: 'cut', label: 'Cut Hazard', description: 'Sharp edges, blades' },
+    { key: 'burn', label: 'Burn Hazard', description: 'Hot surfaces, steam' },
+    { key: 'chemical', label: 'Chemical Exposure', description: 'Skin/eye contact, inhalation' },
+    { key: 'electrical', label: 'Electrical Hazard', description: 'Live circuits, static' },
+    { key: 'noise', label: 'Noise Exposure', description: 'Loud machinery, tools' },
+    { key: 'vibration', label: 'Vibration Exposure', description: 'Power tools, machinery' },
+    { key: 'dust', label: 'Dust Exposure', description: 'Particulates, debris' },
+    { key: 'fumes', label: 'Fume Exposure', description: 'Welding, chemical fumes' },
+  ];
+
+  // Render dynamic questionnaire for a specialized permit
+  function renderQuestionnaire(permitKey) {
+    const questions = permitQuestionnaires[permitKey] || [];
+    return questions.map(q => (
+      <View key={q.id} style={{ marginBottom: 16 }}>
+        <Text style={styles.label}>{q.text}</Text>
+        {/* Yes/No as Switch */}
+        {q.type === 'yesno' && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <Text>No</Text>
+            <Switch
+              value={formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.answer === true}
+              onValueChange={val => handleQuestionnaireResponse(permitKey, q.id, val)}
+              style={{ marginHorizontal: 8 }}
+            />
+            <Text>Yes</Text>
+          </View>
+        )}
+        {/* Yes/No + Text */}
+        {q.type === 'yesno_text' && (
+          <View style={{ marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text>No</Text>
+              <Switch
+                value={!!formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.yesno}
+                onValueChange={val => {
+                  const prev = formData.specializedPermits[permitKey]?.questionnaire?.[q.id] || {};
+                  setFormData(prevFormData => ({
+                    ...prevFormData,
+                    specializedPermits: {
+                      ...prevFormData.specializedPermits,
+                      [permitKey]: {
+                        ...prevFormData.specializedPermits[permitKey],
+                        questionnaire: {
+                          ...prevFormData.specializedPermits[permitKey].questionnaire,
+                          [q.id]: val
+                            ? { ...prev, yesno: true }
+                            : { yesno: false, text: '' }
+                        }
+                      }
+                    }
+                  }));
+                }}
+                style={{ marginHorizontal: 8 }}
+              />
+              <Text>Yes</Text>
+            </View>
+            {formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.yesno === true && (
+              <TextInput
+                style={styles.input}
+                value={formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.text || ''}
+                onChangeText={text => {
+                  const prev = formData.specializedPermits[permitKey]?.questionnaire?.[q.id] || {};
+                  setFormData(prevFormData => ({
+                    ...prevFormData,
+                    specializedPermits: {
+                      ...prevFormData.specializedPermits,
+                      [permitKey]: {
+                        ...prevFormData.specializedPermits[permitKey],
+                        questionnaire: {
+                          ...prevFormData.specializedPermits[permitKey].questionnaire,
+                          [q.id]: { ...prev, text }
+                        }
+                      }
+                    }
+                  }));
+                }}
+                placeholder={q.textLabel || 'Enter details'}
+              />
+            )}
+          </View>
+        )}
+        {/* Controls box only when answered yes for yesno */}
+        {q.type === 'yesno' && formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.answer === true && (
+          <TextInput
+            style={styles.input}
+            value={formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.controls || ''}
+            onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'controls')}
+            placeholder={q.textLabel || 'Describe controls for this question'}
+          />
+        )}
+        {/* Text only */}
+        {q.type === 'text' && (
+          <TextInput
+            style={styles.input}
+            value={formData.specializedPermits[permitKey]?.questionnaire?.[q.id]?.text || ''}
+            onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, { text }, 'text')}
+            placeholder={q.textLabel || 'Enter details'}
+          />
+        )}
+        {q.note && (
+          <Text style={{ fontStyle: 'italic', color: '#666', marginTop: 2 }}>{q.note}</Text>
+        )}
+      </View>
+    ));
+  }
+
+  // Render single hazards section: always show controls box for each hazard
+  function renderSingleHazards() {
+    return singleHazardTypes.map(hazard => {
+      const isPresent = formData.singleHazards[hazard.key]?.present || false;
+      return (
+        <View key={hazard.key} style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <Text style={styles.label}>{hazard.label}</Text>
+            <Switch
+              value={isPresent}
+              onValueChange={val => handleSingleHazardChange(hazard.key, 'present', val)}
+              style={{ marginLeft: 8 }}
+            />
+          </View>
+          <Text style={{ color: '#555', marginBottom: 4 }}>{hazard.description}</Text>
+          {isPresent && (
+            <TextInput
+              style={styles.input}
+              value={formData.singleHazards[hazard.key]?.controls || ''}
+              onChangeText={text => handleSingleHazardChange(hazard.key, 'controls', text)}
+              placeholder={"Describe controls for this hazard"}
+            />
+          )}
+        </View>
+      );
+    });
+  }
+  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [permits, setPermits] = useState([]);
+  React.useEffect(() => {
+    if (permits.length === 0) {
+      setPermits([
+        {
+          id: 'P-001',
+          type: 'Hot Work Permit',
+          description: 'Welding repairs in workshop',
+          location: 'Workshop 1',
+          requestedBy: 'John Doe',
+          status: 'pending_approval',
+          priority: 'medium',
+          submittedDate: '2025-09-27',
+          approvedDate: '',
+          completedDate: '',
+        },
+      ]);
+    }
+  }, []);
+  const [selectedPermit, setSelectedPermit] = useState(null);
+  const [editPermitData, setEditPermitData] = useState(null);
+  function getRiskColor(risk) {
+    switch (risk) {
+      case 'low':
+        return '#10B981';
+      case 'medium':
+        return '#F59E42';
+      case 'high':
+        return '#EF4444';
+      default:
+        return '#E5E7EB';
+    }
+  }
+  const initialSpecializedPermits = Object.fromEntries(
+    (specializedPermitTypes || []).map(type => [type.key, { required: false, questionnaire: {} }])
+  );
+  const initialSingleHazards = Object.fromEntries(
+    ([]).map(type => [type.key, { present: false, controls: '' }])
+  );
+  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  const defaultDate = '';
+  const defaultTime = '';
+  const [formData, setFormData] = useState({
+    id: '',
+    description: '',
+    requestedBy: '',
+    location: '',
+    status: 'pending_approval',
+    priority: 'medium',
+    startDate: defaultDate,
+    startTime: defaultTime,
+    endDate: '',
+    endTime: '',
+    specializedPermits: initialSpecializedPermits,
+    singleHazards: initialSingleHazards,
+    jsea: initialJSEA,
+    signOns: []
+  });
+  const [expandedSections, setExpandedSections] = useState({
+    general: true,
+    specialized: false,
+    hazards: false,
+    jsea: false,
+    signons: false
+  });
+  // Sign-On handlers
+  const addSignOn = () => {
+    setFormData(prev => ({
+      ...prev,
+      signOns: [...prev.signOns, { name: '' }]
+    }));
+  };
+  const updateSignOn = (idx, value) => {
+    setFormData(prev => {
+      const updated = [...prev.signOns];
+      updated[idx].name = value;
+      return { ...prev, signOns: updated };
+    });
+  };
+  const removeSignOn = (idx) => {
+    setFormData(prev => {
+      const updated = [...prev.signOns];
+      updated.splice(idx, 1);
+      return { ...prev, signOns: updated };
+    });
+  };
+  // --- Handlers for advanced form ---
+  const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const handleSpecializedPermitChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleSingleHazardChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  // Store both answer and controls for each question
+  const handleQuestionnaireResponse = (permitKey, qid, value, field = 'answer') => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [permitKey]: {
+          ...prev.specializedPermits[permitKey],
+          questionnaire: {
+            ...prev.specializedPermits[permitKey].questionnaire,
+            [qid]: {
+              ...((prev.specializedPermits[permitKey].questionnaire && prev.specializedPermits[permitKey].questionnaire[qid]) || {}),
+              [field]: value
+            }
+          }
+        }
+      }
+    }));
+  };
+  const addJSEAStep = () => {
+    setFormData(prev => ({
+      ...prev,
+      jsea: {
+        ...prev.jsea,
+        taskSteps: [...prev.jsea.taskSteps, { step: '', hazards: '', controls: '', riskLevel: '' }]
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const removeJSEAStep = (idx) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps.splice(idx, 1);
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+
+  // Permit List
+  const renderPermitItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.permitListCard}
+      onPress={() => {
+        setSelectedPermit(item);
+        setEditPermitData(null);
+        setCurrentScreen('edit_permit');
+      }}
+    >
+      <View style={styles.permitListHeader}>
+        <Text style={styles.permitId}>{item.id}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        </View>
+      </View>
+      <Text style={styles.permitType}>{item.type}</Text>
+      <Text style={styles.permitDescription}>{item.description}</Text>
+      <View style={styles.permitDetails}>
+        <Text style={styles.detailText}>Location: {item.location}</Text>
+        <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+        <Text style={styles.detailText}>Date: {item.submittedDate || item.approvedDate || item.completedDate || ''}</Text>
+      </View>
+      <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
+        <Text style={styles.priorityText}>{item.priority.toUpperCase()}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderPermitList = (status, title) => {
+    const filteredPermits = permits.filter(p => p.status === status);
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          {filteredPermits.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No {title.toLowerCase()} found</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredPermits}
+              renderItem={renderPermitItem}
+              keyExtractor={item => item.id}
+            />
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Edit Permit
+  const renderEditPermit = () => {
+    if (!selectedPermit) return null;
+    const permitIndex = permits.findIndex(p => p.id === selectedPermit.id);
+    const localEditData = editPermitData || selectedPermit;
+
+    const handleEditChange = (field, value) => {
+      setEditPermitData({ ...localEditData, [field]: value });
+    };
+
+    const saveEdit = () => {
+      const updatedPermits = [...permits];
+      updatedPermits[permitIndex] = editPermitData || selectedPermit;
+      setPermits(updatedPermits);
+      setEditPermitData(null);
+      setSelectedPermit(null);
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Updated', `Permit ${(editPermitData || selectedPermit).id} has been updated.`);
+    };
+
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
+        </View>
+        <View style={styles.section}>
+          <View style={styles.sectionContent}>
+            <Text style={styles.label}>Work Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              multiline
+              numberOfLines={3}
+              value={localEditData.description}
+              onChangeText={text => handleEditChange('description', text)}
+              placeholder="Describe the work to be performed..."
+            />
+            <Text style={styles.label}>Location</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.location}
+              onChangeText={text => handleEditChange('location', text)}
+              placeholder="Work location"
+            />
+            <Text style={styles.label}>Requested By</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.requestedBy}
+              onChangeText={text => handleEditChange('requestedBy', text)}
+              placeholder="Your name"
+            />
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityButtons}>
+              {['low', 'medium', 'high'].map(priority => (
+                <TouchableOpacity
+                  key={priority}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('priority', priority)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.priority === priority ? 'white' : '#374151' }
+                  ]}>
+                    {priority.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.priorityButtons}>
+              {['pending_approval', 'pending_inspection', 'active', 'completed'].map(status => (
+                <TouchableOpacity
+                  key={status}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.status === status ? getStatusColor(status) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('status', status)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.status === status ? 'white' : '#374151' }
+                  ]}>
+                    {getStatusText(status)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={styles.submitButton} onPress={saveEdit}>
+            <Text style={styles.submitButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // Dashboard
+  const renderDashboard = () => {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Permit Dashboard</Text>
+        </View>
+        <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
+            <Text style={styles.cardLabel}>Pending Approval</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('pending_inspection')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_inspection').length}</Text>
+            <Text style={styles.cardLabel}>Needs Inspection</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'active').length}</Text>
+            <Text style={styles.cardLabel}>Active Permits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
+            <Text style={styles.cardLabel}>Completed</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
+          <Text style={styles.primaryButtonText}>Create New Permit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Main render logic
+  if (currentScreen === 'dashboard') {
+    return renderDashboard();
+  } else if (currentScreen === 'new_permit') {
+    // --- Restore the full new permit form UI ---
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <ScrollView contentContainerStyle={styles.formContainer}>
+          {/* General Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
+              <Text style={styles.sectionTitle}>General</Text>
+              <Text style={styles.expandIcon}>{expandedSections.general ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.general && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Permit ID</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData?.id || ''}
+                  onChangeText={text => setFormData({ ...formData, id: text })}
+                  placeholder="Permit ID"
+                />
+                <Text style={styles.label}>Work Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  multiline
+                  numberOfLines={3}
+                  value={formData?.description || ''}
+                  onChangeText={text => setFormData({ ...formData, description: text })}
+                  placeholder="Describe the work to be performed..."
+                />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData?.location || ''}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
+                <Text style={styles.label}>Requested By</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData?.requestedBy || ''}
+                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
+                  placeholder="Your name"
+                />
+              </View>
+            )}
+          </View>
+          {/* Specialized Permits Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
+              <Text style={styles.sectionTitle}>Specialized Permits</Text>
+              <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.specialized && (
+              <View style={styles.sectionContent}>
+                {specializedPermitTypes.map(permit => (
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData?.specializedPermits?.[permit.key]?.required || false}
+                        onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
+                    {formData?.specializedPermits?.[permit.key]?.required && (
+                      <>
+                        {renderQuestionnaire(permit.key)}
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* Single Hazards Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('hazards')}>
+              <Text style={styles.sectionTitle}>Single Hazards</Text>
+              <Text style={styles.expandIcon}>{expandedSections.hazards ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.hazards && (
+              <View style={styles.sectionContent}>
+                {singleHazardTypes.map(hazard => (
+                  <View key={hazard.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData?.singleHazards?.[hazard.key]?.present || false}
+                        onValueChange={val => handleSingleHazardChange(hazard.key, 'present', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{hazard.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{hazard.description}</Text>
+                    {formData?.singleHazards?.[hazard.key]?.present && (
+                      <>
+                        <TextInput
+                          style={styles.input}
+                          value={formData.singleHazards[hazard.key]?.controls || ''}
+                          onChangeText={text => handleSingleHazardChange(hazard.key, 'controls', text)}
+                          placeholder="Describe controls for this hazard"
+                        />
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* JSEA Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
+              <Text style={styles.sectionTitle}>JSEA</Text>
+              <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.jsea && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Task Steps</Text>
+                {formData?.jsea?.taskSteps?.map((step, idx) => (
+                  <View key={idx} style={styles.jseaStep}>
+                    <View style={styles.stepHeader}>
+                      <Text style={styles.stepTitle}>Step {idx + 1}</Text>
+                      <TouchableOpacity onPress={() => removeJSEAStep(idx)}>
+                        <Text style={styles.removeButton}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      value={step.step}
+                      onChangeText={text => updateJSEAStep(idx, 'step', text)}
+                      placeholder="Describe step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.hazards}
+                      onChangeText={text => updateJSEAStep(idx, 'hazards', text)}
+                      placeholder="Hazards for this step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.controls}
+                      onChangeText={text => updateJSEAStep(idx, 'controls', text)}
+                      placeholder="Controls for this step"
+                    />
+                    <View style={styles.riskButtons}>
+                      {['low', 'medium', 'high'].map(risk => (
+                        <TouchableOpacity
+                          key={risk}
+                          style={[
+                            styles.riskButton,
+                            { backgroundColor: step.riskLevel === risk ? getRiskColor(risk) : '#E5E7EB' }
+                          ]}
+                          onPress={() => updateJSEAStep(idx, 'riskLevel', risk)}
+                        >
+                          <Text style={[
+                            styles.riskButtonText,
+                            { color: step.riskLevel === risk ? 'white' : '#374151' }
+                          ]}>{risk.toUpperCase()}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={addJSEAStep}>
+                  <Text style={styles.addButtonText}>Add Step</Text>
+                </TouchableOpacity>
+                <Text style={styles.label}>Overall Risk Rating</Text>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: formData?.jsea?.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: risk } })}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: formData?.jsea?.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData?.jsea?.additionalPrecautions || ''}
+                  onChangeText={text => setFormData({ ...formData, jsea: { ...formData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                />
+              </View>
+            )}
+          </View>
+          {/* Sign-On Register Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('signons')}>
+              <Text style={styles.sectionTitle}>Sign-On Register</Text>
+              <Text style={styles.expandIcon}>{expandedSections.signons ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.signons && (
+              <View style={styles.sectionContent}>
+                {formData?.signOns?.map((signOn, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      value={signOn.name}
+                      onChangeText={text => updateSignOn(idx, text)}
+                      placeholder={`Person ${idx + 1} name`}
+                    />
+                    <TouchableOpacity onPress={() => removeSignOn(idx)} style={styles.removeButton}>
+                      <Text style={{ color: 'red', fontWeight: 'bold', marginLeft: 8 }}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity onPress={addSignOn} style={styles.addButton}>
+                  <Text style={styles.addButtonText}>Add Person</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+          {/* Submit Button */}
+          <View style={styles.submitSection}>
+            <TouchableOpacity style={styles.submitButton} onPress={() => {}}>
+              <Text style={styles.submitButtonText}>Create Permit</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  } else if (
+    currentScreen === 'pending_approval' ||
+    currentScreen === 'pending_inspection' ||
+    currentScreen === 'active' ||
+    currentScreen === 'completed'
+  ) {
+    let title = '';
+    switch (currentScreen) {
+      case 'pending_approval':
+        title = 'Pending Approval';
+        break;
+      case 'pending_inspection':
+        title = 'Needs Inspection';
+        break;
+      case 'active':
+        title = 'Active Permits';
+        break;
+      case 'completed':
+        title = 'Completed';
+        break;
+      default:
+        title = '';
+    }
+    return renderPermitList(currentScreen, title);
+  } else if (currentScreen === 'edit_permit') {
+    return renderEditPermit();
+  } else {
+    // fallback UI
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <Text style={{ color: 'red', fontSize: 18 }}>Unknown screen: {currentScreen}</Text>
+      </View>
+    );
+  }
+}
+
+
+const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    backgroundColor: '#2563EB',
+    padding: 20,
+    paddingTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
+  },
+  backButton: {
+    color: 'white',
+    fontSize: 16,
+    marginRight: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  dashboardGrid: {
+    padding: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  dashboardCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    borderLeftWidth: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  cardLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#2563EB',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  permitList: {
+    flex: 1,
+  },
+  permitListContainer: {
+    padding: 16,
+  },
+  permitListCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    position: 'relative',
+  },
+  permitListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  permitId: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  permitType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  permitDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  permitDetails: {
+    marginBottom: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  priorityIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  priorityText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  section: {
+    margin: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  sectionHeader: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dangerHeader: {
+    backgroundColor: '#FEF2F2',
+  },
+  warningHeader: {
+    backgroundColor: '#FFFBEB',
+  },
+  infoHeader: {
+    backgroundColor: '#EFF6FF',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  dangerTitle: {
+    color: '#DC2626',
+  },
+  warningTitle: {
+    color: '#D97706',
+  },
+  infoTitle: {
+    color: '#2563EB',
+  },
+  expandIcon: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  sectionContent: {
+    padding: 16,
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 4,
+    marginTop: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  permitCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  permitHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  permitInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  permitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  questionnaireTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  questionnaireScroll: {
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  questionContainer: {
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  radioSelected: {
+    borderColor: '#2563EB',
+    backgroundColor: '#2563EB',
+  },
+  radioLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  textInputContainer: {
+    marginTop: 8,
+  },
+  textLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  detailTextInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    backgroundColor: 'white',
+    textAlignVertical: 'top',
+    minHeight: 60,
+  },
+  addButton: {
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  jseaStep: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  removeButton: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  riskButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  riskButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  riskButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  submitSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+    backgroundColor: 'white',
+    margin: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  draftButton: {
+    flex: 0.45,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  draftButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 0.45,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  dateTimeColumn: {
+    flex: 0.48,
+  },
+  dateTimeInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#374151',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  calendarIcon: {
+    fontSize: 18,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  priorityButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  priorityButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
+
+// DateTimePicker Styles
+const pickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  dateContainer: {
+    alignItems: 'center',
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  yearButton: {
+    fontSize: 16,
+    color: '#2563EB',
+    fontWeight: '500',
+  },
+  currentYear: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  monthContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  monthButton: {
+    padding: 8,
+    margin: 4,
+    borderRadius: 6,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  selectedMonth: {
+    backgroundColor: '#2563EB',
+  },
+  monthText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedMonthText: {
+    color: 'white',
+  },
+  dayContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: 280,
+  },
+  dayButton: {
+    width: 35,
+    height: 35,
+    margin: 2,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDay: {
+    backgroundColor: '#2563EB',
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedDayText: {
+    color: 'white',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  timeSection: {
+    alignItems: 'center',
+    width: 80,
+  },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  timeScroll: {
+    height: 150,
+  },
+  timeOption: {
+    padding: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  selectedTimeOption: {
+    backgroundColor: '#2563EB',
+  },
+  timeOptionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  selectedTimeOptionText: {
+    color: 'white',
+  },
+  timeSeparator: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginHorizontal: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+   },
+  cancelButton: {
+    flex: 0.4,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 0.4,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+export default PermitManagementApp;

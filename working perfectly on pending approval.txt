@@ -1,0 +1,3196 @@
+// List of all available sites
+const ALL_SITES = [
+  'Amisfield Quarry',
+  'Belmont Quarry',
+  'Wheatsheaf Quarry',
+  'Otaki Quarry',
+  'Petone Quarry',
+  'Roys Hill Aggregates',
+  'Rangitikei Aggregates',
+  'Tamahere Quarry',
+  'Whitehall Quarry',
+  'Pukekawa Quarry',
+  'Hunua Quarry',
+  'Flat Top Quarry',
+  'Whangaripo Quarry',
+  'Otaika Quarry',
+];
+
+// CustomDropdown: modal dropdown for site selection
+function CustomDropdown({ label, options, selectedValue, onValueChange, style }) {
+  const [modalVisible, setModalVisible] = React.useState(false);
+  return (
+    <>
+      <TouchableOpacity
+        style={[{
+          borderWidth: 1,
+          borderColor: '#D1D5DB',
+          borderRadius: 6,
+          padding: 12,
+          backgroundColor: 'white',
+          minHeight: 48,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }, style]}
+        onPress={() => setModalVisible(true)}
+      >
+        <Text style={{ color: selectedValue ? '#374151' : '#9CA3AF', fontSize: 16 }}>
+          {selectedValue || label || 'Select'}
+        </Text>
+        <Text style={{ fontSize: 18, color: '#6B7280' }}>▼</Text>
+      </TouchableOpacity>
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={() => setModalVisible(false)}>
+          <View style={{
+            backgroundColor: 'white',
+            margin: 40,
+            borderRadius: 8,
+            padding: 16,
+            maxHeight: '60%',
+            justifyContent: 'center',
+          }}>
+            <FlatList
+              data={options}
+              keyExtractor={item => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  onPress={() => {
+                    onValueChange(item);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 16, color: item === selectedValue ? '#2563EB' : '#374151' }}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              ListFooterComponent={<TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{ color: '#EF4444', textAlign: 'center', marginTop: 12 }}>Cancel</Text></TouchableOpacity>}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+}
+// Editable Inspection Permit Screen (for Needs Inspection)
+function EditInspectionPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+  const [editData, setEditData] = React.useState({ ...permit });
+  const [inspector, setInspector] = React.useState('');
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [comments, setComments] = React.useState('');
+  // ...reuse helpers from EditActivePermitScreen for editing fields...
+  const handleSpecializedChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleHazardChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setEditData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const handleSignOnChange = (idx, field, value) => {
+    setEditData(prev => {
+      const signOns = [...(prev.signOns || [])];
+      signOns[idx] = { ...signOns[idx], [field]: value };
+      return { ...prev, signOns };
+    });
+  };
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Inspect/Edit Permit {editData.id}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Type:</Text>
+        <TextInput style={styles.input} value={editData.type || ''} onChangeText={text => setEditData({ ...editData, type: text })} />
+        <Text style={styles.label}>Description:</Text>
+        <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+        <Text style={styles.label}>Location:</Text>
+        <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+        <Text style={styles.label}>Requested By:</Text>
+        <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+        <Text style={styles.label}>Priority:</Text>
+        <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+        <Text style={styles.label}>Status:</Text>
+        <TextInput style={styles.input} value={editData.status || ''} onChangeText={text => setEditData({ ...editData, status: text })} />
+        <Text style={styles.label}>Dates:</Text>
+        <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
+        <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
+        <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
+        <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+        {/* Specialized Permits */}
+        {editData.specializedPermits && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Specialized Permits:</Text>
+            {Object.entries(editData.specializedPermits).map(([key, val]) => val.required ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                {val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
+                  <View key={qid} style={{ marginLeft: 8 }}>
+                    <Text style={styles.detailText}>{qid}:</Text>
+                    <TextInput style={styles.input} value={qval.answer || qval.text || ''} onChangeText={text => {
+                      const updated = { ...val.questionnaire, [qid]: { ...qval, answer: text } };
+                      handleSpecializedChange(key, 'questionnaire', updated);
+                    }} />
+                    {qval.controls !== undefined && (
+                      <TextInput style={styles.input} value={qval.controls} onChangeText={text => {
+                        const updated = { ...val.questionnaire, [qid]: { ...qval, controls: text } };
+                        handleSpecializedChange(key, 'questionnaire', updated);
+                      }} placeholder="Controls" />
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* Single Hazards */}
+        {editData.singleHazards && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Single Hazards:</Text>
+            {Object.entries(editData.singleHazards).map(([key, val]) => val.present ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                <TextInput style={styles.input} value={val.controls} onChangeText={text => handleHazardChange(key, 'controls', text)} placeholder="Controls" />
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* JSEA */}
+        {editData.jsea && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>JSEA Task Steps:</Text>
+            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Step {idx + 1}:</Text>
+                <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
+                <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
+                <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
+                <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+              </View>
+            )) : <Text style={styles.detailText}>None</Text>}
+            <Text style={styles.label}>Overall Risk Rating:</Text>
+            <TextInput style={styles.input} value={editData.jsea.overallRiskRating} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+            <Text style={styles.label}>Additional Precautions:</Text>
+            <TextInput style={styles.input} value={editData.jsea.additionalPrecautions} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Additional Precautions" />
+          </View>
+        )}
+        {/* Sign-Ons */}
+        {editData.signOns && editData.signOns.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name:</Text>
+                <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Name" />
+                <Text style={styles.detailText}>Signature:</Text>
+                <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Inspection Section */}
+        <View style={{ marginTop: 24, padding: 12, backgroundColor: '#E5E7EB', borderRadius: 8 }}>
+          <Text style={[styles.label, { marginBottom: 8 }]}>Inspection</Text>
+          <Text style={styles.detailText}>Inspector Name:</Text>
+          <TextInput style={styles.input} value={inspector} onChangeText={setInspector} placeholder="Inspector Name" />
+          <Text style={styles.detailText}>Date:</Text>
+          <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="Date" />
+          <Text style={styles.detailText}>Inspection Comments:</Text>
+          <TextInput style={styles.input} value={comments} onChangeText={setComments} placeholder="What was inspected?" multiline />
+        </View>
+      </View>
+      <View style={styles.submitSection}>
+        <TouchableOpacity style={styles.submitButton} onPress={() => {
+          const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'active', inspected: { inspector, date, comments } } : p);
+          setPermits(updated);
+          setCurrentScreen('dashboard');
+          Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
+        }}>
+          <Text style={styles.submitButtonText}>Mark as Inspected</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Switch,
+  FlatList,
+  Modal
+} from 'react-native';
+
+// --- Render questionnaire for a specialized permit ---
+function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) {
+  const questions = permitQuestionnaires[permitKey] || [];
+  const answers = formData.specializedPermits[permitKey]?.questionnaire || {};
+  return (
+    <View style={styles.questionnaireScroll}>
+      {questions.map((q) => {
+        const answerObj = answers[q.id] || {};
+        const answer = answerObj.answer || '';
+        const controls = answerObj.controls || '';
+        return (
+          <View key={q.id} style={styles.questionContainer}>
+            <Text style={styles.questionText}>
+              {q.text} {q.required && <Text style={styles.required}>*</Text>}
+            </Text>
+            {q.note && <Text style={styles.noteText}>{q.note}</Text>}
+            {/* Render input based on type */}
+            {q.type === 'yesno' && (
+              <View style={styles.radioGroup}>
+                {['yes', 'no'].map(opt => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={styles.radioOption}
+                    onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                  >
+                    <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                    <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {q.type === 'yesno_text' && (
+              <View>
+                <View style={styles.radioGroup}>
+                  {['yes', 'no'].map(opt => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={styles.radioOption}
+                      onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                    >
+                      <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                      <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {answer === 'yes' && (
+                  <View style={styles.textInputContainer}>
+                    <Text style={styles.textLabel}>{q.textLabel || 'Please provide details:'}</Text>
+                    <TextInput
+                      style={styles.detailTextInput}
+                      value={answerObj.text || ''}
+                      onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
+                      placeholder={q.textLabel || 'Enter details'}
+                      multiline
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+            {q.type === 'text' && (
+              <View style={styles.textInputContainer}>
+                <TextInput
+                  style={styles.detailTextInput}
+                  value={answerObj.text || ''}
+                  onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
+                  placeholder={q.textLabel || 'Enter details'}
+                  multiline
+                />
+              </View>
+            )}
+            {/* Controls input for every yes answer (except for text-only questions) */}
+            {((q.type === 'yesno' || q.type === 'yesno_text') && answer === 'yes') && (
+              <View style={styles.textInputContainer}>
+                <Text style={styles.textLabel}>Controls for this question:</Text>
+                <TextInput
+                  style={styles.detailTextInput}
+                  value={controls}
+                  onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'controls')}
+                  placeholder="Describe controls for this hazard/question"
+                  multiline
+                />
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// Custom DateTimePicker Component
+const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValue }) => {
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+  const formatTime = (hour, minute) => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  const handleConfirm = () => {
+    if (mode === 'date') {
+      onSelect(formatDate(selectedDate));
+    } else {
+      onSelect(formatTime(tempHour, tempMinute));
+    }
+    onClose();
+  };
+  const [selectedDate, setSelectedDate] = useState(currentValue ? new Date(currentValue) : new Date());
+  const [tempHour, setTempHour] = useState(selectedDate.getHours());
+  const [tempMinute, setTempMinute] = useState(selectedDate.getMinutes());
+
+  const renderDatePicker = () => {
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const day = selectedDate.getDate();
+    // When changing month, keep year and day, but clamp day to max days in new month
+    const handleMonthSelect = (newMonth) => {
+      const maxDay = new Date(year, newMonth + 1, 0).getDate();
+      const newDay = Math.min(day, maxDay);
+      setSelectedDate(new Date(year, newMonth, newDay));
+    };
+    // When changing day, keep year and month
+    const handleDaySelect = (newDay) => {
+      setSelectedDate(new Date(year, month, newDay));
+    };
+    // When changing year, keep month and day, clamp day
+    const handleYearChange = (delta) => {
+      const newYear = year + delta;
+      const maxDay = new Date(newYear, month + 1, 0).getDate();
+      const newDay = Math.min(day, maxDay);
+      setSelectedDate(new Date(newYear, month, newDay));
+    };
+    return (
+      <View style={pickerStyles.dateContainer}>
+        <View style={pickerStyles.dateHeader}>
+          <TouchableOpacity onPress={() => handleYearChange(-1)}>
+            <Text style={pickerStyles.yearButton}>‹</Text>
+          </TouchableOpacity>
+          <Text style={pickerStyles.currentYear}>{year}</Text>
+          <TouchableOpacity onPress={() => handleYearChange(1)}>
+            <Text style={pickerStyles.yearButton}>›</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={pickerStyles.monthContainer}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.monthButton,
+                month === i && pickerStyles.selectedMonth
+              ]}
+              onPress={() => handleMonthSelect(i)}
+            >
+              <Text style={[
+                pickerStyles.monthText,
+                month === i && pickerStyles.selectedMonthText
+              ]}>
+                {new Date(year, i, 1).toLocaleString('default', { month: 'short' })}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={pickerStyles.dayContainer}>
+          {Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.dayButton,
+                day === i + 1 && pickerStyles.selectedDay
+              ]}
+              onPress={() => handleDaySelect(i + 1)}
+            >
+              <Text style={[
+                pickerStyles.dayText,
+                day === i + 1 && pickerStyles.selectedDayText
+              ]}>
+                {i + 1}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+// ...existing code...
+
+  const renderTimePicker = () => (
+    <View style={pickerStyles.timeContainer}>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Hour</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled>
+          {Array.from({ length: 24 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempHour === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempHour(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempHour === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Minute</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled>
+          {Array.from({ length: 60 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempMinute === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempMinute(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempMinute === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View style={pickerStyles.overlay}>
+        <View style={pickerStyles.modal}>
+          <View style={pickerStyles.header}>
+            <Text style={pickerStyles.title}>
+              {mode === 'date' ? 'Select Date' : 'Select Time'}
+            </Text>
+          </View>
+          
+          {mode === 'date' ? renderDatePicker() : renderTimePicker()}
+          
+          <View style={pickerStyles.buttonContainer}>
+            <TouchableOpacity style={pickerStyles.cancelButton} onPress={onClose}>
+              <Text style={pickerStyles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pickerStyles.confirmButton} onPress={handleConfirm}>
+              <Text style={pickerStyles.confirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const PermitManagementApp = () => {
+  // --- Advanced Permit Form State ---
+  const specializedPermitTypes = [
+    { key: 'hotWork', label: 'Hot Work', description: 'Welding, cutting, grinding, or any activity that generates heat or sparks.' },
+    { key: 'confinedSpace', label: 'Confined Space', description: 'Entry into tanks, vessels, pits, or other confined spaces.' },
+    { key: 'workingAtHeight', label: 'Working at Height', description: 'Work at height where a fall could occur.' },
+    { key: 'electrical', label: 'Electrical', description: 'Electrical work, including panel access and live work.' },
+    { key: 'excavation', label: 'Excavation', description: 'Digging, trenching, or disturbing the ground.' },
+    { key: 'lifting', label: 'Lifting', description: 'Use of cranes, hoists, or other lifting equipment.' },
+    { key: 'blasting', label: 'Blasting', description: 'Use of explosives or blasting agents.' },
+    { key: 'plantServicing', label: 'Plant Servicing', description: 'Servicing or maintenance of plant equipment.' },
+    { key: 'stripping', label: 'Stripping', description: 'Stripping of insulation, paint, or other materials.' },
+    { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' }
+  ];
+  const singleHazardTypes = [
+    { key: 'slip', label: 'Slip', description: 'Potential to slip.' },
+    { key: 'chemicals', label: 'Chemicals', description: 'Use or presence of hazardous chemicals.' },
+    { key: 'noise', label: 'Noise', description: 'High noise levels.' },
+    { key: 'dust', label: 'Dust', description: 'Dust generation or exposure.' },
+    { key: 'manualHandling', label: 'Manual Handling', description: 'Lifting, carrying, or moving loads.' },
+    { key: 'other', label: 'Other', description: 'Other hazards.' }
+  ];
+  // Complete questionnaires for each specialized permit
+  const permitQuestionnaires = {
+    confinedSpace: [
+      { id: 'isolations', text: 'Are all isolations necessary completed?', type: 'yesno', required: true },
+      { id: 'training', text: 'Are all workers entering the confined space trained and competent to perform the required task within the confined space as well as entering the confined space? NO CONFINED SPACE TRAINING = NO ENTRY', type: 'yesno', required: true },
+      { id: 'medical_check', text: 'All workers checked for any potential medical, health, psychological conditions that might pose a risk, prior to entry.', type: 'yesno', required: true },
+      { id: 'atmosphere_testing', text: 'Atmosphere testing arranged (O2, CO, H2S and flammables standard test requirement) - ensure gas testing equipment is within calibration and appropriate for the task', type: 'yesno', required: true },
+      { id: 'other_gases', text: 'Are any other toxic gases or asphyxiants to be tested?', type: 'yesno_text', textLabel: 'If yes, record type of gas' },
+      { id: 'ventilation', text: 'Is ventilation of the confined space required?', type: 'yesno_text', textLabel: 'Describe controls' },
+      { id: 'engulfment', text: 'Is there a possibility of engulfment, drowning or overhead hazards?', type: 'yesno_text', textLabel: 'If yes, describe any other requirements' },
+      { id: 'pressure', text: 'Is there a possibility of extreme suction, pressure or flow occurring while people are in this confined space?', type: 'yesno_text', textLabel: 'If yes, describe controls' },
+      { id: 'access_egress', text: 'Is the access and egress to the confined space restricted, difficult or hazardous?', type: 'yesno_text', textLabel: 'If yes, outline precautions to take' },
+      { id: 'barrier', text: 'Barrier to always be placed over the access point when workers leave the area.', type: 'yesno', required: true },
+      { id: 'vehicles', text: 'Are vehicles or combustion engines likely to be a hazard?', type: 'yesno_text', textLabel: 'If yes, describe controls' },
+      { id: 'harnesses', text: 'Are safety harnesses and a method of extraction required?', type: 'yesno', note: 'If yes, Review the Fall Arrest Equipment Checklist.' },
+      { id: 'communication_method', text: 'Method of communication in case of emergency with entrants into confined space', type: 'yesno_text', textLabel: 'Describe communication method (Phone/Radio/Audible Signal/Visual Signal/Rope Signal)' },
+      { id: 'safety_watch_name', text: 'Safety Watch Name assigned', type: 'text', required: true },
+      { id: 'emergency_contact', text: 'Site Manager/Supervisor in case of emergency name', type: 'text', required: true }
+    ],
+    hotWork: [
+      { id: 'workshop_alternative', text: 'Can the hot work be done in an approved hot work area such as the workshop?', type: 'text', required: true },
+      { id: 'flammable_materials', text: 'Is there flammable or combustible substances/material evident, including dry vegetation within 10m of the hot work, in containers, piping systems, drains, equipment in the area, or directly below the area?', type: 'yesno_text', textLabel: 'If yes, describe removal/purging/covering controls' },
+      { id: 'ignition_conveyance', text: 'Is it possible for ignition sources from hot work to be conveyed by conveyors, ducting, airflow or wind to combustible materials?', type: 'yesno', required: true },
+      { id: 'conveyors_nearby', text: 'Are there conveyors, rubber lined chutes and poly deck screens in the immediate area and/or below any hot work?', type: 'yesno_text', textLabel: 'If yes, describe fire protection measures (fire blankets, wet sacks, hose down etc.)' },
+      { id: 'wet_surfaces', text: 'Does floors and surface areas need to be wetted down?', type: 'yesno', required: true },
+      { id: 'flammable_gases', text: 'Are flammable gases present in the area?', type: 'yesno_text', textLabel: 'If yes, describe gas testing requirements and results', note: 'Gas test required if yes' },
+      { id: 'confined_space', text: 'Is hot work being undertaken in a confined space?', type: 'yesno_text', textLabel: 'If yes, list additional precautions and confirm Confined Space permit completed', note: 'Confined Space permit also required if yes' },
+      { id: 'hdpe_welding', text: 'Is High Density Polyethylene pipe being welded using electrofusion?', type: 'yesno_text', textLabel: 'If yes, describe blanking procedures and cooling time requirements', note: 'Blank off open end and follow manufacturer cooling times' },
+      { id: 'grinders', text: 'Are disk grinders being used?', type: 'yesno_text', textLabel: 'If yes, confirm double eye protection and qualified operator for 9" grinders', note: 'Double eye protection required' },
+      { id: 'wash_down', text: 'On processing plants, wash down hose in place and pumps turned on before commencing hot work.', type: 'yesno', required: true },
+      { id: 'fire_extinguishers', text: 'Adequate and suitable fire extinguishers available on the job? A minimum of 3.5kg CO2 or dry powder fire extinguishers must be on hand.', type: 'yesno', required: true },
+      { id: 'hot_marking', text: 'Did you mark all work items as HOT if someone else is working in the same area?', type: 'yesno', required: true },
+      { id: 'flashback_arrestors', text: 'Are the correct flash back arrestors fitted to all gas bottles?', type: 'yesno', required: true },
+      { id: 'alarm_plan', text: 'Is there a plan to raise the alarm if needed?', type: 'yesno_text', textLabel: 'Describe alarm procedure and communication method', required: true }
+    ],
+    electrical: [
+      { id: 'ewrb_licenses', text: 'Do all the workers engaged in the electrical work have current Electrical Worker Registration Board licences? Take copies for your records. No EWRB licence = No Work!', type: 'yesno', required: true },
+      { id: 'sops_attached', text: 'Attach all relevant SOPs or switching procedures to the work permit.', type: 'yesno', required: true },
+      { id: 'isolation_requirements', text: 'Isolation requirements completed? Test and prove all isolations. Personal locks to be used and in place during the job.', type: 'yesno_text', textLabel: 'Describe isolation requirements and lock placement', required: true },
+      { id: 'signage', text: 'Signage required to be placed by job to warn of hazard?', type: 'yesno_text', textLabel: 'Describe signage type and placement' },
+      { id: 'ladder_required', text: 'Will a ladder be required? If yes, non-metallic ladders to be used in switchyards and around live equipment.', type: 'yesno_text', textLabel: 'Confirm non-metallic ladder type and inspection status' },
+      { id: 'cordon_area', text: 'Area of work to be cordoned off.', type: 'yesno_text', textLabel: 'Describe cordoning method and boundaries' },
+      { id: 'switchyard_secured', text: 'Switchyard to be kept secured.', type: 'yesno', required: true },
+      { id: 'hv_gloves', text: 'High voltage gloves to be worn when switching.', type: 'yesno', required: true },
+      { id: 'ppe', text: 'Usual PPE of; high viz gear/flame retardant overalls or clothing, safety boots, safety glasses and hardhat worn.', type: 'yesno', required: true },
+      { id: 'oil_spillage', text: 'Oil spillage kit available for work on transformers or oil filled switch gear.', type: 'yesno', required: true },
+      { id: 'work_requirements', text: 'List any special work requirements and other work instructions or attach work plan', type: 'yesno_text', textLabel: 'Describe special requirements and work plan details' },
+      { id: 'competent_personnel', text: 'All personnel undertaking this work are suitably competent (or supervised) to perform the required tasks?', type: 'yesno', required: true },
+      { id: 'environmental', text: 'Consider: Are there any other environmental matters?', type: 'yesno_text', textLabel: 'If yes, describe environmental considerations and precautions' },
+      { id: 'communication', text: 'Communication: Who needs to be advised or notified? Consider: Production, other site personnel and external agencies', type: 'yesno_text', textLabel: 'Describe communication plan and notification list', required: true },
+      { id: 'take5', text: 'Take 5 - Any other hazards and controls required?', type: 'yesno_text', textLabel: 'Describe additional hazards and control measures' },
+      { id: 'job_completion', text: 'Job Completion: Any special requirements at the closure of the job, before handing permit back for sign off?', type: 'yesno_text', textLabel: 'If yes, describe completion requirements' }
+    ],
+    workingAtHeight: [
+      { id: 'trained_competent', text: 'Are all workers undertaking the task trained and competent in work at heights?', type: 'yesno', required: true },
+      { id: 'fitness', text: 'Are all persons fit for work at height? No persons are suffering from any ailment, illness or physical condition that could put any person at risk during work at height.', type: 'yesno', required: true },
+      { id: 'fall_prevention', text: 'Best fall prevention methods assessed and put in place?', type: 'yesno_text', textLabel: 'Describe fall prevention methods implemented', required: true },
+      { id: 'protection_system', text: 'Fall Protection System that will be used', type: 'yesno_text', textLabel: 'Specify: Total Restraint/Fall Restraint/Work Positioning/Limited Free Fall Arrest/Free Fall Arrest', required: true },
+      { id: 'safety_equipment', text: 'Specify Safety harnesses system/helmet/fall protection equipment to be used', type: 'text', required: true },
+      { id: 'anchor_points', text: 'Specify the anchor point(s)', type: 'text', required: true },
+      { id: 'fall_arrest_checklist', text: 'Mandatory completion of the Fall Arrest Equipment Checklist if harnesses and lanyards are used.', type: 'yesno', required: true },
+      { id: 'falling_objects', text: 'Provision made to prevent objects from falling below, such as screening.', type: 'yesno_text', textLabel: 'Describe object fall prevention measures' },
+      { id: 'tool_count', text: 'Tool count completed before and after work?', type: 'yesno', required: true },
+      { id: 'overhead_lines', text: 'Will work at height be conducted within 4 meters of overhead lines? All work closer than 4 meters to overhead conductors must be authorized by the network operator.', type: 'yesno_text', textLabel: 'If yes, attach network operator approval and describe safety measures', note: 'Network operator approval required if within 4m' },
+      { id: 'emergency_retrieval', text: 'Retrieval emergency plans/procedures, method of relief from suspension trauma required when fall arrest', type: 'yesno_text', textLabel: 'Describe emergency retrieval plan and suspension trauma relief procedures', required: true },
+      { id: 'safety_watch', text: 'Safety watch required? Safety Watch must be present if harness is in use.', type: 'yesno_text', textLabel: 'Name safety watch person and describe their specific duties', required: true }
+    ],
+    excavation: [
+      { id: 'before_you_dig', text: 'Before you dig notification completed?', type: 'yesno', required: true },
+      { id: 'underground_services', text: 'Underground services identified and marked?', type: 'yesno_text', textLabel: 'Describe services and marking method', required: true },
+      { id: 'shoring_required', text: 'Is shoring or slope protection required?', type: 'yesno_text', textLabel: 'Describe shoring/slope protection measures' },
+      { id: 'competent_person', text: 'Competent person assigned to supervise excavation?', type: 'text', required: true },
+      { id: 'emergency_egress', text: 'Emergency egress planned for workers in excavation?', type: 'yesno_text', textLabel: 'Describe egress plan', required: true }
+    ],
+    lifting: [
+      { id: 'lift_plan', text: 'Lift plan completed and approved?', type: 'yesno', required: true },
+      { id: 'crane_inspection', text: 'Crane pre-use inspection completed?', type: 'yesno', required: true },
+      { id: 'operator_competency', text: 'Crane operator competency verified?', type: 'yesno_text', textLabel: 'Operator name and certification details', required: true },
+      { id: 'exclusion_zone', text: 'Exclusion zone established around crane?', type: 'yesno_text', textLabel: 'Describe exclusion zone boundaries and controls', required: true },
+      { id: 'load_capacity', text: 'Load within crane capacity limits?', type: 'yesno_text', textLabel: 'Load weight and crane capacity', required: true }
+    ],
+    blasting: [
+      { id: 'blast_permit', text: 'Blast permit obtained from authorities?', type: 'yesno', required: true },
+      { id: 'licensed_personnel', text: 'Licensed shot firer assigned?', type: 'text', required: true },
+      { id: 'exclusion_zone', text: 'Blast exclusion zone established and communicated?', type: 'yesno_text', textLabel: 'Describe exclusion zone and communication method', required: true },
+      { id: 'vibration_monitoring', text: 'Vibration monitoring equipment in place?', type: 'yesno', required: true },
+      { id: 'weather_conditions', text: 'Weather conditions suitable for blasting?', type: 'yesno_text', textLabel: 'Current weather assessment', required: true }
+    ],
+    plantServicing: [
+      { id: 'lockout_tagout', text: 'Lockout/tagout procedures implemented?', type: 'yesno_text', textLabel: 'Describe LOTO procedure and energy isolation', required: true },
+      { id: 'competent_technician', text: 'Competent technician assigned for servicing?', type: 'text', required: true },
+      { id: 'service_manual', text: 'Manufacturer service manual available?', type: 'yesno', required: true },
+      { id: 'spare_parts', text: 'Correct spare parts and tools available?', type: 'yesno_text', textLabel: 'List key parts and tools required' },
+      { id: 'restart_procedure', text: 'Plant restart procedure documented?', type: 'yesno_text', textLabel: 'Describe restart sequence and checks', required: true }
+    ],
+    stripping: [
+      { id: 'environmental_clearance', text: 'Environmental clearance obtained?', type: 'yesno', required: true },
+      { id: 'archaeology_survey', text: 'Archaeological survey completed if required?', type: 'yesno_text', textLabel: 'Survey results and any restrictions' },
+      { id: 'equipment_inspection', text: 'Stripping equipment pre-start inspection completed?', type: 'yesno', required: true },
+      { id: 'dust_control', text: 'Dust suppression measures in place?', type: 'yesno_text', textLabel: 'Describe dust control methods', required: true },
+      { id: 'traffic_management', text: 'Traffic management plan implemented?', type: 'yesno_text', textLabel: 'Describe traffic control measures', required: true }
+    ],
+    surveying: [
+      { id: 'survey_plan', text: 'Survey plan and methodology approved?', type: 'yesno', required: true },
+      { id: 'qualified_surveyor', text: 'Qualified surveyor assigned to task?', type: 'text', required: true },
+      { id: 'equipment_calibration', text: 'Survey equipment calibration current?', type: 'yesno', required: true },
+      { id: 'site_access', text: 'Safe site access routes established?', type: 'yesno_text', textLabel: 'Describe access routes and safety measures', required: true },
+      { id: 'communication', text: 'Communication plan with operations established?', type: 'yesno_text', textLabel: 'Describe communication method and frequency', required: true }
+    ]
+  };
+  const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
+  const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
+  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  // Initial sign-ons: empty array
+  const initialSignOns = [];
+  // Date/time state for new permit
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  const defaultDate = now.toISOString().split('T')[0];
+  const defaultTime = pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+  const [formData, setFormData] = useState({
+    id: '',
+    description: '',
+    requestedBy: '',
+    location: '',
+    status: 'pending_approval',
+    priority: 'medium',
+    startDate: defaultDate,
+    startTime: defaultTime,
+    endDate: '',
+    endTime: '',
+    specializedPermits: initialSpecializedPermits,
+    singleHazards: initialSingleHazards,
+    jsea: initialJSEA,
+    signOns: initialSignOns
+  });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    general: true,
+    specialized: false,
+    hazards: false,
+    jsea: false
+  });
+  // --- Handlers for advanced form ---
+  const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const handleSpecializedPermitChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleSingleHazardChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  // Store both answer and controls for each question
+  const handleQuestionnaireResponse = (permitKey, qid, value, field = 'answer') => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [permitKey]: {
+          ...prev.specializedPermits[permitKey],
+          questionnaire: {
+            ...prev.specializedPermits[permitKey].questionnaire,
+            [qid]: {
+              ...((prev.specializedPermits[permitKey].questionnaire && prev.specializedPermits[permitKey].questionnaire[qid]) || {}),
+              [field]: value
+            }
+          }
+        }
+      }
+    }));
+  };
+  const addJSEAStep = () => {
+    setFormData(prev => ({
+      ...prev,
+      jsea: {
+        ...prev.jsea,
+        taskSteps: [...prev.jsea.taskSteps, { step: '', hazards: '', controls: '', riskLevel: '' }]
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const removeJSEAStep = (idx) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps.splice(idx, 1);
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+
+  // --- handleSubmit for advanced form ---
+  const handleSubmit = () => {
+    if (!formData.id || !formData.description) {
+      Alert.alert('Missing Info', 'Please fill in all required fields.');
+      return;
+    }
+    setPermits([...permits, { ...formData, submittedDate: new Date().toISOString().split('T')[0] }]);
+    setFormData({
+      id: '',
+      description: '',
+      requestedBy: '',
+      location: '',
+      status: 'pending_approval',
+      priority: 'medium',
+      specializedPermits: initialSpecializedPermits,
+      singleHazards: initialSingleHazards,
+      jsea: initialJSEA,
+      signOns: initialSignOns
+    });
+    setCurrentScreen('dashboard');
+    Alert.alert('Permit Created', 'New permit has been added.');
+  };
+  // JSEA steps state
+  const [jseaSteps, setJseaSteps] = useState([]);
+  const [jseaStepText, setJseaStepText] = useState('');
+  // Single hazards state
+  const [singleHazards, setSingleHazards] = useState([]);
+  const [hazardText, setHazardText] = useState('');
+  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [permits, setPermits] = useState([
+    {
+      id: 'PTW-001',
+      type: 'Hot Work',
+      description: 'Welding repairs on conveyor frame',
+      requestedBy: 'John Smith',
+      location: 'Processing Plant A',
+      status: 'pending_approval',
+      priority: 'high',
+      submittedDate: '2025-01-15',
+      assignedApprover: 'jane.doe@company.com'
+    },
+    {
+      id: 'PTW-002',
+      type: 'Confined Space',
+      description: 'Tank cleaning and inspection',
+      requestedBy: 'Mike Johnson',
+      location: 'Storage Area B',
+      status: 'pending_inspection',
+      priority: 'high',
+      submittedDate: '2025-01-14',
+      assignedApprover: 'bob.wilson@company.com'
+    },
+    {
+      id: 'PTW-003',
+      type: 'Electrical',
+      description: 'Panel maintenance',
+      requestedBy: 'Sarah Davis',
+      location: 'Control Room',
+      status: 'active',
+      priority: 'medium',
+      approvedDate: '2025-01-13',
+      expiryDate: '2025-01-16'
+    },
+    {
+      id: 'PTW-004',
+      type: 'Working at Height',
+      description: 'Roof inspection and repairs',
+      requestedBy: 'Tom Wilson',
+      location: 'Building C',
+      status: 'completed',
+      priority: 'medium',
+      submittedDate: '2025-01-10',
+      completedDate: '2025-01-12'
+    }
+  ]);
+  const [newPermitData, setNewPermitData] = useState({
+    id: '',
+    types: [], // array for multiple specialised permits
+    description: '',
+    requestedBy: '',
+    location: '',
+    status: 'pending_approval',
+    priority: 'medium',
+    submittedDate: '',
+    assignedApprover: ''
+  });
+  const [selectedPermit, setSelectedPermit] = useState(null);
+  const [editPermitData, setEditPermitData] = useState(null);
+
+  // Utility functions
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'pending_approval': return 'Pending Approval';
+      case 'pending_inspection': return 'Needs Inspection';
+      case 'active': return 'Active';
+      case 'completed': return 'Completed';
+      default: return status;
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return '#DC2626';
+      case 'medium': return '#F59E42';
+      case 'low': return '#10B981';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // Utility: getStatusColor
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending_approval': return '#2563EB';
+      case 'pending_inspection': return '#F59E42';
+      case 'active': return '#10B981';
+      case 'completed': return '#6B7280';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // Utility: getRiskColor
+  const getRiskColor = (risk) => {
+    switch (risk) {
+      case 'high': return '#DC2626';
+      case 'medium': return '#F59E42';
+      case 'low': return '#10B981';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // New Permit Form
+  const specialisedOptions = [
+    'Hot Work',
+    'Confined Space',
+    'Electrical',
+    'Working at Height',
+    'Excavation',
+    'Radiation',
+    'Other'
+  ];
+  const renderNewPermitForm = () => {
+    return (
+      <View style={{ flex: 1 }}>
+        <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
+          {/* General Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
+              <Text style={styles.sectionTitle}>General Details</Text>
+              <Text style={styles.expandIcon}>{expandedSections.general ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.general && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Permit ID</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.id}
+                  onChangeText={text => setFormData({ ...formData, id: text })}
+                  placeholder="Permit ID (e.g. PTW-005)"
+                />
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  multiline
+                  numberOfLines={3}
+                  value={formData.description}
+                  onChangeText={text => setFormData({ ...formData, description: text })}
+                  placeholder="Describe the work to be performed..."
+                />
+                <Text style={styles.label}>Site</Text>
+                <CustomDropdown
+                  label="Select Site"
+                  options={ALL_SITES}
+                  selectedValue={formData.site || ''}
+                  onValueChange={value => setFormData({ ...formData, site: value })}
+                  style={styles.input}
+                />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.location}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
+                <Text style={styles.label}>Requested By</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.requestedBy}
+                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
+                  placeholder="Your name"
+                />
+
+                {/* Start Date/Time */}
+                <Text style={styles.label}>Start Date</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                  <Text style={formData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.startDate || 'Select start date'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showStartDatePicker}
+                  onClose={() => setShowStartDatePicker(false)}
+                  onSelect={date => setFormData({ ...formData, startDate: date })}
+                  mode="date"
+                  currentValue={formData.startDate}
+                />
+                <Text style={styles.label}>Start Time</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                  <Text style={formData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.startTime || 'Select start time'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>⏰</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showStartTimePicker}
+                  onClose={() => setShowStartTimePicker(false)}
+                  onSelect={time => setFormData({ ...formData, startTime: time })}
+                  mode="time"
+                  currentValue={formData.startTime}
+                />
+
+                {/* End Date/Time */}
+                <Text style={styles.label}>End Date</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                  <Text style={formData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.endDate || 'Select end date'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showEndDatePicker}
+                  onClose={() => setShowEndDatePicker(false)}
+                  onSelect={date => setFormData({ ...formData, endDate: date })}
+                  mode="date"
+                  currentValue={formData.endDate}
+                />
+                <Text style={styles.label}>End Time</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                  <Text style={formData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.endTime || 'Select end time'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>⏰</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showEndTimePicker}
+                  onClose={() => setShowEndTimePicker(false)}
+                  onSelect={time => setFormData({ ...formData, endTime: time })}
+                  mode="time"
+                  currentValue={formData.endTime}
+                />
+
+                <Text style={styles.label}>Priority</Text>
+                <View style={styles.priorityButtons}>
+                  {['low', 'medium', 'high'].map(priority => (
+                    <TouchableOpacity
+                      key={priority}
+                      style={[
+                        styles.priorityButton,
+                        { backgroundColor: formData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, priority })}
+                    >
+                      <Text style={[
+                        styles.priorityButtonText,
+                        { color: formData.priority === priority ? 'white' : '#374151' }
+                      ]}>
+                        {priority.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+          {/* Specialized Permits Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
+              <Text style={styles.sectionTitle}>Specialized Permits</Text>
+              <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.specialized && (
+              <View style={styles.sectionContent}>
+                {specializedPermitTypes.map(permit => (
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.specializedPermits[permit.key].required}
+                        onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
+                    {formData.specializedPermits[permit.key].required && (
+                      <>
+                        {/* Render the new questionnaire with per-question controls */}
+                        {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* Single Hazards Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('hazards')}>
+              <Text style={styles.sectionTitle}>Single Hazards</Text>
+              <Text style={styles.expandIcon}>{expandedSections.hazards ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.hazards && (
+              <View style={styles.sectionContent}>
+                {singleHazardTypes.map(hazard => (
+                  <View key={hazard.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.singleHazards[hazard.key].present}
+                        onValueChange={val => handleSingleHazardChange(hazard.key, 'present', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{hazard.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{hazard.description}</Text>
+                    {formData.singleHazards[hazard.key].present && (
+                      <>
+                        <Text style={styles.label}>Controls</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={formData.singleHazards[hazard.key].controls}
+                          onChangeText={text => handleSingleHazardChange(hazard.key, 'controls', text)}
+                          placeholder="Describe controls for this hazard"
+                        />
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* JSEA Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
+              <Text style={styles.sectionTitle}>JSEA</Text>
+              <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.jsea && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Task Steps</Text>
+                {formData.jsea.taskSteps.map((step, idx) => (
+                  <View key={idx} style={styles.jseaStep}>
+                    <View style={styles.stepHeader}>
+                      <Text style={styles.stepTitle}>Step {idx + 1}</Text>
+                      <TouchableOpacity onPress={() => removeJSEAStep(idx)}>
+                        <Text style={styles.removeButton}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      value={step.step}
+                      onChangeText={text => updateJSEAStep(idx, 'step', text)}
+                      placeholder="Describe step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.hazards}
+                      onChangeText={text => updateJSEAStep(idx, 'hazards', text)}
+                      placeholder="Hazards for this step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.controls}
+                      onChangeText={text => updateJSEAStep(idx, 'controls', text)}
+                      placeholder="Controls for this step"
+                    />
+                    <View style={styles.riskButtons}>
+                      {['low', 'medium', 'high'].map(risk => (
+                        <TouchableOpacity
+                          key={risk}
+                          style={[
+                            styles.riskButton,
+                            { backgroundColor: step.riskLevel === risk ? getRiskColor(risk) : '#E5E7EB' }
+                          ]}
+                          onPress={() => updateJSEAStep(idx, 'riskLevel', risk)}
+                        >
+                          <Text style={[
+                            styles.riskButtonText,
+                            { color: step.riskLevel === risk ? 'white' : '#374151' }
+                          ]}>{risk.toUpperCase()}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={addJSEAStep}>
+                  <Text style={styles.addButtonText}>Add Step</Text>
+                </TouchableOpacity>
+                <Text style={styles.label}>Overall Risk Rating</Text>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: formData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: risk } })}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: formData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.jsea.additionalPrecautions}
+                  onChangeText={text => setFormData({ ...formData, jsea: { ...formData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                />
+              </View>
+            )}
+          </View>
+          {/* Sign-On Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('signons')}>
+              <Text style={styles.sectionTitle}>Sign-On (Other Workers)</Text>
+              <Text style={styles.expandIcon}>{expandedSections.signons ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.signons && (
+              <View style={styles.sectionContent}>
+                {formData.signOns.map((signOn, idx) => (
+                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
+                    <Text style={styles.label}>Worker Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={signOn.name}
+                      onChangeText={text => {
+                        const updated = [...formData.signOns];
+                        updated[idx] = { ...updated[idx], name: text };
+                        setFormData({ ...formData, signOns: updated });
+                      }}
+                      placeholder="Enter worker's name"
+                    />
+                    <Text style={styles.label}>Signature</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={signOn.signature}
+                      onChangeText={text => {
+                        const updated = [...formData.signOns];
+                        updated[idx] = { ...updated[idx], signature: text };
+                        setFormData({ ...formData, signOns: updated });
+                      }}
+                      placeholder="Signature (type name or initials)"
+                    />
+                    <TouchableOpacity onPress={() => {
+                      const updated = [...formData.signOns];
+                      updated.splice(idx, 1);
+                      setFormData({ ...formData, signOns: updated });
+                    }}>
+                      <Text style={styles.removeButton}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', signature: '' }] })}>
+                  <Text style={styles.addButtonText}>Add Worker</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+          {/* Submit Button */}
+          <View style={styles.submitSection}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Create Permit</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Permit List
+  // Permit item for lists (edit or view for approval)
+  const renderPermitItem = ({ item }) => (
+    <View style={styles.permitListCard}>
+      <View style={styles.permitListHeader}>
+        <Text style={styles.permitId}>{item.id}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        </View>
+      </View>
+      <Text style={styles.permitType}>{item.type}</Text>
+      <Text style={styles.permitDescription}>{item.description}</Text>
+      <View style={styles.permitDetails}>
+        <Text style={styles.detailText}>Location: {item.location}</Text>
+        <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+        <Text style={styles.detailText}>Date: {item.submittedDate || item.approvedDate || item.completedDate || ''}</Text>
+      </View>
+      <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
+        <Text style={styles.priorityText}>{item.priority?.toUpperCase?.() || ''}</Text>
+      </View>
+      {item.status === 'pending_approval' ? (
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setCurrentScreen('review_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>View</Text>
+        </TouchableOpacity>
+      ) : item.status === 'completed' ? (
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setCurrentScreen('view_completed_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>View</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setEditPermitData(null);
+          setCurrentScreen('edit_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>Edit</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+  // Permit Review (read-only, for approval)
+  // Editable Permit Review (for approval)
+  // ...existing code...
+
+// Standalone component for reviewing/editing a permit for approval
+function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+  const [editData] = React.useState({ ...permit });
+  const isCompleted = permit.status === 'completed';
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen(isCompleted ? 'completed' : 'pending_approval')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>{isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Type:</Text>
+        <Text style={styles.detailText}>{editData.type || ''}</Text>
+        <Text style={styles.label}>Description:</Text>
+        <Text style={styles.detailText}>{editData.description || ''}</Text>
+        <Text style={styles.label}>Location:</Text>
+        <Text style={styles.detailText}>{editData.location || ''}</Text>
+        <Text style={styles.label}>Requested By:</Text>
+        <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
+        <Text style={styles.label}>Priority:</Text>
+        <Text style={styles.detailText}>{editData.priority || ''}</Text>
+        <Text style={styles.label}>Status:</Text>
+        <Text style={styles.detailText}>{editData.status || ''}</Text>
+        <Text style={styles.label}>Dates:</Text>
+        <Text style={styles.detailText}>Start: {editData.startDate} {editData.startTime}</Text>
+        <Text style={styles.detailText}>End: {editData.endDate} {editData.endTime}</Text>
+        {/* Specialized Permits - always show all, indicate if not required */}
+        {editData.specializedPermits && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Specialized Permits:</Text>
+            {Object.entries(editData.specializedPermits).map(([key, val]) => (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key} {val.required ? '' : '(not required)'}</Text>
+                {val.required && val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
+                  <View key={qid} style={{ marginLeft: 8 }}>
+                    <Text style={styles.detailText}>{qid}: {qval.answer || qval.text || ''} {qval.controls ? `(Controls: ${qval.controls})` : ''}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Single Hazards */}
+        {editData.singleHazards && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Single Hazards:</Text>
+            {Object.entries(editData.singleHazards).map(([key, val]) => val.present ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                <Text style={styles.detailText}>Controls: {val.controls}</Text>
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* JSEA */}
+        {editData.jsea && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>JSEA Task Steps:</Text>
+            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Step {idx + 1}: {step.step}</Text>
+                <Text style={styles.detailText}>Hazards: {step.hazards}</Text>
+                <Text style={styles.detailText}>Controls: {step.controls}</Text>
+                <Text style={styles.detailText}>Risk: {step.riskLevel}</Text>
+              </View>
+            )) : <Text style={styles.detailText}>None</Text>}
+            <Text style={styles.label}>Overall Risk Rating: <Text style={{ fontWeight: 'normal' }}>{editData.jsea.overallRiskRating}</Text></Text>
+            <Text style={styles.label}>Additional Precautions:</Text>
+            <Text style={styles.detailText}>{editData.jsea.additionalPrecautions}</Text>
+          </View>
+        )}
+        {/* Sign-Ons */}
+        {editData.signOns && editData.signOns.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name: {signOn.name}</Text>
+                <Text style={styles.detailText}>Signature: {signOn.signature}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Completed Sign-Off */}
+        {isCompleted && editData.completedSignOff && (
+          <View style={{ marginTop: 24, padding: 12, backgroundColor: '#E5E7EB', borderRadius: 8 }}>
+            <Text style={[styles.label, { marginBottom: 8 }]}>Completion Sign-Off</Text>
+            <Text style={styles.detailText}>Permit Issuer Name: {editData.completedSignOff.issuerName}</Text>
+            <Text style={styles.detailText}>Issuer Signature: {editData.completedSignOff.issuerSignature}</Text>
+            {editData.completedSignOff.issuerSignedAt && (
+              <Text style={styles.detailText}>Issuer Signed At: {editData.completedSignOff.issuerSignedAt}</Text>
+            )}
+            <Text style={styles.detailText}>Permit Receiver Name: {editData.completedSignOff.receiverName}</Text>
+            <Text style={styles.detailText}>Receiver Signature: {editData.completedSignOff.receiverSignature}</Text>
+            {editData.completedSignOff.receiverSignedAt && (
+              <Text style={styles.detailText}>Receiver Signed At: {editData.completedSignOff.receiverSignedAt}</Text>
+            )}
+          </View>
+        )}
+      </View>
+      {/* Only show Approve/Reject if not completed */}
+      {!isCompleted && (
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={styles.submitButton} onPress={() => {
+            // Approve: set status to 'pending_inspection' and update permit
+            const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
+            const isHighRisk = (editData.jsea?.overallRiskRating?.toLowerCase?.() === 'high') ||
+              (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+            const updated = permits.map(p => {
+              if (p.id === editData.id) {
+                if (isHighRisk) {
+                  return { ...editData, status: 'pending_inspection', approvedDate: new Date().toISOString().split('T')[0] };
+                } else {
+                  return { ...editData, status: 'active', approvedDate: new Date().toISOString().split('T')[0] };
+                }
+              }
+              return p;
+            });
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
+          }}>
+            <Text style={styles.submitButtonText}>Approve</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={() => {
+            // Reject: set status to 'rejected' and update permit
+            const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Rejected', 'Permit has been rejected.');
+          }}>
+            <Text style={styles.submitButtonText}>Reject</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+  const renderPermitList = (status, title) => {
+    const filteredPermits = permits.filter(p => p.status === status);
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          {filteredPermits.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No {title.toLowerCase()} found</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredPermits}
+              renderItem={renderPermitItem}
+              keyExtractor={item => item.id}
+            />
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Edit Permit
+  const renderEditPermit = () => {
+    if (!selectedPermit) return null;
+    const permitIndex = permits.findIndex(p => p.id === selectedPermit.id);
+    const localEditData = editPermitData || selectedPermit;
+
+    const handleEditChange = (field, value) => {
+      setEditPermitData({ ...localEditData, [field]: value });
+    };
+
+    const saveEdit = () => {
+      const updatedPermits = [...permits];
+      updatedPermits[permitIndex] = editPermitData || selectedPermit;
+      setPermits(updatedPermits);
+      setEditPermitData(null);
+      setSelectedPermit(null);
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Updated', `Permit ${(editPermitData || selectedPermit).id} has been updated.`);
+    };
+
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
+        </View>
+        <View style={styles.section}>
+          <View style={styles.sectionContent}>
+            <Text style={styles.label}>Work Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              multiline
+              numberOfLines={3}
+              value={localEditData.description}
+              onChangeText={text => handleEditChange('description', text)}
+              placeholder="Describe the work to be performed..."
+            />
+            <Text style={styles.label}>Location</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.location}
+              onChangeText={text => handleEditChange('location', text)}
+              placeholder="Work location"
+            />
+            <Text style={styles.label}>Requested By</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.requestedBy}
+              onChangeText={text => handleEditChange('requestedBy', text)}
+              placeholder="Your name"
+            />
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityButtons}>
+              {['low', 'medium', 'high'].map(priority => (
+                <TouchableOpacity
+                  key={priority}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('priority', priority)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.priority === priority ? 'white' : '#374151' }
+                  ]}>
+                    {priority.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.priorityButtons}>
+              {['pending_approval', 'pending_inspection', 'active', 'completed'].map(status => (
+                <TouchableOpacity
+                  key={status}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.status === status ? getStatusColor(status) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('status', status)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.status === status ? 'white' : '#374151' }
+                  ]}>
+                    {getStatusText(status)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {/* Specialized Permits - always show all, allow toggling required and show full questionnaire */}
+            {localEditData.specializedPermits && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.label}>Specialized Permits:</Text>
+                {Object.entries(localEditData.specializedPermits).map(([key, val]) => (
+                  <View key={key} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={val.required}
+                        onValueChange={v => handleEditChange('specializedPermits', {
+                          ...localEditData.specializedPermits,
+                          [key]: { ...val, required: v }
+                        })}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{key}</Text>
+                    </View>
+                    {/* Show full questionnaire for all specialized permits */}
+                    {val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
+                      <View key={qid} style={{ marginLeft: 8, marginBottom: 4 }}>
+                        <Text style={styles.detailText}>{qid}:</Text>
+                        <TextInput style={styles.input} value={qval.answer || qval.text || ''} onChangeText={text => {
+                          const updated = { ...val.questionnaire, [qid]: { ...qval, answer: text } };
+                          handleEditChange('specializedPermits', {
+                            ...localEditData.specializedPermits,
+                            [key]: { ...val, questionnaire: updated }
+                          });
+                        }} />
+                        {qval.controls !== undefined && (
+                          <TextInput style={styles.input} value={qval.controls} onChangeText={text => {
+                            const updated = { ...val.questionnaire, [qid]: { ...qval, controls: text } };
+                            handleEditChange('specializedPermits', {
+                              ...localEditData.specializedPermits,
+                              [key]: { ...val, questionnaire: updated }
+                            });
+                          }} placeholder="Controls" />
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Single Hazards - always show all, allow editing */}
+            {localEditData.singleHazards && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.label}>Single Hazards:</Text>
+                {Object.entries(localEditData.singleHazards).map(([key, val]) => (
+                  <View key={key} style={{ marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={val.present}
+                        onValueChange={v => handleEditChange('singleHazards', {
+                          ...localEditData.singleHazards,
+                          [key]: { ...val, present: v }
+                        })}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{key}</Text>
+                    </View>
+                    {val.present && (
+                      <TextInput style={styles.input} value={val.controls} onChangeText={text => handleEditChange('singleHazards', {
+                        ...localEditData.singleHazards,
+                        [key]: { ...val, controls: text }
+                      })} placeholder="Controls" />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* JSEA - allow editing of all fields */}
+            {localEditData.jsea && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.label}>JSEA Task Steps:</Text>
+                {localEditData.jsea.taskSteps && localEditData.jsea.taskSteps.length > 0 ? localEditData.jsea.taskSteps.map((step, idx) => (
+                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                    <Text style={styles.detailText}>Step {idx + 1}:</Text>
+                    <TextInput style={styles.input} value={step.step} onChangeText={text => {
+                      const updatedSteps = [...localEditData.jsea.taskSteps];
+                      updatedSteps[idx] = { ...step, step: text };
+                      handleEditChange('jsea', { ...localEditData.jsea, taskSteps: updatedSteps });
+                    }} placeholder="Step" />
+                    <TextInput style={styles.input} value={step.hazards} onChangeText={text => {
+                      const updatedSteps = [...localEditData.jsea.taskSteps];
+                      updatedSteps[idx] = { ...step, hazards: text };
+                      handleEditChange('jsea', { ...localEditData.jsea, taskSteps: updatedSteps });
+                    }} placeholder="Hazards" />
+                    <TextInput style={styles.input} value={step.controls} onChangeText={text => {
+                      const updatedSteps = [...localEditData.jsea.taskSteps];
+                      updatedSteps[idx] = { ...step, controls: text };
+                      handleEditChange('jsea', { ...localEditData.jsea, taskSteps: updatedSteps });
+                    }} placeholder="Controls" />
+                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => {
+                      const updatedSteps = [...localEditData.jsea.taskSteps];
+                      updatedSteps[idx] = { ...step, riskLevel: text };
+                      handleEditChange('jsea', { ...localEditData.jsea, taskSteps: updatedSteps });
+                    }} placeholder="Risk Level" />
+                  </View>
+                )) : <Text style={styles.detailText}>None</Text>}
+                <Text style={styles.label}>Overall Risk Rating:</Text>
+                <TextInput style={styles.input} value={localEditData.jsea.overallRiskRating || ''} onChangeText={text => handleEditChange('jsea', { ...localEditData.jsea, overallRiskRating: text })} placeholder="Overall Risk Rating" />
+                <Text style={styles.label}>Additional Precautions:</Text>
+                <TextInput style={styles.input} value={localEditData.jsea.additionalPrecautions || ''} onChangeText={text => handleEditChange('jsea', { ...localEditData.jsea, additionalPrecautions: text })} placeholder="Any additional precautions..." />
+              </View>
+            )}
+
+            {/* Sign-On (Other Workers) - allow editing */}
+            {localEditData.signOns && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.label}>Sign-On (Other Workers):</Text>
+                {localEditData.signOns.map((signOn, idx) => (
+                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                    <Text style={styles.detailText}>Name:</Text>
+                    <TextInput style={styles.input} value={signOn.name} onChangeText={text => {
+                      const updated = [...localEditData.signOns];
+                      updated[idx] = { ...signOn, name: text };
+                      handleEditChange('signOns', updated);
+                    }} placeholder="Worker Name" />
+                    <Text style={styles.detailText}>Signature:</Text>
+                    <TextInput style={styles.input} value={signOn.signature} onChangeText={text => {
+                      const updated = [...localEditData.signOns];
+                      updated[idx] = { ...signOn, signature: text };
+                      handleEditChange('signOns', updated);
+                    }} placeholder="Signature" />
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={styles.submitButton} onPress={saveEdit}>
+            <Text style={styles.submitButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // Dashboard
+  const renderDashboard = () => {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Permit Dashboard</Text>
+        </View>
+        <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
+            <Text style={styles.cardLabel}>Pending Approval</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('pending_inspection')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_inspection').length}</Text>
+            <Text style={styles.cardLabel}>Needs Inspection</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'active').length}</Text>
+            <Text style={styles.cardLabel}>Active Permits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
+            <Text style={styles.cardLabel}>Completed</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
+          <Text style={styles.primaryButtonText}>Create New Permit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Main render logic
+  switch (currentScreen) {
+    case 'dashboard':
+      return renderDashboard();
+    case 'pending_approval':
+      return renderPermitList('pending_approval', 'Pending Approval');
+    case 'pending_inspection':
+      return renderInspectionList();
+    case 'review_permit':
+      return (
+        <EditableApprovalPermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+// Editable Approval Permit Screen (for Pending Approval)
+function EditableApprovalPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+  const [editData, setEditData] = React.useState({ ...permit });
+  // ...reuse helpers from EditActivePermitScreen for editing fields...
+  const handleSpecializedChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleHazardChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setEditData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const handleSignOnChange = (idx, field, value) => {
+    setEditData(prev => {
+      const signOns = [...(prev.signOns || [])];
+      signOns[idx] = { ...signOns[idx], [field]: value };
+      return { ...prev, signOns };
+    });
+  };
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('pending_approval')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Review/Edit Permit {editData.id}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Type:</Text>
+        <TextInput style={styles.input} value={editData.type || ''} onChangeText={text => setEditData({ ...editData, type: text })} />
+        <Text style={styles.label}>Description:</Text>
+        <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+        <Text style={styles.label}>Location:</Text>
+        <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+        <Text style={styles.label}>Requested By:</Text>
+        <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+        <Text style={styles.label}>Priority:</Text>
+        <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+        <Text style={styles.label}>Status:</Text>
+        <TextInput style={styles.input} value={editData.status || ''} onChangeText={text => setEditData({ ...editData, status: text })} />
+        <Text style={styles.label}>Dates:</Text>
+        <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
+        <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
+        <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
+        <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+        {/* Specialized Permits - use the same questionnaire UI as New Permit */}
+        {editData.specializedPermits && permitQuestionnaires && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Specialized Permits:</Text>
+            {Object.entries(editData.specializedPermits).map(([key, val]) => (
+              <View key={key} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Switch
+                    value={val.required}
+                    onValueChange={v => handleSpecializedChange(key, 'required', v)}
+                  />
+                  <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{key}</Text>
+                </View>
+                {/* Show questions ONLY if required is true, using renderQuestionnaire for consistency */}
+                {val.required &&
+                  renderQuestionnaire(
+                    key,
+                    { specializedPermits: { [key]: val } },
+                    (permitKey, qid, value, field) => {
+                      // Update the correct specialized permit's questionnaire
+                      const updated = {
+                        ...val.questionnaire,
+                        [qid]: { ...val.questionnaire?.[qid], [field]: value }
+                      };
+                      handleSpecializedChange(key, 'questionnaire', updated);
+                    },
+                    permitQuestionnaires,
+                    styles
+                  )
+                }
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Single Hazards - always show all, allow editing */}
+        {editData.singleHazards && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Single Hazards:</Text>
+            {Object.entries(editData.singleHazards).map(([key, val]) => (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Switch
+                    value={val.present}
+                    onValueChange={v => handleHazardChange(key, 'present', v)}
+                  />
+                  <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{key}</Text>
+                </View>
+                {val.present && (
+                  <TextInput style={styles.input} value={val.controls} onChangeText={text => handleHazardChange(key, 'controls', text)} placeholder="Controls" />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* JSEA - allow editing of all fields and adding/removing steps */}
+        {editData.jsea && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>JSEA Task Steps:</Text>
+            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Step {idx + 1}:</Text>
+                <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
+                <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
+                <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
+                <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+                <TouchableOpacity onPress={() => {
+                  setEditData(prev => {
+                    const steps = [...prev.jsea.taskSteps];
+                    steps.splice(idx, 1);
+                    return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+                  });
+                }}>
+                  <Text style={styles.removeButton}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            )) : <Text style={styles.detailText}>None</Text>}
+            <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({
+              ...prev,
+              jsea: { ...prev.jsea, taskSteps: [...(prev.jsea.taskSteps || []), { step: '', hazards: '', controls: '', riskLevel: '' }] }
+            }))}>
+              <Text style={styles.addButtonText}>Add Step</Text>
+            </TouchableOpacity>
+            <Text style={styles.label}>Overall Risk Rating:</Text>
+            <TextInput style={styles.input} value={editData.jsea.overallRiskRating || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+            <Text style={styles.label}>Additional Precautions:</Text>
+            <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
+          </View>
+        )}
+
+        {/* Sign-On (Other Workers) - allow editing and adding/removing workers */}
+        {editData.signOns && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name:</Text>
+                <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
+                <Text style={styles.detailText}>Signature:</Text>
+                <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+                <TouchableOpacity onPress={() => {
+                  setEditData(prev => {
+                    const updated = [...prev.signOns];
+                    updated.splice(idx, 1);
+                    return { ...prev, signOns: updated };
+                  });
+                }}>
+                  <Text style={styles.removeButton}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', signature: '' }] }))}>
+              <Text style={styles.addButtonText}>Add Worker</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {/* The extra Single Hazards and JSEA sections have been removed here. */}
+        {/* Sign-Ons */}
+        {editData.signOns && editData.signOns.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name:</Text>
+                <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Name" />
+                <Text style={styles.detailText}>Signature:</Text>
+                <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+      <View style={styles.submitSection}>
+        <TouchableOpacity style={styles.submitButton} onPress={() => {
+          // Approve: set status to 'pending_inspection' or 'active' and update permit
+          const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
+          const isHighRisk = (editData.jsea?.overallRiskRating?.toLowerCase?.() === 'high') ||
+            (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+          const updated = permits.map(p => {
+            if (p.id === editData.id) {
+              if (isHighRisk) {
+                return { ...editData, status: 'pending_inspection', approvedDate: new Date().toISOString().split('T')[0] };
+              } else {
+                return { ...editData, status: 'active', approvedDate: new Date().toISOString().split('T')[0] };
+              }
+            }
+            return p;
+          });
+          setPermits(updated);
+          setCurrentScreen('dashboard');
+          Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
+        }}>
+          <Text style={styles.submitButtonText}>Approve</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={() => {
+          // Reject: set status to 'rejected' and update permit
+          const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+          setPermits(updated);
+          setCurrentScreen('dashboard');
+          Alert.alert('Permit Rejected', 'Permit has been rejected.');
+        }}>
+          <Text style={styles.submitButtonText}>Reject</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+    case 'inspect_permit':
+      return (
+        <EditInspectionPermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+// Inspection screen for permits that require inspection
+function InspectionArea({ permit, setPermits, setCurrentScreen, permits, styles }) {
+// Editable Inspection Permit Screen (for Needs Inspection)
+function EditInspectionPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+  const [editData, setEditData] = React.useState({ ...permit });
+  const [inspector, setInspector] = React.useState('');
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [comments, setComments] = React.useState('');
+  // ...reuse helpers from EditActivePermitScreen for editing fields...
+  const handleSpecializedChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleHazardChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setEditData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const handleSignOnChange = (idx, field, value) => {
+    setEditData(prev => {
+      const signOns = [...(prev.signOns || [])];
+      signOns[idx] = { ...signOns[idx], [field]: value };
+      return { ...prev, signOns };
+    });
+  };
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Inspect/Edit Permit {editData.id}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Type:</Text>
+        <TextInput style={styles.input} value={editData.type || ''} onChangeText={text => setEditData({ ...editData, type: text })} />
+        <Text style={styles.label}>Description:</Text>
+        <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+        <Text style={styles.label}>Location:</Text>
+        <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+        <Text style={styles.label}>Requested By:</Text>
+        <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+        <Text style={styles.label}>Priority:</Text>
+        <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+        <Text style={styles.label}>Status:</Text>
+        <TextInput style={styles.input} value={editData.status || ''} onChangeText={text => setEditData({ ...editData, status: text })} />
+        <Text style={styles.label}>Dates:</Text>
+        <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
+        <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
+        <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
+        <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+        {/* Specialized Permits */}
+        {editData.specializedPermits && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Specialized Permits:</Text>
+            {Object.entries(editData.specializedPermits).map(([key, val]) => val.required ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                {val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
+                  <View key={qid} style={{ marginLeft: 8 }}>
+                    <Text style={styles.detailText}>{qid}:</Text>
+                    <TextInput style={styles.input} value={qval.answer || qval.text || ''} onChangeText={text => {
+                      const updated = { ...val.questionnaire, [qid]: { ...qval, answer: text } };
+                      handleSpecializedChange(key, 'questionnaire', updated);
+                    }} />
+                    {qval.controls !== undefined && (
+                      <TextInput style={styles.input} value={qval.controls} onChangeText={text => {
+                        const updated = { ...val.questionnaire, [qid]: { ...qval, controls: text } };
+                        handleSpecializedChange(key, 'questionnaire', updated);
+                      }} placeholder="Controls" />
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* Single Hazards */}
+        {editData.singleHazards && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Single Hazards:</Text>
+            {Object.entries(editData.singleHazards).map(([key, val]) => val.present ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                <TextInput style={styles.input} value={val.controls} onChangeText={text => handleHazardChange(key, 'controls', text)} placeholder="Controls" />
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* JSEA */}
+        {editData.jsea && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>JSEA Task Steps:</Text>
+            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Step {idx + 1}:</Text>
+                <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
+                <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
+                <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
+                <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+              </View>
+            )) : <Text style={styles.detailText}>None</Text>}
+            <Text style={styles.label}>Overall Risk Rating:</Text>
+            <TextInput style={styles.input} value={editData.jsea.overallRiskRating} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+            <Text style={styles.label}>Additional Precautions:</Text>
+            <TextInput style={styles.input} value={editData.jsea.additionalPrecautions} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Additional Precautions" />
+          </View>
+        )}
+        {/* Sign-Ons */}
+        {editData.signOns && editData.signOns.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name:</Text>
+                <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Name" />
+                <Text style={styles.detailText}>Signature:</Text>
+                <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Inspection Section */}
+        <View style={{ marginTop: 24, padding: 12, backgroundColor: '#E5E7EB', borderRadius: 8 }}>
+          <Text style={[styles.label, { marginBottom: 8 }]}>Inspection</Text>
+          <Text style={styles.detailText}>Inspector Name:</Text>
+          <TextInput style={styles.input} value={inspector} onChangeText={setInspector} placeholder="Inspector Name" />
+          <Text style={styles.detailText}>Date:</Text>
+          <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="Date" />
+          <Text style={styles.detailText}>Inspection Comments:</Text>
+          <TextInput style={styles.input} value={comments} onChangeText={setComments} placeholder="What was inspected?" multiline />
+        </View>
+      </View>
+      <View style={styles.submitSection}>
+        <TouchableOpacity style={styles.submitButton} onPress={() => {
+          const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'active', inspected: { inspector, date, comments } } : p);
+          setPermits(updated);
+          setCurrentScreen('dashboard');
+          Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
+        }}>
+          <Text style={styles.submitButtonText}>Mark as Inspected</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+  const [inspector, setInspector] = React.useState('');
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [comments, setComments] = React.useState('');
+  if (!permit) return null;
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Inspect Permit {permit.id}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Inspector Name:</Text>
+        <TextInput style={styles.input} value={inspector} onChangeText={setInspector} placeholder="Inspector Name" />
+        <Text style={styles.label}>Date:</Text>
+        <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="Date" />
+        <Text style={styles.label}>Inspection Comments:</Text>
+        <TextInput style={styles.input} value={comments} onChangeText={setComments} placeholder="What was inspected?" multiline />
+      </View>
+      <View style={styles.submitSection}>
+        <TouchableOpacity style={styles.submitButton} onPress={() => {
+          const updated = permits.map(p => p.id === permit.id ? { ...p, status: 'active', inspected: { inspector, date, comments } } : p);
+          setPermits(updated);
+          setCurrentScreen('dashboard');
+          Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
+        }}>
+          <Text style={styles.submitButtonText}>Mark as Inspected</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+// Render list of permits needing inspection
+function renderInspectionList() {
+  return (
+    <FlatList
+      data={permits.filter(p => p.status === 'pending_inspection')}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <View style={styles.permitListCard}>
+          <View style={styles.permitListHeader}>
+            <Text style={styles.permitId}>{item.id}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+              <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+            </View>
+          </View>
+          <Text style={styles.permitType}>{item.type}</Text>
+          <Text style={styles.permitDescription}>{item.description}</Text>
+          <View style={styles.permitDetails}>
+            <Text style={styles.detailText}>Location: {item.location}</Text>
+            <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+            <Text style={styles.detailText}>Date: {item.submittedDate || item.approvedDate || item.completedDate || ''}</Text>
+          </View>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => {
+            setSelectedPermit(item);
+            setCurrentScreen('inspect_permit');
+          }}>
+            <Text style={styles.primaryButtonText}>Inspect</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need inspection.</Text>}
+      contentContainerStyle={{ padding: 16 }}
+    />
+  );
+}
+    case 'inspect_permit':
+      return (
+        <InspectionArea
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+    case 'active':
+      return renderActivePermitList();
+// Active Permit List: editable, with completion sign-off
+function renderActivePermitList() {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Active Permits</Text>
+      </View>
+      <FlatList
+        data={permits.filter(p => p.status === 'active')}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.permitListCard}>
+            <View style={styles.permitListHeader}>
+              <Text style={styles.permitId}>{item.id}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+              </View>
+            </View>
+            <Text style={styles.permitType}>{item.type}</Text>
+            <Text style={styles.permitDescription}>{item.description}</Text>
+            <View style={styles.permitDetails}>
+              <Text style={styles.detailText}>Location: {item.location}</Text>
+              <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+              <Text style={styles.detailText}>Date: {item.submittedDate || item.approvedDate || item.completedDate || ''}</Text>
+            </View>
+            <TouchableOpacity style={styles.primaryButton} onPress={() => {
+              setSelectedPermit(item);
+              setCurrentScreen('edit_active_permit');
+            }}>
+              <Text style={styles.primaryButtonText}>Edit / Complete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>}
+        contentContainerStyle={{ padding: 16 }}
+      />
+    </View>
+  );
+}
+// Edit/Complete Active Permit Screen
+function EditActivePermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+  // Always get the latest permit from permits array
+  const latestPermit = permits.find(p => p.id === permit.id) || permit;
+  const [editData, setEditData] = React.useState({ ...latestPermit });
+  // Load existing sign-off if present
+  const completedSignOff = latestPermit.completedSignOff || {};
+  const [issuerName, setIssuerName] = React.useState(completedSignOff.issuerName || '');
+  const [issuerSignature, setIssuerSignature] = React.useState(completedSignOff.issuerSignature || '');
+  const [receiverName, setReceiverName] = React.useState(completedSignOff.receiverName || '');
+  const [receiverSignature, setReceiverSignature] = React.useState(completedSignOff.receiverSignature || '');
+
+  // Sync local state with latest permit when it changes
+  React.useEffect(() => {
+    setEditData({ ...latestPermit });
+    setIssuerName(completedSignOff.issuerName || '');
+    setIssuerSignature(completedSignOff.issuerSignature || '');
+    setReceiverName(completedSignOff.receiverName || '');
+    setReceiverSignature(completedSignOff.receiverSignature || '');
+  }, [latestPermit.id, latestPermit.completedSignOff]);
+
+  // ...reuse helpers from ReviewPermitScreen for editing fields...
+  const handleSpecializedChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleHazardChange = (key, field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setEditData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const handleSignOnChange = (idx, field, value) => {
+    setEditData(prev => {
+      const signOns = [...(prev.signOns || [])];
+      signOns[idx] = { ...signOns[idx], [field]: value };
+      return { ...prev, signOns };
+    });
+  };
+
+  // Save issuer or receiver sign-off independently, and auto-complete if all fields are filled
+  const saveSignOff = (role) => {
+    let newIssuerName = issuerName;
+    let newIssuerSignature = issuerSignature;
+    let newReceiverName = receiverName;
+    let newReceiverSignature = receiverSignature;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0];
+    const updated = permits.map(p => {
+      if (p.id === editData.id) {
+        const prevSignOff = p.completedSignOff || {};
+        let newSignOff = { ...prevSignOff };
+        if (role === 'issuer') {
+          newSignOff.issuerName = newIssuerName;
+          newSignOff.issuerSignature = newIssuerSignature;
+          newSignOff.issuerSignedAt = `${dateStr} ${timeStr}`;
+        } else if (role === 'receiver') {
+          newSignOff.receiverName = newReceiverName;
+          newSignOff.receiverSignature = newReceiverSignature;
+          newSignOff.receiverSignedAt = `${dateStr} ${timeStr}`;
+        }
+        // If all fields are filled, complete the permit
+        if (
+          (newSignOff.issuerName && newSignOff.issuerSignature && newSignOff.receiverName && newSignOff.receiverSignature)
+        ) {
+          return {
+            ...editData,
+            status: 'completed',
+            completedDate: dateStr,
+            completedSignOff: newSignOff
+          };
+        }
+        return { ...editData, completedSignOff: newSignOff };
+      }
+      return p;
+    });
+    setPermits(updated);
+    // If all fields are filled, go to dashboard
+    const allFilled = newIssuerName && newIssuerSignature && newReceiverName && newReceiverSignature;
+    if (allFilled) {
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Completed', 'Permit has been signed off as completed.');
+    }
+  };
+
+  // Only allow completion if both signatures are present
+  const canComplete = issuerName && issuerSignature && receiverName && receiverSignature;
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('active')}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Edit/Complete Permit {editData.id}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        <Text style={styles.label}>Type:</Text>
+        <TextInput style={styles.input} value={editData.type || ''} onChangeText={text => setEditData({ ...editData, type: text })} />
+        <Text style={styles.label}>Description:</Text>
+        <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+        <Text style={styles.label}>Location:</Text>
+        <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+        <Text style={styles.label}>Requested By:</Text>
+        <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+        <Text style={styles.label}>Priority:</Text>
+        <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+        <Text style={styles.label}>Status:</Text>
+        <TextInput style={styles.input} value={editData.status || ''} onChangeText={text => setEditData({ ...editData, status: text })} />
+        <Text style={styles.label}>Dates:</Text>
+        <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
+        <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
+        <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
+        <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+        {/* Specialized Permits */}
+        {editData.specializedPermits && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Specialized Permits:</Text>
+            {Object.entries(editData.specializedPermits).map(([key, val]) => val.required ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                {val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
+                  <View key={qid} style={{ marginLeft: 8 }}>
+                    <Text style={styles.detailText}>{qid}:</Text>
+                    <TextInput style={styles.input} value={qval.answer || qval.text || ''} onChangeText={text => {
+                      const updated = { ...val.questionnaire, [qid]: { ...qval, answer: text } };
+                      handleSpecializedChange(key, 'questionnaire', updated);
+                    }} />
+                    {qval.controls !== undefined && (
+                      <TextInput style={styles.input} value={qval.controls} onChangeText={text => {
+                        const updated = { ...val.questionnaire, [qid]: { ...qval, controls: text } };
+                        handleSpecializedChange(key, 'questionnaire', updated);
+                      }} placeholder="Controls" />
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* Single Hazards */}
+        {editData.singleHazards && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Single Hazards:</Text>
+            {Object.entries(editData.singleHazards).map(([key, val]) => val.present ? (
+              <View key={key} style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold' }}>{key}</Text>
+                <TextInput style={styles.input} value={val.controls} onChangeText={text => handleHazardChange(key, 'controls', text)} placeholder="Controls" />
+              </View>
+            ) : null)}
+          </View>
+        )}
+        {/* JSEA */}
+        {editData.jsea && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>JSEA Task Steps:</Text>
+            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Step {idx + 1}:</Text>
+                <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
+                <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
+                <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
+                <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+              </View>
+            )) : <Text style={styles.detailText}>None</Text>}
+            <Text style={styles.label}>Overall Risk Rating:</Text>
+            <TextInput style={styles.input} value={editData.jsea.overallRiskRating} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+            <Text style={styles.label}>Additional Precautions:</Text>
+            <TextInput style={styles.input} value={editData.jsea.additionalPrecautions} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Additional Precautions" />
+          </View>
+        )}
+        {/* Sign-Ons */}
+        {editData.signOns && editData.signOns.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.label}>Sign-On (Other Workers):</Text>
+            {editData.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+                <Text style={styles.detailText}>Name:</Text>
+                <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Name" />
+                <Text style={styles.detailText}>Signature:</Text>
+                <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Completed Sign-Off */}
+        <View style={{ marginTop: 24, padding: 12, backgroundColor: '#E5E7EB', borderRadius: 8 }}>
+          <Text style={[styles.label, { marginBottom: 8 }]}>Completion Sign-Off</Text>
+          <Text style={styles.detailText}>Permit Issuer Name:</Text>
+          <TextInput style={styles.input} value={issuerName} onChangeText={text => { setIssuerName(text); }} placeholder="Issuer Name" />
+          <Text style={styles.detailText}>Issuer Signature:</Text>
+          <TextInput style={styles.input} value={issuerSignature} onChangeText={text => { setIssuerSignature(text); }} placeholder="Issuer Signature" />
+          {latestPermit.completedSignOff?.issuerSignedAt && (
+            <Text style={styles.detailText}>Issuer Signed At: {latestPermit.completedSignOff.issuerSignedAt}</Text>
+          )}
+          <Text style={styles.detailText}>Permit Receiver Name:</Text>
+          <TextInput style={styles.input} value={receiverName} onChangeText={text => { setReceiverName(text); }} placeholder="Receiver Name" />
+          <Text style={styles.detailText}>Receiver Signature:</Text>
+          <TextInput style={styles.input} value={receiverSignature} onChangeText={text => { setReceiverSignature(text); }} placeholder="Receiver Signature" />
+          <TouchableOpacity style={[styles.submitButton, { marginTop: 12 }]} onPress={() => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0];
+            let newSignOff = { ...((latestPermit.completedSignOff) || {}) };
+            let completed = false;
+            // If issuer fields are filled and not yet timestamped, set timestamp
+            if (issuerName && issuerSignature && (!newSignOff.issuerSignedAt || newSignOff.issuerName !== issuerName || newSignOff.issuerSignature !== issuerSignature)) {
+              newSignOff.issuerName = issuerName;
+              newSignOff.issuerSignature = issuerSignature;
+              newSignOff.issuerSignedAt = dateStr + ' ' + timeStr;
+            }
+            // If receiver fields are filled and not yet timestamped, set timestamp
+            if (receiverName && receiverSignature && (!newSignOff.receiverSignedAt || newSignOff.receiverName !== receiverName || newSignOff.receiverSignature !== receiverSignature)) {
+              newSignOff.receiverName = receiverName;
+              newSignOff.receiverSignature = receiverSignature;
+              newSignOff.receiverSignedAt = dateStr + ' ' + timeStr;
+            }
+            // If all fields are filled, complete the permit
+            if (newSignOff.issuerName && newSignOff.issuerSignature && newSignOff.receiverName && newSignOff.receiverSignature) {
+              completed = true;
+            }
+            const updated = permits.map(p => {
+              if (p.id === editData.id) {
+                if (completed) {
+                  return {
+                    ...editData,
+                    status: 'completed',
+                    completedDate: dateStr,
+                    completedSignOff: newSignOff
+                  };
+                } else {
+                  return {
+                    ...editData,
+                    completedSignOff: newSignOff
+                  };
+                }
+              }
+              return p;
+            });
+            setPermits(updated);
+            if (completed) {
+              setCurrentScreen('dashboard');
+              Alert.alert('Permit Completed', 'Permit has been signed off as completed.');
+            } else {
+              Alert.alert('Sign-Off Saved', 'Sign-off information has been saved.');
+            }
+          }}>
+            <Text style={styles.submitButtonText}>Save Sign-Off</Text>
+          </TouchableOpacity>
+          {latestPermit.completedSignOff?.receiverSignedAt && (
+            <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
+          )}
+        </View>
+      </View>
+      <View style={styles.submitSection}>
+        <TouchableOpacity style={styles.submitButton} onPress={() => {
+          // Save edits only
+          const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: { issuerName, issuerSignature, receiverName, receiverSignature } } : p);
+          setPermits(updated);
+          setCurrentScreen('active');
+          Alert.alert('Permit Updated', 'Permit details have been updated.');
+        }}>
+          <Text style={styles.submitButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+        {/* No Complete Permit button needed, handled automatically */}
+      </View>
+    </ScrollView>
+  );
+}
+    case 'edit_active_permit':
+      return (
+        <EditActivePermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+    case 'completed':
+      return renderPermitList('completed', 'Completed Permits');
+    case 'view_completed_permit':
+      return (
+        <ReviewPermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+    case 'edit_permit':
+      return renderEditPermit();
+    case 'new_permit':
+      return renderNewPermitForm();
+    case 'review_permit':
+      return (
+        <ReviewPermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+        />
+      );
+    default:
+      return renderDashboard();
+  }
+};
+
+const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    backgroundColor: '#2563EB',
+    padding: 20,
+    paddingTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
+  },
+  backButton: {
+    color: 'white',
+    fontSize: 16,
+    marginRight: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  dashboardGrid: {
+    padding: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  dashboardCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    borderLeftWidth: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  cardLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#2563EB',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  permitList: {
+    flex: 1,
+  },
+  permitListContainer: {
+    padding: 16,
+  },
+  permitListCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    position: 'relative',
+  },
+  permitListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  permitId: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  permitType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  permitDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  permitDetails: {
+    marginBottom: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  priorityIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  priorityText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  section: {
+    margin: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  sectionHeader: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dangerHeader: {
+    backgroundColor: '#FEF2F2',
+  },
+  warningHeader: {
+    backgroundColor: '#FFFBEB',
+  },
+  infoHeader: {
+    backgroundColor: '#EFF6FF',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  dangerTitle: {
+    color: '#DC2626',
+  },
+  warningTitle: {
+    color: '#D97706',
+  },
+  infoTitle: {
+    color: '#2563EB',
+  },
+  expandIcon: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  sectionContent: {
+    padding: 16,
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 4,
+    marginTop: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  permitCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  permitHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  permitInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  permitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  questionnaireTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  questionnaireScroll: {
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  questionContainer: {
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  radioSelected: {
+    borderColor: '#2563EB',
+    backgroundColor: '#2563EB',
+  },
+  radioLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  textInputContainer: {
+    marginTop: 8,
+  },
+  textLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  detailTextInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    backgroundColor: 'white',
+    textAlignVertical: 'top',
+    minHeight: 60,
+  },
+  addButton: {
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  jseaStep: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  removeButton: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  riskButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  riskButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  riskButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  submitSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+    backgroundColor: 'white',
+    margin: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  draftButton: {
+    flex: 0.45,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  draftButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 0.45,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  dateTimeColumn: {
+    flex: 0.48,
+  },
+  dateTimeInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#374151',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  calendarIcon: {
+    fontSize: 18,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  priorityButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  priorityButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
+
+// DateTimePicker Styles
+const pickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  dateContainer: {
+    alignItems: 'center',
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  yearButton: {
+    fontSize: 16,
+    color: '#2563EB',
+    fontWeight: '500',
+  },
+  currentYear: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  monthContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  monthButton: {
+    padding: 8,
+    margin: 4,
+    borderRadius: 6,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  selectedMonth: {
+    backgroundColor: '#2563EB',
+  },
+  monthText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedMonthText: {
+    color: 'white',
+  },
+  dayContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: 280,
+  },
+  dayButton: {
+    width: 35,
+    height: 35,
+    margin: 2,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDay: {
+    backgroundColor: '#2563EB',
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedDayText: {
+    color: 'white',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  timeSection: {
+    alignItems: 'center',
+    width: 80,
+  },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  timeScroll: {
+    height: 150,
+  },
+  timeOption: {
+    padding: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  selectedTimeOption: {
+    backgroundColor: '#2563EB',
+  },
+  timeOptionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  selectedTimeOptionText: {
+    color: 'white',
+  },
+  timeSeparator: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginHorizontal: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+   },
+  cancelButton: {
+    flex: 0.4,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 0.4,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default PermitManagementApp;

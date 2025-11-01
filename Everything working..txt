@@ -1,0 +1,1521 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Switch,
+  FlatList,
+  Modal
+} from 'react-native';
+
+// Custom DateTimePicker Component
+const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValue }) => {
+  const [selectedDate, setSelectedDate] = useState(currentValue ? new Date(currentValue) : new Date());
+  const [tempHour, setTempHour] = useState(selectedDate.getHours());
+  const [tempMinute, setTempMinute] = useState(selectedDate.getMinutes());
+
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatTime = (hour, minute) => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  const handleConfirm = () => {
+    if (mode === 'date') {
+      onSelect(formatDate(selectedDate));
+    } else {
+      onSelect(formatTime(tempHour, tempMinute));
+    }
+    onClose();
+  };
+
+  const renderDatePicker = () => (
+    <View style={pickerStyles.dateContainer}>
+      <View style={pickerStyles.dateHeader}>
+        <TouchableOpacity onPress={() => setSelectedDate(new Date(selectedDate.setFullYear(selectedDate.getFullYear() - 1)))}>
+          <Text style={pickerStyles.yearButton}>‹</Text>
+        </TouchableOpacity>
+        <Text style={pickerStyles.currentYear}>{selectedDate.getFullYear()}</Text>
+        <TouchableOpacity onPress={() => setSelectedDate(new Date(selectedDate.setFullYear(selectedDate.getFullYear() + 1)))}>
+          <Text style={pickerStyles.yearButton}>›</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={pickerStyles.monthContainer}>
+        {Array.from({ length: 12 }, (_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[
+              pickerStyles.monthButton,
+              selectedDate.getMonth() === i && pickerStyles.selectedMonth
+            ]}
+            onPress={() => setSelectedDate(new Date(selectedDate.setMonth(i)))}
+          >
+            <Text style={[
+              pickerStyles.monthText,
+              selectedDate.getMonth() === i && pickerStyles.selectedMonthText
+            ]}>
+              {new Date(selectedDate.setMonth(i)).toLocaleString('default', { month: 'short' })}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={pickerStyles.dayContainer}>
+        {Array.from({ length: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate() }, (_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[
+              pickerStyles.dayButton,
+              selectedDate.getDate() === i + 1 && pickerStyles.selectedDay
+            ]}
+            onPress={() => setSelectedDate(new Date(selectedDate.setDate(i + 1)))}
+          >
+            <Text style={[
+              pickerStyles.dayText,
+              selectedDate.getDate() === i + 1 && pickerStyles.selectedDayText
+            ]}>
+              {i + 1}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderTimePicker = () => (
+    <View style={pickerStyles.timeContainer}>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Hour</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled>
+          {Array.from({ length: 24 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempHour === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempHour(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempHour === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Minute</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled>
+          {Array.from({ length: 60 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempMinute === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempMinute(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempMinute === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View style={pickerStyles.overlay}>
+        <View style={pickerStyles.modal}>
+          <View style={pickerStyles.header}>
+            <Text style={pickerStyles.title}>
+              {mode === 'date' ? 'Select Date' : 'Select Time'}
+            </Text>
+          </View>
+          
+          {mode === 'date' ? renderDatePicker() : renderTimePicker()}
+          
+          <View style={pickerStyles.buttonContainer}>
+            <TouchableOpacity style={pickerStyles.cancelButton} onPress={onClose}>
+              <Text style={pickerStyles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pickerStyles.confirmButton} onPress={handleConfirm}>
+              <Text style={pickerStyles.confirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const PermitManagementApp = () => {
+  // --- Advanced Permit Form State ---
+  const specializedPermitTypes = [
+    { key: 'hotWork', label: 'Hot Work', description: 'Welding, cutting, grinding, or any activity that generates heat or sparks.' },
+    { key: 'confinedSpace', label: 'Confined Space', description: 'Entry into tanks, vessels, pits, or other confined spaces.' },
+    { key: 'workingAtHeight', label: 'Working at Height', description: 'Work at height where a fall could occur.' },
+    { key: 'electrical', label: 'Electrical', description: 'Electrical work, including panel access and live work.' },
+    { key: 'excavation', label: 'Excavation', description: 'Digging, trenching, or disturbing the ground.' },
+    { key: 'lifting', label: 'Lifting', description: 'Use of cranes, hoists, or other lifting equipment.' },
+    { key: 'blasting', label: 'Blasting', description: 'Use of explosives or blasting agents.' },
+    { key: 'plantServicing', label: 'Plant Servicing', description: 'Servicing or maintenance of plant equipment.' },
+    { key: 'stripping', label: 'Stripping', description: 'Stripping of insulation, paint, or other materials.' },
+    { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' }
+  ];
+  const singleHazardTypes = [
+    { key: 'slip', label: 'Slip', description: 'Potential to slip.' },
+    { key: 'chemicals', label: 'Chemicals', description: 'Use or presence of hazardous chemicals.' },
+    { key: 'noise', label: 'Noise', description: 'High noise levels.' },
+    { key: 'dust', label: 'Dust', description: 'Dust generation or exposure.' },
+    { key: 'manualHandling', label: 'Manual Handling', description: 'Lifting, carrying, or moving loads.' },
+    { key: 'other', label: 'Other', description: 'Other hazards.' }
+  ];
+  const permitQuestionnaires = {
+    hotWork: [
+      { id: 'fireExtinguisher', text: 'Is a fire extinguisher available?', type: 'yesno', required: true },
+      { id: 'flammableMaterials', text: 'Are flammable materials removed?', type: 'yesno', required: true }
+    ],
+    confinedSpace: [
+      { id: 'atmosphereTested', text: 'Has the atmosphere been tested?', type: 'yesno', required: true },
+      { id: 'standbyPerson', text: 'Is a standby person present?', type: 'yesno', required: true }
+    ],
+    workingAtHeight: [
+      { id: 'harness', text: 'Is a harness required and available?', type: 'yesno', required: true }
+    ],
+    electrical: [
+      { id: 'isolated', text: 'Is the equipment isolated?', type: 'yesno', required: true }
+    ],
+    excavation: [
+      { id: 'servicesLocated', text: 'Are underground services located?', type: 'yesno', required: true }
+    ]
+    // Add more as needed
+  };
+  const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
+  const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
+  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  const [formData, setFormData] = useState({
+    id: '',
+    description: '',
+    requestedBy: '',
+    location: '',
+    status: 'pending_approval',
+    priority: 'medium',
+    specializedPermits: initialSpecializedPermits,
+    singleHazards: initialSingleHazards,
+    jsea: initialJSEA
+  });
+  const [expandedSections, setExpandedSections] = useState({
+    general: true,
+    specialized: false,
+    hazards: false,
+    jsea: false
+  });
+  // --- Handlers for advanced form ---
+  const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const handleSpecializedPermitChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [key]: { ...prev.specializedPermits[key], [field]: value }
+      }
+    }));
+  };
+  const handleSingleHazardChange = (key, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      singleHazards: {
+        ...prev.singleHazards,
+        [key]: { ...prev.singleHazards[key], [field]: value }
+      }
+    }));
+  };
+  const handleQuestionnaireResponse = (permitKey, qid, value) => {
+    setFormData(prev => ({
+      ...prev,
+      specializedPermits: {
+        ...prev.specializedPermits,
+        [permitKey]: {
+          ...prev.specializedPermits[permitKey],
+          questionnaire: {
+            ...prev.specializedPermits[permitKey].questionnaire,
+            [qid]: value
+          }
+        }
+      }
+    }));
+  };
+  const addJSEAStep = () => {
+    setFormData(prev => ({
+      ...prev,
+      jsea: {
+        ...prev.jsea,
+        taskSteps: [...prev.jsea.taskSteps, { step: '', hazards: '', controls: '', riskLevel: '' }]
+      }
+    }));
+  };
+  const updateJSEAStep = (idx, field, value) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps[idx] = { ...steps[idx], [field]: value };
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+  const removeJSEAStep = (idx) => {
+    setFormData(prev => {
+      const steps = [...prev.jsea.taskSteps];
+      steps.splice(idx, 1);
+      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+    });
+  };
+
+  // --- handleSubmit for advanced form ---
+  const handleSubmit = () => {
+    if (!formData.id || !formData.description) {
+      Alert.alert('Missing Info', 'Please fill in all required fields.');
+      return;
+    }
+    setPermits([...permits, { ...formData, submittedDate: new Date().toISOString().split('T')[0] }]);
+    setFormData({
+      id: '',
+      description: '',
+      requestedBy: '',
+      location: '',
+      status: 'pending_approval',
+      priority: 'medium',
+      specializedPermits: initialSpecializedPermits,
+      singleHazards: initialSingleHazards,
+      jsea: initialJSEA
+    });
+    setCurrentScreen('dashboard');
+    Alert.alert('Permit Created', 'New permit has been added.');
+  };
+  // JSEA steps state
+  const [jseaSteps, setJseaSteps] = useState([]);
+  const [jseaStepText, setJseaStepText] = useState('');
+  // Single hazards state
+  const [singleHazards, setSingleHazards] = useState([]);
+  const [hazardText, setHazardText] = useState('');
+  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [permits, setPermits] = useState([
+    {
+      id: 'PTW-001',
+      type: 'Hot Work',
+      description: 'Welding repairs on conveyor frame',
+      requestedBy: 'John Smith',
+      location: 'Processing Plant A',
+      status: 'pending_approval',
+      priority: 'high',
+      submittedDate: '2025-01-15',
+      assignedApprover: 'jane.doe@company.com'
+    },
+    {
+      id: 'PTW-002',
+      type: 'Confined Space',
+      description: 'Tank cleaning and inspection',
+      requestedBy: 'Mike Johnson',
+      location: 'Storage Area B',
+      status: 'pending_inspection',
+      priority: 'high',
+      submittedDate: '2025-01-14',
+      assignedApprover: 'bob.wilson@company.com'
+    },
+    {
+      id: 'PTW-003',
+      type: 'Electrical',
+      description: 'Panel maintenance',
+      requestedBy: 'Sarah Davis',
+      location: 'Control Room',
+      status: 'active',
+      priority: 'medium',
+      approvedDate: '2025-01-13',
+      expiryDate: '2025-01-16'
+    },
+    {
+      id: 'PTW-004',
+      type: 'Working at Height',
+      description: 'Roof inspection and repairs',
+      requestedBy: 'Tom Wilson',
+      location: 'Building C',
+      status: 'completed',
+      priority: 'medium',
+      submittedDate: '2025-01-10',
+      completedDate: '2025-01-12'
+    }
+  ]);
+  const [newPermitData, setNewPermitData] = useState({
+    id: '',
+    types: [], // array for multiple specialised permits
+    description: '',
+    requestedBy: '',
+    location: '',
+    status: 'pending_approval',
+    priority: 'medium',
+    submittedDate: '',
+    assignedApprover: ''
+  });
+  const [selectedPermit, setSelectedPermit] = useState(null);
+  const [editPermitData, setEditPermitData] = useState(null);
+
+  // Utility functions
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'pending_approval': return 'Pending Approval';
+      case 'pending_inspection': return 'Needs Inspection';
+      case 'active': return 'Active';
+      case 'completed': return 'Completed';
+      default: return status;
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return '#DC2626';
+      case 'medium': return '#F59E42';
+      case 'low': return '#10B981';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // Utility: getStatusColor
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending_approval': return '#2563EB';
+      case 'pending_inspection': return '#F59E42';
+      case 'active': return '#10B981';
+      case 'completed': return '#6B7280';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // Utility: getRiskColor
+  const getRiskColor = (risk) => {
+    switch (risk) {
+      case 'high': return '#DC2626';
+      case 'medium': return '#F59E42';
+      case 'low': return '#10B981';
+      default: return '#D1D5DB';
+    }
+  };
+
+  // New Permit Form
+  const specialisedOptions = [
+    'Hot Work',
+    'Confined Space',
+    'Electrical',
+    'Working at Height',
+    'Excavation',
+    'Radiation',
+    'Other'
+  ];
+  const renderNewPermitForm = () => {
+    return (
+      <View style={{ flex: 1 }}>
+        <ScrollView style={styles.screenContainer}>
+          {/* General Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
+              <Text style={styles.sectionTitle}>General Details</Text>
+              <Text style={styles.expandIcon}>{expandedSections.general ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.general && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Permit ID</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.id}
+                  onChangeText={text => setFormData({ ...formData, id: text })}
+                  placeholder="Permit ID (e.g. PTW-005)"
+                />
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  multiline
+                  numberOfLines={3}
+                  value={formData.description}
+                  onChangeText={text => setFormData({ ...formData, description: text })}
+                  placeholder="Describe the work to be performed..."
+                />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.location}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
+                <Text style={styles.label}>Requested By</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.requestedBy}
+                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
+                  placeholder="Your name"
+                />
+                <Text style={styles.label}>Priority</Text>
+                <View style={styles.priorityButtons}>
+                  {['low', 'medium', 'high'].map(priority => (
+                    <TouchableOpacity
+                      key={priority}
+                      style={[
+                        styles.priorityButton,
+                        { backgroundColor: formData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, priority })}
+                    >
+                      <Text style={[
+                        styles.priorityButtonText,
+                        { color: formData.priority === priority ? 'white' : '#374151' }
+                      ]}>
+                        {priority.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+          {/* Specialized Permits Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
+              <Text style={styles.sectionTitle}>Specialized Permits</Text>
+              <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.specialized && (
+              <View style={styles.sectionContent}>
+                {specializedPermitTypes.map(permit => (
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.specializedPermits[permit.key].required}
+                        onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
+                    {formData.specializedPermits[permit.key].required && (
+                      <>
+                        <Text style={styles.label}>Controls</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={formData.specializedPermits[permit.key].controls}
+                          onChangeText={text => handleSpecializedPermitChange(permit.key, 'controls', text)}
+                          placeholder="Describe controls for this permit type"
+                        />
+                        {/* Questionnaire for this permit type */}
+                        {permitQuestionnaires[permit.key] && permitQuestionnaires[permit.key].map(q => (
+                          <View key={q.id} style={styles.questionContainer}>
+                            <Text style={styles.questionText}>{q.text}{q.required && <Text style={styles.required}> *</Text>}</Text>
+                            {q.type === 'yesno' ? (
+                              <View style={styles.radioGroup}>
+                                {['yes', 'no', 'na'].map(opt => (
+                                  <TouchableOpacity
+                                    key={opt}
+                                    style={styles.radioOption}
+                                    onPress={() => handleQuestionnaireResponse(permit.key, q.id, opt)}
+                                  >
+                                    <View style={[
+                                      styles.radioCircle,
+                                      formData.specializedPermits[permit.key].questionnaire[q.id] === opt && styles.radioSelected
+                                    ]} />
+                                    <Text style={styles.radioLabel}>{opt.toUpperCase()}</Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            ) : (
+                              <TextInput
+                                style={styles.detailTextInput}
+                                multiline
+                                numberOfLines={3}
+                                value={formData.specializedPermits[permit.key].questionnaire[q.id] || ''}
+                                onChangeText={text => handleQuestionnaireResponse(permit.key, q.id, text)}
+                                placeholder="Enter response..."
+                              />
+                            )}
+                          </View>
+                        ))}
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* Single Hazards Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('hazards')}>
+              <Text style={styles.sectionTitle}>Single Hazards</Text>
+              <Text style={styles.expandIcon}>{expandedSections.hazards ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.hazards && (
+              <View style={styles.sectionContent}>
+                {singleHazardTypes.map(hazard => (
+                  <View key={hazard.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.singleHazards[hazard.key].present}
+                        onValueChange={val => handleSingleHazardChange(hazard.key, 'present', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{hazard.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{hazard.description}</Text>
+                    {formData.singleHazards[hazard.key].present && (
+                      <>
+                        <Text style={styles.label}>Controls</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={formData.singleHazards[hazard.key].controls}
+                          onChangeText={text => handleSingleHazardChange(hazard.key, 'controls', text)}
+                          placeholder="Describe controls for this hazard"
+                        />
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* JSEA Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
+              <Text style={styles.sectionTitle}>JSEA</Text>
+              <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.jsea && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Task Steps</Text>
+                {formData.jsea.taskSteps.map((step, idx) => (
+                  <View key={idx} style={styles.jseaStep}>
+                    <View style={styles.stepHeader}>
+                      <Text style={styles.stepTitle}>Step {idx + 1}</Text>
+                      <TouchableOpacity onPress={() => removeJSEAStep(idx)}>
+                        <Text style={styles.removeButton}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      value={step.step}
+                      onChangeText={text => updateJSEAStep(idx, 'step', text)}
+                      placeholder="Describe step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.hazards}
+                      onChangeText={text => updateJSEAStep(idx, 'hazards', text)}
+                      placeholder="Hazards for this step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.controls}
+                      onChangeText={text => updateJSEAStep(idx, 'controls', text)}
+                      placeholder="Controls for this step"
+                    />
+                    <View style={styles.riskButtons}>
+                      {['low', 'medium', 'high'].map(risk => (
+                        <TouchableOpacity
+                          key={risk}
+                          style={[
+                            styles.riskButton,
+                            { backgroundColor: step.riskLevel === risk ? getRiskColor(risk) : '#E5E7EB' }
+                          ]}
+                          onPress={() => updateJSEAStep(idx, 'riskLevel', risk)}
+                        >
+                          <Text style={[
+                            styles.riskButtonText,
+                            { color: step.riskLevel === risk ? 'white' : '#374151' }
+                          ]}>{risk.toUpperCase()}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={addJSEAStep}>
+                  <Text style={styles.addButtonText}>Add Step</Text>
+                </TouchableOpacity>
+                <Text style={styles.label}>Overall Risk Rating</Text>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: formData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: risk } })}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: formData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.jsea.additionalPrecautions}
+                  onChangeText={text => setFormData({ ...formData, jsea: { ...formData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                />
+              </View>
+            )}
+          </View>
+          {/* Submit Button */}
+          <View style={styles.submitSection}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Create Permit</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Permit List
+  const renderPermitItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.permitListCard}
+      onPress={() => {
+        setSelectedPermit(item);
+        setEditPermitData(null);
+        setCurrentScreen('edit_permit');
+      }}
+    >
+      <View style={styles.permitListHeader}>
+        <Text style={styles.permitId}>{item.id}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        </View>
+      </View>
+      <Text style={styles.permitType}>{item.type}</Text>
+      <Text style={styles.permitDescription}>{item.description}</Text>
+      <View style={styles.permitDetails}>
+        <Text style={styles.detailText}>Location: {item.location}</Text>
+        <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+        <Text style={styles.detailText}>Date: {item.submittedDate || item.approvedDate || item.completedDate || ''}</Text>
+      </View>
+      <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
+        <Text style={styles.priorityText}>{item.priority.toUpperCase()}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderPermitList = (status, title) => {
+    const filteredPermits = permits.filter(p => p.status === status);
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          {filteredPermits.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No {title.toLowerCase()} found</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredPermits}
+              renderItem={renderPermitItem}
+              keyExtractor={item => item.id}
+            />
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Edit Permit
+  const renderEditPermit = () => {
+    if (!selectedPermit) return null;
+    const permitIndex = permits.findIndex(p => p.id === selectedPermit.id);
+    const localEditData = editPermitData || selectedPermit;
+
+    const handleEditChange = (field, value) => {
+      setEditPermitData({ ...localEditData, [field]: value });
+    };
+
+    const saveEdit = () => {
+      const updatedPermits = [...permits];
+      updatedPermits[permitIndex] = editPermitData || selectedPermit;
+      setPermits(updatedPermits);
+      setEditPermitData(null);
+      setSelectedPermit(null);
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Updated', `Permit ${(editPermitData || selectedPermit).id} has been updated.`);
+    };
+
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
+        </View>
+        <View style={styles.section}>
+          <View style={styles.sectionContent}>
+            <Text style={styles.label}>Work Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              multiline
+              numberOfLines={3}
+              value={localEditData.description}
+              onChangeText={text => handleEditChange('description', text)}
+              placeholder="Describe the work to be performed..."
+            />
+            <Text style={styles.label}>Location</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.location}
+              onChangeText={text => handleEditChange('location', text)}
+              placeholder="Work location"
+            />
+            <Text style={styles.label}>Requested By</Text>
+            <TextInput
+              style={styles.input}
+              value={localEditData.requestedBy}
+              onChangeText={text => handleEditChange('requestedBy', text)}
+              placeholder="Your name"
+            />
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityButtons}>
+              {['low', 'medium', 'high'].map(priority => (
+                <TouchableOpacity
+                  key={priority}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('priority', priority)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.priority === priority ? 'white' : '#374151' }
+                  ]}>
+                    {priority.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.priorityButtons}>
+              {['pending_approval', 'pending_inspection', 'active', 'completed'].map(status => (
+                <TouchableOpacity
+                  key={status}
+                  style={[
+                    styles.priorityButton,
+                    { backgroundColor: localEditData.status === status ? getStatusColor(status) : '#E5E7EB' }
+                  ]}
+                  onPress={() => handleEditChange('status', status)}
+                >
+                  <Text style={[
+                    styles.priorityButtonText,
+                    { color: localEditData.status === status ? 'white' : '#374151' }
+                  ]}>
+                    {getStatusText(status)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={styles.submitButton} onPress={saveEdit}>
+            <Text style={styles.submitButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // Dashboard
+  const renderDashboard = () => {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Permit Dashboard</Text>
+        </View>
+        <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
+            <Text style={styles.cardLabel}>Pending Approval</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('pending_inspection')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_inspection').length}</Text>
+            <Text style={styles.cardLabel}>Needs Inspection</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'active').length}</Text>
+            <Text style={styles.cardLabel}>Active Permits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
+            <Text style={styles.cardLabel}>Completed</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
+          <Text style={styles.primaryButtonText}>Create New Permit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Main render logic
+  switch (currentScreen) {
+    case 'dashboard':
+      return renderDashboard();
+    case 'pending_approval':
+      return renderPermitList('pending_approval', 'Pending Approval');
+    case 'pending_inspection':
+      return renderPermitList('pending_inspection', 'Needs Inspection');
+    case 'active':
+      return renderPermitList('active', 'Active Permits');
+    case 'completed':
+      return renderPermitList('completed', 'Completed Permits');
+    case 'edit_permit':
+      return renderEditPermit();
+    case 'new_permit':
+      return renderNewPermitForm();
+    default:
+      return renderDashboard();
+  }
+};
+
+const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    backgroundColor: '#2563EB',
+    padding: 20,
+    paddingTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
+  },
+  backButton: {
+    color: 'white',
+    fontSize: 16,
+    marginRight: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  dashboardGrid: {
+    padding: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  dashboardCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    borderLeftWidth: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  cardLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#2563EB',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  permitList: {
+    flex: 1,
+  },
+  permitListContainer: {
+    padding: 16,
+  },
+  permitListCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    position: 'relative',
+  },
+  permitListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  permitId: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  permitType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  permitDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  permitDetails: {
+    marginBottom: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  priorityIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  priorityText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  section: {
+    margin: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  sectionHeader: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dangerHeader: {
+    backgroundColor: '#FEF2F2',
+  },
+  warningHeader: {
+    backgroundColor: '#FFFBEB',
+  },
+  infoHeader: {
+    backgroundColor: '#EFF6FF',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  dangerTitle: {
+    color: '#DC2626',
+  },
+  warningTitle: {
+    color: '#D97706',
+  },
+  infoTitle: {
+    color: '#2563EB',
+  },
+  expandIcon: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  sectionContent: {
+    padding: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 4,
+    marginTop: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  permitCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  permitHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  permitInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  permitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  questionnaireTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  questionnaireScroll: {
+    maxHeight: 400,
+  },
+  questionContainer: {
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  radioSelected: {
+    borderColor: '#2563EB',
+    backgroundColor: '#2563EB',
+  },
+  radioLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  textInputContainer: {
+    marginTop: 8,
+  },
+  textLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  detailTextInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    backgroundColor: 'white',
+    textAlignVertical: 'top',
+    minHeight: 60,
+  },
+  addButton: {
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  jseaStep: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  removeButton: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  riskButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  riskButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  riskButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  submitSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+    backgroundColor: 'white',
+    margin: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  draftButton: {
+    flex: 0.45,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  draftButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 0.45,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  dateTimeColumn: {
+    flex: 0.48,
+  },
+  dateTimeInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#374151',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  calendarIcon: {
+    fontSize: 18,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  priorityButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  priorityButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
+
+// DateTimePicker Styles
+const pickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  dateContainer: {
+    alignItems: 'center',
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  yearButton: {
+    fontSize: 16,
+    color: '#2563EB',
+    fontWeight: '500',
+  },
+  currentYear: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  monthContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  monthButton: {
+    padding: 8,
+    margin: 4,
+    borderRadius: 6,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  selectedMonth: {
+    backgroundColor: '#2563EB',
+  },
+  monthText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedMonthText: {
+    color: 'white',
+  },
+  dayContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: 280,
+  },
+  dayButton: {
+    width: 35,
+    height: 35,
+    margin: 2,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDay: {
+    backgroundColor: '#2563EB',
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectedDayText: {
+    color: 'white',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  timeSection: {
+    alignItems: 'center',
+    width: 80,
+  },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  timeScroll: {
+    height: 150,
+  },
+  timeOption: {
+    padding: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  selectedTimeOption: {
+    backgroundColor: '#2563EB',
+  },
+  timeOptionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  selectedTimeOptionText: {
+    color: 'white',
+  },
+  timeSeparator: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginHorizontal: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  cancelButton: {
+    flex: 0.4,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 0.4,
+    padding: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default PermitManagementApp;
