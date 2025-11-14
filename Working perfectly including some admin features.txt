@@ -97,8 +97,7 @@ import {
   Alert,
   Switch,
   FlatList,
-  Modal,
-  Dimensions
+  Modal
 } from 'react-native';
 
 // --- Render questionnaire for a specialized permit ---
@@ -672,15 +671,15 @@ const PermitManagementApp = () => {
 
   // Users state - stores system users with sites they can work at
   const [users, setUsers] = useState([
-    { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
-    { id: 'user-002', name: 'Jane Doe', email: 'jane.doe@company.com', sites: ['Wheatsheaf Quarry'], company: 'ABC Contractors', isAdmin: false },
-    { id: 'user-003', name: 'Bob Wilson', email: 'bob.wilson@company.com', sites: ['Otaki Quarry', 'Petone Quarry'], company: 'XYZ Services', isAdmin: false }
+    { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors' },
+    { id: 'user-002', name: 'Jane Doe', email: 'jane.doe@company.com', sites: ['Wheatsheaf Quarry'], company: 'ABC Contractors' },
+    { id: 'user-003', name: 'Bob Wilson', email: 'bob.wilson@company.com', sites: ['Otaki Quarry', 'Petone Quarry'], company: 'XYZ Services' }
   ]);
 
   // Contractors state - stores contractor information
   const [contractors, setContractors] = useState([
-    { id: 'contractor-001', name: 'ABC Contractors', email: 'info@abc-contractors.com', services: ['Hot Work', 'Electrical'], company: 'ABC Contractors Ltd', inductionExpiry: '2025-12-15' },
-    { id: 'contractor-002', name: 'XYZ Services', email: 'contact@xyz-services.com', services: ['Confined Space', 'Working at Height'], company: 'XYZ Services Inc', inductionExpiry: '2026-03-20' }
+    { id: 'contractor-001', name: 'ABC Contractors', email: 'info@abc-contractors.com', services: ['Hot Work', 'Electrical'], company: 'ABC Contractors Ltd' },
+    { id: 'contractor-002', name: 'XYZ Services', email: 'contact@xyz-services.com', services: ['Confined Space', 'Working at Height'], company: 'XYZ Services Inc' }
   ]);
 
   const [newPermitData, setNewPermitData] = useState({
@@ -698,43 +697,10 @@ const PermitManagementApp = () => {
   const [editPermitData, setEditPermitData] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editingUser, setEditingUser] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
+  const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '' });
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
-  
-  // Filter states for contractors and users
-  const [contractorSearchText, setContractorSearchText] = useState('');
-  const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
-  const [userSearchText, setUserSearchText] = useState('');
-  const [userCompanyFilter, setUserCompanyFilter] = useState('All');
-  
-  // Filter state for services directory
-  const [selectedService, setSelectedService] = useState('Hot Work');
-  
-  // Induction date picker state
-  const [showInductionDatePicker, setShowInductionDatePicker] = useState(false);
-  const [inductionPickerDate, setInductionPickerDate] = useState(new Date());
-
-  // Responsive column widths based on screen size
-  const screenWidth = Dimensions.get('window').width;
-  const isMobile = screenWidth < 600;
-  const isTablet = screenWidth >= 600 && screenWidth < 900;
-  
-  const getColumnWidths = () => {
-    if (isMobile) {
-      // Mobile: more compact
-      return { name: 80, email: 100, company: 80, services: 80, inductionExpiry: 90, actions: 50 };
-    } else if (isTablet) {
-      // Tablet: medium
-      return { name: 100, email: 130, company: 100, services: 120, inductionExpiry: 110, actions: 70 };
-    } else {
-      // Desktop: full size
-      return { name: 120, email: 150, company: 120, services: 150, inductionExpiry: 130, actions: 80 };
-    }
-  };
-  
-  const columns = getColumnWidths();
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], company: '' });
 
   // Utility functions
   const getStatusText = (status) => {
@@ -1630,10 +1596,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             <Text style={styles.cardNumber}>{contractors.length}</Text>
             <Text style={styles.cardLabel}>Contractors</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#3B82F6' }]} onPress={() => setCurrentScreen('services_directory')}>
-            <Text style={styles.cardNumber}>{ALL_SERVICES.length}</Text>
-            <Text style={styles.cardLabel}>Services</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -1712,31 +1674,11 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                 ))}
               </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 4,
-                    borderWidth: 2,
-                    borderColor: currentUser.isAdmin ? '#2563EB' : '#D1D5DB',
-                    backgroundColor: currentUser.isAdmin ? '#2563EB' : 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginRight: 12
-                  }}
-                  onPress={() => setCurrentUser({ ...currentUser, isAdmin: !currentUser.isAdmin })}
-                >
-                  {currentUser.isAdmin && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
-                </TouchableOpacity>
-                <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#374151' }}>Grant admin access to manage users & contractors</Text>
-              </View>
-
               <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
                 <Text style={styles.addButtonText}>{editingUser ? 'Update User' : 'Add User'}</Text>
               </TouchableOpacity>
               {editingUser && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingUser(false); setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false }); setSelectedUser(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingUser(false); setCurrentUser({ id: '', name: '', email: '', sites: [], company: '' }); setSelectedUser(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -1752,12 +1694,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             ) : (
               users.map((user, index) => (
                 <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
-                    {user.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>ADMIN</Text>
-                    </View>}
-                  </View>
+                  <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
                   <Text style={styles.detailText}>{user.email}</Text>
                   <Text style={styles.detailText}>{user.company}</Text>
                   <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites.length > 0 ? user.sites.join(', ') : 'None'}</Text>
@@ -1803,83 +1740,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', onPress: () => setContractors(contractors.filter(c => c.id !== id)), style: 'destructive' }
       ]);
-    };
-
-    const handleImportCSV = () => {
-      // Create a hidden file input element
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.csv';
-      
-      fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const csvText = event.target.result;
-            const lines = csvText.trim().split('\n');
-            
-            if (lines.length < 2) {
-              Alert.alert('Error', 'CSV must have header row and at least one data row');
-              return;
-            }
-
-            const newContractors = [];
-
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (!line) continue; // Skip empty lines
-              
-              // Simple CSV parsing (handles basic cases)
-              const values = [];
-              let current = '';
-              let inQuotes = false;
-              
-              for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                if (char === '"') {
-                  inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                  values.push(current.trim().replace(/^"|"$/g, ''));
-                  current = '';
-                } else {
-                  current += char;
-                }
-              }
-              values.push(current.trim().replace(/^"|"$/g, ''));
-
-              if (values.length >= 3) {
-                const contractor = {
-                  id: 'contractor-' + Date.now() + i,
-                  name: values[0] || '',
-                  email: values[1] || '',
-                  company: values[2] || '',
-                  services: values[3] ? values[3].split(';').map(s => s.trim()) : []
-                };
-                if (contractor.name && contractor.email && contractor.company) {
-                  newContractors.push(contractor);
-                }
-              }
-            }
-
-            if (newContractors.length === 0) {
-              Alert.alert('Error', 'No valid contractors found in CSV');
-              return;
-            }
-
-            setContractors([...contractors, ...newContractors]);
-            Alert.alert('Success', `${newContractors.length} contractor(s) imported successfully`);
-          } catch (error) {
-            Alert.alert('Error', 'Failed to parse CSV: ' + error.message);
-          }
-        };
-        
-        reader.readAsText(file);
-      };
-      
-      fileInput.click();
     };
 
     return (
@@ -1928,24 +1788,11 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                 ))}
               </View>
 
-              <Text style={styles.label}>Induction Expiry Date</Text>
-              <TouchableOpacity 
-                style={[styles.input, { justifyContent: 'center', paddingVertical: 12, backgroundColor: '#F3F4F6' }]}
-                onPress={() => {
-                  setInductionPickerDate(currentContractor.inductionExpiry ? new Date(currentContractor.inductionExpiry) : new Date());
-                  setShowInductionDatePicker(true);
-                }}
-              >
-                <Text style={{ color: currentContractor.inductionExpiry ? '#1F2937' : '#9CA3AF', fontSize: 16 }}>
-                  {currentContractor.inductionExpiry ? new Date(currentContractor.inductionExpiry).toLocaleDateString('en-NZ') : 'Select date'}
-                </Text>
-              </TouchableOpacity>
-
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
               {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], company: '' }); setSelectedContractor(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -1954,218 +1801,29 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
           {/* Contractors List Section */}
           <View style={{ marginTop: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
-              </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Filter and Search Section */}
-            {contractors.length > 0 && (
-              <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Type name, email..."
-                  value={contractorSearchText}
-                  onChangeText={setContractorSearchText}
-                />
-
-                <Text style={[styles.label, { fontSize: 12, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  <TouchableOpacity
-                    style={[
-                      { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
-                      contractorCompanyFilter === 'All'
-                        ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                        : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                    ]}
-                    onPress={() => setContractorCompanyFilter('All')}
-                  >
-                    <Text style={{ color: contractorCompanyFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
-                  </TouchableOpacity>
-                  {[...new Set(contractors.map(c => c.company))].map(company => (
-                    <TouchableOpacity
-                      key={company}
-                      style={[
-                        { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
-                        contractorCompanyFilter === company
-                          ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                          : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                      ]}
-                      onPress={() => setContractorCompanyFilter(company)}
-                    >
-                      <Text style={{ color: contractorCompanyFilter === company ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{company}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
+            <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
+            <Text style={{ color: '#6B7280', marginTop: 4, marginBottom: 12 }}>Total: {contractors.length} contractors</Text>
             {contractors.length === 0 ? (
-              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors yet. Add one using the form above.</Text>
-              </View>
+              <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No contractors yet. Add one using the form above.</Text>
             ) : (
-              (() => {
-                const filteredContractors = contractors.filter(contractor => {
-                  const matchesSearch = contractorSearchText === '' || 
-                    contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-                    contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
-                  
-                  const matchesCompanyFilter = contractorCompanyFilter === 'All' || contractor.company === contractorCompanyFilter;
-                  
-                  return matchesSearch && matchesCompanyFilter;
-                });
-
-                if (filteredContractors.length === 0) {
-                  return <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-                    <Text style={{ color: '#9CA3AF' }}>No contractors match your search/filter.</Text>
-                  </View>;
-                }
-
-                return (
-                  <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
-                    <View>
-                      {/* Table Header */}
-                      <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-                        <Text style={[{ width: columns.name, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Name</Text>
-                        <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
-                        <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
-                        <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
-                        <Text style={[{ width: columns.inductionExpiry, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Induction Exp</Text>
-                        <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11, textAlign: 'center' }]}>Actions</Text>
-                      </View>
-
-                      {/* Table Rows */}
-                      {filteredContractors.map((contractor, index) => (
-                        <View 
-                          key={contractor.id} 
-                          style={{ 
-                            flexDirection: 'row', 
-                            backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
-                            borderBottomWidth: 1,
-                            borderBottomColor: '#E5E7EB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
-                          <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                          <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
-                          <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
-                            {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
-                          </Text>
-                          <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 11, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
-                            {contractor.inductionExpiry ? new Date(contractor.inductionExpiry).toLocaleDateString('en-NZ') : '-'}
-                          </Text>
-                          <View style={{ width: columns.actions, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 12 }}>
-                            <TouchableOpacity 
-                              style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                              onPress={() => { setSelectedContractor(contractor); setEditingContractor(true); setCurrentContractor(contractor); setInductionPickerDate(contractor.inductionExpiry ? new Date(contractor.inductionExpiry) : new Date()); }}
-                            >
-                              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
-                              onPress={() => handleDeleteContractor(contractor.id)}
-                            >
-                              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Del</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  </ScrollView>
-                );
-              })()
+              contractors.map((contractor, index) => (
+                <View key={contractor.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
+                  <Text style={styles.permitId}>{index + 1}. {contractor.name}</Text>
+                  <Text style={styles.detailText}>{contractor.email}</Text>
+                  <Text style={styles.detailText}>{contractor.company}</Text>
+                  <Text style={[styles.detailText, { marginTop: 8 }]}>Services: {contractor.services.length > 0 ? contractor.services.join(', ') : 'None'}</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { setSelectedContractor(contractor); setEditingContractor(true); setCurrentContractor(contractor); }}>
+                      <Text style={styles.addButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.addButton, { flex: 0.45, backgroundColor: '#EF4444' }]} onPress={() => handleDeleteContractor(contractor.id)}>
+                      <Text style={styles.addButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
             )}
           </View>
-        </ScrollView>
-      </View>
-    );
-  };
-
-  // Services Directory Screen - View contractors in spreadsheet format
-  const renderServicesDirectory = () => {
-    const contractorsWithService = contractors.filter(c => c.services.includes(selectedService));
-
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Services Directory</Text>
-        </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Filter Section */}
-          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 16 }}>
-            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Service:</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {ALL_SERVICES.map(service => (
-                <TouchableOpacity
-                  key={service}
-                  style={[
-                    { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
-                    selectedService === service
-                      ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                      : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                  ]}
-                  onPress={() => setSelectedService(service)}
-                >
-                  <Text style={{ color: selectedService === service ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{service}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Table Title and Count */}
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold' }]}>Contractors - {selectedService}</Text>
-            <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>Results: {contractorsWithService.length}</Text>
-          </View>
-
-          {/* Spreadsheet Table */}
-          {contractorsWithService.length === 0 ? (
-            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors offer "{selectedService}"</Text>
-            </View>
-          ) : (
-            <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
-              <View>
-                {/* Table Header */}
-                <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-                  <Text style={[{ width: columns.name, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Name</Text>
-                  <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
-                  <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
-                  <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }]}>Services</Text>
-                </View>
-
-                {/* Table Rows */}
-                {contractorsWithService.map((contractor, index) => (
-                  <View 
-                    key={contractor.id} 
-                    style={{ 
-                      flexDirection: 'row', 
-                      backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB'
-                    }}
-                  >
-                    <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
-                    <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                    <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
-                    <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }]}>
-                      {contractor.services.length > 0 ? contractor.services.join(', ') : 'None'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          )}
         </ScrollView>
       </View>
     );
@@ -3019,66 +2677,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     );
   };
 
-  // Date Picker Modal for Induction Expiry
-  const InductionDatePickerModal = () => {
-    const today = new Date();
-    const getFirstDayOfMonth = (date) => {
-      const d = new Date(date);
-      return new Date(d.getFullYear(), d.getMonth(), 1);
-    };
-    const [displayMonth, setDisplayMonth] = React.useState(() => getFirstDayOfMonth(inductionPickerDate));
-    const year = displayMonth.getFullYear();
-    const month = displayMonth.getMonth();
-
-    const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-    const getFirstDayOfWeek = (y, m) => new Date(y, m, 1).getDay();
-
-    const daysInMonth = getDaysInMonth(year, month);
-    const firstDay = getFirstDayOfWeek(year, month);
-    const days = [];
-    for (let i = 0; i < firstDay; i++) days.push(null);
-    for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
-    return (
-      <Modal visible={showInductionDatePicker} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '90%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Select Induction Expiry Date</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month - 1, 1))}><Text style={{ fontSize: 18, fontWeight: 'bold' }}>{'<'}</Text></TouchableOpacity>
-              <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
-              <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month + 1, 1))}><Text style={{ fontSize: 18, fontWeight: 'bold' }}>{'>'}</Text></TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <Text key={d} style={{ fontWeight: 'bold', width: 40, textAlign: 'center' }}>{d}</Text>)}
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {days.map((d, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={{ width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 6 }}
-                  disabled={!d}
-                  onPress={() => {
-                    setInductionPickerDate(new Date(year, month, d));
-                    setCurrentContractor({ ...currentContractor, inductionExpiry: new Date(year, month, d).toISOString().split('T')[0] });
-                    setShowInductionDatePicker(false);
-                  }}
-                >
-                  {d && <Text style={{ color: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? 'white' : '#1F2937', backgroundColor: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? '#3B82F6' : 'transparent', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>{d}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: '#EF4444', padding: 12, borderRadius: 6, alignItems: 'center' }} onPress={() => setShowInductionDatePicker(false)}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   // Main render logic
   switch (currentScreen) {
     case 'dashboard':
@@ -3140,14 +2738,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     case 'manage_users':
       return renderManageUsers();
     case 'manage_contractors':
-      return (
-        <>
-          {renderManageContractors()}
-          <InductionDatePickerModal />
-        </>
-      );
-    case 'services_directory':
-      return renderServicesDirectory();
+      return renderManageContractors();
     default:
       return renderDashboard();
   }
@@ -3238,10 +2829,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
     position: 'relative',
-  },
-  tableBorder: {
-    borderRightWidth: 1,
-    borderRightColor: '#D1D5DB',
   },
   permitListHeader: {
     flexDirection: 'row',
