@@ -1,4 +1,4 @@
 {
-  "outputDirectory": "dist",
-  "public": "dist"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
 }
