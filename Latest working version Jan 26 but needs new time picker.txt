@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,6 @@ import {
   Modal,
   Dimensions
 } from 'react-native';
-import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { createCompany, listCompanies, updateCompany, deleteCompany } from './src/api/companies';
-import { createUser, listUsers, updateUser, deleteUser } from './src/api/users';
-import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 
 // List of all available sites
 const ALL_SITES = [
@@ -304,49 +300,50 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
   };
 
   const renderTimePicker = () => (
-    <View style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
-      {/* Hour Section */}
-      <View style={{ marginBottom: 40, alignItems: 'center' }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 12 }}>Hour</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-          <TouchableOpacity 
-            style={{ padding: 12, backgroundColor: '#2563EB', borderRadius: 8 }}
-            onPress={() => setTempHour(Math.max(0, tempHour - 1))}
-          >
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: 'white' }}>−</Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 56, fontWeight: 'bold', color: '#1F2937', minWidth: 80, textAlign: 'center' }}>
-            {tempHour.toString().padStart(2, '0')}
-          </Text>
-          <TouchableOpacity 
-            style={{ padding: 12, backgroundColor: '#2563EB', borderRadius: 8 }}
-            onPress={() => setTempHour(Math.min(23, tempHour + 1))}
-          >
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: 'white' }}>+</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={pickerStyles.timeContainer}>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Hour</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled scrollEventThrottle={16}>
+          {Array.from({ length: 24 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempHour === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempHour(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempHour === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
-
-      {/* Minute Section */}
-      <View style={{ alignItems: 'center' }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 12 }}>Minute</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-          <TouchableOpacity 
-            style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#2563EB', borderRadius: 8 }}
-            onPress={() => setTempMinute(Math.max(0, tempMinute - 15))}
-          >
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'white' }}>−15</Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 56, fontWeight: 'bold', color: '#1F2937', minWidth: 80, textAlign: 'center' }}>
-            {tempMinute.toString().padStart(2, '0')}
-          </Text>
-          <TouchableOpacity 
-            style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#2563EB', borderRadius: 8 }}
-            onPress={() => setTempMinute(Math.min(59, tempMinute + 15))}
-          >
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'white' }}>+15</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={pickerStyles.timeSection}>
+        <Text style={pickerStyles.timeLabel}>Minute</Text>
+        <ScrollView style={pickerStyles.timeScroll} nestedScrollEnabled scrollEventThrottle={16}>
+          {Array.from({ length: 60 }, (_, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                pickerStyles.timeOption,
+                tempMinute === i && pickerStyles.selectedTimeOption
+              ]}
+              onPress={() => setTempMinute(i)}
+            >
+              <Text style={[
+                pickerStyles.timeOptionText,
+                tempMinute === i && pickerStyles.selectedTimeOptionText
+              ]}>
+                {i.toString().padStart(2, '0')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
     </View>
   );
@@ -948,58 +945,27 @@ const PermitManagementApp = () => {
   };
 
   // --- handleSubmit for advanced form ---
-  const handleSubmit = async () => {
-    if (!formData.description) {
-      Alert.alert('Missing Info', 'Please fill in the Description field.');
+  const handleSubmit = () => {
+    if (!formData.id || !formData.description) {
+      Alert.alert('Missing Info', 'Please fill in all required fields.');
       return;
     }
-    
-    try {
-      // Prepare permit data for Supabase
-      const permitData = {
-        permit_type: formData.id || 'general',
-        description: formData.description,
-        location: formData.location,
-        status: formData.status,
-        priority: formData.priority,
-        start_date: formData.startDate,
-        start_time: formData.startTime,
-        end_date: formData.endDate,
-        end_time: formData.endTime,
-        requested_by: formData.requestedBy,
-        site_id: null, // Will be set later when user selects a site
-        controls_summary: '',
-        specialized_permits: formData.specializedPermits,
-        single_hazards: formData.singleHazards,
-        jsea: formData.jsea,
-        sign_ons: formData.signOns
-      };
-
-      // Save to Supabase
-      const newPermit = await createPermit(permitData);
-      
-      // Update local state with the new permit
-      setPermits([...permits, { ...newPermit, submittedDate: new Date().toISOString().split('T')[0] }]);
-      
-      setFormData({
-        id: '',
-        description: '',
-        requestedBy: '',
-        location: '',
-        status: 'pending_approval',
-        priority: 'medium',
-        specializedPermits: initialSpecializedPermits,
-        singleHazards: initialSingleHazards,
-        jsea: initialJSEA,
-        isolations: initialIsolations,
-        signOns: initialSignOns
-      });
-      setCurrentScreen('dashboard');
-      Alert.alert('Permit Created', 'New permit has been saved to the database.');
-    } catch (error) {
-      console.error('Error creating permit:', error);
-      Alert.alert('Error', 'Failed to save permit. Please try again.');
-    }
+    setPermits([...permits, { ...formData, submittedDate: new Date().toISOString().split('T')[0] }]);
+    setFormData({
+      id: '',
+      description: '',
+      requestedBy: '',
+      location: '',
+      status: 'pending_approval',
+      priority: 'medium',
+      specializedPermits: initialSpecializedPermits,
+      singleHazards: initialSingleHazards,
+      jsea: initialJSEA,
+      isolations: initialIsolations,
+      signOns: initialSignOns
+    });
+    setCurrentScreen('dashboard');
+    Alert.alert('Permit Created', 'New permit has been added.');
   };
   // JSEA steps state
   const [jseaSteps, setJseaSteps] = useState([]);
@@ -1009,51 +975,12 @@ const PermitManagementApp = () => {
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [permits, setPermits] = useState([]);
-  const [isLoadingPermits, setIsLoadingPermits] = useState(true);
-
-  // Load permits from Supabase on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoadingPermits(true);
-        
-        // Load permits
-        const permitsData = await listPermits();
-        setPermits(permitsData);
-        
-        // Load companies
-        const companiesData = await listCompanies();
-        setCompanies(companiesData);
-        
-        // Load users
-        const usersData = await listUsers();
-        setUsers(usersData);
-        
-        // Load contractors
-        const contractorsData = await listContractors();
-        setContractors(contractorsData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        Alert.alert('Error', 'Failed to load data from database');
-      } finally {
-        setIsLoadingPermits(false);
-      }
-    };
-    loadData();
-  }, []);
 
   // Users state - stores system users with sites they can work at
   const [users, setUsers] = useState([
     { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
     { id: 'user-002', name: 'Jane Doe', email: 'jane.doe@company.com', sites: ['Wheatsheaf Quarry'], company: 'ABC Contractors', isAdmin: false },
     { id: 'user-003', name: 'Bob Wilson', email: 'bob.wilson@company.com', sites: ['Otaki Quarry', 'Petone Quarry'], company: 'XYZ Services', isAdmin: false }
-  ]);
-
-  // Companies state - stores contractor company information
-  const [companies, setCompanies] = useState([
-    { id: 'company-001', name: 'ABC Contractors Ltd' },
-    { id: 'company-002', name: 'XYZ Services Inc' },
-    { id: 'company-003', name: 'SafeWork Solutions' }
   ]);
 
   // Contractors state - stores contractor information
@@ -1081,9 +1008,6 @@ const PermitManagementApp = () => {
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
-  const [selectedCompany, setSelectedCompany] = useState(null);
-  const [editingCompany, setEditingCompany] = useState(false);
-  const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
   
   // Filter states for contractors and users
   const [contractorSearchText, setContractorSearchText] = useState('');
@@ -1188,6 +1112,13 @@ const PermitManagementApp = () => {
             </TouchableOpacity>
             {expandedSections.general && (
               <View style={styles.sectionContent}>
+                <Text style={styles.label}>Permit ID</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.id}
+                  onChangeText={text => setFormData({ ...formData, id: text })}
+                  placeholder="Permit ID (e.g. PTW-005)"
+                />
                 <Text style={styles.label}>Description</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -1684,7 +1615,7 @@ const PermitManagementApp = () => {
   const renderPermitItem = ({ item }) => (
     <View style={styles.permitListCard}>
       <View style={styles.permitListHeader}>
-        <Text style={styles.permitId}>#{item.permitNumber}</Text>
+        <Text style={styles.permitId}>{item.id}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
           <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
@@ -2802,53 +2733,33 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       {/* Only show Approve/Reject if not completed */}
       {!isCompleted && (
         <View style={styles.submitSection}>
-          <TouchableOpacity style={styles.submitButton} onPress={async () => {
-            Alert.alert('Debug', 'Approve button clicked');
+          <TouchableOpacity style={styles.submitButton} onPress={() => {
             // Approve: set status to 'pending_inspection' and update permit
             const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
             const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
               (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
-            
-            const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-            const approvedDate = new Date().toISOString().split('T')[0];
-            
-            try {
-              console.log('Approving permit:', editData.id, 'New status:', newStatus);
-              // Update in Supabase
-              const result = await updatePermit(editData.id, {
-                status: newStatus,
-                approved_date: approvedDate
-              });
-              console.log('Update result:', result);
-              
-              // Reload all permits to get fresh data from database
-              const freshPermits = await listPermits();
-              setPermits(freshPermits);
-              
-              setCurrentScreen('dashboard');
-              Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
-            } catch (error) {
-              console.error('Error approving permit:', error);
-              Alert.alert('Error', 'Failed to approve permit: ' + error.message);
-            }
+            const updated = permits.map(p => {
+              if (p.id === editData.id) {
+                if (isHighRisk) {
+                  return { ...editData, status: 'pending_inspection', approvedDate: new Date().toISOString().split('T')[0] };
+                } else {
+                  return { ...editData, status: 'active', approvedDate: new Date().toISOString().split('T')[0] };
+                }
+              }
+              return p;
+            });
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
           }}>
             <Text style={styles.submitButtonText}>Approve</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={async () => {
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={() => {
             // Reject: set status to 'rejected' and update permit
-            try {
-              await updatePermit(editData.id, {
-                status: 'rejected'
-              });
-              
-              const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
-              setPermits(updated);
-              setCurrentScreen('dashboard');
-              Alert.alert('Permit Rejected', 'Permit has been rejected.');
-            } catch (error) {
-              console.error('Error rejecting permit:', error);
-              Alert.alert('Error', 'Failed to reject permit. Please try again.');
-            }
+            const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Rejected', 'Permit has been rejected.');
           }}>
             <Text style={styles.submitButtonText}>Reject</Text>
           </TouchableOpacity>
@@ -3170,10 +3081,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             <Text style={styles.cardNumber}>{users.length}</Text>
             <Text style={styles.cardLabel}>Users</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('manage_companies')}>
-            <Text style={styles.cardNumber}>{companies.length}</Text>
-            <Text style={styles.cardLabel}>Companies</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('manage_contractors')}>
             <Text style={styles.cardNumber}>{contractors.length}</Text>
             <Text style={styles.cardLabel}>Contractors</Text>
@@ -3189,60 +3096,28 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
   // Manage Users Screen
   const renderManageUsers = () => {
-    const handleAddUser = async () => {
+    const handleAddUser = () => {
       if (!currentUser.name || !currentUser.email || !currentUser.company) {
         Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
         return;
       }
-      try {
-        if (editingUser) {
-          await updateUser(currentUser.id, {
-            name: currentUser.name,
-            email: currentUser.email,
-            sites: currentUser.sites,
-            company: currentUser.company,
-            isAdmin: currentUser.isAdmin
-          });
-          const freshUsers = await listUsers();
-          setUsers(freshUsers);
-          setEditingUser(false);
-          Alert.alert('User Updated', 'User has been updated successfully.');
-        } else {
-          await createUser({
-            name: currentUser.name,
-            email: currentUser.email,
-            sites: currentUser.sites,
-            company: currentUser.company,
-            isAdmin: currentUser.isAdmin
-          });
-          const freshUsers = await listUsers();
-          setUsers(freshUsers);
-          Alert.alert('User Added', 'New user has been added successfully.');
-        }
-        setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
-        setSelectedUser(null);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to save user: ' + error.message);
+      if (editingUser) {
+        setUsers(users.map(u => u.id === currentUser.id ? currentUser : u));
+        setEditingUser(false);
+        Alert.alert('User Updated', 'User has been updated successfully.');
+      } else {
+        const newId = 'user-' + Date.now();
+        setUsers([...users, { ...currentUser, id: newId }]);
+        Alert.alert('User Added', 'New user has been added successfully.');
       }
+      setCurrentUser({ id: '', name: '', email: '', sites: [], company: '' });
+      setSelectedUser(null);
     };
 
     const handleDeleteUser = (id) => {
       Alert.alert('Delete User', 'Are you sure?', [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              await deleteUser(id);
-              const freshUsers = await listUsers();
-              setUsers(freshUsers);
-              Alert.alert('Deleted', 'User has been deleted.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete user: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
+        { text: 'Delete', onPress: () => setUsers(users.filter(u => u.id !== id)), style: 'destructive' }
       ]);
     };
 
@@ -3358,277 +3233,30 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     );
   };
 
-  // Manage Companies Screen
-  const renderManageCompanies = () => {
-    const handleAddCompany = async () => {
-      if (!currentCompany.name) {
-        Alert.alert('Missing Info', 'Please enter a company name.');
-        return;
-      }
-      try {
-        if (editingCompany) {
-          await updateCompany(currentCompany.id, { name: currentCompany.name });
-          const freshCompanies = await listCompanies();
-          setCompanies(freshCompanies);
-          setEditingCompany(false);
-          Alert.alert('Company Updated', 'Company has been updated successfully.');
-        } else {
-          const newCompany = await createCompany({ name: currentCompany.name });
-          const freshCompanies = await listCompanies();
-          setCompanies(freshCompanies);
-          Alert.alert('Company Added', 'New company has been added successfully.');
-        }
-        setCurrentCompany({ id: '', name: '' });
-        setSelectedCompany(null);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to save company: ' + error.message);
-      }
-    };
-
-    const handleDeleteCompany = (id) => {
-      Alert.alert('Delete Company', 'Are you sure?', [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              await deleteCompany(id);
-              const freshCompanies = await listCompanies();
-              setCompanies(freshCompanies);
-              Alert.alert('Deleted', 'Company has been deleted.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete company: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
-      ]);
-    };
-
-    const handleImportCSV = () => {
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.csv,.xlsx,.xls';
-      
-      fileInput.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          try {
-            const csvText = event.target.result;
-            const lines = csvText.trim().split('\n');
-            
-            if (lines.length < 2) {
-              Alert.alert('Error', 'File must have header row and at least one data row');
-              return;
-            }
-
-            const newCompanies = [];
-
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (!line) continue;
-              
-              // Simple CSV parsing
-              const values = [];
-              let current = '';
-              let inQuotes = false;
-              
-              for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                if (char === '"') {
-                  inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                  values.push(current.trim().replace(/^"|"$/g, ''));
-                  current = '';
-                } else {
-                  current += char;
-                }
-              }
-              values.push(current.trim().replace(/^"|"$/g, ''));
-              
-              if (values.length > 0 && values[0]) {
-                const companyName = values[0];
-                
-                // Check for duplicates
-                if (!newCompanies.some(c => c.name.toLowerCase() === companyName.toLowerCase()) &&
-                    !companies.some(c => c.name.toLowerCase() === companyName.toLowerCase())) {
-                  newCompanies.push({
-                    name: companyName
-                  });
-                }
-              }
-            }
-
-            if (newCompanies.length === 0) {
-              Alert.alert('Info', 'No new companies to import (duplicates were skipped).');
-              return;
-            }
-
-            // Save all companies to Supabase
-            for (const company of newCompanies) {
-              await createCompany(company);
-            }
-
-            // Reload companies from database
-            const freshCompanies = await listCompanies();
-            setCompanies(freshCompanies);
-            Alert.alert('Success', `${newCompanies.length} company/companies imported successfully!`);
-          } catch (error) {
-            Alert.alert('Error', 'Failed to parse file: ' + error.message);
-          }
-        };
-        reader.readAsText(file);
-      };
-      
-      fileInput.click();
-    };
-
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
-        </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Form Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>Company Name *</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.name} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, name: text })} 
-                placeholder="Enter company name" 
-              />
-
-              <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
-                <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
-              </TouchableOpacity>
-              {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '' }); setSelectedCompany(null); }}>
-                  <Text style={styles.addButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Companies List Section */}
-          <View style={{ marginTop: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
-              </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV/Excel</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {companies.length} companies</Text>
-            
-            {companies.length === 0 ? (
-              <Text style={{ color: '#9CA3AF', textAlign: 'center', paddingVertical: 20 }}>No companies added yet</Text>
-            ) : (
-              companies.map(company => (
-                <TouchableOpacity
-                  key={company.id}
-                  style={[
-                    styles.userCard,
-                    selectedCompany?.id === company.id && { backgroundColor: '#EFF6FF', borderColor: '#2563EB' }
-                  ]}
-                  onPress={() => setSelectedCompany(company)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.userCardName}>{company.name}</Text>
-                    <Text style={styles.userCardDetail}>ID: {company.id}</Text>
-                  </View>
-                  {selectedCompany?.id === company.id && (
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        style={[styles.miniButton, { backgroundColor: '#2563EB' }]}
-                        onPress={() => {
-                          setCurrentCompany(company);
-                          setEditingCompany(true);
-                        }}
-                      >
-                        <Text style={styles.miniButtonText}>Edit</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.miniButton, { backgroundColor: '#EF4444' }]}
-                        onPress={() => handleDeleteCompany(company.id)}
-                      >
-                        <Text style={styles.miniButtonText}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-        </ScrollView>
-      </View>
-    );
-  };
-
   // Manage Contractors Screen
   const renderManageContractors = () => {
-    const handleAddContractor = async () => {
+    const handleAddContractor = () => {
       if (!currentContractor.name || !currentContractor.email || !currentContractor.company) {
         Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
         return;
       }
-      try {
-        if (editingContractor) {
-          await updateContractor(currentContractor.id, {
-            name: currentContractor.name,
-            email: currentContractor.email,
-            services: currentContractor.services,
-            company: currentContractor.company,
-            induction_expiry: currentContractor.inductionExpiry
-          });
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          setEditingContractor(false);
-          Alert.alert('Contractor Updated', 'Contractor has been updated successfully.');
-        } else {
-          await createContractor({
-            name: currentContractor.name,
-            email: currentContractor.email,
-            services: currentContractor.services,
-            company: currentContractor.company,
-            induction_expiry: currentContractor.inductionExpiry
-          });
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          Alert.alert('Contractor Added', 'New contractor has been added successfully.');
-        }
-        setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
-        setSelectedContractor(null);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to save contractor: ' + error.message);
+      if (editingContractor) {
+        setContractors(contractors.map(c => c.id === currentContractor.id ? currentContractor : c));
+        setEditingContractor(false);
+        Alert.alert('Contractor Updated', 'Contractor has been updated successfully.');
+      } else {
+        const newId = 'contractor-' + Date.now();
+        setContractors([...contractors, { ...currentContractor, id: newId }]);
+        Alert.alert('Contractor Added', 'New contractor has been added successfully.');
       }
+      setCurrentContractor({ id: '', name: '', email: '', services: [], company: '' });
+      setSelectedContractor(null);
     };
 
     const handleDeleteContractor = (id) => {
       Alert.alert('Delete Contractor', 'Are you sure?', [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              await deleteContractor(id);
-              const freshContractors = await listContractors();
-              setContractors(freshContractors);
-              Alert.alert('Deleted', 'Contractor has been deleted.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
+        { text: 'Delete', onPress: () => setContractors(contractors.filter(c => c.id !== id)), style: 'destructive' }
       ]);
     };
 
@@ -4347,48 +3975,33 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         )}
 
         <View style={styles.submitSection}>
-          <TouchableOpacity style={styles.submitButton} onPress={async () => {
+          <TouchableOpacity style={styles.submitButton} onPress={() => {
             // Approve: set status to 'pending_inspection' or 'active' and update permit
             const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
             const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
               (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
-            
-            try {
-              const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-              const approvedDate = new Date().toISOString().split('T')[0];
-              
-              await updatePermit(editData.id, { 
-                status: newStatus, 
-                approved_date: approvedDate 
-              });
-              
-              const freshPermits = await listPermits();
-              setPermits(freshPermits);
-              setCurrentScreen('dashboard');
-              Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to approve permit: ' + error.message);
-            }
+            const updated = permits.map(p => {
+              if (p.id === editData.id) {
+                if (isHighRisk) {
+                  return { ...editData, status: 'pending_inspection', approvedDate: new Date().toISOString().split('T')[0] };
+                } else {
+                  return { ...editData, status: 'active', approvedDate: new Date().toISOString().split('T')[0] };
+                }
+              }
+              return p;
+            });
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
           }}>
             <Text style={styles.submitButtonText}>Approve</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={async () => {
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={() => {
             // Reject: set status to 'rejected' and update permit
-            try {
-              const rejectedDate = new Date().toISOString().split('T')[0];
-              
-              await updatePermit(editData.id, { 
-                status: 'rejected', 
-                rejected_date: rejectedDate 
-              });
-              
-              const freshPermits = await listPermits();
-              setPermits(freshPermits);
-              setCurrentScreen('dashboard');
-              Alert.alert('Permit Rejected', 'Permit has been rejected.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reject permit: ' + error.message);
-            }
+            const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+            setPermits(updated);
+            setCurrentScreen('dashboard');
+            Alert.alert('Permit Rejected', 'Permit has been rejected.');
           }}>
             <Text style={styles.submitButtonText}>Reject</Text>
           </TouchableOpacity>
@@ -4783,7 +4396,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         renderItem={({ item }) => (
           <View style={styles.permitListCard}>
             <View style={styles.permitListHeader}>
-              <Text style={styles.permitId}>#{item.permitNumber}</Text>
+              <Text style={styles.permitId}>{item.id}</Text>
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
                 <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
               </View>
@@ -4825,7 +4438,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           renderItem={({ item }) => (
             <View style={styles.permitListCard}>
               <View style={styles.permitListHeader}>
-                <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                <Text style={styles.permitId}>{item.id}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
                   <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
                 </View>
@@ -5436,8 +5049,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       return renderAdminDashboard();
     case 'manage_users':
       return renderManageUsers();
-    case 'manage_companies':
-      return renderManageCompanies();
     case 'manage_contractors':
       return (
         <>
