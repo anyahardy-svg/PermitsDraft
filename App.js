@@ -3246,6 +3246,96 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       ]);
     };
 
+    const handleImportUserCSV = () => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.csv,.xlsx,.xls';
+      
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const csvText = event.target.result;
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+              Alert.alert('Error', 'File must have header row and at least one data row');
+              return;
+            }
+
+            const newUsers = [];
+
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              
+              // Simple CSV parsing
+              const values = [];
+              let current = '';
+              let inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim().replace(/^"|"$/g, ''));
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              
+              // Expected format: Name, Email, Company, Sites (comma-separated), IsAdmin (yes/no)
+              if (values.length >= 3) {
+                const name = values[0];
+                const email = values[1];
+                const company = values[2];
+                const sites = values[3] ? values[3].split(';').map(s => s.trim()).filter(s => s) : [];
+                const isAdmin = values[4] ? values[4].toLowerCase() === 'yes' : false;
+                
+                // Check for duplicates
+                if (!newUsers.some(u => u.email.toLowerCase() === email.toLowerCase()) &&
+                    !users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                  newUsers.push({
+                    name,
+                    email,
+                    sites,
+                    company,
+                    isAdmin
+                  });
+                }
+              }
+            }
+
+            if (newUsers.length === 0) {
+              Alert.alert('Info', 'No new users to import (duplicates were skipped).');
+              return;
+            }
+
+            // Save all users to Supabase
+            for (const user of newUsers) {
+              await createUser(user);
+            }
+
+            // Reload users from database
+            const freshUsers = await listUsers();
+            setUsers(freshUsers);
+            Alert.alert('Success', `${newUsers.length} user(s) imported successfully!`);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to parse file: ' + error.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      fileInput.click();
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -3325,8 +3415,15 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
           {/* Users List Section */}
           <View style={{ marginTop: 24 }}>
-            <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Users Database</Text>
-            <Text style={{ color: '#6B7280', marginTop: 4, marginBottom: 12 }}>Total: {users.length} users</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Users Database</Text>
+              </View>
+              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportUserCSV}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {users.length} users</Text>
             {users.length === 0 ? (
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No users yet. Add one using the form above.</Text>
             ) : (
@@ -3636,14 +3733,14 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       // Create a hidden file input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
-      fileInput.accept = '.csv';
+      fileInput.accept = '.csv,.xlsx,.xls';
       
-      fileInput.onchange = (e) => {
+      fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
           try {
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
@@ -3679,14 +3776,18 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
               if (values.length >= 3) {
                 const contractor = {
-                  id: 'contractor-' + Date.now() + i,
                   name: values[0] || '',
                   email: values[1] || '',
                   company: values[2] || '',
-                  services: values[3] ? values[3].split(';').map(s => s.trim()) : []
+                  services: values[3] ? values[3].split(';').map(s => s.trim()) : [],
+                  induction_expiry: values[4] || null
                 };
                 if (contractor.name && contractor.email && contractor.company) {
-                  newContractors.push(contractor);
+                  // Check for duplicates
+                  if (!newContractors.some(c => c.email.toLowerCase() === contractor.email.toLowerCase()) &&
+                      !contractors.some(c => c.email.toLowerCase() === contractor.email.toLowerCase())) {
+                    newContractors.push(contractor);
+                  }
                 }
               }
             }
@@ -3696,7 +3797,14 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               return;
             }
 
-            setContractors([...contractors, ...newContractors]);
+            // Save all contractors to Supabase
+            for (const contractor of newContractors) {
+              await createContractor(contractor);
+            }
+
+            // Reload contractors from database
+            const freshContractors = await listContractors();
+            setContractors(freshContractors);
             Alert.alert('Success', `${newContractors.length} contractor(s) imported successfully`);
           } catch (error) {
             Alert.alert('Error', 'Failed to parse CSV: ' + error.message);
