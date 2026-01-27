@@ -1085,7 +1085,7 @@ const PermitManagementApp = () => {
   const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
@@ -3930,7 +3930,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
               {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
