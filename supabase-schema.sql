@@ -25,13 +25,14 @@ CREATE TABLE contractors (
   name TEXT NOT NULL,
   email TEXT,
   services TEXT[] DEFAULT '{}',
+  site_ids UUID[] DEFAULT '{}',
   company_id UUID REFERENCES companies(id),
   induction_expiry DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create Users Table
+-- Create Permit Issuers Table (Users)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,

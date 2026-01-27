@@ -14,6 +14,8 @@ const transformContractor = (dbContractor) => {
     inductionExpiry: dbContractor.induction_expiry,
     induction_expiry: dbContractor.induction_expiry,
     services: dbContractor.services || [],
+    siteIds: dbContractor.site_ids || [],
+    site_ids: dbContractor.site_ids || [],
     createdAt: dbContractor.created_at,
     created_at: dbContractor.created_at,
   };

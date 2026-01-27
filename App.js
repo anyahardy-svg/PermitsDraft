@@ -3681,9 +3681,11 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
   // Helper function to get available sites for a contractor
   const getContractorSites = (contractorId) => {
-    const contractorPermits = permits.filter(p => p.contractorId === contractorId);
-    const siteIds = [...new Set(contractorPermits.map(p => p.siteId))];
-    const contractorSites = siteIds.map(siteId => {
+    const contractor = contractors.find(c => c.id === contractorId);
+    if (!contractor || !contractor.siteIds || contractor.siteIds.length === 0) {
+      return [];
+    }
+    const contractorSites = contractor.siteIds.map(siteId => {
       const site = sites.find(s => s.id === siteId);
       return site?.name || 'Unknown';
     });
@@ -3703,6 +3705,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             name: currentContractor.name,
             email: currentContractor.email,
             services: currentContractor.services,
+            site_ids: currentContractor.siteIds || [],
             company: currentContractor.company,
             induction_expiry: currentContractor.inductionExpiry
           });
@@ -3715,6 +3718,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             name: currentContractor.name,
             email: currentContractor.email,
             services: currentContractor.services,
+            site_ids: currentContractor.siteIds || [],
             company: currentContractor.company,
             induction_expiry: currentContractor.inductionExpiry
           });
@@ -3722,7 +3726,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           setContractors(freshContractors);
           Alert.alert('Contractor Added', 'New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
+        setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save contractor: ' + error.message);
@@ -3879,6 +3883,32 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                     }}
                   >
                     <Text style={{ color: currentContractor.services.includes(service) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{service}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Available Sites</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites:</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                {sites.map(site => (
+                  <TouchableOpacity
+                    key={site.id}
+                    style={[
+                      { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                      (currentContractor.siteIds || []).includes(site.id)
+                        ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
+                        : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                    ]}
+                    onPress={() => {
+                      const siteIds = currentContractor.siteIds || [];
+                      if (siteIds.includes(site.id)) {
+                        setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== site.id) });
+                      } else {
+                        setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, site.id] });
+                      }
+                    }}
+                  >
+                    <Text style={{ color: (currentContractor.siteIds || []).includes(site.id) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{site.name}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
