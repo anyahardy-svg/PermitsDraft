@@ -4176,7 +4176,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <TouchableOpacity onPress={() => setCurrentScreen('pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Review/Edit Permit {editData.id}</Text>
+          <Text style={styles.title}>Review/Edit Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -4575,7 +4575,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Inspect/Edit Permit {editData.id}</Text>
+          <Text style={styles.title}>Inspect/Edit Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -4894,35 +4894,45 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
   // Render list of permits needing inspection
   const renderInspectionList = () => {
     return (
-      <FlatList
-        data={permits.filter(p => p.status === 'pending_inspection')}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.permitListCard}>
-            <View style={styles.permitListHeader}>
-              <Text style={styles.permitId}>#{item.permitNumber}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
-                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Needs Inspection</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          <FlatList
+            data={permits.filter(p => p.status === 'pending_inspection')}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.permitListCard}>
+                <View style={styles.permitListHeader}>
+                  <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+                    <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                  </View>
+                </View>
+                <Text style={styles.permitType}>{item.type}</Text>
+                <Text style={styles.permitDescription}>{item.description}</Text>
+                <View style={styles.permitDetails}>
+                  <Text style={styles.detailText}>Location: {item.location}</Text>
+                  <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                  <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+                </View>
+                <TouchableOpacity style={styles.primaryButton} onPress={() => {
+                  setSelectedPermit(item);
+                  setCurrentScreen('inspect_permit');
+                }}>
+                  <Text style={styles.primaryButtonText}>Inspect</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <Text style={styles.permitType}>{item.type}</Text>
-            <Text style={styles.permitDescription}>{item.description}</Text>
-            <View style={styles.permitDetails}>
-              <Text style={styles.detailText}>Location: {item.location}</Text>
-              <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-              <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
-            </View>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => {
-              setSelectedPermit(item);
-              setCurrentScreen('inspect_permit');
-            }}>
-              <Text style={styles.primaryButtonText}>Inspect</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need inspection.</Text>}
-        contentContainerStyle={{ padding: 16 }}
-      />
+            )}
+            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need inspection.</Text>}
+            contentContainerStyle={{ padding: 16 }}
+          />
+        </View>
+      </View>
     );
   };
 
@@ -5055,7 +5065,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <TouchableOpacity onPress={() => setCurrentScreen('active')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Edit/Complete Permit {editData.id}</Text>
+          <Text style={styles.title}>Edit/Complete Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
