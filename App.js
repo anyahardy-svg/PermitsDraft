@@ -1111,13 +1111,13 @@ const PermitManagementApp = () => {
   const getColumnWidths = () => {
     if (isMobile) {
       // Mobile: more compact
-      return { name: 80, email: 100, company: 80, services: 80, inductionExpiry: 90, actions: 50 };
+      return { name: 80, email: 100, company: 80, services: 80, sites: 70, inductionExpiry: 90, actions: 50 };
     } else if (isTablet) {
       // Tablet: medium
-      return { name: 100, email: 130, company: 100, services: 120, inductionExpiry: 110, actions: 70 };
+      return { name: 100, email: 130, company: 100, services: 120, sites: 100, inductionExpiry: 110, actions: 70 };
     } else {
       // Desktop: full size
-      return { name: 120, email: 150, company: 120, services: 150, inductionExpiry: 130, actions: 80 };
+      return { name: 120, email: 150, company: 120, services: 150, sites: 140, inductionExpiry: 130, actions: 80 };
     }
   };
   
@@ -3177,7 +3177,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_users')}>
             <Text style={styles.cardNumber}>{users.length}</Text>
-            <Text style={styles.cardLabel}>Users</Text>
+            <Text style={styles.cardLabel}>Permit Issuers</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('manage_companies')}>
             <Text style={styles.cardNumber}>{companies.length}</Text>
@@ -3351,7 +3351,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingUser(false); setSelectedUser(null); }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{editingUser ? 'Edit User' : 'Manage Users'}</Text>
+          <Text style={styles.title}>{editingUser ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
@@ -3679,6 +3679,17 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     );
   };
 
+  // Helper function to get available sites for a contractor
+  const getContractorSites = (contractorId) => {
+    const contractorPermits = permits.filter(p => p.contractorId === contractorId);
+    const siteIds = [...new Set(contractorPermits.map(p => p.siteId))];
+    const contractorSites = siteIds.map(siteId => {
+      const site = sites.find(s => s.id === siteId);
+      return site?.name || 'Unknown';
+    });
+    return contractorSites;
+  };
+
   // Manage Contractors Screen
   const renderManageContractors = () => {
     const handleAddContractor = async () => {
@@ -3980,6 +3991,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                         <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
                         <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
                         <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
+                        <Text style={[{ width: columns.sites, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Available Sites</Text>
                         <Text style={[{ width: columns.inductionExpiry, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Induction Exp</Text>
                         <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11, textAlign: 'center' }]}>Actions</Text>
                       </View>
@@ -4001,6 +4013,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
+                          </Text>
+                          <Text style={[{ width: columns.sites, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
+                            {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
                           </Text>
                           <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 11, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
                             {contractor.inductionExpiry ? formatDateNZ(contractor.inductionExpiry) : '-'}
