@@ -1931,7 +1931,9 @@ const PermitManagementApp = () => {
                 {/* Blocking warning */}
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
               </View>
@@ -2078,7 +2080,9 @@ const PermitManagementApp = () => {
                 {/* Blocking warning */}
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
                 {/* Render inline dependent questions for yesno */}
@@ -4225,7 +4229,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
+                          editData,
                           (permitKey, qid, value, field) => {
                             const updated = {
                               ...val.questionnaire,
@@ -4624,7 +4628,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
+                          editData,
                           (permitKey, qid, value, field) => {
                             const updated = {
                               ...val.questionnaire,
@@ -5104,7 +5108,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
+                          editData,
                           (permitKey, qid, value, field) => {
                             const updated = {
                               ...val.questionnaire,
