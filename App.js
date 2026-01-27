@@ -3685,11 +3685,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     if (!contractor || !contractor.siteIds || contractor.siteIds.length === 0) {
       return [];
     }
-    const contractorSites = contractor.siteIds.map(siteId => {
-      const site = sites.find(s => s.id === siteId);
-      return site?.name || 'Unknown';
-    });
-    return contractorSites;
+    return contractor.siteIds;
   };
 
   // Manage Contractors Screen
@@ -3890,25 +3886,25 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               <Text style={styles.label}>Available Sites</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites:</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                {sites.map(site => (
+                {ALL_SITES.map(siteName => (
                   <TouchableOpacity
-                    key={site.id}
+                    key={siteName}
                     style={[
                       { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
-                      (currentContractor.siteIds || []).includes(site.id)
+                      (currentContractor.siteIds || []).includes(siteName)
                         ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
                         : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                     ]}
                     onPress={() => {
                       const siteIds = currentContractor.siteIds || [];
-                      if (siteIds.includes(site.id)) {
-                        setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== site.id) });
+                      if (siteIds.includes(siteName)) {
+                        setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
                       } else {
-                        setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, site.id] });
+                        setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
                       }
                     }}
                   >
-                    <Text style={{ color: (currentContractor.siteIds || []).includes(site.id) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{site.name}</Text>
+                    <Text style={{ color: (currentContractor.siteIds || []).includes(siteName) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
