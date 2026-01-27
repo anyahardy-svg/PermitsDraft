@@ -4230,7 +4230,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                         renderQuestionnaire(
                           key,
                           editData,
-                          (permitKey, qid, value, field) => {
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
@@ -4629,7 +4629,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                         renderQuestionnaire(
                           key,
                           editData,
-                          (permitKey, qid, value, field) => {
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
@@ -5109,7 +5109,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                         renderQuestionnaire(
                           key,
                           editData,
-                          (permitKey, qid, value, field) => {
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
