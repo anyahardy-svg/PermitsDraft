@@ -21,7 +21,7 @@ import { createContractor, listContractors, updateContractor, deleteContractor }
 const ALL_SITES = [
   'Amisfield Quarry',
   'Belmont Quarry',
-  'Flat Top Quarry'
+  'Flat Top Quarry',
   'Hunua Quarry',
   'Otaki Quarry',
   'Otaika Quarry',
