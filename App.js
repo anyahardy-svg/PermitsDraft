@@ -21,18 +21,23 @@ import { createContractor, listContractors, updateContractor, deleteContractor }
 const ALL_SITES = [
   'Amisfield Quarry',
   'Belmont Quarry',
-  'Wheatsheaf Quarry',
-  'Otaki Quarry',
-  'Petone Quarry',
-  'Roys Hill Aggregates',
-  'Rangitikei Aggregates',
-  'Tamahere Quarry',
-  'Whitehall Quarry',
-  'Pukekawa Quarry',
+  'Flat Top Quarry'
   'Hunua Quarry',
-  'Flat Top Quarry',
-  'Whangaripo Quarry',
+  'Otaki Quarry',
   'Otaika Quarry',
+  'Petone Quarry',
+  'Pukekawa Quarry',
+  'Rangitikei Aggregates - Kakariki',
+  'Rangitikei Aggregates - Bull/Campion',
+  'Roys Hill Aggregates',
+  'Tamahere Quarry',
+  'TUQ - Onehunga',
+  'TUQ - Henderson',
+  'TUQ - Tamahere',
+  'Whangaripo Quarry',
+  'Wheatsheaf Quarry',
+  'Whitehall Quarry',
+
 ];
 
 // List of all available services
