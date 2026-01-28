@@ -1062,10 +1062,7 @@ const PermitManagementApp = () => {
   ]);
 
   // Contractors state - stores contractor information
-  const [contractors, setContractors] = useState([
-    { id: 'contractor-001', name: 'ABC Contractors', email: 'info@abc-contractors.com', services: ['Hot Work', 'Electrical'], company: 'ABC Contractors Ltd', inductionExpiry: '2025-12-15' },
-    { id: 'contractor-002', name: 'XYZ Services', email: 'contact@xyz-services.com', services: ['Confined Space', 'Working at Height'], company: 'XYZ Services Inc', inductionExpiry: '2026-03-20' }
-  ]);
+  const [contractors, setContractors] = useState([]);
 
   const [newPermitData, setNewPermitData] = useState({
     id: '',
@@ -3800,7 +3797,8 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
                   email: values[1] || '',
                   company: values[2] || '',
                   services: values[3] ? values[3].split(';').map(s => s.trim()) : [],
-                  induction_expiry: values[4] || null
+                  site_ids: values[4] ? values[4].split(';').map(s => s.trim()) : [],
+                  induction_expiry: values[5] || null
                 };
                 if (contractor.name && contractor.email && contractor.company) {
                   // Check for duplicates
