@@ -1686,52 +1686,48 @@ const PermitManagementApp = () => {
 
   // Edit Draft Permit Form
   const renderEditDraftForm = () => {
-    // Load draft data into form when screen opens
-    React.useEffect(() => {
-      if (selectedPermit && selectedPermit.status === 'draft') {
-        setFormData({
-          id: selectedPermit.permitNumber || '',
-          description: selectedPermit.description || '',
-          requestedBy: selectedPermit.requestedBy || '',
-          location: selectedPermit.location || '',
-          status: 'draft',
-          priority: selectedPermit.priority || 'medium',
-          startDate: selectedPermit.start_date || selectedPermit.startDate || '',
-          startTime: selectedPermit.start_time || selectedPermit.startTime || '',
-          endDate: selectedPermit.end_date || selectedPermit.endDate || '',
-          endTime: selectedPermit.end_time || selectedPermit.endTime || '',
-          specializedPermits: selectedPermit.specialized_permits || initialSpecializedPermits,
-          singleHazards: selectedPermit.single_hazards || initialSingleHazards,
-          jsea: selectedPermit.jsea || initialJSEA,
-          isolations: selectedPermit.isolations || initialIsolations,
-          signOns: selectedPermit.sign_ons || selectedPermit.signOns || initialSignOns
-        });
-      }
-    }, [selectedPermit]);
+    // Prepare draft data for form
+    const draftFormData = selectedPermit && selectedPermit.status === 'draft' ? {
+      id: selectedPermit.permitNumber || '',
+      description: selectedPermit.description || '',
+      requestedBy: selectedPermit.requestedBy || '',
+      location: selectedPermit.location || '',
+      status: 'draft',
+      priority: selectedPermit.priority || 'medium',
+      startDate: selectedPermit.start_date || selectedPermit.startDate || '',
+      startTime: selectedPermit.start_time || selectedPermit.startTime || '',
+      endDate: selectedPermit.end_date || selectedPermit.endDate || '',
+      endTime: selectedPermit.end_time || selectedPermit.endTime || '',
+      specializedPermits: selectedPermit.specialized_permits || initialSpecializedPermits,
+      singleHazards: selectedPermit.single_hazards || initialSingleHazards,
+      jsea: selectedPermit.jsea || initialJSEA,
+      isolations: selectedPermit.isolations || initialIsolations,
+      signOns: selectedPermit.sign_ons || selectedPermit.signOns || initialSignOns
+    } : formData;
 
     const handleUpdateDraft = async (isDraft = true) => {
-      if (!formData.description) {
+      if (!draftFormData.description) {
         Alert.alert('Missing Info', 'Please fill in the Description field.');
         return;
       }
       
       try {
         const permitData = {
-          permit_type: formData.id || 'general',
-          description: formData.description,
-          location: formData.location,
+          permit_type: draftFormData.id || 'general',
+          description: draftFormData.description,
+          location: draftFormData.location,
           status: isDraft ? 'draft' : 'pending_approval',
-          priority: formData.priority,
-          start_date: formData.startDate,
-          start_time: formData.startTime,
-          end_date: formData.endDate,
-          end_time: formData.endTime,
-          requested_by: formData.requestedBy,
+          priority: draftFormData.priority,
+          start_date: draftFormData.startDate,
+          start_time: draftFormData.startTime,
+          end_date: draftFormData.endDate,
+          end_time: draftFormData.endTime,
+          requested_by: draftFormData.requestedBy,
           controls_summary: selectedPermit.controls_summary || '',
-          specialized_permits: formData.specializedPermits,
-          single_hazards: formData.singleHazards,
-          jsea: formData.jsea,
-          sign_ons: formData.signOns
+          specialized_permits: draftFormData.specializedPermits,
+          single_hazards: draftFormData.singleHazards,
+          jsea: draftFormData.jsea,
+          sign_ons: draftFormData.signOns
         };
 
         await updatePermit(selectedPermit.id, permitData);
@@ -1768,116 +1764,114 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>Edit Draft Permit</Text>
         </View>
         <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
-          {/* General Section */}
+          {/* General Section - Auto expanded */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
               <Text style={styles.sectionTitle}>General Details</Text>
-              <Text style={styles.expandIcon}>{expandedSections.general ? '▲' : '▼'}</Text>
+              <Text style={styles.expandIcon}>▲</Text>
             </TouchableOpacity>
-            {expandedSections.general && (
-              <View style={styles.sectionContent}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  multiline
-                  numberOfLines={3}
-                  value={formData.description}
-                  onChangeText={text => setFormData({ ...formData, description: text })}
-                  placeholder="Describe the work to be performed..."
-                />
-                <Text style={styles.label}>Site</Text>
-                <CustomDropdown
-                  label="Select Site"
-                  options={ALL_SITES}
-                  selectedValue={formData.site || ''}
-                  onValueChange={value => setFormData({ ...formData, site: value })}
-                  style={styles.input}
-                />
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.location}
-                  onChangeText={text => setFormData({ ...formData, location: text })}
-                  placeholder="Work location"
-                />
-                <Text style={styles.label}>Requested By</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.requestedBy}
-                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
-                  placeholder="Your name"
-                />
+            <View style={styles.sectionContent}>
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                multiline
+                numberOfLines={3}
+                value={draftFormData.description}
+                onChangeText={text => setFormData({ ...draftFormData, description: text })}
+                placeholder="Describe the work to be performed..."
+              />
+              <Text style={styles.label}>Site</Text>
+              <CustomDropdown
+                label="Select Site"
+                options={ALL_SITES}
+                selectedValue={draftFormData.site || ''}
+                onValueChange={value => setFormData({ ...draftFormData, site: value })}
+                style={styles.input}
+              />
+              <Text style={styles.label}>Location</Text>
+              <TextInput
+                style={styles.input}
+                value={draftFormData.location}
+                onChangeText={text => setFormData({ ...draftFormData, location: text })}
+                placeholder="Work location"
+              />
+              <Text style={styles.label}>Requested By</Text>
+              <TextInput
+                style={styles.input}
+                value={draftFormData.requestedBy}
+                onChangeText={text => setFormData({ ...draftFormData, requestedBy: text })}
+                placeholder="Your name"
+              />
 
-                {/* Start Date/Time */}
-                <Text style={styles.label}>Start Date</Text>
-                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
-                  <Text style={formData.startDate ? styles.dateTimeText : styles.placeholderText}>
-                    {formData.startDate ? formatDateNZ(formData.startDate) : 'Select start date'}
-                  </Text>
-                  <Text style={styles.calendarIcon}>📅</Text>
-                </TouchableOpacity>
-                <DateTimePicker
-                  visible={showStartDatePicker}
-                  onClose={() => setShowStartDatePicker(false)}
-                  onSelect={date => setFormData({ ...formData, startDate: date })}
-                  mode="date"
-                  currentValue={formData.startDate}
-                />
-                <Text style={styles.label}>Start Time</Text>
-                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
-                  <Text style={formData.startTime ? styles.dateTimeText : styles.placeholderText}>
-                    {formData.startTime || 'Select start time'}
-                  </Text>
-                  <Text style={styles.calendarIcon}>⏰</Text>
-                </TouchableOpacity>
-                <DateTimePicker
-                  visible={showStartTimePicker}
-                  onClose={() => setShowStartTimePicker(false)}
-                  onSelect={time => setFormData({ ...formData, startTime: time })}
-                  mode="time"
-                  currentValue={formData.startTime}
-                />
+              {/* Start Date/Time */}
+              <Text style={styles.label}>Start Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                <Text style={draftFormData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                  {draftFormData.startDate ? formatDateNZ(draftFormData.startDate) : 'Select start date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartDatePicker}
+                onClose={() => setShowStartDatePicker(false)}
+                onSelect={date => setFormData({ ...draftFormData, startDate: date })}
+                mode="date"
+                currentValue={draftFormData.startDate}
+              />
+              <Text style={styles.label}>Start Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                <Text style={draftFormData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                  {draftFormData.startTime || 'Select start time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartTimePicker}
+                onClose={() => setShowStartTimePicker(false)}
+                onSelect={time => setFormData({ ...draftFormData, startTime: time })}
+                mode="time"
+                currentValue={draftFormData.startTime}
+              />
 
-                {/* End Date/Time */}
-                <Text style={styles.label}>End Date</Text>
-                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
-                  <Text style={formData.endDate ? styles.dateTimeText : styles.placeholderText}>
-                    {formData.endDate ? formatDateNZ(formData.endDate) : 'Select end date'}
-                  </Text>
-                  <Text style={styles.calendarIcon}>📅</Text>
-                </TouchableOpacity>
-                <DateTimePicker
-                  visible={showEndDatePicker}
-                  onClose={() => setShowEndDatePicker(false)}
-                  onSelect={date => setFormData({ ...formData, endDate: date })}
-                  mode="date"
-                  currentValue={formData.endDate}
-                />
-                <Text style={styles.label}>End Time</Text>
-                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
-                  <Text style={formData.endTime ? styles.dateTimeText : styles.placeholderText}>
-                    {formData.endTime || 'Select end time'}
-                  </Text>
-                  <Text style={styles.calendarIcon}>⏰</Text>
-                </TouchableOpacity>
-                <DateTimePicker
-                  visible={showEndTimePicker}
-                  onClose={() => setShowEndTimePicker(false)}
-                  onSelect={time => setFormData({ ...formData, endTime: time })}
-                  mode="time"
-                  currentValue={formData.endTime}
-                />
+              {/* End Date/Time */}
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                <Text style={draftFormData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                  {draftFormData.endDate ? formatDateNZ(draftFormData.endDate) : 'Select end date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndDatePicker}
+                onClose={() => setShowEndDatePicker(false)}
+                onSelect={date => setFormData({ ...draftFormData, endDate: date })}
+                mode="date"
+                currentValue={draftFormData.endDate}
+              />
+              <Text style={styles.label}>End Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                <Text style={draftFormData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                  {draftFormData.endTime || 'Select end time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndTimePicker}
+                onClose={() => setShowEndTimePicker(false)}
+                onSelect={time => setFormData({ ...draftFormData, endTime: time })}
+                mode="time"
+                currentValue={draftFormData.endTime}
+              />
 
-                <Text style={styles.label}>Priority</Text>
-                <CustomDropdown
-                  label="Select Priority"
-                  options={['low', 'medium', 'high']}
-                  selectedValue={formData.priority}
-                  onValueChange={value => setFormData({ ...formData, priority: value })}
-                  style={styles.input}
-                />
-              </View>
-            )}
+              <Text style={styles.label}>Priority</Text>
+              <CustomDropdown
+                label="Select Priority"
+                options={['low', 'medium', 'high']}
+                selectedValue={draftFormData.priority}
+                onValueChange={value => setFormData({ ...draftFormData, priority: value })}
+                style={styles.input}
+              />
+            </View>
           </View>
 
           {/* Save Buttons */}
@@ -1893,6 +1887,8 @@ const PermitManagementApp = () => {
       </View>
     );
   };
+
+    const handleUpdateDraft = async (isDraft = true) => {
 
   // Permit List
   // Permit item for lists (edit or view for approval)
