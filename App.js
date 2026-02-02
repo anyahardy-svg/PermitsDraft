@@ -953,7 +953,7 @@ const PermitManagementApp = () => {
   };
 
   // --- handleSubmit for advanced form ---
-  const handleSubmit = async () => {
+  const handleSubmit = async (isDraft = false) => {
     if (!formData.description) {
       Alert.alert('Missing Info', 'Please fill in the Description field.');
       return;
@@ -965,7 +965,7 @@ const PermitManagementApp = () => {
         permit_type: formData.id || 'general',
         description: formData.description,
         location: formData.location,
-        status: formData.status,
+        status: isDraft ? 'draft' : 'pending_approval',
         priority: formData.priority,
         start_date: formData.startDate,
         start_time: formData.startTime,
@@ -1000,7 +1000,7 @@ const PermitManagementApp = () => {
         signOns: initialSignOns
       });
       setCurrentScreen('dashboard');
-      Alert.alert('Permit Created', 'New permit has been saved to the database.');
+      Alert.alert('Permit ' + (isDraft ? 'Saved' : 'Created'), isDraft ? 'Draft has been saved.' : 'New permit has been submitted for approval.');
     } catch (error) {
       console.error('Error creating permit:', error);
       Alert.alert('Error', 'Failed to save permit. Please try again.');
@@ -1670,10 +1670,13 @@ const PermitManagementApp = () => {
             )}
           </View>
 
-          {/* Submit Button */}
+          {/* Submit Buttons */}
           <View style={styles.submitSection}>
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Create Permit</Text>
+            <TouchableOpacity style={[styles.submitButton, { flex: 0.48, marginRight: 8 }]} onPress={() => handleSubmit(true)}>
+              <Text style={styles.submitButtonText}>Save as Draft</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.submitButton, { flex: 0.48, backgroundColor: '#10B981' }]} onPress={() => handleSubmit(false)}>
+              <Text style={styles.submitButtonText}>Submit for Approval</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -3134,6 +3137,10 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <Text style={styles.title}>Permit Dashboard</Text>
         </View>
         <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('drafts')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'draft').length}</Text>
+            <Text style={styles.cardLabel}>Drafts</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
             <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
             <Text style={styles.cardLabel}>Pending Approval</Text>
@@ -4975,6 +4982,94 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     );
   };
 
+  // Draft Permit List: editable drafts with option to submit or delete
+  const renderDraftsList = () => {
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Drafts</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          <FlatList
+            data={permits.filter(p => p.status === 'draft')}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.permitListCard}>
+                <View style={styles.permitListHeader}>
+                  <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: '#9CA3AF' }]}> 
+                    <Text style={styles.statusText}>Draft</Text>
+                  </View>
+                </View>
+                <Text style={styles.permitType}>{item.type}</Text>
+                <Text style={styles.permitDescription}>{item.description}</Text>
+                <View style={styles.permitDetails}>
+                  <Text style={styles.detailText}>Location: {item.location}</Text>
+                  <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                  <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || '')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                  <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
+                    setSelectedPermit(item);
+                    setCurrentScreen('edit_draft');
+                  }}>
+                    <Text style={styles.primaryButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#10B981' }]} onPress={() => {
+                    Alert.alert('Submit for Approval', 'Are you sure you want to submit this draft for approval?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Submit', 
+                        onPress: async () => {
+                          try {
+                            await updatePermit(item.id, { status: 'pending_approval' });
+                            const freshPermits = await listPermits();
+                            setPermits(freshPermits);
+                            Alert.alert('Submitted', 'Permit has been submitted for approval.');
+                          } catch (error) {
+                            Alert.alert('Error', 'Failed to submit permit.');
+                          }
+                        } 
+                      }
+                    ]);
+                  }}>
+                    <Text style={styles.primaryButtonText}>Submit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
+                    Alert.alert('Delete Draft', 'Are you sure you want to delete this draft?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Delete', 
+                        onPress: async () => {
+                          try {
+                            await deletePermit(item.id);
+                            const freshPermits = await listPermits();
+                            setPermits(freshPermits);
+                            Alert.alert('Deleted', 'Draft has been deleted.');
+                          } catch (error) {
+                            Alert.alert('Error', 'Failed to delete draft.');
+                          }
+                        },
+                        style: 'destructive'
+                      }
+                    ]);
+                  }}>
+                    <Text style={styles.primaryButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No draft permits.</Text>}
+            contentContainerStyle={{ padding: 16 }}
+          />
+        </View>
+      </View>
+    );
+  };
+
   // Active Permit List: editable, with completion sign-off
   const renderActivePermitList = () => {
     return (
@@ -5546,6 +5641,8 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
   switch (currentScreen) {
     case 'dashboard':
       return renderDashboard();
+    case 'drafts':
+      return renderDraftsList();
     case 'pending_approval':
       return renderPermitList('pending_approval', 'Pending Approval');
     case 'pending_inspection':
