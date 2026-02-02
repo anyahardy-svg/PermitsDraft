@@ -5690,6 +5690,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   permitListContainer: {
+    flex: 1,
     padding: 16,
   },
   permitListCard: {
