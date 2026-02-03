@@ -3472,7 +3472,20 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 };
 
   const renderPermitList = (status, title) => {
-    const filteredPermits = permits.filter(p => p.status === status);
+    let filteredPermits = permits.filter(p => p.status === status);
+    
+    // For completed permits, only show those from the last 7 days
+    if (status === 'completed') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      filteredPermits = filteredPermits.filter(p => {
+        const completedDate = p.completed_date || p.completedDate;
+        if (!completedDate) return true; // Show if no date
+        const permitDate = new Date(completedDate);
+        return permitDate >= sevenDaysAgo;
+      });
+    }
+    
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
@@ -3758,8 +3771,15 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             <Text style={styles.cardLabel}>Active Permits</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
-            <Text style={styles.cardLabel}>Completed</Text>
+            <Text style={styles.cardNumber}>{permits.filter(p => {
+              if (p.status !== 'completed') return false;
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              const completedDate = p.completed_date || p.completedDate;
+              if (!completedDate) return true;
+              return new Date(completedDate) >= sevenDaysAgo;
+            }).length}</Text>
+            <Text style={styles.cardLabel}>Completed (7 days)</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
