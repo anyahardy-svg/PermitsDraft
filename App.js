@@ -3010,6 +3010,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           </TouchableOpacity>
           <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
         </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.section}>
           <View style={styles.sectionContent}>
             <Text style={styles.label}>Work Description</Text>
@@ -3208,6 +3209,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             )}
           </View>
         </View>
+        </ScrollView>
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={saveEdit}>
             <Text style={styles.submitButtonText}>Save Changes</Text>
