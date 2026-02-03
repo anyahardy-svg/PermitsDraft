@@ -2700,8 +2700,8 @@ const PermitManagementApp = () => {
     );
   }
 
-// Standalone component for reviewing/editing a permit for approval
-function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) {
+  // Standalone component for reviewing/editing a permit for approval
+  const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) => {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
   const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
@@ -3082,7 +3082,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       )}
     </ScrollView>
   );
-};
+  };
 
   const renderPermitList = (status, title) => {
     const filteredPermits = permits.filter(p => p.status === status);
