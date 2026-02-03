@@ -12,6 +12,7 @@ import {
   Modal,
   Dimensions
 } from 'react-native';
+import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { createCompany, listCompanies, updateCompany, deleteCompany } from './src/api/companies';
 import { createUser, listUsers, updateUser, deleteUser } from './src/api/users';
@@ -955,69 +956,114 @@ const PermitManagementApp = () => {
   // --- Print Permit Function ---
   const handlePrintPermit = (permit) => {
     try {
-      // Create a formatted permit text for printing
-      const lines = [
-        '═══════════════════════════════════════════════',
-        'PERMIT TO WORK',
-        '═══════════════════════════════════════════════',
-        '',
-        `Permit Number: ${permit.permitNumber || 'N/A'}`,
-        `Status: ${getStatusText(permit.status || 'unknown')}`,
-        `Date: ${new Date().toLocaleDateString('en-NZ')}`,
-        '',
-        '───────────────────────────────────────────────',
-        'GENERAL DETAILS',
-        '───────────────────────────────────────────────',
-        `Description: ${permit.description || ''}`,
-        `Location: ${permit.location || ''}`,
-        `Site: ${permit.site || ''}`,
-        `Requested By: ${permit.requestedBy || ''}`,
-        `Priority: ${permit.priority?.toUpperCase?.() || ''}`,
-        '',
-        `Start Date: ${permit.startDate || ''} ${permit.startTime || ''}`,
-        `End Date: ${permit.endDate || ''} ${permit.endTime || ''}`,
-        '',
-        ...(permit.specializedPermits && Object.keys(permit.specializedPermits).length > 0 ? [
-          '───────────────────────────────────────────────',
-          'SPECIALIZED PERMITS',
-          '───────────────────────────────────────────────',
-          ...Object.entries(permit.specializedPermits)
-            .filter(([_, val]) => val.required)
-            .map(([key, val]) => `• ${specializedPermitTypes.find(p => p.key === key)?.label || key}: YES`),
-          ''
-        ] : []),
-        ...(permit.singleHazards && Object.keys(permit.singleHazards).length > 0 ? [
-          '───────────────────────────────────────────────',
-          'SINGLE HAZARDS',
-          '───────────────────────────────────────────────',
-          ...Object.entries(permit.singleHazards)
-            .filter(([_, val]) => val.present)
-            .map(([key, val]) => `• ${singleHazardTypes.find(h => h.key === key)?.label || key}: ${val.controls || ''}`),
-          ''
-        ] : []),
-        ...(permit.jsea?.taskSteps && permit.jsea.taskSteps.length > 0 ? [
-          '───────────────────────────────────────────────',
-          'JSEA TASK STEPS',
-          '───────────────────────────────────────────────',
-          ...permit.jsea.taskSteps.flatMap((step, idx) => [
-            `Step ${idx + 1}: ${step.step || ''}`,
-            `  Hazards: ${step.hazards || ''}`,
-            `  Controls: ${step.controls || ''}`,
-          ]),
-          `Risk Rating: ${permit.jsea?.overallRiskRating?.toUpperCase?.() || ''}`,
-          ''
-        ] : []),
-        '═══════════════════════════════════════════════',
-        'END OF PERMIT',
-        '═══════════════════════════════════════════════'
-      ].join('\n');
+      // Create a new PDF document
+      const doc = new jsPDF();
       
-      // Use window.alert to show the permit content
-      console.log('PRINT CONTENT:', lines);
-      window.alert(lines);
+      // Set font and colors
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('PERMIT TO WORK', 20, 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      
+      let yPosition = 30;
+      const lineHeight = 7;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const maxWidth = doc.internal.pageSize.width - 40;
+      
+      // Helper function to add text with page breaks
+      const addText = (label, value, bold = false) => {
+        if (yPosition > pageHeight - 20) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        const text = `${label}: ${value || 'N/A'}`;
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach((line) => {
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight;
+        });
+      };
+      
+      // Add permit information
+      addText('Permit Number', permit.permitNumber, true);
+      addText('Status', permit.status?.toUpperCase?.() || 'N/A');
+      addText('Priority', permit.priority?.toUpperCase?.() || 'N/A');
+      addText('Date Generated', new Date().toLocaleDateString('en-NZ'));
+      
+      yPosition += 3;
+      doc.setFont('helvetica', 'bold');
+      doc.text('GENERAL DETAILS', margin, yPosition);
+      yPosition += lineHeight;
+      doc.setFont('helvetica', 'normal');
+      
+      addText('Description', permit.description);
+      addText('Location', permit.location);
+      addText('Site', permit.site);
+      addText('Requested By', permit.requestedBy);
+      addText('Start Date', `${permit.startDate || ''} ${permit.startTime || ''}`);
+      addText('End Date', `${permit.endDate || ''} ${permit.endTime || ''}`);
+      
+      // Specialized Permits
+      if (permit.specializedPermits && Object.keys(permit.specializedPermits).some(k => permit.specializedPermits[k].required)) {
+        yPosition += 5;
+        doc.setFont('helvetica', 'bold');
+        doc.text('SPECIALIZED PERMITS', margin, yPosition);
+        yPosition += lineHeight;
+        doc.setFont('helvetica', 'normal');
+        
+        Object.entries(permit.specializedPermits).forEach(([key, val]) => {
+          if (val.required) {
+            const label = specializedPermitTypes.find(p => p.key === key)?.label || key;
+            addText(label, 'Required');
+          }
+        });
+      }
+      
+      // Single Hazards
+      if (permit.singleHazards && Object.keys(permit.singleHazards).some(k => permit.singleHazards[k].present)) {
+        yPosition += 5;
+        doc.setFont('helvetica', 'bold');
+        doc.text('SINGLE HAZARDS', margin, yPosition);
+        yPosition += lineHeight;
+        doc.setFont('helvetica', 'normal');
+        
+        Object.entries(permit.singleHazards).forEach(([key, val]) => {
+          if (val.present) {
+            const label = singleHazardTypes.find(h => h.key === key)?.label || key;
+            addText(label, val.controls || 'Present');
+          }
+        });
+      }
+      
+      // JSEA
+      if (permit.jsea?.taskSteps && permit.jsea.taskSteps.length > 0) {
+        yPosition += 5;
+        doc.setFont('helvetica', 'bold');
+        doc.text('JSEA TASK STEPS', margin, yPosition);
+        yPosition += lineHeight;
+        doc.setFont('helvetica', 'normal');
+        
+        permit.jsea.taskSteps.forEach((step, idx) => {
+          addText(`Step ${idx + 1}`, step.step);
+          addText('  Hazards', step.hazards);
+          addText('  Controls', step.controls);
+        });
+        
+        addText('Overall Risk Rating', permit.jsea.overallRiskRating);
+        addText('Additional Precautions', permit.jsea.additionalPrecautions);
+      }
+      
+      // Save the PDF
+      doc.save(`Permit_${permit.permitNumber || 'N-A'}.pdf`);
+      window.alert('PDF generated and downloaded successfully!');
     } catch (error) {
-      console.error('Error preparing permit for print:', error);
-      window.alert('Error: Failed to prepare permit for printing. ' + error.message);
+      console.error('Error generating PDF:', error);
+      window.alert('Error: Failed to generate PDF. ' + error.message);
     }
   };
 
