@@ -1085,7 +1085,7 @@ const PermitManagementApp = () => {
   const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
@@ -1111,13 +1111,13 @@ const PermitManagementApp = () => {
   const getColumnWidths = () => {
     if (isMobile) {
       // Mobile: more compact
-      return { name: 80, email: 100, company: 80, services: 80, inductionExpiry: 90, actions: 50 };
+      return { name: 80, email: 100, company: 80, services: 80, sites: 70, inductionExpiry: 90, actions: 50 };
     } else if (isTablet) {
       // Tablet: medium
-      return { name: 100, email: 130, company: 100, services: 120, inductionExpiry: 110, actions: 70 };
+      return { name: 100, email: 130, company: 100, services: 120, sites: 100, inductionExpiry: 110, actions: 70 };
     } else {
       // Desktop: full size
-      return { name: 120, email: 150, company: 120, services: 150, inductionExpiry: 130, actions: 80 };
+      return { name: 120, email: 150, company: 120, services: 150, sites: 140, inductionExpiry: 130, actions: 80 };
     }
   };
   
@@ -1762,98 +1762,57 @@ const PermitManagementApp = () => {
         </View>
       )}
 
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         {item.status === 'pending_approval' ? (
           <>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%' }]} onPress={() => {
+            <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
               setSelectedPermit(item);
               setCurrentScreen('review_permit');
             }}>
               <Text style={styles.primaryButtonText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%', backgroundColor: '#3B82F6' }]} onPress={() => {
-              Alert.alert(
-                '🖨️ Print Permit',
-                `Permit #${item.permitNumber} is ready to print.\n\nStatus: ${getStatusText(item.status)}`,
-                [{ text: 'OK', style: 'default' }]
-              );
+            <TouchableOpacity style={[styles.primaryButton, { flex: 0.8, backgroundColor: '#3B82F6' }]} onPress={() => {
+              Alert.alert('🖨️ Print Permit', `Permit #${item.permitNumber} ready to print`);
             }}>
-              <Text style={styles.primaryButtonText}>🖨️ Print</Text>
+              <Text style={styles.primaryButtonText}>🖨️</Text>
             </TouchableOpacity>
           </>
         ) : item.status === 'completed' ? (
           <>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%' }]} onPress={() => {
+            <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
               setSelectedPermit(item);
               setCurrentScreen('view_completed_permit');
             }}>
               <Text style={styles.primaryButtonText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%', backgroundColor: '#3B82F6' }]} onPress={() => {
-              const printContent = `
-PERMIT TO WORK - ${item.permitNumber}
-
-Status: ${getStatusText(item.status)}
-Type: ${item.permitType || item.type}
-Priority: ${item.priority}
-Location: ${item.location}
-Requested By: ${item.requestedBy}
-Date: ${formatDateNZ(item.completedDate || item.approvedDate || item.submittedDate || '')}
-
-Description:
-${item.description}
-
-Controls Summary:
-${item.controlsSummary || 'No controls specified'}
-
----
-Completed At: ${item.completedSignOff?.issuerSignedAt || 'N/A'}
-Issued By: ${item.completedSignOff?.issuerName || 'N/A'}
-Received By: ${item.completedSignOff?.receiverName || 'N/A'}
-              `;
-              
-              Alert.alert(
-                'Print Permit',
-                `Permit #${item.permitNumber} is ready to print.\n\nYou can:\n- Copy the permit details\n- Save as PDF\n- Print from your device`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'Share/Print',
-                    onPress: () => {
-                      console.log('Print action:', printContent);
-                    }
-                  }
-                ]
-              );
+            <TouchableOpacity style={[styles.primaryButton, { flex: 0.8, backgroundColor: '#3B82F6' }]} onPress={() => {
+              Alert.alert('🖨️ Print Permit', `Permit #${item.permitNumber} ready to print`);
             }}>
-              <Text style={styles.primaryButtonText}>🖨️ Print</Text>
+              <Text style={styles.primaryButtonText}>🖨️</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%' }]} onPress={() => {
+            <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
               setSelectedPermit(item);
               setEditPermitData(null);
               setCurrentScreen('edit_permit');
             }}>
               <Text style={styles.primaryButtonText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 1, minWidth: '48%', backgroundColor: '#3B82F6' }]} onPress={() => {
-              Alert.alert(
-                '🖨️ Print Permit',
-                `Permit #${item.permitNumber} is ready to print.\n\nStatus: ${getStatusText(item.status)}`,
-                [{ text: 'OK', style: 'default' }]
-              );
+            <TouchableOpacity style={[styles.primaryButton, { flex: 0.8, backgroundColor: '#3B82F6' }]} onPress={() => {
+              Alert.alert('🖨️ Print Permit', `Permit #${item.permitNumber} ready to print`);
             }}>
-              <Text style={styles.primaryButtonText}>🖨️ Print</Text>
+              <Text style={styles.primaryButtonText}>🖨️</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
     </View>
   );
-
   // Permit Review (read-only, for approval)
+  // Editable Permit Review (for approval)
+  // ...existing code...
 
   // --- Render Questionnaire for Specialized Permits ---
   function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) {
@@ -1995,7 +1954,9 @@ Received By: ${item.completedSignOff?.receiverName || 'N/A'}
                 {/* Blocking warning */}
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
               </View>
@@ -2142,7 +2103,9 @@ Received By: ${item.completedSignOff?.receiverName || 'N/A'}
                 {/* Blocking warning */}
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
                 {/* Render inline dependent questions for yesno */}
@@ -2865,54 +2828,6 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             {editData.completedSignOff.receiverSignedAt && (
               <Text style={styles.detailText}>Receiver Signed At: {editData.completedSignOff.receiverSignedAt}</Text>
             )}
-            
-            {/* Print Button for Completed Permits */}
-            <TouchableOpacity style={[styles.submitButton, { marginTop: 12, backgroundColor: '#3B82F6' }]} onPress={() => {
-              const printContent = `
-PERMIT TO WORK - #${editData.id}
-
-Status: COMPLETED
-Type: ${editData.permitType || 'Unknown'}
-Priority: ${editData.priority || 'Normal'}
-Location: ${editData.location || 'Unknown'}
-Requested By: ${editData.requestedBy || 'Unknown'}
-Date Submitted: ${editData.submittedDate || editData.createdAt}
-Date Completed: ${editData.completedDate || 'N/A'}
-
-Work Description:
-${editData.description || 'No description'}
-
-Controls Summary:
-${editData.controlsSummary || 'No controls specified'}
-
-Work Dates:
-Start: ${editData.startDate} ${editData.startTime}
-End: ${editData.endDate} ${editData.endTime}
-
-Completion Sign-Off:
-Permit Issued By: ${editData.completedSignOff.issuerName}
-Issued At: ${editData.completedSignOff.issuerSignedAt}
-
-Work Completed By: ${editData.completedSignOff.receiverName}
-Completed At: ${editData.completedSignOff.receiverSignedAt}
-              `;
-              
-              Alert.alert(
-                '🖨️ Print/Export Permit',
-                `Permit #${editData.id} is ready to print.\n\nTo print or save as PDF:\n1. Use your device's print function\n2. Select "Save as PDF" if available`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'OK',
-                    onPress: () => {
-                      console.log('Print content prepared:', printContent);
-                    }
-                  }
-                ]
-              );
-            }}>
-              <Text style={styles.submitButtonText}>🖨️ Print/Export Permit</Text>
-            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -3285,7 +3200,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_users')}>
             <Text style={styles.cardNumber}>{users.length}</Text>
-            <Text style={styles.cardLabel}>Users</Text>
+            <Text style={styles.cardLabel}>Permit Issuers</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('manage_companies')}>
             <Text style={styles.cardNumber}>{companies.length}</Text>
@@ -3459,7 +3374,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingUser(false); setSelectedUser(null); }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{editingUser ? 'Edit User' : 'Manage Users'}</Text>
+          <Text style={styles.title}>{editingUser ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
@@ -3787,6 +3702,15 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
     );
   };
 
+  // Helper function to get available sites for a contractor
+  const getContractorSites = (contractorId) => {
+    const contractor = contractors.find(c => c.id === contractorId);
+    if (!contractor || !contractor.siteIds || contractor.siteIds.length === 0) {
+      return [];
+    }
+    return contractor.siteIds;
+  };
+
   // Manage Contractors Screen
   const renderManageContractors = () => {
     const handleAddContractor = async () => {
@@ -3800,6 +3724,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
             name: currentContractor.name,
             email: currentContractor.email,
             services: currentContractor.services,
+            site_ids: currentContractor.siteIds || [],
             company: currentContractor.company,
             induction_expiry: currentContractor.inductionExpiry
           });
@@ -3812,6 +3737,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
             name: currentContractor.name,
             email: currentContractor.email,
             services: currentContractor.services,
+            site_ids: currentContractor.siteIds || [],
             company: currentContractor.company,
             induction_expiry: currentContractor.inductionExpiry
           });
@@ -3819,7 +3745,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
           setContractors(freshContractors);
           Alert.alert('Contractor Added', 'New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' });
+        setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save contractor: ' + error.message);
@@ -3980,6 +3906,32 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                 ))}
               </View>
 
+              <Text style={styles.label}>Available Sites</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites:</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                {ALL_SITES.map(siteName => (
+                  <TouchableOpacity
+                    key={siteName}
+                    style={[
+                      { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                      (currentContractor.siteIds || []).includes(siteName)
+                        ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
+                        : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                    ]}
+                    onPress={() => {
+                      const siteIds = currentContractor.siteIds || [];
+                      if (siteIds.includes(siteName)) {
+                        setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
+                      } else {
+                        setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
+                      }
+                    }}
+                  >
+                    <Text style={{ color: (currentContractor.siteIds || []).includes(siteName) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TouchableOpacity 
                 style={[styles.input, { justifyContent: 'center', paddingVertical: 12, backgroundColor: '#F3F4F6' }]}
@@ -3997,7 +3949,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
               {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4088,6 +4040,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                         <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
                         <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
                         <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
+                        <Text style={[{ width: columns.sites, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Available Sites</Text>
                         <Text style={[{ width: columns.inductionExpiry, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Induction Exp</Text>
                         <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11, textAlign: 'center' }]}>Actions</Text>
                       </View>
@@ -4109,6 +4062,9 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
+                          </Text>
+                          <Text style={[{ width: columns.sites, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
+                            {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
                           </Text>
                           <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 11, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
                             {contractor.inductionExpiry ? formatDateNZ(contractor.inductionExpiry) : '-'}
@@ -4284,7 +4240,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
           <TouchableOpacity onPress={() => setCurrentScreen('pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Review/Edit Permit {editData.id}</Text>
+          <Text style={styles.title}>Review/Edit Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -4337,8 +4293,8 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
-                          (permitKey, qid, value, field) => {
+                          editData,
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
@@ -4683,7 +4639,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
           <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Inspect/Edit Permit {editData.id}</Text>
+          <Text style={styles.title}>Inspect/Edit Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -4736,8 +4692,8 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
-                          (permitKey, qid, value, field) => {
+                          editData,
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
@@ -5002,35 +4958,45 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
   // Render list of permits needing inspection
   const renderInspectionList = () => {
     return (
-      <FlatList
-        data={permits.filter(p => p.status === 'pending_inspection')}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.permitListCard}>
-            <View style={styles.permitListHeader}>
-              <Text style={styles.permitId}>#{item.permitNumber}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
-                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Needs Inspection</Text>
+        </View>
+        <View style={styles.permitListContainer}>
+          <FlatList
+            data={permits.filter(p => p.status === 'pending_inspection')}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.permitListCard}>
+                <View style={styles.permitListHeader}>
+                  <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+                    <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                  </View>
+                </View>
+                <Text style={styles.permitType}>{item.type}</Text>
+                <Text style={styles.permitDescription}>{item.description}</Text>
+                <View style={styles.permitDetails}>
+                  <Text style={styles.detailText}>Location: {item.location}</Text>
+                  <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                  <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+                </View>
+                <TouchableOpacity style={styles.primaryButton} onPress={() => {
+                  setSelectedPermit(item);
+                  setCurrentScreen('inspect_permit');
+                }}>
+                  <Text style={styles.primaryButtonText}>Inspect</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <Text style={styles.permitType}>{item.type}</Text>
-            <Text style={styles.permitDescription}>{item.description}</Text>
-            <View style={styles.permitDetails}>
-              <Text style={styles.detailText}>Location: {item.location}</Text>
-              <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-              <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
-            </View>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => {
-              setSelectedPermit(item);
-              setCurrentScreen('inspect_permit');
-            }}>
-              <Text style={styles.primaryButtonText}>Inspect</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need inspection.</Text>}
-        contentContainerStyle={{ padding: 16 }}
-      />
+            )}
+            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need inspection.</Text>}
+            contentContainerStyle={{ padding: 16 }}
+          />
+        </View>
+      </View>
     );
   };
 
@@ -5163,7 +5129,7 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
           <TouchableOpacity onPress={() => setCurrentScreen('active')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Edit/Complete Permit {editData.id}</Text>
+          <Text style={styles.title}>Edit/Complete Permit #{editData.permitNumber}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -5216,8 +5182,8 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                       {val.required &&
                         renderQuestionnaire(
                           key,
-                          { specializedPermits: { [key]: val } },
-                          (permitKey, qid, value, field) => {
+                          editData,
+                          (permitKey, qid, value, field = 'answer') => {
                             const updated = {
                               ...val.questionnaire,
                               [qid]: { ...val.questionnaire?.[qid], [field]: value }
@@ -5496,16 +5462,11 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
                     completed = true;
                   }
                   
-                  // Prepare update object
-                  const updateObj = {
-                    completed_sign_off: newSignOff
-                  };
-                  
+                  // Save to database
+                  const updateObj = { completed_sign_off: newSignOff };
                   if (completed) {
                     updateObj.status = 'completed';
                   }
-                  
-                  // Save to database
                   await updatePermit(editData.id, updateObj);
                   
                   // Update local state
@@ -5554,48 +5515,6 @@ Completed At: ${editData.completedSignOff.receiverSignedAt}
             Alert.alert('Permit Updated', 'Permit details have been updated.');
           }}>
             <Text style={styles.submitButtonText}>Save Changes</Text>
-          </TouchableOpacity>
-          
-          {/* Print button for active permits */}
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#3B82F6', marginTop: 8 }]} onPress={() => {
-            const printContent = `
-PERMIT TO WORK - #${editData.id}
-
-Status: ${editData.status?.toUpperCase?.() || 'ACTIVE'}
-Type: ${editData.permitType || 'Unknown'}
-Priority: ${editData.priority || 'Normal'}
-Location: ${editData.location || 'Unknown'}
-Requested By: ${editData.requestedBy || 'Unknown'}
-Date Submitted: ${editData.submittedDate || editData.createdAt}
-
-Work Description:
-${editData.description || 'No description'}
-
-Controls Summary:
-${editData.controlsSummary || 'No controls specified'}
-
-Work Dates:
-Start: ${editData.startDate} ${editData.startTime}
-End: ${editData.endDate} ${editData.endTime}
-
-Status: CURRENTLY ACTIVE - WORK IN PROGRESS
-            `;
-            
-            Alert.alert(
-              '🖨️ Print/Export Permit',
-              `Permit #${editData.id} is ready to print.\n\nTo print or save as PDF:\n1. Use your device's print function\n2. Select "Save as PDF" if available`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                  text: 'OK',
-                  onPress: () => {
-                    console.log('Print content prepared:', printContent);
-                  }
-                }
-              ]
-            );
-          }}>
-            <Text style={styles.submitButtonText}>🖨️ Print/Export Permit</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
