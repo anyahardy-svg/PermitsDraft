@@ -3236,14 +3236,54 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     signOns: permit.signOns || initialSignOns
   });
   const isCompleted = permit.status === 'completed';
+  
+  const handlePrintPermit = () => {
+    // Use browser's print functionality which allows saving as PDF
+    const printWindow = window.open('', '', 'height=600,width=800');
+    const permitContent = document.getElementById('permit-content');
+    
+    if (permitContent) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Permit ${permit.id}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+              .section { margin-bottom: 20px; page-break-inside: avoid; }
+              .label { font-weight: bold; color: #374151; margin-top: 10px; }
+              .detail { color: #6B7280; margin-left: 10px; }
+              .controls-summary { background-color: #FEF3C7; padding: 12px; border-left: 4px solid #F59E0B; margin: 20px 0; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f5f5f5; }
+              @media print { body { padding: 0; } }
+            </style>
+          </head>
+          <body>
+            ${permitContent.innerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+  
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setCurrentScreen(isCompleted ? 'completed' : 'pending_approval')}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setCurrentScreen(isCompleted ? 'completed' : 'pending_approval')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePrintPermit} style={{ padding: 8 }}>
+            <Text style={{ color: '#2563EB', fontWeight: '600', fontSize: 14 }}>🖨️ Print/PDF</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title}>{isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
+      <View id="permit-content">
       <View style={styles.sectionContent}>
         <Text style={styles.label}>Description:</Text>
         <Text style={styles.detailText}>{editData.description || ''}</Text>
@@ -3467,6 +3507,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           </TouchableOpacity>
         </View>
       )}
+      </View>
     </ScrollView>
   );
 };
@@ -3479,9 +3520,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       filteredPermits = filteredPermits.filter(p => {
-        const createdDate = p.created_at || p.createdAt;
-        if (!createdDate) return false;
-        const permitDate = new Date(createdDate);
+        const updateDate = p.updated_at || p.updatedAt;
+        if (!updateDate) return false;
+        const permitDate = new Date(updateDate);
         return permitDate >= sevenDaysAgo;
       });
     }
@@ -3775,9 +3816,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               if (p.status !== 'completed') return false;
               const sevenDaysAgo = new Date();
               sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-              const createdDate = p.created_at || p.createdAt;
-              if (!createdDate) return false;
-              return new Date(createdDate) >= sevenDaysAgo;
+              const updateDate = p.updated_at || p.updatedAt;
+              if (!updateDate) return false;
+              return new Date(updateDate) >= sevenDaysAgo;
             }).length}</Text>
             <Text style={styles.cardLabel}>Completed (7 days)</Text>
           </TouchableOpacity>
