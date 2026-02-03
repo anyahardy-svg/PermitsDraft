@@ -1012,16 +1012,12 @@ const PermitManagementApp = () => {
         '═══════════════════════════════════════════════'
       ].join('\n');
       
-      // Use Alert to show the permit content
-      Alert.alert(
-        `Permit #${permit.permitNumber || 'N/A'}`,
-        lines,
-        [{ text: 'OK' }],
-        { scrollEnabled: true }
-      );
+      // Use window.alert to show the permit content
+      console.log('PRINT CONTENT:', lines);
+      window.alert(lines);
     } catch (error) {
       console.error('Error preparing permit for print:', error);
-      Alert.alert('Error', 'Failed to prepare permit for printing.');
+      window.alert('Error: Failed to prepare permit for printing. ' + error.message);
     }
   };
 
