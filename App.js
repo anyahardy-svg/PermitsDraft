@@ -1058,12 +1058,12 @@ const PermitManagementApp = () => {
         addText('Additional Precautions', permit.jsea.additionalPrecautions);
       }
       
-      // Save the PDF
-      doc.save(`Permit_${permit.permitNumber || 'N-A'}.pdf`);
-      window.alert('PDF generated and downloaded successfully!');
+      // Save the PDF silently
+      doc.save(`Permit_${permit.permitNumber || 'Unknown'}.pdf`);
+      console.log('PDF downloaded for permit:', permit.permitNumber);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      window.alert('Error: Failed to generate PDF. ' + error.message);
+      Alert.alert('Error', 'Failed to generate PDF: ' + error.message);
     }
   };
 
