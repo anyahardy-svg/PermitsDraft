@@ -952,8 +952,81 @@ const PermitManagementApp = () => {
     });
   };
 
+  // --- Print Permit Function ---
+  const handlePrintPermit = (permit) => {
+    try {
+      // Create a formatted permit text for printing
+      const lines = [
+        '═══════════════════════════════════════════════',
+        'PERMIT TO WORK',
+        '═══════════════════════════════════════════════',
+        '',
+        `Permit Number: ${permit.permitNumber || 'N/A'}`,
+        `Status: ${getStatusText(permit.status || 'unknown')}`,
+        `Date: ${new Date().toLocaleDateString('en-NZ')}`,
+        '',
+        '───────────────────────────────────────────────',
+        'GENERAL DETAILS',
+        '───────────────────────────────────────────────',
+        `Description: ${permit.description || ''}`,
+        `Location: ${permit.location || ''}`,
+        `Site: ${permit.site || ''}`,
+        `Requested By: ${permit.requestedBy || ''}`,
+        `Priority: ${permit.priority?.toUpperCase?.() || ''}`,
+        '',
+        `Start Date: ${permit.startDate || ''} ${permit.startTime || ''}`,
+        `End Date: ${permit.endDate || ''} ${permit.endTime || ''}`,
+        '',
+        ...(permit.specializedPermits && Object.keys(permit.specializedPermits).length > 0 ? [
+          '───────────────────────────────────────────────',
+          'SPECIALIZED PERMITS',
+          '───────────────────────────────────────────────',
+          ...Object.entries(permit.specializedPermits)
+            .filter(([_, val]) => val.required)
+            .map(([key, val]) => `• ${specializedPermitTypes.find(p => p.key === key)?.label || key}: YES`),
+          ''
+        ] : []),
+        ...(permit.singleHazards && Object.keys(permit.singleHazards).length > 0 ? [
+          '───────────────────────────────────────────────',
+          'SINGLE HAZARDS',
+          '───────────────────────────────────────────────',
+          ...Object.entries(permit.singleHazards)
+            .filter(([_, val]) => val.present)
+            .map(([key, val]) => `• ${singleHazardTypes.find(h => h.key === key)?.label || key}: ${val.controls || ''}`),
+          ''
+        ] : []),
+        ...(permit.jsea?.taskSteps && permit.jsea.taskSteps.length > 0 ? [
+          '───────────────────────────────────────────────',
+          'JSEA TASK STEPS',
+          '───────────────────────────────────────────────',
+          ...permit.jsea.taskSteps.flatMap((step, idx) => [
+            `Step ${idx + 1}: ${step.step || ''}`,
+            `  Hazards: ${step.hazards || ''}`,
+            `  Controls: ${step.controls || ''}`,
+          ]),
+          `Risk Rating: ${permit.jsea?.overallRiskRating?.toUpperCase?.() || ''}`,
+          ''
+        ] : []),
+        '═══════════════════════════════════════════════',
+        'END OF PERMIT',
+        '═══════════════════════════════════════════════'
+      ].join('\n');
+      
+      // Use Alert to show the permit content
+      Alert.alert(
+        `Permit #${permit.permitNumber || 'N/A'}`,
+        lines,
+        [{ text: 'OK' }],
+        { scrollEnabled: true }
+      );
+    } catch (error) {
+      console.error('Error preparing permit for print:', error);
+      Alert.alert('Error', 'Failed to prepare permit for printing.');
+    }
+  };
+
   // --- handleSubmit for advanced form ---
-  const handleSubmit = async () => {
+  const handleSubmit = async (status) => {
     if (!formData.description) {
       Alert.alert('Missing Info', 'Please fill in the Description field.');
       return;
@@ -965,7 +1038,7 @@ const PermitManagementApp = () => {
         permit_type: formData.id || 'general',
         description: formData.description,
         location: formData.location,
-        status: formData.status,
+        status: status || 'pending_approval',
         priority: formData.priority,
         start_date: formData.startDate,
         start_time: formData.startTime,
@@ -1000,7 +1073,8 @@ const PermitManagementApp = () => {
         signOns: initialSignOns
       });
       setCurrentScreen('dashboard');
-      Alert.alert('Permit Created', 'New permit has been saved to the database.');
+      const statusText = status === 'draft' ? 'Draft saved' : 'Permit submitted for approval';
+      Alert.alert('Success', statusText + '. It has been saved to the database.');
     } catch (error) {
       console.error('Error creating permit:', error);
       Alert.alert('Error', 'Failed to save permit. Please try again.');
@@ -1673,10 +1747,13 @@ const PermitManagementApp = () => {
             )}
           </View>
 
-          {/* Submit Button */}
+          {/* Submit Buttons */}
           <View style={styles.submitSection}>
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Create Permit</Text>
+            <TouchableOpacity style={styles.draftButton} onPress={() => handleSubmit('draft')}>
+              <Text style={styles.draftButtonText}>Save Draft</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submitButton} onPress={() => handleSubmit('pending_approval')}>
+              <Text style={styles.submitButtonText}>Submit for Approval</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -2811,6 +2888,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       {/* Only show Approve/Reject if not completed */}
       {!isCompleted && (
         <View style={styles.submitSection}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
+            <Text style={styles.submitButtonText}>🖨 Print</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             Alert.alert('Debug', 'Approve button clicked');
             // Approve: set status to 'pending_inspection' and update permit
@@ -2860,6 +2940,14 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             }
           }}>
             <Text style={styles.submitButtonText}>Reject</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {/* Show Print button for completed permits */}
+      {isCompleted && (
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
+            <Text style={styles.submitButtonText}>🖨 Print Completed Permit</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -4522,6 +4610,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         )}
 
         <View style={styles.submitSection}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
+            <Text style={styles.submitButtonText}>🖨 Print</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             // Approve: set status to 'pending_inspection' or 'active' and update permit
             const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
@@ -4547,7 +4638,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           }}>
             <Text style={styles.submitButtonText}>Approve</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={async () => {
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
             // Reject: set status to 'rejected' and update permit
             try {
               const rejectedDate = new Date().toISOString().split('T')[0];
@@ -5432,12 +5523,16 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               {latestPermit.completedSignOff?.receiverSignedAt && (
                 <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
               )}
-              <TouchableOpacity style={[styles.submitButton, { marginTop: 12 }]} onPress={async () => {
-                try {
-                  const now = new Date();
-                  const dateStr = now.toISOString().split('T')[0];
-                  const timeStr = now.toTimeString().split(' ')[0];
-                  let newSignOff = { ...((latestPermit.completedSignOff) || {}) };
+              <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
+                  <Text style={styles.submitButtonText}>🖨 Print</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
+                  try {
+                    const now = new Date();
+                    const dateStr = now.toISOString().split('T')[0];
+                    const timeStr = now.toTimeString().split(' ')[0];
+                    let newSignOff = { ...((latestPermit.completedSignOff) || {}) };
                   let completed = false;
                   // If issuer fields are filled and not yet timestamped, set timestamp
                   if (issuerName && issuerSignature && (!newSignOff.issuerSignedAt || newSignOff.issuerName !== issuerName || newSignOff.issuerSignature !== issuerSignature)) {
@@ -5495,6 +5590,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               }}>
                 <Text style={styles.submitButtonText}>Save Sign-Off</Text>
               </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
