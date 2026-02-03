@@ -1853,6 +1853,13 @@ const PermitManagementApp = () => {
         }}>
           <Text style={styles.primaryButtonText}>View</Text>
         </TouchableOpacity>
+      ) : item.status === 'draft' ? (
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setCurrentScreen('review_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>Edit</Text>
+        </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.primaryButton} onPress={() => {
           setSelectedPermit(item);
@@ -2694,13 +2701,13 @@ const PermitManagementApp = () => {
   }
 
 // Standalone component for reviewing/editing a permit for approval
-function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles }) {
+function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
   const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
   const initialIsolations = [];
   const initialSignOns = [];
-  const [editData] = React.useState({
+  const [editData, setEditData] = React.useState({
     ...permit,
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
@@ -2708,29 +2715,131 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
     isolations: permit.isolations || initialIsolations,
     signOns: permit.signOns || initialSignOns
   });
+  
+  const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
+  
+  const handleEditChange = (field, value) => {
+    setEditData({ ...editData, [field]: value });
+  };
+  
+  const saveDraftChanges = async () => {
+    try {
+      await updatePermit(editData.id, {
+        description: editData.description,
+        location: editData.location,
+        requestedBy: editData.requestedBy,
+        priority: editData.priority,
+        status: editData.status,
+        startDate: editData.startDate,
+        startTime: editData.startTime,
+        endDate: editData.endDate,
+        endTime: editData.endTime,
+        specializedPermits: editData.specializedPermits,
+        singleHazards: editData.singleHazards,
+        jsea: editData.jsea,
+        isolations: editData.isolations,
+        signOns: editData.signOns
+      });
+      
+      const freshPermits = await listPermits();
+      setPermits(freshPermits);
+      setCurrentScreen('dashboard');
+      Alert.alert('Draft Saved', 'Your draft has been saved successfully.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save draft: ' + error.message);
+    }
+  };
+  
+  const submitDraftForApproval = async () => {
+    try {
+      await updatePermit(editData.id, {
+        description: editData.description,
+        location: editData.location,
+        requestedBy: editData.requestedBy,
+        priority: editData.priority,
+        status: 'pending_approval',
+        startDate: editData.startDate,
+        startTime: editData.startTime,
+        endDate: editData.endDate,
+        endTime: editData.endTime,
+        specializedPermits: editData.specializedPermits,
+        singleHazards: editData.singleHazards,
+        jsea: editData.jsea,
+        isolations: editData.isolations,
+        signOns: editData.signOns,
+        submittedDate: new Date().toISOString().split('T')[0]
+      });
+      
+      const freshPermits = await listPermits();
+      setPermits(freshPermits);
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to submit permit: ' + error.message);
+    }
+  };
+  
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setCurrentScreen(isCompleted ? 'completed' : 'pending_approval')}>
+        <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
+        <Text style={styles.title}>{isDraft ? `Edit Draft ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
       <View style={styles.sectionContent}>
         <Text style={styles.label}>Description:</Text>
-        <Text style={styles.detailText}>{editData.description || ''}</Text>
+        {isDraft ? (
+          <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => handleEditChange('description', text)} placeholder="Describe the work..." />
+        ) : (
+          <Text style={styles.detailText}>{editData.description || ''}</Text>
+        )}
+        
         <Text style={styles.label}>Location:</Text>
-        <Text style={styles.detailText}>{editData.location || ''}</Text>
+        {isDraft ? (
+          <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => handleEditChange('location', text)} placeholder="Work location" />
+        ) : (
+          <Text style={styles.detailText}>{editData.location || ''}</Text>
+        )}
+        
         <Text style={styles.label}>Requested By:</Text>
-        <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
+        {isDraft ? (
+          <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => handleEditChange('requestedBy', text)} placeholder="Your name" />
+        ) : (
+          <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
+        )}
+        
         <Text style={styles.label}>Priority:</Text>
-        <Text style={styles.detailText}>{editData.priority || ''}</Text>
+        {isDraft ? (
+          <View style={styles.priorityButtons}>
+            {['low', 'medium', 'high'].map(priority => (
+              <TouchableOpacity key={priority} style={[styles.priorityButton, { backgroundColor: editData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }]} onPress={() => handleEditChange('priority', priority)}>
+                <Text style={[styles.priorityButtonText, { color: editData.priority === priority ? 'white' : '#374151' }]}>{priority.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.detailText}>{editData.priority || ''}</Text>
+        )}
+        
         <Text style={styles.label}>Status:</Text>
         <Text style={styles.detailText}>{editData.status || ''}</Text>
+        
         <Text style={styles.label}>Dates:</Text>
-        <Text style={styles.detailText}>Start: {editData.startDate} {editData.startTime}</Text>
-        <Text style={styles.detailText}>End: {editData.endDate} {editData.endTime}</Text>
+        {isDraft ? (
+          <>
+            <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => handleEditChange('startDate', text)} placeholder="Start date (YYYY-MM-DD)" />
+            <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => handleEditChange('startTime', text)} placeholder="Start time" />
+            <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => handleEditChange('endDate', text)} placeholder="End date (YYYY-MM-DD)" />
+            <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => handleEditChange('endTime', text)} placeholder="End time" />
+          </>
+        ) : (
+          <>
+            <Text style={styles.detailText}>Start: {editData.startDate} {editData.startTime}</Text>
+            <Text style={styles.detailText}>End: {editData.endDate} {editData.endTime}</Text>
+          </>
+        )}
 
         {/* CONTROLS SUMMARY - Show all controls in one place */}
         {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps) && (
@@ -2885,8 +2994,22 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           </View>
         )}
       </View>
-      {/* Only show Approve/Reject if not completed */}
-      {!isCompleted && (
+      {/* Draft buttons - Save or Submit */}
+      {isDraft && (
+        <View style={styles.submitSection}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
+            <Text style={styles.submitButtonText}>🖨 Print</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.draftButton, { flex: 0.35 }]} onPress={saveDraftChanges}>
+            <Text style={styles.draftButtonText}>Save Draft</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.submitButton, { flex: 0.35 }]} onPress={submitDraftForApproval}>
+            <Text style={styles.submitButtonText}>Submit for Approval</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {/* Only show Approve/Reject if not completed and not draft */}
+      {!isCompleted && !isDraft && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
@@ -4270,7 +4393,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
 
   // Editable Approval Permit Screen (for Pending Approval)
-  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles }) => {
+  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
@@ -5694,6 +5817,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           setCurrentScreen={setCurrentScreen}
           permits={permits}
           styles={styles}
+          handlePrintPermit={handlePrintPermit}
         />
       );
     case 'inspect_permit':
@@ -5728,6 +5852,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           setCurrentScreen={setCurrentScreen}
           permits={permits}
           styles={styles}
+          handlePrintPermit={handlePrintPermit}
         />
       );
     case 'edit_permit':
