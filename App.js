@@ -1786,46 +1786,495 @@ const PermitManagementApp = () => {
         <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
           {/* General Section */}
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
               <Text style={styles.sectionTitle}>General Details</Text>
-              <Text style={styles.expandIcon}>▲</Text>
-            </View>
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                multiline
-                numberOfLines={3}
-                value={formData.description}
-                onChangeText={text => setFormData({ ...formData, description: text })}
-                placeholder="Describe the work to be performed..."
-              />
-              <Text style={styles.label}>Location</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.location}
-                onChangeText={text => setFormData({ ...formData, location: text })}
-                placeholder="Work location"
-              />
-              <Text style={styles.label}>Requested By</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.requestedBy}
-                onChangeText={text => setFormData({ ...formData, requestedBy: text })}
-                placeholder="Your name"
-              />
-              <Text style={styles.label}>Priority</Text>
-              <CustomDropdown
-                label="Select Priority"
-                options={['low', 'medium', 'high']}
-                selectedValue={formData.priority}
-                onValueChange={value => setFormData({ ...formData, priority: value })}
-                style={styles.input}
-              />
-            </View>
+              <Text style={styles.expandIcon}>{expandedSections.general ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.general && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  multiline
+                  numberOfLines={3}
+                  value={formData.description}
+                  onChangeText={text => setFormData({ ...formData, description: text })}
+                  placeholder="Describe the work to be performed..."
+                />
+                <Text style={styles.label}>Site</Text>
+                <CustomDropdown
+                  label="Select Site"
+                  options={ALL_SITES}
+                  selectedValue={formData.site || ''}
+                  onValueChange={value => setFormData({ ...formData, site: value })}
+                  style={styles.input}
+                />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.location}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
+                <Text style={styles.label}>Requested By</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.requestedBy}
+                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
+                  placeholder="Your name"
+                />
+
+                {/* Start Date/Time */}
+                <Text style={styles.label}>Start Date</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                  <Text style={formData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.startDate ? formatDateNZ(formData.startDate) : 'Select start date'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showStartDatePicker}
+                  onClose={() => setShowStartDatePicker(false)}
+                  onSelect={date => setFormData({ ...formData, startDate: date })}
+                  mode="date"
+                  currentValue={formData.startDate}
+                />
+                <Text style={styles.label}>Start Time</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                  <Text style={formData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.startTime || 'Select start time'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>⏰</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showStartTimePicker}
+                  onClose={() => setShowStartTimePicker(false)}
+                  onSelect={time => setFormData({ ...formData, startTime: time })}
+                  mode="time"
+                  currentValue={formData.startTime}
+                />
+
+                {/* End Date/Time */}
+                <Text style={styles.label}>End Date</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                  <Text style={formData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.endDate ? formatDateNZ(formData.endDate) : 'Select end date'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showEndDatePicker}
+                  onClose={() => setShowEndDatePicker(false)}
+                  onSelect={date => setFormData({ ...formData, endDate: date })}
+                  mode="date"
+                  currentValue={formData.endDate}
+                />
+                <Text style={styles.label}>End Time</Text>
+                <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                  <Text style={formData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                    {formData.endTime || 'Select end time'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>⏰</Text>
+                </TouchableOpacity>
+                <DateTimePicker
+                  visible={showEndTimePicker}
+                  onClose={() => setShowEndTimePicker(false)}
+                  onSelect={time => setFormData({ ...formData, endTime: time })}
+                  mode="time"
+                  currentValue={formData.endTime}
+                />
+
+                <Text style={styles.label}>Priority</Text>
+                <CustomDropdown
+                  label="Select Priority"
+                  options={['low', 'medium', 'high']}
+                  selectedValue={formData.priority}
+                  onValueChange={value => setFormData({ ...formData, priority: value })}
+                  style={styles.input}
+                />
+              </View>
+            )}
           </View>
 
-          {/* Save Buttons */}
+          {/* Isolations Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
+              <Text style={styles.sectionTitle}>Isolations</Text>
+              <Text style={styles.expandIcon}>{expandedSections.isolations ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.isolations && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Isolation Register</Text>
+                {formData.isolations.map((isolation, idx) => (
+                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={styles.label}>Isolation {idx + 1}</Text>
+                      <TouchableOpacity onPress={() => removeIsolation(idx)}>
+                        <Text style={styles.removeButton}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={[styles.label, { marginBottom: 4 }]}>What is isolated?</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={isolation.what}
+                      onChangeText={text => updateIsolation(idx, 'what', text)}
+                      placeholder="Describe what is isolated"
+                    />
+                    <Text style={[styles.label, { marginBottom: 4 }]}>Isolated by (name)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={isolation.isolatedBy}
+                      onChangeText={text => updateIsolation(idx, 'isolatedBy', text)}
+                      placeholder="Name of person who isolated"
+                    />
+                    <Text style={[styles.label, { marginBottom: 4 }]}>Date</Text>
+                    <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                      <Text style={isolation.date ? styles.dateTimeText : styles.placeholderText}>
+                        {isolation.date ? formatDateNZ(isolation.date) : 'Select date'}
+                      </Text>
+                      <Text style={styles.calendarIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={addIsolation}>
+                  <Text style={styles.addButtonText}>Add Isolation</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Specialized Permits Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
+              <Text style={styles.sectionTitle}>Specialized Permits</Text>
+              <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.specialized && (
+              <View style={styles.sectionContent}>
+                {specializedPermitTypes.map(permit => (
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.specializedPermits[permit.key].required}
+                        onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
+                    {formData.specializedPermits[permit.key].required && (
+                      <>
+                        {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Single Hazards Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('hazards')}>
+              <Text style={styles.sectionTitle}>Single Hazards</Text>
+              <Text style={styles.expandIcon}>{expandedSections.hazards ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.hazards && (
+              <View style={styles.sectionContent}>
+                {singleHazardTypes.map(hazard => (
+                  <View key={hazard.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Switch
+                        value={formData.singleHazards[hazard.key].present}
+                        onValueChange={val => handleSingleHazardChange(hazard.key, 'present', val)}
+                      />
+                      <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{hazard.label}</Text>
+                    </View>
+                    <Text style={{ color: '#6B7280', marginBottom: 4 }}>{hazard.description}</Text>
+                    {formData.singleHazards[hazard.key].present && (
+                      <>
+                        <Text style={styles.label}>Controls</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={formData.singleHazards[hazard.key].controls}
+                          onChangeText={text => handleSingleHazardChange(hazard.key, 'controls', text)}
+                          placeholder="Describe controls for this hazard"
+                        />
+                      </>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* JSEA Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
+              <Text style={styles.sectionTitle}>JSEA</Text>
+              <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.jsea && (
+              <View style={styles.sectionContent}>
+                <Text style={styles.label}>Task Steps</Text>
+                {formData.jsea.taskSteps.map((step, idx) => (
+                  <View key={idx} style={styles.jseaStep}>
+                    <View style={styles.stepHeader}>
+                      <Text style={styles.stepTitle}>Step {idx + 1}</Text>
+                      <TouchableOpacity onPress={() => removeJSEAStep(idx)}>
+                        <Text style={styles.removeButton}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      value={step.step}
+                      onChangeText={text => updateJSEAStep(idx, 'step', text)}
+                      placeholder="Describe step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.hazards}
+                      onChangeText={text => updateJSEAStep(idx, 'hazards', text)}
+                      placeholder="Hazards for this step"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={step.controls}
+                      onChangeText={text => updateJSEAStep(idx, 'controls', text)}
+                      placeholder="Controls for this step"
+                    />
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={addJSEAStep}>
+                  <Text style={styles.addButtonText}>Add Step</Text>
+                </TouchableOpacity>
+                <Text style={styles.label}>Overall Risk Rating</Text>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high', 'very_high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: formData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: risk } })}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: formData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.jsea.additionalPrecautions}
+                  onChangeText={text => setFormData({ ...formData, jsea: { ...formData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Controls Summary Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
+              <Text style={styles.sectionTitle}>Controls Summary</Text>
+              <Text style={styles.expandIcon}>{expandedSections.controlsSummary ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.controlsSummary && (
+              <View style={styles.sectionContent}>
+                {(() => {
+                  const triggeredQuestions = [];
+                  Object.keys(formData.specializedPermits).forEach(permitKey => {
+                    const questionnaire = permitQuestionnaires[permitKey] || [];
+                    questionnaire.forEach(q => {
+                      if (q.blockingQuestion) {
+                        const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                          triggeredQuestions.push(q.text);
+                        }
+                      }
+                    });
+                  });
+                  
+                  return triggeredQuestions.length > 0 && (
+                    <View style={{ marginBottom: 16, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                      <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 8 }}>The following critical condition(s) have been triggered:</Text>
+                      {triggeredQuestions.map((question, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#991B1B', marginLeft: 8, marginBottom: 4 }}>• {question}</Text>
+                      ))}
+                    </View>
+                  );
+                })()}
+                {Object.keys(formData.specializedPermits).map(permitKey => {
+                  const permit = specializedPermitTypes.find(p => p.key === permitKey);
+                  if (!formData.specializedPermits[permitKey].required) return null;
+                  const controls = [];
+                  const questionnaire = permitQuestionnaires[permitKey] || [];
+                  questionnaire.forEach(q => {
+                    const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
+                    if (answer && answer.controls) {
+                      controls.push({ question: q.text, control: answer.controls });
+                    }
+                  });
+                  if (controls.length === 0) return null;
+                  return (
+                    <View key={permitKey} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>{permit.label}</Text>
+                      {controls.map((item, idx) => (
+                        <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>{item.question}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{item.control}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })}
+                {Object.keys(formData.singleHazards).some(hazardKey => formData.singleHazards[hazardKey].present && formData.singleHazards[hazardKey].controls) && (
+                  <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Single Hazards</Text>
+                    {Object.keys(formData.singleHazards).map(hazardKey => {
+                      const hazard = singleHazardTypes.find(h => h.key === hazardKey);
+                      if (!formData.singleHazards[hazardKey].present || !formData.singleHazards[hazardKey].controls) return null;
+                      return (
+                        <View key={hazardKey} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>{hazard.label}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{formData.singleHazards[hazardKey].controls}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+                {formData.jsea.taskSteps && formData.jsea.taskSteps.length > 0 && (
+                  <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA - Task Steps</Text>
+                    {formData.jsea.taskSteps.map((step, idx) => (
+                      <View key={idx} style={{ marginBottom: 12, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                        <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.step}</Text>
+                        {step.hazards && (
+                          <View style={{ marginBottom: 4 }}>
+                            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Hazards:</Text>
+                            <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.hazards}</Text>
+                          </View>
+                        )}
+                        {step.controls && (
+                          <View style={{ marginBottom: 4 }}>
+                            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Controls:</Text>
+                            <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.controls}</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {formData.jsea.additionalPrecautions && (
+                  <View style={{ marginBottom: 16, paddingBottom: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA - Additional Precautions</Text>
+                    <View style={{ paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                      <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{formData.jsea.additionalPrecautions}</Text>
+                    </View>
+                  </View>
+                )}
+                {!Object.keys(formData.specializedPermits).some(permitKey => formData.specializedPermits[permitKey].required && permitQuestionnaires[permitKey]?.some(q => formData.specializedPermits[permitKey].questionnaire[q.id]?.controls)) &&
+                 !Object.keys(formData.singleHazards).some(hazardKey => formData.singleHazards[hazardKey].present && formData.singleHazards[hazardKey].controls) &&
+                 !formData.jsea.additionalPrecautions && (
+                  <Text style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 14 }}>No controls have been filled in yet.</Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Sign-On Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('signons')}>
+              <Text style={styles.sectionTitle}>Sign-On (Other Workers)</Text>
+              <Text style={styles.expandIcon}>{expandedSections.signons ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.signons && (
+              <View style={styles.sectionContent}>
+                {formData.signOns.map((signOn, idx) => (
+                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
+                    <Text style={styles.label}>Worker Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={signOn.name}
+                      onChangeText={text => {
+                        const updated = [...formData.signOns];
+                        updated[idx] = { ...updated[idx], name: text };
+                        setFormData({ ...formData, signOns: updated });
+                      }}
+                      placeholder="Enter worker's name"
+                    />
+                    <Text style={styles.label}>Signature</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={signOn.signature}
+                      onChangeText={text => {
+                        const updated = [...formData.signOns];
+                        updated[idx] = { ...updated[idx], signature: text };
+                        setFormData({ ...formData, signOns: updated });
+                      }}
+                      placeholder="Signature (type name or initials)"
+                    />
+                    <TouchableOpacity onPress={() => {
+                      const updated = [...formData.signOns];
+                      updated.splice(idx, 1);
+                      setFormData({ ...formData, signOns: updated });
+                    }}>
+                      <Text style={styles.removeButton}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addButton} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', signature: '' }] })}>
+                  <Text style={styles.addButtonText}>Add Worker</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Permit Completion Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('completion')}>
+              <Text style={styles.sectionTitle}>Permit Completion</Text>
+              <Text style={styles.expandIcon}>{expandedSections.completion ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.completion && (
+              <View style={styles.sectionContent}>
+                {formData.specializedPermits.workingAtHeight && 
+                 formData.specializedPermits.workingAtHeight.tool_count === 'yes' && (
+                  <>
+                    <Text style={styles.label}>Final Tool Count</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formData.completion.finalToolCount}
+                      onChangeText={text => setFormData({ 
+                        ...formData, 
+                        completion: { ...formData.completion, finalToolCount: text } 
+                      })}
+                      placeholder="Enter final tool count"
+                      keyboardType="numeric"
+                    />
+                  </>
+                )}
+                <Text style={styles.label}>Completion Notes</Text>
+                <TextInput
+                  style={[styles.input, { minHeight: 80 }]}
+                  value={formData.completion.completionNotes}
+                  onChangeText={text => setFormData({ 
+                    ...formData, 
+                    completion: { ...formData.completion, completionNotes: text } 
+                  })}
+                  placeholder="Enter any additional completion notes"
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Submit Buttons */}
           <View style={styles.submitSection}>
             <TouchableOpacity style={[styles.submitButton, { flex: 0.48, marginRight: 8 }]} onPress={() => handleUpdateDraft(true)}>
               <Text style={styles.submitButtonText}>Save as Draft</Text>
