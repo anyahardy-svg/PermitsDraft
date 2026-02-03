@@ -3131,12 +3131,25 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
 
   // Dashboard
   const renderDashboard = () => {
+    // Calculate permits completed within 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentlyCompleted = permits.filter(p => {
+      if (p.status !== 'completed') return false;
+      const completedDate = new Date(p.completedDate || p.createdAt);
+      return completedDate >= sevenDaysAgo;
+    }).length;
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <Text style={styles.title}>Permit Dashboard</Text>
         </View>
         <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#9CA3AF' }]} onPress={() => setCurrentScreen('drafts')}>
+            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'draft').length}</Text>
+            <Text style={styles.cardLabel}>Drafts</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
             <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
             <Text style={styles.cardLabel}>Pending Approval</Text>
@@ -3152,6 +3165,10 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
             <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
             <Text style={styles.cardLabel}>Completed</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#DC2626' }]} onPress={() => setCurrentScreen('completed')}>
+            <Text style={styles.cardNumber}>{recentlyCompleted}</Text>
+            <Text style={styles.cardLabel}>7 Days</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
@@ -5561,6 +5578,8 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
   switch (currentScreen) {
     case 'dashboard':
       return renderDashboard();
+    case 'drafts':
+      return renderPermitList('draft', 'Draft Permits');
     case 'pending_approval':
       return renderPermitList('pending_approval', 'Pending Approval');
     case 'pending_inspection':
