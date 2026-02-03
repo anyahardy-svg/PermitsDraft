@@ -3479,9 +3479,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       filteredPermits = filteredPermits.filter(p => {
-        const completedDate = p.completed_date || p.completedDate;
-        if (!completedDate) return true; // Show if no date
-        const permitDate = new Date(completedDate);
+        const createdDate = p.created_at || p.createdAt;
+        if (!createdDate) return false;
+        const permitDate = new Date(createdDate);
         return permitDate >= sevenDaysAgo;
       });
     }
@@ -3775,9 +3775,9 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
               if (p.status !== 'completed') return false;
               const sevenDaysAgo = new Date();
               sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-              const completedDate = p.completed_date || p.completedDate;
-              if (!completedDate) return true;
-              return new Date(completedDate) >= sevenDaysAgo;
+              const createdDate = p.created_at || p.createdAt;
+              if (!createdDate) return false;
+              return new Date(createdDate) >= sevenDaysAgo;
             }).length}</Text>
             <Text style={styles.cardLabel}>Completed (7 days)</Text>
           </TouchableOpacity>
