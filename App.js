@@ -3233,6 +3233,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         <View style={styles.header}>
           <Text style={styles.title}>Permit Dashboard</Text>
         </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#9CA3AF' }]} onPress={() => setCurrentScreen('drafts')}>
             <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'draft').length}</Text>
@@ -3265,6 +3266,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
         <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#7C3AED', marginBottom: 16 }]} onPress={() => setCurrentScreen('admin')}>
           <Text style={styles.primaryButtonText}>⚙️ Admin</Text>
         </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   };
@@ -3279,6 +3281,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
         </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_users')}>
             <Text style={styles.cardNumber}>{users.length}</Text>
@@ -3297,6 +3300,7 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
             <Text style={styles.cardLabel}>Services</Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </View>
     );
   };
