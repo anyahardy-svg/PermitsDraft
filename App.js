@@ -2994,16 +2994,16 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
           </View>
         )}
       </View>
-      {/* Draft buttons - Save or Submit */}
+      {/* Draft buttons - Submit for Approval */}
       {isDraft && (
         <View style={styles.submitSection}>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
+            console.log('Print button pressed, editData:', editData);
+            handlePrintPermit(editData);
+          }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.draftButton, { flex: 0.35 }]} onPress={saveDraftChanges}>
-            <Text style={styles.draftButtonText}>Save Draft</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.submitButton, { flex: 0.35 }]} onPress={submitDraftForApproval}>
+          <TouchableOpacity style={styles.submitButton} onPress={submitDraftForApproval}>
             <Text style={styles.submitButtonText}>Submit for Approval</Text>
           </TouchableOpacity>
         </View>
@@ -3011,7 +3011,10 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       {/* Only show Approve/Reject if not completed and not draft */}
       {!isCompleted && !isDraft && (
         <View style={styles.submitSection}>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
+            console.log('Print button pressed (non-draft), editData:', editData);
+            handlePrintPermit(editData);
+          }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
@@ -3069,7 +3072,10 @@ function ReviewPermitScreen({ permit, setPermits, setCurrentScreen, permits, sty
       {/* Show Print button for completed permits */}
       {isCompleted && (
         <View style={styles.submitSection}>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
+            console.log('Print button pressed (completed), editData:', editData);
+            handlePrintPermit(editData);
+          }}>
             <Text style={styles.submitButtonText}>🖨 Print Completed Permit</Text>
           </TouchableOpacity>
         </View>
