@@ -1686,73 +1686,51 @@ const PermitManagementApp = () => {
 
   // Edit Draft Permit Form
   const renderEditDraftForm = () => {
-    // Use existing formData if editing, otherwise load from selectedPermit
-    const editData = selectedPermit && selectedPermit.status === 'draft' && (!formData.description || formData.description === '') ? {
-      id: selectedPermit.permitNumber || '',
-      description: selectedPermit.description || '',
-      requestedBy: selectedPermit.requestedBy || '',
-      location: selectedPermit.location || '',
-      site: '',
-      status: 'draft',
-      priority: selectedPermit.priority || 'medium',
-      startDate: selectedPermit.start_date || selectedPermit.startDate || '',
-      startTime: selectedPermit.start_time || selectedPermit.startTime || '',
-      endDate: selectedPermit.end_date || selectedPermit.endDate || '',
-      endTime: selectedPermit.end_time || selectedPermit.endTime || '',
-      specializedPermits: selectedPermit.specialized_permits || initialSpecializedPermits,
-      singleHazards: selectedPermit.single_hazards || initialSingleHazards,
-      jsea: selectedPermit.jsea || initialJSEA,
-      isolations: selectedPermit.isolations || initialIsolations,
-      signOns: selectedPermit.sign_ons || selectedPermit.signOns || initialSignOns
-    } : formData;
-
-    // Set form data on mount
-    React.useEffect(() => {
-      if (selectedPermit && selectedPermit.status === 'draft' && formData.description === '') {
-        setFormData({
-          id: selectedPermit.permitNumber || '',
-          description: selectedPermit.description || '',
-          requestedBy: selectedPermit.requestedBy || '',
-          location: selectedPermit.location || '',
-          site: '',
-          status: 'draft',
-          priority: selectedPermit.priority || 'medium',
-          startDate: selectedPermit.start_date || selectedPermit.startDate || '',
-          startTime: selectedPermit.start_time || selectedPermit.startTime || '',
-          endDate: selectedPermit.end_date || selectedPermit.endDate || '',
-          endTime: selectedPermit.end_time || selectedPermit.endTime || '',
-          specializedPermits: selectedPermit.specialized_permits || initialSpecializedPermits,
-          singleHazards: selectedPermit.single_hazards || initialSingleHazards,
-          jsea: selectedPermit.jsea || initialJSEA,
-          isolations: selectedPermit.isolations || initialIsolations,
-          signOns: selectedPermit.sign_ons || selectedPermit.signOns || initialSignOns
-        });
-      }
-    }, [selectedPermit?.id]);
+    // Load draft data into formData when first visiting this screen
+    if (selectedPermit && selectedPermit.status === 'draft' && formData.description === '') {
+      setFormData({
+        id: selectedPermit.permitNumber || '',
+        description: selectedPermit.description || '',
+        requestedBy: selectedPermit.requestedBy || '',
+        location: selectedPermit.location || '',
+        site: '',
+        status: 'draft',
+        priority: selectedPermit.priority || 'medium',
+        startDate: selectedPermit.start_date || selectedPermit.startDate || '',
+        startTime: selectedPermit.start_time || selectedPermit.startTime || '',
+        endDate: selectedPermit.end_date || selectedPermit.endDate || '',
+        endTime: selectedPermit.end_time || selectedPermit.endTime || '',
+        specializedPermits: selectedPermit.specialized_permits || initialSpecializedPermits,
+        singleHazards: selectedPermit.single_hazards || initialSingleHazards,
+        jsea: selectedPermit.jsea || initialJSEA,
+        isolations: selectedPermit.isolations || initialIsolations,
+        signOns: selectedPermit.sign_ons || selectedPermit.signOns || initialSignOns
+      });
+    }
 
     const handleUpdateDraft = async (isDraft = true) => {
-      if (!editData.description) {
+      if (!formData.description) {
         Alert.alert('Missing Info', 'Please fill in the Description field.');
         return;
       }
       
       try {
         const permitData = {
-          permit_type: editData.id || 'general',
-          description: editData.description,
-          location: editData.location,
+          permit_type: formData.id || 'general',
+          description: formData.description,
+          location: formData.location,
           status: isDraft ? 'draft' : 'pending_approval',
-          priority: editData.priority,
-          start_date: editData.startDate,
-          start_time: editData.startTime,
-          end_date: editData.endDate,
-          end_time: editData.endTime,
-          requested_by: editData.requestedBy,
+          priority: formData.priority,
+          start_date: formData.startDate,
+          start_time: formData.startTime,
+          end_date: formData.endDate,
+          end_time: formData.endTime,
+          requested_by: formData.requestedBy,
           controls_summary: selectedPermit?.controls_summary || '',
-          specialized_permits: editData.specializedPermits,
-          single_hazards: editData.singleHazards,
-          jsea: editData.jsea,
-          sign_ons: editData.signOns
+          specialized_permits: formData.specializedPermits,
+          single_hazards: formData.singleHazards,
+          jsea: formData.jsea,
+          sign_ons: formData.signOns
         };
 
         await updatePermit(selectedPermit.id, permitData);
@@ -1806,7 +1784,7 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>Edit Draft Permit</Text>
         </View>
         <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
-          {/* General Section - Always expanded */}
+          {/* General Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>General Details</Text>
@@ -1818,99 +1796,30 @@ const PermitManagementApp = () => {
                 style={[styles.input, styles.textArea]}
                 multiline
                 numberOfLines={3}
-                value={editData.description}
-                onChangeText={text => setFormData({ ...editData, description: text })}
+                value={formData.description}
+                onChangeText={text => setFormData({ ...formData, description: text })}
                 placeholder="Describe the work to be performed..."
-              />
-              <Text style={styles.label}>Site</Text>
-              <CustomDropdown
-                label="Select Site"
-                options={ALL_SITES}
-                selectedValue={editData.site || ''}
-                onValueChange={value => setFormData({ ...editData, site: value })}
-                style={styles.input}
               />
               <Text style={styles.label}>Location</Text>
               <TextInput
                 style={styles.input}
-                value={editData.location}
-                onChangeText={text => setFormData({ ...editData, location: text })}
+                value={formData.location}
+                onChangeText={text => setFormData({ ...formData, location: text })}
                 placeholder="Work location"
               />
               <Text style={styles.label}>Requested By</Text>
               <TextInput
                 style={styles.input}
-                value={editData.requestedBy}
-                onChangeText={text => setFormData({ ...editData, requestedBy: text })}
+                value={formData.requestedBy}
+                onChangeText={text => setFormData({ ...formData, requestedBy: text })}
                 placeholder="Your name"
               />
-
-              {/* Start Date/Time */}
-              <Text style={styles.label}>Start Date</Text>
-              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
-                <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
-                  {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
-                </Text>
-                <Text style={styles.calendarIcon}>📅</Text>
-              </TouchableOpacity>
-              <DateTimePicker
-                visible={showStartDatePicker}
-                onClose={() => setShowStartDatePicker(false)}
-                onSelect={date => setFormData({ ...editData, startDate: date })}
-                mode="date"
-                currentValue={editData.startDate}
-              />
-              <Text style={styles.label}>Start Time</Text>
-              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
-                <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
-                  {editData.startTime || 'Select start time'}
-                </Text>
-                <Text style={styles.calendarIcon}>⏰</Text>
-              </TouchableOpacity>
-              <DateTimePicker
-                visible={showStartTimePicker}
-                onClose={() => setShowStartTimePicker(false)}
-                onSelect={time => setFormData({ ...editData, startTime: time })}
-                mode="time"
-                currentValue={editData.startTime}
-              />
-
-              {/* End Date/Time */}
-              <Text style={styles.label}>End Date</Text>
-              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
-                <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
-                  {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
-                </Text>
-                <Text style={styles.calendarIcon}>📅</Text>
-              </TouchableOpacity>
-              <DateTimePicker
-                visible={showEndDatePicker}
-                onClose={() => setShowEndDatePicker(false)}
-                onSelect={date => setFormData({ ...editData, endDate: date })}
-                mode="date"
-                currentValue={editData.endDate}
-              />
-              <Text style={styles.label}>End Time</Text>
-              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
-                <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
-                  {editData.endTime || 'Select end time'}
-                </Text>
-                <Text style={styles.calendarIcon}>⏰</Text>
-              </TouchableOpacity>
-              <DateTimePicker
-                visible={showEndTimePicker}
-                onClose={() => setShowEndTimePicker(false)}
-                onSelect={time => setFormData({ ...editData, endTime: time })}
-                mode="time"
-                currentValue={editData.endTime}
-              />
-
               <Text style={styles.label}>Priority</Text>
               <CustomDropdown
                 label="Select Priority"
                 options={['low', 'medium', 'high']}
-                selectedValue={editData.priority}
-                onValueChange={value => setFormData({ ...editData, priority: value })}
+                selectedValue={formData.priority}
+                onValueChange={value => setFormData({ ...formData, priority: value })}
                 style={styles.input}
               />
             </View>
@@ -1929,9 +1838,6 @@ const PermitManagementApp = () => {
       </View>
     );
   };
-  };
-
-    const handleUpdateDraft = async (isDraft = true) => {
 
   // Permit List
   // Permit item for lists (edit or view for approval)
