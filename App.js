@@ -2946,12 +2946,7 @@ const PermitManagementApp = () => {
       {!isCompleted && !isDraft && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            try {
-              console.log('Print button pressed (non-draft), editData:', editData);
-              handlePrintPermit(editData);
-            } catch (e) {
-              console.error('Print error:', e);
-            }
+            Alert.alert('Test', 'PENDING APPROVAL Print button clicked');
           }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
@@ -3010,12 +3005,7 @@ const PermitManagementApp = () => {
       {isCompleted && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            try {
-              console.log('Print button pressed (completed), editData:', editData);
-              handlePrintPermit(editData);
-            } catch (e) {
-              console.error('Print error:', e);
-            }
+            Alert.alert('Test', 'COMPLETED Print button clicked');
           }}>
             <Text style={styles.submitButtonText}>🖨 Print Completed Permit</Text>
           </TouchableOpacity>
