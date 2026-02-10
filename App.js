@@ -1058,12 +1058,21 @@ const PermitManagementApp = () => {
         addText('Additional Precautions', permit.jsea.additionalPrecautions);
       }
       
-      // Save the PDF silently
-      doc.save(`Permit_${permit.permitNumber || 'Unknown'}.pdf`);
+      // Generate PDF as blob and create download link
+      const pdf = doc.output('blob');
+      const url = URL.createObjectURL(pdf);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Permit_${permit.permitNumber || 'Unknown'}.pdf`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
       console.log('PDF downloaded for permit:', permit.permitNumber);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      Alert.alert('Error', 'Failed to generate PDF: ' + error.message);
     }
   };
 
