@@ -3060,7 +3060,6 @@ const PermitManagementApp = () => {
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
-            Alert.alert('Debug', 'Approve button clicked');
             // Approve: set status to 'pending_inspection' and update permit
             const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
             const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
