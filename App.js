@@ -4685,6 +4685,30 @@ const PermitManagementApp = () => {
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
               <View style={[styles.sectionContent, { backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
+                {/* Blocking Questions Flag */}
+                {(() => {
+                  const triggeredQuestions = [];
+                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                    const questionnaire = permitQuestionnaires[permitKey] || [];
+                    questionnaire.forEach(q => {
+                      if (q.blockingQuestion) {
+                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                          triggeredQuestions.push(q.text);
+                        }
+                      }
+                    });
+                  });
+                  return triggeredQuestions.length > 0 ? (
+                    <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      {triggeredQuestions.map((question, idx) => (
+                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
                 {/* Specialized Permits Controls */}
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
@@ -5126,6 +5150,30 @@ const PermitManagementApp = () => {
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
               <View style={[styles.sectionContent, { backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
+                {/* Blocking Questions Flag */}
+                {(() => {
+                  const triggeredQuestions = [];
+                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                    const questionnaire = permitQuestionnaires[permitKey] || [];
+                    questionnaire.forEach(q => {
+                      if (q.blockingQuestion) {
+                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                          triggeredQuestions.push(q.text);
+                        }
+                      }
+                    });
+                  });
+                  return triggeredQuestions.length > 0 ? (
+                    <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      {triggeredQuestions.map((question, idx) => (
+                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
                 {/* Specialized Permits Controls */}
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
@@ -5622,6 +5670,30 @@ const PermitManagementApp = () => {
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
               <View style={[styles.sectionContent, { backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
+                {/* Blocking Questions Flag */}
+                {(() => {
+                  const triggeredQuestions = [];
+                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                    const questionnaire = permitQuestionnaires[permitKey] || [];
+                    questionnaire.forEach(q => {
+                      if (q.blockingQuestion) {
+                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                          triggeredQuestions.push(q.text);
+                        }
+                      }
+                    });
+                  });
+                  return triggeredQuestions.length > 0 ? (
+                    <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
+                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      {triggeredQuestions.map((question, idx) => (
+                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
                 {/* Specialized Permits Controls */}
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
