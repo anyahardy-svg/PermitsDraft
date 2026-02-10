@@ -57,8 +57,9 @@ const ALL_SERVICES = [
 // CustomDropdown: modal dropdown for site selection
 function CustomDropdown({ label, options, selectedValue, onValueChange, style }) {
   const [modalVisible, setModalVisible] = React.useState(false);
+  
   return (
-    <>
+    <View style={{ position: 'relative', zIndex: modalVisible ? 1000 : 1 }}>
       <TouchableOpacity
         style={[{
           borderWidth: 1,
@@ -78,36 +79,57 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
         </Text>
         <Text style={{ fontSize: 18, color: '#6B7280' }}>▼</Text>
       </TouchableOpacity>
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={() => setModalVisible(false)}>
-          <View style={{
-            backgroundColor: 'white',
-            margin: 40,
-            borderRadius: 8,
-            padding: 16,
-            maxHeight: '60%',
-            justifyContent: 'center',
-          }}>
-            <FlatList
-              data={options}
-              keyExtractor={item => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                  onPress={() => {
-                    onValueChange(item);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={{ fontSize: 16, color: item === selectedValue ? '#2563EB' : '#374151' }}>{item}</Text>
-                </TouchableOpacity>
-              )}
-              ListFooterComponent={<TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{ color: '#EF4444', textAlign: 'center', marginTop: 12 }}>Cancel</Text></TouchableOpacity>}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </>
+      
+      {modalVisible && (
+        <View style={{
+          position: 'absolute',
+          top: 55,
+          left: 0,
+          right: 0,
+          backgroundColor: 'white',
+          borderRadius: 8,
+          maxHeight: 300,
+          zIndex: 1000,
+          elevation: 5,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3,
+          borderWidth: 1,
+          borderColor: '#D1D5DB',
+        }}>
+          <FlatList
+            data={options}
+            scrollEnabled={true}
+            keyExtractor={item => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                onPress={() => {
+                  onValueChange(item);
+                  setModalVisible(false);
+                }}
+              >
+                <Text style={{ fontSize: 16, color: item === selectedValue ? '#2563EB' : '#374151' }}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+          <TouchableOpacity 
+            onPress={() => setModalVisible(false)}
+            style={{ padding: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
+          >
+            <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 14, fontWeight: '600' }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {modalVisible && (
+        <TouchableOpacity 
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+          onPress={() => setModalVisible(false)}
+        />
+      )}
+    </View>
   );
 }
 
@@ -819,6 +841,8 @@ const PermitManagementApp = () => {
     description: '',
     requestedBy: '',
     location: '',
+    site: '',
+    permitIssuer: '',
     status: 'pending_approval',
     priority: 'medium',
     startDate: defaultDate,
@@ -955,9 +979,61 @@ const PermitManagementApp = () => {
 
   // --- Print Permit Function ---
   const handlePrintPermit = (permit) => {
+<<<<<<< HEAD
     console.log('Generating PDF for permit:', permit.permitNumber);
     console.log('Permit data:', permit);
     // Intentionally doing nothing for now
+=======
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('PERMIT TO WORK', 20, 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      
+      let yPosition = 30;
+      const lineHeight = 7;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const maxWidth = doc.internal.pageSize.width - 40;
+      
+      const addText = (label, value) => {
+        if (yPosition > pageHeight - 20) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        const text = `${label}: ${value || 'N/A'}`;
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach((line) => {
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight;
+        });
+      };
+      
+      addText('Permit Number', permit.permitNumber);
+      addText('Status', permit.status?.toUpperCase?.() || 'N/A');
+      addText('Priority', permit.priority?.toUpperCase?.() || 'N/A');
+      addText('Date Generated', new Date().toLocaleDateString('en-NZ'));
+      
+      yPosition += 3;
+      doc.setFont('helvetica', 'bold');
+      doc.text('GENERAL DETAILS', margin, yPosition);
+      yPosition += lineHeight;
+      doc.setFont('helvetica', 'normal');
+      
+      addText('Description', permit.description);
+      addText('Location', permit.location);
+      addText('Site', permit.site);
+      addText('Requested By', permit.requestedBy);
+      
+      const filename = `Permit_${permit.permitNumber || 'Unknown'}.pdf`;
+      doc.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+>>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
   };
 
   // --- handleSubmit for advanced form ---
@@ -1219,6 +1295,22 @@ const PermitManagementApp = () => {
                   onValueChange={value => setFormData({ ...formData, site: value })}
                   style={styles.input}
                 />
+                
+                <Text style={styles.label}>Permit Issuer</Text>
+                <CustomDropdown
+                  label="Select Permit Issuer"
+                  options={
+                    formData.site 
+                      ? users
+                          .filter(user => user.sites && user.sites.includes(formData.site))
+                          .map(user => user.name)
+                      : []
+                  }
+                  selectedValue={formData.permitIssuer || ''}
+                  onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
+                  style={styles.input}
+                />
+                
                 <Text style={styles.label}>Location</Text>
                 <TextInput
                   style={styles.input}
@@ -4676,7 +4768,11 @@ const PermitManagementApp = () => {
         )}
 
         <View style={styles.submitSection}>
+<<<<<<< HEAD
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => Alert.alert('Test', 'EDITABLE APPROVAL SCREEN Print button clicked')}>
+=======
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
+>>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
@@ -5590,7 +5686,11 @@ const PermitManagementApp = () => {
                 <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
               )}
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+<<<<<<< HEAD
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => Alert.alert('Test', 'EDITABLE ACTIVE SCREEN Print button clicked')}>
+=======
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
+>>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
                   <Text style={styles.submitButtonText}>🖨 Print</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
