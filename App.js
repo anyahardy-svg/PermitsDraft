@@ -3049,8 +3049,12 @@ const PermitManagementApp = () => {
       {isDraft && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            console.log('Print button pressed, editData:', editData);
-            handlePrintPermit(editData);
+            try {
+              console.log('Print button pressed, editData:', editData);
+              handlePrintPermit(editData);
+            } catch (e) {
+              console.error('Print error:', e);
+            }
           }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
@@ -3063,8 +3067,12 @@ const PermitManagementApp = () => {
       {!isCompleted && !isDraft && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            console.log('Print button pressed (non-draft), editData:', editData);
-            handlePrintPermit(editData);
+            try {
+              console.log('Print button pressed (non-draft), editData:', editData);
+              handlePrintPermit(editData);
+            } catch (e) {
+              console.error('Print error:', e);
+            }
           }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
@@ -3123,8 +3131,12 @@ const PermitManagementApp = () => {
       {isCompleted && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            console.log('Print button pressed (completed), editData:', editData);
-            handlePrintPermit(editData);
+            try {
+              console.log('Print button pressed (completed), editData:', editData);
+              handlePrintPermit(editData);
+            } catch (e) {
+              console.error('Print error:', e);
+            }
           }}>
             <Text style={styles.submitButtonText}>🖨 Print Completed Permit</Text>
           </TouchableOpacity>
