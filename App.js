@@ -1610,8 +1610,8 @@ const PermitManagementApp = () => {
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>{permit.label}</Text>
                       {controls.map((item, idx) => (
                         <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>{item.question}</Text>
-                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{item.control}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Q: {item.question}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.control}</Text>
                         </View>
                       ))}
                     </View>
@@ -1626,8 +1626,8 @@ const PermitManagementApp = () => {
                       if (!formData.singleHazards[hazardKey].present || !formData.singleHazards[hazardKey].controls) return null;
                       return (
                         <View key={hazardKey} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>{hazard.label}</Text>
-                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{formData.singleHazards[hazardKey].controls}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Q: {hazard.label}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {formData.singleHazards[hazardKey].controls}</Text>
                         </View>
                       );
                     })}
@@ -1814,14 +1814,19 @@ const PermitManagementApp = () => {
               <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>Specialized Permits:</Text>
               {Object.entries(item.specializedPermits).map(([key, val]) => {
                 const permit = specializedPermitTypes.find(p => p.key === key);
+                const questionnaire = permitQuestionnaires[key] || [];
                 return val.required && val.questionnaire ? (
                   <View key={key} style={{ marginLeft: 6, marginBottom: 4 }}>
                     <Text style={[styles.detailText, { fontWeight: '500', color: '#374151', fontSize: 11 }]}>{permit?.label || key}:</Text>
-                    {Object.entries(val.questionnaire).map(([qid, qval]) => 
-                      qval.controls ? (
-                        <Text key={qid} style={[styles.detailText, { marginLeft: 8, color: '#374151', fontSize: 10 }]}>• {qval.controls}</Text>
-                      ) : null
-                    )}
+                    {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                      const question = questionnaire.find(q => q.id === qid);
+                      return qval.controls ? (
+                        <View key={qid} style={{ marginLeft: 8, marginBottom: 2 }}>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>Q: {question?.text || qid}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {qval.controls}</Text>
+                        </View>
+                      ) : null;
+                    })}
                   </View>
                 ) : null;
               })}
@@ -1836,8 +1841,8 @@ const PermitManagementApp = () => {
                 const hazard = singleHazardTypes.find(h => h.key === key);
                 return val.present && val.controls ? (
                   <View key={key} style={{ marginLeft: 6, marginBottom: 3 }}>
-                    <Text style={[styles.detailText, { color: '#374151', fontSize: 11 }]}>{hazard?.label || key}:</Text>
-                    <Text style={[styles.detailText, { marginLeft: 8, color: '#374151', fontSize: 10 }]}>• {val.controls}</Text>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>Q: {hazard?.label || key}</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {val.controls}</Text>
                   </View>
                 ) : null;
               })}
@@ -1851,7 +1856,8 @@ const PermitManagementApp = () => {
               {item.jsea.taskSteps.map((step, idx) => 
                 step.controls ? (
                   <View key={idx} style={{ marginLeft: 6, marginBottom: 3 }}>
-                    <Text style={[styles.detailText, { color: '#374151', fontSize: 11 }]}>Step {idx + 1}: • {step.controls}</Text>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>Step {idx + 1}: {step.task}</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {step.controls}</Text>
                   </View>
                 ) : null
               )}
@@ -2873,14 +2879,19 @@ const PermitManagementApp = () => {
                 <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
                 {Object.entries(editData.specializedPermits).map(([key, val]) => {
                   const permit = specializedPermitTypes.find(p => p.key === key);
+                  const questionnaire = permitQuestionnaires[key] || [];
                   return val.required && val.questionnaire ? (
                     <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
                       <Text style={[styles.detailText, { fontWeight: '600', color: '#374151' }]}>{permit?.label || key}:</Text>
-                      {Object.entries(val.questionnaire).map(([qid, qval]) => 
-                        qval.controls ? (
-                          <Text key={qid} style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {qval.controls}</Text>
-                        ) : null
-                      )}
+                      {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                        const question = questionnaire.find(q => q.id === qid);
+                        return qval.controls ? (
+                          <View key={qid} style={{ marginLeft: 8, marginBottom: 4 }}>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {question?.text || qid}</Text>
+                            <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {qval.controls}</Text>
+                          </View>
+                        ) : null;
+                      })}
                     </View>
                   ) : null;
                 })}
@@ -2895,8 +2906,8 @@ const PermitManagementApp = () => {
                   const hazard = singleHazardTypes.find(h => h.key === key);
                   return val.present && val.controls ? (
                     <View key={key} style={{ marginLeft: 8, marginBottom: 6 }}>
-                      <Text style={[styles.detailText, { color: '#374151' }]}>{hazard?.label || key}:</Text>
-                      <Text style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {val.controls}</Text>
+                      <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {hazard?.label || key}</Text>
+                      <Text style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• Control: {val.controls}</Text>
                     </View>
                   ) : null;
                 })}
@@ -2910,8 +2921,8 @@ const PermitManagementApp = () => {
                 {editData.jsea.taskSteps.map((step, idx) => 
                   step.controls ? (
                     <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                      <Text style={[styles.detailText, { color: '#374151' }]}>Step {idx + 1} ({step.step}):</Text>
-                      <Text style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {step.controls}</Text>
+                      <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.step}</Text>
+                      <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
                     </View>
                   ) : null
                 )}
@@ -4680,14 +4691,19 @@ const PermitManagementApp = () => {
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
                     {Object.entries(editData.specializedPermits).map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
+                      const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
                           <Text style={[styles.detailText, { fontWeight: '600', color: '#374151' }]}>{permit?.label || key}:</Text>
-                          {Object.entries(val.questionnaire).map(([qid, qval]) => 
-                            qval.controls ? (
-                              <Text key={qid} style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {qval.controls}</Text>
-                            ) : null
-                          )}
+                          {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                            const question = questionnaire.find(q => q.id === qid);
+                            return qval.controls ? (
+                              <View key={qid} style={{ marginLeft: 8, marginBottom: 4 }}>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {question?.text || qid}</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {qval.controls}</Text>
+                              </View>
+                            ) : null;
+                          })}
                         </View>
                       ) : null;
                     })}
@@ -4702,8 +4718,8 @@ const PermitManagementApp = () => {
                       const hazard = singleHazardTypes.find(h => h.key === key);
                       return val.present && val.controls ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>{hazard?.label || key}:</Text>
-                          <Text style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {val.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {hazard?.label || key}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• Control: {val.controls}</Text>
                         </View>
                       ) : null;
                     })}
@@ -4717,7 +4733,8 @@ const PermitManagementApp = () => {
                     {editData.jsea.taskSteps.map((step, idx) => 
                       step.controls ? (
                         <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>Step {idx + 1}: • {step.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
                         </View>
                       ) : null
                     )}
@@ -5115,14 +5132,19 @@ const PermitManagementApp = () => {
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
                     {Object.entries(editData.specializedPermits).map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
+                      const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
                           <Text style={[styles.detailText, { fontWeight: '600', color: '#374151' }]}>{permit?.label || key}:</Text>
-                          {Object.entries(val.questionnaire).map(([qid, qval]) => 
-                            qval.controls ? (
-                              <Text key={qid} style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {qval.controls}</Text>
-                            ) : null
-                          )}
+                          {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                            const question = questionnaire.find(q => q.id === qid);
+                            return qval.controls ? (
+                              <View key={qid} style={{ marginLeft: 8, marginBottom: 4 }}>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {question?.text || qid}</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {qval.controls}</Text>
+                              </View>
+                            ) : null;
+                          })}
                         </View>
                       ) : null;
                     })}
@@ -5137,8 +5159,8 @@ const PermitManagementApp = () => {
                       const hazard = singleHazardTypes.find(h => h.key === key);
                       return val.present && val.controls ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>{hazard?.label || key}:</Text>
-                          <Text style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {val.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {hazard?.label || key}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• Control: {val.controls}</Text>
                         </View>
                       ) : null;
                     })}
@@ -5152,7 +5174,8 @@ const PermitManagementApp = () => {
                     {editData.jsea.taskSteps.map((step, idx) => 
                       step.controls ? (
                         <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>Step {idx + 1}: • {step.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
                         </View>
                       ) : null
                     )}
@@ -5605,14 +5628,19 @@ const PermitManagementApp = () => {
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
                     {Object.entries(editData.specializedPermits).map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
+                      const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
                           <Text style={[styles.detailText, { fontWeight: '600', color: '#374151' }]}>{permit?.label || key}:</Text>
-                          {Object.entries(val.questionnaire).map(([qid, qval]) => 
-                            qval.controls ? (
-                              <Text key={qid} style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {qval.controls}</Text>
-                            ) : null
-                          )}
+                          {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                            const question = questionnaire.find(q => q.id === qid);
+                            return qval.controls ? (
+                              <View key={qid} style={{ marginLeft: 8, marginBottom: 4 }}>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {question?.text || qid}</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {qval.controls}</Text>
+                              </View>
+                            ) : null;
+                          })}
                         </View>
                       ) : null;
                     })}
@@ -5627,8 +5655,8 @@ const PermitManagementApp = () => {
                       const hazard = singleHazardTypes.find(h => h.key === key);
                       return val.present && val.controls ? (
                         <View key={key} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>{hazard?.label || key}:</Text>
-                          <Text style={[styles.detailText, { marginLeft: 8, color: '#374151' }]}>• {val.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: {hazard?.label || key}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• Control: {val.controls}</Text>
                         </View>
                       ) : null;
                     })}
@@ -5642,7 +5670,8 @@ const PermitManagementApp = () => {
                     {editData.jsea.taskSteps.map((step, idx) => 
                       step.controls ? (
                         <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#374151' }]}>Step {idx + 1}: • {step.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
                         </View>
                       ) : null
                     )}
