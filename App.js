@@ -3025,19 +3025,19 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
         </View>
-        <View style={styles.permitListContainer}>
-          {filteredPermits.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No {title.toLowerCase()} found</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredPermits}
-              renderItem={renderPermitItem}
-              keyExtractor={item => item.id}
-            />
-          )}
-        </View>
+        {filteredPermits.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No {title.toLowerCase()} found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredPermits}
+            renderItem={renderPermitItem}
+            keyExtractor={item => item.id}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 16 }}
+          />
+        )}
       </View>
     );
   };
