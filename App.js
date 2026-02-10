@@ -955,57 +955,9 @@ const PermitManagementApp = () => {
 
   // --- Print Permit Function ---
   const handlePrintPermit = (permit) => {
-    try {
-      // Create a new PDF document silently
-      const doc = new jsPDF('p', 'mm', 'a4');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('PERMIT TO WORK', 20, 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      
-      let yPosition = 30;
-      const lineHeight = 7;
-      const pageHeight = doc.internal.pageSize.height;
-      const margin = 20;
-      const maxWidth = doc.internal.pageSize.width - 40;
-      
-      const addText = (label, value) => {
-        if (yPosition > pageHeight - 20) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        const text = `${label}: ${value || 'N/A'}`;
-        const lines = doc.splitTextToSize(text, maxWidth);
-        lines.forEach((line) => {
-          doc.text(line, margin, yPosition);
-          yPosition += lineHeight;
-        });
-      };
-      
-      addText('Permit Number', permit.permitNumber);
-      addText('Status', permit.status?.toUpperCase?.() || 'N/A');
-      addText('Priority', permit.priority?.toUpperCase?.() || 'N/A');
-      addText('Date Generated', new Date().toLocaleDateString('en-NZ'));
-      
-      yPosition += 3;
-      doc.setFont('helvetica', 'bold');
-      doc.text('GENERAL DETAILS', margin, yPosition);
-      yPosition += lineHeight;
-      doc.setFont('helvetica', 'normal');
-      
-      addText('Description', permit.description);
-      addText('Location', permit.location);
-      addText('Site', permit.site);
-      addText('Requested By', permit.requestedBy);
-      
-      const filename = `Permit_${permit.permitNumber || 'Unknown'}.pdf`;
-      doc.save(filename);
-      console.log('PDF saved:', filename);
-    } catch (error) {
-      console.error('Error in handlePrintPermit:', error);
-    }
+    console.log('Generating PDF for permit:', permit.permitNumber);
+    console.log('Permit data:', permit);
+    // Intentionally doing nothing for now
   };
 
   // --- handleSubmit for advanced form ---
