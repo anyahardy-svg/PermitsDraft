@@ -4676,7 +4676,7 @@ const PermitManagementApp = () => {
         )}
 
         <View style={styles.submitSection}>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => Alert.alert('Test', 'EDITABLE APPROVAL SCREEN Print button clicked')}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
@@ -5590,7 +5590,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
               )}
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => Alert.alert('Test', 'EDITABLE ACTIVE SCREEN Print button clicked')}>
                   <Text style={styles.submitButtonText}>🖨 Print</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
