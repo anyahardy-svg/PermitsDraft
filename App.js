@@ -979,11 +979,6 @@ const PermitManagementApp = () => {
 
   // --- Print Permit Function ---
   const handlePrintPermit = (permit) => {
-<<<<<<< HEAD
-    console.log('Generating PDF for permit:', permit.permitNumber);
-    console.log('Permit data:', permit);
-    // Intentionally doing nothing for now
-=======
     try {
       const doc = new jsPDF('p', 'mm', 'a4');
       doc.setFont('helvetica', 'bold');
@@ -1033,7 +1028,6 @@ const PermitManagementApp = () => {
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
->>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
   };
 
   // --- handleSubmit for advanced form ---
@@ -4768,11 +4762,7 @@ const PermitManagementApp = () => {
         )}
 
         <View style={styles.submitSection}>
-<<<<<<< HEAD
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => Alert.alert('Test', 'EDITABLE APPROVAL SCREEN Print button clicked')}>
-=======
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
->>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
@@ -5686,11 +5676,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
               )}
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-<<<<<<< HEAD
-                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => Alert.alert('Test', 'EDITABLE ACTIVE SCREEN Print button clicked')}>
-=======
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
->>>>>>> d533b5e (Add permit issuer selection, fix scrolling, update permit issuer database schema)
                   <Text style={styles.submitButtonText}>🖨 Print</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
