@@ -956,10 +956,8 @@ const PermitManagementApp = () => {
   // --- Print Permit Function ---
   const handlePrintPermit = (permit) => {
     try {
-      // Create a new PDF document
-      const doc = new jsPDF();
-      
-      // Set font and colors
+      // Create a new PDF document silently
+      const doc = new jsPDF('p', 'mm', 'a4');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.text('PERMIT TO WORK', 20, 20);
@@ -973,14 +971,11 @@ const PermitManagementApp = () => {
       const margin = 20;
       const maxWidth = doc.internal.pageSize.width - 40;
       
-      // Helper function to add text with page breaks
-      const addText = (label, value, bold = false) => {
+      const addText = (label, value) => {
         if (yPosition > pageHeight - 20) {
           doc.addPage();
           yPosition = 20;
         }
-        
-        doc.setFont('helvetica', bold ? 'bold' : 'normal');
         const text = `${label}: ${value || 'N/A'}`;
         const lines = doc.splitTextToSize(text, maxWidth);
         lines.forEach((line) => {
@@ -989,8 +984,7 @@ const PermitManagementApp = () => {
         });
       };
       
-      // Add permit information
-      addText('Permit Number', permit.permitNumber, true);
+      addText('Permit Number', permit.permitNumber);
       addText('Status', permit.status?.toUpperCase?.() || 'N/A');
       addText('Priority', permit.priority?.toUpperCase?.() || 'N/A');
       addText('Date Generated', new Date().toLocaleDateString('en-NZ'));
@@ -1005,74 +999,12 @@ const PermitManagementApp = () => {
       addText('Location', permit.location);
       addText('Site', permit.site);
       addText('Requested By', permit.requestedBy);
-      addText('Start Date', `${permit.startDate || ''} ${permit.startTime || ''}`);
-      addText('End Date', `${permit.endDate || ''} ${permit.endTime || ''}`);
       
-      // Specialized Permits
-      if (permit.specializedPermits && Object.keys(permit.specializedPermits).some(k => permit.specializedPermits[k].required)) {
-        yPosition += 5;
-        doc.setFont('helvetica', 'bold');
-        doc.text('SPECIALIZED PERMITS', margin, yPosition);
-        yPosition += lineHeight;
-        doc.setFont('helvetica', 'normal');
-        
-        Object.entries(permit.specializedPermits).forEach(([key, val]) => {
-          if (val.required) {
-            const label = specializedPermitTypes.find(p => p.key === key)?.label || key;
-            addText(label, 'Required');
-          }
-        });
-      }
-      
-      // Single Hazards
-      if (permit.singleHazards && Object.keys(permit.singleHazards).some(k => permit.singleHazards[k].present)) {
-        yPosition += 5;
-        doc.setFont('helvetica', 'bold');
-        doc.text('SINGLE HAZARDS', margin, yPosition);
-        yPosition += lineHeight;
-        doc.setFont('helvetica', 'normal');
-        
-        Object.entries(permit.singleHazards).forEach(([key, val]) => {
-          if (val.present) {
-            const label = singleHazardTypes.find(h => h.key === key)?.label || key;
-            addText(label, val.controls || 'Present');
-          }
-        });
-      }
-      
-      // JSEA
-      if (permit.jsea?.taskSteps && permit.jsea.taskSteps.length > 0) {
-        yPosition += 5;
-        doc.setFont('helvetica', 'bold');
-        doc.text('JSEA TASK STEPS', margin, yPosition);
-        yPosition += lineHeight;
-        doc.setFont('helvetica', 'normal');
-        
-        permit.jsea.taskSteps.forEach((step, idx) => {
-          addText(`Step ${idx + 1}`, step.step);
-          addText('  Hazards', step.hazards);
-          addText('  Controls', step.controls);
-        });
-        
-        addText('Overall Risk Rating', permit.jsea.overallRiskRating);
-        addText('Additional Precautions', permit.jsea.additionalPrecautions);
-      }
-      
-      // Generate PDF as blob and create download link
-      const pdf = doc.output('blob');
-      const url = URL.createObjectURL(pdf);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Permit_${permit.permitNumber || 'Unknown'}.pdf`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      console.log('PDF downloaded for permit:', permit.permitNumber);
+      const filename = `Permit_${permit.permitNumber || 'Unknown'}.pdf`;
+      doc.save(filename);
+      console.log('PDF saved:', filename);
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error in handlePrintPermit:', error);
     }
   };
 
