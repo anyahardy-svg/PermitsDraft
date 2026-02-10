@@ -2933,7 +2933,7 @@ const PermitManagementApp = () => {
       {isDraft && (
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
-            Alert.alert('Test', 'Print button clicked DRAFT');
+            Alert.alert('Test', 'Print button clicked');
           }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
