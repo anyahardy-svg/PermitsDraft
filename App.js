@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName } from './src/api/companies';
+import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createUser, listUsers, updateUser, deleteUser } from './src/api/users';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName } from './src/api/sites';
@@ -3817,7 +3817,9 @@ const PermitManagementApp = () => {
               return;
             }
 
-            const newCompanies = [];
+            let newCount = 0;
+            let duplicateCount = 0;
+            const processedNames = new Set();
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -3844,30 +3846,40 @@ const PermitManagementApp = () => {
               if (values.length > 0 && values[0]) {
                 const companyName = values[0];
                 
-                // Check for duplicates
-                if (!newCompanies.some(c => c.name.toLowerCase() === companyName.toLowerCase()) &&
-                    !companies.some(c => c.name.toLowerCase() === companyName.toLowerCase())) {
-                  newCompanies.push({
-                    name: companyName
-                  });
+                // Skip if already processed in this CSV
+                if (processedNames.has(companyName.toLowerCase())) {
+                  duplicateCount++;
+                  continue;
+                }
+                processedNames.add(companyName.toLowerCase());
+                
+                // Upsert: if exists, skip; if new, create
+                const result = await upsertCompany({ name: companyName });
+                if (result) {
+                  newCount++;
                 }
               }
             }
 
-            if (newCompanies.length === 0) {
-              Alert.alert('Info', 'No new companies to import (duplicates were skipped).');
+            if (newCount === 0 && duplicateCount === 0) {
+              Alert.alert('Info', 'No valid companies found in the CSV file.');
               return;
-            }
-
-            // Save all companies to Supabase
-            for (const company of newCompanies) {
-              await createCompany(company);
             }
 
             // Reload companies from database
             const freshCompanies = await listCompanies();
             setCompanies(freshCompanies);
-            Alert.alert('Success', `${newCompanies.length} company/companies imported successfully!`);
+            
+            let message = '';
+            if (newCount > 0) {
+              message += `${newCount} new company/companies imported.`;
+            }
+            if (duplicateCount > 0) {
+              if (message) message += ' ';
+              message += `${duplicateCount} duplicate(s) already exist in the system.`;
+            }
+            
+            Alert.alert('Import Complete', message);
           } catch (error) {
             Alert.alert('Error', 'Failed to parse file: ' + error.message);
           }
@@ -4110,7 +4122,10 @@ const PermitManagementApp = () => {
               return;
             }
 
-            const newContractors = [];
+            let newCount = 0;
+            let duplicateCount = 0;
+            let companyNotFoundCount = 0;
+            const processedEmails = new Set();
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -4135,37 +4150,65 @@ const PermitManagementApp = () => {
               values.push(current.trim().replace(/^"|"$/g, ''));
 
               if (values.length >= 3) {
-                const contractor = {
-                  name: values[0] || '',
-                  email: values[1] || '',
-                  company: values[2] || '',
-                  services: values[3] ? values[3].split(';').map(s => s.trim()) : [],
-                  induction_expiry: values[4] || null
-                };
-                if (contractor.name && contractor.email && contractor.company) {
-                  // Check for duplicates
-                  if (!newContractors.some(c => c.email.toLowerCase() === contractor.email.toLowerCase()) &&
-                      !contractors.some(c => c.email.toLowerCase() === contractor.email.toLowerCase())) {
-                    newContractors.push(contractor);
+                const name = values[0] || '';
+                const email = values[1] || '';
+                const companyName = values[2] || '';
+                const services = values[3] ? values[3].split(';').map(s => s.trim()) : [];
+                const inductionExpiry = values[4] || null;
+                
+                if (name && email && companyName) {
+                  // Skip if already processed in this CSV
+                  if (processedEmails.has(email.toLowerCase())) {
+                    duplicateCount++;
+                    continue;
                   }
+                  
+                  // Check if contractor already exists in database
+                  const existingContractor = contractors.find(c => c.email.toLowerCase() === email.toLowerCase());
+                  if (existingContractor) {
+                    duplicateCount++;
+                    continue;
+                  }
+                  
+                  // Ensure company exists (upsert)
+                  const company = await upsertCompany({ name: companyName });
+                  if (!company) {
+                    companyNotFoundCount++;
+                    continue;
+                  }
+                  
+                  processedEmails.add(email.toLowerCase());
+                  
+                  // Create contractor with company_id
+                  await createContractor({
+                    name,
+                    email,
+                    services,
+                    company_id: company.id,
+                    induction_expiry: inductionExpiry
+                  });
+                  newCount++;
                 }
               }
             }
 
-            if (newContractors.length === 0) {
-              Alert.alert('Error', 'No valid contractors found in CSV');
+            if (newCount === 0) {
+              let errorMsg = 'No valid contractors imported.';
+              if (duplicateCount > 0) errorMsg += ` ${duplicateCount} duplicate(s) already exist.`;
+              if (companyNotFoundCount > 0) errorMsg += ` ${companyNotFoundCount} had invalid company names.`;
+              Alert.alert('Info', errorMsg);
               return;
-            }
-
-            // Save all contractors to Supabase
-            for (const contractor of newContractors) {
-              await createContractor(contractor);
             }
 
             // Reload contractors from database
             const freshContractors = await listContractors();
             setContractors(freshContractors);
-            Alert.alert('Success', `${newContractors.length} contractor(s) imported successfully`);
+            
+            let message = `${newCount} contractor(s) imported successfully.`;
+            if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
+            if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
+            
+            Alert.alert('Import Complete', message);
           } catch (error) {
             Alert.alert('Error', 'Failed to parse CSV: ' + error.message);
           }

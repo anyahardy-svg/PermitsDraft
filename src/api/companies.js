@@ -95,3 +95,46 @@ export const deleteCompany = async (companyId) => {
     throw error;
   }
 };
+
+// Get a company by name (case-insensitive)
+export const getCompanyByName = async (companyName) => {
+  try {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .ilike('name', companyName)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No results found
+        return null;
+      }
+      throw error;
+    }
+    return data ? transformCompany(data) : null;
+  } catch (error) {
+    console.error('Error fetching company by name:', error.message);
+    throw error;
+  }
+};
+
+// Upsert a company - if exists by name, return it; if not, create it
+export const upsertCompany = async (companyData) => {
+  try {
+    // Check if company with this name already exists
+    const existing = await getCompanyByName(companyData.name);
+    if (existing) {
+      console.log('📦 Company already exists:', existing.name);
+      return existing;
+    }
+
+    // Company doesn't exist, create it
+    console.log('✨ Creating new company:', companyData.name);
+    const created = await createCompany(companyData);
+    return created;
+  } catch (error) {
+    console.error('Error upserting company:', error.message);
+    throw error;
+  }
+};
