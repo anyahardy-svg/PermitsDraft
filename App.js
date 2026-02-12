@@ -1331,11 +1331,21 @@ const PermitManagementApp = () => {
                   placeholder="Work location"
                 />
                 <Text style={styles.label}>Requested By</Text>
-                <TextInput
+                <CustomDropdown
+                  label="Select Contractor"
+                  options={
+                    formData.site 
+                      ? contractors
+                          .filter(contractor => 
+                            contractor.siteIds && 
+                            contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                          )
+                          .map(contractor => contractor.name)
+                      : []
+                  }
+                  selectedValue={formData.requestedBy || ''}
+                  onValueChange={value => setFormData({ ...formData, requestedBy: value })}
                   style={styles.input}
-                  value={formData.requestedBy}
-                  onChangeText={text => setFormData({ ...formData, requestedBy: text })}
-                  placeholder="Your name"
                 />
 
                 {/* Start Date/Time */}
