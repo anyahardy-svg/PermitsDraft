@@ -4419,11 +4419,9 @@ const PermitManagementApp = () => {
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
-                  <Text style={styles.addButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+                <Text style={styles.addButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
