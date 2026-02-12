@@ -1208,13 +1208,13 @@ const PermitManagementApp = () => {
   const getColumnWidths = () => {
     if (isMobile) {
       // Mobile: more compact
-      return { name: 80, email: 100, company: 80, services: 80, sites: 70, inductionExpiry: 90, actions: 50 };
+      return { name: 80, email: 100, phone: 80, company: 80, services: 80, sites: 70, inductionExpiry: 90, actions: 50 };
     } else if (isTablet) {
       // Tablet: medium
-      return { name: 100, email: 130, company: 100, services: 120, sites: 100, inductionExpiry: 110, actions: 70 };
+      return { name: 100, email: 130, phone: 100, company: 100, services: 120, sites: 100, inductionExpiry: 110, actions: 70 };
     } else {
       // Desktop: full size
-      return { name: 120, email: 150, company: 120, services: 150, sites: 140, inductionExpiry: 130, actions: 80 };
+      return { name: 120, email: 150, phone: 110, company: 120, services: 150, sites: 140, inductionExpiry: 130, actions: 80 };
     }
   };
   
@@ -4049,6 +4049,7 @@ const PermitManagementApp = () => {
         const contractorPayload = {
           name: currentContractor.name,
           email: currentContractor.email,
+          phone: currentContractor.phone,
           services: currentContractor.services,
           site_ids: siteIds,
           company_id: companyId,
@@ -4071,7 +4072,7 @@ const PermitManagementApp = () => {
           setContractors(freshContractors);
           Alert.alert('Contractor Added', 'New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -4238,6 +4239,9 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Email Address *</Text>
               <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
               
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor({ ...currentContractor, phone: text })} placeholder="027 123 4567" keyboardType="phone-pad" />
+              
               <Text style={styles.label}>Company Name *</Text>
               <View style={{ position: 'relative', zIndex: 10 }}>
                 <TextInput 
@@ -4396,7 +4400,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
               {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4485,6 +4489,7 @@ const PermitManagementApp = () => {
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
                         <Text style={[{ width: columns.name, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Name</Text>
                         <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
+                        <Text style={[{ width: columns.phone, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Phone</Text>
                         <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
                         <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
                         <Text style={[{ width: columns.sites, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Available Sites</Text>
@@ -4506,6 +4511,7 @@ const PermitManagementApp = () => {
                         >
                           <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
                           <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
+                          <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.phone || '-'}</Text>
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
