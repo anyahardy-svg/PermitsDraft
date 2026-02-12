@@ -1339,7 +1339,7 @@ const PermitManagementApp = () => {
                   placeholder="Work location"
                 />
                 <Text style={styles.label}>Requested By</Text>
-                <View style={{ position: 'relative', marginBottom: 16 }}>
+                <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
                 <TextInput
                   style={styles.input}
                   value={formData.requestedBy}
@@ -1393,7 +1393,7 @@ const PermitManagementApp = () => {
                     backgroundColor: 'white',
                     borderRadius: 8,
                     maxHeight: 200,
-                    zIndex: 50,
+                    zIndex: 1000,
                     elevation: 10,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
@@ -1402,8 +1402,8 @@ const PermitManagementApp = () => {
                     borderWidth: 1,
                     borderColor: '#D1D5DB',
                     overflow: 'hidden',
-                  }}>
-                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                  }} pointerEvents="auto">
+                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                       {filteredRequestedBy.map(contractor => (
                         <TouchableOpacity
                           key={contractor.id}
