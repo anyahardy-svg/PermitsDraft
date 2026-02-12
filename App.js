@@ -3162,13 +3162,11 @@ const PermitManagementApp = () => {
             // Reject draft permit: confirm deletion
             if (window.confirm('Delete Draft Permit?\n\nAre you sure you want to reject this draft permit? This will permanently delete it and cannot be undone.')) {
               try {
-                const rejectedDate = new Date().toISOString().split('T')[0];
                 await updatePermit(editData.id, {
-                  status: 'rejected',
-                  rejected_date: rejectedDate
+                  status: 'rejected'
                 });
                 
-                const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejected_date: rejectedDate } : p);
+                const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected' } : p);
                 setPermits(updated);
                 setCurrentScreen('dashboard');
                 window.alert('Draft permit has been deleted.');
