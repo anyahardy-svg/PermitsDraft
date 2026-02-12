@@ -3158,6 +3158,26 @@ const PermitManagementApp = () => {
           <TouchableOpacity style={styles.submitButton} onPress={submitDraftForApproval}>
             <Text style={styles.submitButtonText}>Submit for Approval</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={async () => {
+            // Reject draft permit: confirm deletion
+            if (window.confirm('Delete Draft Permit?\n\nAre you sure you want to reject this draft permit? This will permanently delete it and cannot be undone.')) {
+              try {
+                await updatePermit(editData.id, {
+                  status: 'rejected'
+                });
+                
+                const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+                setPermits(updated);
+                setCurrentScreen('dashboard');
+                window.alert('Draft permit has been deleted.');
+              } catch (error) {
+                console.error('Error rejecting draft permit:', error);
+                window.alert('Error: Failed to delete draft permit. ' + error.message);
+              }
+            }
+          }}>
+            <Text style={styles.submitButtonText}>Reject</Text>
+          </TouchableOpacity>
         </View>
       )}
       {/* Only show Approve/Reject if not completed and not draft */}
