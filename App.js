@@ -1192,17 +1192,13 @@ const PermitManagementApp = () => {
   // Filter state for services directory
   const [selectedService, setSelectedService] = useState('Hot Work');
   
-  // Induction date picker state
-  const [showInductionDatePicker, setShowInductionDatePicker] = useState(false);
-  const [inductionPickerDate, setInductionPickerDate] = useState(new Date());
+  // Company dropdown state for contractor form
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [filteredCompanies, setFilteredCompanies] = useState([]);
   
   // Site mapping for contractors
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
-  
-  // Company dropdown state for contractor form
-  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
-  const [filteredCompanies, setFilteredCompanies] = useState([]);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
@@ -4020,13 +4016,31 @@ const PermitManagementApp = () => {
         const siteIds = (currentContractor.siteIds || []).map(siteName => siteNameToIdMap[siteName]).filter(Boolean);
         console.log('📍 Site names:', currentContractor.siteIds, 'converted to IDs:', siteIds);
 
+        // Convert date from DD/MM/YYYY to YYYY-MM-DD format
+        let isoDate = null;
+        if (currentContractor.inductionExpiry && currentContractor.inductionExpiry.trim()) {
+          const dateStr = currentContractor.inductionExpiry.trim();
+          // Try to parse DD/MM/YYYY format
+          const match = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          if (match) {
+            const day = String(match[1]).padStart(2, '0');
+            const month = String(match[2]).padStart(2, '0');
+            const year = match[3];
+            isoDate = `${year}-${month}-${day}`;
+            console.log('📅 Converted date:', dateStr, '→', isoDate);
+          } else {
+            Alert.alert('Invalid Date', 'Please enter date in DD/MM/YYYY format (e.g., 25/12/2025)');
+            return;
+          }
+        }
+
         const contractorPayload = {
           name: currentContractor.name,
           email: currentContractor.email,
           services: currentContractor.services,
           site_ids: siteIds,
           company_id: companyId,
-          induction_expiry: currentContractor.inductionExpiry || null
+          induction_expiry: isoDate
         };
         console.log('📤 Contractor payload:', contractorPayload);
 
@@ -4182,7 +4196,7 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
               
               <Text style={styles.label}>Company Name *</Text>
-              <View style={{ position: 'relative' }}>
+              <View style={{ position: 'relative', zIndex: 10 }}>
                 <TextInput 
                   style={styles.input} 
                   value={currentContractor.company} 
@@ -4209,6 +4223,10 @@ const PermitManagementApp = () => {
                       setShowCompanyDropdown(filtered.length > 0);
                     }
                   }}
+                  onBlur={() => {
+                    // Close dropdown after a small delay to allow click to register
+                    setTimeout(() => setShowCompanyDropdown(false), 200);
+                  }}
                   placeholder="Start typing company name..." 
                 />
                 {showCompanyDropdown && filteredCompanies.length > 0 && (
@@ -4220,20 +4238,22 @@ const PermitManagementApp = () => {
                     backgroundColor: 'white',
                     borderRadius: 8,
                     maxHeight: 200,
-                    zIndex: 1000,
-                    elevation: 5,
+                    zIndex: 50,
+                    elevation: 10,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.25,
                     shadowRadius: 3,
                     borderWidth: 1,
                     borderColor: '#D1D5DB',
+                    overflow: 'hidden',
                   }}>
-                    <ScrollView scrollEnabled={true}>
+                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
                       {filteredCompanies.map(company => (
                         <TouchableOpacity
                           key={company.id}
-                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                          activeOpacity={0.7}
                           onPress={() => {
                             setCurrentContractor({ ...currentContractor, company: company.name });
                             setShowCompanyDropdown(false);
@@ -4241,7 +4261,7 @@ const PermitManagementApp = () => {
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{company.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{company.id}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{company.id}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -4255,21 +4275,15 @@ const PermitManagementApp = () => {
                     right: 0,
                     backgroundColor: 'white',
                     borderRadius: 8,
-                    zIndex: 1000,
-                    elevation: 5,
+                    zIndex: 50,
+                    elevation: 10,
                     borderWidth: 1,
                     borderColor: '#D1D5DB',
                   }}>
-                    <Text style={{ padding: 12, color: '#EF4444', fontSize: 12 }}>No matching companies found. Please create the company first.</Text>
+                    <Text style={{ padding: 12, color: '#EF4444', fontSize: 12 }}>No matching companies found. Create the company first.</Text>
                   </View>
                 )}
               </View>
-              {showCompanyDropdown && (
-                <TouchableOpacity 
-                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
-                  onPress={() => setShowCompanyDropdown(false)}
-                />
-              )}
               
               <Text style={styles.label}>Services Offered</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle services:</Text>
@@ -4323,17 +4337,17 @@ const PermitManagementApp = () => {
               </View>
 
               <Text style={styles.label}>Induction Expiry Date</Text>
-              <TouchableOpacity 
-                style={[styles.input, { justifyContent: 'center', paddingVertical: 12, backgroundColor: '#F3F4F6' }]}
-                onPress={() => {
-                  setInductionPickerDate(currentContractor.inductionExpiry ? new Date(currentContractor.inductionExpiry) : new Date());
-                  setShowInductionDatePicker(true);
+              <TextInput 
+                style={styles.input}
+                value={currentContractor.inductionExpiry}
+                onChangeText={text => {
+                  // Allow typing in format: DD/MM/YYYY or DD-MM-YYYY
+                  setCurrentContractor({ ...currentContractor, inductionExpiry: text });
                 }}
-              >
-                <Text style={{ color: currentContractor.inductionExpiry ? '#1F2937' : '#9CA3AF', fontSize: 16 }}>
-                  {currentContractor.inductionExpiry ? formatDateNZ(currentContractor.inductionExpiry) : 'Select date'}
-                </Text>
-              </TouchableOpacity>
+                placeholder="DD/MM/YYYY (e.g., 25/12/2025)"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="decimal-pad"
+              />
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
@@ -6020,80 +6034,6 @@ const PermitManagementApp = () => {
     );
   };
 
-  // Date Picker Modal for Induction Expiry
-  const InductionDatePickerModal = () => {
-    const today = new Date();
-    const getFirstDayOfMonth = (date) => {
-      const d = new Date(date);
-      return new Date(d.getFullYear(), d.getMonth(), 1);
-    };
-    const [displayMonth, setDisplayMonth] = React.useState(() => getFirstDayOfMonth(inductionPickerDate));
-    const year = displayMonth.getFullYear();
-    const month = displayMonth.getMonth();
-
-    const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-    const getFirstDayOfWeek = (y, m) => new Date(y, m, 1).getDay();
-
-    const daysInMonth = getDaysInMonth(year, month);
-    const firstDay = getFirstDayOfWeek(year, month);
-    const days = [];
-    for (let i = 0; i < firstDay; i++) days.push(null);
-    for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
-    return (
-      <Modal visible={showInductionDatePicker} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '80%' }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>Select Date</Text>
-            <ScrollView contentContainerStyle={{ paddingBottom: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month - 1, 1))}><Text style={{ fontSize: 16, fontWeight: 'bold', paddingLeft: 8 }}>‹</Text></TouchableOpacity>
-                <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{new Date(year, month).toLocaleString('default', { month: 'short', year: 'numeric' })}</Text>
-                <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month + 1, 1))}><Text style={{ fontSize: 16, fontWeight: 'bold', paddingRight: 8 }}>›</Text></TouchableOpacity>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 6 }}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <Text key={d} style={{ fontWeight: '600', width: 35, textAlign: 'center', fontSize: 11, color: '#6B7280' }}>{d}</Text>)}
-              </View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {days.map((d, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={{ width: '14.28%', height: 40, justifyContent: 'center', alignItems: 'center' }}
-                    disabled={!d}
-                    onPress={() => {
-                      setInductionPickerDate(new Date(year, month, d));
-                      setCurrentContractor({ ...currentContractor, inductionExpiry: new Date(year, month, d).toISOString().split('T')[0] });
-                      setShowInductionDatePicker(false);
-                    }}
-                  >
-                    {d && (
-                      <Text style={{ 
-                        color: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? 'white' : '#1F2937',
-                        backgroundColor: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? '#3B82F6' : 'transparent',
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 4,
-                        fontSize: 12,
-                        fontWeight: '500'
-                      }}>
-                        {d}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: '#EF4444', padding: 10, borderRadius: 6, alignItems: 'center' }} onPress={() => setShowInductionDatePicker(false)}>
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   // Main render logic
   switch (currentScreen) {
     case 'dashboard':
@@ -6161,12 +6101,7 @@ const PermitManagementApp = () => {
     case 'manage_companies':
       return renderManageCompanies();
     case 'manage_contractors':
-      return (
-        <>
-          {renderManageContractors()}
-          <InductionDatePickerModal />
-        </>
-      );
+      return renderManageContractors();
     case 'services_directory':
       return renderServicesDirectory();
     default:
