@@ -1196,6 +1196,10 @@ const PermitManagementApp = () => {
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   
+  // Requested By (contractor) dropdown state for permit form
+  const [showRequestedByDropdown, setShowRequestedByDropdown] = useState(false);
+  const [filteredRequestedBy, setFilteredRequestedBy] = useState([]);
+  
   // Site mapping for contractors
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
@@ -1304,7 +1308,11 @@ const PermitManagementApp = () => {
                   label="Select Site"
                   options={ALL_SITES}
                   selectedValue={formData.site || ''}
-                  onValueChange={value => setFormData({ ...formData, site: value })}
+                  onValueChange={value => {
+                    setFormData({ ...formData, site: value, requestedBy: '' });
+                    setShowRequestedByDropdown(false);
+                    setFilteredRequestedBy([]);
+                  }}
                   style={styles.input}
                 />
                 
@@ -1331,22 +1339,107 @@ const PermitManagementApp = () => {
                   placeholder="Work location"
                 />
                 <Text style={styles.label}>Requested By</Text>
-                <CustomDropdown
-                  label="Select Contractor"
-                  options={
-                    formData.site 
-                      ? contractors
-                          .filter(contractor => 
-                            contractor.siteIds && 
-                            contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
-                          )
-                          .map(contractor => contractor.name)
-                      : []
-                  }
-                  selectedValue={formData.requestedBy || ''}
-                  onValueChange={value => setFormData({ ...formData, requestedBy: value })}
+                <View style={{ position: 'relative', marginBottom: 16 }}>
+                <TextInput
                   style={styles.input}
+                  value={formData.requestedBy}
+                  onChangeText={text => {
+                    setFormData({ ...formData, requestedBy: text });
+                    // Filter contractors based on input and site
+                    if (text.trim().length > 0 && formData.site) {
+                      const siteContractors = contractors.filter(contractor => 
+                        contractor.siteIds && 
+                        contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                      );
+                      const filtered = siteContractors.filter(c => 
+                        c.name.toLowerCase().includes(text.toLowerCase())
+                      );
+                      setFilteredRequestedBy(filtered);
+                      setShowRequestedByDropdown(filtered.length > 0);
+                    } else {
+                      setShowRequestedByDropdown(false);
+                      setFilteredRequestedBy([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (formData.requestedBy.trim().length > 0 && formData.site) {
+                      const siteContractors = contractors.filter(contractor => 
+                        contractor.siteIds && 
+                        contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                      );
+                      const filtered = siteContractors.filter(c => 
+                        c.name.toLowerCase().includes(formData.requestedBy.toLowerCase())
+                      );
+                      setFilteredRequestedBy(filtered);
+                      setShowRequestedByDropdown(filtered.length > 0);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Close dropdown after a small delay to allow click to register
+                    setTimeout(() => setShowRequestedByDropdown(false), 200);
+                  }}
+                  placeholder="Start typing contractor name..."
+                  editable={formData.site ? true : false}
                 />
+                {!formData.site && (
+                  <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                )}
+                {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 55,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    maxHeight: 200,
+                    zIndex: 50,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    overflow: 'hidden',
+                  }}>
+                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                      {filteredRequestedBy.map(contractor => (
+                        <TouchableOpacity
+                          key={contractor.id}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setFormData({ ...formData, requestedBy: contractor.name });
+                            setShowRequestedByDropdown(false);
+                            setFilteredRequestedBy([]);
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+                {showRequestedByDropdown && filteredRequestedBy.length === 0 && formData.requestedBy.trim().length > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 55,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#FEE2E2',
+                    borderRadius: 8,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: '#FCA5A5',
+                    zIndex: 50,
+                    elevation: 10,
+                  }}>
+                    <Text style={{ fontSize: 12, color: '#991B1B' }}>No contractors found on this site matching "{formData.requestedBy}"</Text>
+                  </View>
+                )}
+                </View>
 
                 {/* Start Date/Time */}
                 <Text style={styles.label}>Start Date</Text>
