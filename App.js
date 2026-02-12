@@ -6447,7 +6447,7 @@ const styles = StyleSheet.create({
     margin: 16,
     backgroundColor: 'white',
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: 'visible',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
