@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { createCompany, listCompanies, updateCompany, deleteCompany } from './src/api/companies';
+import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName } from './src/api/companies';
 import { createUser, listUsers, updateUser, deleteUser } from './src/api/users';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
+import { listSites, getSiteByName } from './src/api/sites';
 
 // List of all available sites
 const ALL_SITES = [
@@ -1101,6 +1102,19 @@ const PermitManagementApp = () => {
       try {
         setIsLoadingPermits(true);
         
+        // Load sites FIRST and create mappings
+        const sitesData = await listSites();
+        const nameToIdMap = {};
+        const idToNameMap = {};
+        sitesData.forEach(site => {
+          nameToIdMap[site.name] = site.id;
+          idToNameMap[site.id] = site.name;
+        });
+        setSiteNameToIdMap(nameToIdMap);
+        setSiteIdToNameMap(idToNameMap);
+        console.log('✅ Sites mapping loaded - Name to ID:', nameToIdMap);
+        console.log('✅ Sites mapping loaded - ID to Name:', idToNameMap);
+        
         // Load permits
         const permitsData = await listPermits();
         setPermits(permitsData);
@@ -1113,7 +1127,7 @@ const PermitManagementApp = () => {
         const usersData = await listUsers();
         setUsers(usersData);
         
-        // Load contractors
+        // Load contractors LAST (after mappings are ready)
         const contractorsData = await listContractors();
         setContractors(contractorsData);
       } catch (error) {
@@ -1181,6 +1195,14 @@ const PermitManagementApp = () => {
   // Induction date picker state
   const [showInductionDatePicker, setShowInductionDatePicker] = useState(false);
   const [inductionPickerDate, setInductionPickerDate] = useState(new Date());
+  
+  // Site mapping for contractors
+  const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
+  const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
+  
+  // Company dropdown state for contractor form
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [filteredCompanies, setFilteredCompanies] = useState([]);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
@@ -3891,6 +3913,7 @@ const PermitManagementApp = () => {
             </View>
           </View>
 
+
           {/* Companies List Section */}
           <View style={{ marginTop: 24 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -3904,42 +3927,58 @@ const PermitManagementApp = () => {
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {companies.length} companies</Text>
             
             {companies.length === 0 ? (
-              <Text style={{ color: '#9CA3AF', textAlign: 'center', paddingVertical: 20 }}>No companies added yet</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No companies added yet</Text>
+              </View>
             ) : (
-              companies.map(company => (
-                <TouchableOpacity
-                  key={company.id}
-                  style={[
-                    styles.userCard,
-                    selectedCompany?.id === company.id && { backgroundColor: '#EFF6FF', borderColor: '#2563EB' }
-                  ]}
-                  onPress={() => setSelectedCompany(company)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.userCardName}>{company.name}</Text>
-                    <Text style={styles.userCardDetail}>ID: {company.id}</Text>
+              <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                <View>
+                  {/* Table Header */}
+                  <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
+                    <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+                    <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company ID</Text>
+                    <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                   </View>
-                  {selectedCompany?.id === company.id && (
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        style={[styles.miniButton, { backgroundColor: '#2563EB' }]}
-                        onPress={() => {
-                          setCurrentCompany(company);
-                          setEditingCompany(true);
-                        }}
-                      >
-                        <Text style={styles.miniButtonText}>Edit</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.miniButton, { backgroundColor: '#EF4444' }]}
-                        onPress={() => handleDeleteCompany(company.id)}
-                      >
-                        <Text style={styles.miniButtonText}>Delete</Text>
-                      </TouchableOpacity>
+
+                  {/* Table Rows */}
+                  {companies.map((company, index) => (
+                    <View 
+                      key={company.id}
+                      style={{ 
+                        flexDirection: 'row', 
+                        backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#E5E7EB',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Text style={{ width: 300, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
+                        {company.name}
+                      </Text>
+                      <Text style={{ width: 250, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
+                        {company.id}
+                      </Text>
+                      <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
+                        <TouchableOpacity 
+                          style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
+                          onPress={() => {
+                            setCurrentCompany(company);
+                            setEditingCompany(true);
+                          }}
+                        >
+                          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
+                          onPress={() => handleDeleteCompany(company.id)}
+                        >
+                          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Del</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  )}
-                </TouchableOpacity>
-              ))
+                  ))}
+                </View>
+              </ScrollView>
             )}
           </View>
         </ScrollView>
@@ -3953,7 +3992,8 @@ const PermitManagementApp = () => {
     if (!contractor || !contractor.siteIds || contractor.siteIds.length === 0) {
       return [];
     }
-    return contractor.siteIds;
+    // Convert site IDs to site names
+    return contractor.siteIds.map(siteId => siteIdToNameMap[siteId] || siteId).filter(Boolean);
   };
 
   // Manage Contractors Screen
@@ -3964,35 +4004,53 @@ const PermitManagementApp = () => {
         return;
       }
       try {
+        console.log('🔍 Looking up company:', currentContractor.company);
+        // Look up company by name
+        const company = await getCompanyByName(currentContractor.company);
+        console.log('✅ Company lookup result:', company);
+        const companyId = company?.id;
+        
+        if (!companyId) {
+          console.warn('❌ Company not found for:', currentContractor.company);
+          Alert.alert('Company Not Found', `Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
+          return;
+        }
+
+        // Convert site names to site IDs
+        const siteIds = (currentContractor.siteIds || []).map(siteName => siteNameToIdMap[siteName]).filter(Boolean);
+        console.log('📍 Site names:', currentContractor.siteIds, 'converted to IDs:', siteIds);
+
+        const contractorPayload = {
+          name: currentContractor.name,
+          email: currentContractor.email,
+          services: currentContractor.services,
+          site_ids: siteIds,
+          company_id: companyId,
+          induction_expiry: currentContractor.inductionExpiry || null
+        };
+        console.log('📤 Contractor payload:', contractorPayload);
+
         if (editingContractor) {
-          await updateContractor(currentContractor.id, {
-            name: currentContractor.name,
-            email: currentContractor.email,
-            services: currentContractor.services,
-            site_ids: currentContractor.siteIds || [],
-            company: currentContractor.company,
-            induction_expiry: currentContractor.inductionExpiry
-          });
+          console.log('📝 Updating contractor:', currentContractor.id);
+          await updateContractor(currentContractor.id, contractorPayload);
           const freshContractors = await listContractors();
           setContractors(freshContractors);
           setEditingContractor(false);
           Alert.alert('Contractor Updated', 'Contractor has been updated successfully.');
         } else {
-          await createContractor({
-            name: currentContractor.name,
-            email: currentContractor.email,
-            services: currentContractor.services,
-            site_ids: currentContractor.siteIds || [],
-            company: currentContractor.company,
-            induction_expiry: currentContractor.inductionExpiry
-          });
+          console.log('➕ Creating new contractor');
+          const result = await createContractor(contractorPayload);
+          console.log('✅ Contractor created:', result);
           const freshContractors = await listContractors();
           setContractors(freshContractors);
           Alert.alert('Contractor Added', 'New contractor has been added successfully.');
         }
         setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
+        setShowCompanyDropdown(false);
+        setFilteredCompanies([]);
       } catch (error) {
+        console.error('❌ Contractor save error:', error);
         Alert.alert('Error', 'Failed to save contractor: ' + error.message);
       }
     };
@@ -4124,7 +4182,94 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
               
               <Text style={styles.label}>Company Name *</Text>
-              <TextInput style={styles.input} value={currentContractor.company} onChangeText={text => setCurrentContractor({ ...currentContractor, company: text })} placeholder="Enter company name" />
+              <View style={{ position: 'relative' }}>
+                <TextInput 
+                  style={styles.input} 
+                  value={currentContractor.company} 
+                  onChangeText={text => {
+                    setCurrentContractor({ ...currentContractor, company: text });
+                    // Filter companies based on input
+                    if (text.trim().length > 0) {
+                      const filtered = companies.filter(c => 
+                        c.name.toLowerCase().includes(text.toLowerCase())
+                      );
+                      setFilteredCompanies(filtered);
+                      setShowCompanyDropdown(filtered.length > 0);
+                    } else {
+                      setShowCompanyDropdown(false);
+                      setFilteredCompanies([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (currentContractor.company.trim().length > 0) {
+                      const filtered = companies.filter(c => 
+                        c.name.toLowerCase().includes(currentContractor.company.toLowerCase())
+                      );
+                      setFilteredCompanies(filtered);
+                      setShowCompanyDropdown(filtered.length > 0);
+                    }
+                  }}
+                  placeholder="Start typing company name..." 
+                />
+                {showCompanyDropdown && filteredCompanies.length > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 55,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    maxHeight: 200,
+                    zIndex: 1000,
+                    elevation: 5,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                  }}>
+                    <ScrollView scrollEnabled={true}>
+                      {filteredCompanies.map(company => (
+                        <TouchableOpacity
+                          key={company.id}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                          onPress={() => {
+                            setCurrentContractor({ ...currentContractor, company: company.name });
+                            setShowCompanyDropdown(false);
+                            setFilteredCompanies([]);
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{company.name}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{company.id}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+                {showCompanyDropdown && filteredCompanies.length === 0 && currentContractor.company.trim().length > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 55,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    zIndex: 1000,
+                    elevation: 5,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                  }}>
+                    <Text style={{ padding: 12, color: '#EF4444', fontSize: 12 }}>No matching companies found. Please create the company first.</Text>
+                  </View>
+                )}
+              </View>
+              {showCompanyDropdown && (
+                <TouchableOpacity 
+                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+                  onPress={() => setShowCompanyDropdown(false)}
+                />
+              )}
               
               <Text style={styles.label}>Services Offered</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle services:</Text>
@@ -4194,7 +4339,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
               {editingContractor && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4236,7 +4381,7 @@ const PermitManagementApp = () => {
                   >
                     <Text style={{ color: contractorCompanyFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
                   </TouchableOpacity>
-                  {[...new Set(contractors.map(c => c.company))].map(company => (
+                  {[...new Set(contractors.map(c => c.companyName || c.company).filter(Boolean))].map(company => (
                     <TouchableOpacity
                       key={company}
                       style={[
@@ -4265,7 +4410,7 @@ const PermitManagementApp = () => {
                     contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
                     contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
                   
-                  const matchesCompanyFilter = contractorCompanyFilter === 'All' || contractor.company === contractorCompanyFilter;
+                  const matchesCompanyFilter = contractorCompanyFilter === 'All' || (contractor.companyName || contractor.company) === contractorCompanyFilter;
                   
                   return matchesSearch && matchesCompanyFilter;
                 });
@@ -4304,7 +4449,7 @@ const PermitManagementApp = () => {
                         >
                           <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
                           <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                          <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
+                          <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
                           </Text>
@@ -4317,7 +4462,19 @@ const PermitManagementApp = () => {
                           <View style={{ width: columns.actions, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 12 }}>
                             <TouchableOpacity 
                               style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                              onPress={() => { setSelectedContractor(contractor); setEditingContractor(true); setCurrentContractor(contractor); setInductionPickerDate(contractor.inductionExpiry ? new Date(contractor.inductionExpiry) : new Date()); }}
+                              onPress={() => { 
+                                // Convert site IDs back to names for editing
+                                const siteNames = (contractor.siteIds || []).map(siteId => siteIdToNameMap[siteId]).filter(Boolean);
+                                const editedContractor = { 
+                                  ...contractor, 
+                                  siteIds: siteNames,
+                                  company: contractor.companyName || contractor.company
+                                };
+                                setSelectedContractor(contractor); 
+                                setEditingContractor(true); 
+                                setCurrentContractor(editedContractor); 
+                                setInductionPickerDate(contractor.inductionExpiry ? new Date(contractor.inductionExpiry) : new Date()); 
+                              }}
                             >
                               <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
                             </TouchableOpacity>
@@ -5885,36 +6042,50 @@ const PermitManagementApp = () => {
 
     return (
       <Modal visible={showInductionDatePicker} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '90%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Select Induction Expiry Date</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month - 1, 1))}><Text style={{ fontSize: 18, fontWeight: 'bold' }}>{'<'}</Text></TouchableOpacity>
-              <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
-              <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month + 1, 1))}><Text style={{ fontSize: 18, fontWeight: 'bold' }}>{'>'}</Text></TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <Text key={d} style={{ fontWeight: 'bold', width: 40, textAlign: 'center' }}>{d}</Text>)}
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {days.map((d, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={{ width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 6 }}
-                  disabled={!d}
-                  onPress={() => {
-                    setInductionPickerDate(new Date(year, month, d));
-                    setCurrentContractor({ ...currentContractor, inductionExpiry: new Date(year, month, d).toISOString().split('T')[0] });
-                    setShowInductionDatePicker(false);
-                  }}
-                >
-                  {d && <Text style={{ color: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? 'white' : '#1F2937', backgroundColor: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? '#3B82F6' : 'transparent', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>{d}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: '#EF4444', padding: 12, borderRadius: 6, alignItems: 'center' }} onPress={() => setShowInductionDatePicker(false)}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Cancel</Text>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '80%' }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>Select Date</Text>
+            <ScrollView contentContainerStyle={{ paddingBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month - 1, 1))}><Text style={{ fontSize: 16, fontWeight: 'bold', paddingLeft: 8 }}>‹</Text></TouchableOpacity>
+                <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{new Date(year, month).toLocaleString('default', { month: 'short', year: 'numeric' })}</Text>
+                <TouchableOpacity onPress={() => setDisplayMonth(new Date(year, month + 1, 1))}><Text style={{ fontSize: 16, fontWeight: 'bold', paddingRight: 8 }}>›</Text></TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 6 }}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <Text key={d} style={{ fontWeight: '600', width: 35, textAlign: 'center', fontSize: 11, color: '#6B7280' }}>{d}</Text>)}
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {days.map((d, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={{ width: '14.28%', height: 40, justifyContent: 'center', alignItems: 'center' }}
+                    disabled={!d}
+                    onPress={() => {
+                      setInductionPickerDate(new Date(year, month, d));
+                      setCurrentContractor({ ...currentContractor, inductionExpiry: new Date(year, month, d).toISOString().split('T')[0] });
+                      setShowInductionDatePicker(false);
+                    }}
+                  >
+                    {d && (
+                      <Text style={{ 
+                        color: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? 'white' : '#1F2937',
+                        backgroundColor: d === inductionPickerDate.getDate() && month === inductionPickerDate.getMonth() ? '#3B82F6' : 'transparent',
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: '500'
+                      }}>
+                        {d}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <TouchableOpacity style={{ flex: 1, backgroundColor: '#EF4444', padding: 10, borderRadius: 6, alignItems: 'center' }} onPress={() => setShowInductionDatePicker(false)}>
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
