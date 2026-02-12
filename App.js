@@ -4573,7 +4573,6 @@ const PermitManagementApp = () => {
                                 setSelectedContractor(contractor); 
                                 setEditingContractor(true); 
                                 setCurrentContractor(editedContractor); 
-                                setInductionPickerDate(contractor.inductionExpiry ? new Date(contractor.inductionExpiry) : new Date()); 
                               }}
                             >
                               <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
