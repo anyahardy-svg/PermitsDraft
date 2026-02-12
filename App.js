@@ -3522,17 +3522,22 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteUser = (id) => {
-      Alert.alert('Delete User', 'Are you sure?', [
+      Alert.alert('Delete User', 'Are you sure? This action cannot be undone.', [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           onPress: async () => {
             try {
+              console.log('🗑️ Deleting user:', id);
               await deleteUser(id);
+              console.log('✅ User deleted successfully');
               const freshUsers = await listUsers();
               setUsers(freshUsers);
-              Alert.alert('Deleted', 'User has been deleted.');
+              setEditingUser(false);
+              setSelectedUser(null);
+              Alert.alert('Success', 'User has been deleted.');
             } catch (error) {
+              console.error('❌ Delete error:', error);
               Alert.alert('Error', 'Failed to delete user: ' + error.message);
             }
           }, 
@@ -3778,17 +3783,22 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteCompany = (id) => {
-      Alert.alert('Delete Company', 'Are you sure?', [
+      Alert.alert('Delete Company', 'Are you sure? This action cannot be undone.', [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           onPress: async () => {
             try {
+              console.log('🗑️ Deleting company:', id);
               await deleteCompany(id);
+              console.log('✅ Company deleted successfully');
               const freshCompanies = await listCompanies();
               setCompanies(freshCompanies);
-              Alert.alert('Deleted', 'Company has been deleted.');
+              setEditingCompany(false);
+              setSelectedCompany(null);
+              Alert.alert('Success', 'Company has been deleted.');
             } catch (error) {
+              console.error('❌ Delete error:', error);
               Alert.alert('Error', 'Failed to delete company: ' + error.message);
             }
           }, 
@@ -4012,13 +4022,18 @@ const PermitManagementApp = () => {
         return;
       }
       
-      // Check for duplicate email (when creating new)
-      if (!editingContractor) {
-        const emailExists = contractors.some(c => c.email.toLowerCase() === currentContractor.email.toLowerCase());
-        if (emailExists) {
-          Alert.alert('Duplicate Email', `A contractor with email "${currentContractor.email}" already exists.`);
-          return;
+      // Check for duplicate email (when creating new OR when editing and email changed)
+      const emailExists = contractors.some(c => {
+        // When editing, exclude the current contractor
+        if (editingContractor && c.id === currentContractor.id) {
+          return false;
         }
+        return c.email.toLowerCase() === currentContractor.email.toLowerCase();
+      });
+      
+      if (emailExists) {
+        Alert.alert('Duplicate Email', `A contractor with email "${currentContractor.email}" already exists. Please use a different email address.`);
+        return;
       }
       
       try {
@@ -4093,17 +4108,22 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteContractor = (id) => {
-      Alert.alert('Delete Contractor', 'Are you sure?', [
+      Alert.alert('Delete Contractor', 'Are you sure? This action cannot be undone.', [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           onPress: async () => {
             try {
+              console.log('🗑️ Deleting contractor:', id);
               await deleteContractor(id);
+              console.log('✅ Contractor deleted successfully');
               const freshContractors = await listContractors();
               setContractors(freshContractors);
-              Alert.alert('Deleted', 'Contractor has been deleted.');
+              setEditingContractor(false);
+              setSelectedContractor(null);
+              Alert.alert('Success', 'Contractor has been deleted.');
             } catch (error) {
+              console.error('❌ Delete error:', error);
               Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
             }
           }, 
@@ -4249,7 +4269,7 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Email Address *</Text>
               <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
               
-              <Text style={styles.label}>Phone Number</Text>
+              <Text style={styles.label}>Phone Number (Optional)</Text>
               <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor({ ...currentContractor, phone: text })} placeholder="027 123 4567" keyboardType="phone-pad" />
               
               <Text style={styles.label}>Company Name *</Text>
