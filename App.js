@@ -4017,6 +4017,7 @@ const PermitManagementApp = () => {
   // Manage Contractors Screen
   const renderManageContractors = () => {
     const handleAddContractor = async () => {
+      console.log('🔴 [HANDLER] Add/Save button pressed. Editing:', editingContractor);
       if (!currentContractor.name || !currentContractor.email || !currentContractor.company) {
         Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
         return;
@@ -4031,7 +4032,10 @@ const PermitManagementApp = () => {
         return c.email.toLowerCase() === currentContractor.email.toLowerCase();
       });
       
+      console.log('🔴 [CHECK] Duplicate email check - emailExists:', emailExists, 'email:', currentContractor.email);
+      
       if (emailExists) {
+        console.log('🔴 [ALERT] Showing duplicate email alert');
         Alert.alert('Duplicate Email', `A contractor with email "${currentContractor.email}" already exists. Please use a different email address.`);
         return;
       }
@@ -4108,6 +4112,7 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteContractor = (id) => {
+      console.log('🔴 [HANDLER] Delete button pressed for:', id);
       Alert.alert('Delete Contractor', 'Are you sure? This action cannot be undone.', [
         { text: 'Cancel', style: 'cancel' },
         { 
