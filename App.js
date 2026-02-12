@@ -4011,6 +4011,16 @@ const PermitManagementApp = () => {
         Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
         return;
       }
+      
+      // Check for duplicate email (when creating new)
+      if (!editingContractor) {
+        const emailExists = contractors.some(c => c.email.toLowerCase() === currentContractor.email.toLowerCase());
+        if (emailExists) {
+          Alert.alert('Duplicate Email', `A contractor with email "${currentContractor.email}" already exists.`);
+          return;
+        }
+      }
+      
       try {
         console.log('🔍 Looking up company:', currentContractor.company);
         // Look up company by name
@@ -4528,10 +4538,17 @@ const PermitManagementApp = () => {
                               onPress={() => { 
                                 // Convert site IDs back to names for editing
                                 const siteNames = (contractor.siteIds || []).map(siteId => siteIdToNameMap[siteId]).filter(Boolean);
+                                // Convert date from YYYY-MM-DD to DD/MM/YYYY format
+                                let formattedDate = '';
+                                if (contractor.inductionExpiry) {
+                                  const [year, month, day] = contractor.inductionExpiry.split('-');
+                                  formattedDate = `${day}/${month}/${year}`;
+                                }
                                 const editedContractor = { 
                                   ...contractor, 
                                   siteIds: siteNames,
-                                  company: contractor.companyName || contractor.company
+                                  company: contractor.companyName || contractor.company,
+                                  inductionExpiry: formattedDate
                                 };
                                 setSelectedContractor(contractor); 
                                 setEditingContractor(true); 
