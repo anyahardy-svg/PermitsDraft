@@ -3522,28 +3522,23 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteUser = (id) => {
-      Alert.alert('Delete User', 'Are you sure? This action cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting user:', id);
-              await deleteUser(id);
-              console.log('✅ User deleted successfully');
-              const freshUsers = await listUsers();
-              setUsers(freshUsers);
-              setEditingUser(false);
-              setSelectedUser(null);
-              Alert.alert('Success', 'User has been deleted.');
-            } catch (error) {
-              console.error('❌ Delete error:', error);
-              Alert.alert('Error', 'Failed to delete user: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
-      ]);
+      if (window.confirm('Delete User?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            console.log('🗑️ Deleting user:', id);
+            await deleteUser(id);
+            console.log('✅ User deleted successfully');
+            const freshUsers = await listUsers();
+            setUsers(freshUsers);
+            setEditingUser(false);
+            setSelectedUser(null);
+            window.alert('Success: User has been deleted.');
+          } catch (error) {
+            console.error('❌ Delete error:', error);
+            window.alert('Error: Failed to delete user: ' + error.message);
+          }
+        })();
+      }
     };
 
     const handleImportUserCSV = () => {
@@ -3783,28 +3778,23 @@ const PermitManagementApp = () => {
     };
 
     const handleDeleteCompany = (id) => {
-      Alert.alert('Delete Company', 'Are you sure? This action cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting company:', id);
-              await deleteCompany(id);
-              console.log('✅ Company deleted successfully');
-              const freshCompanies = await listCompanies();
-              setCompanies(freshCompanies);
-              setEditingCompany(false);
-              setSelectedCompany(null);
-              Alert.alert('Success', 'Company has been deleted.');
-            } catch (error) {
-              console.error('❌ Delete error:', error);
-              Alert.alert('Error', 'Failed to delete company: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
-      ]);
+      if (window.confirm('Delete Company?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            console.log('🗑️ Deleting company:', id);
+            await deleteCompany(id);
+            console.log('✅ Company deleted successfully');
+            const freshCompanies = await listCompanies();
+            setCompanies(freshCompanies);
+            setEditingCompany(false);
+            setSelectedCompany(null);
+            window.alert('Success: Company has been deleted.');
+          } catch (error) {
+            console.error('❌ Delete error:', error);
+            window.alert('Error: Failed to delete company: ' + error.message);
+          }
+        })();
+      }
     };
 
     const handleImportCSV = () => {
@@ -4019,7 +4009,7 @@ const PermitManagementApp = () => {
     const handleAddContractor = async () => {
       console.log('🔴 [HANDLER] Add/Save button pressed. Editing:', editingContractor);
       if (!currentContractor.name || !currentContractor.email || !currentContractor.company) {
-        Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
+        window.alert('Missing Info: Please fill in Name, Email, and Company.');
         return;
       }
       
@@ -4036,7 +4026,7 @@ const PermitManagementApp = () => {
       
       if (emailExists) {
         console.log('🔴 [ALERT] Showing duplicate email alert');
-        Alert.alert('Duplicate Email', `A contractor with email "${currentContractor.email}" already exists. Please use a different email address.`);
+        window.alert(`Duplicate Email: A contractor with email "${currentContractor.email}" already exists. Please use a different email address.`);
         return;
       }
       
@@ -4049,7 +4039,7 @@ const PermitManagementApp = () => {
         
         if (!companyId) {
           console.warn('❌ Company not found for:', currentContractor.company);
-          Alert.alert('Company Not Found', `Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
+          window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
           return;
         }
 
@@ -4092,14 +4082,14 @@ const PermitManagementApp = () => {
           const freshContractors = await listContractors();
           setContractors(freshContractors);
           setEditingContractor(false);
-          Alert.alert('Contractor Updated', 'Contractor has been updated successfully.');
+          window.alert('Contractor Updated: Contractor has been updated successfully.');
         } else {
           console.log('➕ Creating new contractor');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
           const freshContractors = await listContractors();
           setContractors(freshContractors);
-          Alert.alert('Contractor Added', 'New contractor has been added successfully.');
+          window.alert('Contractor Added: New contractor has been added successfully.');
         }
         setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
@@ -4107,34 +4097,29 @@ const PermitManagementApp = () => {
         setFilteredCompanies([]);
       } catch (error) {
         console.error('❌ Contractor save error:', error);
-        Alert.alert('Error', 'Failed to save contractor: ' + error.message);
+        window.alert('Error: Failed to save contractor: ' + error.message);
       }
     };
 
     const handleDeleteContractor = (id) => {
       console.log('🔴 [HANDLER] Delete button pressed for:', id);
-      Alert.alert('Delete Contractor', 'Are you sure? This action cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting contractor:', id);
-              await deleteContractor(id);
-              console.log('✅ Contractor deleted successfully');
-              const freshContractors = await listContractors();
-              setContractors(freshContractors);
-              setEditingContractor(false);
-              setSelectedContractor(null);
-              Alert.alert('Success', 'Contractor has been deleted.');
-            } catch (error) {
-              console.error('❌ Delete error:', error);
-              Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
-            }
-          }, 
-          style: 'destructive' 
-        }
-      ]);
+      if (window.confirm('Delete Contractor?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            console.log('🗑️ Deleting contractor:', id);
+            await deleteContractor(id);
+            console.log('✅ Contractor deleted successfully');
+            const freshContractors = await listContractors();
+            setContractors(freshContractors);
+            setEditingContractor(false);
+            setSelectedContractor(null);
+            window.alert('Success: Contractor has been deleted.');
+          } catch (error) {
+            console.error('❌ Delete error:', error);
+            window.alert('Error: Failed to delete contractor: ' + error.message);
+          }
+        })();
+      }
     };
 
     const handleImportCSV = () => {
