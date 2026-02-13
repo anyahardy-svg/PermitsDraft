@@ -52,7 +52,8 @@ const ALL_SERVICES = [
   'Excavation',
   'Lifting',
   'Blasting',
-  'Mobile / Fixed Plant Servicing',
+  'Mobile Plant Servicing',
+  'Fixed Plant Servicing',
   'Surveying'
 ];
 
@@ -1039,7 +1040,15 @@ const PermitManagementApp = () => {
       return;
     }
     
+    if (!formData.site) {
+      Alert.alert('Missing Info', 'Please select a Site.');
+      return;
+    }
+    
     try {
+      // Convert site name to site_id
+      const siteId = siteNameToIdMap[formData.site];
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
@@ -1052,7 +1061,8 @@ const PermitManagementApp = () => {
         end_date: formData.endDate,
         end_time: formData.endTime,
         requested_by: formData.requestedBy,
-        site_id: null, // Will be set later when user selects a site
+        permitted_issuer: formData.permitIssuer || '',
+        site_id: siteId,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
@@ -5042,7 +5052,7 @@ const PermitManagementApp = () => {
           <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit` : `Review/Edit Permit`}</Text>
+          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.id?.slice(0, 8)}` : `Review/Edit Permit #${permit.id?.slice(0, 8)}`}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -5328,7 +5338,22 @@ const PermitManagementApp = () => {
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
-                <TextInput style={styles.input} value={editData.jsea.overallRiskRating || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high', 'very_high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: risk } }))}>
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.label}>Additional Precautions:</Text>
                 <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
               </View>
