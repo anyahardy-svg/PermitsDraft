@@ -2903,19 +2903,18 @@ const PermitManagementApp = () => {
       await updatePermit(editData.id, {
         description: editData.description,
         location: editData.location,
-        requestedBy: editData.requestedBy,
+        requested_by: editData.requestedBy,
         priority: editData.priority,
         status: editData.status,
-        startDate: editData.startDate,
-        startTime: editData.startTime,
-        endDate: editData.endDate,
-        endTime: editData.endTime,
+        start_date: editData.startDate,
+        start_time: editData.startTime,
+        end_date: editData.endDate,
+        end_time: editData.endTime,
         permitted_issuer: editData.permitIssuer,
-        specializedPermits: editData.specializedPermits,
-        singleHazards: editData.singleHazards,
+        specialized_permits: editData.specializedPermits,
+        single_hazards: editData.singleHazards,
         jsea: editData.jsea,
-        isolations: editData.isolations,
-        signOns: editData.signOns
+        sign_ons: editData.signOns
       });
       
       const freshPermits = await listPermits();
@@ -2932,20 +2931,19 @@ const PermitManagementApp = () => {
       await updatePermit(editData.id, {
         description: editData.description,
         location: editData.location,
-        requestedBy: editData.requestedBy,
+        requested_by: editData.requestedBy,
         priority: editData.priority,
         status: 'pending_approval',
-        startDate: editData.startDate,
-        startTime: editData.startTime,
-        endDate: editData.endDate,
-        endTime: editData.endTime,
+        start_date: editData.startDate,
+        start_time: editData.startTime,
+        end_date: editData.endDate,
+        end_time: editData.endTime,
         permitted_issuer: editData.permitIssuer,
-        specializedPermits: editData.specializedPermits,
-        singleHazards: editData.singleHazards,
+        specialized_permits: editData.specializedPermits,
+        single_hazards: editData.singleHazards,
         jsea: editData.jsea,
-        isolations: editData.isolations,
-        signOns: editData.signOns,
-        submittedDate: new Date().toISOString().split('T')[0]
+        sign_ons: editData.signOns,
+        submitted_date: new Date().toISOString().split('T')[0]
       });
       
       const freshPermits = await listPermits();
