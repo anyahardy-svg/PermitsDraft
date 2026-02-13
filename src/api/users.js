@@ -112,11 +112,6 @@ export const getPermitIssuer = async (permitIssuerId) => {
       .from('permit_issuers')
       .select('*')
       .eq('id', permitIssuerId)
-  try {
-    const { data, error } = await supabase
-      .from('permit_issuers')
-      .select('*')
-      .eq('id', userId)
       .single();
 
     if (error) throw error;
