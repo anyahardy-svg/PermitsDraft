@@ -1142,6 +1142,13 @@ const PermitManagementApp = () => {
         // Load users from database, fall back to mock data if empty
         const usersData = await listUsers();
         console.log('✅ Users loaded from database:', usersData);
+        console.log('📊 User data structure:', usersData.map(u => ({ 
+          name: u.name, 
+          email: u.email,
+          site_ids: u.site_ids,
+          sites: u.sites,
+          siteIds: u.siteIds
+        })));
         if (usersData && usersData.length > 0) {
           console.log('✅ Loaded', usersData.length, 'users from database');
           setUsers(usersData);
@@ -4061,11 +4068,23 @@ const PermitManagementApp = () => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Users Database</Text>
               </View>
+              <TouchableOpacity 
+                style={{ backgroundColor: '#6366F1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} 
+                onPress={async () => {
+                  console.log('🔄 Refreshing users...');
+                  const freshUsers = await listUsers();
+                  console.log('✅ Users refreshed:', freshUsers.length, 'users loaded');
+                  console.log('📋 Users data:', freshUsers.map(u => ({ name: u.name, email: u.email, site_ids: u.site_ids, sites: u.sites })));
+                  setUsers(freshUsers);
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>🔄 Refresh</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportUserCSV}>
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {users.length} users</Text>
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {users.length} users {users.length > 0 && `(${users.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
             {users.length === 0 ? (
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No users yet. Add one using the form above.</Text>
             ) : (
@@ -4079,7 +4098,8 @@ const PermitManagementApp = () => {
                   </View>
                   <Text style={styles.detailText}>{user.email}</Text>
                   <Text style={styles.detailText}>{user.company}</Text>
-                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites.length > 0 ? user.sites.join(', ') : 'None'}</Text>
+                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
+                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {user.id}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { setSelectedUser(user); setEditingUser(true); setCurrentUser(user); }}>
                       <Text style={styles.addButtonText}>Edit</Text>
