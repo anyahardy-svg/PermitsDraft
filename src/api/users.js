@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient';
 
 // Helper function to transform Supabase data to app format
-const transformUser = (dbUser) => {
+const transformPermitIssuer = (dbUser) => {
   return {
     id: dbUser.id,
     name: dbUser.name,
@@ -22,7 +22,7 @@ const transformUser = (dbUser) => {
 };
 
 // Create a new permit issuer
-export const createUser = async (userData) => {
+export const createPermitIssuer = async (userData) => {
   try {
     const { data, error } = await supabase
       .from('permit_issuers')
@@ -38,7 +38,7 @@ export const createUser = async (userData) => {
 
     if (error) throw error;
     
-    return data[0] ? transformUser(data[0]) : null;
+    return data[0] ? transformPermitIssuer(data[0]) : null;
   } catch (error) {
     console.error('Error creating permit issuer:', error.message);
     throw error;
@@ -46,21 +46,24 @@ export const createUser = async (userData) => {
 };
 
 // Get all permit issuers
-export const listUsers = async () => {
+export const listPermitIssuers = async () => {
   try {
     console.log('🔵 listUsers: Querying permit_issuers table...');
-    const { data, error } = await supabase
+    const { data, error, count, status } = await supabase
       .from('permit_issuers')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('name', { ascending: true });
 
+    console.log('📋 Raw response object:', { data, error, count, status });
+    
     if (error) {
       console.error('❌ listUsers DB error:', error);
       throw error;
     }
     
     console.log('📦 listUsers: Raw data from DB:', data);
-    console.log(`📊 listUsers: Found ${(data || []).length} permit issuers`);
+    console.log(`📊 listUsers: Found ${(data || []).length} permit issuers (count: ${count})`);
+    console.log('📋 Data structure sample:', data?.[0]);
     
     if (!data || data.length === 0) {
       console.warn('⚠️ listUsers: No permit issuers found in database');
@@ -85,7 +88,7 @@ export const listUsers = async () => {
             console.log(`    ✅ Found ${siteNames.length} sites: ${siteNames.join(', ')}`);
           }
         }
-        const transformed = transformUser({ ...user, site_names: siteNames });
+        const transformed = transformPermitIssuer({ ...user, site_names: siteNames });
         console.log(`  ✅ Transformed permit issuer ${user.name}:`, transformed);
         return transformed;
       } catch (mapError) {
@@ -103,7 +106,12 @@ export const listUsers = async () => {
 };
 
 // Get a single permit issuer
-export const getUser = async (userId) => {
+export const getPermitIssuer = async (permitIssuerId) => {
+  try {
+    const { data, error } = await supabase
+      .from('permit_issuers')
+      .select('*')
+      .eq('id', permitIssuerId)
   try {
     const { data, error } = await supabase
       .from('permit_issuers')
@@ -123,15 +131,15 @@ export const getUser = async (userId) => {
       siteNames = sitesData ? sitesData.map(s => s.name) : [];
     }
     
-    return data ? transformUser({ ...data, site_names: siteNames }) : null;
+    return data ? transformPermitIssuer({ ...data, site_names: siteNames }) : null;
   } catch (error) {
     console.error('Error fetching permit issuer:', error.message);
     throw error;
   }
 };
 
-// Update a user
-export const updateUser = async (userId, updates) => {
+// Update a permit issuer
+export const updatePermitIssuer = async (permitIssuerId, updates) => {
   try {
     const updateData = {};
     if (updates.name !== undefined) updateData.name = updates.name;
@@ -144,25 +152,25 @@ export const updateUser = async (userId, updates) => {
     const { data, error } = await supabase
       .from('permit_issuers')
       .update(updateData)
-      .eq('id', userId)
+      .eq('id', permitIssuerId)
       .select();
 
     if (error) throw error;
     
-    return data[0] ? transformUser(data[0]) : null;
+    return data[0] ? transformPermitIssuer(data[0]) : null;
   } catch (error) {
     console.error('Error updating user:', error.message);
     throw error;
   }
 };
 
-// Delete a user
-export const deleteUser = async (userId) => {
+// Delete a permit issuer
+export const deletePermitIssuer = async (permitIssuerId) => {
   try {
     const { error } = await supabase
       .from('permit_issuers')
       .delete()
-      .eq('id', userId);
+      .eq('id', permitIssuerId);
 
     if (error) throw error;
     return true;

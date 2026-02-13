@@ -15,7 +15,7 @@ import {
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
-import { createUser, listUsers, updateUser, deleteUser } from './src/api/users';
+import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/users';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName } from './src/api/sites';
 
@@ -1139,8 +1139,8 @@ const PermitManagementApp = () => {
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
-        // Load users from database, fall back to mock data if empty
-        const usersData = await listUsers();
+        // Load permit issuers from database, fall back to mock data if empty
+        const usersData = await listPermitIssuers();
         console.log('✅ Users loaded from database:', usersData);
         console.log('📊 User data structure:', usersData.map(u => ({ 
           name: u.name, 
@@ -3845,28 +3845,28 @@ const PermitManagementApp = () => {
         const siteIds = currentUser.sites.map(siteName => siteNameToIdMap[siteName]).filter(Boolean);
         
         if (editingUser) {
-          await updateUser(currentUser.id, {
+          await updatePermitIssuer(currentUser.id, {
             name: currentUser.name,
             email: currentUser.email,
             company: currentUser.company,
             siteIds: siteIds,
             isAdmin: currentUser.isAdmin
           });
-          const freshUsers = await listUsers();
+          const freshUsers = await listPermitIssuers();
           setUsers(freshUsers);
           setEditingUser(false);
           Alert.alert('User Updated', 'User has been updated successfully.');
         } else {
-          await createUser({
+          await createPermitIssuer({
             name: currentUser.name,
             email: currentUser.email,
             company: currentUser.company,
             siteIds: siteIds,
             isAdmin: currentUser.isAdmin
           });
-          const freshUsers = await listUsers();
+          const freshUsers = await listPermitIssuers();
           setUsers(freshUsers);
-          Alert.alert('User Added', 'New user has been added successfully.');
+          Alert.alert('User Added', 'New permit issuer has been added successfully');
         }
         setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
         setSelectedUser(null);
@@ -3879,10 +3879,10 @@ const PermitManagementApp = () => {
       if (window.confirm('Delete User?\n\nAre you sure? This action cannot be undone.')) {
         (async () => {
           try {
-            console.log('🗑️ Deleting user:', id);
-            await deleteUser(id);
-            console.log('✅ User deleted successfully');
-            const freshUsers = await listUsers();
+            console.log('🗑️ Deleting permit issuer:', id);
+            await deletePermitIssuer(id);
+            console.log('✅ Permit issuer deleted successfully');
+            const freshUsers = await listPermitIssuers();
             setUsers(freshUsers);
             setEditingUser(false);
             setSelectedUser(null);
@@ -3966,13 +3966,13 @@ const PermitManagementApp = () => {
               return;
             }
 
-            // Save all users to Supabase
+            // Save all permit issuers to Supabase
             for (const user of newUsers) {
-              await createUser(user);
+              await createPermitIssuer(user);
             }
 
-            // Reload users from database
-            const freshUsers = await listUsers();
+            // Reload permit issuers from database
+            const freshUsers = await listPermitIssuers();
             setUsers(freshUsers);
             Alert.alert('Success', `${newUsers.length} user(s) imported successfully!`);
           } catch (error) {
@@ -4071,10 +4071,10 @@ const PermitManagementApp = () => {
               <TouchableOpacity 
                 style={{ backgroundColor: '#6366F1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} 
                 onPress={async () => {
-                  console.log('🔄 Refreshing users...');
-                  const freshUsers = await listUsers();
-                  console.log('✅ Users refreshed:', freshUsers.length, 'users loaded');
-                  console.log('📋 Users data:', freshUsers.map(u => ({ name: u.name, email: u.email, site_ids: u.site_ids, sites: u.sites })));
+                  console.log('🔄 Refreshing permit issuers...');
+                  const freshUsers = await listPermitIssuers();
+                  console.log('✅ Permit issuers refreshed:', freshUsers.length, 'issuers loaded');
+                  console.log('📋 Permit issuers data:', freshUsers.map(u => ({ name: u.name, email: u.email, site_ids: u.site_ids, sites: u.sites })));
                   setUsers(freshUsers);
                 }}
               >
