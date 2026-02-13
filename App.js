@@ -5202,11 +5202,8 @@ const PermitManagementApp = () => {
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
             // Reject: set status to 'rejected' and update permit
             try {
-              const rejectedDate = new Date().toISOString().split('T')[0];
-              
               await updatePermit(editData.id, { 
-                status: 'rejected', 
-                rejected_date: rejectedDate 
+                status: 'rejected'
               });
               
               const freshPermits = await listPermits();
