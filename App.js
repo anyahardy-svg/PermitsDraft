@@ -2873,6 +2873,7 @@ const PermitManagementApp = () => {
   const initialSignOns = [];
   const [editData, setEditData] = React.useState({
     ...permit,
+    permitIssuer: permit.permitted_issuer || '',
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
@@ -2909,6 +2910,7 @@ const PermitManagementApp = () => {
         startTime: editData.startTime,
         endDate: editData.endDate,
         endTime: editData.endTime,
+        permitted_issuer: editData.permitIssuer,
         specializedPermits: editData.specializedPermits,
         singleHazards: editData.singleHazards,
         jsea: editData.jsea,
@@ -2937,6 +2939,7 @@ const PermitManagementApp = () => {
         startTime: editData.startTime,
         endDate: editData.endDate,
         endTime: editData.endTime,
+        permitted_issuer: editData.permitIssuer,
         specializedPermits: editData.specializedPermits,
         singleHazards: editData.singleHazards,
         jsea: editData.jsea,
@@ -3064,6 +3067,25 @@ const PermitManagementApp = () => {
           </View>
         ) : (
           <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
+        )}
+        
+        <Text style={styles.label}>Permit Issuer:</Text>
+        {isDraft ? (
+          <CustomDropdown
+            label="Select Permit Issuer"
+            options={
+              editData.site_id 
+                ? users
+                    .filter(user => user.site_ids && user.site_ids.includes(editData.site_id))
+                    .map(user => user.name)
+                : []
+            }
+            selectedValue={editData.permitIssuer || ''}
+            onValueChange={value => handleEditChange('permitIssuer', value)}
+            style={styles.input}
+          />
+        ) : (
+          <Text style={styles.detailText}>{editData.permitIssuer || ''}</Text>
         )}
         
         <Text style={styles.label}>Priority:</Text>
