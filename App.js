@@ -6627,7 +6627,26 @@ const PermitManagementApp = () => {
     case 'pending_inspection':
       return renderInspectionList();
     case 'review_permit':
-      return (
+      // Use ReviewPermitScreen for drafts and completed permits, EditableApprovalPermitScreen for pending approval
+      return selectedPermit?.status === 'draft' ? (
+        <ReviewPermitScreen
+          permit={selectedPermit}
+          setPermits={setPermits}
+          setCurrentScreen={setCurrentScreen}
+          permits={permits}
+          styles={styles}
+          handlePrintPermit={handlePrintPermit}
+          sites={sites}
+          users={users}
+          contractors={contractors}
+          siteNameToIdMap={siteNameToIdMap}
+          siteIdToNameMap={siteIdToNameMap}
+          permitQuestionnaires={permitQuestionnaires}
+          specializedPermitTypes={specializedPermitTypes}
+          singleHazardTypes={singleHazardTypes}
+          getRiskColor={getRiskColor}
+        />
+      ) : (
         <EditableApprovalPermitScreen
           permit={selectedPermit}
           setPermits={setPermits}
