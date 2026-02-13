@@ -4980,6 +4980,17 @@ const PermitManagementApp = () => {
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns
     });
+    
+    // Date/time picker states
+    const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
+    const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+    
+    // Requested By dropdown states
+    const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
+    const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
+    
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -4989,6 +5000,8 @@ const PermitManagementApp = () => {
       controlsSummary: true,
       signons: false
     });
+    
+    const isDraft = permit.status === 'draft';
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     // ...reuse helpers from EditActivePermitScreen for editing fields...
     const handleSpecializedChange = (key, field, value) => {
@@ -5026,10 +5039,10 @@ const PermitManagementApp = () => {
     return (
       <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('pending_approval')}>
+          <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Review/Edit Permit #{editData.permitNumber}</Text>
+          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${editData.id}` : `Review/Edit Permit ${editData.permitNumber}`}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
