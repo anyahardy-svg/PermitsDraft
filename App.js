@@ -6486,7 +6486,24 @@ const PermitManagementApp = () => {
                     <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+                    <Text style={styles.label}>Risk Level:</Text>
+                    <View style={styles.riskButtons}>
+                      {['low', 'medium', 'high', 'very_high'].map(risk => (
+                        <TouchableOpacity
+                          key={risk}
+                          style={[
+                            styles.riskButton,
+                            { backgroundColor: step.riskLevel === risk ? getRiskColor(risk) : '#E5E7EB' }
+                          ]}
+                          onPress={() => updateJSEAStep(idx, 'riskLevel', risk)}
+                        >
+                          <Text style={[
+                            styles.riskButtonText,
+                            { color: step.riskLevel === risk ? 'white' : '#374151' }
+                          ]}>{risk.toUpperCase()}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
@@ -6505,7 +6522,23 @@ const PermitManagementApp = () => {
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
-                <TextInput style={styles.input} value={editData.jsea.overallRiskRating || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high', 'very_high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: risk } }))}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.label}>Additional Precautions:</Text>
                 <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
               </View>
