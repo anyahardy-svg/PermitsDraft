@@ -54,7 +54,10 @@ const ALL_SERVICES = [
   'Blasting',
   'Mobile Plant Servicing',
   'Fixed Plant Servicing',
-  'Surveying'
+  'Surveying',
+  'Environmental',
+  'Transport Driver',
+  'Other (specify in description)'
 ];
 
 // CustomDropdown: modal dropdown for site selection
@@ -2860,7 +2863,7 @@ const PermitManagementApp = () => {
   }
 
   // Standalone component for reviewing/editing a permit for approval
-  const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) => {
+  const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
   const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
@@ -2970,9 +2973,9 @@ const PermitManagementApp = () => {
           <CustomDropdown
             label="Select Site"
             options={ALL_SITES}
-            selectedValue={editData.site_id ? (sites.find(s => s.id === editData.site_id)?.name || '') : ''}
+            selectedValue={editData.site_id ? (siteIdToNameMap[editData.site_id] || '') : ''}
             onValueChange={value => {
-              const siteId = sites.find(s => s.name === value)?.id;
+              const siteId = siteNameToIdMap[value];
               handleEditChange('site_id', siteId);
               handleEditChange('requestedBy', '');
               setShowRequestedByDropdown(false);
@@ -2981,7 +2984,7 @@ const PermitManagementApp = () => {
             style={styles.input}
           />
         ) : (
-          <Text style={styles.detailText}>{sites.find(s => s.id === editData.site_id)?.name || 'Not specified'}</Text>
+          <Text style={styles.detailText}>{siteIdToNameMap[editData.site_id] || 'Not specified'}</Text>
         )}
         
         <Text style={styles.label}>Location:</Text>
@@ -6654,6 +6657,15 @@ const PermitManagementApp = () => {
           permits={permits}
           styles={styles}
           handlePrintPermit={handlePrintPermit}
+          sites={sites}
+          users={users}
+          contractors={contractors}
+          siteNameToIdMap={siteNameToIdMap}
+          siteIdToNameMap={siteIdToNameMap}
+          permitQuestionnaires={permitQuestionnaires}
+          specializedPermitTypes={specializedPermitTypes}
+          singleHazardTypes={singleHazardTypes}
+          getRiskColor={getRiskColor}
         />
       );
     case 'edit_permit':
