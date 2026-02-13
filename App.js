@@ -5564,33 +5564,98 @@ const PermitManagementApp = () => {
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.submitButton} onPress={async () => {
-            // Approve: set status to 'pending_inspection' or 'active' and update permit
-            const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
-            const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
-              (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
-            
-            try {
-              const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-              const approvedDate = new Date().toISOString().split('T')[0];
+          {isDraft ? (
+            <>
+              <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#059669' }]} onPress={async () => {
+                // Save Draft
+                try {
+                  await updatePermit(editData.id, {
+                    description: editData.description,
+                    location: editData.location,
+                    requested_by: editData.requestedBy,
+                    priority: editData.priority,
+                    status: editData.status,
+                    start_date: editData.startDate,
+                    start_time: editData.startTime,
+                    end_date: editData.endDate,
+                    end_time: editData.endTime,
+                    permitted_issuer: editData.permitIssuer,
+                    specialized_permits: editData.specializedPermits,
+                    single_hazards: editData.singleHazards,
+                    jsea: editData.jsea,
+                    sign_ons: editData.signOns
+                  });
+                  
+                  const freshPermits = await listPermits();
+                  setPermits(freshPermits);
+                  setCurrentScreen('dashboard');
+                  Alert.alert('Draft Saved', 'Your draft has been saved successfully.');
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to save draft: ' + error.message);
+                }
+              }}>
+                <Text style={styles.submitButtonText}>Save Draft</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitButton} onPress={async () => {
+                // Submit for Approval
+                try {
+                  await updatePermit(editData.id, {
+                    description: editData.description,
+                    location: editData.location,
+                    requested_by: editData.requestedBy,
+                    priority: editData.priority,
+                    status: 'pending_approval',
+                    start_date: editData.startDate,
+                    start_time: editData.startTime,
+                    end_date: editData.endDate,
+                    end_time: editData.endTime,
+                    permitted_issuer: editData.permitIssuer,
+                    specialized_permits: editData.specializedPermits,
+                    single_hazards: editData.singleHazards,
+                    jsea: editData.jsea,
+                    sign_ons: editData.signOns
+                  });
+                  
+                  const freshPermits = await listPermits();
+                  setPermits(freshPermits);
+                  setCurrentScreen('dashboard');
+                  Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to submit permit: ' + error.message);
+                }
+              }}>
+                <Text style={styles.submitButtonText}>Submit for Approval</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.submitButton} onPress={async () => {
+              // Approve: set status to 'pending_inspection' or 'active' and update permit
+              const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
+              const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
+                (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
               
-              await updatePermit(editData.id, { 
-                status: newStatus, 
-                approved_date: approvedDate 
-              });
-              
-              const freshPermits = await listPermits();
-              setPermits(freshPermits);
-              setCurrentScreen('dashboard');
-              Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to approve permit: ' + error.message);
-            }
-          }}>
-            <Text style={styles.submitButtonText}>Approve</Text>
-          </TouchableOpacity>
+              try {
+                const newStatus = isHighRisk ? 'pending_inspection' : 'active';
+                const approvedDate = new Date().toISOString().split('T')[0];
+                
+                await updatePermit(editData.id, { 
+                  status: newStatus, 
+                  approved_date: approvedDate 
+                });
+                
+                const freshPermits = await listPermits();
+                setPermits(freshPermits);
+                setCurrentScreen('dashboard');
+                Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
+              } catch (error) {
+                Alert.alert('Error', 'Failed to approve permit: ' + error.message);
+              }
+            }}>
+              <Text style={styles.submitButtonText}>Approve</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
-            // Reject: set status to 'rejected' and update permit
+            // Reject: delete draft or reject pending approval
             try {
               await updatePermit(editData.id, { 
                 status: 'rejected'
@@ -5599,7 +5664,7 @@ const PermitManagementApp = () => {
               const freshPermits = await listPermits();
               setPermits(freshPermits);
               setCurrentScreen('dashboard');
-              Alert.alert('Permit Rejected', 'Permit has been rejected.');
+              Alert.alert('Permit Rejected', isDraft ? 'Draft permit has been deleted.' : 'Permit has been rejected.');
             } catch (error) {
               Alert.alert('Error', 'Failed to reject permit: ' + error.message);
             }
@@ -6629,26 +6694,7 @@ const PermitManagementApp = () => {
     case 'pending_inspection':
       return renderInspectionList();
     case 'review_permit':
-      // Use ReviewPermitScreen for drafts and completed permits, EditableApprovalPermitScreen for pending approval
-      return selectedPermit?.status === 'draft' ? (
-        <ReviewPermitScreen
-          permit={selectedPermit}
-          setPermits={setPermits}
-          setCurrentScreen={setCurrentScreen}
-          permits={permits}
-          styles={styles}
-          handlePrintPermit={handlePrintPermit}
-          sites={sites}
-          users={users}
-          contractors={contractors}
-          siteNameToIdMap={siteNameToIdMap}
-          siteIdToNameMap={siteIdToNameMap}
-          permitQuestionnaires={permitQuestionnaires}
-          specializedPermitTypes={specializedPermitTypes}
-          singleHazardTypes={singleHazardTypes}
-          getRiskColor={getRiskColor}
-        />
-      ) : (
+      return (
         <EditableApprovalPermitScreen
           permit={selectedPermit}
           setPermits={setPermits}
