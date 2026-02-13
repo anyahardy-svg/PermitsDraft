@@ -57,6 +57,7 @@ CREATE TABLE permits (
   end_date DATE NOT NULL,
   end_time TIME NOT NULL,
   requested_by TEXT NOT NULL,
+  permitted_issuer TEXT,
   approved_date DATE,
   approved_by UUID REFERENCES users(id),
   site_id UUID NOT NULL REFERENCES sites(id),

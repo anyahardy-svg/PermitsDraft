@@ -22,6 +22,8 @@ const transformPermit = (dbPermit) => {
     end_time: dbPermit.end_time,
     requestedBy: dbPermit.requested_by,
     requested_by: dbPermit.requested_by,
+    permittedIssuer: dbPermit.permitted_issuer,
+    permitted_issuer: dbPermit.permitted_issuer,
     siteId: dbPermit.site_id,
     site_id: dbPermit.site_id,
     controlsSummary: dbPermit.controls_summary,
