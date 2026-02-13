@@ -54,7 +54,20 @@ export const listUsers = async () => {
 
     if (error) throw error;
     
-    return (data || []).map(user => transformUser(user));
+    // For each user, get their site names based on site_ids
+    const usersWithSites = await Promise.all((data || []).map(async (user) => {
+      let siteNames = [];
+      if (user.site_ids && user.site_ids.length > 0) {
+        const { data: sitesData } = await supabase
+          .from('sites')
+          .select('name')
+          .in('id', user.site_ids);
+        siteNames = sitesData ? sitesData.map(s => s.name) : [];
+      }
+      return transformUser({ ...user, site_names: siteNames });
+    }));
+    
+    return usersWithSites;
   } catch (error) {
     console.error('Error fetching permit issuers:', error.message);
     throw error;
@@ -72,7 +85,17 @@ export const getUser = async (userId) => {
 
     if (error) throw error;
     
-    return data ? transformUser(data) : null;
+    // Get site names if user has site_ids
+    let siteNames = [];
+    if (data.site_ids && data.site_ids.length > 0) {
+      const { data: sitesData } = await supabase
+        .from('sites')
+        .select('name')
+        .in('id', data.site_ids);
+      siteNames = sitesData ? sitesData.map(s => s.name) : [];
+    }
+    
+    return data ? transformUser({ ...data, site_names: siteNames }) : null;
   } catch (error) {
     console.error('Error fetching permit issuer:', error.message);
     throw error;

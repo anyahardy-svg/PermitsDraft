@@ -3827,12 +3827,14 @@ const PermitManagementApp = () => {
         return;
       }
       try {
+        // Convert site names to site IDs
+        const siteIds = currentUser.sites.map(siteName => siteNameToIdMap[siteName]).filter(Boolean);
+        
         if (editingUser) {
           await updateUser(currentUser.id, {
             name: currentUser.name,
             email: currentUser.email,
-            sites: currentUser.sites,
-            company: currentUser.company,
+            siteIds: siteIds,
             isAdmin: currentUser.isAdmin
           });
           const freshUsers = await listUsers();
@@ -3843,8 +3845,7 @@ const PermitManagementApp = () => {
           await createUser({
             name: currentUser.name,
             email: currentUser.email,
-            sites: currentUser.sites,
-            company: currentUser.company,
+            siteIds: siteIds,
             isAdmin: currentUser.isAdmin
           });
           const freshUsers = await listUsers();
