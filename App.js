@@ -5042,7 +5042,7 @@ const PermitManagementApp = () => {
           <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${editData.id}` : `Review/Edit Permit ${editData.permitNumber}`}</Text>
+          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit` : `Review/Edit Permit`}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -5067,6 +5067,21 @@ const PermitManagementApp = () => {
                   setShowRequestedByDropdown(false);
                   setFilteredRequestedBy([]);
                 }}
+                style={styles.input}
+              />
+              
+              <Text style={styles.label}>Permit Issuer</Text>
+              <CustomDropdown
+                label="Select Permit Issuer"
+                options={
+                  editData.site_id 
+                    ? users
+                        .filter(user => user.site_ids && user.site_ids.includes(editData.site_id))
+                        .map(user => user.name)
+                    : []
+                }
+                selectedValue={editData.permitIssuer || ''}
+                onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
               
@@ -5139,24 +5154,7 @@ const PermitManagementApp = () => {
                 )}
               </View>
               
-              <Text style={styles.label}>Priority:</Text>
-              {isDraft ? (
-                <View style={styles.priorityButtons}>
-                  {['low', 'medium', 'high'].map(priority => (
-                    <TouchableOpacity key={priority} style={[styles.priorityButton, { backgroundColor: editData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }]} onPress={() => setEditData({ ...editData, priority })}>
-                      <Text style={[styles.priorityButtonText, { color: editData.priority === priority ? 'white' : '#374151' }]}>{priority.toUpperCase()}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
-              )}
-              
-              <Text style={styles.label}>Status:</Text>
-              <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
-              
-              <Text style={styles.label}>Dates & Times:</Text>
-              <Text style={[styles.label, { marginTop: 12 }]}>Start Date</Text>
+              <Text style={styles.label}>Start Date</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
                 <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
                   {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
@@ -5171,7 +5169,7 @@ const PermitManagementApp = () => {
                 currentValue={editData.startDate}
               />
               
-              <Text style={[styles.label, { marginTop: 12 }]}>Start Time</Text>
+              <Text style={styles.label}>Start Time</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
                 <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
                   {editData.startTime || 'Select start time'}
@@ -5186,7 +5184,7 @@ const PermitManagementApp = () => {
                 currentValue={editData.startTime}
               />
               
-              <Text style={[styles.label, { marginTop: 12 }]}>End Date</Text>
+              <Text style={styles.label}>End Date</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
                 <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
                   {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
@@ -5201,7 +5199,7 @@ const PermitManagementApp = () => {
                 currentValue={editData.endDate}
               />
               
-              <Text style={[styles.label, { marginTop: 12 }]}>End Time</Text>
+              <Text style={styles.label}>End Time</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
                 <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
                   {editData.endTime || 'Select end time'}
@@ -5215,6 +5213,9 @@ const PermitManagementApp = () => {
                 mode="time"
                 currentValue={editData.endTime}
               />
+              
+              <Text style={styles.label}>Status:</Text>
+              <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
             </View>
           )}
         </View>
