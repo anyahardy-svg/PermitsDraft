@@ -155,8 +155,6 @@ export const updateUser = async (userId, updates) => {
     throw error;
   }
 };
-  }
-;
 
 // Delete a user
 export const deleteUser = async (userId) => {
