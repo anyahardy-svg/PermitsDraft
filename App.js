@@ -2942,8 +2942,7 @@ const PermitManagementApp = () => {
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
         jsea: editData.jsea,
-        sign_ons: editData.signOns,
-        submitted_date: new Date().toISOString().split('T')[0]
+        sign_ons: editData.signOns
       });
       
       const freshPermits = await listPermits();
@@ -3366,6 +3365,9 @@ const PermitManagementApp = () => {
             Alert.alert('Test', 'Print button clicked');
           }}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#059669' }]} onPress={saveDraftChanges}>
+            <Text style={styles.submitButtonText}>Save Draft</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={submitDraftForApproval}>
             <Text style={styles.submitButtonText}>Submit for Approval</Text>
