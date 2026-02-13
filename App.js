@@ -1108,6 +1108,7 @@ const PermitManagementApp = () => {
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [permits, setPermits] = useState([]);
+  const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
 
   // Load permits from Supabase on component mount
@@ -1118,6 +1119,7 @@ const PermitManagementApp = () => {
         
         // Load sites FIRST and create mappings
         const sitesData = await listSites();
+        setSites(sitesData);
         const nameToIdMap = {};
         const idToNameMap = {};
         sitesData.forEach(site => {
