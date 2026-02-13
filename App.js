@@ -6239,7 +6239,7 @@ const PermitManagementApp = () => {
   };
 
   // Edit/Complete Active Permit Screen
-  const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles }) => {
+  const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, users, sites, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
     // Always get the latest permit from permits array
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
     const [editData, setEditData] = React.useState({
@@ -6317,6 +6317,7 @@ const PermitManagementApp = () => {
     };
 
     const canComplete = issuerName && issuerSignature && receiverName && receiverSignature;
+    const siteName = siteIdToNameMap && editData.site_id ? siteIdToNameMap[editData.site_id] : '';
 
     return (
       <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
@@ -6324,7 +6325,7 @@ const PermitManagementApp = () => {
           <TouchableOpacity onPress={() => setCurrentScreen('active')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Edit/Complete Permit #{editData.permitNumber}</Text>
+          <Text style={styles.title}>Edit/Complete ACTIVE Permit #{editData.permitNumber}{siteName ? ` - ${siteName}` : ''}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -6337,6 +6338,48 @@ const PermitManagementApp = () => {
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+              
+              <Text style={styles.label}>Site:</Text>
+              <CustomDropdown
+                label="Select Site"
+                options={ALL_SITES}
+                selectedValue={editData.site_id ? (siteIdToNameMap[editData.site_id] || '') : ''}
+                onValueChange={value => {
+                  const siteId = siteNameToIdMap[value];
+                  setEditData({ ...editData, site_id: siteId, permitted_issuer: '' });
+                }}
+                style={styles.input}
+              />
+              
+              <Text style={styles.label}>Permit Issuer:</Text>
+              {React.useMemo(() => {
+                let options = [];
+                if (editData.site_id && users) {
+                  const siteName = siteIdToNameMap[editData.site_id];
+                  const filtered = users.filter(user => {
+                    const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.includes(editData.site_id);
+                    const hasSiteName = user.sites && Array.isArray(user.sites) && siteName && user.sites.includes(siteName);
+                    const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.includes(editData.site_id);
+                    return hasSiteId || hasSiteName || hasSiteIdFallback;
+                  });
+                  options = filtered.map(user => user.name);
+                  if (options.length === 0 && users) {
+                    options = users.map(user => user.name);
+                  }
+                } else if (users) {
+                  options = users.map(user => user.name);
+                }
+                return (
+                  <CustomDropdown
+                    label="Select Permit Issuer"
+                    options={options}
+                    selectedValue={editData.permitted_issuer || ''}
+                    onValueChange={value => setEditData({ ...editData, permitted_issuer: value })}
+                    style={styles.input}
+                  />
+                );
+              }, [editData.site_id, users, siteIdToNameMap])}
+              
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
@@ -6800,6 +6843,14 @@ const PermitManagementApp = () => {
           setCurrentScreen={setCurrentScreen}
           permits={permits}
           styles={styles}
+          users={users}
+          sites={sites}
+          siteNameToIdMap={siteNameToIdMap}
+          siteIdToNameMap={siteIdToNameMap}
+          permitQuestionnaires={permitQuestionnaires}
+          specializedPermitTypes={specializedPermitTypes}
+          singleHazardTypes={singleHazardTypes}
+          getRiskColor={getRiskColor}
         />
       );
     case 'completed':
