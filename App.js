@@ -1139,9 +1139,16 @@ const PermitManagementApp = () => {
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
-        // Load users
+        // Load users from database, fall back to mock data if empty
         const usersData = await listUsers();
-        setUsers(usersData);
+        console.log('✅ Users loaded from database:', usersData);
+        if (usersData && usersData.length > 0) {
+          console.log('✅ Loaded', usersData.length, 'users from database');
+          setUsers(usersData);
+        } else {
+          console.warn('⚠️ No users in database, keeping mock data as fallback');
+          // Keep the default mock data, don't overwrite with empty array
+        }
         
         // Load contractors LAST (after mappings are ready)
         const contractorsData = await listContractors();
@@ -5112,19 +5119,56 @@ const PermitManagementApp = () => {
               />
               
               <Text style={styles.label}>Permit Issuer</Text>
-              <CustomDropdown
-                label="Select Permit Issuer"
-                options={
-                  editData.site_id 
-                    ? users
-                        .filter(user => user.site_ids && user.site_ids.includes(editData.site_id))
-                        .map(user => user.name)
-                    : []
+              {React.useMemo(() => {
+                let options = [];
+                
+                if (editData.site_id) {
+                  const siteName = siteIdToNameMap[editData.site_id];
+                  console.log('🔍 Filtering users for site_id:', editData.site_id, 'site name:', siteName);
+                  console.log('📊 Available users:', users.map(u => ({ 
+                    name: u.name, 
+                    site_ids: u.site_ids, 
+                    sites: u.sites,
+                    hasSiteIds: !!u.site_ids
+                  })));
+                  
+                  // Filter users who have this site
+                  const filtered = users.filter(user => {
+                    // Check if user has site_ids array and it includes the selected site_id
+                    const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0 && user.site_ids.includes(editData.site_id);
+                    // Check if user has sites array and it includes the selected site name
+                    const hasSiteName = user.sites && Array.isArray(user.sites) && user.sites.length > 0 && siteName && user.sites.includes(siteName);
+                    // Fallback: check old site_ids format if present
+                    const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.length > 0 && user.siteIds.includes(editData.site_id);
+                    
+                    const matches = hasSiteId || hasSiteName || hasSiteIdFallback;
+                    console.log(`  ${user.name}: hasSiteId=${hasSiteId}, hasSiteName=${hasSiteName}, hasSiteIdFallback=${hasSiteIdFallback}, matches=${matches}`);
+                    return matches;
+                  });
+                  
+                  options = filtered.map(user => user.name);
+                  console.log('✅ Filtered options:', options);
+                  
+                  // If no users found and site_id is set, show all users as fallback
+                  if (options.length === 0) {
+                    console.warn('⚠️ No users found for site, showing all users as fallback');
+                    options = users.map(user => user.name);
+                  }
+                } else {
+                  console.log('⚠️ No site selected - showing all users');
+                  options = users.map(user => user.name);
                 }
-                selectedValue={editData.permitIssuer || ''}
-                onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
-                style={styles.input}
-              />
+                
+                return (
+                  <CustomDropdown
+                    label="Select Permit Issuer"
+                    options={options}
+                    selectedValue={editData.permitIssuer || ''}
+                    onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
+                    style={styles.input}
+                  />
+                );
+              }, [editData.site_id, users, editData.permitIssuer, siteIdToNameMap])}
               
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
