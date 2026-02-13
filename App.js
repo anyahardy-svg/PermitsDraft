@@ -848,6 +848,7 @@ const PermitManagementApp = () => {
     requestedBy: '',
     location: '',
     site: '',
+    permitIssuer: '',
     status: 'pending_approval',
     priority: 'medium',
     startDate: defaultDate,
@@ -1063,6 +1064,7 @@ const PermitManagementApp = () => {
         end_date: formData.endDate,
         end_time: formData.endTime,
         requested_by: formData.requestedBy,
+        permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
@@ -1327,6 +1329,21 @@ const PermitManagementApp = () => {
                     setShowRequestedByDropdown(false);
                     setFilteredRequestedBy([]);
                   }}
+                  style={styles.input}
+                />
+                
+                <Text style={styles.label}>Permit Issuer</Text>
+                <CustomDropdown
+                  label="Select Permit Issuer"
+                  options={
+                    formData.site 
+                      ? users
+                          .filter(user => user.sites && user.sites.includes(formData.site))
+                          .map(user => user.name)
+                      : []
+                  }
+                  selectedValue={formData.permitIssuer || ''}
+                  onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
                   style={styles.input}
                 />
                 
@@ -4972,6 +4989,7 @@ const PermitManagementApp = () => {
   const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
+      permitIssuer: permit.permitted_issuer || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -5065,6 +5083,21 @@ const PermitManagementApp = () => {
                   setShowRequestedByDropdown(false);
                   setFilteredRequestedBy([]);
                 }}
+                style={styles.input}
+              />
+              
+              <Text style={styles.label}>Permit Issuer</Text>
+              <CustomDropdown
+                label="Select Permit Issuer"
+                options={
+                  editData.site_id 
+                    ? users
+                        .filter(user => user.site_ids && user.site_ids.includes(editData.site_id))
+                        .map(user => user.name)
+                    : []
+                }
+                selectedValue={editData.permitIssuer || ''}
+                onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
               
