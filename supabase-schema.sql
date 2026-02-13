@@ -37,6 +37,7 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
+  company TEXT,
   site_ids UUID[] DEFAULT '{}',
   role TEXT DEFAULT 'user',
   is_admin BOOLEAN DEFAULT FALSE,

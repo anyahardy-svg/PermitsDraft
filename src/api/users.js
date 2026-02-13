@@ -29,6 +29,7 @@ export const createUser = async (userData) => {
       .insert([{
         name: userData.name,
         email: userData.email,
+        company: userData.company || '',
         site_ids: userData.siteIds || [],
         role: userData.role || 'user',
         is_admin: userData.isAdmin || false
@@ -108,6 +109,7 @@ export const updateUser = async (userId, updates) => {
     const updateData = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.company !== undefined) updateData.company = updates.company;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.is_admin = updates.isAdmin;
     if (updates.siteIds !== undefined) updateData.site_ids = updates.siteIds;
