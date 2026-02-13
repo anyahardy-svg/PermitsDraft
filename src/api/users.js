@@ -25,38 +25,17 @@ const transformUser = (dbUser) => {
 export const createUser = async (userData) => {
   try {
     const { data, error } = await supabase
-      .from('permit_issuers')
+      .from('users')
       .insert([{
         name: userData.name,
         email: userData.email,
+        site_ids: userData.siteIds || [],
         role: userData.role || 'user',
-        is_admin: userData.isAdmin || false,
-        company: userData.company || ''
+        is_admin: userData.isAdmin || false
       }])
       .select();
 
     if (error) throw error;
-    
-    // Now add the site associations
-    const issuerId = data[0].id;
-    if (userData.sites && userData.sites.length > 0) {
-      // Get site IDs from site names
-      const { data: sitesData } = await supabase
-        .from('sites')
-        .select('id')
-        .in('name', userData.sites);
-      
-      if (sitesData && sitesData.length > 0) {
-        const issuerSites = sitesData.map(site => ({
-          permit_issuer_id: issuerId,
-          site_id: site.id
-        }));
-        
-        await supabase
-          .from('permit_issuer_sites')
-          .insert(issuerSites);
-      }
-    }
     
     return data[0] ? transformUser(data[0]) : null;
   } catch (error) {
@@ -69,24 +48,13 @@ export const createUser = async (userData) => {
 export const listUsers = async () => {
   try {
     const { data, error } = await supabase
-      .from('permit_issuers')
+      .from('users')
       .select('*')
       .order('name', { ascending: true });
 
     if (error) throw error;
     
-    // For each issuer, get their associated sites
-    const issuersWithSites = await Promise.all((data || []).map(async (issuer) => {
-      const { data: siteData } = await supabase
-        .from('permit_issuer_sites')
-        .select('sites(name)')
-        .eq('permit_issuer_id', issuer.id);
-      
-      const sites = siteData ? siteData.map(s => s.sites.name) : [];
-      return transformUser({ ...issuer, site_names: sites });
-    }));
-    
-    return issuersWithSites;
+    return (data || []).map(user => transformUser(user));
   } catch (error) {
     console.error('Error fetching permit issuers:', error.message);
     throw error;
@@ -97,21 +65,14 @@ export const listUsers = async () => {
 export const getUser = async (userId) => {
   try {
     const { data, error } = await supabase
-      .from('permit_issuers')
+      .from('users')
       .select('*')
       .eq('id', userId)
       .single();
 
     if (error) throw error;
     
-    // Get their associated sites
-    const { data: siteData } = await supabase
-      .from('permit_issuer_sites')
-      .select('sites(name)')
-      .eq('permit_issuer_id', userId);
-    
-    const sites = siteData ? siteData.map(s => s.sites.name) : [];
-    return data ? transformUser({ ...data, site_names: sites }) : null;
+    return data ? transformUser(data) : null;
   } catch (error) {
     console.error('Error fetching permit issuer:', error.message);
     throw error;
@@ -126,43 +87,15 @@ export const updateUser = async (userId, updates) => {
     if (updates.email !== undefined) updateData.email = updates.email;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.is_admin = updates.isAdmin;
-    if (updates.company !== undefined) updateData.company = updates.company;
+    if (updates.siteIds !== undefined) updateData.site_ids = updates.siteIds;
 
     const { data, error } = await supabase
-      .from('permit_issuers')
+      .from('users')
       .update(updateData)
       .eq('id', userId)
       .select();
 
     if (error) throw error;
-    
-    // Update site associations if provided
-    if (updates.sites !== undefined) {
-      // Delete old associations
-      await supabase
-        .from('permit_issuer_sites')
-        .delete()
-        .eq('permit_issuer_id', userId);
-      
-      // Add new associations
-      if (updates.sites && updates.sites.length > 0) {
-        const { data: sitesData } = await supabase
-          .from('sites')
-          .select('id')
-          .in('name', updates.sites);
-        
-        if (sitesData && sitesData.length > 0) {
-          const issuerSites = sitesData.map(site => ({
-            permit_issuer_id: userId,
-            site_id: site.id
-          }));
-          
-          await supabase
-            .from('permit_issuer_sites')
-            .insert(issuerSites);
-        }
-      }
-    }
     
     return data[0] ? transformUser(data[0]) : null;
   } catch (error) {
@@ -175,7 +108,7 @@ export const updateUser = async (userId, updates) => {
 export const deleteUser = async (userId) => {
   try {
     const { error } = await supabase
-      .from('permit_issuers')
+      .from('users')
       .delete()
       .eq('id', userId);
 
