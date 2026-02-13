@@ -25,7 +25,7 @@ const transformUser = (dbUser) => {
 export const createUser = async (userData) => {
   try {
     const { data, error } = await supabase
-      .from('users')
+      .from('permit_issuers')
       .insert([{
         name: userData.name,
         email: userData.email,
@@ -48,9 +48,9 @@ export const createUser = async (userData) => {
 // Get all permit issuers
 export const listUsers = async () => {
   try {
-    console.log('🔵 listUsers: Querying users table...');
+    console.log('🔵 listUsers: Querying permit_issuers table...');
     const { data, error } = await supabase
-      .from('users')
+      .from('permit_issuers')
       .select('*')
       .order('name', { ascending: true });
 
@@ -60,11 +60,11 @@ export const listUsers = async () => {
     }
     
     console.log('📦 listUsers: Raw data from DB:', data);
-    console.log(`📊 listUsers: Found ${(data || []).length} users`);
+    console.log(`📊 listUsers: Found ${(data || []).length} permit issuers`);
     
-    // For each user, get their site names based on site_ids
+    // For each issuer, get their site names based on site_ids
     const usersWithSites = await Promise.all((data || []).map(async (user) => {
-      console.log(`  Processing user: ${user.name} (${user.id})`, { site_ids: user.site_ids });
+      console.log(`  Processing permit issuer: ${user.name} (${user.id})`, { site_ids: user.site_ids });
       let siteNames = [];
       if (user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0) {
         console.log(`    Looking up ${user.site_ids.length} site names for ${user.name}...`);
@@ -80,7 +80,7 @@ export const listUsers = async () => {
         }
       }
       const transformed = transformUser({ ...user, site_names: siteNames });
-      console.log(`  ✅ Transformed user ${user.name}:`, transformed);
+      console.log(`  ✅ Transformed permit issuer ${user.name}:`, transformed);
       return transformed;
     }));
     
@@ -96,7 +96,7 @@ export const listUsers = async () => {
 export const getUser = async (userId) => {
   try {
     const { data, error } = await supabase
-      .from('users')
+      .from('permit_issuers')
       .select('*')
       .eq('id', userId)
       .single();
@@ -132,7 +132,7 @@ export const updateUser = async (userId, updates) => {
     if (updates.siteIds !== undefined) updateData.site_ids = updates.siteIds;
 
     const { data, error } = await supabase
-      .from('users')
+      .from('permit_issuers')
       .update(updateData)
       .eq('id', userId)
       .select();
@@ -145,12 +145,14 @@ export const updateUser = async (userId, updates) => {
     throw error;
   }
 };
+  }
+;
 
 // Delete a user
 export const deleteUser = async (userId) => {
   try {
     const { error } = await supabase
-      .from('users')
+      .from('permit_issuers')
       .delete()
       .eq('id', userId);
 
