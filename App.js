@@ -1191,7 +1191,7 @@ const PermitManagementApp = () => {
   const [editPermitData, setEditPermitData] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editingUser, setEditingUser] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
+  const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], isAdmin: false });
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
@@ -3822,8 +3822,8 @@ const PermitManagementApp = () => {
   // Manage Users Screen
   const renderManageUsers = () => {
     const handleAddUser = async () => {
-      if (!currentUser.name || !currentUser.email || !currentUser.company) {
-        Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
+      if (!currentUser.name || !currentUser.email) {
+        Alert.alert('Missing Info', 'Please fill in Name and Email.');
         return;
       }
       try {
@@ -3852,7 +3852,7 @@ const PermitManagementApp = () => {
           setUsers(freshUsers);
           Alert.alert('User Added', 'New user has been added successfully.');
         }
-        setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
+        setCurrentUser({ id: '', name: '', email: '', sites: [], isAdmin: false });
         setSelectedUser(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save user: ' + error.message);
@@ -3987,9 +3987,6 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Email Address *</Text>
               <TextInput style={styles.input} value={currentUser.email} onChangeText={text => setCurrentUser({ ...currentUser, email: text })} placeholder="email@company.com" keyboardType="email-address" />
               
-              <Text style={styles.label}>Company Name *</Text>
-              <TextInput style={styles.input} value={currentUser.company} onChangeText={text => setCurrentUser({ ...currentUser, company: text })} placeholder="Enter company name" />
-              
               <Text style={styles.label}>Available Sites</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites this user can access:</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
@@ -4039,7 +4036,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.addButtonText}>{editingUser ? 'Update User' : 'Add User'}</Text>
               </TouchableOpacity>
               {editingUser && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingUser(false); setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false }); setSelectedUser(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingUser(false); setCurrentUser({ id: '', name: '', email: '', sites: [], isAdmin: false }); setSelectedUser(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4069,7 +4066,6 @@ const PermitManagementApp = () => {
                     </View>}
                   </View>
                   <Text style={styles.detailText}>{user.email}</Text>
-                  <Text style={styles.detailText}>{user.company}</Text>
                   <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites.length > 0 ? user.sites.join(', ') : 'None'}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { setSelectedUser(user); setEditingUser(true); setCurrentUser(user); }}>
