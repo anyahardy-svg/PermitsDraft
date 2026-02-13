@@ -5054,20 +5054,167 @@ const PermitManagementApp = () => {
           {expandedSections.general && (
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Description:</Text>
-              <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+              <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} placeholder="Describe the work..." />
+              
+              <Text style={styles.label}>Site:</Text>
+              <CustomDropdown
+                label="Select Site"
+                options={ALL_SITES}
+                selectedValue={editData.site_id ? (sites.find(s => s.id === editData.site_id)?.name || '') : ''}
+                onValueChange={value => {
+                  const siteId = sites.find(s => s.name === value)?.id;
+                  setEditData({ ...editData, site_id: siteId, requestedBy: '' });
+                  setShowRequestedByDropdown(false);
+                  setFilteredRequestedBy([]);
+                }}
+                style={styles.input}
+              />
+              
               <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
-              <Text style={styles.label}>Requested By:</Text>
-              <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
+              
+              <Text style={styles.label}>Requested By</Text>
+              <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
+                <TextInput
+                  style={styles.input}
+                  value={editData.requestedBy || ''}
+                  onChangeText={text => {
+                    setEditData({ ...editData, requestedBy: text });
+                    if (text.trim().length > 0 && editData.site_id) {
+                      const siteContractors = contractors.filter(contractor => 
+                        contractor.siteIds && 
+                        contractor.siteIds.some(siteId => siteId === editData.site_id)
+                      );
+                      const filtered = siteContractors.filter(c => 
+                        c.name.toLowerCase().includes(text.toLowerCase())
+                      );
+                      setFilteredRequestedBy(filtered);
+                      setShowRequestedByDropdown(filtered.length > 0);
+                    } else {
+                      setShowRequestedByDropdown(false);
+                      setFilteredRequestedBy([]);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowRequestedByDropdown(false), 200);
+                  }}
+                  placeholder="Start typing contractor name..."
+                  editable={editData.site_id ? true : false}
+                />
+                {!editData.site_id && (
+                  <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                )}
+                {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 55,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    maxHeight: 200,
+                    zIndex: 1000,
+                    elevation: 10,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                  }} pointerEvents="auto">
+                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                      {filteredRequestedBy.map(contractor => (
+                        <TouchableOpacity
+                          key={contractor.id}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setEditData({ ...editData, requestedBy: contractor.name });
+                            setShowRequestedByDropdown(false);
+                            setFilteredRequestedBy([]);
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+              
               <Text style={styles.label}>Priority:</Text>
-              <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+              {isDraft ? (
+                <View style={styles.priorityButtons}>
+                  {['low', 'medium', 'high'].map(priority => (
+                    <TouchableOpacity key={priority} style={[styles.priorityButton, { backgroundColor: editData.priority === priority ? getPriorityColor(priority) : '#E5E7EB' }]} onPress={() => setEditData({ ...editData, priority })}>
+                      <Text style={[styles.priorityButtonText, { color: editData.priority === priority ? 'white' : '#374151' }]}>{priority.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
+              )}
+              
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
-              <Text style={styles.label}>Dates:</Text>
-              <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
-              <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
-              <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
-              <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+              
+              <Text style={styles.label}>Dates & Times:</Text>
+              <Text style={[styles.label, { marginTop: 12 }]}>Start Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartDatePicker}
+                onClose={() => setShowStartDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, startDate: date })}
+                mode="date"
+                currentValue={editData.startDate}
+              />
+              
+              <Text style={[styles.label, { marginTop: 12 }]}>Start Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startTime || 'Select start time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartTimePicker}
+                onClose={() => setShowStartTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, startTime: time })}
+                mode="time"
+                currentValue={editData.startTime}
+              />
+              
+              <Text style={[styles.label, { marginTop: 12 }]}>End Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndDatePicker}
+                onClose={() => setShowEndDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, endDate: date })}
+                mode="date"
+                currentValue={editData.endDate}
+              />
+              
+              <Text style={[styles.label, { marginTop: 12 }]}>End Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endTime || 'Select end time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndTimePicker}
+                onClose={() => setShowEndTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, endTime: time })}
+                mode="time"
+                currentValue={editData.endTime}
+              />
             </View>
           )}
         </View>
