@@ -1347,53 +1347,25 @@ const PermitManagementApp = () => {
                 />
                 
                 <Text style={styles.label}>Permit Issuer</Text>
-                {React.useMemo(() => {
-                  let options = [];
-                  
-                  if (formData.site && users) {
-                    console.log('🔍 Filtering permit issuers for site:', formData.site);
-                    console.log('📊 Available users:', users.map(u => ({ 
-                      name: u.name, 
-                      site_ids: u.site_ids, 
-                      sites: u.sites,
-                      hasSiteIds: !!u.site_ids
-                    })));
-                    
-                    // Filter users who have this site
-                    const filtered = users.filter(user => {
-                      // Check if user has sites array and it includes the selected site name
-                      const hasSiteName = user.sites && Array.isArray(user.sites) && user.sites.length > 0 && user.sites.includes(formData.site);
-                      // Fallback: check old site_ids format if present
-                      const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.length > 0;
-                      
-                      const matches = hasSiteName || hasSiteIdFallback;
-                      console.log(`  ${user.name}: hasSiteName=${hasSiteName}, hasSiteIdFallback=${hasSiteIdFallback}, matches=${matches}`);
-                      return matches;
-                    });
-                    
-                    options = filtered.map(user => user.name);
-                    console.log('✅ Filtered options:', options);
-                    
-                    // If no users found with site match, show all users as fallback
-                    if (options.length === 0) {
-                      console.warn('⚠️ No permit issuers found for site, showing all as fallback');
-                      options = users.map(user => user.name);
-                    }
-                  } else if (users) {
-                    console.log('⚠️ No site selected - showing all permit issuers');
-                    options = users.map(user => user.name);
+                <CustomDropdown
+                  label="Select Permit Issuer"
+                  options={
+                    formData.site && users && users.length > 0
+                      ? users
+                          .filter(user => {
+                            // Check if user has sites array and it includes the selected site name
+                            const hasSiteName = user.sites && Array.isArray(user.sites) && user.sites.includes(formData.site);
+                            // Fallback: if no site match, show user if they have siteIds at all
+                            const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.length > 0;
+                            return hasSiteName || hasSiteIdFallback;
+                          })
+                          .map(user => user.name)
+                      : (users && users.length > 0 ? users.map(user => user.name) : [])
                   }
-                  
-                  return (
-                    <CustomDropdown
-                      label="Select Permit Issuer"
-                      options={options}
-                      selectedValue={formData.permitIssuer || ''}
-                      onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
-                      style={styles.input}
-                    />
-                  );
-                }, [formData.site, users])}
+                  selectedValue={formData.permitIssuer || ''}
+                  onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
+                  style={styles.input}
+                />
                 
                 <Text style={styles.label}>Location</Text>
                 <TextInput
