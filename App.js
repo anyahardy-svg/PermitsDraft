@@ -2865,6 +2865,16 @@ const PermitManagementApp = () => {
     signOns: permit.signOns || initialSignOns
   });
   
+  // Date/time picker states for draft editing
+  const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+  
+  // Requested By dropdown states
+  const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
+  const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
+  
   const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
   
@@ -2935,7 +2945,7 @@ const PermitManagementApp = () => {
         <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{isDraft ? `Edit Draft ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
+        <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
       <View style={styles.sectionContent}>
         <Text style={styles.label}>Description:</Text>
@@ -2943,6 +2953,25 @@ const PermitManagementApp = () => {
           <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => handleEditChange('description', text)} placeholder="Describe the work..." />
         ) : (
           <Text style={styles.detailText}>{editData.description || ''}</Text>
+        )}
+        
+        <Text style={styles.label}>Site:</Text>
+        {isDraft ? (
+          <CustomDropdown
+            label="Select Site"
+            options={ALL_SITES}
+            selectedValue={editData.site_id ? (sites.find(s => s.id === editData.site_id)?.name || '') : ''}
+            onValueChange={value => {
+              const siteId = sites.find(s => s.name === value)?.id;
+              handleEditChange('site_id', siteId);
+              handleEditChange('requestedBy', '');
+              setShowRequestedByDropdown(false);
+              setFilteredRequestedBy([]);
+            }}
+            style={styles.input}
+          />
+        ) : (
+          <Text style={styles.detailText}>{sites.find(s => s.id === editData.site_id)?.name || 'Not specified'}</Text>
         )}
         
         <Text style={styles.label}>Location:</Text>
@@ -2954,7 +2983,70 @@ const PermitManagementApp = () => {
         
         <Text style={styles.label}>Requested By:</Text>
         {isDraft ? (
-          <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => handleEditChange('requestedBy', text)} placeholder="Your name" />
+          <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
+            <TextInput
+              style={styles.input}
+              value={editData.requestedBy || ''}
+              onChangeText={text => {
+                handleEditChange('requestedBy', text);
+                if (text.trim().length > 0 && editData.site_id) {
+                  const siteContractors = contractors.filter(contractor => 
+                    contractor.siteIds && 
+                    contractor.siteIds.some(siteId => siteId === editData.site_id)
+                  );
+                  const filtered = siteContractors.filter(c => 
+                    c.name.toLowerCase().includes(text.toLowerCase())
+                  );
+                  setFilteredRequestedBy(filtered);
+                  setShowRequestedByDropdown(filtered.length > 0);
+                } else {
+                  setShowRequestedByDropdown(false);
+                  setFilteredRequestedBy([]);
+                }
+              }}
+              onBlur={() => {
+                setTimeout(() => setShowRequestedByDropdown(false), 200);
+              }}
+              placeholder="Start typing contractor name..."
+              editable={editData.site_id ? true : false}
+            />
+            {!editData.site_id && (
+              <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+            )}
+            {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
+              <View style={{
+                position: 'absolute',
+                top: 55,
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                borderRadius: 8,
+                maxHeight: 200,
+                zIndex: 1000,
+                elevation: 10,
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+              }} pointerEvents="auto">
+                <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                  {filteredRequestedBy.map(contractor => (
+                    <TouchableOpacity
+                      key={contractor.id}
+                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        handleEditChange('requestedBy', contractor.name);
+                        setShowRequestedByDropdown(false);
+                        setFilteredRequestedBy([]);
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
         ) : (
           <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
         )}
@@ -2975,18 +3067,70 @@ const PermitManagementApp = () => {
         <Text style={styles.label}>Status:</Text>
         <Text style={styles.detailText}>{editData.status || ''}</Text>
         
-        <Text style={styles.label}>Dates:</Text>
+        <Text style={styles.label}>Dates & Times:</Text>
         {isDraft ? (
           <>
-            <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => handleEditChange('startDate', text)} placeholder="Start date (YYYY-MM-DD)" />
-            <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => handleEditChange('startTime', text)} placeholder="Start time" />
-            <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => handleEditChange('endDate', text)} placeholder="End date (YYYY-MM-DD)" />
-            <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => handleEditChange('endTime', text)} placeholder="End time" />
+            <Text style={[styles.label, { marginTop: 12 }]}>Start Date</Text>
+            <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+              <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
+              </Text>
+              <Text style={styles.calendarIcon}>📅</Text>
+            </TouchableOpacity>
+            <DateTimePicker
+              visible={showStartDatePicker}
+              onClose={() => setShowStartDatePicker(false)}
+              onSelect={date => handleEditChange('startDate', date)}
+              mode="date"
+              currentValue={editData.startDate}
+            />
+            <Text style={[styles.label, { marginTop: 12 }]}>Start Time</Text>
+            <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+              <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                {editData.startTime || 'Select start time'}
+              </Text>
+              <Text style={styles.calendarIcon}>⏰</Text>
+            </TouchableOpacity>
+            <DateTimePicker
+              visible={showStartTimePicker}
+              onClose={() => setShowStartTimePicker(false)}
+              onSelect={time => handleEditChange('startTime', time)}
+              mode="time"
+              currentValue={editData.startTime}
+            />
+            <Text style={[styles.label, { marginTop: 12 }]}>End Date</Text>
+            <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+              <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
+              </Text>
+              <Text style={styles.calendarIcon}>📅</Text>
+            </TouchableOpacity>
+            <DateTimePicker
+              visible={showEndDatePicker}
+              onClose={() => setShowEndDatePicker(false)}
+              onSelect={date => handleEditChange('endDate', date)}
+              mode="date"
+              currentValue={editData.endDate}
+            />
+            <Text style={[styles.label, { marginTop: 12 }]}>End Time</Text>
+            <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+              <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                {editData.endTime || 'Select end time'}
+              </Text>
+              <Text style={styles.calendarIcon}>⏰</Text>
+            </TouchableOpacity>
+            <DateTimePicker
+              visible={showEndTimePicker}
+              onClose={() => setShowEndTimePicker(false)}
+              onSelect={time => handleEditChange('endTime', time)}
+              mode="time"
+              currentValue={editData.endTime}
+            />
           </>
         ) : (
           <>
-            <Text style={styles.detailText}>Start: {editData.startDate} {editData.startTime}</Text>
-            <Text style={styles.detailText}>End: {editData.endDate} {editData.endTime}</Text>
+            <Text style={styles.detailText}>Start: {editData.startDate ? formatDateNZ(editData.startDate) : 'N/A'} {editData.startTime || ''}</Text>
+            <Text style={styles.detailText}>End: {editData.endDate ? formatDateNZ(editData.endDate) : 'N/A'} {editData.endTime || ''}</Text>
           </>
         )}
 
@@ -3114,9 +3258,41 @@ const PermitManagementApp = () => {
                 <Text style={styles.detailText}>Risk: {step.riskLevel}</Text>
               </View>
             )) : <Text style={styles.detailText}>None</Text>}
-            <Text style={styles.label}>Overall Risk Rating: <Text style={{ fontWeight: 'normal' }}>{editData.jsea.overallRiskRating}</Text></Text>
+            <Text style={styles.label}>Overall Risk Rating</Text>
+            {isDraft ? (
+              <View style={styles.riskButtons}>
+                {['low', 'medium', 'high', 'very_high'].map(risk => (
+                  <TouchableOpacity
+                    key={risk}
+                    style={[
+                      styles.riskButton,
+                      { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                    ]}
+                    onPress={() => handleEditChange('jsea', { ...editData.jsea, overallRiskRating: risk })}
+                  >
+                    <Text style={[
+                      styles.riskButtonText,
+                      { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                    ]}>{risk.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.detailText}>{editData.jsea.overallRiskRating}</Text>
+            )}
             <Text style={styles.label}>Additional Precautions:</Text>
-            <Text style={styles.detailText}>{editData.jsea.additionalPrecautions}</Text>
+            {isDraft ? (
+              <TextInput
+                style={styles.input}
+                value={editData.jsea.additionalPrecautions || ''}
+                onChangeText={text => handleEditChange('jsea', { ...editData.jsea, additionalPrecautions: text })}
+                placeholder="Any additional precautions..."
+                multiline
+                numberOfLines={3}
+              />
+            ) : (
+              <Text style={styles.detailText}>{editData.jsea.additionalPrecautions}</Text>
+            )}
           </View>
         )}
         {/* Sign-Ons */}
