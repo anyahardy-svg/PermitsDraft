@@ -48,7 +48,7 @@ export const createPermitIssuer = async (userData) => {
 // Get all permit issuers
 export const listPermitIssuers = async () => {
   try {
-    console.log('🔵 listUsers: Querying permit_issuers table...');
+    console.log('🔵 listPermitIssuers: Querying permit_issuers table...');
     const { data, error, count, status } = await supabase
       .from('permit_issuers')
       .select('*', { count: 'exact' })
@@ -57,21 +57,21 @@ export const listPermitIssuers = async () => {
     console.log('📋 Raw response object:', { data, error, count, status });
     
     if (error) {
-      console.error('❌ listUsers DB error:', error);
+      console.error('❌ listPermitIssuers DB error:', error);
       throw error;
     }
     
-    console.log('📦 listUsers: Raw data from DB:', data);
-    console.log(`📊 listUsers: Found ${(data || []).length} permit issuers (count: ${count})`);
+    console.log('📦 listPermitIssuers: Raw data from DB:', data);
+    console.log(`📊 listPermitIssuers: Found ${(data || []).length} permit issuers (count: ${count})`);
     console.log('📋 Data structure sample:', data?.[0]);
     
     if (!data || data.length === 0) {
-      console.warn('⚠️ listUsers: No permit issuers found in database');
+      console.warn('⚠️ listPermitIssuers: No permit issuers found in database');
       return [];
     }
     
     // For each issuer, get their site names based on site_ids
-    const usersWithSites = await Promise.all((data || []).map(async (user) => {
+    const permitIssuersWithSites = await Promise.all((data || []).map(async (user) => {
       try {
         console.log(`  Processing permit issuer: ${user.name} (${user.id})`, { site_ids: user.site_ids });
         let siteNames = [];
@@ -92,15 +92,15 @@ export const listPermitIssuers = async () => {
         console.log(`  ✅ Transformed permit issuer ${user.name}:`, transformed);
         return transformed;
       } catch (mapError) {
-        console.error(`  ❌ Error processing user ${user.name}:`, mapError);
+        console.error(`  ❌ Error processing permit issuer ${user.name}:`, mapError);
         throw mapError;
       }
     }));
     
-    console.log('✅ listUsers complete. Returning:', usersWithSites);
-    return usersWithSites;
+    console.log('✅ listPermitIssuers complete. Returning:', permitIssuersWithSites);
+    return permitIssuersWithSites;
   } catch (error) {
-    console.error('❌ Critical error in listUsers:', error.message, error);
+    console.error('❌ Critical error in listPermitIssuers:', error.message, error);
     throw error;
   }
 };
@@ -154,7 +154,7 @@ export const updatePermitIssuer = async (permitIssuerId, updates) => {
     
     return data[0] ? transformPermitIssuer(data[0]) : null;
   } catch (error) {
-    console.error('Error updating user:', error.message);
+    console.error('Error updating permit issuer:', error.message);
     throw error;
   }
 };
@@ -170,9 +170,7 @@ export const deletePermitIssuer = async (permitIssuerId) => {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error deleting user:', error.message);
+    console.error('Error deleting permit issuer:', error.message);
     throw error;
   }
 };
-
-

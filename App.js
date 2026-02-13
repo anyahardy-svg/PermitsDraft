@@ -15,7 +15,7 @@ import {
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
-import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/users';
+import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName } from './src/api/sites';
 
