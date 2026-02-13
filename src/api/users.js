@@ -48,29 +48,46 @@ export const createUser = async (userData) => {
 // Get all permit issuers
 export const listUsers = async () => {
   try {
+    console.log('🔵 listUsers: Querying users table...');
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ listUsers DB error:', error);
+      throw error;
+    }
+    
+    console.log('📦 listUsers: Raw data from DB:', data);
+    console.log(`📊 listUsers: Found ${(data || []).length} users`);
     
     // For each user, get their site names based on site_ids
     const usersWithSites = await Promise.all((data || []).map(async (user) => {
+      console.log(`  Processing user: ${user.name} (${user.id})`, { site_ids: user.site_ids });
       let siteNames = [];
-      if (user.site_ids && user.site_ids.length > 0) {
-        const { data: sitesData } = await supabase
+      if (user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0) {
+        console.log(`    Looking up ${user.site_ids.length} site names for ${user.name}...`);
+        const { data: sitesData, error: sitesError } = await supabase
           .from('sites')
-          .select('name')
+          .select('id, name')
           .in('id', user.site_ids);
-        siteNames = sitesData ? sitesData.map(s => s.name) : [];
+        if (sitesError) {
+          console.error(`    ❌ Error looking up sites for ${user.name}:`, sitesError);
+        } else {
+          siteNames = sitesData ? sitesData.map(s => s.name) : [];
+          console.log(`    ✅ Found ${siteNames.length} sites: ${siteNames.join(', ')}`);
+        }
       }
-      return transformUser({ ...user, site_names: siteNames });
+      const transformed = transformUser({ ...user, site_names: siteNames });
+      console.log(`  ✅ Transformed user ${user.name}:`, transformed);
+      return transformed;
     }));
     
+    console.log('✅ listUsers complete. Returning:', usersWithSites);
     return usersWithSites;
   } catch (error) {
-    console.error('Error fetching permit issuers:', error.message);
+    console.error('❌ Error in listUsers:', error.message, error);
     throw error;
   }
 };
