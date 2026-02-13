@@ -4981,9 +4981,10 @@ const PermitManagementApp = () => {
 
 
   // Editable Approval Permit Screen (for Pending Approval)
-  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit }) => {
+  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
+      permitIssuer: permit.permitted_issuer || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -5052,7 +5053,7 @@ const PermitManagementApp = () => {
           <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.id?.slice(0, 8)}` : `Review/Edit Permit #${permit.id?.slice(0, 8)}`}</Text>
+          <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.permitNumber}` : `Review/Edit Permit #${permit.permitNumber}`}</Text>
         </View>
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
@@ -5070,9 +5071,9 @@ const PermitManagementApp = () => {
               <CustomDropdown
                 label="Select Site"
                 options={ALL_SITES}
-                selectedValue={editData.site_id ? (sites.find(s => s.id === editData.site_id)?.name || '') : ''}
+                selectedValue={editData.site_id ? (siteIdToNameMap[editData.site_id] || '') : ''}
                 onValueChange={value => {
-                  const siteId = sites.find(s => s.name === value)?.id;
+                  const siteId = siteNameToIdMap[value];
                   setEditData({ ...editData, site_id: siteId, requestedBy: '' });
                   setShowRequestedByDropdown(false);
                   setFilteredRequestedBy([]);
@@ -6609,6 +6610,15 @@ const PermitManagementApp = () => {
           permits={permits}
           styles={styles}
           handlePrintPermit={handlePrintPermit}
+          sites={sites}
+          users={users}
+          contractors={contractors}
+          siteNameToIdMap={siteNameToIdMap}
+          siteIdToNameMap={siteIdToNameMap}
+          permitQuestionnaires={permitQuestionnaires}
+          specializedPermitTypes={specializedPermitTypes}
+          singleHazardTypes={singleHazardTypes}
+          getRiskColor={getRiskColor}
         />
       );
     case 'inspect_permit':
