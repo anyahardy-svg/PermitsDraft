@@ -515,7 +515,7 @@ const PermitManagementApp = () => {
 
 
       { id: 'grinders', text: 'Are disk grinders being used?', type: 'yesno', noControls : true },
-            { id: 'eye_protect', text:  'Are the operators aware that double eye protection (visor and glasses) are needed for use of grinders?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
+            { id: 'eye_protect', text:  'PPE: Are the operators aware that double eye protection (visor and glasses) are needed for use of grinders?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: 'correct_grinder', text:  'Does the grinder have anti-kickback protection and a deadman switch?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: 'grinder_safety', text:  'Is the guard fitted and side handle in position?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: '9inch', text: 'Are 9 inch grinders being used?', type: 'yesno', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?', note: 'Only qualified tradesmen are allowed to use 9" grinders', dependsOn: 'grinders', dependsOnValue: 'yes' },
