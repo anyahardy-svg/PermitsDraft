@@ -2936,6 +2936,7 @@ const PermitManagementApp = () => {
   const [editData, setEditData] = React.useState({
     ...permit,
     permitIssuer: permit.permitted_issuer || '',
+    contractorCompany: permit.contractor_company || '',
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
@@ -5358,6 +5359,7 @@ const PermitManagementApp = () => {
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
+      contractorCompany: permit.contractor_company || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -6069,6 +6071,7 @@ const PermitManagementApp = () => {
   const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
+      contractorCompany: permit.contractor_company || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -6684,6 +6687,7 @@ const PermitManagementApp = () => {
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
     const [editData, setEditData] = React.useState({
       ...latestPermit,
+      contractorCompany: latestPermit.contractor_company || '',
       specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jsea: latestPermit.jsea || initialJSEA,
