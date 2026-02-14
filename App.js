@@ -5861,6 +5861,9 @@ const PermitManagementApp = () => {
                 style={styles.input}
               />
               
+              <Text style={styles.label}>Description:</Text>
+              <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+              
               <Text style={styles.label}>Permit Issuer</Text>
               <CustomDropdown
                 label="Select Permit Issuer"
@@ -5869,9 +5872,6 @@ const PermitManagementApp = () => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
-              
-              <Text style={styles.label}>Description:</Text>
-              <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
@@ -6535,8 +6535,6 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
-              <Text style={styles.label}>Priority:</Text>
-              <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
               <Text style={styles.label}>Start Date</Text>
