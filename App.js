@@ -1077,7 +1077,6 @@ const PermitManagementApp = () => {
       Alert.alert('Missing Info', 'Please select an End Time.');
       return;
     }
-    }
     
     try {
       // Convert site name to site_id
