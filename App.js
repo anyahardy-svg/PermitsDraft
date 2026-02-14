@@ -5777,7 +5777,7 @@ const PermitManagementApp = () => {
   };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
-  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap }) => {
+  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
@@ -5972,7 +5972,30 @@ const PermitManagementApp = () => {
                     <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
+                    <Text style={styles.label}>Risk Level:</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      {['Low', 'Medium', 'High', 'Very High'].map(level => (
+                        <TouchableOpacity
+                          key={level}
+                          style={[
+                            { padding: 10, borderRadius: 6, borderWidth: 1, flex: 0.22 },
+                            step.riskLevel === level
+                              ? { backgroundColor: getRiskColor(level), borderColor: getRiskColor(level) }
+                              : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                          ]}
+                          onPress={() => updateJSEAStep(idx, 'riskLevel', level)}
+                        >
+                          <Text style={{
+                            textAlign: 'center',
+                            color: step.riskLevel === level ? 'white' : '#374151',
+                            fontSize: 12,
+                            fontWeight: '500'
+                          }}>
+                            {level}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
@@ -6937,6 +6960,7 @@ const PermitManagementApp = () => {
           users={users}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
+          getRiskColor={getRiskColor}
         />
       );
     case 'active':
