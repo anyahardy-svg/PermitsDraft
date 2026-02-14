@@ -4757,6 +4757,7 @@ const PermitManagementApp = () => {
               if (nameIdx >= 0 && emailIdx >= 0 && companyIdx >= 0) {
                 const name = values[nameIdx] || '';
                 const email = values[emailIdx] || '';
+                const phone = phoneIdx >= 0 ? values[phoneIdx] : '';
                 const company = values[companyIdx] || '';
                 const services = servicesIdx >= 0 && values[servicesIdx] ? values[servicesIdx].split(';').map(s => s.trim()) : [];
                 const siteNames = sitesIdx >= 0 && values[sitesIdx] ? values[sitesIdx].split(';').map(s => s.trim()) : [];
@@ -4780,6 +4781,7 @@ const PermitManagementApp = () => {
                   newContractors.push({
                     name,
                     email,
+                    phone,
                     company,
                     services,
                     siteNames,
@@ -4824,6 +4826,7 @@ const PermitManagementApp = () => {
                 await createContractor({
                   name: contractor.name,
                   email: contractor.email,
+                  phone: contractor.phone,
                   services: contractor.services,
                   site_ids: siteIds,
                   company_id: company.id,
