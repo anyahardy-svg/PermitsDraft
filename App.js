@@ -5777,7 +5777,7 @@ const PermitManagementApp = () => {
   };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
-  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles }) => {
+  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
@@ -5848,14 +5848,30 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
+              <Text style={styles.label}>Site</Text>
+              <CustomDropdown
+                label="Select Site"
+                options={ALL_SITES}
+                selectedValue={editData.site || ''}
+                onValueChange={value => setEditData({ ...editData, site: value })}
+                style={styles.input}
+              />
+              
+              <Text style={styles.label}>Permit Issuer</Text>
+              <CustomDropdown
+                label="Select Permit Issuer"
+                options={users && users.length > 0 ? users.map(user => user.name) : []}
+                selectedValue={editData.permitIssuer || ''}
+                onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
+                style={styles.input}
+              />
+              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
-              <Text style={styles.label}>Priority:</Text>
-              <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
               <Text style={styles.label}>Dates:</Text>
@@ -5975,7 +5991,29 @@ const PermitManagementApp = () => {
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
-                <TextInput style={styles.input} value={editData.jsea.overallRiskRating || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: text } }))} placeholder="Overall Risk Rating" />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  {['Low', 'Medium', 'High', 'Very High'].map(level => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        { padding: 10, borderRadius: 6, borderWidth: 1, flex: 0.22 },
+                        editData.jsea.overallRiskRating === level
+                          ? { backgroundColor: getRiskColor(level), borderColor: getRiskColor(level) }
+                          : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                      ]}
+                      onPress={() => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: level } }))}
+                    >
+                      <Text style={{
+                        textAlign: 'center',
+                        color: editData.jsea.overallRiskRating === level ? 'white' : '#374151',
+                        fontSize: 12,
+                        fontWeight: '500'
+                      }}>
+                        {level}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.label}>Additional Precautions:</Text>
                 <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
               </View>
@@ -6895,6 +6933,10 @@ const PermitManagementApp = () => {
           setCurrentScreen={setCurrentScreen}
           permits={permits}
           styles={styles}
+          sites={sites}
+          users={users}
+          siteNameToIdMap={siteNameToIdMap}
+          siteIdToNameMap={siteIdToNameMap}
         />
       );
     case 'active':
