@@ -54,6 +54,7 @@ const ALL_SERVICES = [
   'Blasting',
   'Mobile Plant Servicing',
   'Fixed Plant Servicing',
+  'Conveyor Belt Servicing',
   'Surveying',
   'Environmental',
   'Transport Driver',
@@ -852,6 +853,7 @@ const PermitManagementApp = () => {
     id: '',
     description: '',
     requestedBy: '',
+    contractorCompany: '',
     location: '',
     site: '',
     permitIssuer: '',
@@ -1070,6 +1072,7 @@ const PermitManagementApp = () => {
         end_date: formData.endDate,
         end_time: formData.endTime,
         requested_by: formData.requestedBy,
+        contractor_company: formData.contractorCompany || '',
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         controls_summary: '',
@@ -1475,7 +1478,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setFormData({ ...formData, requestedBy: contractor.name });
+                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.company || '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -1505,6 +1508,15 @@ const PermitManagementApp = () => {
                   </View>
                 )}
                 </View>
+
+                {/* Contractor Company (auto-populated) */}
+                <Text style={styles.label}>Company</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+                  value={formData.contractorCompany}
+                  placeholder="Company will auto-populate when contractor is selected"
+                  editable={false}
+                />
 
                 {/* Start Date/Time */}
                 <Text style={styles.label}>Start Date</Text>
@@ -1983,6 +1995,7 @@ const PermitManagementApp = () => {
       <View style={styles.permitDetails}>
         <Text style={styles.detailText}>Location: {item.location}</Text>
         <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+        {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
         <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
       </View>
       <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
@@ -3099,6 +3112,7 @@ const PermitManagementApp = () => {
                       activeOpacity={0.7}
                       onPress={() => {
                         handleEditChange('requestedBy', contractor.name);
+                        handleEditChange('contractorCompany', contractor.company || '');
                         setShowRequestedByDropdown(false);
                         setFilteredRequestedBy([]);
                       }}
@@ -3115,6 +3129,17 @@ const PermitManagementApp = () => {
           <Text style={styles.detailText}>{editData.requestedBy || ''}</Text>
         )}
         
+        <Text style={styles.label}>Company:</Text>
+        {isDraft ? (
+          <TextInput 
+            style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+            value={editData.contractorCompany || ''}
+            placeholder="Company will auto-populate when contractor is selected"
+            editable={false}
+          />
+        ) : (
+          <Text style={styles.detailText}>{editData.contractorCompany || ''}</Text>
+        )}
         <Text style={styles.label}>Permit Issuer:</Text>
         {isDraft ? (
           <CustomDropdown
@@ -6575,6 +6600,7 @@ const PermitManagementApp = () => {
                 <View style={styles.permitDetails}>
                   <Text style={styles.detailText}>Location: {item.location}</Text>
                   <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                  {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
                   <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
                 </View>
                 <TouchableOpacity style={styles.primaryButton} onPress={() => {
@@ -6619,6 +6645,7 @@ const PermitManagementApp = () => {
               <View style={styles.permitDetails}>
                 <Text style={styles.detailText}>Location: {item.location}</Text>
                 <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
                 <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
               </View>
               <TouchableOpacity style={styles.primaryButton} onPress={() => {
@@ -6784,6 +6811,8 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+              <Text style={styles.label}>Company:</Text>
+              <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
               <Text style={styles.label}>Start Date</Text>
