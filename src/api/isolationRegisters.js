@@ -1,9 +1,9 @@
-import { supabaseClient } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 
 // Fetch all isolation registers
 export const listIsolationRegisters = async () => {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('isolation_register')
       .select('*');
     
@@ -18,7 +18,7 @@ export const listIsolationRegisters = async () => {
 // Fetch isolation registers for a specific site
 export const listIsolationRegistersBySite = async (siteId) => {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('isolation_register')
       .select('*')
       .eq('site_id', siteId);
@@ -34,7 +34,7 @@ export const listIsolationRegistersBySite = async (siteId) => {
 // Create a new isolation register entry
 export const createIsolationRegister = async (data) => {
   try {
-    const { data: result, error } = await supabaseClient
+    const { data: result, error } = await supabase
       .from('isolation_register')
       .insert([data])
       .select()
@@ -51,7 +51,7 @@ export const createIsolationRegister = async (data) => {
 // Update an isolation register entry
 export const updateIsolationRegister = async (id, data) => {
   try {
-    const { data: result, error } = await supabaseClient
+    const { data: result, error } = await supabase
       .from('isolation_register')
       .update(data)
       .eq('id', id)
@@ -69,7 +69,7 @@ export const updateIsolationRegister = async (id, data) => {
 // Delete an isolation register entry
 export const deleteIsolationRegister = async (id) => {
   try {
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('isolation_register')
       .delete()
       .eq('id', id);
