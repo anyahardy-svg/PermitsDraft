@@ -5636,10 +5636,90 @@ const PermitManagementApp = () => {
           }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Isolation Register</Text>
+          <Text style={styles.title}>Manage Isolation Register</Text>
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {/* FORM SECTION AT TOP */}
+          <View style={[styles.card, { marginBottom: 16 }]}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>
+              {editingIsolation && currentIsolation.id ? 'Edit Isolation' : 'Add New Isolation'}
+            </Text>
+
+            <Text style={styles.label}>Site *</Text>
+            <CustomDropdown
+              label="Select Site"
+              options={sites.map(s => s.name)}
+              selectedValue={siteName}
+              onValueChange={(value) => {
+                const siteId = siteNameToIdMap[value];
+                setCurrentIsolation({ ...currentIsolation, site_id: siteId });
+              }}
+              style={styles.input}
+            />
+
+            <Text style={styles.label}>Main Lockout Item *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter main lockout item name"
+              value={currentIsolation.main_lockout_item}
+              onChangeText={text => setCurrentIsolation({ ...currentIsolation, main_lockout_item: text })}
+            />
+
+            <Text style={styles.label}>Linked Items (up to 10)</Text>
+            {(currentIsolation.linked_items || []).map((item, index) => (
+              <View key={index} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder={`Linked item ${index + 1}`}
+                  value={item}
+                  onChangeText={text => updateLinkedItem(index, text)}
+                />
+                <TouchableOpacity
+                  style={[styles.primaryButton, { backgroundColor: '#EF4444', paddingHorizontal: 12, justifyContent: 'center' }]}
+                  onPress={() => removeLinkedItem(index)}
+                >
+                  <Text style={styles.primaryButtonText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {(currentIsolation.linked_items || []).length < 10 && (
+              <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#10B981', marginBottom: 16 }]} onPress={handleAddLinkedItem}>
+                <Text style={styles.primaryButtonText}>+ Add Linked Item</Text>
+              </TouchableOpacity>
+            )}
+
+            <Text style={styles.label}>Key Procedure</Text>
+            <TextInput
+              style={[styles.input, { minHeight: 80 }]}
+              placeholder="Enter key procedure or steps"
+              value={currentIsolation.key_procedure}
+              onChangeText={text => setCurrentIsolation({ ...currentIsolation, key_procedure: text })}
+              multiline
+            />
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.primaryButton, { flex: 1, backgroundColor: '#2563EB' }]}
+                onPress={handleAddIsolation}
+              >
+                <Text style={styles.primaryButtonText}>{editingIsolation && currentIsolation.id ? 'Update' : 'Add'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]}
+                onPress={() => {
+                  setEditingIsolation(false);
+                  setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+                  setSelectedIsolation(null);
+                }}
+              >
+                <Text style={styles.primaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* IMPORT STATUS */}
           {importStatus !== 'idle' && (
             <View style={{
               backgroundColor: importStatus === 'success' ? '#D1FAE5' : importStatus === 'error' ? '#FEE2E2' : '#DBEAFE',
@@ -5661,137 +5741,64 @@ const PermitManagementApp = () => {
             </View>
           )}
 
-          {!editingIsolation ? (
-            <>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                <TouchableOpacity 
-                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#2563EB' }]}
-                  onPress={() => {
-                    setEditingIsolation(true);
-                    setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
-                    setSelectedIsolation(null);
-                  }}
-                >
-                  <Text style={styles.primaryButtonText}>+ Add New</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#10B981' }]}
-                  onPress={handleImportCSV}
-                >
-                  <Text style={styles.primaryButtonText}>📥 Import CSV</Text>
-                </TouchableOpacity>
-              </View>
+          {/* TABLE SECTION */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Isolation Registers ({isolationRegisters.length})</Text>
+              <TouchableOpacity 
+                style={[styles.primaryButton, { backgroundColor: '#10B981', paddingVertical: 6, paddingHorizontal: 12 }]}
+                onPress={handleImportCSV}
+              >
+                <Text style={styles.primaryButtonText}>📥 Import CSV</Text>
+              </TouchableOpacity>
+            </View>
 
-              {isolationRegisters.map(isolation => (
-                <TouchableOpacity
-                  key={isolation.id}
-                  style={[styles.card, { borderLeftWidth: 4, borderLeftColor: selectedIsolation === isolation.id ? '#2563EB' : '#D1D5DB' }]}
-                  onPress={() => setSelectedIsolation(selectedIsolation === isolation.id ? null : isolation.id)}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>{isolation.main_lockout_item}</Text>
-                      <Text style={{ color: '#6B7280', fontSize: 14 }}>Site: {siteIdToNameMap[isolation.site_id]}</Text>
-                      {isolation.linked_item_1 && (
-                        <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 4 }}>
-                          Linked items: {[isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean).join(', ')}
-                        </Text>
-                      )}
+            {isolationRegisters.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#9CA3AF', paddingVertical: 32 }}>No isolation registers yet.</Text>
+            ) : (
+              <View style={{ backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB' }}>
+                <View style={{ flexDirection: 'row', backgroundColor: '#2563EB', padding: 12 }}>
+                  <Text style={{ flex: 0.15, fontWeight: 'bold', color: 'white' }}>Site</Text>
+                  <Text style={{ flex: 0.25, fontWeight: 'bold', color: 'white' }}>Main Lockout Item</Text>
+                  <Text style={{ flex: 0.4, fontWeight: 'bold', color: 'white' }}>Linked Items</Text>
+                  <Text style={{ flex: 0.2, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>Actions</Text>
+                </View>
+
+                {isolationRegisters.map((isolation, idx) => (
+                  <View 
+                    key={isolation.id}
+                    style={{
+                      flexDirection: 'row',
+                      padding: 12,
+                      borderBottomWidth: idx < isolationRegisters.length - 1 ? 1 : 0,
+                      borderBottomColor: '#E5E7EB',
+                      backgroundColor: idx % 2 === 0 ? 'white' : '#F9FAFB'
+                    }}
+                  >
+                    <Text style={{ flex: 0.15, color: '#374151', fontSize: 13 }}>{siteIdToNameMap[isolation.site_id]}</Text>
+                    <Text style={{ flex: 0.25, color: '#374151', fontSize: 13, fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
+                    <Text style={{ flex: 0.4, color: '#6B7280', fontSize: 12 }}>
+                      {[isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean).join(', ') || '—'}
+                    </Text>
+                    <View style={{ flex: 0.2, flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
+                      <TouchableOpacity
+                        style={{ backgroundColor: '#10B981', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 }}
+                        onPress={() => handleEditIsolation(isolation)}
+                      >
+                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ backgroundColor: '#EF4444', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 }}
+                        onPress={() => handleDeleteIsolation(isolation.id)}
+                      >
+                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-
-                  {selectedIsolation === isolation.id && (
-                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#10B981' }]} onPress={() => handleEditIsolation(isolation)}>
-                        <Text style={styles.primaryButtonText}>Edit</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => handleDeleteIsolation(isolation.id)}>
-                        <Text style={styles.primaryButtonText}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-
-              {isolationRegisters.length === 0 && (
-                <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 32 }}>No isolation registers yet. Add one to get started.</Text>
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Site *</Text>
-              <CustomDropdown
-                label="Select Site"
-                options={sites.map(s => s.name)}
-                selectedValue={siteName}
-                onValueChange={(value) => {
-                  const siteId = siteNameToIdMap[value];
-                  setCurrentIsolation({ ...currentIsolation, site_id: siteId });
-                }}
-                style={styles.input}
-              />
-
-              <Text style={styles.label}>Main Lockout Item *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter main lockout item name"
-                value={currentIsolation.main_lockout_item}
-                onChangeText={text => setCurrentIsolation({ ...currentIsolation, main_lockout_item: text })}
-              />
-
-              <Text style={styles.label}>Linked Items (up to 10)</Text>
-              {(currentIsolation.linked_items || []).map((item, index) => (
-                <View key={index} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder={`Linked item ${index + 1}`}
-                    value={item}
-                    onChangeText={text => updateLinkedItem(index, text)}
-                  />
-                  <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: '#EF4444', paddingHorizontal: 12, justifyContent: 'center' }]}
-                    onPress={() => removeLinkedItem(index)}
-                  >
-                    <Text style={styles.primaryButtonText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              {(currentIsolation.linked_items || []).length < 10 && (
-                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#10B981', marginBottom: 16 }]} onPress={handleAddLinkedItem}>
-                  <Text style={styles.primaryButtonText}>+ Add Linked Item</Text>
-                </TouchableOpacity>
-              )}
-
-              <Text style={styles.label}>Key Procedure</Text>
-              <TextInput
-                style={[styles.input, { minHeight: 100 }]}
-                placeholder="Enter key procedure or steps"
-                value={currentIsolation.key_procedure}
-                onChangeText={text => setCurrentIsolation({ ...currentIsolation, key_procedure: text })}
-                multiline
-              />
-
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-                <TouchableOpacity
-                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#2563EB' }]}
-                  onPress={handleAddIsolation}
-                >
-                  <Text style={styles.primaryButtonText}>{editingIsolation && currentIsolation.id ? 'Update' : 'Add'} Isolation</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
-                  onPress={() => {
-                    setEditingIsolation(false);
-                    setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
-                    setSelectedIsolation(null);
-                  }}
-                >
-                  <Text style={styles.primaryButtonText}>Cancel</Text>
-                </TouchableOpacity>
+                ))}
               </View>
-            </>
-          )}
+            )}
+          </View>
         </ScrollView>
       </View>
     );
