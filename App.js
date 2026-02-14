@@ -5470,6 +5470,162 @@ const PermitManagementApp = () => {
 
     const siteName = currentIsolation.site_id ? siteIdToNameMap[currentIsolation.site_id] : '';
 
+    const handleImportCSV = () => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.csv,.xlsx,.xls';
+      
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const csvText = event.target.result;
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+              Alert.alert('Error', 'File must have header row and at least one data row');
+              return;
+            }
+
+            // Parse header row to find column indices
+            const headerLine = lines[0].trim();
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            // Find column indices
+            const siteIdx = headerValues.findIndex(h => h.includes('site'));
+            const mainLockoutIdx = headerValues.findIndex(h => h.includes('main'));
+            const keyProcedureIdx = headerValues.findIndex(h => h.includes('key'));
+
+            if (siteIdx === -1 || mainLockoutIdx === -1) {
+              Alert.alert('Error', 'CSV must have "Site" and "Main Lockout Item" columns');
+              return;
+            }
+
+            let newCount = 0;
+            let duplicateCount = 0;
+            let errorCount = 0;
+            const processedItems = new Set();
+
+            setImportStatus('importing');
+            setImportMessage('Starting import...');
+
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              
+              // Parse CSV line
+              const values = [];
+              let current = '';
+              let inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim().replace(/^"|"$/g, ''));
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim().replace(/^"|"$/g, ''));
+
+              const siteName = values[siteIdx];
+              const mainLockoutItem = values[mainLockoutIdx];
+              const siteId = siteNameToIdMap[siteName];
+
+              if (!siteName || !mainLockoutItem || !siteId) {
+                errorCount++;
+                continue;
+              }
+
+              // Check for duplicates
+              const itemKey = `${siteId}|${mainLockoutItem}`;
+              if (processedItems.has(itemKey)) {
+                duplicateCount++;
+                continue;
+              }
+              processedItems.add(itemKey);
+
+              try {
+                // Prepare isolation data
+                const isolationData = {
+                  site_id: siteId,
+                  main_lockout_item: mainLockoutItem,
+                  linked_item_1: values[headerValues.findIndex(h => h === 'linked_item_1')] || null,
+                  linked_item_2: values[headerValues.findIndex(h => h === 'linked_item_2')] || null,
+                  linked_item_3: values[headerValues.findIndex(h => h === 'linked_item_3')] || null,
+                  linked_item_4: values[headerValues.findIndex(h => h === 'linked_item_4')] || null,
+                  linked_item_5: values[headerValues.findIndex(h => h === 'linked_item_5')] || null,
+                  linked_item_6: values[headerValues.findIndex(h => h === 'linked_item_6')] || null,
+                  linked_item_7: values[headerValues.findIndex(h => h === 'linked_item_7')] || null,
+                  linked_item_8: values[headerValues.findIndex(h => h === 'linked_item_8')] || null,
+                  linked_item_9: values[headerValues.findIndex(h => h === 'linked_item_9')] || null,
+                  linked_item_10: values[headerValues.findIndex(h => h === 'linked_item_10')] || null,
+                  key_procedure: keyProcedureIdx >= 0 ? values[keyProcedureIdx] || '' : ''
+                };
+
+                await createIsolationRegister(isolationData);
+                newCount++;
+                setImportMessage(`Imported ${newCount}/${lines.length - 1}...`);
+              } catch (error) {
+                errorCount++;
+              }
+            }
+
+            // Reload isolations
+            const freshIsolations = await listIsolationRegisters();
+            setIsolationRegisters(freshIsolations);
+
+            let message = '';
+            if (newCount > 0) {
+              message += `${newCount} isolation register(s) imported.`;
+            }
+            if (duplicateCount > 0) {
+              if (message) message += ' ';
+              message += `${duplicateCount} duplicate(s) skipped.`;
+            }
+            if (errorCount > 0) {
+              if (message) message += ' ';
+              message += `${errorCount} error(s) encountered.`;
+            }
+            
+            setImportStatus('success');
+            setImportMessage('');
+            Alert.alert('Import Complete', message || 'No valid records found in the CSV file.');
+            setImportStatus('idle');
+          } catch (error) {
+            setImportStatus('error');
+            setImportMessage('');
+            Alert.alert('Error', 'Failed to parse file: ' + error.message);
+            setImportStatus('idle');
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      fileInput.click();
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -5484,18 +5640,47 @@ const PermitManagementApp = () => {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {importStatus !== 'idle' && (
+            <View style={{
+              backgroundColor: importStatus === 'success' ? '#D1FAE5' : importStatus === 'error' ? '#FEE2E2' : '#DBEAFE',
+              borderRadius: 8,
+              padding: 12,
+              marginBottom: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: importStatus === 'success' ? '#10B981' : importStatus === 'error' ? '#EF4444' : '#3B82F6'
+            }}>
+              <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontWeight: '600' }}>
+                {importStatus === 'importing' ? '⏳ ' : importStatus === 'success' ? '✅ ' : '❌ '}
+                {importStatus === 'importing' ? 'Importing...' : importStatus === 'success' ? 'Import Successful' : 'Import Failed'}
+              </Text>
+              {importMessage && (
+                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 14, marginTop: 4 }}>
+                  {importMessage}
+                </Text>
+              )}
+            </View>
+          )}
+
           {!editingIsolation ? (
             <>
-              <TouchableOpacity 
-                style={[styles.primaryButton, { backgroundColor: '#2563EB', marginBottom: 16 }]}
-                onPress={() => {
-                  setEditingIsolation(true);
-                  setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
-                  setSelectedIsolation(null);
-                }}
-              >
-                <Text style={styles.primaryButtonText}>+ Add New Isolation</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <TouchableOpacity 
+                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#2563EB' }]}
+                  onPress={() => {
+                    setEditingIsolation(true);
+                    setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+                    setSelectedIsolation(null);
+                  }}
+                >
+                  <Text style={styles.primaryButtonText}>+ Add New</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#10B981' }]}
+                  onPress={handleImportCSV}
+                >
+                  <Text style={styles.primaryButtonText}>📥 Import CSV</Text>
+                </TouchableOpacity>
+              </View>
 
               {isolationRegisters.map(isolation => (
                 <TouchableOpacity
