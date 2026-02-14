@@ -4687,6 +4687,7 @@ const PermitManagementApp = () => {
             }
 
             const newContractors = [];
+            let newCount = 0;
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
             const processedEmails = new Set();
@@ -4756,10 +4757,9 @@ const PermitManagementApp = () => {
               if (nameIdx >= 0 && emailIdx >= 0 && companyIdx >= 0) {
                 const name = values[nameIdx] || '';
                 const email = values[emailIdx] || '';
-                const phone = phoneIdx >= 0 ? values[phoneIdx] : '';
                 const company = values[companyIdx] || '';
                 const services = servicesIdx >= 0 && values[servicesIdx] ? values[servicesIdx].split(';').map(s => s.trim()) : [];
-                const sites = sitesIdx >= 0 && values[sitesIdx] ? values[sitesIdx].split(';').map(s => s.trim()) : [];
+                const siteNames = sitesIdx >= 0 && values[sitesIdx] ? values[sitesIdx].split(';').map(s => s.trim()) : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
                 if (name && email && company) {
@@ -4780,10 +4780,9 @@ const PermitManagementApp = () => {
                   newContractors.push({
                     name,
                     email,
-                    phone,
                     company,
                     services,
-                    sites,
+                    siteNames,
                     inductionExpiry
                   });
                 }
@@ -4811,15 +4810,26 @@ const PermitManagementApp = () => {
                   continue;
                 }
                 
+                // Convert site names to site IDs
+                const siteIds = [];
+                if (contractor.siteNames && contractor.siteNames.length > 0) {
+                  for (const siteName of contractor.siteNames) {
+                    const site = sites.find(s => s.name.toLowerCase() === siteName.toLowerCase());
+                    if (site) {
+                      siteIds.push(site.id);
+                    }
+                  }
+                }
+                
                 await createContractor({
                   name: contractor.name,
                   email: contractor.email,
-                  phone: contractor.phone,
                   services: contractor.services,
-                  available_sites: contractor.sites,
+                  site_ids: siteIds,
                   company_id: company.id,
                   induction_expiry: contractor.inductionExpiry
                 });
+                newCount++;
               } catch (err) {
                 console.error(`Failed to import ${contractor.name}:`, err);
                 setImportStatus('error');
@@ -4834,7 +4844,7 @@ const PermitManagementApp = () => {
             const freshContractors = await listContractors();
             setContractors(freshContractors);
             
-            let message = `✓ Successfully imported ${newContractors.length} contractor(s)!`;
+            let message = `✓ Successfully imported ${newCount} contractor(s)!`;
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
