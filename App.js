@@ -3145,7 +3145,7 @@ const PermitManagementApp = () => {
         
         <Text style={styles.label}>Company:</Text>
         {isDraft ? (
-          contractors.some(c => c.name === editData.requestedBy) ? (
+          contractors && contractors.some(c => c.name === editData.requestedBy) ? (
             <TextInput 
               style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
               value={editData.contractorCompany || ''}
