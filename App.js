@@ -3145,19 +3145,19 @@ const PermitManagementApp = () => {
         
         <Text style={styles.label}>Company:</Text>
         {isDraft ? (
-          editData.manualCompany || !contractors.some(c => c.name === editData.requestedBy) ? (
-            <TextInput 
-              style={styles.input}
-              value={editData.manualCompany || ''}
-              placeholder="Enter company name for manual requester"
-              onChangeText={text => handleEditChange('manualCompany', text)}
-            />
-          ) : (
+          editData.contractorCompany && contractors.some(c => c.name === editData.requestedBy) ? (
             <TextInput 
               style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
               value={editData.contractorCompany || ''}
               placeholder="Company will auto-populate when contractor is selected"
               editable={false}
+            />
+          ) : (
+            <TextInput 
+              style={styles.input}
+              value={editData.manualCompany || ''}
+              placeholder="Enter company name"
+              onChangeText={text => handleEditChange('manualCompany', text)}
             />
           )
         ) : (
