@@ -1478,7 +1478,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.company || '' });
+                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -3112,7 +3112,7 @@ const PermitManagementApp = () => {
                       activeOpacity={0.7}
                       onPress={() => {
                         handleEditChange('requestedBy', contractor.name);
-                        handleEditChange('contractorCompany', contractor.company || '');
+                        handleEditChange('contractorCompany', contractor.companyName || '');
                         setShowRequestedByDropdown(false);
                         setFilteredRequestedBy([]);
                       }}
