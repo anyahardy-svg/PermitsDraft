@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -1183,6 +1183,13 @@ const PermitManagementApp = () => {
     };
     loadData();
   }, []);
+
+  // Scroll to top when editing on admin screens
+  useEffect(() => {
+    if (editingUser || editingContractor || editingCompany) {
+      window.scrollTo(0, 0);
+    }
+  }, [editingUser, editingContractor, editingCompany]);
 
   // Users state - stores system users with sites they can work at
   const [users, setUsers] = useState([
@@ -4637,6 +4644,17 @@ const PermitManagementApp = () => {
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
             const processedEmails = new Set();
+            
+            // Helper function to convert DD/MM/YYYY to YYYY-MM-DD
+            const convertDateFormat = (dateStr) => {
+              if (!dateStr) return null;
+              const parts = dateStr.trim().split('/');
+              if (parts.length === 3) {
+                const [day, month, year] = parts;
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+              }
+              return dateStr; // Return as-is if not in DD/MM/YYYY format
+            };
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -4665,7 +4683,7 @@ const PermitManagementApp = () => {
                 const email = values[1] || '';
                 const companyName = values[2] || '';
                 const services = values[3] ? values[3].split(';').map(s => s.trim()) : [];
-                const inductionExpiry = values[4] || null;
+                const inductionExpiry = convertDateFormat(values[4]); // Convert date format
                 
                 if (name && email && companyName) {
                   // Skip if already processed in this CSV
