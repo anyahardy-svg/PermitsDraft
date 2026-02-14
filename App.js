@@ -1057,6 +1057,27 @@ const PermitManagementApp = () => {
       Alert.alert('Missing Info', 'Please select a Site.');
       return;
     }
+
+    if (!formData.startDate) {
+      Alert.alert('Missing Info', 'Please select a Start Date.');
+      return;
+    }
+
+    if (!formData.startTime) {
+      Alert.alert('Missing Info', 'Please select a Start Time.');
+      return;
+    }
+
+    if (!formData.endDate) {
+      Alert.alert('Missing Info', 'Please select an End Date.');
+      return;
+    }
+
+    if (!formData.endTime) {
+      Alert.alert('Missing Info', 'Please select an End Time.');
+      return;
+    }
+    }
     
     try {
       // Convert site name to site_id
@@ -1069,10 +1090,10 @@ const PermitManagementApp = () => {
         location: formData.location,
         status: status || 'pending_approval',
         priority: formData.priority,
-        start_date: formData.startDate,
-        start_time: formData.startTime,
-        end_date: formData.endDate,
-        end_time: formData.endTime,
+        start_date: formData.startDate || defaultDate,
+        start_time: formData.startTime || defaultTime,
+        end_date: formData.endDate || defaultDate,
+        end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
         contractor_company: formData.contractorCompany || '',
         manual_company: formData.manualCompany || '',
@@ -1096,14 +1117,24 @@ const PermitManagementApp = () => {
         id: '',
         description: '',
         requestedBy: '',
+        contractorCompany: '',
+        manualCompany: '',
+        contractorSelected: false,
         location: '',
+        site: '',
+        permitIssuer: '',
         status: 'pending_approval',
         priority: 'medium',
+        startDate: defaultDate,
+        startTime: defaultTime,
+        endDate: defaultDate,
+        endTime: defaultTime,
         specializedPermits: initialSpecializedPermits,
         singleHazards: initialSingleHazards,
         jsea: initialJSEA,
         isolations: initialIsolations,
-        signOns: initialSignOns
+        signOns: initialSignOns,
+        completion: { finalToolCount: '', completionNotes: '' }
       });
       setCurrentScreen('dashboard');
       const statusText = status === 'draft' ? 'Draft saved' : 'Permit submitted for approval';
@@ -3087,6 +3118,7 @@ const PermitManagementApp = () => {
               value={editData.requestedBy || ''}
               onChangeText={text => {
                 handleEditChange('requestedBy', text);
+                handleEditChange('contractorSelected', false);
                 if (text.trim().length > 0 && editData.site_id) {
                   const siteContractors = contractors.filter(contractor => 
                     contractor.siteIds && 
@@ -3134,6 +3166,8 @@ const PermitManagementApp = () => {
                       onPress={() => {
                         handleEditChange('requestedBy', contractor.name);
                         handleEditChange('contractorCompany', contractor.companyName || '');
+                        handleEditChange('contractorSelected', true);
+                        handleEditChange('manualCompany', '');
                         setShowRequestedByDropdown(false);
                         setFilteredRequestedBy([]);
                       }}
@@ -5546,7 +5580,7 @@ const PermitManagementApp = () => {
                   style={styles.input}
                   value={editData.requestedBy || ''}
                   onChangeText={text => {
-                    setEditData({ ...editData, requestedBy: text });
+                    setEditData({ ...editData, requestedBy: text, contractorSelected: false });
                     if (text.trim().length > 0 && editData.site_id) {
                       const siteContractors = contractors.filter(contractor => 
                         contractor.siteIds && 
@@ -5592,7 +5626,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setEditData({ ...editData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '' });
+                            setEditData({ ...editData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -5607,12 +5641,21 @@ const PermitManagementApp = () => {
               </View>
               
               <Text style={styles.label}>Company</Text>
-              <TextInput 
-                style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
-                value={editData.contractorCompany || ''}
-                placeholder="Company will auto-populate when contractor is selected"
-                editable={false}
-              />
+              {editData.contractorSelected ? (
+                <TextInput 
+                  style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+                  value={editData.contractorCompany || ''}
+                  placeholder="Company will auto-populate when contractor is selected"
+                  editable={false}
+                />
+              ) : (
+                <TextInput 
+                  style={styles.input}
+                  value={editData.manualCompany || ''}
+                  placeholder="Enter company name"
+                  onChangeText={text => setEditData({ ...editData, manualCompany: text })}
+                />
+              )}
               
               <Text style={styles.label}>Start Date</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
@@ -6870,9 +6913,13 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
-              <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
+              <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text, contractorSelected: false })} />
               <Text style={styles.label}>Company:</Text>
-              <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
+              {editData.contractorSelected ? (
+                <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
+              ) : (
+                <TextInput style={styles.input} value={editData.manualCompany || ''} placeholder="Enter company name" onChangeText={text => setEditData({ ...editData, manualCompany: text })} />
+              )}
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
               <Text style={styles.label}>Start Date</Text>
