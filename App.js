@@ -2005,7 +2005,7 @@ const PermitManagementApp = () => {
       <View style={styles.permitDetails}>
         <Text style={styles.detailText}>Location: {item.location}</Text>
         <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-        {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
+        {(item.contractorCompany || item.manualCompany) && <Text style={styles.detailText}>Company: {item.contractorCompany || item.manualCompany}</Text>}
         <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
       </View>
       <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
