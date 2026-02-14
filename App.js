@@ -2945,7 +2945,8 @@ const PermitManagementApp = () => {
   const initialSignOns = [];
   const [editData, setEditData] = React.useState({
     ...permit,
-    manualCompany: permit.manual_company || '',
+    contractorCompany: permit.contractor_company || permit.contractorCompany || '',
+    manualCompany: permit.manual_company || permit.manualCompany || '',
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
@@ -6106,7 +6107,8 @@ const PermitManagementApp = () => {
   const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
-      manualCompany: permit.manual_company || '',
+      contractorCompany: permit.contractor_company || permit.contractorCompany || '',
+      manualCompany: permit.manual_company || permit.manualCompany || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -6722,7 +6724,8 @@ const PermitManagementApp = () => {
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
     const [editData, setEditData] = React.useState({
       ...latestPermit,
-      manualCompany: latestPermit.manual_company || '',
+      contractorCompany: latestPermit.contractor_company || latestPermit.contractorCompany || '',
+      manualCompany: latestPermit.manual_company || latestPermit.manualCompany || '',
       specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jsea: latestPermit.jsea || initialJSEA,
