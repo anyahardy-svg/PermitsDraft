@@ -1233,6 +1233,9 @@ const PermitManagementApp = () => {
   const [userSearchText, setUserSearchText] = useState('');
   const [userCompanyFilter, setUserCompanyFilter] = useState('All');
   
+  // Import status states
+  const [importStatus, setImportStatus] = useState('idle'); // idle, importing, success, error
+  const [importMessage, setImportMessage] = useState('');
   // Filter state for services directory
   const [selectedService, setSelectedService] = useState('Hot Work');
   
@@ -3930,17 +3933,23 @@ const PermitManagementApp = () => {
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
+            setImportStatus('importing');
+            setImportMessage('Reading CSV file...');
+
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
             
             if (lines.length < 2) {
-              Alert.alert('Error', 'File must have header row and at least one data row');
+              setImportStatus('error');
+              setImportMessage('Error: File must have header row and at least one data row');
+              setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
 
             const newUsers = [];
 
             // Parse header row to get column indices
+            setImportMessage('Parsing CSV file...');
             const headerLine = lines[0];
             const headerValues = [];
             let current = '';
@@ -4015,21 +4024,40 @@ const PermitManagementApp = () => {
             }
 
             if (newUsers.length === 0) {
-              Alert.alert('Info', 'No new users to import (duplicates were skipped).');
+              setImportStatus('error');
+              setImportMessage('No new users to import (duplicates were skipped).');
+              setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
 
             // Save all permit issuers to Supabase
-            for (const user of newUsers) {
-              await createPermitIssuer(user);
+            for (let idx = 0; idx < newUsers.length; idx++) {
+              const user = newUsers[idx];
+              setImportMessage(`Importing ${idx + 1} of ${newUsers.length}: ${user.name}...`);
+              try {
+                await createPermitIssuer(user);
+              } catch (err) {
+                console.error(`Failed to import ${user.name}:`, err);
+                setImportStatus('error');
+                setImportMessage(`Error importing ${user.name}: ${err.message}`);
+                setTimeout(() => setImportStatus('idle'), 4000);
+                return;
+              }
             }
 
             // Reload permit issuers from database
+            setImportMessage('Refreshing data...');
             const freshUsers = await listPermitIssuers();
             setUsers(freshUsers);
-            Alert.alert('Success', `${newUsers.length} user(s) imported successfully!`);
+            
+            setImportStatus('success');
+            setImportMessage(`✓ Successfully imported ${newUsers.length} user(s)!`);
+            setTimeout(() => setImportStatus('idle'), 3000);
           } catch (error) {
-            Alert.alert('Error', 'Failed to parse file: ' + error.message);
+            console.error('Import error:', error);
+            setImportStatus('error');
+            setImportMessage('Failed to parse file: ' + error.message);
+            setTimeout(() => setImportStatus('idle'), 4000);
           }
         };
         reader.readAsText(file);
@@ -4046,6 +4074,30 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{editingUser ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
+        
+        {/* Import Status Message */}
+        {importStatus !== 'idle' && (
+          <View style={{
+            backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
+            borderBottomWidth: 1,
+            borderBottomColor: importStatus === 'importing' ? '#93C5FD' : importStatus === 'success' ? '#86EFAC' : '#FECACA',
+            paddingVertical: 12,
+            paddingHorizontal: 16
+          }}>
+            <Text style={{
+              color: importStatus === 'importing' ? '#1E40AF' : importStatus === 'success' ? '#166534' : '#991B1B',
+              fontSize: 13,
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              {importStatus === 'importing' && '⏳ ' }
+              {importStatus === 'success' && '✓ ' }
+              {importStatus === 'error' && '✕ ' }
+              {importMessage}
+            </Text>
+          </View>
+        )}
+        
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
