@@ -1259,13 +1259,19 @@ const PermitManagementApp = () => {
   // Scroll to top when editing on admin screens
   useEffect(() => {
     if (editingUser && permitIssuersScrollRef.current) {
-      permitIssuersScrollRef.current.scrollTo({ y: 0, animated: true });
+      setTimeout(() => {
+        permitIssuersScrollRef.current?.scrollTo({ y: 0 });
+      }, 0);
     }
     if (editingContractor && contractorsScrollRef.current) {
-      contractorsScrollRef.current.scrollTo({ y: 0, animated: true });
+      setTimeout(() => {
+        contractorsScrollRef.current?.scrollTo({ y: 0 });
+      }, 0);
     }
     if (editingCompany && companiesScrollRef.current) {
-      companiesScrollRef.current.scrollTo({ y: 0, animated: true });
+      setTimeout(() => {
+        companiesScrollRef.current?.scrollTo({ y: 0 });
+      }, 0);
     }
   }, [editingUser, editingContractor, editingCompany]);
 
@@ -4406,6 +4412,30 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
+        
+        {/* Import Status Message */}
+        {importStatus !== 'idle' && (
+          <View style={{
+            backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
+            borderBottomWidth: 1,
+            borderBottomColor: importStatus === 'importing' ? '#93C5FD' : importStatus === 'success' ? '#86EFAC' : '#FECACA',
+            paddingVertical: 12,
+            paddingHorizontal: 16
+          }}>
+            <Text style={{
+              color: importStatus === 'importing' ? '#1E40AF' : importStatus === 'success' ? '#166534' : '#991B1B',
+              fontSize: 13,
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              {importStatus === 'importing' && '⏳ ' }
+              {importStatus === 'success' && '✓ ' }
+              {importStatus === 'error' && '✕ ' }
+              {importMessage}
+            </Text>
+          </View>
+        )}
+        
         <ScrollView ref={companiesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
@@ -4833,6 +4863,30 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
+        
+        {/* Import Status Message */}
+        {importStatus !== 'idle' && (
+          <View style={{
+            backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
+            borderBottomWidth: 1,
+            borderBottomColor: importStatus === 'importing' ? '#93C5FD' : importStatus === 'success' ? '#86EFAC' : '#FECACA',
+            paddingVertical: 12,
+            paddingHorizontal: 16
+          }}>
+            <Text style={{
+              color: importStatus === 'importing' ? '#1E40AF' : importStatus === 'success' ? '#166534' : '#991B1B',
+              fontSize: 13,
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              {importStatus === 'importing' && '⏳ ' }
+              {importStatus === 'success' && '✓ ' }
+              {importStatus === 'error' && '✕ ' }
+              {importMessage}
+            </Text>
+          </View>
+        )}
+        
         <ScrollView ref={contractorsScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
