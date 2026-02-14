@@ -64,6 +64,11 @@ const ALL_SERVICES = [
 // CustomDropdown: modal dropdown for site selection
 function CustomDropdown({ label, options, selectedValue, onValueChange, style }) {
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [filterText, setFilterText] = React.useState('');
+  
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(filterText.toLowerCase())
+  );
   
   return (
     <View style={{ position: 'relative', zIndex: modalVisible ? 1000 : 1 }}>
@@ -105,8 +110,20 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
           borderWidth: 1,
           borderColor: '#D1D5DB',
         }}>
+          <TextInput
+            style={{
+              padding: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: '#E5E7EB',
+              fontSize: 14,
+              backgroundColor: '#F9FAFB'
+            }}
+            placeholder="Type to filter..."
+            value={filterText}
+            onChangeText={setFilterText}
+          />
           <FlatList
-            data={options}
+            data={filteredOptions}
             scrollEnabled={true}
             keyExtractor={item => item}
             renderItem={({ item }) => (
@@ -115,6 +132,7 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
                 onPress={() => {
                   onValueChange(item);
                   setModalVisible(false);
+                  setFilterText('');
                 }}
               >
                 <Text style={{ fontSize: 16, color: item === selectedValue ? '#2563EB' : '#374151' }}>{item}</Text>
@@ -122,8 +140,11 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
             )}
           />
           <TouchableOpacity 
-            onPress={() => setModalVisible(false)}
-            style={{ padding: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
+            onPress={() => {
+              setModalVisible(false);
+              setFilterText('');
+            }}
+            style={{ padding: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
           >
             <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 14, fontWeight: '600' }}>Cancel</Text>
           </TouchableOpacity>
@@ -132,8 +153,11 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
       
       {modalVisible && (
         <TouchableOpacity 
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
-          onPress={() => setModalVisible(false)}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+          onPress={() => {
+            setModalVisible(false);
+            setFilterText('');
+          }}
         />
       )}
     </View>
