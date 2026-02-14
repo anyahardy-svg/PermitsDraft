@@ -4125,7 +4125,18 @@ const PermitManagementApp = () => {
                   <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
                   <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {user.id}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { setSelectedUser(user); setEditingUser(true); setCurrentUser(user); }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { 
+                      console.log('📋 Editing user:', {
+                        id: user.id,
+                        name: user.name,
+                        sites: user.sites,
+                        site_ids: user.site_ids,
+                        siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
+                      });
+                      setSelectedUser(user); 
+                      setEditingUser(true); 
+                      setCurrentUser(user); 
+                    }}>
                       <Text style={styles.addButtonText}>Edit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45, backgroundColor: '#EF4444' }]} onPress={() => handleDeleteUser(user.id)}>
