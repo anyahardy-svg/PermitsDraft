@@ -238,6 +238,12 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
+  const parseLocalDate = (dateString) => {
+    if (!dateString) return new Date();
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const handleConfirm = () => {
     if (mode === 'date') {
       onSelect(formatDate(selectedDate));
@@ -259,7 +265,7 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
     initialMinute = now.getMinutes();
   }
 
-  const [selectedDate, setSelectedDate] = useState(currentValue ? new Date(currentValue) : new Date());
+  const [selectedDate, setSelectedDate] = useState(mode === 'date' && currentValue ? parseLocalDate(currentValue) : new Date());
   const [tempHour, setTempHour] = useState(initialHour);
   const [tempMinute, setTempMinute] = useState(initialMinute);
 
