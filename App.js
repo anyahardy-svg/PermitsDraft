@@ -1140,20 +1140,28 @@ const PermitManagementApp = () => {
         setCompanies(companiesData);
         
         // Load permit issuers from database, fall back to mock data if empty
-        const usersData = await listPermitIssuers();
-        console.log('✅ Users loaded from database:', usersData);
-        console.log('📊 User data structure:', usersData.map(u => ({ 
-          name: u.name, 
-          email: u.email,
-          site_ids: u.site_ids,
-          sites: u.sites,
-          siteIds: u.siteIds
-        })));
+        let usersData = [];
+        try {
+          usersData = await listPermitIssuers();
+          console.log('✅ Users loaded from database:', usersData);
+          console.log('📊 User data structure:', usersData && usersData.length > 0 ? usersData.map(u => ({ 
+            name: u.name, 
+            email: u.email,
+            site_ids: u.site_ids,
+            sites: u.sites,
+            siteIds: u.siteIds
+          })) : 'NO DATA');
+        } catch (usersError) {
+          console.error('❌ Error loading permit issuers from database:', usersError);
+          console.warn('⚠️ Using mock data as fallback due to error');
+          usersData = [];
+        }
+        
         if (usersData && usersData.length > 0) {
-          console.log('✅ Loaded', usersData.length, 'users from database');
+          console.log('✅ Loaded', usersData.length, 'permit issuers from database');
           setUsers(usersData);
         } else {
-          console.warn('⚠️ No users in database, keeping mock data as fallback');
+          console.warn('⚠️ No permit issuers from database, keeping default mock data');
           // Keep the default mock data, don't overwrite with empty array
         }
         
@@ -1347,13 +1355,22 @@ const PermitManagementApp = () => {
                 />
                 
                 <Text style={styles.label}>Permit Issuer</Text>
-                <CustomDropdown
-                  label="Select Permit Issuer"
-                  options={users && users.length > 0 ? users.map(user => user.name) : []}
-                  selectedValue={formData.permitIssuer || ''}
-                  onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
-                  style={styles.input}
-                />
+                {users && users.length > 0 ? (
+                  <CustomDropdown
+                    label="Select Permit Issuer"
+                    options={users.map(user => user.name)}
+                    selectedValue={formData.permitIssuer || ''}
+                    onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
+                    style={styles.input}
+                  />
+                ) : (
+                  <View style={[styles.input, { justifyContent: 'center', backgroundColor: '#FEE2E2' }]}>
+                    <Text style={{ color: '#DC2626', fontWeight: '500' }}>❌ No permit issuers available</Text>
+                    <Text style={{ color: '#7F1D1D', fontSize: 12, marginTop: 4 }}>
+                      Debug: users={users ? users.length : 0} items
+                    </Text>
+                  </View>
+                )}
                 
                 <Text style={styles.label}>Location</Text>
                 <TextInput
