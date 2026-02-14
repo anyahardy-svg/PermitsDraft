@@ -3622,6 +3622,13 @@ const PermitManagementApp = () => {
               onChangeText={text => handleEditChange('requestedBy', text)}
               placeholder="Your name"
             />
+            <Text style={styles.label}>Company</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+              value={localEditData.contractorCompany || ''}
+              placeholder="Company will auto-populate when contractor is selected"
+              editable={false}
+            />
             <Text style={styles.label}>Priority</Text>
             <View style={styles.priorityButtons}>
               {['low', 'medium', 'high'].map(priority => (
