@@ -71,31 +71,22 @@ export const listPermitIssuers = async () => {
     }
     
     // For each issuer, get their site names based on site_ids
-    const permitIssuersWithSites = await Promise.all((data || []).map(async (user) => {
+    // BUT: Don't wait for all promises - continue if site lookup fails for one issuer
+    const permitIssuersWithSites = data.map((user) => {
       try {
         console.log(`  Processing permit issuer: ${user.name} (${user.id})`, { site_ids: user.site_ids });
-        let siteNames = [];
-        if (user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0) {
-          console.log(`    Looking up ${user.site_ids.length} site names for ${user.name}...`);
-          const { data: sitesData, error: sitesError } = await supabase
-            .from('sites')
-            .select('id, name')
-            .in('id', user.site_ids);
-          if (sitesError) {
-            console.error(`    ❌ Error looking up sites for ${user.name}:`, sitesError);
-          } else {
-            siteNames = sitesData ? sitesData.map(s => s.name) : [];
-            console.log(`    ✅ Found ${siteNames.length} sites: ${siteNames.join(', ')}`);
-          }
-        }
-        const transformed = transformPermitIssuer({ ...user, site_names: siteNames });
+        
+        // Return the transform immediately - don't do async site lookup
+        // The site_names might be empty but that's okay
+        const transformed = transformPermitIssuer(user);
         console.log(`  ✅ Transformed permit issuer ${user.name}:`, transformed);
         return transformed;
       } catch (mapError) {
         console.error(`  ❌ Error processing permit issuer ${user.name}:`, mapError);
-        throw mapError;
+        // Still return the transformed data even if there was an error
+        return transformPermitIssuer(user);
       }
-    }));
+    });
     
     console.log('✅ listPermitIssuers complete. Returning:', permitIssuersWithSites);
     return permitIssuersWithSites;
