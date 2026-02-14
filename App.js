@@ -1251,10 +1251,21 @@ const PermitManagementApp = () => {
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
 
+  // Refs for admin screen ScrollViews
+  const permitIssuersScrollRef = useRef(null);
+  const contractorsScrollRef = useRef(null);
+  const companiesScrollRef = useRef(null);
+
   // Scroll to top when editing on admin screens
   useEffect(() => {
-    if (editingUser || editingContractor || editingCompany) {
-      window.scrollTo(0, 0);
+    if (editingUser && permitIssuersScrollRef.current) {
+      permitIssuersScrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+    if (editingContractor && contractorsScrollRef.current) {
+      contractorsScrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+    if (editingCompany && companiesScrollRef.current) {
+      companiesScrollRef.current.scrollTo({ y: 0, animated: true });
     }
   }, [editingUser, editingContractor, editingCompany]);
 
@@ -4105,7 +4116,7 @@ const PermitManagementApp = () => {
           </View>
         )}
         
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <ScrollView ref={permitIssuersScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
             <View style={styles.sectionContent}>
@@ -4395,7 +4406,7 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <ScrollView ref={companiesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
             <View style={styles.sectionContent}>
@@ -4632,19 +4643,24 @@ const PermitManagementApp = () => {
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
+            setImportStatus('importing');
+            setImportMessage('Reading CSV file...');
+
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
             
             if (lines.length < 2) {
-              Alert.alert('Error', 'CSV must have header row and at least one data row');
+              setImportStatus('error');
+              setImportMessage('Error: CSV must have header row and at least one data row');
+              setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
 
-            let newCount = 0;
+            const newContractors = [];
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
             const processedEmails = new Set();
-            
+
             // Helper function to convert DD/MM/YYYY to YYYY-MM-DD
             const convertDateFormat = (dateStr) => {
               if (!dateStr) return null;
@@ -4656,14 +4672,43 @@ const PermitManagementApp = () => {
               return dateStr; // Return as-is if not in DD/MM/YYYY format
             };
 
+            // Parse header row to get column indices
+            setImportMessage('Parsing CSV file...');
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            // Find column indices
+            const nameIdx = headerValues.findIndex(h => h.includes('name'));
+            const emailIdx = headerValues.findIndex(h => h.includes('email'));
+            const phoneIdx = headerValues.findIndex(h => h === 'phone');
+            const companyIdx = headerValues.findIndex(h => h.includes('company'));
+            const servicesIdx = headerValues.findIndex(h => h.includes('service'));
+            const sitesIdx = headerValues.findIndex(h => h.includes('site') || h.includes('available'));
+            const inductionIdx = headerValues.findIndex(h => h.includes('induction') || h.includes('expiry'));
+
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
-              if (!line) continue; // Skip empty lines
+              if (!line) continue;
               
-              // Simple CSV parsing (handles basic cases)
+              // Simple CSV parsing
               const values = [];
-              let current = '';
-              let inQuotes = false;
+              current = '';
+              inQuotes = false;
               
               for (let j = 0; j < line.length; j++) {
                 const char = line[j];
@@ -4677,15 +4722,17 @@ const PermitManagementApp = () => {
                 }
               }
               values.push(current.trim().replace(/^"|"$/g, ''));
-
-              if (values.length >= 3) {
-                const name = values[0] || '';
-                const email = values[1] || '';
-                const companyName = values[2] || '';
-                const services = values[3] ? values[3].split(';').map(s => s.trim()) : [];
-                const inductionExpiry = convertDateFormat(values[4]); // Convert date format
+              
+              if (nameIdx >= 0 && emailIdx >= 0 && companyIdx >= 0) {
+                const name = values[nameIdx] || '';
+                const email = values[emailIdx] || '';
+                const phone = phoneIdx >= 0 ? values[phoneIdx] : '';
+                const company = values[companyIdx] || '';
+                const services = servicesIdx >= 0 && values[servicesIdx] ? values[servicesIdx].split(';').map(s => s.trim()) : [];
+                const sites = sitesIdx >= 0 && values[sitesIdx] ? values[sitesIdx].split(';').map(s => s.trim()) : [];
+                const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
-                if (name && email && companyName) {
+                if (name && email && company) {
                   // Skip if already processed in this CSV
                   if (processedEmails.has(email.toLowerCase())) {
                     duplicateCount++;
@@ -4693,53 +4740,82 @@ const PermitManagementApp = () => {
                   }
                   
                   // Check if contractor already exists in database
-                  const existingContractor = contractors.find(c => c.email.toLowerCase() === email.toLowerCase());
-                  if (existingContractor) {
+                  if (contractors.find(c => c.email.toLowerCase() === email.toLowerCase())) {
                     duplicateCount++;
-                    continue;
-                  }
-                  
-                  // Ensure company exists (upsert)
-                  const company = await upsertCompany({ name: companyName });
-                  if (!company) {
-                    companyNotFoundCount++;
                     continue;
                   }
                   
                   processedEmails.add(email.toLowerCase());
                   
-                  // Create contractor with company_id
-                  await createContractor({
+                  newContractors.push({
                     name,
                     email,
+                    phone,
+                    company,
                     services,
-                    company_id: company.id,
-                    induction_expiry: inductionExpiry
+                    sites,
+                    inductionExpiry
                   });
-                  newCount++;
                 }
               }
             }
 
-            if (newCount === 0) {
-              let errorMsg = 'No valid contractors imported.';
+            if (newContractors.length === 0) {
+              setImportStatus('error');
+              let errorMsg = 'No valid contractors to import.';
               if (duplicateCount > 0) errorMsg += ` ${duplicateCount} duplicate(s) already exist.`;
-              if (companyNotFoundCount > 0) errorMsg += ` ${companyNotFoundCount} had invalid company names.`;
-              Alert.alert('Info', errorMsg);
+              setImportMessage(errorMsg);
+              setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
 
+            // Save all contractors to Supabase
+            for (let idx = 0; idx < newContractors.length; idx++) {
+              const contractor = newContractors[idx];
+              setImportMessage(`Importing ${idx + 1} of ${newContractors.length}: ${contractor.name}...`);
+              try {
+                // Ensure company exists (upsert)
+                const company = await upsertCompany({ name: contractor.company });
+                if (!company) {
+                  companyNotFoundCount++;
+                  continue;
+                }
+                
+                await createContractor({
+                  name: contractor.name,
+                  email: contractor.email,
+                  phone: contractor.phone,
+                  services: contractor.services,
+                  available_sites: contractor.sites,
+                  company_id: company.id,
+                  induction_expiry: contractor.inductionExpiry
+                });
+              } catch (err) {
+                console.error(`Failed to import ${contractor.name}:`, err);
+                setImportStatus('error');
+                setImportMessage(`Error importing ${contractor.name}: ${err.message}`);
+                setTimeout(() => setImportStatus('idle'), 4000);
+                return;
+              }
+            }
+
             // Reload contractors from database
+            setImportMessage('Refreshing data...');
             const freshContractors = await listContractors();
             setContractors(freshContractors);
             
-            let message = `${newCount} contractor(s) imported successfully.`;
+            let message = `✓ Successfully imported ${newContractors.length} contractor(s)!`;
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
-            Alert.alert('Import Complete', message);
+            setImportStatus('success');
+            setImportMessage(message);
+            setTimeout(() => setImportStatus('idle'), 3000);
           } catch (error) {
-            Alert.alert('Error', 'Failed to parse CSV: ' + error.message);
+            console.error('Import error:', error);
+            setImportStatus('error');
+            setImportMessage('Failed to parse file: ' + error.message);
+            setTimeout(() => setImportStatus('idle'), 4000);
           }
         };
         
@@ -4757,7 +4833,7 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <ScrollView ref={contractorsScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Form Section */}
           <View style={styles.section}>
             <View style={styles.sectionContent}>
