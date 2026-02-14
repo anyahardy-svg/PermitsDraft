@@ -3844,7 +3844,22 @@ const PermitManagementApp = () => {
       }
       try {
         // Convert site names to site IDs
-        const siteIds = currentUser.sites.map(siteName => siteNameToIdMap[siteName]).filter(Boolean);
+        // Handle both site names and unresolved UUIDs
+        const siteIds = currentUser.sites.map(siteName => {
+          const id = siteNameToIdMap[siteName];
+          if (!id) {
+            // If it's not found in the map, it might already be an ID
+            console.log(`⚠️ Site "${siteName}" not found in map, might be a UUID - checking if valid...`);
+            return siteName; // Return as-is in case it's already an ID
+          }
+          return id;
+        }).filter(Boolean);
+        
+        console.log('Saving permit issuer with sites:', {
+          sitesFromForm: currentUser.sites,
+          siteIds: siteIds,
+          siteNameToIdMap: Object.keys(siteNameToIdMap)
+        });
         
         if (editingUser) {
           await updatePermitIssuer(currentUser.id, {

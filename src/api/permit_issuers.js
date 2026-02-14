@@ -63,7 +63,14 @@ export const listPermitIssuers = async () => {
     
     console.log('📦 listPermitIssuers: Raw data from DB:', data);
     console.log(`📊 listPermitIssuers: Found ${(data || []).length} permit issuers (count: ${count})`);
-    console.log('📋 Data structure sample:', data?.[0]);
+    if (data && data.length > 0) {
+      console.log('📋 First issuer structure:', {
+        id: data[0].id,
+        name: data[0].name,
+        site_ids: data[0].site_ids,
+        site_names: data[0].site_names
+      });
+    }
     
     if (!data || data.length === 0) {
       console.warn('⚠️ listPermitIssuers: No permit issuers found in database');
@@ -71,43 +78,66 @@ export const listPermitIssuers = async () => {
     }
     
     // For each issuer, try to get their site names based on site_ids
-    // Use Promise.allSettled so one failure doesn't break the whole thing
     const sitePromises = (data || []).map(async (user) => {
       try {
-        console.log(`  Processing permit issuer: ${user.name} (${user.id})`, { site_ids: user.site_ids });
-        let siteNames = [];
+        console.log(`\n🔍 Processing: ${user.name} (ID: ${user.id})`);
+        console.log(`   site_ids from DB:`, user.site_ids);
         
-        if (user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0) {
-          console.log(`    Looking up ${user.site_ids.length} site names for ${user.name}...`);
+        let siteNames = [];
+        let siteIds = user.site_ids || [];
+        
+        if (siteIds && Array.isArray(siteIds) && siteIds.length > 0) {
+          console.log(`   Looking up names for ${siteIds.length} site IDs:`, siteIds);
           try {
-            const { data: sitesData, error: sitesError } = await supabase
+            // Try the query
+            const { data: sitesData, error: sitesError, status } = await supabase
               .from('sites')
-              .select('id, name')
-              .in('id', user.site_ids);
+              .select('id, name');
             
             if (sitesError) {
-              console.error(`    ❌ Error looking up sites for ${user.name}:`, sitesError);
+              console.error(`   ❌ Query error:`, sitesError, 'status:', status);
             } else {
-              siteNames = sitesData ? sitesData.map(s => s.name) : [];
-              console.log(`    ✅ Found ${siteNames.length} sites: ${siteNames.join(', ')}`);
+              console.log(`   Query returned ${sitesData ? sitesData.length : 0} total sites`);
+              if (sitesData && sitesData.length > 0) {
+                console.log(`   Sample sites:`, sitesData.slice(0, 3).map(s => ({ id: s.id, name: s.name })));
+                // Filter manually to only the site_ids we want
+                siteNames = sitesData.filter(s => siteIds.includes(s.id)).map(s => s.name);
+                console.log(`   ✅ Got ${siteNames.length} site names:`, siteNames);
+              } else {
+                console.warn(`   ⚠️ No sites found in database at all`);
+              }
             }
           } catch (siteError) {
-            console.error(`    ❌ Exception looking up sites for ${user.name}:`, siteError);
-            // Continue anyway - just won't have site names for this issuer
+            console.error(`   ❌ Exception:`, siteError);
           }
+        } else {
+          console.log(`   No site_ids for this issuer`);
         }
         
-        const transformed = transformPermitIssuer({ ...user, site_names: siteNames });
-        console.log(`  ✅ Transformed permit issuer ${user.name}:`, transformed);
+        console.log(`   Final sites to return:`, {
+          siteIds: siteIds,
+          siteNames: siteNames
+        });
+        
+        const transformed = transformPermitIssuer({ 
+          ...user, 
+          site_names: siteNames,
+          site_ids: siteIds
+        });
+        console.log(`   ✅ Transformed:`, {
+          id: transformed.id,
+          name: transformed.name,
+          siteIds: transformed.siteIds,
+          sites: transformed.sites
+        });
         return transformed;
       } catch (mapError) {
-        console.error(`  ❌ Error processing permit issuer ${user.name}:`, mapError);
-        // Still return the basic transform without site names
+        console.error(`  ❌ Error processing ${user.name}:`, mapError);
         return transformPermitIssuer(user);
       }
     });
     
-    // Wait for all site lookups to complete (or fail gracefully)
+    // Wait for all site lookups
     const permitIssuersWithSites = await Promise.all(sitePromises);
     
     console.log('✅ listPermitIssuers complete. Returning:', permitIssuersWithSites);
