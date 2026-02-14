@@ -2979,7 +2979,6 @@ const PermitManagementApp = () => {
         requested_by: editData.requestedBy,
         contractor_company: editData.contractorCompany,
         manual_company: editData.manualCompany || '',
-        manual_company: editData.manualCompany || '',
         priority: editData.priority,
         status: editData.status,
         start_date: editData.startDate,
