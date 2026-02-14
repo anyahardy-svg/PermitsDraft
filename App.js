@@ -5789,6 +5789,10 @@ const PermitManagementApp = () => {
     const [inspector, setInspector] = React.useState('');
     const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
     const [comments, setComments] = React.useState('');
+    const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
+    const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -5874,11 +5878,62 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
-              <Text style={styles.label}>Dates:</Text>
-              <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
-              <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
-              <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
-              <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+              <Text style={styles.label}>Start Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartDatePicker}
+                onClose={() => setShowStartDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, startDate: date })}
+                mode="date"
+                currentValue={editData.startDate}
+              />
+              <Text style={styles.label}>Start Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startTime || 'Select start time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartTimePicker}
+                onClose={() => setShowStartTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, startTime: time })}
+                mode="time"
+                currentValue={editData.startTime}
+              />
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndDatePicker}
+                onClose={() => setShowEndDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, endDate: date })}
+                mode="date"
+                currentValue={editData.endDate}
+              />
+              <Text style={styles.label}>End Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endTime || 'Select end time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndTimePicker}
+                onClose={() => setShowEndTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, endTime: time })}
+                mode="time"
+                currentValue={editData.endTime}
+              />
             </View>
           )}
         </View>
@@ -6351,6 +6406,10 @@ const PermitManagementApp = () => {
     const [issuerSignature, setIssuerSignature] = React.useState(completedSignOff.issuerSignature || '');
     const [receiverName, setReceiverName] = React.useState(completedSignOff.receiverName || '');
     const [receiverSignature, setReceiverSignature] = React.useState(completedSignOff.receiverSignature || '');
+    const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
+    const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
     
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
@@ -6480,11 +6539,62 @@ const PermitManagementApp = () => {
               <TextInput style={styles.input} value={editData.priority || ''} onChangeText={text => setEditData({ ...editData, priority: text })} />
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
-              <Text style={styles.label}>Dates:</Text>
-              <TextInput style={styles.input} value={editData.startDate || ''} onChangeText={text => setEditData({ ...editData, startDate: text })} placeholder="Start Date" />
-              <TextInput style={styles.input} value={editData.startTime || ''} onChangeText={text => setEditData({ ...editData, startTime: text })} placeholder="Start Time" />
-              <TextInput style={styles.input} value={editData.endDate || ''} onChangeText={text => setEditData({ ...editData, endDate: text })} placeholder="End Date" />
-              <TextInput style={styles.input} value={editData.endTime || ''} onChangeText={text => setEditData({ ...editData, endTime: text })} placeholder="End Time" />
+              <Text style={styles.label}>Start Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
+                <Text style={editData.startDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startDate ? formatDateNZ(editData.startDate) : 'Select start date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartDatePicker}
+                onClose={() => setShowStartDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, startDate: date })}
+                mode="date"
+                currentValue={editData.startDate}
+              />
+              <Text style={styles.label}>Start Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartTimePicker(true)}>
+                <Text style={editData.startTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.startTime || 'Select start time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showStartTimePicker}
+                onClose={() => setShowStartTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, startTime: time })}
+                mode="time"
+                currentValue={editData.startTime}
+              />
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndDatePicker(true)}>
+                <Text style={editData.endDate ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endDate ? formatDateNZ(editData.endDate) : 'Select end date'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndDatePicker}
+                onClose={() => setShowEndDatePicker(false)}
+                onSelect={date => setEditData({ ...editData, endDate: date })}
+                mode="date"
+                currentValue={editData.endDate}
+              />
+              <Text style={styles.label}>End Time</Text>
+              <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowEndTimePicker(true)}>
+                <Text style={editData.endTime ? styles.dateTimeText : styles.placeholderText}>
+                  {editData.endTime || 'Select end time'}
+                </Text>
+                <Text style={styles.calendarIcon}>⏰</Text>
+              </TouchableOpacity>
+              <DateTimePicker
+                visible={showEndTimePicker}
+                onClose={() => setShowEndTimePicker(false)}
+                onSelect={time => setEditData({ ...editData, endTime: time })}
+                mode="time"
+                currentValue={editData.endTime}
+              />
             </View>
           )}
         </View>
