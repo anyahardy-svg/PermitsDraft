@@ -5559,7 +5559,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setEditData({ ...editData, requestedBy: contractor.name });
+                            setEditData({ ...editData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -5572,6 +5572,14 @@ const PermitManagementApp = () => {
                   </View>
                 )}
               </View>
+              
+              <Text style={styles.label}>Company</Text>
+              <TextInput 
+                style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+                value={editData.contractorCompany || ''}
+                placeholder="Company will auto-populate when contractor is selected"
+                editable={false}
+              />
               
               <Text style={styles.label}>Start Date</Text>
               <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
