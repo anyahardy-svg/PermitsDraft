@@ -1355,22 +1355,13 @@ const PermitManagementApp = () => {
                 />
                 
                 <Text style={styles.label}>Permit Issuer</Text>
-                {users && users.length > 0 ? (
-                  <CustomDropdown
-                    label="Select Permit Issuer"
-                    options={users.map(user => user.name)}
-                    selectedValue={formData.permitIssuer || ''}
-                    onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
-                    style={styles.input}
-                  />
-                ) : (
-                  <View style={[styles.input, { justifyContent: 'center', backgroundColor: '#FEE2E2' }]}>
-                    <Text style={{ color: '#DC2626', fontWeight: '500' }}>❌ No permit issuers available</Text>
-                    <Text style={{ color: '#7F1D1D', fontSize: 12, marginTop: 4 }}>
-                      Debug: users={users ? users.length : 0} items
-                    </Text>
-                  </View>
-                )}
+                <CustomDropdown
+                  label="Select Permit Issuer"
+                  options={users && users.length > 0 ? users.map(user => user.name) : []}
+                  selectedValue={formData.permitIssuer || ''}
+                  onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
+                  style={styles.input}
+                />
                 
                 <Text style={styles.label}>Location</Text>
                 <TextInput
