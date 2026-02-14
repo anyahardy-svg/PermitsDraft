@@ -5396,7 +5396,7 @@ const PermitManagementApp = () => {
           key_procedure: currentIsolation.key_procedure || ''
         };
 
-        if (editingIsolation) {
+        if (editingIsolation && currentIsolation.id) {
           await updateIsolationRegister(currentIsolation.id, isolationData);
           Alert.alert('Updated', 'Isolation register updated successfully');
         } else {
