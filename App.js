@@ -854,6 +854,8 @@ const PermitManagementApp = () => {
     description: '',
     requestedBy: '',
     contractorCompany: '',
+    manualCompany: '',
+    contractorSelected: false,
     location: '',
     site: '',
     permitIssuer: '',
@@ -1074,6 +1076,7 @@ const PermitManagementApp = () => {
         requested_by: formData.requestedBy,
         contractor_company: formData.contractorCompany || '',
         manual_company: formData.manualCompany || '',
+        contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         controls_summary: '',
@@ -1413,7 +1416,7 @@ const PermitManagementApp = () => {
                   style={styles.input}
                   value={formData.requestedBy}
                   onChangeText={text => {
-                    setFormData({ ...formData, requestedBy: text });
+                    setFormData({ ...formData, requestedBy: text, contractorSelected: false });
                     // Filter contractors based on input and site
                     if (text.trim().length > 0 && formData.site) {
                       const siteContractors = contractors.filter(contractor => 
@@ -1479,7 +1482,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '' });
+                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -1512,7 +1515,7 @@ const PermitManagementApp = () => {
 
                 {/* Contractor Company (auto-populated) */}
                 <Text style={styles.label}>Company</Text>
-                {contractors.some(c => c.name === formData.requestedBy) ? (
+                {formData.contractorSelected ? (
                   <TextInput
                     style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
                     value={formData.contractorCompany}
@@ -2947,6 +2950,7 @@ const PermitManagementApp = () => {
     ...permit,
     contractorCompany: permit.contractor_company || permit.contractorCompany || '',
     manualCompany: permit.manual_company || permit.manualCompany || '',
+    contractorSelected: permit.contractor_selected || false,
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
@@ -2979,6 +2983,7 @@ const PermitManagementApp = () => {
         requested_by: editData.requestedBy,
         contractor_company: editData.contractorCompany,
         manual_company: editData.manualCompany || '',
+        contractor_selected: editData.contractorSelected || false,
         priority: editData.priority,
         status: editData.status,
         start_date: editData.startDate,
@@ -3009,6 +3014,7 @@ const PermitManagementApp = () => {
         requested_by: editData.requestedBy,
         contractor_company: editData.contractorCompany,
         manual_company: editData.manualCompany || '',
+        contractor_selected: editData.contractorSelected || false,
         priority: editData.priority,
         status: 'pending_approval',
         start_date: editData.startDate,
@@ -3146,14 +3152,7 @@ const PermitManagementApp = () => {
         
         <Text style={styles.label}>Company:</Text>
         {isDraft ? (
-          editData.manualCompany ? (
-            <TextInput 
-              style={styles.input}
-              value={editData.manualCompany || ''}
-              placeholder="Enter company name"
-              onChangeText={text => handleEditChange('manualCompany', text)}
-            />
-          ) : editData.contractorCompany && contractors.some(c => c.name === editData.requestedBy) ? (
+          editData.contractorSelected ? (
             <TextInput 
               style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
               value={editData.contractorCompany || ''}
@@ -5391,6 +5390,7 @@ const PermitManagementApp = () => {
       permitIssuer: permit.permitted_issuer || '',
       contractorCompany: permit.contractor_company || '',
       manualCompany: permit.manual_company || '',
+      contractorSelected: permit.contractor_selected || false,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -5997,6 +5997,7 @@ const PermitManagementApp = () => {
                     requested_by: editData.requestedBy,
                     contractor_company: editData.contractorCompany,
                     manual_company: editData.manualCompany || '',
+                    contractor_selected: editData.contractorSelected || false,
                     priority: editData.priority,
                     status: editData.status,
                     start_date: editData.startDate,
@@ -6029,6 +6030,7 @@ const PermitManagementApp = () => {
                     requested_by: editData.requestedBy,
                     contractor_company: editData.contractorCompany,
                     manual_company: editData.manualCompany || '',
+                    contractor_selected: editData.contractorSelected || false,
                     priority: editData.priority,
                     status: 'pending_approval',
                     start_date: editData.startDate,
@@ -6108,6 +6110,7 @@ const PermitManagementApp = () => {
       ...permit,
       contractorCompany: permit.contractor_company || permit.contractorCompany || '',
       manualCompany: permit.manual_company || permit.manualCompany || '',
+      contractorSelected: permit.contractor_selected || false,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -6725,6 +6728,7 @@ const PermitManagementApp = () => {
       ...latestPermit,
       contractorCompany: latestPermit.contractor_company || latestPermit.contractorCompany || '',
       manualCompany: latestPermit.manual_company || latestPermit.manualCompany || '',
+      contractorSelected: latestPermit.contractor_selected || false,
       specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jsea: latestPermit.jsea || initialJSEA,

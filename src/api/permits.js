@@ -26,6 +26,8 @@ const transformPermit = (dbPermit) => {
     contractor_company: dbPermit.contractor_company,
     manualCompany: dbPermit.manual_company,
     manual_company: dbPermit.manual_company,
+    contractorSelected: dbPermit.contractor_selected || false,
+    contractor_selected: dbPermit.contractor_selected || false,
     permittedIssuer: dbPermit.permitted_issuer,
     permitted_issuer: dbPermit.permitted_issuer,
     siteId: dbPermit.site_id,
