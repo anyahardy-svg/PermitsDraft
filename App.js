@@ -5852,6 +5852,9 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
+              <Text style={styles.label}>Description:</Text>
+              <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
+              
               <Text style={styles.label}>Site</Text>
               <CustomDropdown
                 label="Select Site"
@@ -5860,9 +5863,6 @@ const PermitManagementApp = () => {
                 onValueChange={value => setEditData({ ...editData, site: value })}
                 style={styles.input}
               />
-              
-              <Text style={styles.label}>Description:</Text>
-              <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               
               <Text style={styles.label}>Permit Issuer</Text>
               <CustomDropdown
