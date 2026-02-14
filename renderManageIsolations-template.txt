@@ -1,0 +1,2 @@
+// renderManageIsolations - Add BEFORE renderServicesDirectory function
+// This is a placeholder showing where to add the code

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
+import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
@@ -1235,6 +1236,10 @@ const PermitManagementApp = () => {
         // Load contractors LAST (after mappings are ready)
         const contractorsData = await listContractors();
         setContractors(contractorsData);
+        
+        // Load isolation registers
+        const isolationData = await listIsolationRegisters();
+        setIsolationRegisters(isolationData);
       } catch (error) {
         console.error('Error loading data:', error);
         Alert.alert('Error', 'Failed to load data from database');
@@ -1287,6 +1292,10 @@ const PermitManagementApp = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
+  const [isolationRegisters, setIsolationRegisters] = useState([]);
+  const [selectedIsolation, setSelectedIsolation] = useState(null);
+  const [editingIsolation, setEditingIsolation] = useState(false);
+  const [currentIsolation, setCurrentIsolation] = useState({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
   
   // Filter states for contractors and users
   const [contractorSearchText, setContractorSearchText] = useState('');
@@ -3981,6 +3990,10 @@ const PermitManagementApp = () => {
             <Text style={styles.cardNumber}>{ALL_SERVICES.length}</Text>
             <Text style={styles.cardLabel}>Services</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EF4444' }]} onPress={() => setCurrentScreen('manage_isolations')}>
+            <Text style={styles.cardNumber}>{isolationRegisters.length}</Text>
+            <Text style={styles.cardLabel}>Isolation Register</Text>
+          </TouchableOpacity>
         </View>
         </ScrollView>
       </View>
@@ -5350,6 +5363,250 @@ const PermitManagementApp = () => {
               })()
             )}
           </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Manage Isolation Registers Screen
+  const renderManageIsolations = () => {
+    const handleAddIsolation = async () => {
+      if (!currentIsolation.site_id || !currentIsolation.main_lockout_item) {
+        Alert.alert('Missing Info', 'Please select a site and enter the main lockout item.');
+        return;
+      }
+
+      try {
+        // Prepare linked items array from currentIsolation
+        const linkedItemsArray = currentIsolation.linked_items || [];
+        
+        const isolationData = {
+          site_id: currentIsolation.site_id,
+          main_lockout_item: currentIsolation.main_lockout_item,
+          linked_item_1: linkedItemsArray[0] || null,
+          linked_item_2: linkedItemsArray[1] || null,
+          linked_item_3: linkedItemsArray[2] || null,
+          linked_item_4: linkedItemsArray[3] || null,
+          linked_item_5: linkedItemsArray[4] || null,
+          linked_item_6: linkedItemsArray[5] || null,
+          linked_item_7: linkedItemsArray[6] || null,
+          linked_item_8: linkedItemsArray[7] || null,
+          linked_item_9: linkedItemsArray[8] || null,
+          linked_item_10: linkedItemsArray[9] || null,
+          key_procedure: currentIsolation.key_procedure || ''
+        };
+
+        if (editingIsolation) {
+          await updateIsolationRegister(currentIsolation.id, isolationData);
+          Alert.alert('Updated', 'Isolation register updated successfully');
+        } else {
+          await createIsolationRegister(isolationData);
+          Alert.alert('Added', 'New isolation register added successfully');
+        }
+
+        // Reload isolations
+        const freshIsolations = await listIsolationRegisters();
+        setIsolationRegisters(freshIsolations);
+        setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+        setEditingIsolation(false);
+        setSelectedIsolation(null);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save isolation: ' + error.message);
+      }
+    };
+
+    const handleDeleteIsolation = (id) => {
+      if (window.confirm('Delete Isolation?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            await deleteIsolationRegister(id);
+            const freshIsolations = await listIsolationRegisters();
+            setIsolationRegisters(freshIsolations);
+            setSelectedIsolation(null);
+            Alert.alert('Deleted', 'Isolation register deleted successfully');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete isolation: ' + error.message);
+          }
+        })();
+      }
+    };
+
+    const handleEditIsolation = (isolation) => {
+      setSelectedIsolation(isolation.id);
+      setEditingIsolation(true);
+      // Convert linked items from separate fields to array
+      const linked = [];
+      for (let i = 1; i <= 10; i++) {
+        const key = `linked_item_${i}`;
+        if (isolation[key]) linked.push(isolation[key]);
+      }
+      setCurrentIsolation({
+        id: isolation.id,
+        site_id: isolation.site_id,
+        main_lockout_item: isolation.main_lockout_item,
+        linked_items: linked,
+        key_procedure: isolation.key_procedure || ''
+      });
+    };
+
+    const handleAddLinkedItem = () => {
+      const newLinked = [...(currentIsolation.linked_items || [])];
+      if (newLinked.length < 10) {
+        newLinked.push('');
+        setCurrentIsolation({ ...currentIsolation, linked_items: newLinked });
+      }
+    };
+
+    const updateLinkedItem = (index, value) => {
+      const updated = [...currentIsolation.linked_items];
+      updated[index] = value;
+      setCurrentIsolation({ ...currentIsolation, linked_items: updated });
+    };
+
+    const removeLinkedItem = (index) => {
+      const updated = currentIsolation.linked_items.filter((_, i) => i !== index);
+      setCurrentIsolation({ ...currentIsolation, linked_items: updated });
+    };
+
+    const siteName = currentIsolation.site_id ? siteIdToNameMap[currentIsolation.site_id] : '';
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => {
+            setCurrentScreen('admin');
+            setEditingIsolation(false);
+            setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+          }}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Isolation Register</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {!editingIsolation ? (
+            <>
+              <TouchableOpacity 
+                style={[styles.primaryButton, { backgroundColor: '#2563EB', marginBottom: 16 }]}
+                onPress={() => {
+                  setEditingIsolation(true);
+                  setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+                  setSelectedIsolation(null);
+                }}
+              >
+                <Text style={styles.primaryButtonText}>+ Add New Isolation</Text>
+              </TouchableOpacity>
+
+              {isolationRegisters.map(isolation => (
+                <TouchableOpacity
+                  key={isolation.id}
+                  style={[styles.card, { borderLeftWidth: 4, borderLeftColor: selectedIsolation === isolation.id ? '#2563EB' : '#D1D5DB' }]}
+                  onPress={() => setSelectedIsolation(selectedIsolation === isolation.id ? null : isolation.id)}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>{isolation.main_lockout_item}</Text>
+                      <Text style={{ color: '#6B7280', fontSize: 14 }}>Site: {siteIdToNameMap[isolation.site_id]}</Text>
+                      {isolation.linked_item_1 && (
+                        <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 4 }}>
+                          Linked items: {[isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean).join(', ')}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {selectedIsolation === isolation.id && (
+                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#10B981' }]} onPress={() => handleEditIsolation(isolation)}>
+                        <Text style={styles.primaryButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => handleDeleteIsolation(isolation.id)}>
+                        <Text style={styles.primaryButtonText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+
+              {isolationRegisters.length === 0 && (
+                <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 32 }}>No isolation registers yet. Add one to get started.</Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>Site *</Text>
+              <CustomDropdown
+                label="Select Site"
+                options={sites.map(s => s.name)}
+                selectedValue={siteName}
+                onValueChange={(value) => {
+                  const siteId = siteNameToIdMap[value];
+                  setCurrentIsolation({ ...currentIsolation, site_id: siteId });
+                }}
+                style={styles.input}
+              />
+
+              <Text style={styles.label}>Main Lockout Item *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter main lockout item name"
+                value={currentIsolation.main_lockout_item}
+                onChangeText={text => setCurrentIsolation({ ...currentIsolation, main_lockout_item: text })}
+              />
+
+              <Text style={styles.label}>Linked Items (up to 10)</Text>
+              {(currentIsolation.linked_items || []).map((item, index) => (
+                <View key={index} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder={`Linked item ${index + 1}`}
+                    value={item}
+                    onChangeText={text => updateLinkedItem(index, text)}
+                  />
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: '#EF4444', paddingHorizontal: 12, justifyContent: 'center' }]}
+                    onPress={() => removeLinkedItem(index)}
+                  >
+                    <Text style={styles.primaryButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {(currentIsolation.linked_items || []).length < 10 && (
+                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#10B981', marginBottom: 16 }]} onPress={handleAddLinkedItem}>
+                  <Text style={styles.primaryButtonText}>+ Add Linked Item</Text>
+                </TouchableOpacity>
+              )}
+
+              <Text style={styles.label}>Key Procedure</Text>
+              <TextInput
+                style={[styles.input, { minHeight: 100 }]}
+                placeholder="Enter key procedure or steps"
+                value={currentIsolation.key_procedure}
+                onChangeText={text => setCurrentIsolation({ ...currentIsolation, key_procedure: text })}
+                multiline
+              />
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#2563EB' }]}
+                  onPress={handleAddIsolation}
+                >
+                  <Text style={styles.primaryButtonText}>{editingIsolation && currentIsolation.id ? 'Update' : 'Add'} Isolation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
+                  onPress={() => {
+                    setEditingIsolation(false);
+                    setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+                    setSelectedIsolation(null);
+                  }}
+                >
+                  <Text style={styles.primaryButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
     );
@@ -7533,6 +7790,8 @@ const PermitManagementApp = () => {
       return renderManageCompanies();
     case 'manage_contractors':
       return renderManageContractors();
+    case 'manage_isolations':
+      return renderManageIsolations();
     case 'services_directory':
       return renderServicesDirectory();
     default:
