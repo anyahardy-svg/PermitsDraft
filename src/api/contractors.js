@@ -2,6 +2,13 @@ import { supabase } from '../supabaseClient';
 
 // Helper function to transform Supabase data to app format
 const transformContractor = (dbContractor) => {
+  // Get company name from either direct column or joined companies table
+  const getCompanyName = () => {
+    if (dbContractor.company_name) return dbContractor.company_name;
+    if (dbContractor.companies && dbContractor.companies.name) return dbContractor.companies.name;
+    return '';
+  };
+  
   return {
     id: dbContractor.id,
     name: dbContractor.name,
@@ -9,8 +16,8 @@ const transformContractor = (dbContractor) => {
     phone: dbContractor.phone,
     companyId: dbContractor.company_id,
     company_id: dbContractor.company_id,
-    companyName: dbContractor.company_name || dbContractor.companies?.name,
-    company_name: dbContractor.company_name || dbContractor.companies?.name,
+    companyName: getCompanyName(),
+    company_name: getCompanyName(),
     inductionExpiry: dbContractor.induction_expiry,
     induction_expiry: dbContractor.induction_expiry,
     services: dbContractor.services || [],
