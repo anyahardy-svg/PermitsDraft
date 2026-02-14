@@ -1184,13 +1184,6 @@ const PermitManagementApp = () => {
     loadData();
   }, []);
 
-  // Scroll to top when editing on admin screens
-  useEffect(() => {
-    if (editingUser || editingContractor || editingCompany) {
-      window.scrollTo(0, 0);
-    }
-  }, [editingUser, editingContractor, editingCompany]);
-
   // Users state - stores system users with sites they can work at
   const [users, setUsers] = useState([
     { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
@@ -1257,6 +1250,13 @@ const PermitManagementApp = () => {
   // Site mapping for contractors
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
+
+  // Scroll to top when editing on admin screens
+  useEffect(() => {
+    if (editingUser || editingContractor || editingCompany) {
+      window.scrollTo(0, 0);
+    }
+  }, [editingUser, editingContractor, editingCompany]);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
