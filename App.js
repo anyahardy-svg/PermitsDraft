@@ -3940,14 +3940,41 @@ const PermitManagementApp = () => {
 
             const newUsers = [];
 
+            // Parse header row to get column indices
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            // Find column indices
+            const nameIdx = headerValues.findIndex(h => h.includes('name'));
+            const emailIdx = headerValues.findIndex(h => h.includes('email'));
+            const companyIdx = headerValues.findIndex(h => h.includes('company'));
+            const siteIdx = headerValues.findIndex(h => h === 'site' || h === 'sites');
+            const phoneIdx = headerValues.findIndex(h => h === 'phone');
+            const isAdminIdx = headerValues.findIndex(h => h.includes('admin'));
+
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
               if (!line) continue;
               
               // Simple CSV parsing
               const values = [];
-              let current = '';
-              let inQuotes = false;
+              current = '';
+              inQuotes = false;
               
               for (let j = 0; j < line.length; j++) {
                 const char = line[j];
@@ -3962,24 +3989,27 @@ const PermitManagementApp = () => {
               }
               values.push(current.trim().replace(/^"|"$/g, ''));
               
-              // Expected format: Name, Email, Company, Sites (comma-separated), IsAdmin (yes/no)
-              if (values.length >= 3) {
-                const name = values[0];
-                const email = values[1];
-                const company = values[2];
-                const sites = values[3] ? values[3].split(';').map(s => s.trim()).filter(s => s) : [];
-                const isAdmin = values[4] ? values[4].toLowerCase() === 'yes' : false;
+              if (nameIdx >= 0 && emailIdx >= 0) {
+                const name = values[nameIdx] || '';
+                const email = values[emailIdx] || '';
+                const company = values[companyIdx] >= 0 ? values[companyIdx] : '';
+                const site = siteIdx >= 0 ? values[siteIdx] : '';
+                const phone = phoneIdx >= 0 ? values[phoneIdx] : '';
+                const isAdmin = isAdminIdx >= 0 ? values[isAdminIdx].toLowerCase() === 'yes' : false;
                 
-                // Check for duplicates
-                if (!newUsers.some(u => u.email.toLowerCase() === email.toLowerCase()) &&
-                    !users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-                  newUsers.push({
-                    name,
-                    email,
-                    sites,
-                    company,
-                    isAdmin
-                  });
+                if (name && email) {
+                  // Check for duplicates
+                  if (!newUsers.some(u => u.email.toLowerCase() === email.toLowerCase()) &&
+                      !users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                    newUsers.push({
+                      name,
+                      email,
+                      company,
+                      site,
+                      phone,
+                      isAdmin
+                    });
+                  }
                 }
               }
             }
