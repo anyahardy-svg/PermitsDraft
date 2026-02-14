@@ -1349,35 +1349,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.label}>Permit Issuer</Text>
                 <CustomDropdown
                   label="Select Permit Issuer"
-                  options={(() => {
-                    console.log('🔍 New permit issuer dropdown - formData.site:', formData.site);
-                    console.log('📊 Available users:', users && users.length > 0 ? users.map(u => ({
-                      name: u.name,
-                      sites: u.sites,
-                      site_ids: u.site_ids,
-                      siteIds: u.siteIds
-                    })) : 'NO USERS');
-                    
-                    if (formData.site && users && users.length > 0) {
-                      console.log('✅ Site selected, filtering users for:', formData.site);
-                      const filtered = users.filter(user => {
-                        // Check if user has sites array and it includes the selected site name
-                        const hasSiteName = user.sites && Array.isArray(user.sites) && user.sites.includes(formData.site);
-                        console.log(`  ${user.name}: sites=${user.sites}, hasSiteName=${hasSiteName}`);
-                        return hasSiteName;
-                      });
-                      console.log('✅ Filtered result:', filtered.map(u => u.name));
-                      if (filtered.length > 0) {
-                        return filtered.map(user => user.name);
-                      } else {
-                        console.warn('⚠️ No users found for site, returning ALL users');
-                        return users.map(user => user.name);
-                      }
-                    } else {
-                      console.log('ℹ️ No site selected or no users available, showing all users');
-                      return users && users.length > 0 ? users.map(user => user.name) : [];
-                    }
-                  })()}
+                  options={users && users.length > 0 ? users.map(user => user.name) : []}
                   selectedValue={formData.permitIssuer || ''}
                   onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
                   style={styles.input}
