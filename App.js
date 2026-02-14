@@ -1073,6 +1073,7 @@ const PermitManagementApp = () => {
         end_time: formData.endTime,
         requested_by: formData.requestedBy,
         contractor_company: formData.contractorCompany || '',
+        manual_company: formData.manualCompany || '',
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         controls_summary: '',
@@ -1511,12 +1512,21 @@ const PermitManagementApp = () => {
 
                 {/* Contractor Company (auto-populated) */}
                 <Text style={styles.label}>Company</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
-                  value={formData.contractorCompany}
-                  placeholder="Company will auto-populate when contractor is selected"
-                  editable={false}
-                />
+                {contractors.some(c => c.name === formData.requestedBy) ? (
+                  <TextInput
+                    style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+                    value={formData.contractorCompany}
+                    placeholder="Company will auto-populate when contractor is selected"
+                    editable={false}
+                  />
+                ) : (
+                  <TextInput
+                    style={styles.input}
+                    value={formData.manualCompany || ''}
+                    placeholder="Enter company name for manual requester"
+                    onChangeText={text => setFormData({ ...formData, manualCompany: text })}
+                  />
+                )}
 
                 {/* Start Date/Time */}
                 <Text style={styles.label}>Start Date</Text>
@@ -2935,8 +2945,7 @@ const PermitManagementApp = () => {
   const initialSignOns = [];
   const [editData, setEditData] = React.useState({
     ...permit,
-    permitIssuer: permit.permitted_issuer || '',
-    contractorCompany: permit.contractor_company || '',
+    manualCompany: permit.manual_company || '',
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
@@ -2968,6 +2977,8 @@ const PermitManagementApp = () => {
         location: editData.location,
         requested_by: editData.requestedBy,
         contractor_company: editData.contractorCompany,
+        manual_company: editData.manualCompany || '',
+        manual_company: editData.manualCompany || '',
         priority: editData.priority,
         status: editData.status,
         start_date: editData.startDate,
@@ -3134,14 +3145,23 @@ const PermitManagementApp = () => {
         
         <Text style={styles.label}>Company:</Text>
         {isDraft ? (
-          <TextInput 
-            style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
-            value={editData.contractorCompany || ''}
-            placeholder="Company will auto-populate when contractor is selected"
-            editable={false}
-          />
+          contractors.some(c => c.name === editData.requestedBy) ? (
+            <TextInput 
+              style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]}
+              value={editData.contractorCompany || ''}
+              placeholder="Company will auto-populate when contractor is selected"
+              editable={false}
+            />
+          ) : (
+            <TextInput 
+              style={styles.input}
+              value={editData.manualCompany || ''}
+              placeholder="Enter company name for manual requester"
+              onChangeText={text => handleEditChange('manualCompany', text)}
+            />
+          )
         ) : (
-          <Text style={styles.detailText}>{editData.contractorCompany || ''}</Text>
+          <Text style={styles.detailText}>{editData.contractorCompany || editData.manualCompany || ''}</Text>
         )}
         <Text style={styles.label}>Permit Issuer:</Text>
         {isDraft ? (
@@ -5967,6 +5987,8 @@ const PermitManagementApp = () => {
                     location: editData.location,
                     requested_by: editData.requestedBy,
                     contractor_company: editData.contractorCompany,
+                    manual_company: editData.manualCompany || '',
+                    manual_company: editData.manualCompany || '',
                     priority: editData.priority,
                     status: editData.status,
                     start_date: editData.startDate,
@@ -6075,7 +6097,7 @@ const PermitManagementApp = () => {
   const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
-      contractorCompany: permit.contractor_company || '',
+      manualCompany: permit.manual_company || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -6691,7 +6713,7 @@ const PermitManagementApp = () => {
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
     const [editData, setEditData] = React.useState({
       ...latestPermit,
-      contractorCompany: latestPermit.contractor_company || '',
+      manualCompany: latestPermit.manual_company || '',
       specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jsea: latestPermit.jsea || initialJSEA,
