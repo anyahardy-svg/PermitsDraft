@@ -4026,26 +4026,33 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Available Sites</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites this user can access:</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                {ALL_SITES.map(site => (
-                  <TouchableOpacity
-                    key={site}
-                    style={[
-                      { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
-                      currentUser.sites.includes(site)
-                        ? { backgroundColor: '#2563EB', borderColor: '#2563EB' }
-                        : { borderColor: '#D1D5DB', backgroundColor: 'white' }
-                    ]}
-                    onPress={() => {
-                      if (currentUser.sites.includes(site)) {
-                        setCurrentUser({ ...currentUser, sites: currentUser.sites.filter(s => s !== site) });
-                      } else {
-                        setCurrentUser({ ...currentUser, sites: [...currentUser.sites, site] });
-                      }
-                    }}
-                  >
-                    <Text style={{ color: currentUser.sites.includes(site) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{site}</Text>
-                  </TouchableOpacity>
-                ))}
+                {ALL_SITES.map(site => {
+                  // Check if site is selected by name OR by ID mapping
+                  const isSelected = currentUser.sites.includes(site) || 
+                    (currentUser.site_ids && currentUser.site_ids.some(id => siteIdToNameMap[id] === site));
+                  
+                  return (
+                    <TouchableOpacity
+                      key={site}
+                      style={[
+                        { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                        isSelected
+                          ? { backgroundColor: '#2563EB', borderColor: '#2563EB' }
+                          : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                      ]}
+                      onPress={() => {
+                        // Always work with site names in the sites array
+                        if (currentUser.sites.includes(site)) {
+                          setCurrentUser({ ...currentUser, sites: currentUser.sites.filter(s => s !== site) });
+                        } else {
+                          setCurrentUser({ ...currentUser, sites: [...currentUser.sites, site] });
+                        }
+                      }}
+                    >
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{site}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
