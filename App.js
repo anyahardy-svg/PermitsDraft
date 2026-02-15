@@ -3057,6 +3057,7 @@ const PermitManagementApp = () => {
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
         jsea: editData.jsea,
+        isolations: editData.isolations,
         sign_ons: editData.signOns
       });
       
@@ -3088,6 +3089,7 @@ const PermitManagementApp = () => {
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
         jsea: editData.jsea,
+        isolations: editData.isolations,
         sign_ons: editData.signOns
       });
       
@@ -6668,6 +6670,7 @@ const PermitManagementApp = () => {
                     specialized_permits: editData.specializedPermits,
                     single_hazards: editData.singleHazards,
                     jsea: editData.jsea,
+                    isolations: editData.isolations,
                     sign_ons: editData.signOns
                   });
                   
@@ -6701,6 +6704,7 @@ const PermitManagementApp = () => {
                     specialized_permits: editData.specializedPermits,
                     single_hazards: editData.singleHazards,
                     jsea: editData.jsea,
+                    isolations: editData.isolations,
                     sign_ons: editData.signOns
                   });
                   
