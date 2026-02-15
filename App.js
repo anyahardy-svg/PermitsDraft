@@ -5777,14 +5777,23 @@ const PermitManagementApp = () => {
             const keyProcedureIdx = headerValues.findIndex(h => h.includes('key'));
             
             console.log('Column indices - siteIdx:', siteIdx, 'mainLockoutIdx:', mainLockoutIdx, 'keyProcedureIdx:', keyProcedureIdx);
+            console.log('Currently selected site_id:', currentIsolation.site_id);
 
-            if (siteIdx === -1 || mainLockoutIdx === -1) {
-              Alert.alert('Error', 'CSV must have "Site" column (found: ' + headerValues.join(', ') + ') and "Main Lockout Item" columns');
+            if (mainLockoutIdx === -1) {
+              Alert.alert('Error', 'CSV must have "Main Lockout Item" column. Found columns: ' + headerValues.join(', '));
               setImportStatus('idle');
               return;
             }
 
-            console.log('Available sites in map:', Object.keys(siteNameToIdMap));
+            // Use selected site from form if Site column is missing from CSV
+            const useFormSite = siteIdx === -1;
+            if (useFormSite && !currentIsolation.site_id) {
+              Alert.alert('Error', 'CSV must have "Site" column OR you must select a site from the form above');
+              setImportStatus('idle');
+              return;
+            }
+
+            console.log('Using site from CSV:', siteIdx !== -1, ', Using site from form:', useFormSite);
 
             let newCount = 0;
             let duplicateCount = 0;
@@ -5819,13 +5828,13 @@ const PermitManagementApp = () => {
 
               const siteName = values[siteIdx];
               const mainLockoutItem = values[mainLockoutIdx];
-              const siteId = siteNameToIdMap[siteName];
+              const siteId = useFormSite ? currentIsolation.site_id : siteNameToIdMap[siteName];
 
               console.log(`Row ${i}: siteName="${siteName}", siteId=${siteId}, mainLockoutItem="${mainLockoutItem}"`);
 
-              if (!siteName || !mainLockoutItem || !siteId) {
+              if (!mainLockoutItem || !siteId) {
                 errorCount++;
-                failedRows.push(`Row ${i}: Site="${siteName}" (found: ${siteId ? 'YES' : 'NO'}), Main="${mainLockoutItem}"`);
+                failedRows.push(`Row ${i}: Main="${mainLockoutItem}", siteId=${siteId}`);
                 continue;
               }
 
