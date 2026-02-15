@@ -1,0 +1,5 @@
+Site,Main Lockout Item,Linked Item 1,Linked Item 2,Linked Item 3,Linked Item 4,Linked Item 5,Linked Item 6,Linked Item 7,Linked Item 8,Linked Item 9,Linked Item 10,Key Procedure
+Main Factory,Electrical Distribution Board,Circuit Breaker 1,Circuit Breaker 2,Emergency Stop,Main Switch,,,,,,,Verify isolation using multimeter before proceeding
+Main Factory,HVAC System,Compressor Valve,Refrigerant Line,Power Supply,,,,,,,,,Reduce pressure to atmospheric level before work
+Warehouse A,Forklift Charging Station,Battery Disconnect,AC Power Supply,Charger Control Panel,,,,,,,,Ensure battery is fully disconnected
+Warehouse A,Loading Dock Motor,Motor Start Button,Emergency Stop,Line Contactor,Thermal Overload,,,,,,Check motor rotation after isolation

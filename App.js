@@ -5717,22 +5717,37 @@ const PermitManagementApp = () => {
     const siteName = currentIsolation.site_id ? siteIdToNameMap[currentIsolation.site_id] : '';
 
     const handleImportCSV = () => {
+      console.log('Import CSV clicked');
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.csv,.xlsx,.xls';
       
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        console.log('File selected:', file?.name);
+        if (!file) {
+          console.log('No file selected');
+          return;
+        }
 
         const reader = new FileReader();
+        reader.onerror = (error) => {
+          console.error('FileReader error:', error);
+          setImportStatus('error');
+          setImportMessage('');
+          Alert.alert('Error', 'Failed to read file: ' + error.message);
+          setImportStatus('idle');
+        };
         reader.onload = async (event) => {
           try {
+            console.log('File loaded, parsing...');
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
+            console.log('Total lines:', lines.length);
             
             if (lines.length < 2) {
               Alert.alert('Error', 'File must have header row and at least one data row');
+              setImportStatus('idle');
               return;
             }
 
@@ -5754,20 +5769,27 @@ const PermitManagementApp = () => {
               }
             }
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+            console.log('Headers found:', headerValues);
 
             // Find column indices
             const siteIdx = headerValues.findIndex(h => h.includes('site'));
             const mainLockoutIdx = headerValues.findIndex(h => h.includes('main'));
             const keyProcedureIdx = headerValues.findIndex(h => h.includes('key'));
+            
+            console.log('Column indices - siteIdx:', siteIdx, 'mainLockoutIdx:', mainLockoutIdx, 'keyProcedureIdx:', keyProcedureIdx);
 
             if (siteIdx === -1 || mainLockoutIdx === -1) {
-              Alert.alert('Error', 'CSV must have "Site" and "Main Lockout Item" columns');
+              Alert.alert('Error', 'CSV must have "Site" column (found: ' + headerValues.join(', ') + ') and "Main Lockout Item" columns');
+              setImportStatus('idle');
               return;
             }
+
+            console.log('Available sites in map:', Object.keys(siteNameToIdMap));
 
             let newCount = 0;
             let duplicateCount = 0;
             let errorCount = 0;
+            const failedRows = [];
             const processedItems = new Set();
 
             setImportStatus('importing');
@@ -5799,8 +5821,11 @@ const PermitManagementApp = () => {
               const mainLockoutItem = values[mainLockoutIdx];
               const siteId = siteNameToIdMap[siteName];
 
+              console.log(`Row ${i}: siteName="${siteName}", siteId=${siteId}, mainLockoutItem="${mainLockoutItem}"`);
+
               if (!siteName || !mainLockoutItem || !siteId) {
                 errorCount++;
+                failedRows.push(`Row ${i}: Site="${siteName}" (found: ${siteId ? 'YES' : 'NO'}), Main="${mainLockoutItem}"`);
                 continue;
               }
 
@@ -5813,53 +5838,67 @@ const PermitManagementApp = () => {
               processedItems.add(itemKey);
 
               try {
-                // Prepare isolation data
+                // Prepare isolation data - pre-calculate linked item indices
+                const linkedIndices = {};
+                for (let li = 1; li <= 10; li++) {
+                  linkedIndices[li] = headerValues.findIndex(h => h === `linked_item_${li}`);
+                }
+                
                 const isolationData = {
                   site_id: siteId,
                   main_lockout_item: mainLockoutItem,
-                  linked_item_1: values[headerValues.findIndex(h => h === 'linked_item_1')] || null,
-                  linked_item_2: values[headerValues.findIndex(h => h === 'linked_item_2')] || null,
-                  linked_item_3: values[headerValues.findIndex(h => h === 'linked_item_3')] || null,
-                  linked_item_4: values[headerValues.findIndex(h => h === 'linked_item_4')] || null,
-                  linked_item_5: values[headerValues.findIndex(h => h === 'linked_item_5')] || null,
-                  linked_item_6: values[headerValues.findIndex(h => h === 'linked_item_6')] || null,
-                  linked_item_7: values[headerValues.findIndex(h => h === 'linked_item_7')] || null,
-                  linked_item_8: values[headerValues.findIndex(h => h === 'linked_item_8')] || null,
-                  linked_item_9: values[headerValues.findIndex(h => h === 'linked_item_9')] || null,
-                  linked_item_10: values[headerValues.findIndex(h => h === 'linked_item_10')] || null,
+                  linked_item_1: linkedIndices[1] >= 0 ? values[linkedIndices[1]] || null : null,
+                  linked_item_2: linkedIndices[2] >= 0 ? values[linkedIndices[2]] || null : null,
+                  linked_item_3: linkedIndices[3] >= 0 ? values[linkedIndices[3]] || null : null,
+                  linked_item_4: linkedIndices[4] >= 0 ? values[linkedIndices[4]] || null : null,
+                  linked_item_5: linkedIndices[5] >= 0 ? values[linkedIndices[5]] || null : null,
+                  linked_item_6: linkedIndices[6] >= 0 ? values[linkedIndices[6]] || null : null,
+                  linked_item_7: linkedIndices[7] >= 0 ? values[linkedIndices[7]] || null : null,
+                  linked_item_8: linkedIndices[8] >= 0 ? values[linkedIndices[8]] || null : null,
+                  linked_item_9: linkedIndices[9] >= 0 ? values[linkedIndices[9]] || null : null,
+                  linked_item_10: linkedIndices[10] >= 0 ? values[linkedIndices[10]] || null : null,
                   key_procedure: keyProcedureIdx >= 0 ? values[keyProcedureIdx] || '' : ''
                 };
 
+                console.log('Creating isolation register:', isolationData);
                 await createIsolationRegister(isolationData);
                 newCount++;
                 setImportMessage(`Imported ${newCount}/${lines.length - 1}...`);
               } catch (error) {
+                console.error('Error creating isolation register:', error);
                 errorCount++;
+                failedRows.push(`Row ${i}: ${error.message}`);
               }
             }
 
             // Reload isolations
+            console.log('Reloading isolated registers...');
             const freshIsolations = await listIsolationRegisters();
             setIsolationRegisters(freshIsolations);
 
             let message = '';
             if (newCount > 0) {
-              message += `${newCount} isolation register(s) imported.`;
+              message += `✓ ${newCount} isolation register(s) imported successfully.`;
             }
             if (duplicateCount > 0) {
-              if (message) message += ' ';
-              message += `${duplicateCount} duplicate(s) skipped.`;
+              if (message) message += '\n';
+              message += `⊘ ${duplicateCount} duplicate(s) skipped.`;
             }
             if (errorCount > 0) {
-              if (message) message += ' ';
-              message += `${errorCount} error(s) encountered.`;
+              if (message) message += '\n';
+              message += `✗ ${errorCount} error(s) encountered.`;
+              if (failedRows.length > 0) {
+                message += '\n\nDetails:\n' + failedRows.slice(0, 3).join('\n') + (failedRows.length > 3 ? '\n... and ' + (failedRows.length - 3) + ' more' : '');
+              }
             }
             
+            console.log('Import complete. Summary:', {newCount, duplicateCount, errorCount});
             setImportStatus('success');
             setImportMessage('');
             Alert.alert('Import Complete', message || 'No valid records found in the CSV file.');
             setImportStatus('idle');
           } catch (error) {
+            console.error('Import error:', error);
             setImportStatus('error');
             setImportMessage('');
             Alert.alert('Error', 'Failed to parse file: ' + error.message);
