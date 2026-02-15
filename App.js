@@ -2040,6 +2040,39 @@ const PermitManagementApp = () => {
                     })}
                   </View>
                 )}
+                {/* PPE Summary */}
+                {(() => {
+                  const allPPE = [];
+                  Object.keys(formData.specializedPermits).forEach(permitKey => {
+                    const questionnaire = permitQuestionnaires[permitKey] || [];
+                    const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                    if (ppeQuestion) {
+                      const answer = formData.specializedPermits[permitKey].questionnaire[ppeQuestion.id];
+                      if (answer && answer.answer) {
+                        const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                        values.forEach(v => {
+                          const option = ppeQuestion.options.find(opt => opt.value === v);
+                          if (option && !allPPE.includes(option.label)) {
+                            allPPE.push(option.label);
+                          }
+                        });
+                        if (answer.other) {
+                          allPPE.push(answer.other);
+                        }
+                      }
+                    }
+                  });
+                  return allPPE.length > 0 && (
+                    <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>PPE Required</Text>
+                      <View style={{ paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                        {allPPE.map((ppe, idx) => (
+                          <Text key={idx} style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>• {ppe}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })()}
                 {/* JSEA Task Steps */}
                 {formData.jsea.taskSteps && formData.jsea.taskSteps.length > 0 && (
                   <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
@@ -2256,6 +2289,42 @@ const PermitManagementApp = () => {
               })}
             </View>
           )}
+
+          {/* PPE Summary */}
+          {(() => {
+            const allPPE = [];
+            Object.entries(item.specializedPermits || {}).forEach(([permitKey, val]) => {
+              if (val.questionnaire) {
+                const questionnaire = permitQuestionnaires[permitKey] || [];
+                const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                if (ppeQuestion) {
+                  const answer = val.questionnaire[ppeQuestion.id];
+                  if (answer && answer.answer) {
+                    const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                    values.forEach(v => {
+                      const option = ppeQuestion.options.find(opt => opt.value === v);
+                      if (option && !allPPE.includes(option.label)) {
+                        allPPE.push(option.label);
+                      }
+                    });
+                    if (answer.other) {
+                      allPPE.push(answer.other);
+                    }
+                  }
+                }
+              }
+            });
+            return allPPE.length > 0 ? (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>PPE Required:</Text>
+                <View style={{ marginLeft: 6 }}>
+                  {allPPE.map((ppe, idx) => (
+                    <Text key={idx} style={[styles.detailText, { color: '#374151', fontSize: 10, marginBottom: 2 }]}>• {ppe}</Text>
+                  ))}
+                </View>
+              </View>
+            ) : null;
+          })()}
 
           {/* JSEA Task Steps Controls */}
           {item.jsea?.taskSteps && item.jsea.taskSteps.some(step => step.controls) && (
@@ -3518,6 +3587,42 @@ const PermitManagementApp = () => {
                 })}
               </View>
             )}
+
+            {/* PPE Summary */}
+            {(() => {
+              const allPPE = [];
+              Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
+                if (val.questionnaire) {
+                  const questionnaire = permitQuestionnaires[permitKey] || [];
+                  const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                  if (ppeQuestion) {
+                    const answer = val.questionnaire[ppeQuestion.id];
+                    if (answer && answer.answer) {
+                      const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                      values.forEach(v => {
+                        const option = ppeQuestion.options.find(opt => opt.value === v);
+                        if (option && !allPPE.includes(option.label)) {
+                          allPPE.push(option.label);
+                        }
+                      });
+                      if (answer.other) {
+                        allPPE.push(answer.other);
+                      }
+                    }
+                  }
+                }
+              });
+              return allPPE.length > 0 ? (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>PPE Required:</Text>
+                  <View style={{ marginLeft: 8 }}>
+                    {allPPE.map((ppe, idx) => (
+                      <Text key={idx} style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• {ppe}</Text>
+                    ))}
+                  </View>
+                </View>
+              ) : null;
+            })()}
 
             {/* JSEA Task Steps Controls */}
             {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
@@ -6718,6 +6823,42 @@ const PermitManagementApp = () => {
                   </View>
                 )}
 
+                {/* PPE Summary */}
+                {(() => {
+                  const allPPE = [];
+                  Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
+                    if (val.questionnaire) {
+                      const questionnaire = permitQuestionnaires[permitKey] || [];
+                      const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                      if (ppeQuestion) {
+                        const answer = val.questionnaire[ppeQuestion.id];
+                        if (answer && answer.answer) {
+                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                          values.forEach(v => {
+                            const option = ppeQuestion.options.find(opt => opt.value === v);
+                            if (option && !allPPE.includes(option.label)) {
+                              allPPE.push(option.label);
+                            }
+                          });
+                          if (answer.other) {
+                            allPPE.push(answer.other);
+                          }
+                        }
+                      }
+                    }
+                  });
+                  return allPPE.length > 0 ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>PPE Required:</Text>
+                      <View style={{ marginLeft: 8 }}>
+                        {allPPE.map((ppe, idx) => (
+                          <Text key={idx} style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• {ppe}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null;
+                })()}
+
                 {/* JSEA Task Steps Controls */}
                 {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
                   <View>
@@ -7511,6 +7652,42 @@ const PermitManagementApp = () => {
                     })}
                   </View>
                 )}
+
+                {/* PPE Summary */}
+                {(() => {
+                  const allPPE = [];
+                  Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
+                    if (val.questionnaire) {
+                      const questionnaire = permitQuestionnaires[permitKey] || [];
+                      const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                      if (ppeQuestion) {
+                        const answer = val.questionnaire[ppeQuestion.id];
+                        if (answer && answer.answer) {
+                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                          values.forEach(v => {
+                            const option = ppeQuestion.options.find(opt => opt.value === v);
+                            if (option && !allPPE.includes(option.label)) {
+                              allPPE.push(option.label);
+                            }
+                          });
+                          if (answer.other) {
+                            allPPE.push(answer.other);
+                          }
+                        }
+                      }
+                    }
+                  });
+                  return allPPE.length > 0 ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>PPE Required:</Text>
+                      <View style={{ marginLeft: 8 }}>
+                        {allPPE.map((ppe, idx) => (
+                          <Text key={idx} style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• {ppe}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null;
+                })()}
 
                 {/* JSEA Task Steps Controls */}
                 {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
@@ -8310,6 +8487,42 @@ const PermitManagementApp = () => {
                     })}
                   </View>
                 )}
+
+                {/* PPE Summary */}
+                {(() => {
+                  const allPPE = [];
+                  Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
+                    if (val.questionnaire) {
+                      const questionnaire = permitQuestionnaires[permitKey] || [];
+                      const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
+                      if (ppeQuestion) {
+                        const answer = val.questionnaire[ppeQuestion.id];
+                        if (answer && answer.answer) {
+                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                          values.forEach(v => {
+                            const option = ppeQuestion.options.find(opt => opt.value === v);
+                            if (option && !allPPE.includes(option.label)) {
+                              allPPE.push(option.label);
+                            }
+                          });
+                          if (answer.other) {
+                            allPPE.push(answer.other);
+                          }
+                        }
+                      }
+                    }
+                  });
+                  return allPPE.length > 0 ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>PPE Required:</Text>
+                      <View style={{ marginLeft: 8 }}>
+                        {allPPE.map((ppe, idx) => (
+                          <Text key={idx} style={[styles.detailText, { color: '#374151', fontWeight: '500', marginBottom: 4 }]}>• {ppe}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null;
+                })()}
 
                 {/* JSEA Task Steps Controls */}
                 {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
