@@ -1768,27 +1768,17 @@ const PermitManagementApp = () => {
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {formData.isolations && formData.isolations.length > 0 ? formData.isolations.map((isolation, idx) => (
                   <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
-                        {isolation.source === 'register' ? (
-                          <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
-                        ) : (
-                          <TextInput 
-                            style={styles.input} 
-                            value={isolation.what || ''} 
-                            onChangeText={text => updateIsolation(idx, 'what', text)} 
-                            placeholder="What was isolated"
-                          />
-                        )}
-                      </View>
-                      <TouchableOpacity 
-                        style={{ padding: 8 }}
-                        onPress={() => removeIsolation(idx)}
-                      >
-                        <Text style={styles.removeButton}>Remove</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
+                    {isolation.source === 'register' ? (
+                      <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
+                    ) : (
+                      <TextInput 
+                        style={styles.input} 
+                        value={isolation.what || ''} 
+                        onChangeText={text => updateIsolation(idx, 'what', text)} 
+                        placeholder="What was isolated"
+                      />
+                    )}
 
                     {/* Show linked items and key procedure if from register */}
                     {isolation.source === 'register' && (
@@ -1834,6 +1824,9 @@ const PermitManagementApp = () => {
                       }} 
                       placeholder="dd/mm/yyyy"
                     />
+                    <TouchableOpacity onPress={() => removeIsolation(idx)}>
+                      <Text style={styles.removeButton}>Remove</Text>
+                    </TouchableOpacity>
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
@@ -6576,34 +6569,21 @@ const PermitManagementApp = () => {
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {editData.isolations && editData.isolations.length > 0 ? editData.isolations.map((isolation, idx) => (
                   <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
-                        {isolation.source === 'register' ? (
-                          <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
-                        ) : (
-                          <TextInput 
-                            style={styles.input} 
-                            value={isolation.what || ''} 
-                            onChangeText={text => {
-                              const updated = [...editData.isolations];
-                              updated[idx] = { ...updated[idx], what: text };
-                              setEditData(prev => ({ ...prev, isolations: updated }));
-                            }} 
-                            placeholder="What was isolated"
-                          />
-                        )}
-                      </View>
-                      <TouchableOpacity 
-                        style={{ padding: 8 }}
-                        onPress={() => {
-                          const updated = editData.isolations.filter((_, i) => i !== idx);
+                    <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
+                    {isolation.source === 'register' ? (
+                      <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
+                    ) : (
+                      <TextInput 
+                        style={styles.input} 
+                        value={isolation.what || ''} 
+                        onChangeText={text => {
+                          const updated = [...editData.isolations];
+                          updated[idx] = { ...updated[idx], what: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
-                        }}
-                      >
-                        <Text style={[styles.removeButton, { marginRight: 0 }]}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
+                        }} 
+                        placeholder="What was isolated"
+                      />
+                    )}
 
                     {/* Show linked items and key procedure if from register */}
                     {isolation.source === 'register' && (
@@ -6647,6 +6627,12 @@ const PermitManagementApp = () => {
                       }} 
                       placeholder="Date"
                     />
+                    <TouchableOpacity onPress={() => {
+                      const updated = editData.isolations.filter((_, i) => i !== idx);
+                      setEditData(prev => ({ ...prev, isolations: updated }));
+                    }}>
+                      <Text style={styles.removeButton}>Remove</Text>
+                    </TouchableOpacity>
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
@@ -7366,7 +7352,7 @@ const PermitManagementApp = () => {
                           setEditData(prev => ({ ...prev, isolations: updated }));
                         }}
                       >
-                        <Text style={[styles.removeButton, { marginRight: 0 }]}>✕</Text>
+                        <Text style={styles.removeButton}>Remove</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -8169,7 +8155,7 @@ const PermitManagementApp = () => {
                           setEditData(prev => ({ ...prev, isolations: updated }));
                         }}
                       >
-                        <Text style={[styles.removeButton, { marginRight: 0 }]}>✕</Text>
+                        <Text style={styles.removeButton}>Remove</Text>
                       </TouchableOpacity>
                     </View>
 
