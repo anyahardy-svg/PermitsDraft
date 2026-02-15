@@ -1786,7 +1786,7 @@ const PermitManagementApp = () => {
                         style={{ padding: 8 }}
                         onPress={() => removeIsolation(idx)}
                       >
-                        <Text style={[styles.removeButton, { marginRight: 0 }]}>✕</Text>
+                        <Text style={styles.removeButton}>Remove</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -1820,9 +1820,19 @@ const PermitManagementApp = () => {
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date</Text>
                     <TextInput 
                       style={styles.input} 
-                      value={isolation.date || ''} 
-                      onChangeText={text => updateIsolation(idx, 'date', text)} 
-                      placeholder="YYYY-MM-DD"
+                      value={isolation.date ? formatDateNZ(isolation.date) : ''} 
+                      onChangeText={text => {
+                        // Convert dd/mm/yyyy to yyyy-mm-dd for storage
+                        let dateValue = text;
+                        if (text.includes('/')) {
+                          const parts = text.split('/');
+                          if (parts.length === 3) {
+                            dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                          }
+                        }
+                        updateIsolation(idx, 'date', dateValue);
+                      }} 
+                      placeholder="dd/mm/yyyy"
                     />
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
