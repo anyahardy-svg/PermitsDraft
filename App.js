@@ -5754,6 +5754,7 @@ const PermitManagementApp = () => {
             // Parse header row to find column indices
             const headerLine = lines[0].trim();
             const headerValues = [];
+            const headerValuesOriginal = []; // Keep original for logging
             let current = '';
             let inQuotes = false;
             
@@ -5762,150 +5763,60 @@ const PermitManagementApp = () => {
               if (char === '"') {
                 inQuotes = !inQuotes;
               } else if (char === ',' && !inQuotes) {
-                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                const cleaned = current.trim().replace(/^"|"$/g, '').toLowerCase();
+                headerValues.push(cleaned);
+                headerValuesOriginal.push(current.trim().replace(/^"|"$/g, ''));
                 current = '';
               } else {
                 current += char;
               }
             }
-            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
-            console.log('Headers found:', headerValues);
+            const cleaned = current.trim().replace(/^"|"$/g, '').toLowerCase();
+            headerValues.push(cleaned);
+            headerValuesOriginal.push(current.trim().replace(/^"|"$/g, ''));
+            
+            console.log('Headers found:', headerValuesOriginal);
 
-            // Find column indices
-            const siteIdx = headerValues.findIndex(h => h.includes('site'));
-            const mainLockoutIdx = headerValues.findIndex(h => h.includes('main'));
-            const keyProcedureIdx = headerValues.findIndex(h => h.includes('key'));
+            // Find column indices - normalize header names (replace spaces/hyphens with nothing for matching)
+            const normalizeHeader = (h) => h.replace(/[\s\-_]/g, '').toLowerCase();
+            const siteIdx = headerValues.findIndex(h => normalizeHeader(h).includes('site'));
+            const mainLockoutIdx = headerValues.findIndex(h => normalizeHeader(h).includes('main') || normalizeHeader(h).includes('lockout'));
+            const keyProcedureIdx = headerValues.findIndex(h => normalizeHeader(h).includes('key') || normalizeHeader(h).includes('procedure'));
             
             console.log('Column indices - siteIdx:', siteIdx, 'mainLockoutIdx:', mainLockoutIdx, 'keyProcedureIdx:', keyProcedureIdx);
-            console.log('Currently selected site_id:', currentIsolation.site_id);
 
             if (mainLockoutIdx === -1) {
-              Alert.alert('Error', 'CSV must have "Main Lockout Item" column. Found columns: ' + headerValues.join(', '));
+              Alert.alert('Error', 'CSV must have a "Main Lockout Item" column.\n\nFound columns:\n' + headerValuesOriginal.join(', '));
               setImportStatus('idle');
               return;
             }
 
-            // Use selected site from form if Site column is missing from CSV
-            const useFormSite = siteIdx === -1;
-            if (useFormSite && !currentIsolation.site_id) {
-              Alert.alert('Error', 'CSV must have "Site" column OR you must select a site from the form above');
-              setImportStatus('idle');
-              return;
-            }
-
-            console.log('Using site from CSV:', siteIdx !== -1, ', Using site from form:', useFormSite);
-
-            let newCount = 0;
-            let duplicateCount = 0;
-            let errorCount = 0;
-            const failedRows = [];
-            const processedItems = new Set();
-
-            setImportStatus('importing');
-            setImportMessage('Starting import...');
-
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (!line) continue;
-              
-              // Parse CSV line
-              const values = [];
-              let current = '';
-              let inQuotes = false;
-              
-              for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                if (char === '"') {
-                  inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                  values.push(current.trim().replace(/^"|"$/g, ''));
-                  current = '';
-                } else {
-                  current += char;
-                }
-              }
-              values.push(current.trim().replace(/^"|"$/g, ''));
-
-              const siteName = values[siteIdx];
-              const mainLockoutItem = values[mainLockoutIdx];
-              const siteId = useFormSite ? currentIsolation.site_id : siteNameToIdMap[siteName];
-
-              console.log(`Row ${i}: siteName="${siteName}", siteId=${siteId}, mainLockoutItem="${mainLockoutItem}"`);
-
-              if (!mainLockoutItem || !siteId) {
-                errorCount++;
-                failedRows.push(`Row ${i}: Main="${mainLockoutItem}", siteId=${siteId}`);
-                continue;
-              }
-
-              // Check for duplicates
-              const itemKey = `${siteId}|${mainLockoutItem}`;
-              if (processedItems.has(itemKey)) {
-                duplicateCount++;
-                continue;
-              }
-              processedItems.add(itemKey);
-
-              try {
-                // Prepare isolation data - pre-calculate linked item indices
-                const linkedIndices = {};
-                for (let li = 1; li <= 10; li++) {
-                  linkedIndices[li] = headerValues.findIndex(h => h === `linked_item_${li}`);
-                }
-                
-                const isolationData = {
-                  site_id: siteId,
-                  main_lockout_item: mainLockoutItem,
-                  linked_item_1: linkedIndices[1] >= 0 ? values[linkedIndices[1]] || null : null,
-                  linked_item_2: linkedIndices[2] >= 0 ? values[linkedIndices[2]] || null : null,
-                  linked_item_3: linkedIndices[3] >= 0 ? values[linkedIndices[3]] || null : null,
-                  linked_item_4: linkedIndices[4] >= 0 ? values[linkedIndices[4]] || null : null,
-                  linked_item_5: linkedIndices[5] >= 0 ? values[linkedIndices[5]] || null : null,
-                  linked_item_6: linkedIndices[6] >= 0 ? values[linkedIndices[6]] || null : null,
-                  linked_item_7: linkedIndices[7] >= 0 ? values[linkedIndices[7]] || null : null,
-                  linked_item_8: linkedIndices[8] >= 0 ? values[linkedIndices[8]] || null : null,
-                  linked_item_9: linkedIndices[9] >= 0 ? values[linkedIndices[9]] || null : null,
-                  linked_item_10: linkedIndices[10] >= 0 ? values[linkedIndices[10]] || null : null,
-                  key_procedure: keyProcedureIdx >= 0 ? values[keyProcedureIdx] || '' : ''
-                };
-
-                console.log('Creating isolation register:', isolationData);
-                await createIsolationRegister(isolationData);
-                newCount++;
-                setImportMessage(`Imported ${newCount}/${lines.length - 1}...`);
-              } catch (error) {
-                console.error('Error creating isolation register:', error);
-                errorCount++;
-                failedRows.push(`Row ${i}: ${error.message}`);
+            // If no Site column, prompt user to select one
+            let siteIdForImport = null;
+            if (siteIdx === -1) {
+              // Show a dialog or use current selection
+              if (!currentIsolation.site_id) {
+                Alert.alert(
+                  'Site Required',
+                  'Your CSV does not have a Site column. Which site should these isolation registers be imported to?',
+                  [
+                    { text: 'Cancel', onPress: () => setImportStatus('idle') },
+                    ...sites.map(site => ({
+                      text: site.name,
+                      onPress: () => {
+                        siteIdForImport = site.id;
+                        continueImport(siteIdForImport, mainLockoutIdx, keyProcedureIdx, headerValues, lines, headerValuesOriginal);
+                      }
+                    }))
+                  ]
+                );
+                return;
+              } else {
+                siteIdForImport = currentIsolation.site_id;
               }
             }
 
-            // Reload isolations
-            console.log('Reloading isolated registers...');
-            const freshIsolations = await listIsolationRegisters();
-            setIsolationRegisters(freshIsolations);
-
-            let message = '';
-            if (newCount > 0) {
-              message += `✓ ${newCount} isolation register(s) imported successfully.`;
-            }
-            if (duplicateCount > 0) {
-              if (message) message += '\n';
-              message += `⊘ ${duplicateCount} duplicate(s) skipped.`;
-            }
-            if (errorCount > 0) {
-              if (message) message += '\n';
-              message += `✗ ${errorCount} error(s) encountered.`;
-              if (failedRows.length > 0) {
-                message += '\n\nDetails:\n' + failedRows.slice(0, 3).join('\n') + (failedRows.length > 3 ? '\n... and ' + (failedRows.length - 3) + ' more' : '');
-              }
-            }
-            
-            console.log('Import complete. Summary:', {newCount, duplicateCount, errorCount});
-            setImportStatus('success');
-            setImportMessage('');
-            Alert.alert('Import Complete', message || 'No valid records found in the CSV file.');
-            setImportStatus('idle');
+            continueImport(siteIdForImport, mainLockoutIdx, keyProcedureIdx, headerValues, lines, headerValuesOriginal, siteIdx);
           } catch (error) {
             console.error('Import error:', error);
             setImportStatus('error');
@@ -5915,6 +5826,143 @@ const PermitManagementApp = () => {
           }
         };
         reader.readAsText(file);
+      };
+      
+      const continueImport = async (siteId, mainLockoutIdx, keyProcedureIdx, headerValues, lines, headerValuesOriginal, siteIdx) => {
+        const normalizeHeader = (h) => h.replace(/[\s\-_]/g, '').toLowerCase();
+        
+        // Build a map of normalized header names to their indices for linked items
+        const linkedItemIndices = {};
+        for (let i = 1; i <= 10; i++) {
+          const idx = headerValues.findIndex(h => normalizeHeader(h) === `linkeditem${i}`);
+          if (idx !== -1) {
+            linkedItemIndices[i] = idx;
+            console.log(`Found Linked Item ${i} at column index ${idx}`);
+          }
+        }
+
+        let newCount = 0;
+        let duplicateCount = 0;
+        let errorCount = 0;
+        const failedRows = [];
+        const processedItems = new Set();
+
+        setImportStatus('importing');
+        setImportMessage('Starting import...');
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          // Parse CSV line
+          const values = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim().replace(/^"|"$/g, ''));
+
+          const siteName = siteIdx >= 0 ? values[siteIdx] : null;
+          const mainLockoutItem = values[mainLockoutIdx];
+          const importSiteId = siteIdx >= 0 ? siteNameToIdMap[siteName] : siteId;
+
+          console.log(`Row ${i}: siteName="${siteName}", siteId=${importSiteId}, mainLockoutItem="${mainLockoutItem}"`);
+
+          if (!mainLockoutItem || !importSiteId) {
+            errorCount++;
+            failedRows.push(`Row ${i}: Main item missing or invalid site`);
+            continue;
+          }
+
+          // Check for duplicates
+          const itemKey = `${importSiteId}|${mainLockoutItem}`;
+          if (processedItems.has(itemKey)) {
+            duplicateCount++;
+            console.log(`Duplicate found: ${itemKey}`);
+            continue;
+          }
+          processedItems.add(itemKey);
+
+          try {
+            // Extract linked items
+            const linkedItems = {};
+            for (let li = 1; li <= 10; li++) {
+              if (linkedItemIndices[li] !== undefined && linkedItemIndices[li] >= 0) {
+                const value = values[linkedItemIndices[li]];
+                if (value && value.trim()) {
+                  linkedItems[li] = value;
+                }
+              }
+            }
+
+            const isolationData = {
+              site_id: importSiteId,
+              main_lockout_item: mainLockoutItem,
+              linked_item_1: linkedItems[1] || null,
+              linked_item_2: linkedItems[2] || null,
+              linked_item_3: linkedItems[3] || null,
+              linked_item_4: linkedItems[4] || null,
+              linked_item_5: linkedItems[5] || null,
+              linked_item_6: linkedItems[6] || null,
+              linked_item_7: linkedItems[7] || null,
+              linked_item_8: linkedItems[8] || null,
+              linked_item_9: linkedItems[9] || null,
+              linked_item_10: linkedItems[10] || null,
+              key_procedure: keyProcedureIdx >= 0 ? values[keyProcedureIdx] || '' : ''
+            };
+
+            console.log('Creating isolation register:', isolationData);
+            await createIsolationRegister(isolationData);
+            newCount++;
+            setImportMessage(`Imported ${newCount}/${lines.length - 1}...`);
+          } catch (error) {
+            console.error('Error creating isolation register:', error);
+            errorCount++;
+            failedRows.push(`Row ${i}: ${error.message}`);
+          }
+        }
+
+        // Reload isolations
+        console.log('Reloading isolated registers...');
+        const freshIsolations = await listIsolationRegisters();
+        setIsolationRegisters(freshIsolations);
+
+        let message = '';
+        if (newCount > 0) {
+          message += `✓ ${newCount} isolation register(s) imported successfully.`;
+        }
+        if (duplicateCount > 0) {
+          if (message) message += '\n';
+          message += `⊘ ${duplicateCount} duplicate(s) skipped.`;
+        }
+        if (errorCount > 0) {
+          if (message) message += '\n';
+          message += `✗ ${errorCount} error(s) encountered.`;
+          if (failedRows.length > 0) {
+            message += '\n\nDetails:\n' + failedRows.slice(0, 3).join('\n') + (failedRows.length > 3 ? '\n... and ' + (failedRows.length - 3) + ' more' : '');
+          }
+        }
+        
+        console.log('Import complete. Summary:', {newCount, duplicateCount, errorCount});
+        setImportStatus('success');
+        setImportMessage('');
+        
+        if (newCount === 0 && duplicateCount === 0 && errorCount === 0) {
+          Alert.alert('Import Complete', 'File processed but no valid records were found.');
+        } else {
+          Alert.alert('Import Complete', message);
+        }
+        setImportStatus('idle');
       };
       
       fileInput.click();
