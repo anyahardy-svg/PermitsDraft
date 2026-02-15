@@ -1243,6 +1243,7 @@ const PermitManagementApp = () => {
         
         // Load isolation registers
         const isolationData = await listIsolationRegisters();
+        console.log('Isolation registers fetched:', isolationData?.length || 0, isolationData);
         setIsolationRegisters(isolationData);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -5616,6 +5617,7 @@ const PermitManagementApp = () => {
 
   // Manage Isolation Registers Screen
   const renderManageIsolations = () => {
+    console.log('renderManageIsolations called, isolationRegisters:', isolationRegisters?.length || 0);
     const handleAddIsolation = async () => {
       if (!currentIsolation.site_id || !currentIsolation.main_lockout_item) {
         Alert.alert('Missing Info', 'Please select a site and enter the main lockout item.');
