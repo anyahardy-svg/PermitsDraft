@@ -540,7 +540,10 @@ const PermitManagementApp = () => {
 
 
       { id: 'grinders', text: 'Are disk grinders being used?', type: 'yesno', noControls : true },
-            { id: 'eye_protect', text:  'PPE: Are the operators aware that double eye protection (visor and glasses) are needed for use of grinders?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
+            { id: 'grinder_ppe', text: 'What PPE is required for grinder use?', type: 'multi_checkbox', required: true, dependsOn: 'grinders', dependsOnValue: 'yes', options: [
+        { label: 'Double eye protection (visor and glasses)', value: 'double_eye_protect' },
+        { label: 'Other', value: 'other', textLabel: 'Specify other grinder PPE' }
+      ] },
             { id: 'correct_grinder', text:  'Does the grinder have anti-kickback protection and a deadman switch?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: 'grinder_safety', text:  'Is the guard fitted and side handle in position?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: '9inch', text: 'Are 9 inch grinders being used?', type: 'yesno', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?', note: 'Only qualified tradesmen are allowed to use 9" grinders', dependsOn: 'grinders', dependsOnValue: 'yes' },
@@ -2045,22 +2048,23 @@ const PermitManagementApp = () => {
                   const allPPE = [];
                   Object.keys(formData.specializedPermits).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
-                    const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
-                    if (ppeQuestion) {
-                      const answer = formData.specializedPermits[permitKey].questionnaire[ppeQuestion.id];
-                      if (answer && answer.answer) {
-                        const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
-                        values.forEach(v => {
-                          const option = ppeQuestion.options.find(opt => opt.value === v);
-                          if (option && !allPPE.includes(option.label)) {
-                            allPPE.push(option.label);
+                    questionnaire.forEach(q => {
+                      if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
+                        const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (answer && answer.answer) {
+                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                          values.forEach(v => {
+                            const option = q.options.find(opt => opt.value === v);
+                            if (option && !allPPE.includes(option.label)) {
+                              allPPE.push(option.label);
+                            }
+                          });
+                          if (answer.other) {
+                            allPPE.push(answer.other);
                           }
-                        });
-                        if (answer.other) {
-                          allPPE.push(answer.other);
                         }
                       }
-                    }
+                    });
                   });
                   return allPPE.length > 0 && (
                     <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
@@ -2296,22 +2300,23 @@ const PermitManagementApp = () => {
             Object.entries(item.specializedPermits || {}).forEach(([permitKey, val]) => {
               if (val.questionnaire) {
                 const questionnaire = permitQuestionnaires[permitKey] || [];
-                const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
-                if (ppeQuestion) {
-                  const answer = val.questionnaire[ppeQuestion.id];
-                  if (answer && answer.answer) {
-                    const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
-                    values.forEach(v => {
-                      const option = ppeQuestion.options.find(opt => opt.value === v);
-                      if (option && !allPPE.includes(option.label)) {
-                        allPPE.push(option.label);
+                questionnaire.forEach(q => {
+                  if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
+                    const answer = val.questionnaire[q.id];
+                    if (answer && answer.answer) {
+                      const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                      values.forEach(v => {
+                        const option = q.options.find(opt => opt.value === v);
+                        if (option && !allPPE.includes(option.label)) {
+                          allPPE.push(option.label);
+                        }
+                      });
+                      if (answer.other) {
+                        allPPE.push(answer.other);
                       }
-                    });
-                    if (answer.other) {
-                      allPPE.push(answer.other);
                     }
                   }
-                }
+                });
               }
             });
             return allPPE.length > 0 ? (
@@ -3594,22 +3599,23 @@ const PermitManagementApp = () => {
               Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
                 if (val.questionnaire) {
                   const questionnaire = permitQuestionnaires[permitKey] || [];
-                  const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
-                  if (ppeQuestion) {
-                    const answer = val.questionnaire[ppeQuestion.id];
-                    if (answer && answer.answer) {
-                      const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
-                      values.forEach(v => {
-                        const option = ppeQuestion.options.find(opt => opt.value === v);
-                        if (option && !allPPE.includes(option.label)) {
-                          allPPE.push(option.label);
+                  questionnaire.forEach(q => {
+                    if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
+                      const answer = val.questionnaire[q.id];
+                      if (answer && answer.answer) {
+                        const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                        values.forEach(v => {
+                          const option = q.options.find(opt => opt.value === v);
+                          if (option && !allPPE.includes(option.label)) {
+                            allPPE.push(option.label);
+                          }
+                        });
+                        if (answer.other) {
+                          allPPE.push(answer.other);
                         }
-                      });
-                      if (answer.other) {
-                        allPPE.push(answer.other);
                       }
                     }
-                  }
+                  });
                 }
               });
               return allPPE.length > 0 ? (
@@ -7659,22 +7665,23 @@ const PermitManagementApp = () => {
                   Object.entries(editData.specializedPermits || {}).forEach(([permitKey, val]) => {
                     if (val.questionnaire) {
                       const questionnaire = permitQuestionnaires[permitKey] || [];
-                      const ppeQuestion = questionnaire.find(q => q.id === 'ppe' || q.id === 'safety_equipment');
-                      if (ppeQuestion) {
-                        const answer = val.questionnaire[ppeQuestion.id];
-                        if (answer && answer.answer) {
-                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
-                          values.forEach(v => {
-                            const option = ppeQuestion.options.find(opt => opt.value === v);
-                            if (option && !allPPE.includes(option.label)) {
-                              allPPE.push(option.label);
+                      questionnaire.forEach(q => {
+                        if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
+                          const answer = val.questionnaire[q.id];
+                          if (answer && answer.answer) {
+                            const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                            values.forEach(v => {
+                              const option = q.options.find(opt => opt.value === v);
+                              if (option && !allPPE.includes(option.label)) {
+                                allPPE.push(option.label);
+                              }
+                            });
+                            if (answer.other) {
+                              allPPE.push(answer.other);
                             }
-                          });
-                          if (answer.other) {
-                            allPPE.push(answer.other);
                           }
                         }
-                      }
+                      });
                     }
                   });
                   return allPPE.length > 0 ? (
