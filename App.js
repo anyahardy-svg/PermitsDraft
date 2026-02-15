@@ -977,7 +977,7 @@ const PermitManagementApp = () => {
   const addIsolation = () => {
     setFormData(prev => ({
       ...prev,
-      isolations: [...prev.isolations, { what: '', isolatedBy: '', date: defaultDate, time: defaultTime }]
+      isolations: [...prev.isolations, { what: '', isolatedBy: '', date: defaultDate, source: 'manual' }]
     }));
   };
   const updateIsolation = (idx, field, value) => {
@@ -1818,12 +1818,12 @@ const PermitManagementApp = () => {
                       placeholder="Name of person who isolated"
                     />
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date</Text>
-                    <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
-                      <Text style={isolation.date ? styles.dateTimeText : styles.placeholderText}>
-                        {isolation.date ? formatDateNZ(isolation.date) : 'Select date'}
-                      </Text>
-                      <Text style={styles.calendarIcon}>📅</Text>
-                    </TouchableOpacity>
+                    <TextInput 
+                      style={styles.input} 
+                      value={isolation.date || ''} 
+                      onChangeText={text => updateIsolation(idx, 'date', text)} 
+                      placeholder="YYYY-MM-DD"
+                    />
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
