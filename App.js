@@ -1695,7 +1695,7 @@ const PermitManagementApp = () => {
                       overflow: 'scroll'
                     }}>
                       {isolationRegisters
-                        .filter(reg => reg.site_id === formData.site)
+                        .filter(reg => reg.site_id === siteNameToIdMap[formData.site])
                         .map(isolation => (
                           <TouchableOpacity
                             key={isolation.id}
@@ -1719,7 +1719,7 @@ const PermitManagementApp = () => {
                             <Text style={{ color: '#374151', fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
                           </TouchableOpacity>
                         ))}
-                      {isolationRegisters.filter(reg => reg.site_id === formData.site).length === 0 && (
+                      {isolationRegisters.filter(reg => reg.site_id === siteNameToIdMap[formData.site]).length === 0 && (
                         <Text style={{ padding: 10, color: '#9CA3AF', textAlign: 'center' }}>No isolations for this site</Text>
                       )}
                     </View>
