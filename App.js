@@ -1317,6 +1317,10 @@ const PermitManagementApp = () => {
   const [showRequestedByDropdown, setShowRequestedByDropdown] = useState(false);
   const [filteredRequestedBy, setFilteredRequestedBy] = useState([]);
   
+  // Isolation register dropdown state for permit form
+  const [showIsolationDropdown, setShowIsolationDropdown] = useState(false);
+  const [selectedNewIsolationId, setSelectedNewIsolationId] = useState(null);
+  
   // Site mapping for contractors
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
@@ -1665,30 +1669,154 @@ const PermitManagementApp = () => {
             </TouchableOpacity>
             {expandedSections.isolations && (
               <View style={styles.sectionContent}>
-                <Text style={styles.label}>Isolation Register</Text>
-                {formData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={styles.label}>Isolation {idx + 1}</Text>
-                      <TouchableOpacity onPress={() => removeIsolation(idx)}>
-                        <Text style={styles.removeButton}>Remove</Text>
+                {/* Select from Isolation Register */}
+                <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#0EA5E9' }}>
+                  <Text style={[styles.label, { marginBottom: 8 }]}>Select from Register:</Text>
+                  <TouchableOpacity 
+                    style={[styles.input, { backgroundColor: 'white', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                    onPress={() => setShowIsolationDropdown(!showIsolationDropdown)}
+                  >
+                    <Text style={{ color: selectedNewIsolationId ? '#374151' : '#9CA3AF' }}>
+                      {selectedNewIsolationId 
+                        ? isolationRegisters.find(r => r.id === selectedNewIsolationId)?.main_lockout_item 
+                        : 'Select main lockout item...'}
+                    </Text>
+                    <Text style={{ fontSize: 16 }}>{showIsolationDropdown ? '▲' : '▼'}</Text>
+                  </TouchableOpacity>
+                  
+                  {showIsolationDropdown && (
+                    <View style={{ 
+                      backgroundColor: 'white', 
+                      marginTop: 4, 
+                      borderWidth: 1, 
+                      borderColor: '#E5E7EB',
+                      borderRadius: 4,
+                      maxHeight: 200,
+                      overflow: 'scroll'
+                    }}>
+                      {isolationRegisters
+                        .filter(reg => reg.site_id === formData.location)
+                        .map(isolation => (
+                          <TouchableOpacity
+                            key={isolation.id}
+                            style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                            onPress={() => {
+                              setSelectedNewIsolationId(isolation.id);
+                              setShowIsolationDropdown(false);
+                              // Add the selected isolation to the list
+                              const newIsolation = {
+                                main_lockout_item: isolation.main_lockout_item,
+                                linked_items: [isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean),
+                                key_procedure: isolation.key_procedure,
+                                isolatedBy: '',
+                                date: new Date().toISOString().split('T')[0],
+                                source: 'register'
+                              };
+                              setFormData(prev => ({ ...prev, isolations: [...(prev.isolations || []), newIsolation] }));
+                              setSelectedNewIsolationId(null);
+                            }}
+                          >
+                            <Text style={{ color: '#374151', fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      {isolationRegisters.filter(reg => reg.site_id === formData.location).length === 0 && (
+                        <Text style={{ padding: 10, color: '#9CA3AF', textAlign: 'center' }}>No isolations for this site</Text>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Display selected isolation details before adding */}
+                  {selectedNewIsolationId && (
+                    <View style={{ marginTop: 12, padding: 8, backgroundColor: '#E0F2FE', borderRadius: 4 }}>
+                      {(() => {
+                        const selected = isolationRegisters.find(r => r.id === selectedNewIsolationId);
+                        if (!selected) return null;
+                        const linkedItems = [selected.linked_item_1, selected.linked_item_2, selected.linked_item_3, selected.linked_item_4, selected.linked_item_5, selected.linked_item_6, selected.linked_item_7, selected.linked_item_8, selected.linked_item_9, selected.linked_item_10].filter(Boolean);
+                        return (
+                          <View>
+                            <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Main Lockout Item:</Text>
+                            <Text style={[styles.detailText, { marginBottom: 8 }]}>{selected.main_lockout_item}</Text>
+                            {linkedItems.length > 0 && (
+                              <>
+                                <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Linked Items:</Text>
+                                {linkedItems.map((item, idx) => (
+                                  <Text key={idx} style={[styles.detailText, { marginLeft: 8, marginBottom: 2 }]}>• {item}</Text>
+                                ))}
+                              </>
+                            )}
+                            {selected.key_procedure && (
+                              <>
+                                <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4, marginTop: 8 }]}>Key Procedure:</Text>
+                                <Text style={[styles.detailText, { marginBottom: 8 }]}>{selected.key_procedure}</Text>
+                              </>
+                            )}
+                          </View>
+                        );
+                      })()}
+                      <TouchableOpacity 
+                        style={[styles.addButton, { backgroundColor: '#0EA5E9', marginTop: 8 }]}
+                        onPress={() => setSelectedNewIsolationId(null)}
+                      >
+                        <Text style={styles.addButtonText}>Clear Selection</Text>
                       </TouchableOpacity>
                     </View>
-                    <Text style={[styles.label, { marginBottom: 4 }]}>What is isolated?</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={isolation.what}
-                      onChangeText={text => updateIsolation(idx, 'what', text)}
-                      placeholder="Describe what is isolated"
-                    />
-                    <Text style={[styles.label, { marginBottom: 4 }]}>Isolated by (name)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={isolation.isolatedBy}
-                      onChangeText={text => updateIsolation(idx, 'isolatedBy', text)}
+                  )}
+                </View>
+
+                {/* Added Isolations List */}
+                <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
+                {formData.isolations && formData.isolations.length > 0 ? formData.isolations.map((isolation, idx) => (
+                  <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
+                        {isolation.source === 'register' ? (
+                          <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
+                        ) : (
+                          <TextInput 
+                            style={styles.input} 
+                            value={isolation.what || ''} 
+                            onChangeText={text => updateIsolation(idx, 'what', text)} 
+                            placeholder="What was isolated"
+                          />
+                        )}
+                      </View>
+                      <TouchableOpacity 
+                        style={{ padding: 8 }}
+                        onPress={() => removeIsolation(idx)}
+                      >
+                        <Text style={[styles.removeButton, { marginRight: 0 }]}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Show linked items and key procedure if from register */}
+                    {isolation.source === 'register' && (
+                      <>
+                        {isolation.linked_items && isolation.linked_items.length > 0 && (
+                          <View style={{ marginBottom: 8 }}>
+                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
+                            {isolation.linked_items.map((item, lidx) => (
+                              <Text key={lidx} style={[styles.detailText, { fontSize: 11, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
+                            ))}
+                          </View>
+                        )}
+                        {isolation.key_procedure && (
+                          <View style={{ marginBottom: 8 }}>
+                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
+                            <Text style={[styles.detailText, { fontSize: 11, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated by (name)</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={isolation.isolatedBy || ''} 
+                      onChangeText={text => updateIsolation(idx, 'isolatedBy', text)} 
                       placeholder="Name of person who isolated"
                     />
-                    <Text style={[styles.label, { marginBottom: 4 }]}>Date</Text>
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date</Text>
                     <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
                       <Text style={isolation.date ? styles.dateTimeText : styles.placeholderText}>
                         {isolation.date ? formatDateNZ(isolation.date) : 'Select date'}
@@ -1696,9 +1824,10 @@ const PermitManagementApp = () => {
                       <Text style={styles.calendarIcon}>📅</Text>
                     </TouchableOpacity>
                   </View>
-                ))}
+                )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
+
                 <TouchableOpacity style={styles.addButton} onPress={addIsolation}>
-                  <Text style={styles.addButtonText}>Add Isolation</Text>
+                  <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
             )}
