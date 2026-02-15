@@ -1128,6 +1128,7 @@ const PermitManagementApp = () => {
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: formData.jsea,
+        isolations: formData.isolations,
         sign_ons: formData.signOns
       };
 
@@ -6494,7 +6495,7 @@ const PermitManagementApp = () => {
                       overflow: 'scroll'
                     }}>
                       {isolationRegisters
-                        .filter(reg => reg.site_id === editData.location) // Filter by current site
+                        .filter(reg => reg.site_id === editData.site_id) // Filter by current site
                         .map(isolation => (
                           <TouchableOpacity
                             key={isolation.id}
@@ -6517,7 +6518,7 @@ const PermitManagementApp = () => {
                             <Text style={{ color: '#374151', fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
                           </TouchableOpacity>
                         ))}
-                      {isolationRegisters.filter(reg => reg.site_id === editData.location).length === 0 && (
+                      {isolationRegisters.filter(reg => reg.site_id === editData.site_id).length === 0 && (
                         <Text style={{ padding: 10, color: '#9CA3AF', textAlign: 'center' }}>No isolations for this site</Text>
                       )}
                     </View>
@@ -7259,7 +7260,7 @@ const PermitManagementApp = () => {
                       overflow: 'scroll'
                     }}>
                       {isolationRegisters
-                        .filter(reg => reg.site_id === editData.location) // Filter by current site
+                        .filter(reg => reg.site_id === editData.site_id) // Filter by current site
                         .map(isolation => (
                           <TouchableOpacity
                             key={isolation.id}
@@ -7282,7 +7283,7 @@ const PermitManagementApp = () => {
                             <Text style={{ color: '#374151', fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
                           </TouchableOpacity>
                         ))}
-                      {isolationRegisters.filter(reg => reg.site_id === editData.location).length === 0 && (
+                      {isolationRegisters.filter(reg => reg.site_id === editData.site_id).length === 0 && (
                         <Text style={{ padding: 10, color: '#9CA3AF', textAlign: 'center' }}>No isolations for this site</Text>
                       )}
                     </View>
@@ -8062,7 +8063,7 @@ const PermitManagementApp = () => {
                       overflow: 'scroll'
                     }}>
                       {isolationRegisters
-                        .filter(reg => reg.site_id === editData.location) // Filter by current site
+                        .filter(reg => reg.site_id === editData.site_id) // Filter by current site
                         .map(isolation => (
                           <TouchableOpacity
                             key={isolation.id}
@@ -8085,7 +8086,7 @@ const PermitManagementApp = () => {
                             <Text style={{ color: '#374151', fontWeight: '500' }}>{isolation.main_lockout_item}</Text>
                           </TouchableOpacity>
                         ))}
-                      {isolationRegisters.filter(reg => reg.site_id === editData.location).length === 0 && (
+                      {isolationRegisters.filter(reg => reg.site_id === editData.site_id).length === 0 && (
                         <Text style={{ padding: 10, color: '#9CA3AF', textAlign: 'center' }}>No isolations for this site</Text>
                       )}
                     </View>
