@@ -5624,6 +5624,22 @@ const PermitManagementApp = () => {
         return;
       }
 
+      // Check for duplicates within the same site (case-insensitive)
+      const normalizedNewItem = currentIsolation.main_lockout_item.trim().toLowerCase();
+      const isDuplicate = isolationRegisters.some(isolation => 
+        isolation.site_id === currentIsolation.site_id &&
+        isolation.main_lockout_item.trim().toLowerCase() === normalizedNewItem &&
+        isolation.id !== currentIsolation.id // Allow update of same record
+      );
+      
+      if (isDuplicate) {
+        Alert.alert(
+          'Duplicate Found',
+          `"${currentIsolation.main_lockout_item}" already exists for this site. Each site must have unique main lockout items.`
+        );
+        return;
+      }
+
       try {
         // Prepare linked items array from currentIsolation
         const linkedItemsArray = currentIsolation.linked_items || [];
@@ -5886,7 +5902,20 @@ const PermitManagementApp = () => {
             continue;
           }
 
-          // Check for duplicates
+          // Check for duplicates within the same site (case-insensitive) - both in CSV and in database
+          const normalizedNewItem = mainLockoutItem.trim().toLowerCase();
+          const existsInDatabase = isolationRegisters.some(isolation => 
+            isolation.site_id === importSiteId &&
+            isolation.main_lockout_item.trim().toLowerCase() === normalizedNewItem
+          );
+          
+          if (existsInDatabase) {
+            duplicateCount++;
+            console.log(`Duplicate found in database: ${importSiteId}|${mainLockoutItem}`);
+            continue;
+          }
+
+          // Check for duplicates within the CSV itself
           const itemKey = `${importSiteId}|${mainLockoutItem}`;
           if (processedItems.has(itemKey)) {
             duplicateCount++;
