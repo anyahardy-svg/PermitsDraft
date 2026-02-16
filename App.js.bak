@@ -1469,7 +1469,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.label}>Permit Issuer</Text>
                 <CustomDropdown
                   label="Select Permit Issuer"
-                  options={users && permitIssuers.length > 0 ? permitIssuers.map(user => user.name) : []}
+                  options={users && users.length > 0 ? users.map(user => user.name) : []}
                   selectedValue={formData.permitIssuer || ''}
                   onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
                   style={styles.input}
@@ -4533,10 +4533,10 @@ const PermitManagementApp = () => {
                       ]}
                       onPress={() => {
                         // Always work with site names in the sites array
-                        if (currentPermitIssuer.sites.includes(site)) {
-                          setCurrentPermitIssuer({ ...currentPermitIssuer, sites: currentPermitIssuer.sites.filter(s => s !== site) });
+                        if (currentUser.sites.includes(site)) {
+                          setCurrentUser({ ...currentUser, sites: currentUser.sites.filter(s => s !== site) });
                         } else {
-                          setCurrentPermitIssuer({ ...currentPermitIssuer, sites: [...currentPermitIssuer.sites, site] });
+                          setCurrentUser({ ...currentUser, sites: [...currentUser.sites, site] });
                         }
                       }}
                     >
@@ -4553,24 +4553,24 @@ const PermitManagementApp = () => {
                     height: 24,
                     borderRadius: 4,
                     borderWidth: 2,
-                    borderColor: currentPermitIssuer.isAdmin ? '#2563EB' : '#D1D5DB',
-                    backgroundColor: currentPermitIssuer.isAdmin ? '#2563EB' : 'white',
+                    borderColor: currentUser.isAdmin ? '#2563EB' : '#D1D5DB',
+                    backgroundColor: currentUser.isAdmin ? '#2563EB' : 'white',
                     justifyContent: 'center',
                     alignItems: 'center',
                     marginRight: 12
                   }}
-                  onPress={() => setCurrentPermitIssuer({ ...currentPermitIssuer, isAdmin: !currentPermitIssuer.isAdmin })}
+                  onPress={() => setCurrentUser({ ...currentUser, isAdmin: !currentUser.isAdmin })}
                 >
-                  {currentPermitIssuer.isAdmin && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
+                  {currentUser.isAdmin && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
                 </TouchableOpacity>
                 <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#374151' }}>Grant admin access to manage users & contractors</Text>
               </View>
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
-                <Text style={styles.addButtonText}>{editingPermitIssuer ? 'Update User' : 'Add User'}</Text>
+                <Text style={styles.addButtonText}>{editingUser ? 'Update User' : 'Add User'}</Text>
               </TouchableOpacity>
-              {editingPermitIssuer && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingPermitIssuer(false); setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false }); setSelectedPermitIssuer(null); }}>
+              {editingUser && (
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingUser(false); setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false }); setSelectedUser(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4599,11 +4599,11 @@ const PermitManagementApp = () => {
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {permitIssuers.length} users {permitIssuers.length > 0 && `(${permitIssuers.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
-            {permitIssuers.length === 0 ? (
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {users.length} users {users.length > 0 && `(${users.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
+            {users.length === 0 ? (
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No users yet. Add one using the form above.</Text>
             ) : (
-              permitIssuers.map((user, index) => (
+              users.map((user, index) => (
                 <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
@@ -4624,9 +4624,9 @@ const PermitManagementApp = () => {
                         site_ids: user.site_ids,
                         siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
                       });
-                      setSelectedPermitIssuer(user); 
-                      setEditingPermitIssuer(true); 
-                      setCurrentPermitIssuer(user); 
+                      setSelectedUser(user); 
+                      setEditingUser(true); 
+                      setCurrentUser(user); 
                     }}>
                       <Text style={styles.addButtonText}>Edit</Text>
                     </TouchableOpacity>
@@ -6438,7 +6438,7 @@ const PermitManagementApp = () => {
                   if (editData.site_id) {
                     const siteName = siteIdToNameMap[editData.site_id];
                     console.log('🔍 Filtering users for site_id:', editData.site_id, 'site name:', siteName);
-                    console.log('📊 Available users:', permitIssuers.map(u => ({ 
+                    console.log('📊 Available users:', users.map(u => ({ 
                       name: u.name, 
                       site_ids: u.site_ids, 
                       sites: u.sites,
@@ -6446,7 +6446,7 @@ const PermitManagementApp = () => {
                     })));
                     
                     // Filter users who have this site
-                    const filtered = permitIssuers.filter(user => {
+                    const filtered = users.filter(user => {
                       // Check if user has site_ids array and it includes the selected site_id
                       const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0 && user.site_ids.includes(editData.site_id);
                       // Check if user has sites array and it includes the selected site name
@@ -6465,11 +6465,11 @@ const PermitManagementApp = () => {
                     // If no users found and site_id is set, show all users as fallback
                     if (options.length === 0) {
                       console.warn('⚠️ No users found for site, showing all users as fallback');
-                      options = permitIssuers.map(user => user.name);
+                      options = users.map(user => user.name);
                     }
                   } else {
                     console.log('⚠️ No site selected - showing all users');
-                    options = permitIssuers.map(user => user.name);
+                    options = users.map(user => user.name);
                   }
                   
                   return options;
@@ -7325,7 +7325,7 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Permit Issuer</Text>
               <CustomDropdown
                 label="Select Permit Issuer"
-                options={users && permitIssuers.length > 0 ? permitIssuers.map(user => user.name) : []}
+                options={users && users.length > 0 ? users.map(user => user.name) : []}
                 selectedValue={editData.permitIssuer || ''}
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
@@ -8151,7 +8151,7 @@ const PermitManagementApp = () => {
                   let options = [];
                   if (editData.site_id && users) {
                     const siteName = siteIdToNameMap[editData.site_id];
-                    const filtered = permitIssuers.filter(user => {
+                    const filtered = users.filter(user => {
                       const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.includes(editData.site_id);
                       const hasSiteName = user.sites && Array.isArray(user.sites) && siteName && user.sites.includes(siteName);
                       const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.includes(editData.site_id);
@@ -8159,10 +8159,10 @@ const PermitManagementApp = () => {
                     });
                     options = filtered.map(user => user.name);
                     if (options.length === 0 && users) {
-                      options = permitIssuers.map(user => user.name);
+                      options = users.map(user => user.name);
                     }
                   } else if (users) {
-                    options = permitIssuers.map(user => user.name);
+                    options = users.map(user => user.name);
                   }
                   return options;
                 })()}
