@@ -5256,7 +5256,7 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
         
-        {/* Import Status Message */}
+        {/* Import Status Message Contractors */}
         {importStatus !== 'idle' && (
           <View style={{
             backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
@@ -5847,6 +5847,7 @@ const PermitManagementApp = () => {
       };
       
       const continueImport = async (siteId, mainLockoutIdx, keyProcedureIdx, headerValues, lines, headerValuesOriginal, siteIdx) => {
+        console.log('🚀 🚀 🚀 ISOLATION REGISTER CONTINUEIMPORT STARTED - NEW CODE VERSION 🚀 🚀 🚀');
         const normalizeHeader = (h) => h.replace(/[\s\-_]/g, '').toLowerCase();
         
         // Build a map of normalized header names to their indices for linked items
@@ -6013,6 +6014,7 @@ const PermitManagementApp = () => {
             { text: 'OK', onPress: () => setImportStatus('idle') }
           ]);
         }
+        console.log('🏁 🏁 🏁 ISOLATION REGISTER CONTINUEIMPORT COMPLETED 🏁 🏁 🏁');
       };
       
       fileInput.click();
