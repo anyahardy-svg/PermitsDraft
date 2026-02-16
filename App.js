@@ -5988,8 +5988,14 @@ const PermitManagementApp = () => {
         setImportStatus('success');
         setImportMessage('');
         
+        // Always show the breakdown, even if nothing was added
         if (newCount === 0 && duplicateCount === 0 && errorCount === 0) {
           Alert.alert('Import Complete', 'File processed but no valid records were found.', [
+            { text: 'OK', onPress: () => setImportStatus('idle') }
+          ]);
+        } else if (newCount === 0 && duplicateCount > 0 && errorCount === 0) {
+          // All items were duplicates
+          Alert.alert('Import Complete', `✓ Processed ${lines.length - 1} record(s)\n⊘ ${duplicateCount} duplicate(s) skipped - already in database`, [
             { text: 'OK', onPress: () => setImportStatus('idle') }
           ]);
         } else {
