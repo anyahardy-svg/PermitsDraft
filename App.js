@@ -4478,7 +4478,7 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>{editingUser ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
         
-        {/* Import Status Message */}
+        {/* Import Status Message - PERMIT ISSUERS (MANAGE USERS SCREEN) */}
         {importStatus !== 'idle' && (
           <View style={{
             backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
@@ -4792,7 +4792,7 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
         
-        {/* Import Status Message */}
+        {/* Import Status Message - COMPANIES (MANAGE COMPANIES SCREEN) */}
         {importStatus !== 'idle' && (
           <View style={{
             backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
@@ -5256,7 +5256,7 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
         
-        {/* Import Status Message Contractors */}
+        {/* Import Status Message - CONTRACTORS (MANAGE CONTRACTORS SCREEN) */}
         {importStatus !== 'idle' && (
           <View style={{
             backgroundColor: importStatus === 'importing' ? '#DBEAFE' : importStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
@@ -6113,7 +6113,7 @@ const PermitManagementApp = () => {
             </View>
           </View>
 
-          {/* IMPORT STATUS FOR ISOLATION REGISTERS */}
+          {/* Import Status Message - ISOLATION REGISTERS (MANAGE ISOLATION REGISTERS SCREEN) */}
           {importStatus !== 'idle' && (
             <View style={{
               backgroundColor: importStatus === 'success' ? '#D1FAE5' : importStatus === 'error' ? '#FEE2E2' : '#DBEAFE',
