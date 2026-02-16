@@ -6123,16 +6123,23 @@ const PermitManagementApp = () => {
               borderLeftWidth: 4,
               borderLeftColor: importStatus === 'success' ? '#10B981' : importStatus === 'error' ? '#EF4444' : '#3B82F6'
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontWeight: '600', fontSize: 16 }}>
-                  {importStatus === 'importing' ? '⏳ Importing...' : importStatus === 'success' ? '✅ Import Successful' : '❌ Import Failed'}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontWeight: '600', fontSize: 16 }}>
+                      {importStatus === 'importing' ? '⏳ Importing...' : importStatus === 'success' ? '✅ Import Successful' : '❌ Import Failed'}
+                    </Text>
+                  </View>
+                  {importMessage && (
+                    <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 13, marginTop: 6 }}>
+                      {importMessage}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity onPress={() => setImportStatus('idle')} style={{ padding: 4 }}>
+                  <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+                </TouchableOpacity>
               </View>
-              {importMessage && (
-                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 13, marginTop: 6 }}>
-                  {importMessage}
-                </Text>
-              )}
             </View>
           )}
 
