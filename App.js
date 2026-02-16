@@ -5992,7 +5992,7 @@ const PermitManagementApp = () => {
         console.log('  Message:', message);
         
         setImportStatus('success');
-        setImportMessage('');
+        setImportMessage(message);
         
         // Always show the breakdown, even if nothing was added
         if (newCount === 0 && duplicateCount === 0 && errorCount === 0) {
