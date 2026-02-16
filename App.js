@@ -1231,7 +1231,7 @@ const PermitManagementApp = () => {
         
         if (usersData && usersData.length > 0) {
           console.log('✅ Loaded', usersData.length, 'permit issuers from database');
-          setUsers(usersData);
+          setPermitIssuers(usersData);
         } else {
           console.warn('⚠️ No permit issuers from database, keeping default mock data');
           // Keep the default mock data, don't overwrite with empty array
@@ -1255,8 +1255,8 @@ const PermitManagementApp = () => {
     loadData();
   }, []);
 
-  // Users state - stores system users with sites they can work at
-  const [users, setUsers] = useState([
+  // Permit Issuers state - stores system permit issuers with sites they can work at
+  const [permitIssuers, setPermitIssuers] = useState([
     { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
     { id: 'user-002', name: 'Jane Doe', email: 'jane.doe@company.com', sites: ['Wheatsheaf Quarry'], company: 'ABC Contractors', isAdmin: false },
     { id: 'user-003', name: 'Bob Wilson', email: 'bob.wilson@company.com', sites: ['Otaki Quarry', 'Petone Quarry'], company: 'XYZ Services', isAdmin: false }
@@ -1288,9 +1288,9 @@ const PermitManagementApp = () => {
   });
   const [selectedPermit, setSelectedPermit] = useState(null);
   const [editPermitData, setEditPermitData] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [editingUser, setEditingUser] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
+  const [selectedPermitIssuer, setSelectedPermitIssuer] = useState(null);
+  const [editingPermitIssuer, setEditingPermitIssuer] = useState(false);
+  const [currentPermitIssuer, setCurrentPermitIssuer] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
@@ -1302,11 +1302,11 @@ const PermitManagementApp = () => {
   const [editingIsolation, setEditingIsolation] = useState(false);
   const [currentIsolation, setCurrentIsolation] = useState({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
   
-  // Filter states for contractors and users
+  // Filter states for contractors and permit issuers
   const [contractorSearchText, setContractorSearchText] = useState('');
   const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
-  const [userSearchText, setUserSearchText] = useState('');
-  const [userCompanyFilter, setUserCompanyFilter] = useState('All');
+  const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
+  const [permitIssuerCompanyFilter, setPermitIssuerCompanyFilter] = useState('All');
   
   // Import status states
   const [importStatus, setImportStatus] = useState('idle'); // idle, importing, success, error
@@ -1337,7 +1337,7 @@ const PermitManagementApp = () => {
 
   // Scroll to top when editing on admin screens
   useEffect(() => {
-    if (editingUser && permitIssuersScrollRef.current) {
+    if (editingPermitIssuer && permitIssuersScrollRef.current) {
       setTimeout(() => {
         permitIssuersScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
@@ -1352,7 +1352,7 @@ const PermitManagementApp = () => {
         companiesScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-  }, [editingUser, editingContractor, editingCompany]);
+  }, [editingPermitIssuer, editingContractor, editingCompany]);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
@@ -4209,7 +4209,7 @@ const PermitManagementApp = () => {
     );
   };
 
-  // Admin Dashboard - choose between Users or Contractors
+  // Admin Dashboard - choose between Permit Issuers or Contractors
   const renderAdminDashboard = () => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -4221,8 +4221,8 @@ const PermitManagementApp = () => {
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_users')}>
-            <Text style={styles.cardNumber}>{users.length}</Text>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_issuers')}>
+            <Text style={styles.cardNumber}>{permitIssuers.length}</Text>
             <Text style={styles.cardLabel}>Permit Issuers</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('manage_companies')}>
@@ -4247,17 +4247,17 @@ const PermitManagementApp = () => {
     );
   };
 
-  // Manage Users Screen
-  const renderManageUsers = () => {
-    const handleAddUser = async () => {
-      if (!currentUser.name || !currentUser.email || !currentUser.company) {
+  // Manage Permit Issuers Screen
+  const renderManagePermitIssuers = () => {
+    const handleAddPermitIssuer = async () => {
+      if (!currentPermitIssuer.name || !currentPermitIssuer.email || !currentPermitIssuer.company) {
         Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
         return;
       }
       try {
         // Convert site names to site IDs
         // Handle both site names and unresolved UUIDs
-        const siteIds = currentUser.sites.map(siteName => {
+        const siteIds = currentPermitIssuer.sites.map(siteName => {
           const id = siteNameToIdMap[siteName];
           if (!id) {
             // If it's not found in the map, it might already be an ID
@@ -4268,63 +4268,63 @@ const PermitManagementApp = () => {
         }).filter(Boolean);
         
         console.log('Saving permit issuer with sites:', {
-          sitesFromForm: currentUser.sites,
+          sitesFromForm: currentPermitIssuer.sites,
           siteIds: siteIds,
           siteNameToIdMap: Object.keys(siteNameToIdMap)
         });
         
-        if (editingUser) {
-          await updatePermitIssuer(currentUser.id, {
-            name: currentUser.name,
-            email: currentUser.email,
-            company: currentUser.company,
+        if (editingPermitIssuer) {
+          await updatePermitIssuer(currentPermitIssuer.id, {
+            name: currentPermitIssuer.name,
+            email: currentPermitIssuer.email,
+            company: currentPermitIssuer.company,
             siteIds: siteIds,
-            isAdmin: currentUser.isAdmin
+            isAdmin: currentPermitIssuer.isAdmin
           });
           const freshUsers = await listPermitIssuers();
-          setUsers(freshUsers);
-          setEditingUser(false);
-          Alert.alert('User Updated', 'User has been updated successfully.');
+          setPermitIssuers(freshUsers);
+          setEditingPermitIssuer(false);
+          Alert.alert('Permit Issuer Updated', 'Permit issuer has been updated successfully.');
         } else {
           await createPermitIssuer({
-            name: currentUser.name,
-            email: currentUser.email,
-            company: currentUser.company,
+            name: currentPermitIssuer.name,
+            email: currentPermitIssuer.email,
+            company: currentPermitIssuer.company,
             siteIds: siteIds,
-            isAdmin: currentUser.isAdmin
+            isAdmin: currentPermitIssuer.isAdmin
           });
           const freshUsers = await listPermitIssuers();
-          setUsers(freshUsers);
-          Alert.alert('User Added', 'New permit issuer has been added successfully');
+          setPermitIssuers(freshUsers);
+          Alert.alert('Permit Issuer Added', 'New permit issuer has been added successfully');
         }
-        setCurrentUser({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
-        setSelectedUser(null);
+        setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false });
+        setSelectedPermitIssuer(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save user: ' + error.message);
       }
     };
 
-    const handleDeleteUser = (id) => {
-      if (window.confirm('Delete User?\n\nAre you sure? This action cannot be undone.')) {
+    const handleDeletePermitIssuer = (id) => {
+      if (window.confirm('Delete Permit Issuer?\n\nAre you sure? This action cannot be undone.')) {
         (async () => {
           try {
             console.log('🗑️ Deleting permit issuer:', id);
             await deletePermitIssuer(id);
             console.log('✅ Permit issuer deleted successfully');
             const freshUsers = await listPermitIssuers();
-            setUsers(freshUsers);
-            setEditingUser(false);
-            setSelectedUser(null);
-            window.alert('Success: User has been deleted.');
+            setPermitIssuers(freshUsers);
+            setEditingPermitIssuer(false);
+            setSelectedPermitIssuer(null);
+            window.alert('Success: Permit issuer has been deleted.');
           } catch (error) {
             console.error('❌ Delete error:', error);
-            window.alert('Error: Failed to delete user: ' + error.message);
+            window.alert('Error: Failed to delete permit issuer: ' + error.message);
           }
         })();
       }
     };
 
-    const handleImportUserCSV = () => {
+    const handleImportPermitIssuerCSV = () => {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.csv,.xlsx,.xls';
@@ -8943,8 +8943,8 @@ const PermitManagementApp = () => {
       return renderNewPermitForm();
     case 'admin':
       return renderAdminDashboard();
-    case 'manage_users':
-      return renderManageUsers();
+    case 'manage_issuers':
+      return renderManagePermitIssuers();
     case 'manage_companies':
       return renderManageCompanies();
     case 'manage_contractors':
