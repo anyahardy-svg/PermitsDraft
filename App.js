@@ -8867,7 +8867,7 @@ const PermitManagementApp = () => {
           styles={styles}
           handlePrintPermit={handlePrintPermit}
           sites={sites}
-          users={users}
+          users={permitIssuers}
           contractors={contractors}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
@@ -8887,7 +8887,7 @@ const PermitManagementApp = () => {
           permits={permits}
           styles={styles}
           sites={sites}
-          users={users}
+          users={permitIssuers}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
           getRiskColor={getRiskColor}
@@ -8904,7 +8904,7 @@ const PermitManagementApp = () => {
           setCurrentScreen={setCurrentScreen}
           permits={permits}
           styles={styles}
-          users={users}
+          users={permitIssuers}
           sites={sites}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
@@ -8927,7 +8927,7 @@ const PermitManagementApp = () => {
           styles={styles}
           handlePrintPermit={handlePrintPermit}
           sites={sites}
-          users={users}
+          users={permitIssuers}
           contractors={contractors}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
