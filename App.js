@@ -4428,7 +4428,7 @@ const PermitManagementApp = () => {
 
             if (newUsers.length === 0) {
               setImportStatus('error');
-              setImportMessage('No new users to import (duplicates were skipped).');
+              setImportMessage('No new contractors to import (duplicates were skipped).');
               setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
@@ -5985,20 +5985,30 @@ const PermitManagementApp = () => {
         }
         
         console.log('Import complete. Summary:', {newCount, duplicateCount, errorCount});
+        console.log('About to show alert. Condition checks:');
+        console.log('  All empty?', newCount === 0 && duplicateCount === 0 && errorCount === 0);
+        console.log('  All duplicates?', newCount === 0 && duplicateCount > 0 && errorCount === 0);
+        console.log('  Message:', message);
+        
         setImportStatus('success');
         setImportMessage('');
         
         // Always show the breakdown, even if nothing was added
         if (newCount === 0 && duplicateCount === 0 && errorCount === 0) {
-          Alert.alert('Import Complete', 'File processed but no valid records were found.', [
+          const alertMsg = 'File processed but no valid records were found.';
+          console.log('Showing alert: Import Complete -', alertMsg);
+          Alert.alert('Import Complete', alertMsg, [
             { text: 'OK', onPress: () => setImportStatus('idle') }
           ]);
         } else if (newCount === 0 && duplicateCount > 0 && errorCount === 0) {
           // All items were duplicates
-          Alert.alert('Import Complete', `✓ Processed ${lines.length - 1} record(s)\n⊘ ${duplicateCount} duplicate(s) skipped - already in database`, [
+          const alertMsg = `✓ Processed ${lines.length - 1} record(s)\n⊘ ${duplicateCount} duplicate(s) skipped - already in database`;
+          console.log('Showing alert: Import Complete -', alertMsg);
+          Alert.alert('Import Complete', alertMsg, [
             { text: 'OK', onPress: () => setImportStatus('idle') }
           ]);
         } else {
+          console.log('Showing alert: Import Complete -', message);
           Alert.alert('Import Complete', message, [
             { text: 'OK', onPress: () => setImportStatus('idle') }
           ]);
@@ -6101,7 +6111,7 @@ const PermitManagementApp = () => {
             </View>
           </View>
 
-          {/* IMPORT STATUS */}
+          {/* IMPORT STATUS FOR ISOLATION REGISTERS */}
           {importStatus !== 'idle' && (
             <View style={{
               backgroundColor: importStatus === 'success' ? '#D1FAE5' : importStatus === 'error' ? '#FEE2E2' : '#DBEAFE',
