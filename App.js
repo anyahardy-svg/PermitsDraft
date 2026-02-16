@@ -5989,11 +5989,14 @@ const PermitManagementApp = () => {
         setImportMessage('');
         
         if (newCount === 0 && duplicateCount === 0 && errorCount === 0) {
-          Alert.alert('Import Complete', 'File processed but no valid records were found.');
+          Alert.alert('Import Complete', 'File processed but no valid records were found.', [
+            { text: 'OK', onPress: () => setImportStatus('idle') }
+          ]);
         } else {
-          Alert.alert('Import Complete', message);
+          Alert.alert('Import Complete', message, [
+            { text: 'OK', onPress: () => setImportStatus('idle') }
+          ]);
         }
-        setImportStatus('idle');
       };
       
       fileInput.click();
@@ -6102,15 +6105,48 @@ const PermitManagementApp = () => {
               borderLeftWidth: 4,
               borderLeftColor: importStatus === 'success' ? '#10B981' : importStatus === 'error' ? '#EF4444' : '#3B82F6'
             }}>
-              <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontWeight: '600' }}>
-                {importStatus === 'importing' ? '⏳ ' : importStatus === 'success' ? '✅ ' : '❌ '}
-                {importStatus === 'importing' ? 'Importing...' : importStatus === 'success' ? 'Import Successful' : 'Import Failed'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontWeight: '600', fontSize: 16 }}>
+                  {importStatus === 'importing' ? '⏳ Importing...' : importStatus === 'success' ? '✅ Import Successful' : '❌ Import Failed'}
+                </Text>
+              </View>
               {importMessage && (
-                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 14, marginTop: 4 }}>
+                <Text style={{ color: importStatus === 'success' ? '#065F46' : importStatus === 'error' ? '#7F1D1D' : '#1E40AF', fontSize: 13, marginTop: 6 }}>
                   {importMessage}
                 </Text>
               )}
+            </View>
+          )}
+
+          {/* DISABLE INTERACTIONS WHILE IMPORTING */}
+          {importStatus === 'importing' && (
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              borderRadius: 8
+            }}>
+              <View style={{
+                backgroundColor: 'white',
+                padding: 20,
+                borderRadius: 8,
+                alignItems: 'center',
+                gap: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 5
+              }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>Importing Isolation Registers</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>{importMessage || 'Processing...'}</Text>
+              </View>
             </View>
           )}
 
