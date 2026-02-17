@@ -1469,7 +1469,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.label}>Permit Issuer</Text>
                 <CustomDropdown
                   label="Select Permit Issuer"
-                  options={users && permitIssuers.length > 0 ? permitIssuers.map(user => user.name) : []}
+                  options={permitIssuers && permitIssuers.length > 0 ? permitIssuers.map(issuer => issuer.name) : []}
                   selectedValue={formData.permitIssuer || ''}
                   onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
                   style={styles.input}
@@ -3453,8 +3453,8 @@ const PermitManagementApp = () => {
             options={
               editData.site_id 
                 ? users
-                    .filter(user => user.site_ids && user.site_ids.includes(editData.site_id))
-                    .map(user => user.name)
+                    .filter(issuer => issuer.site_ids && issuer.site_ids.includes(editData.site_id))
+                    .map(issuer => issuer.name)
                 : []
             }
             selectedValue={editData.permitIssuer || ''}
@@ -4436,13 +4436,13 @@ const PermitManagementApp = () => {
             // Save all permit issuers to Supabase
             for (let idx = 0; idx < newUsers.length; idx++) {
               const user = newUsers[idx];
-              setImportMessage(`Importing ${idx + 1} of ${newUsers.length}: ${user.name}...`);
+              setImportMessage(`Importing ${idx + 1} of ${newUsers.length}: ${issuer.name}...`);
               try {
                 await createPermitIssuer(user);
               } catch (err) {
-                console.error(`Failed to import ${user.name}:`, err);
+                console.error(`Failed to import ${issuer.name}:`, err);
                 setImportStatus('error');
-                setImportMessage(`Error importing ${user.name}: ${err.message}`);
+                setImportMessage(`Error importing ${issuer.name}: ${err.message}`);
                 setTimeout(() => setImportStatus('idle'), 4000);
                 return;
               }
@@ -4563,11 +4563,11 @@ const PermitManagementApp = () => {
                 >
                   {currentPermitIssuer.isAdmin && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
                 </TouchableOpacity>
-                <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#374151' }}>Grant admin access to manage users & contractors</Text>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#374151' }}>Grant admin access to manage permit issuers & contractors</Text>
               </View>
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
-                <Text style={styles.addButtonText}>{editingPermitIssuer ? 'Update User' : 'Add User'}</Text>
+                <Text style={styles.addButtonText}>{editingPermitIssuer ? 'Update Permit Issuer' : 'Add Permit Issuer'}</Text>
               </TouchableOpacity>
               {editingPermitIssuer && (
                 <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingPermitIssuer(false); setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false }); setSelectedPermitIssuer(null); }}>
@@ -4581,7 +4581,7 @@ const PermitManagementApp = () => {
           <View style={{ marginTop: 24 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Users Database</Text>
+                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Permit Issuers Database</Text>
               </View>
               <TouchableOpacity 
                 style={{ backgroundColor: '#6366F1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} 
@@ -4599,29 +4599,29 @@ const PermitManagementApp = () => {
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {permitIssuers.length} users {permitIssuers.length > 0 && `(${permitIssuers.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {permitIssuers.length} permit issuers {permitIssuers.length > 0 && `(${permitIssuers.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
             {permitIssuers.length === 0 ? (
-              <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No users yet. Add one using the form above.</Text>
+              <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No permit issuers yet. Add one using the form above.</Text>
             ) : (
               permitIssuers.map((user, index) => (
-                <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
+                <View key={issuer.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
-                    {user.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                    <Text style={styles.permitId}>{index + 1}. {issuer.name}</Text>
+                    {issuer.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
                       <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>ADMIN</Text>
                     </View>}
                   </View>
-                  <Text style={styles.detailText}>{user.email}</Text>
-                  <Text style={styles.detailText}>{user.company}</Text>
-                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
-                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {user.id}</Text>
+                  <Text style={styles.detailText}>{issuer.email}</Text>
+                  <Text style={styles.detailText}>{issuer.company}</Text>
+                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {issuer.sites && issuer.sites.length > 0 ? issuer.sites.join(', ') : (user.site_ids && issuer.site_ids.length > 0 ? `${issuer.site_ids.length} sites (UUID format)` : 'None')}</Text>
+                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {issuer.id}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { 
                       console.log('📋 Editing user:', {
-                        id: user.id,
-                        name: user.name,
-                        sites: user.sites,
-                        site_ids: user.site_ids,
+                        id: issuer.id,
+                        name: issuer.name,
+                        sites: issuer.sites,
+                        site_ids: issuer.site_ids,
                         siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
                       });
                       setSelectedPermitIssuer(user); 
@@ -4630,7 +4630,7 @@ const PermitManagementApp = () => {
                     }}>
                       <Text style={styles.addButtonText}>Edit</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.addButton, { flex: 0.45, backgroundColor: '#EF4444' }]} onPress={() => handleDeleteUser(user.id)}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 0.45, backgroundColor: '#EF4444' }]} onPress={() => handleDeletePermitIssuer(user.id)}>
                       <Text style={styles.addButtonText}>Delete</Text>
                     </TouchableOpacity>
                   </View>
@@ -6446,30 +6446,30 @@ const PermitManagementApp = () => {
                     })));
                     
                     // Filter users who have this site
-                    const filtered = permitIssuers.filter(user => {
+                    const filtered = permitIssuers.filter(issuer=> {
                       // Check if user has site_ids array and it includes the selected site_id
-                      const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.length > 0 && user.site_ids.includes(editData.site_id);
+                      const hasSiteId = issuer.site_ids && Array.isArray(user.site_ids) && issuer.site_ids.length > 0 && issuer.site_ids.includes(editData.site_id);
                       // Check if user has sites array and it includes the selected site name
-                      const hasSiteName = user.sites && Array.isArray(user.sites) && user.sites.length > 0 && siteName && user.sites.includes(siteName);
+                      const hasSiteName = issuer.sites && Array.isArray(user.sites) && issuer.sites.length > 0 && siteName && issuer.sites.includes(siteName);
                       // Fallback: check old site_ids format if present
-                      const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.length > 0 && user.siteIds.includes(editData.site_id);
+                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(user.siteIds) && issuer.siteIds.length > 0 && issuer.siteIds.includes(editData.site_id);
                       
                       const matches = hasSiteId || hasSiteName || hasSiteIdFallback;
-                      console.log(`  ${user.name}: hasSiteId=${hasSiteId}, hasSiteName=${hasSiteName}, hasSiteIdFallback=${hasSiteIdFallback}, matches=${matches}`);
+                      console.log(`  ${issuer.name}: hasSiteId=${hasSiteId}, hasSiteName=${hasSiteName}, hasSiteIdFallback=${hasSiteIdFallback}, matches=${matches}`);
                       return matches;
                     });
                     
-                    options = filtered.map(user => user.name);
+                    options = filtered.map(issuer => issuer.name);
                     console.log('✅ Filtered options:', options);
                     
                     // If no users found and site_id is set, show all users as fallback
                     if (options.length === 0) {
                       console.warn('⚠️ No users found for site, showing all users as fallback');
-                      options = permitIssuers.map(user => user.name);
+                      options = permitIssuers.map(issuer => issuer.name);
                     }
                   } else {
                     console.log('⚠️ No site selected - showing all users');
-                    options = permitIssuers.map(user => user.name);
+                    options = permitIssuers.map(issuer => issuer.name);
                   }
                   
                   return options;
@@ -7325,7 +7325,7 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Permit Issuer</Text>
               <CustomDropdown
                 label="Select Permit Issuer"
-                options={users && permitIssuers.length > 0 ? permitIssuers.map(user => user.name) : []}
+                options={permitIssuers && permitIssuers.length > 0 ? permitIssuers.map(issuer => issuer.name) : []}
                 selectedValue={editData.permitIssuer || ''}
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
@@ -8151,18 +8151,18 @@ const PermitManagementApp = () => {
                   let options = [];
                   if (editData.site_id && users) {
                     const siteName = siteIdToNameMap[editData.site_id];
-                    const filtered = permitIssuers.filter(user => {
-                      const hasSiteId = user.site_ids && Array.isArray(user.site_ids) && user.site_ids.includes(editData.site_id);
-                      const hasSiteName = user.sites && Array.isArray(user.sites) && siteName && user.sites.includes(siteName);
-                      const hasSiteIdFallback = user.siteIds && Array.isArray(user.siteIds) && user.siteIds.includes(editData.site_id);
+                    const filtered = permitIssuers.filter(issuer=> {
+                      const hasSiteId = issuer.site_ids && Array.isArray(user.site_ids) && issuer.site_ids.includes(editData.site_id);
+                      const hasSiteName = issuer.sites && Array.isArray(user.sites) && siteName && issuer.sites.includes(siteName);
+                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(user.siteIds) && issuer.siteIds.includes(editData.site_id);
                       return hasSiteId || hasSiteName || hasSiteIdFallback;
                     });
-                    options = filtered.map(user => user.name);
+                    options = filtered.map(issuer => issuer.name);
                     if (options.length === 0 && users) {
-                      options = permitIssuers.map(user => user.name);
+                      options = permitIssuers.map(issuer => issuer.name);
                     }
                   } else if (users) {
-                    options = permitIssuers.map(user => user.name);
+                    options = permitIssuers.map(issuer => issuer.name);
                   }
                   return options;
                 })()}
