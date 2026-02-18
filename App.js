@@ -6500,7 +6500,8 @@ const PermitManagementApp = () => {
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
       isolations: permit.isolations || initialIsolations,
-      signOns: permit.signOns || initialSignOns
+      signOns: permit.signOns || initialSignOns,
+      attachments: permit.attachments || []
     });
     
     // Date/time picker states
@@ -6520,7 +6521,8 @@ const PermitManagementApp = () => {
       jsea: false,
       isolations: false,
       controlsSummary: true,
-      signons: false
+      signons: false,
+      attachments: false
     });
     
     const isDraft = permit.status === 'draft';
@@ -7270,6 +7272,75 @@ const PermitManagementApp = () => {
           </View>
         )}
 
+        {/* ATTACHMENTS - COLLAPSIBLE */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('attachments')}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            <Text style={styles.expandIcon}>{expandedSections.attachments ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+          {expandedSections.attachments && (
+            <View style={styles.sectionContent}>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>View attached photos and documents.</Text>
+              
+              {editData.attachments && editData.attachments.length > 0 ? (
+                <View>
+                  <Text style={{ fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+                    {editData.attachments.length} attachment{editData.attachments.length !== 1 ? 's' : ''}
+                  </Text>
+                  {editData.attachments.map((attachment, idx) => (
+                    <View 
+                      key={idx} 
+                      style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        padding: 10, 
+                        marginBottom: 8, 
+                        backgroundColor: '#F3F4F6',
+                        borderRadius: 6,
+                        borderLeftWidth: 4,
+                        borderLeftColor: '#3B82F6'
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <TouchableOpacity onPress={() => {
+                          // Open attachment URL
+                          if (attachment.url) {
+                            //"$BROWSER" ${attachment.url}`
+                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
+                              { text: 'OK', onPress: () => {} }
+                            ]);
+                          }
+                        }}>
+                          <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
+                            {attachment.name || 'Unnamed'}
+                          </Text>
+                        </TouchableOpacity>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const updated = editData.attachments.filter((_, i) => i !== idx);
+                          setEditData({ ...editData, attachments: updated });
+                        }}
+                        style={{ padding: 8 }}
+                      >
+                        <Text style={{ fontSize: 18, color: '#EF4444' }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                  No attachments
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
@@ -7297,7 +7368,8 @@ const PermitManagementApp = () => {
                     single_hazards: editData.singleHazards,
                     jsea: editData.jsea,
                     isolations: editData.isolations,
-                    sign_ons: editData.signOns
+                    sign_ons: editData.signOns,
+                    attachments: editData.attachments
                   });
                   
                   const freshPermits = await listPermits();
@@ -7331,7 +7403,8 @@ const PermitManagementApp = () => {
                     single_hazards: editData.singleHazards,
                     jsea: editData.jsea,
                     isolations: editData.isolations,
-                    sign_ons: editData.signOns
+                    sign_ons: editData.signOns,
+                    attachments: editData.attachments
                   });
                   
                   const freshPermits = await listPermits();
