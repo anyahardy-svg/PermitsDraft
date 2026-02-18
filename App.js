@@ -6444,16 +6444,16 @@ const PermitManagementApp = () => {
                       sites: u.sites,
                       hasSiteIds: !!u.site_ids
                     })));
-                    
+
                     // Filter users who have this site
-                    const filtered = permitIssuers.filter(issuer=> {
-                      // Check if user has site_ids array and it includes the selected site_id
-                      const hasSiteId = issuer.site_ids && Array.isArray(user.site_ids) && issuer.site_ids.length > 0 && issuer.site_ids.includes(editData.site_id);
-                      // Check if user has sites array and it includes the selected site name
-                      const hasSiteName = issuer.sites && Array.isArray(user.sites) && issuer.sites.length > 0 && siteName && issuer.sites.includes(siteName);
+                    const filtered = permitIssuers.filter(issuer => {
+                      // Check if issuer has site_ids array and it includes the selected site_id
+                      const hasSiteId = issuer.site_ids && Array.isArray(issuer.site_ids) && issuer.site_ids.length > 0 && issuer.site_ids.includes(editData.site_id);
+                      // Check if issuer has sites array and it includes the selected site name
+                      const hasSiteName = issuer.sites && Array.isArray(issuer.sites) && issuer.sites.length > 0 && siteName && issuer.sites.includes(siteName);
                       // Fallback: check old site_ids format if present
-                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(user.siteIds) && issuer.siteIds.length > 0 && issuer.siteIds.includes(editData.site_id);
-                      
+                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(issuer.siteIds) && issuer.siteIds.length > 0 && issuer.siteIds.includes(editData.site_id);
+
                       const matches = hasSiteId || hasSiteName || hasSiteIdFallback;
                       console.log(`  ${issuer.name}: hasSiteId=${hasSiteId}, hasSiteName=${hasSiteName}, hasSiteIdFallback=${hasSiteIdFallback}, matches=${matches}`);
                       return matches;
@@ -8149,19 +8149,19 @@ const PermitManagementApp = () => {
                 label="Select Permit Issuer"
                 options={(() => {
                   let options = [];
-                  if (editData.site_id && users) {
+                  if (editData.site_id) {
                     const siteName = siteIdToNameMap[editData.site_id];
-                    const filtered = permitIssuers.filter(issuer=> {
-                      const hasSiteId = issuer.site_ids && Array.isArray(user.site_ids) && issuer.site_ids.includes(editData.site_id);
-                      const hasSiteName = issuer.sites && Array.isArray(user.sites) && siteName && issuer.sites.includes(siteName);
-                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(user.siteIds) && issuer.siteIds.includes(editData.site_id);
+                    const filtered = permitIssuers.filter(issuer => {
+                      const hasSiteId = issuer.site_ids && Array.isArray(issuer.site_ids) && issuer.site_ids.includes(editData.site_id);
+                      const hasSiteName = issuer.sites && Array.isArray(issuer.sites) && siteName && issuer.sites.includes(siteName);
+                      const hasSiteIdFallback = issuer.siteIds && Array.isArray(issuer.siteIds) && issuer.siteIds.includes(editData.site_id);
                       return hasSiteId || hasSiteName || hasSiteIdFallback;
                     });
                     options = filtered.map(issuer => issuer.name);
-                    if (options.length === 0 && users) {
+                    if (options.length === 0) {
                       options = permitIssuers.map(issuer => issuer.name);
                     }
-                  } else if (users) {
+                  } else {
                     options = permitIssuers.map(issuer => issuer.name);
                   }
                   return options;
