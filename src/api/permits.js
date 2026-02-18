@@ -45,6 +45,7 @@ const transformPermit = (dbPermit) => {
     inspected: dbPermit.inspected,
     completedSignOff: dbPermit.completed_sign_off,
     completed_sign_off: dbPermit.completed_sign_off,
+    attachments: dbPermit.attachments || [],
     createdAt: dbPermit.created_at,
     created_at: dbPermit.created_at,
     submittedDate: dbPermit.created_at?.split('T')[0]
