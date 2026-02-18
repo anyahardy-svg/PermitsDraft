@@ -6624,7 +6624,7 @@ const PermitManagementApp = () => {
       isolations: false,
       controlsSummary: true,
       signons: false,
-      attachments: false
+      attachments: true
     });
     
     const isDraft = permit.status === 'draft';
@@ -7673,7 +7673,8 @@ const PermitManagementApp = () => {
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
       isolations: permit.isolations || initialIsolations,
-      signOns: permit.signOns || initialSignOns
+      signOns: permit.signOns || initialSignOns,
+      attachments: permit.attachments || []
     });
     const [inspector, setInspector] = React.useState('');
     const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
@@ -7689,7 +7690,8 @@ const PermitManagementApp = () => {
       jsea: false,
       isolations: false,
       signons: false,
-      controlsSummary: false
+      controlsSummary: false,
+      attachments: true
     });
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
@@ -7726,6 +7728,83 @@ const PermitManagementApp = () => {
         return { ...prev, signOns };
       });
     };
+    
+    // --- Handle image/attachment picking for inspection screen ---
+    const handlePickImage = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to your photo library to add attachments.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your file...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'File uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error picking image:', error);
+        Alert.alert('Error', 'Failed to upload file. Please try again.');
+      }
+    };
+
+    // --- Handle camera capture for inspection screen ---
+    const handleTakePhoto = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to camera to take photos.');
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your photo...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `photo_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'Photo uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error taking photo:', error);
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+      }
+    };
+    
     return (
       <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
@@ -8336,6 +8415,89 @@ const PermitManagementApp = () => {
           </View>
         )}
 
+        {/* ATTACHMENTS - COLLAPSIBLE */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('attachments')}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            <Text style={styles.expandIcon}>{expandedSections.attachments ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+          {expandedSections.attachments && (
+            <View style={styles.sectionContent}>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📷 Take Photo</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handlePickImage}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📁 Upload File</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {editData.attachments && editData.attachments.length > 0 ? (
+                <View>
+                  <Text style={{ fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+                    {editData.attachments.length} attachment{editData.attachments.length !== 1 ? 's' : ''}
+                  </Text>
+                  {editData.attachments.map((attachment, idx) => (
+                    <View 
+                      key={idx} 
+                      style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        padding: 10, 
+                        marginBottom: 8, 
+                        backgroundColor: '#F3F4F6',
+                        borderRadius: 6,
+                        borderLeftWidth: 4,
+                        borderLeftColor: '#3B82F6'
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <TouchableOpacity onPress={() => {
+                          if (attachment.url) {
+                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
+                              { text: 'OK', onPress: () => {} }
+                            ]);
+                          }
+                        }}>
+                          <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
+                            {attachment.name || 'Unnamed'}
+                          </Text>
+                        </TouchableOpacity>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const updated = editData.attachments.filter((_, i) => i !== idx);
+                          setEditData({ ...editData, attachments: updated });
+                        }}
+                        style={{ padding: 8 }}
+                      >
+                        <Text style={{ fontSize: 18, color: '#EF4444' }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                  No attachments
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* INSPECTION DETAILS */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -8352,11 +8514,25 @@ const PermitManagementApp = () => {
         </View>
 
         <View style={styles.submitSection}>
-          <TouchableOpacity style={styles.submitButton} onPress={() => {
-            const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'active', inspected: { inspector, date, comments } } : p);
-            setPermits(updated);
-            setCurrentScreen('dashboard');
-            Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
+          <TouchableOpacity style={styles.submitButton} onPress={async () => {
+            try {
+              // Update permit with inspection details and attachments
+              await updatePermit(editData.id, {
+                status: 'active',
+                inspected: { inspector, date, comments },
+                attachments: editData.attachments
+              });
+              
+              // Reload all permits to get fresh data from database
+              const freshPermits = await listPermits();
+              setPermits(freshPermits);
+              
+              setCurrentScreen('dashboard');
+              Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
+            } catch (error) {
+              console.error('Error marking permit as inspected:', error);
+              Alert.alert('Error', 'Failed to mark permit as inspected: ' + error.message);
+            }
           }}>
             <Text style={styles.submitButtonText}>Mark as Inspected</Text>
           </TouchableOpacity>
@@ -8468,7 +8644,8 @@ const PermitManagementApp = () => {
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jsea: latestPermit.jsea || initialJSEA,
       isolations: latestPermit.isolations || initialIsolations,
-      signOns: latestPermit.signOns || initialSignOns
+      signOns: latestPermit.signOns || initialSignOns,
+      attachments: latestPermit.attachments || []
     });
     
     // Load existing sign-off if present
@@ -8490,6 +8667,7 @@ const PermitManagementApp = () => {
       isolations: false,
       signons: false,
       controlsSummary: false,
+      attachments: true,
       completion: true
     });
 
@@ -8540,6 +8718,82 @@ const PermitManagementApp = () => {
         signOns[idx] = { ...signOns[idx], [field]: value };
         return { ...prev, signOns };
       });
+    };
+
+    // --- Handle image/attachment picking for active permit screen ---
+    const handlePickImage = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to your photo library to add attachments.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your file...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'File uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error picking image:', error);
+        Alert.alert('Error', 'Failed to upload file. Please try again.');
+      }
+    };
+
+    // --- Handle camera capture for active permit screen ---
+    const handleTakePhoto = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to camera to take photos.');
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your photo...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `photo_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'Photo uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error taking photo:', error);
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+      }
     };
 
     const canComplete = issuerName && issuerSignature && receiverName && receiverSignature;
@@ -9171,6 +9425,89 @@ const PermitManagementApp = () => {
           </View>
         )}
 
+        {/* ATTACHMENTS - COLLAPSIBLE */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('attachments')}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            <Text style={styles.expandIcon}>{expandedSections.attachments ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+          {expandedSections.attachments && (
+            <View style={styles.sectionContent}>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📷 Take Photo</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handlePickImage}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📁 Upload File</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {editData.attachments && editData.attachments.length > 0 ? (
+                <View>
+                  <Text style={{ fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+                    {editData.attachments.length} attachment{editData.attachments.length !== 1 ? 's' : ''}
+                  </Text>
+                  {editData.attachments.map((attachment, idx) => (
+                    <View 
+                      key={idx} 
+                      style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        padding: 10, 
+                        marginBottom: 8, 
+                        backgroundColor: '#F3F4F6',
+                        borderRadius: 6,
+                        borderLeftWidth: 4,
+                        borderLeftColor: '#3B82F6'
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <TouchableOpacity onPress={() => {
+                          if (attachment.url) {
+                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
+                              { text: 'OK', onPress: () => {} }
+                            ]);
+                          }
+                        }}>
+                          <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
+                            {attachment.name || 'Unnamed'}
+                          </Text>
+                        </TouchableOpacity>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const updated = editData.attachments.filter((_, i) => i !== idx);
+                          setEditData({ ...editData, attachments: updated });
+                        }}
+                        style={{ padding: 8 }}
+                      >
+                        <Text style={{ fontSize: 18, color: '#EF4444' }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                  No attachments
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* COMPLETION SIGN-OFF - COLLAPSIBLE */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('completion')}>
@@ -9222,7 +9559,7 @@ const PermitManagementApp = () => {
                   }
                   
                   // Save to database
-                  const updateObj = { completed_sign_off: newSignOff };
+                  const updateObj = { completed_sign_off: newSignOff, attachments: editData.attachments };
                   if (completed) {
                     updateObj.status = 'completed';
                   }
