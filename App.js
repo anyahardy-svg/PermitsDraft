@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
+import { uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
@@ -1203,14 +1204,31 @@ const PermitManagementApp = () => {
         single_hazards: formData.singleHazards,
         jsea: formData.jsea,
         isolations: formData.isolations,
-        sign_ons: formData.signOns
+        sign_ons: formData.signOns,
+        attachments: [] // Will be populated after upload
       };
 
       // Save to Supabase
       const newPermit = await createPermit(permitData);
       
+      // Upload attachments if any
+      let uploadedAttachments = [];
+      if (formData.attachments && formData.attachments.length > 0) {
+        try {
+          uploadedAttachments = await uploadMultipleAttachments(newPermit.id, formData.attachments);
+          
+          // Update permit with attachment URLs
+          await updatePermit(newPermit.id, {
+            attachments: uploadedAttachments
+          });
+        } catch (error) {
+          console.warn('Error uploading attachments:', error);
+          Alert.alert('Warning', 'Permit saved but some attachments failed to upload. You can try uploading them again later.');
+        }
+      }
+      
       // Update local state with the new permit
-      setPermits([...permits, { ...newPermit, submittedDate: new Date().toISOString().split('T')[0] }]);
+      setPermits([...permits, { ...newPermit, attachments: uploadedAttachments, submittedDate: new Date().toISOString().split('T')[0] }]);
       
       setFormData({
         id: '',
@@ -1233,7 +1251,8 @@ const PermitManagementApp = () => {
         jsea: initialJSEA,
         isolations: initialIsolations,
         signOns: initialSignOns,
-        completion: { finalToolCount: '', completionNotes: '' }
+        completion: { finalToolCount: '', completionNotes: '' },
+        attachments: []
       });
       setCurrentScreen('dashboard');
       const statusText = status === 'draft' ? 'Draft saved' : 'Permit submitted for approval';
