@@ -3391,7 +3391,8 @@ const PermitManagementApp = () => {
     singleHazards: permit.singleHazards || initialSingleHazards,
     jsea: permit.jsea || initialJSEA,
     isolations: permit.isolations || initialIsolations,
-    signOns: permit.signOns || initialSignOns
+    signOns: permit.signOns || initialSignOns,
+    attachments: permit.attachments || []
   });
   
   // Date/time picker states for draft editing
@@ -3431,7 +3432,8 @@ const PermitManagementApp = () => {
         single_hazards: editData.singleHazards,
         jsea: editData.jsea,
         isolations: editData.isolations,
-        sign_ons: editData.signOns
+        sign_ons: editData.signOns,
+        attachments: editData.attachments
       });
       
       const freshPermits = await listPermits();
@@ -3463,7 +3465,8 @@ const PermitManagementApp = () => {
         single_hazards: editData.singleHazards,
         jsea: editData.jsea,
         isolations: editData.isolations,
-        sign_ons: editData.signOns
+        sign_ons: editData.signOns,
+        attachments: editData.attachments
       });
       
       const freshPermits = await listPermits();
@@ -3937,6 +3940,29 @@ const PermitManagementApp = () => {
             {editData.completedSignOff.receiverSignedAt && (
               <Text style={styles.detailText}>Receiver Signed At: {editData.completedSignOff.receiverSignedAt}</Text>
             )}
+          </View>
+        )}
+        
+        {/* Attachments */}
+        {editData.attachments && editData.attachments.length > 0 && (
+          <View style={{ marginTop: 24, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}>
+            <Text style={[styles.label, { marginBottom: 8 }]}>Attachments ({editData.attachments.length})</Text>
+            {editData.attachments.map((attachment, idx) => (
+              <View key={idx} style={{ marginBottom: 8, paddingBottom: 8, borderBottomWidth: idx < editData.attachments.length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB' }}>
+                <TouchableOpacity onPress={() => {
+                  if (attachment.url) {
+                    Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
+                      { text: 'OK', onPress: () => {} }
+                    ]);
+                  }
+                }}>
+                  <Text style={{ color: '#3B82F6', fontWeight: '500', marginBottom: 2 }}>📎 {attachment.name || 'Unnamed'}</Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
       </View>
