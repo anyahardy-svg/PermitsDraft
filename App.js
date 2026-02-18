@@ -9603,12 +9603,19 @@ const PermitManagementApp = () => {
         </View>
 
         <View style={styles.submitSection}>
-          <TouchableOpacity style={styles.submitButton} onPress={() => {
-            // Save edits only
-            const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: { issuerName, issuerSignature, receiverName, receiverSignature } } : p);
-            setPermits(updated);
-            setCurrentScreen('active');
-            Alert.alert('Permit Updated', 'Permit details have been updated.');
+          <TouchableOpacity style={styles.submitButton} onPress={async () => {
+            try {
+              // Save all changes including attachments to database
+              await updatePermit(editData.id, { attachments: editData.attachments });
+              
+              const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: { issuerName, issuerSignature, receiverName, receiverSignature } } : p);
+              setPermits(updated);
+              setCurrentScreen('active');
+              Alert.alert('Permit Updated', 'Permit details have been updated.');
+            } catch (error) {
+              console.error('Error saving changes:', error);
+              Alert.alert('Error', 'Failed to save changes. Please try again.');
+            }
           }}>
             <Text style={styles.submitButtonText}>Save Changes</Text>
           </TouchableOpacity>
