@@ -5,24 +5,36 @@ const BUCKET_NAME = 'permit-attachments';
 /**
  * Upload an attachment file to Supabase Storage
  * @param {string} permitId - The permit ID (for organizing files)
- * @param {object} file - File object with { uri, name, type }
- * @returns {Promise<string>} - Public URL of the uploaded file
+ * @param {Blob|object} fileData - Blob object or file object with { uri, name, type }
+ * @param {string} fileName - Optional filename (used when passing a blob)
+ * @returns {Promise<object>} - Object with { url, name, uploadedAt, path }
  */
-export const uploadAttachment = async (permitId, file) => {
+export const uploadAttachment = async (permitId, fileData, fileName) => {
   try {
-    // Convert URI to blob for web/mobile compatibility
-    const response = await fetch(file.uri);
-    const blob = await response.blob();
+    let blob = fileData;
+    let name = fileName;
+    let contentType = 'application/octet-stream';
+    
+    // If it's a file object with uri, convert to blob
+    if (fileData.uri) {
+      const response = await fetch(fileData.uri);
+      blob = await response.blob();
+      name = fileData.name;
+      contentType = fileData.type || 'application/octet-stream';
+    } else if (fileData instanceof Blob) {
+      // It's already a blob, use the provided fileName
+      name = fileName || `attachment_${Date.now()}`;
+    }
     
     // Create a unique filename: permit_id/timestamp_originalname
     const timestamp = Date.now();
-    const filePath = `${permitId}/${timestamp}_${file.name}`;
+    const filePath = `${permitId}/${timestamp}_${name}`;
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, blob, {
-        contentType: file.type,
+        contentType: contentType,
         cacheControl: '3600'
       });
     
@@ -37,7 +49,7 @@ export const uploadAttachment = async (permitId, file) => {
     
     return {
       url: publicUrl.publicUrl,
-      name: file.name,
+      name: name,
       uploadedAt: new Date().toISOString(),
       path: filePath
     };

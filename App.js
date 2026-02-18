@@ -15,7 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { uploadMultipleAttachments } from './src/api/attachments';
+import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
@@ -3412,6 +3412,82 @@ const PermitManagementApp = () => {
     setEditData({ ...editData, [field]: value });
   };
   
+  // --- Handle image/attachment picking for review screen ---
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to add attachments.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        quality: 0.7,
+      });
+
+      if (!result.cancelled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        Alert.alert('Uploading', 'Please wait while we upload your file...');
+        
+        // Convert uri to blob
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        
+        // Upload to Supabase Storage
+        const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+        
+        setEditData({
+          ...editData,
+          attachments: [...(editData.attachments || []), uploadedAttachment]
+        });
+        Alert.alert('Success', 'File uploaded successfully.');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to upload file. Please try again.');
+    }
+  };
+
+  // --- Handle camera capture for review screen ---
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to camera to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.7,
+      });
+
+      if (!result.cancelled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        Alert.alert('Uploading', 'Please wait while we upload your photo...');
+        
+        // Convert uri to blob
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        
+        // Upload to Supabase Storage
+        const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `photo_${Date.now()}`);
+        
+        setEditData({
+          ...editData,
+          attachments: [...(editData.attachments || []), uploadedAttachment]
+        });
+        Alert.alert('Success', 'Photo uploaded successfully.');
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    }
+  };
+  
   const saveDraftChanges = async () => {
     try {
       await updatePermit(editData.id, {
@@ -6555,6 +6631,83 @@ const PermitManagementApp = () => {
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
+    
+    // --- Handle image/attachment picking for edit screen ---
+    const handlePickImage = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to your photo library to add attachments.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your file...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'File uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error picking image:', error);
+        Alert.alert('Error', 'Failed to upload file. Please try again.');
+      }
+    };
+
+    // --- Handle camera capture for edit screen ---
+    const handleTakePhoto = async () => {
+      try {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow access to camera to take photos.');
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.cancelled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          Alert.alert('Uploading', 'Please wait while we upload your photo...');
+          
+          // Convert uri to blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `photo_${Date.now()}`);
+          
+          setEditData({
+            ...editData,
+            attachments: [...(editData.attachments || []), uploadedAttachment]
+          });
+          Alert.alert('Success', 'Photo uploaded successfully.');
+        }
+      } catch (error) {
+        console.error('Error taking photo:', error);
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+      }
+    };
+    
     // ...reuse helpers from EditActivePermitScreen for editing fields...
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
@@ -7306,7 +7459,23 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
           {expandedSections.attachments && (
             <View style={styles.sectionContent}>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>View attached photos and documents.</Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📷 Take Photo</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={handlePickImage}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📁 Upload File</Text>
+                </TouchableOpacity>
+              </View>
               
               {editData.attachments && editData.attachments.length > 0 ? (
                 <View>
