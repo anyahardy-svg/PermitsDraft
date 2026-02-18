@@ -12,6 +12,7 @@ import {
   Modal,
   Dimensions
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
@@ -898,7 +899,8 @@ const PermitManagementApp = () => {
     jsea: initialJSEA,
     isolations: initialIsolations,
     signOns: initialSignOns,
-    completion: { finalToolCount: '', completionNotes: '' }
+    completion: { finalToolCount: '', completionNotes: '' },
+    attachments: []
   });
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -913,6 +915,7 @@ const PermitManagementApp = () => {
     controlsSummary: false,
     signons: false,
     completion: false,
+    attachments: false,
     marking_section: false,
     drilling_section: false,
     blasting_section: true,
@@ -1071,6 +1074,74 @@ const PermitManagementApp = () => {
       doc.save(filename);
     } catch (error) {
       console.error('Error generating PDF:', error);
+    }
+  };
+
+  // --- Handle image/attachment picking ---
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to add attachments.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        quality: 0.7,
+      });
+
+      if (!result.cancelled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const newAttachment = {
+          uri: asset.uri,
+          name: asset.fileName || `attachment_${Date.now()}`,
+          type: asset.type || 'image/jpeg',
+          uploadedAt: new Date().toISOString()
+        };
+        setFormData({
+          ...formData,
+          attachments: [...(formData.attachments || []), newAttachment]
+        });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  // --- Handle camera capture ---
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to camera to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.7,
+      });
+
+      if (!result.cancelled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const newAttachment = {
+          uri: asset.uri,
+          name: asset.fileName || `photo_${Date.now()}`,
+          type: asset.type || 'image/jpeg',
+          uploadedAt: new Date().toISOString()
+        };
+        setFormData({
+          ...formData,
+          attachments: [...(formData.attachments || []), newAttachment]
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
     }
   };
 
@@ -2209,6 +2280,81 @@ const PermitManagementApp = () => {
                   multiline
                   numberOfLines={4}
                 />
+              </View>
+            )}
+          </View>
+
+          {/* Attachments Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('attachments')}>
+              <Text style={styles.sectionTitle}>Attachments</Text>
+              <Text style={styles.expandIcon}>{expandedSections.attachments ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expandedSections.attachments && (
+              <View style={styles.sectionContent}>
+                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add photos or documents to support this permit.</Text>
+                
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                    onPress={handleTakePhoto}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📷 Take Photo</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                    onPress={handlePickImage}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📁 Upload File</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {formData.attachments && formData.attachments.length > 0 ? (
+                  <View>
+                    <Text style={{ fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+                      {formData.attachments.length} attachment{formData.attachments.length !== 1 ? 's' : ''}
+                    </Text>
+                    {formData.attachments.map((attachment, idx) => (
+                      <View 
+                        key={idx} 
+                        style={{ 
+                          flexDirection: 'row', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          padding: 10, 
+                          marginBottom: 8, 
+                          backgroundColor: '#F3F4F6',
+                          borderRadius: 6,
+                          borderLeftWidth: 4,
+                          borderLeftColor: '#3B82F6'
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: '500', color: '#1F2937', marginBottom: 2 }}>
+                            {attachment.name}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                            {new Date(attachment.uploadedAt).toLocaleString()}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            const updated = formData.attachments.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, attachments: updated });
+                          }}
+                          style={{ padding: 8 }}
+                        >
+                          <Text style={{ fontSize: 18, color: '#EF4444' }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                    No attachments yet
+                  </Text>
+                )}
               </View>
             )}
           </View>
