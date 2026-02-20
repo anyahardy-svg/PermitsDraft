@@ -9796,18 +9796,21 @@ const PermitManagementApp = () => {
   };
 
   // Main render logic
-  switch (currentScreen) {
-    case 'dashboard':
-      return renderDashboard();
-    case 'drafts':
-      return renderPermitList('draft', 'Draft Permits');
-    case 'pending_approval':
-      return renderPermitList('pending_approval', 'Pending Approval');
-    case 'pending_inspection':
-      return renderInspectionList();
-    case 'review_permit':
-      return (
-        <EditableApprovalPermitScreen
+  return (
+    <View style={styles.screenContainer}>
+      {(() => {
+        switch (currentScreen) {
+          case 'dashboard':
+            return renderDashboard();
+          case 'drafts':
+            return renderPermitList('draft', 'Draft Permits');
+          case 'pending_approval':
+            return renderPermitList('pending_approval', 'Pending Approval');
+          case 'pending_inspection':
+            return renderInspectionList();
+          case 'review_permit':
+            return (
+              <EditableApprovalPermitScreen
           permit={selectedPermit}
           setPermits={setPermits}
           setCurrentScreen={setCurrentScreen}
@@ -9903,7 +9906,10 @@ const PermitManagementApp = () => {
       return renderServicesDirectory();
     default:
       return renderDashboard();
-  }
+        }
+      })()}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
