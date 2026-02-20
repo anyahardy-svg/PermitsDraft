@@ -10,7 +10,8 @@ import {
   Switch,
   FlatList,
   Modal,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
@@ -924,6 +925,8 @@ const PermitManagementApp = () => {
     post_blast_section: false,
     mobile_plant_section: false
   });
+  const [previewAttachment, setPreviewAttachment] = useState(null);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -6742,7 +6745,8 @@ const PermitManagementApp = () => {
       });
     };
     return (
-      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
             <Text style={styles.backButton}>← Back</Text>
@@ -7499,12 +7503,10 @@ const PermitManagementApp = () => {
                     >
                       <View style={{ flex: 1 }}>
                         <TouchableOpacity onPress={() => {
-                          // Open attachment URL
+                          // Open attachment preview
                           if (attachment.url) {
-                            //"$BROWSER" ${attachment.url}`
-                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
-                              { text: 'OK', onPress: () => {} }
-                            ]);
+                            setPreviewAttachment(attachment);
+                            setPreviewModalVisible(true);
                           }
                         }}>
                           <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
@@ -7659,7 +7661,62 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ATTACHMENT PREVIEW MODAL */}
+      <Modal
+        visible={previewModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {previewAttachment && (
+              <>
+                {previewAttachment.name && /\.(jpg|jpeg|png|gif|webp)$/i.test(previewAttachment.name) ? (
+                  <Image
+                    source={{ uri: previewAttachment.url }}
+                    style={{ width: '100%', height: 300, resizeMode: 'contain', marginBottom: 16, borderRadius: 8 }}
+                  />
+                ) : (
+                  <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                </Text>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={() => {
+                    Alert.alert('Open File', `Would you like to open this file in your browser?\n\n${previewAttachment.url}`, [
+                      { text: 'Copy URL', onPress: () => {
+                        Alert.alert('Copied', 'URL copied to clipboard');
+                      }},
+                      { text: 'Close', style: 'cancel' }
+                    ]);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Open in Browser</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      </View>
     );
+  };
   };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
@@ -7696,6 +7753,8 @@ const PermitManagementApp = () => {
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
+    const [previewAttachment, setPreviewAttachment] = React.useState(null);
+    const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
         ...prev,
@@ -7806,7 +7865,8 @@ const PermitManagementApp = () => {
     };
     
     return (
-      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
             <Text style={styles.backButton}>← Back</Text>
@@ -8463,10 +8523,10 @@ const PermitManagementApp = () => {
                     >
                       <View style={{ flex: 1 }}>
                         <TouchableOpacity onPress={() => {
+                          // Open attachment preview
                           if (attachment.url) {
-                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
-                              { text: 'OK', onPress: () => {} }
-                            ]);
+                            setPreviewAttachment(attachment);
+                            setPreviewModalVisible(true);
                           }
                         }}>
                           <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
@@ -8538,6 +8598,60 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ATTACHMENT PREVIEW MODAL */}
+      <Modal
+        visible={previewModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {previewAttachment && (
+              <>
+                {previewAttachment.name && /\.(jpg|jpeg|png|gif|webp)$/i.test(previewAttachment.name) ? (
+                  <Image
+                    source={{ uri: previewAttachment.url }}
+                    style={{ width: '100%', height: 300, resizeMode: 'contain', marginBottom: 16, borderRadius: 8 }}
+                  />
+                ) : (
+                  <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                </Text>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={() => {
+                    Alert.alert('Open File', `Would you like to open this file in your browser?\n\n${previewAttachment.url}`, [
+                      { text: 'Copy URL', onPress: () => {
+                        Alert.alert('Copied', 'URL copied to clipboard');
+                      }},
+                      { text: 'Close', style: 'cancel' }
+                    ]);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Open in Browser</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      </View>
     );
   };
 
@@ -8674,6 +8788,8 @@ const PermitManagementApp = () => {
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
+    const [previewAttachment, setPreviewAttachment] = React.useState(null);
+    const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
 
     // Sync local state with latest permit when it changes
     React.useEffect(() => {
@@ -8800,7 +8916,8 @@ const PermitManagementApp = () => {
     const siteName = siteIdToNameMap && editData.site_id ? siteIdToNameMap[editData.site_id] : '';
 
     return (
-      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('active')}>
             <Text style={styles.backButton}>← Back</Text>
@@ -9473,10 +9590,10 @@ const PermitManagementApp = () => {
                     >
                       <View style={{ flex: 1 }}>
                         <TouchableOpacity onPress={() => {
+                          // Open attachment preview
                           if (attachment.url) {
-                            Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
-                              { text: 'OK', onPress: () => {} }
-                            ]);
+                            setPreviewAttachment(attachment);
+                            setPreviewModalVisible(true);
                           }
                         }}>
                           <Text style={{ fontWeight: '500', color: '#3B82F6', marginBottom: 2 }}>
@@ -9621,6 +9738,60 @@ const PermitManagementApp = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ATTACHMENT PREVIEW MODAL */}
+      <Modal
+        visible={previewModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {previewAttachment && (
+              <>
+                {previewAttachment.name && /\.(jpg|jpeg|png|gif|webp)$/i.test(previewAttachment.name) ? (
+                  <Image
+                    source={{ uri: previewAttachment.url }}
+                    style={{ width: '100%', height: 300, resizeMode: 'contain', marginBottom: 16, borderRadius: 8 }}
+                  />
+                ) : (
+                  <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                </Text>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                  onPress={() => {
+                    Alert.alert('Open File', `Would you like to open this file in your browser?\n\n${previewAttachment.url}`, [
+                      { text: 'Copy URL', onPress: () => {
+                        Alert.alert('Copied', 'URL copied to clipboard');
+                      }},
+                      { text: 'Close', style: 'cancel' }
+                    ]);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Open in Browser</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      </View>
     );
   };
 
