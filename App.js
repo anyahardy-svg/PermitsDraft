@@ -7717,7 +7717,6 @@ const PermitManagementApp = () => {
       </View>
     );
   };
-  };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
   const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor, isolationRegisters }) => {
