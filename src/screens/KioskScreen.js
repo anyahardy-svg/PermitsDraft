@@ -59,7 +59,7 @@ const KioskScreen = () => {
         console.log('🏢 Kiosk hostname:', hostname);
         
         // Extract subdomain for site matching
-        // Pattern: [prefix]-[site-name]-kiosk.contractorshq.co.nz
+        // Pattern: [prefix]-[site-name]-kiosk.contractorhq.co.nz
         const parts = hostname.split('.');
         const subdomain = parts[0]; // e.g., "wa-amisfield-quarry-kiosk"
         
