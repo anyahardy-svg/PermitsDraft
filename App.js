@@ -22,7 +22,7 @@ import { createIsolationRegister, listIsolationRegisters, updateIsolationRegiste
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
-import { listSites, getSiteByName, getSitesByBusinessUnits } from './src/api/sites';
+import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits } from './src/api/business_units';
 import KioskScreen from './src/screens/KioskScreen';
@@ -1403,6 +1403,9 @@ const PermitManagementApp = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
+  const [selectedSite, setSelectedSite] = useState(null);
+  const [editingSite, setEditingSite] = useState(false);
+  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
   const [isolationRegisters, setIsolationRegisters] = useState([]);
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
@@ -1440,6 +1443,7 @@ const PermitManagementApp = () => {
   const permitIssuersScrollRef = useRef(null);
   const contractorsScrollRef = useRef(null);
   const companiesScrollRef = useRef(null);
+  const sitesScrollRef = useRef(null);
 
   // Scroll to top when editing on admin screens
   useEffect(() => {
@@ -1458,7 +1462,12 @@ const PermitManagementApp = () => {
         companiesScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-  }, [editingPermitIssuer, editingContractor, editingCompany]);
+    if (editingSite && sitesScrollRef.current) {
+      setTimeout(() => {
+        sitesScrollRef.current?.scrollTo({ y: 0 });
+      }, 0);
+    }
+  }, [editingPermitIssuer, editingContractor, editingCompany, editingSite]);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
@@ -4516,7 +4525,11 @@ const PermitManagementApp = () => {
             <Text style={styles.cardNumber}>{contractors.length}</Text>
             <Text style={styles.cardLabel}>Contractors</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#3B82F6' }]} onPress={() => setCurrentScreen('services_directory')}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#3B82F6' }]} onPress={() => setCurrentScreen('manage_sites')}>
+            <Text style={styles.cardNumber}>{sites.length}</Text>
+            <Text style={styles.cardLabel}>Sites</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('services_directory')}>
             <Text style={styles.cardNumber}>{ALL_SERVICES.length}</Text>
             <Text style={styles.cardLabel}>Services</Text>
           </TouchableOpacity>
@@ -5332,6 +5345,208 @@ const PermitManagementApp = () => {
                       </View>
                     </View>
                   ))}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Manage Sites Screen
+  const renderManageSites = () => {
+    const handleAddSite = async () => {
+      if (!currentSite.name || !currentSite.location || !currentSite.businessUnitId) {
+        Alert.alert('Missing Info', 'Please fill in Site Name, Location, and select a Business Unit.');
+        return;
+      }
+      try {
+        if (editingSite) {
+          await updateSite(currentSite.id, {
+            name: currentSite.name,
+            location: currentSite.location,
+            business_unit_id: currentSite.businessUnitId,
+            kiosk_subdomain: currentSite.kioskSubdomain || null
+          });
+          const freshSites = await listSites();
+          setSites(freshSites);
+          setEditingSite(false);
+          Alert.alert('Site Updated', 'Site has been updated successfully.');
+        } else {
+          await createSite({
+            name: currentSite.name,
+            location: currentSite.location,
+            business_unit_id: currentSite.businessUnitId,
+            kiosk_subdomain: currentSite.kioskSubdomain || null
+          });
+          const freshSites = await listSites();
+          setSites(freshSites);
+          Alert.alert('Site Added', 'New site has been added successfully.');
+        }
+        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
+        setSelectedSite(null);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save site: ' + error.message);
+      }
+    };
+
+    const handleDeleteSite = (id) => {
+      if (window.confirm('Delete Site?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            await deleteSite(id);
+            const freshSites = await listSites();
+            setSites(freshSites);
+            setEditingSite(false);
+            setSelectedSite(null);
+            Alert.alert('Success', 'Site has been deleted.');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete site: ' + error.message);
+          }
+        })();
+      }
+    };
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{editingSite ? 'Edit Site' : 'Manage Sites'}</Text>
+        </View>
+        
+        <ScrollView ref={sitesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+          {/* Form Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionContent}>
+              <Text style={styles.label}>Site Name *</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentSite.name} 
+                onChangeText={text => setCurrentSite({ ...currentSite, name: text })} 
+                placeholder="Enter site name (e.g., Amisfield Quarry)" 
+              />
+              
+              <Text style={styles.label}>Location *</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentSite.location} 
+                onChangeText={text => setCurrentSite({ ...currentSite, location: text })} 
+                placeholder="Enter location (e.g., West Auckland)" 
+              />
+              
+              <Text style={styles.label}>Business Unit *</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                {businessUnits.map(unit => {
+                  const isSelected = currentSite.businessUnitId === unit.id;
+                  return (
+                    <TouchableOpacity
+                      key={unit.id}
+                      style={[
+                        { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                        isSelected
+                          ? { backgroundColor: '#059669', borderColor: '#059669' }
+                          : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                      ]}
+                      onPress={() => {
+                        setCurrentSite({ ...currentSite, businessUnitId: unit.id });
+                      }}
+                    >
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              
+              <Text style={styles.label}>Kiosk Subdomain (Optional)</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentSite.kioskSubdomain} 
+                onChangeText={text => setCurrentSite({ ...currentSite, kioskSubdomain: text })} 
+                placeholder="e.g., wa-amisfield-quarry-kiosk" 
+              />
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 12 }}>The subdomain used for the kiosk sign-in at this site (contractorhq.co.nz)</Text>
+
+              <TouchableOpacity style={styles.addButton} onPress={handleAddSite}>
+                <Text style={styles.addButtonText}>{editingSite ? 'Update Site' : 'Add Site'}</Text>
+              </TouchableOpacity>
+              {editingSite && (
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' }); setSelectedSite(null); }}>
+                  <Text style={styles.addButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Sites List Section */}
+          <View style={{ marginTop: 24 }}>
+            <Text style={[styles.label, { fontSize: 16, fontWeight: 'bold', marginBottom: 12 }]}>Sites Database</Text>
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {sites.length} sites</Text>
+            
+            {sites.length === 0 ? (
+              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No sites added yet</Text>
+              </View>
+            ) : (
+              <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                <View>
+                  {/* Table Header */}
+                  <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
+                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Site Name</Text>
+                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Location</Text>
+                    <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Unit</Text>
+                    <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
+                    <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
+                  </View>
+
+                  {/* Table Rows */}
+                  {sites.map((site, index) => {
+                    const buName = businessUnits.find(u => u.id === site.businessUnitId)?.name || 'Unknown';
+                    return (
+                      <View 
+                        key={site.id}
+                        style={{ 
+                          flexDirection: 'row', 
+                          backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#E5E7EB',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Text style={{ width: 150, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
+                          {site.name}
+                        </Text>
+                        <Text style={{ width: 150, padding: 12, fontSize: 12, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {site.location}
+                        </Text>
+                        <Text style={{ width: 120, padding: 12, fontSize: 12, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {buName}
+                        </Text>
+                        <Text style={{ width: 180, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
+                          {site.kioskSubdomain || '—'}
+                        </Text>
+                        <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
+                          <TouchableOpacity 
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
+                            onPress={() => {
+                              setCurrentSite(site);
+                              setEditingSite(true);
+                            }}
+                          >
+                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
+                            onPress={() => handleDeleteSite(site.id)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Del</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
               </ScrollView>
             )}
@@ -10165,6 +10380,8 @@ const PermitManagementApp = () => {
       return renderManagePermitIssuers();
     case 'manage_companies':
       return renderManageCompanies();
+    case 'manage_sites':
+      return renderManageSites();
     case 'manage_contractors':
       return renderManageContractors();
     case 'manage_isolations':
