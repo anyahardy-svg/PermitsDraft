@@ -33,10 +33,10 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
 
     const isInducted = !!induction && (!induction.expires_at || new Date(induction.expires_at) > new Date());
 
-    // Get contractor company
+    // Get contractor name and company
     const { data: contractor } = await supabase
       .from('contractors')
-      .select('company_id')
+      .select('name, company_id')
       .eq('id', contractorId)
       .single();
 
@@ -49,6 +49,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
       .from('sign_ins')
       .insert({
         contractor_id: contractorId,
+        contractor_name: contractor?.name || 'Unknown',
         site_id: siteId,
         business_unit_id: businessUnitId,
         contractor_company: company?.name || 'Unknown',
@@ -185,6 +186,7 @@ export async function getSignedInPeople(siteId) {
       .select(`
         id,
         contractor_id,
+        contractor_name,
         contractor_company,
         visitor_name,
         visitor_company,
@@ -199,22 +201,8 @@ export async function getSignedInPeople(siteId) {
 
     if (error) throw error;
 
-    // Fetch contractor names if needed
-    const enriched = await Promise.all(
-      data.map(async (record) => {
-        if (record.contractor_id) {
-          const { data: contractor } = await supabase
-            .from('contractors')
-            .select('name')
-            .eq('id', record.contractor_id)
-            .single();
-          return { ...record, name: contractor?.name };
-        }
-        return { ...record, name: record.visitor_name };
-      })
-    );
-
-    return { success: true, data: enriched };
+    // Return data as-is (no need for separate enrichment)
+    return { success: true, data };
   } catch (error) {
     console.error('Get signed-in error:', error);
     return { success: false, error: error.message };
