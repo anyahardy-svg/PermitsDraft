@@ -1397,7 +1397,7 @@ const PermitManagementApp = () => {
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false });
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -1406,6 +1406,8 @@ const PermitManagementApp = () => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
+  const [siteSearchText, setSiteSearchText] = useState('');
+  const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
   const [isolationRegisters, setIsolationRegisters] = useState([]);
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
@@ -1413,6 +1415,8 @@ const PermitManagementApp = () => {
   
   // Filter states for contractors and permit issuers
   const [contractorSearchText, setContractorSearchText] = useState('');
+  const [siteImportStatus, setSiteImportStatus] = useState('idle');
+  const [siteImportMessage, setSiteImportMessage] = useState('');
   const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
   const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
   const [permitIssuerCompanyFilter, setPermitIssuerCompanyFilter] = useState('All');
@@ -5408,6 +5412,167 @@ const PermitManagementApp = () => {
       }
     };
 
+    const handleImportSitesCSV = () => {
+      // Create a hidden file input element
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.csv';
+      
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            setSiteImportStatus('importing');
+            setSiteImportMessage('Reading CSV file...');
+
+            const csvText = event.target.result;
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+              setSiteImportStatus('error');
+              setSiteImportMessage('Error: CSV must have header row and at least one data row');
+              setTimeout(() => setSiteImportStatus('idle'), 3000);
+              return;
+            }
+
+            const newSites = [];
+            let newCount = 0;
+            let duplicateCount = 0;
+            const processedNames = new Set();
+
+            // Parse header row
+            setSiteImportMessage('Parsing CSV file...');
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            // Find column indices
+            const nameIdx = headerValues.findIndex(h => h.includes('name') || h.includes('site'));
+            const locationIdx = headerValues.findIndex(h => h.includes('location'));
+            const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
+            const subdomainIdx = headerValues.findIndex(h => h.includes('subdomain') || h.includes('kiosk'));
+
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              
+              // Simple CSV parsing
+              const values = [];
+              current = '';
+              inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim().replace(/^"|"$/g, ''));
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              
+              if (nameIdx >= 0 && locationIdx >= 0 && buIdx >= 0) {
+                const name = values[nameIdx] || '';
+                const location = values[locationIdx] || '';
+                const buName = values[buIdx] || '';
+                const subdomain = subdomainIdx >= 0 ? values[subdomainIdx] : '';
+                
+                if (name && location && buName) {
+                  // Skip if already processed in this CSV
+                  if (processedNames.has(name.toLowerCase())) {
+                    duplicateCount++;
+                    continue;
+                  }
+                  
+                  // Check if site already exists in database
+                  if (sites.find(s => s.name.toLowerCase() === name.toLowerCase())) {
+                    duplicateCount++;
+                    continue;
+                  }
+                  
+                  newSites.push({
+                    name,
+                    location,
+                    buName,
+                    subdomain
+                  });
+                  processedNames.add(name.toLowerCase());
+                }
+              }
+            }
+
+            // Save all sites to Supabase
+            for (let idx = 0; idx < newSites.length; idx++) {
+              const siteData = newSites[idx];
+              setSiteImportMessage(`Importing ${idx + 1} of ${newSites.length}: ${siteData.name}...`);
+              try {
+                // Find business unit by name
+                const bu = businessUnits.find(u => u.name.toLowerCase() === siteData.buName.toLowerCase());
+                if (!bu) {
+                  console.warn(`Business unit not found: ${siteData.buName}`);
+                  continue;
+                }
+
+                await createSite({
+                  name: siteData.name,
+                  location: siteData.location,
+                  business_unit_id: bu.id,
+                  kiosk_subdomain: siteData.subdomain || null
+                });
+                newCount++;
+              } catch (err) {
+                console.error(`Failed to import ${siteData.name}:`, err);
+                setSiteImportStatus('error');
+                setSiteImportMessage(`Error importing ${siteData.name}: ${err.message}`);
+                setTimeout(() => setSiteImportStatus('idle'), 4000);
+                return;
+              }
+            }
+
+            // Reload sites from database
+            setSiteImportMessage('Refreshing data...');
+            const freshSites = await listSites();
+            setSites(freshSites);
+            
+            let message = `✓ Successfully imported ${newCount} site(s)!`;
+            if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
+            
+            setSiteImportStatus('success');
+            setSiteImportMessage(message);
+            setTimeout(() => setSiteImportStatus('idle'), 3000);
+          } catch (error) {
+            console.error('Import error:', error);
+            setSiteImportStatus('error');
+            setSiteImportMessage('Failed to parse file: ' + error.message);
+            setTimeout(() => setSiteImportStatus('idle'), 4000);
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      fileInput.click();
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -5418,6 +5583,31 @@ const PermitManagementApp = () => {
         </View>
         
         <ScrollView ref={sitesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+          {/* Import Status Message - SITES */}
+          {siteImportStatus !== 'idle' && (
+            <View style={{
+              backgroundColor: siteImportStatus === 'importing' ? '#DBEAFE' : siteImportStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
+              borderBottomWidth: 1,
+              borderBottomColor: siteImportStatus === 'importing' ? '#93C5FD' : siteImportStatus === 'success' ? '#86EFAC' : '#FECACA',
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 6
+            }}>
+              <Text style={{
+                color: siteImportStatus === 'importing' ? '#1E40AF' : siteImportStatus === 'success' ? '#166534' : '#991B1B',
+                fontSize: 13,
+                fontWeight: '500',
+                textAlign: 'center'
+              }}>
+                {siteImportStatus === 'importing' && '⏳ ' }
+                {siteImportStatus === 'success' && '✓ ' }
+                {siteImportStatus === 'error' && '✕ ' }
+                {siteImportMessage}
+              </Text>
+            </View>
+          )}
+          
           {/* Form Section */}
           <View style={styles.section}>
             <View style={styles.sectionContent}>
@@ -5482,8 +5672,33 @@ const PermitManagementApp = () => {
 
           {/* Sites List Section */}
           <View style={{ marginTop: 24 }}>
-            <Text style={[styles.label, { fontSize: 16, fontWeight: 'bold', marginBottom: 12 }]}>Sites Database</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Sites Database</Text>
+              </View>
+              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportSitesCSV}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {sites.length} sites</Text>
+            
+            {/* Filter section */}
+            {sites.length > 0 && (
+              <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Name or Location:</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={siteSearchText}
+                  onChangeText={setSiteSearchText}
+                  placeholder="Search sites..."
+                />
+                {siteSearchText.length > 0 && (
+                  <TouchableOpacity onPress={() => setSiteSearchText('')} style={{ marginTop: 8 }}>
+                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '500' }}>Clear filter</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
             
             {sites.length === 0 ? (
               <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
@@ -5502,7 +5717,14 @@ const PermitManagementApp = () => {
                   </View>
 
                   {/* Table Rows */}
-                  {sites.map((site, index) => {
+                  {sites
+                    .filter(site => {
+                      if (!siteSearchText) return true;
+                      const searchLower = siteSearchText.toLowerCase();
+                      return site.name.toLowerCase().includes(searchLower) || 
+                             site.location.toLowerCase().includes(searchLower);
+                    })
+                    .map((site, index) => {
                     const buName = businessUnits.find(u => u.id === site.businessUnitId)?.name || 'Unknown';
                     return (
                       <View 
@@ -5635,6 +5857,8 @@ const PermitManagementApp = () => {
           site_ids: siteIds,
           company_id: companyId,
           business_unit_ids: currentContractor.businessUnitIds,
+          company_manually_entered: currentContractor.companyManuallyEntered,
+          created_at_business_unit_ids: editingContractor ? undefined : currentContractor.businessUnitIds,
           induction_expiry: isoDate
         };
         console.log('📤 Contractor payload:', contractorPayload);
@@ -5654,7 +5878,7 @@ const PermitManagementApp = () => {
           setContractors(freshContractors);
           window.alert('Contractor Added: New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' });
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -5992,7 +6216,7 @@ const PermitManagementApp = () => {
                   style={styles.input} 
                   value={currentContractor.company} 
                   onChangeText={text => {
-                    setCurrentContractor({ ...currentContractor, company: text });
+                    setCurrentContractor({ ...currentContractor, company: text, companyManuallyEntered: true });
                     // Filter companies based on input
                     if (text.trim().length > 0) {
                       const filtered = companies.filter(c => 
@@ -6046,7 +6270,7 @@ const PermitManagementApp = () => {
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setCurrentContractor({ ...currentContractor, company: company.name });
+                            setCurrentContractor({ ...currentContractor, company: company.name, companyManuallyEntered: false });
                             setShowCompanyDropdown(false);
                             setFilteredCompanies([]);
                           }}
@@ -6202,7 +6426,7 @@ const PermitManagementApp = () => {
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
