@@ -139,14 +139,22 @@ const KioskScreen = () => {
     }
     
     try {
-      await checkInContractor(selectedContractor.id, siteId, businessUnitId);
-      Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
-      setCurrentScreen('welcome');
-      setSelectedContractor(null);
-      setContractorSearch('');
-      loadSignedInPeople();
+      const result = await checkInContractor(selectedContractor.id, siteId, businessUnitId);
+      
+      if (result.success) {
+        Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
+        // Clear all contractor form state
+        setSelectedContractor(null);
+        setContractorSearch('');
+        setFilteredContractors([]);
+        setCurrentScreen('welcome');
+        loadSignedInPeople();
+      } else {
+        Alert.alert('Error', result.error || 'Check-in failed');
+      }
     } catch (error) {
       Alert.alert('Error', error.message);
+      console.error('Check-in error:', error);
     }
   };
 
@@ -157,16 +165,23 @@ const KioskScreen = () => {
     }
     
     try {
-      await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId);
-      Alert.alert('Success', `${visitorName} signed in successfully`);
-      setCurrentScreen('welcome');
-      setVisitorName('');
-      setVisitorCompany('');
-      setVisitorPhone('');
-      setVisitingPerson('');
-      loadSignedInPeople();
+      const result = await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId);
+      
+      if (result.success) {
+        Alert.alert('Success', `${visitorName} signed in successfully`);
+        // Clear all visitor form state
+        setVisitorName('');
+        setVisitorCompany('');
+        setVisitorPhone('');
+        setVisitingPerson('');
+        setCurrentScreen('welcome');
+        loadSignedInPeople();
+      } else {
+        Alert.alert('Error', result.error || 'Check-in failed');
+      }
     } catch (error) {
       Alert.alert('Error', error.message);
+      console.error('Visitor check-in error:', error);
     }
   };
 
@@ -318,8 +333,18 @@ const KioskScreen = () => {
 
           {selectedContractor && (
             <View style={styles.selectedBox}>
-              <Text style={styles.selectedLabel}>Selected:</Text>
+              <Text style={styles.selectedLabel}>Ready to Check In:</Text>
               <Text style={styles.selectedName}>{selectedContractor.name}</Text>
+              <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
+              <Text style={styles.selectedDateTime}>
+                Date & Time: {new Date().toLocaleString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Text>
               <TouchableOpacity 
                 style={styles.submitButton}
                 onPress={handleCheckInContractor}
@@ -635,6 +660,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
+    marginBottom: 16,
+  },
+  selectedCompany: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  selectedDateTime: {
+    fontSize: 14,
+    color: '#6B7280',
     marginBottom: 16,
   },
   submitButton: {
