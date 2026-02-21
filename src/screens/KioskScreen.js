@@ -257,7 +257,15 @@ const KioskScreen = () => {
             <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
           </TouchableOpacity>
 
-          {/* Inductions and Permits coming soon */}
+          <TouchableOpacity 
+            style={styles.largeButton}
+            onPress={() => {
+              // Navigate to main permits app on root domain
+              window.location.href = 'https://contractorhq.co.nz/';
+            }}
+          >
+            <Text style={styles.largeButtonText}>📋 Permits & Dashboard</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );
