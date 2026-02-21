@@ -4838,7 +4838,7 @@ const PermitManagementApp = () => {
                 <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#374151' }}>Grant admin access to manage permit issuers & contractors</Text>
               </View>
 
-              <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
+              <TouchableOpacity style={styles.addButton} onPress={handleAddPermitIssuer}>
                 <Text style={styles.addButtonText}>{editingPermitIssuer ? 'Update Permit Issuer' : 'Add Permit Issuer'}</Text>
               </TouchableOpacity>
               {editingPermitIssuer && (
