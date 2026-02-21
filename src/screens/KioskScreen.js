@@ -14,8 +14,6 @@ import {
 } from 'react-native';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
-import { listInductionModules, completeInduction, startInduction, getInductionStatus } from '../api/inductions';
-import { listPermits } from '../api/permits';
 import { listSites } from '../api/sites';
 
 const KioskScreen = () => {
@@ -42,13 +40,6 @@ const KioskScreen = () => {
   // For signout list
   const [signedInPeople, setSignedInPeople] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
-  
-  // For inductions
-  const [inductionModules, setInductionModules] = useState([]);
-  const [selectedModule, setSelectedModule] = useState(null);
-  
-  // For permits
-  const [permits, setPermits] = useState([]);
 
   // Initialize - detect site from subdomain
   useEffect(() => {
@@ -84,13 +75,6 @@ const KioskScreen = () => {
           // Load site-specific data
           const contractorsData = await listContractorsBySite(matchingSite.id);
           setContractors(contractorsData);
-          
-          const modulesData = await listInductionModules(matchingSite.id);
-          setInductionModules(modulesData);
-          
-          const permitsData = await listPermits();
-          const sitePermits = permitsData.filter(p => p.site_id === matchingSite.id);
-          setPermits(sitePermits);
           
           // Load current signins
           loadSignedInPeople();
@@ -268,19 +252,7 @@ const KioskScreen = () => {
             <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => setCurrentScreen('inductions')}
-          >
-            <Text style={styles.largeButtonText}>📚 Inductions</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => setCurrentScreen('permits')}
-          >
-            <Text style={styles.largeButtonText}>📋 Permits</Text>
-          </TouchableOpacity>
+          {/* Inductions and Permits coming soon */}
         </ScrollView>
       </View>
     );
@@ -459,69 +431,7 @@ const KioskScreen = () => {
     );
   }
 
-  // Inductions Screen
-  if (currentScreen === 'inductions') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Induction Modules</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          {inductionModules.length > 0 ? (
-            inductionModules.map((module) => (
-              <TouchableOpacity 
-                key={module.id}
-                style={styles.moduleCard}
-                onPress={() => {
-                  setSelectedModule(module);
-                  Alert.alert(module.title, module.content, [
-                    { text: 'Close', onPress: () => setSelectedModule(null) }
-                  ]);
-                }}
-              >
-                <Text style={styles.moduleTitle}>{module.title}</Text>
-                <Text style={styles.moduleDescription}>{module.content}</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noResults}>No induction modules available</Text>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  // Permits Screen
-  if (currentScreen === 'permits') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Site Permits</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          {permits.length > 0 ? (
-            permits.map((permit) => (
-              <View key={permit.id} style={styles.permitCard}>
-                <Text style={styles.permitTitle}>{permit.description}</Text>
-                <Text style={styles.permitStatus}>Status: {permit.status}</Text>
-                <Text style={styles.permitDetails}>Location: {permit.location}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noResults}>No permits available</Text>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
+  // TODO: Inductions and Permits screens coming in Phase 2
 
   return null;
 };
@@ -690,47 +600,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  moduleCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#8B5CF6',
-  },
-  moduleTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  moduleDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  permitCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  permitTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  permitStatus: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  permitDetails: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
+  // TODO: Module and permit styles for Phase 2
   loadingText: {
     fontSize: 18,
     textAlign: 'center',
