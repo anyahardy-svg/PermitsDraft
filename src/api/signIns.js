@@ -188,6 +188,7 @@ export async function getSignedInPeople(siteId) {
         contractor_company,
         visitor_name,
         visitor_company,
+        visitor_phone,
         check_in_time,
         inducted,
         induction_status
