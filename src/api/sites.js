@@ -32,7 +32,26 @@ export const listSites = async () => {
     throw error;
   }
 };
+// Get sites for specific business unit(s)
+export const getSitesByBusinessUnits = async (businessUnitIds) => {
+  try {
+    if (!businessUnitIds || businessUnitIds.length === 0) {
+      return [];
+    }
+    
+    const { data, error } = await supabase
+      .from('sites')
+      .select('*')
+      .in('business_unit_id', businessUnitIds)
+      .order('name', { ascending: true });
 
+    if (error) throw error;
+    return (data || []).map(transformSite);
+  } catch (error) {
+    console.error('Error fetching sites by business unit:', error.message);
+    return [];
+  }
+};
 // Get a single site by ID
 export const getSite = async (siteId) => {
   try {

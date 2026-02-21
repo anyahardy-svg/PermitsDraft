@@ -13,9 +13,8 @@ const transformPermitIssuer = (dbUser) => {
     role: dbUser.role || 'user',
     isAdmin: dbUser.is_admin || false,
     is_admin: dbUser.is_admin || false,
-    company: dbUser.company || '',
-    businessUnitId: dbUser.business_unit_id || null,
-    business_unit_id: dbUser.business_unit_id || null,
+    businessUnitIds: dbUser.business_unit_ids || [],
+    business_unit_ids: dbUser.business_unit_ids || [],
     permittedServiceIds: dbUser.permitted_service_ids || [],
     permitted_service_ids: dbUser.permitted_service_ids || [],
     createdAt: dbUser.created_at,
@@ -33,9 +32,8 @@ export const createPermitIssuer = async (userData) => {
       .insert([{
         name: userData.name,
         email: userData.email,
-        company: userData.company || '',
         site_ids: userData.siteIds || [],
-        business_unit_id: userData.businessUnitId || null,
+        business_unit_ids: userData.businessUnitIds || [],
         permitted_service_ids: userData.permittedServiceIds || [],
         role: userData.role || 'user',
         is_admin: userData.isAdmin || false
@@ -188,11 +186,10 @@ export const updatePermitIssuer = async (permitIssuerId, updates) => {
     const updateData = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.company !== undefined) updateData.company = updates.company;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.is_admin = updates.isAdmin;
     if (updates.siteIds !== undefined) updateData.site_ids = updates.siteIds;
-    if (updates.businessUnitId !== undefined) updateData.business_unit_id = updates.businessUnitId;
+    if (updates.businessUnitIds !== undefined) updateData.business_unit_ids = updates.businessUnitIds;
     if (updates.permittedServiceIds !== undefined) updateData.permitted_service_ids = updates.permittedServiceIds;
 
     const { data, error } = await supabase

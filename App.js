@@ -22,7 +22,7 @@ import { createIsolationRegister, listIsolationRegisters, updateIsolationRegiste
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
-import { listSites, getSiteByName } from './src/api/sites';
+import { listSites, getSiteByName, getSitesByBusinessUnits } from './src/api/sites';
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits } from './src/api/business_units';
 import KioskScreen from './src/screens/KioskScreen';
@@ -1391,9 +1391,10 @@ const PermitManagementApp = () => {
   const [editPermitData, setEditPermitData] = useState(null);
   const [selectedPermitIssuer, setSelectedPermitIssuer] = useState(null);
   const [editingPermitIssuer, setEditingPermitIssuer] = useState(false);
-  const [currentPermitIssuer, setCurrentPermitIssuer] = useState({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false, businessUnitId: '', permittedServiceIds: [] });
+  const [currentPermitIssuer, setCurrentPermitIssuer] = useState({ id: '', name: '', email: '', sites: [], businessUnitIds: [], isAdmin: false, permittedServiceIds: [] });
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [servicesForBusinessUnit, setServicesForBusinessUnit] = useState([]);
+  const [servicesForBusinessUnits, setServicesForBusinessUnits] = useState([]);
+  const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
@@ -4530,8 +4531,8 @@ const PermitManagementApp = () => {
   // Manage Permit Issuers Screen
   const renderManagePermitIssuers = () => {
     const handleAddPermitIssuer = async () => {
-      if (!currentPermitIssuer.name || !currentPermitIssuer.email || !currentPermitIssuer.company) {
-        Alert.alert('Missing Info', 'Please fill in Name, Email, and Company.');
+      if (!currentPermitIssuer.name || !currentPermitIssuer.email || currentPermitIssuer.businessUnitIds.length === 0) {
+        Alert.alert('Missing Info', 'Please fill in Name, Email, and select at least one Business Unit.');
         return;
       }
       try {
@@ -4557,10 +4558,9 @@ const PermitManagementApp = () => {
           await updatePermitIssuer(currentPermitIssuer.id, {
             name: currentPermitIssuer.name,
             email: currentPermitIssuer.email,
-            company: currentPermitIssuer.company,
             siteIds: siteIds,
             isAdmin: currentPermitIssuer.isAdmin,
-            businessUnitId: currentPermitIssuer.businessUnitId,
+            businessUnitIds: currentPermitIssuer.businessUnitIds,
             permittedServiceIds: currentPermitIssuer.permittedServiceIds
           });
           const freshUsers = await listPermitIssuers();
@@ -4571,17 +4571,16 @@ const PermitManagementApp = () => {
           await createPermitIssuer({
             name: currentPermitIssuer.name,
             email: currentPermitIssuer.email,
-            company: currentPermitIssuer.company,
             siteIds: siteIds,
             isAdmin: currentPermitIssuer.isAdmin,
-            businessUnitId: currentPermitIssuer.businessUnitId,
+            businessUnitIds: currentPermitIssuer.businessUnitIds,
             permittedServiceIds: currentPermitIssuer.permittedServiceIds
           });
           const freshUsers = await listPermitIssuers();
           setPermitIssuers(freshUsers);
           Alert.alert('Permit Issuer Added', 'New permit issuer has been added successfully');
         }
-        setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false, businessUnitId: '', permittedServiceIds: [] });
+        setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], businessUnitIds: [], isAdmin: false, permittedServiceIds: [] });
         setSelectedPermitIssuer(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save user: ' + error.message);
@@ -4795,14 +4794,11 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Email Address *</Text>
               <TextInput style={styles.input} value={currentPermitIssuer.email} onChangeText={text => setCurrentPermitIssuer({ ...currentPermitIssuer, email: text })} placeholder="email@company.com" keyboardType="email-address" />
               
-              <Text style={styles.label}>Company Name *</Text>
-              <TextInput style={styles.input} value={currentPermitIssuer.company} onChangeText={text => setCurrentPermitIssuer({ ...currentPermitIssuer, company: text })} placeholder="Enter company name" />
-              
-              <Text style={styles.label}>Business Unit</Text>
-              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select a business unit to manage permitted services:</Text>
+              <Text style={styles.label}>Business Units *</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select one or more business units (tap to toggle):</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
                 {businessUnits.map(unit => {
-                  const isSelected = currentPermitIssuer.businessUnitId === unit.id;
+                  const isSelected = currentPermitIssuer.businessUnitIds.includes(unit.id);
                   return (
                     <TouchableOpacity
                       key={unit.id}
@@ -4813,10 +4809,31 @@ const PermitManagementApp = () => {
                           : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                       ]}
                       onPress={async () => {
-                        setCurrentPermitIssuer({ ...currentPermitIssuer, businessUnitId: unit.id, permittedServiceIds: [] });
-                        // Load services for this business unit
-                        const services = await listServicesByBusinessUnit(unit.id);
-                        setServicesForBusinessUnit(services);
+                        let updatedBusinessUnitIds;
+                        if (isSelected) {
+                          updatedBusinessUnitIds = currentPermitIssuer.businessUnitIds.filter(id => id !== unit.id);
+                        } else {
+                          updatedBusinessUnitIds = [...currentPermitIssuer.businessUnitIds, unit.id];
+                        }
+                        setCurrentPermitIssuer({ 
+                          ...currentPermitIssuer, 
+                          businessUnitIds: updatedBusinessUnitIds
+                        });
+                        
+                        // Load services and sites for selected business units
+                        if (updatedBusinessUnitIds.length > 0) {
+                          let allServices = [];
+                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
+                          for (const unitId of updatedBusinessUnitIds) {
+                            const services = await listServicesByBusinessUnit(unitId);
+                            allServices = [...allServices, ...services];
+                          }
+                          setServicesForBusinessUnits(allServices);
+                          setSitesForBusinessUnits(sitesList);
+                        } else {
+                          setServicesForBusinessUnits([]);
+                          setSitesForBusinessUnits([]);
+                        }
                       }}
                     >
                       <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
@@ -4825,12 +4842,12 @@ const PermitManagementApp = () => {
                 })}
               </View>
               
-              {currentPermitIssuer.businessUnitId && servicesForBusinessUnit.length > 0 && (
+              {currentPermitIssuer.businessUnitIds.length > 0 && servicesForBusinessUnits.length > 0 && (
                 <>
                   <Text style={styles.label}>Permitted Services</Text>
                   <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select services this issuer can manage:</Text>
                   <View style={{ marginBottom: 12 }}>
-                    {servicesForBusinessUnit.map(service => {
+                    {servicesForBusinessUnits.map(service => {
                       const isSelected = currentPermitIssuer.permittedServiceIds.includes(service.id);
                       return (
                         <TouchableOpacity
@@ -4886,36 +4903,47 @@ const PermitManagementApp = () => {
               )}
               
               <Text style={styles.label}>Available Sites</Text>
-              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites this issuer can access:</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                {ALL_SITES.map(site => {
-                  // Check if site is selected by name OR by ID mapping
-                  const isSelected = currentPermitIssuer.sites.includes(site) || 
-                    (currentPermitIssuer.site_ids && currentPermitIssuer.site_ids.some(id => siteIdToNameMap[id] === site));
-                  
-                  return (
-                    <TouchableOpacity
-                      key={site}
-                      style={[
-                        { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
-                        isSelected
-                          ? { backgroundColor: '#2563EB', borderColor: '#2563EB' }
-                          : { borderColor: '#D1D5DB', backgroundColor: 'white' }
-                      ]}
-                      onPress={() => {
-                        // Always work with site names in the sites array
-                        if (currentPermitIssuer.sites.includes(site)) {
-                          setCurrentPermitIssuer({ ...currentPermitIssuer, sites: currentPermitIssuer.sites.filter(s => s !== site) });
-                        } else {
-                          setCurrentPermitIssuer({ ...currentPermitIssuer, sites: [...currentPermitIssuer.sites, site] });
-                        }
-                      }}
-                    >
-                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{site}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                {currentPermitIssuer.businessUnitIds.length > 0 
+                  ? 'Tap to toggle sites available in selected business units:' 
+                  : 'Select business units above to see available sites.'}
+              </Text>
+              {currentPermitIssuer.businessUnitIds.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>Please select at least one business unit to assign sites.</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                  {sitesForBusinessUnits.length > 0 ? sitesForBusinessUnits.map(siteObj => {
+                    const siteName = typeof siteObj === 'string' ? siteObj : siteObj.name;
+                    const isSelected = currentPermitIssuer.sites.includes(siteName) || 
+                      (currentPermitIssuer.site_ids && currentPermitIssuer.site_ids.some(id => siteIdToNameMap[id] === siteName));
+                    
+                    return (
+                      <TouchableOpacity
+                        key={siteName}
+                        style={[
+                          { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                          isSelected
+                            ? { backgroundColor: '#2563EB', borderColor: '#2563EB' }
+                            : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                        ]}
+                        onPress={() => {
+                          if (currentPermitIssuer.sites.includes(siteName)) {
+                            setCurrentPermitIssuer({ ...currentPermitIssuer, sites: currentPermitIssuer.sites.filter(s => s !== siteName) });
+                          } else {
+                            setCurrentPermitIssuer({ ...currentPermitIssuer, sites: [...currentPermitIssuer.sites, siteName] });
+                          }
+                        }}
+                      >
+                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
+                      </TouchableOpacity>
+                    );
+                  }) : (
+                    <Text style={{ color: '#6B7280', fontSize: 13 }}>No sites available for selected business units.</Text>
+                  )}
+                </View>
+              )}
 
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
                 <TouchableOpacity
@@ -4941,7 +4969,7 @@ const PermitManagementApp = () => {
                 <Text style={styles.addButtonText}>{editingPermitIssuer ? 'Update Permit Issuer' : 'Add Permit Issuer'}</Text>
               </TouchableOpacity>
               {editingPermitIssuer && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingPermitIssuer(false); setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], company: '', isAdmin: false, businessUnitId: '', permittedServiceIds: [] }); setSelectedPermitIssuer(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingPermitIssuer(false); setCurrentPermitIssuer({ id: '', name: '', email: '', sites: [], businessUnitIds: [], isAdmin: false, permittedServiceIds: [] }); setSelectedPermitIssuer(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -4998,10 +5026,14 @@ const PermitManagementApp = () => {
                       setSelectedPermitIssuer(user); 
                       setEditingPermitIssuer(true); 
                       setCurrentPermitIssuer(user);
-                      // Load services for the business unit if set
-                      if (user.businessUnitId) {
-                        const services = await listServicesByBusinessUnit(user.businessUnitId);
-                        setServicesForBusinessUnit(services);
+                      // Load services for the business units if set
+                      if (user.businessUnitIds && user.businessUnitIds.length > 0) {
+                        let allServices = [];
+                        for (const unitId of user.businessUnitIds) {
+                          const services = await listServicesByBusinessUnit(unitId);
+                          allServices = [...allServices, ...services];
+                        }
+                        setServicesForBusinessUnits(allServices);
                       }
                     }}>
                       <Text style={styles.addButtonText}>Edit</Text>
