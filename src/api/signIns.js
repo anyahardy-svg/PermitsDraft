@@ -33,10 +33,10 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
 
     const isInducted = !!induction && (!induction.expires_at || new Date(induction.expires_at) > new Date());
 
-    // Get contractor name and company
+    // Get contractor name, phone, and company
     const { data: contractor } = await supabase
       .from('contractors')
-      .select('name, company_id')
+      .select('name, phone, company_id')
       .eq('id', contractorId)
       .single();
 
@@ -50,6 +50,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
       .insert({
         contractor_id: contractorId,
         contractor_name: contractor?.name || 'Unknown',
+        contractor_phone: contractor?.phone || null,
         site_id: siteId,
         business_unit_id: businessUnitId,
         contractor_company: company?.name || 'Unknown',
@@ -187,6 +188,7 @@ export async function getSignedInPeople(siteId) {
         id,
         contractor_id,
         contractor_name,
+        contractor_phone,
         contractor_company,
         visitor_name,
         visitor_company,

@@ -410,7 +410,7 @@ const KioskScreen = () => {
               const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
               const name = person.contractor_name || person.visitor_name || 'Unknown';
               const company = person.contractor_company || person.visitor_company || 'N/A';
-              const phone = person.phone_number || 'N/A';
+              const phone = person.contractor_phone || person.phone_number || 'N/A';
               return (
                 <TouchableOpacity
                   key={person.id}
