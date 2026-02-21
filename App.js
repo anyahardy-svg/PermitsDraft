@@ -4847,57 +4847,77 @@ const PermitManagementApp = () => {
                   <Text style={styles.label}>Permitted Services</Text>
                   <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select services this issuer can manage:</Text>
                   <View style={{ marginBottom: 12 }}>
-                    {servicesForBusinessUnits.map(service => {
-                      const isSelected = currentPermitIssuer.permittedServiceIds.includes(service.id);
-                      return (
-                        <TouchableOpacity
-                          key={service.id}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            padding: 12,
-                            marginBottom: 8,
-                            backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
-                            borderRadius: 6,
-                            borderWidth: 1,
-                            borderColor: isSelected ? '#10B981' : '#E5E7EB'
-                          }}
-                          onPress={() => {
-                            if (isSelected) {
-                              setCurrentPermitIssuer({
-                                ...currentPermitIssuer,
-                                permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(id => id !== service.id)
-                              });
-                            } else {
-                              setCurrentPermitIssuer({
-                                ...currentPermitIssuer,
-                                permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, service.id]
-                              });
-                            }
-                          }}
-                        >
-                          <View
+                    {(() => {
+                      // Group services by name to deduplicate
+                      const servicesByName = {};
+                      servicesForBusinessUnits.forEach(service => {
+                        if (!servicesByName[service.name]) {
+                          servicesByName[service.name] = [];
+                        }
+                        servicesByName[service.name].push(service);
+                      });
+                      
+                      // Render each unique service name once
+                      return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
+                        const serviceIds = serviceGroup.map(s => s.id);
+                        const isSelected = serviceIds.some(id => currentPermitIssuer.permittedServiceIds.includes(id));
+                        
+                        return (
+                          <TouchableOpacity
+                            key={serviceName}
                             style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 4,
-                              borderWidth: 2,
-                              borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                              backgroundColor: isSelected ? '#10B981' : 'white',
-                              justifyContent: 'center',
+                              flexDirection: 'row',
                               alignItems: 'center',
-                              marginRight: 12
+                              padding: 12,
+                              marginBottom: 8,
+                              backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
+                              borderRadius: 6,
+                              borderWidth: 1,
+                              borderColor: isSelected ? '#10B981' : '#E5E7EB'
+                            }}
+                            onPress={() => {
+                              if (isSelected) {
+                                // Remove ALL service UUIDs with this name
+                                setCurrentPermitIssuer({
+                                  ...currentPermitIssuer,
+                                  permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(
+                                    id => !serviceIds.includes(id)
+                                  )
+                                });
+                              } else {
+                                // Add ALL service UUIDs with this name
+                                setCurrentPermitIssuer({
+                                  ...currentPermitIssuer,
+                                  permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, ...serviceIds]
+                                });
+                              }
                             }}
                           >
-                            {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{service.name}</Text>
-                            {service.description && <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{service.description}</Text>}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 4,
+                                borderWidth: 2,
+                                borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                                backgroundColor: isSelected ? '#10B981' : 'white',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginRight: 12
+                              }}
+                            >
+                              {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{serviceName}</Text>
+                              {serviceGroup.length > 1 && (
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>({serviceGroup.length} business units)</Text>
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      });
+                    })()}
                   </View>
                 </>
               )}
