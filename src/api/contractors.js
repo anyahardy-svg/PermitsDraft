@@ -18,6 +18,8 @@ const transformContractor = (dbContractor) => {
     company_id: dbContractor.company_id,
     companyName: getCompanyName(),
     company_name: getCompanyName(),
+    businessUnitIds: dbContractor.business_unit_ids || [],
+    business_unit_ids: dbContractor.business_unit_ids || [],
     inductionExpiry: dbContractor.induction_expiry,
     induction_expiry: dbContractor.induction_expiry,
     services: dbContractor.services || [],

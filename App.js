@@ -1397,7 +1397,9 @@ const PermitManagementApp = () => {
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' });
+  const [servicesForContractors, setServicesForContractors] = useState([]);
+  const [sitesForContractors, setSitesForContractors] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
@@ -5353,8 +5355,8 @@ const PermitManagementApp = () => {
   const renderManageContractors = () => {
     const handleAddContractor = async () => {
       console.log('🔴 [HANDLER] Add/Save button pressed. Editing:', editingContractor);
-      if (!currentContractor.name || !currentContractor.email || !currentContractor.company) {
-        window.alert('Missing Info: Please fill in Name, Email, and Company.');
+      if (!currentContractor.name || !currentContractor.email || !currentContractor.company || currentContractor.businessUnitIds.length === 0) {
+        window.alert('Missing Info: Please fill in Name, Email, Company, and select at least one Business Unit.');
         return;
       }
       
@@ -5417,6 +5419,7 @@ const PermitManagementApp = () => {
           services: currentContractor.services,
           site_ids: siteIds,
           company_id: companyId,
+          business_unit_ids: currentContractor.businessUnitIds,
           induction_expiry: isoDate
         };
         console.log('📤 Contractor payload:', contractorPayload);
@@ -5436,7 +5439,7 @@ const PermitManagementApp = () => {
           setContractors(freshContractors);
           window.alert('Contractor Added: New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' });
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -5720,6 +5723,54 @@ const PermitManagementApp = () => {
               <Text style={styles.label}>Phone Number (Optional)</Text>
               <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor({ ...currentContractor, phone: text })} placeholder="027 123 4567" keyboardType="phone-pad" />
               
+              <Text style={styles.label}>Business Units *</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select one or more business units (tap to toggle):</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                {businessUnits.map(unit => {
+                  const isSelected = currentContractor.businessUnitIds.includes(unit.id);
+                  return (
+                    <TouchableOpacity
+                      key={unit.id}
+                      style={[
+                        { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                        isSelected
+                          ? { backgroundColor: '#059669', borderColor: '#059669' }
+                          : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                      ]}
+                      onPress={async () => {
+                        let updatedBusinessUnitIds;
+                        if (isSelected) {
+                          updatedBusinessUnitIds = currentContractor.businessUnitIds.filter(id => id !== unit.id);
+                        } else {
+                          updatedBusinessUnitIds = [...currentContractor.businessUnitIds, unit.id];
+                        }
+                        setCurrentContractor({ 
+                          ...currentContractor, 
+                          businessUnitIds: updatedBusinessUnitIds
+                        });
+                        
+                        // Load services and sites for selected business units
+                        if (updatedBusinessUnitIds.length > 0) {
+                          let allServices = [];
+                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
+                          for (const unitId of updatedBusinessUnitIds) {
+                            const services = await listServicesByBusinessUnit(unitId);
+                            allServices = [...allServices, ...services];
+                          }
+                          setServicesForContractors(allServices);
+                          setSitesForContractors(sitesList);
+                        } else {
+                          setServicesForContractors([]);
+                          setSitesForContractors([]);
+                        }
+                      }}
+                    >
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              
               <Text style={styles.label}>Company Name *</Text>
               <View style={{ position: 'relative', zIndex: 10 }}>
                 <TextInput 
@@ -5811,55 +5862,114 @@ const PermitManagementApp = () => {
               </View>
               
               <Text style={styles.label}>Services Offered</Text>
-              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle services:</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                {ALL_SERVICES.map(service => (
-                  <TouchableOpacity
-                    key={service}
-                    style={[
-                      { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
-                      currentContractor.services.includes(service)
-                        ? { backgroundColor: '#F59E42', borderColor: '#F59E42' }
-                        : { borderColor: '#D1D5DB', backgroundColor: 'white' }
-                    ]}
-                    onPress={() => {
-                      if (currentContractor.services.includes(service)) {
-                        setCurrentContractor({ ...currentContractor, services: currentContractor.services.filter(s => s !== service) });
-                      } else {
-                        setCurrentContractor({ ...currentContractor, services: [...currentContractor.services, service] });
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                {currentContractor.businessUnitIds.length > 0 
+                  ? 'Select services offered (from selected business units):' 
+                  : 'Select business units above to see available services.'}
+              </Text>
+              {currentContractor.businessUnitIds.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>Please select at least one business unit to assign services.</Text>
+                </View>
+              ) : servicesForContractors.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>No services available for selected business units.</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                  {(() => {
+                    // Group services by name to deduplicate
+                    const servicesByName = {};
+                    servicesForContractors.forEach(service => {
+                      if (!servicesByName[service.name]) {
+                        servicesByName[service.name] = [];
                       }
-                    }}
-                  >
-                    <Text style={{ color: currentContractor.services.includes(service) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{service}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                      servicesByName[service.name].push(service);
+                    });
+                    
+                    // Render each unique service name once
+                    return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
+                      const serviceIds = serviceGroup.map(s => s.id);
+                      const isSelected = serviceIds.some(id => currentContractor.services.includes(id));
+                      
+                      return (
+                        <TouchableOpacity
+                          key={serviceName}
+                          style={[
+                            { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                            isSelected
+                              ? { backgroundColor: '#F59E42', borderColor: '#F59E42' }
+                              : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                          ]}
+                          onPress={() => {
+                            if (isSelected) {
+                              // Remove ALL service UUIDs with this name
+                              setCurrentContractor({
+                                ...currentContractor,
+                                services: currentContractor.services.filter(
+                                  id => !serviceIds.includes(id)
+                                )
+                              });
+                            } else {
+                              // Add ALL service UUIDs with this name
+                              setCurrentContractor({
+                                ...currentContractor,
+                                services: [...currentContractor.services, ...serviceIds]
+                              });
+                            }
+                          }}
+                        >
+                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{serviceName}</Text>
+                        </TouchableOpacity>
+                      );
+                    });
+                  })()}
+                </View>
+              )}
 
               <Text style={styles.label}>Available Sites</Text>
-              <Text style={{ color: '#6B7280', marginBottom: 8 }}>Tap to toggle sites:</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                {ALL_SITES.map(siteName => (
-                  <TouchableOpacity
-                    key={siteName}
-                    style={[
-                      { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
-                      (currentContractor.siteIds || []).includes(siteName)
-                        ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                        : { borderColor: '#D1D5DB', backgroundColor: 'white' }
-                    ]}
-                    onPress={() => {
-                      const siteIds = currentContractor.siteIds || [];
-                      if (siteIds.includes(siteName)) {
-                        setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
-                      } else {
-                        setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
-                      }
-                    }}
-                  >
-                    <Text style={{ color: (currentContractor.siteIds || []).includes(siteName) ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                {currentContractor.businessUnitIds.length > 0 
+                  ? 'Tap to toggle sites available in selected business units:' 
+                  : 'Select business units above to see available sites.'}
+              </Text>
+              {currentContractor.businessUnitIds.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>Please select at least one business unit to assign sites.</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                  {sitesForContractors.length > 0 ? sitesForContractors.map(siteObj => {
+                    const siteName = typeof siteObj === 'string' ? siteObj : siteObj.name;
+                    const isSelected = currentContractor.siteIds.includes(siteName) || 
+                      (currentContractor.site_ids && currentContractor.site_ids.some(id => siteIdToNameMap[id] === siteName));
+                    
+                    return (
+                      <TouchableOpacity
+                        key={siteName}
+                        style={[
+                          { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                          isSelected
+                            ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
+                            : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                        ]}
+                        onPress={() => {
+                          const siteIds = currentContractor.siteIds || [];
+                          if (siteIds.includes(siteName)) {
+                            setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
+                          } else {
+                            setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
+                          }
+                        }}
+                      >
+                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
+                      </TouchableOpacity>
+                    );
+                  }) : (
+                    <Text style={{ color: '#6B7280', fontSize: 13 }}>No sites available for selected business units.</Text>
+                  )}
+                </View>
+              )}
 
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TextInput 
@@ -5877,7 +5987,7 @@ const PermitManagementApp = () => {
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '' }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
