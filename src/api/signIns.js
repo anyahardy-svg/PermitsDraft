@@ -87,15 +87,17 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
  * @param {string} company
  * @param {UUID} siteId
  * @param {UUID} businessUnitId
+ * @param {string} phone - Phone number
  * @returns {Object} Sign-in record
  */
-export async function checkInVisitor(visitorName, company, siteId, businessUnitId) {
+export async function checkInVisitor(visitorName, company, siteId, businessUnitId, phone) {
   try {
     const { data, error } = await supabase
       .from('sign_ins')
       .insert({
         visitor_name: visitorName,
         visitor_company: company,
+        visitor_phone: phone,
         site_id: siteId,
         business_unit_id: businessUnitId,
         check_in_time: new Date().toISOString(),

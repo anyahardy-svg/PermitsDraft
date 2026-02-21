@@ -404,27 +404,36 @@ const KioskScreen = () => {
 
         <ScrollView contentContainerStyle={styles.formContent}>
           <Text style={styles.label}>Select Person to Sign Out:</Text>
-          
           {signedInPeople.length > 0 ? (
-            signedInPeople.map((person) => (
-              <TouchableOpacity 
-                key={person.id}
-                style={[
-                  styles.personItem,
-                  selectedPerson?.id === person.id && styles.personItemSelected
-                ]}
-                onPress={() => setSelectedPerson(person)}
-              >
-                <Text style={styles.personName}>{person.name || person.visitor_name}</Text>
-                <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
-              </TouchableOpacity>
-            ))
+            signedInPeople.map((person) => {
+              // Determine type, company, and phone
+              const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
+              const name = person.name || person.visitor_name || 'Unknown';
+              const company = person.company || person.company_name || person.visitor_company || 'N/A';
+              const phone = person.phone || person.visitor_phone || 'N/A';
+              return (
+                <TouchableOpacity
+                  key={person.id}
+                  style={[
+                    styles.personItem,
+                    selectedPerson?.id === person.id && styles.personItemSelected
+                  ]}
+                  onPress={() => setSelectedPerson(person)}
+                >
+                  <Text style={styles.personName}>{name}</Text>
+                  <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
+                  <Text style={styles.personDetails}>Type: {type}</Text>
+                  <Text style={styles.personDetails}>Company: {company}</Text>
+                  <Text style={styles.personDetails}>Phone: {phone}</Text>
+                </TouchableOpacity>
+              );
+            })
           ) : (
             <Text style={styles.noResults}>No one currently signed in</Text>
           )}
 
           {selectedPerson && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.submitButton}
               onPress={handleSignOut}
             >
@@ -557,6 +566,11 @@ const styles = StyleSheet.create({
   personTime: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  personDetails: {
+    fontSize: 13,
+    color: '#4B5563',
+    marginBottom: 2,
   },
   selectedBox: {
     backgroundColor: '#DBEAFE',
