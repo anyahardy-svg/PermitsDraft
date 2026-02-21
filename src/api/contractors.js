@@ -144,3 +144,20 @@ export const listContractorsWithExpiredInductions = async () => {
     throw error;
   }
 };
+
+// Get contractors for a specific site
+export const listContractorsBySite = async (siteId) => {
+  try {
+    const { data, error } = await supabase
+      .from('contractors')
+      .select('*, companies(name)')
+      .contains('site_ids', [siteId])
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map(transformContractor);
+  } catch (error) {
+    console.error('Error fetching contractors for site:', error.message);
+    throw error;
+  }
+};

@@ -13,7 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { listContractors } from '../api/contractors';
+import { listContractorsBySite } from '../api/contractors';
 import { listInductionModules, completeInduction, startInduction, getInductionStatus } from '../api/inductions';
 import { listPermits } from '../api/permits';
 import { listSites } from '../api/sites';
@@ -80,7 +80,7 @@ const KioskScreen = () => {
           console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
           
           // Load site-specific data
-          const contractorsData = await listContractors();
+          const contractorsData = await listContractorsBySite(matchingSite.id);
           setContractors(contractorsData);
           
           const modulesData = await listInductionModules(matchingSite.id);
