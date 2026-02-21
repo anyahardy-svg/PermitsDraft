@@ -4707,13 +4707,13 @@ const PermitManagementApp = () => {
             // Save all permit issuers to Supabase
             for (let idx = 0; idx < newUsers.length; idx++) {
               const user = newUsers[idx];
-              setImportMessage(`Importing ${idx + 1} of ${newUsers.length}: ${issuer.name}...`);
+              setImportMessage(`Importing ${idx + 1} of ${newUsers.length}: ${user.name}...`);
               try {
                 await createPermitIssuer(user);
               } catch (err) {
-                console.error(`Failed to import ${issuer.name}:`, err);
+                console.error(`Failed to import ${user.name}:`, err);
                 setImportStatus('error');
-                setImportMessage(`Error importing ${issuer.name}: ${err.message}`);
+                setImportMessage(`Error importing ${user.name}: ${err.message}`);
                 setTimeout(() => setImportStatus('idle'), 4000);
                 return;
               }
@@ -4722,7 +4722,7 @@ const PermitManagementApp = () => {
             // Reload permit issuers from database
             setImportMessage('Refreshing data...');
             const freshUsers = await listPermitIssuers();
-            setUsers(freshUsers);
+            setPermitIssuers(freshUsers);
             
             setImportStatus('success');
             setImportMessage(`✓ Successfully imported ${newUsers.length} user(s)!`);
@@ -4875,24 +4875,24 @@ const PermitManagementApp = () => {
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No permit issuers yet. Add one using the form above.</Text>
             ) : (
               permitIssuers.map((user, index) => (
-                <View key={issuer.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
+                <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={styles.permitId}>{index + 1}. {issuer.name}</Text>
-                    {issuer.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                    <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
+                    {user.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
                       <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>ADMIN</Text>
                     </View>}
                   </View>
-                  <Text style={styles.detailText}>{issuer.email}</Text>
-                  <Text style={styles.detailText}>{issuer.company}</Text>
-                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {issuer.sites && issuer.sites.length > 0 ? issuer.sites.join(', ') : (user.site_ids && issuer.site_ids.length > 0 ? `${issuer.site_ids.length} sites (UUID format)` : 'None')}</Text>
-                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {issuer.id}</Text>
+                  <Text style={styles.detailText}>{user.email}</Text>
+                  <Text style={styles.detailText}>{user.company}</Text>
+                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
+                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {user.id}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={() => { 
                       console.log('📋 Editing user:', {
-                        id: issuer.id,
-                        name: issuer.name,
-                        sites: issuer.sites,
-                        site_ids: issuer.site_ids,
+                        id: user.id,
+                        name: user.name,
+                        sites: user.sites,
+                        site_ids: user.site_ids,
                         siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
                       });
                       setSelectedPermitIssuer(user); 
