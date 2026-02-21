@@ -10546,6 +10546,7 @@ const pickerStyles = StyleSheet.create({
 const AppRouter = () => {
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
 
   React.useEffect(() => {
     try {
@@ -10571,7 +10572,6 @@ const AppRouter = () => {
       }
     } catch (error) {
       console.log('Environment detection (not critical):', error);
-      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -10585,13 +10585,42 @@ const AppRouter = () => {
     );
   }
 
-  // Render Kiosk Screen if kiosk subdomain detected
-  if (isKiosk) {
-    return <KioskScreen />;
-  }
+  // Development mode toggle
+  const toggleMode = () => {
+    setIsKiosk(!isKiosk);
+    console.log(`🔄 Switched to ${!isKiosk ? 'KIOSK' : 'PERMIT'} mode`);
+  };
 
-  // Render Permit Management Dashboard for main domain
-  return <PermitManagementApp />;
+  // Render Kiosk Screen if kiosk subdomain detected
+  const mainContent = isKiosk ? <KioskScreen /> : <PermitManagementApp />;
+
+  // Add dev toggle button in development
+  return (
+    <>
+      {mainContent}
+      {showModeToggle && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            right: 20,
+            backgroundColor: isKiosk ? '#10B981' : '#3B82F6',
+            padding: 12,
+            borderRadius: 50,
+            elevation: 5,
+            zIndex: 9999,
+            width: 60,
+            height: 60,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={toggleMode}
+        >
+          <Text style={{ fontSize: 24 }}>{isKiosk ? '📊' : '🔑'}</Text>
+        </TouchableOpacity>
+      )}
+    </>
+  );
 };
 
 export default AppRouter;
