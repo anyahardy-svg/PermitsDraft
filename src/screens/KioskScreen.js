@@ -96,10 +96,15 @@ const KioskScreen = () => {
   const loadSignedInPeople = async () => {
     try {
       if (!siteId) return;
-      const people = await getSignedInPeople(siteId);
-      setSignedInPeople(people);
+      const result = await getSignedInPeople(siteId);
+      if (result.success && result.data) {
+        setSignedInPeople(result.data);
+      } else {
+        setSignedInPeople([]);
+      }
     } catch (error) {
       console.error('Error loading signed in people:', error);
+      setSignedInPeople([]);
     }
   };
 
