@@ -5815,16 +5815,32 @@ const PermitManagementApp = () => {
       }
       
       try {
-        console.log('🔍 Looking up company:', currentContractor.company);
-        // Look up company by name
-        const company = await getCompanyByName(currentContractor.company);
-        console.log('✅ Company lookup result:', company);
-        const companyId = company?.id;
+        console.log('🍎 Looking up company:', currentContractor.company, ', manuallyEntered:', currentContractor.companyManuallyEntered);
         
-        if (!companyId) {
-          console.warn('❌ Company not found for:', currentContractor.company);
-          window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
-          return;
+        let companyId;
+        if (currentContractor.companyManuallyEntered) {
+          // Company was manually entered - upsert with tracking flags
+          console.log('📝 Manually entered company - upserting with tracking');
+          const company = await upsertCompany({
+            name: currentContractor.company,
+            manuallyCreated: true,
+            createdByContractorId: currentContractor.id || null
+          });
+          if (!company) {
+            window.alert('Error: Could not create company.');
+            return;
+          }
+          companyId = company.id;
+        } else {
+          // Company was selected from dropdown - just get it
+          console.log('✅ Company from dropdown - looking up');
+          const company = await getCompanyByName(currentContractor.company);
+          console.log('✅ Company lookup result:', company);
+          if (!company) {
+            window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
+            return;
+          }
+          companyId = company.id;
         }
 
         // Convert site names to site IDs
@@ -5857,8 +5873,6 @@ const PermitManagementApp = () => {
           site_ids: siteIds,
           company_id: companyId,
           business_unit_ids: currentContractor.businessUnitIds,
-          company_manually_entered: currentContractor.companyManuallyEntered,
-          created_at_business_unit_ids: editingContractor ? undefined : currentContractor.businessUnitIds,
           induction_expiry: isoDate
         };
         console.log('📤 Contractor payload:', contractorPayload);

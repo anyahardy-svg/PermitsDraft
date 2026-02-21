@@ -9,6 +9,10 @@ const transformCompany = (dbCompany) => {
     phone: dbCompany.phone,
     address: dbCompany.address,
     website: dbCompany.website,
+    manuallyCreated: dbCompany.manually_created || false,
+    manually_created: dbCompany.manually_created || false,
+    createdBy_contractor_id: dbCompany.created_by_contractor_id || null,
+    created_by_contractor_id: dbCompany.created_by_contractor_id || null,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
   };
@@ -17,9 +21,20 @@ const transformCompany = (dbCompany) => {
 // Create a new company
 export const createCompany = async (companyData) => {
   try {
+    // Prepare the data with snake_case field names for database
+    const dbData = {
+      name: companyData.name,
+      email: companyData.email || null,
+      phone: companyData.phone || null,
+      address: companyData.address || null,
+      website: companyData.website || null,
+      manually_created: companyData.manually_created || companyData.manuallyCreated || false,
+      created_by_contractor_id: companyData.created_by_contractor_id || companyData.createdByContractorId || null,
+    };
+
     const { data, error } = await supabase
       .from('companies')
-      .insert([companyData])
+      .insert([dbData])
       .select();
 
     if (error) throw error;
@@ -129,9 +144,17 @@ export const upsertCompany = async (companyData) => {
       return existing;
     }
 
-    // Company doesn't exist, create it
+    // Company doesn't exist, create it with tracking fields
     console.log('✨ Creating new company:', companyData.name);
-    const created = await createCompany(companyData);
+    const created = await createCompany({
+      name: companyData.name,
+      email: companyData.email || null,
+      phone: companyData.phone || null,
+      address: companyData.address || null,
+      website: companyData.website || null,
+      manuallyCreated: companyData.manuallyCreated || companyData.manually_created || false,
+      createdByContractorId: companyData.createdByContractorId || companyData.created_by_contractor_id || null,
+    });
     return created;
   } catch (error) {
     console.error('Error upserting company:', error.message);
