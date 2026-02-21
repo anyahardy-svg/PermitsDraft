@@ -14,6 +14,10 @@ const transformPermitIssuer = (dbUser) => {
     isAdmin: dbUser.is_admin || false,
     is_admin: dbUser.is_admin || false,
     company: dbUser.company || '',
+    businessUnitId: dbUser.business_unit_id || null,
+    business_unit_id: dbUser.business_unit_id || null,
+    permittedServiceIds: dbUser.permitted_service_ids || [],
+    permitted_service_ids: dbUser.permitted_service_ids || [],
     createdAt: dbUser.created_at,
     created_at: dbUser.created_at,
     updatedAt: dbUser.updated_at,
@@ -31,6 +35,8 @@ export const createPermitIssuer = async (userData) => {
         email: userData.email,
         company: userData.company || '',
         site_ids: userData.siteIds || [],
+        business_unit_id: userData.businessUnitId || null,
+        permitted_service_ids: userData.permittedServiceIds || [],
         role: userData.role || 'user',
         is_admin: userData.isAdmin || false
       }])
@@ -186,6 +192,8 @@ export const updatePermitIssuer = async (permitIssuerId, updates) => {
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.is_admin = updates.isAdmin;
     if (updates.siteIds !== undefined) updateData.site_ids = updates.siteIds;
+    if (updates.businessUnitId !== undefined) updateData.business_unit_id = updates.businessUnitId;
+    if (updates.permittedServiceIds !== undefined) updateData.permitted_service_ids = updates.permittedServiceIds;
 
     const { data, error } = await supabase
       .from('permit_issuers')
