@@ -10552,13 +10552,17 @@ const AppRouter = () => {
       // Detect if we're running in browser environment
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
-        const searchParams = new URLSearchParams(window.location.search);
+        const fullUrl = window.location.href;
         
         console.log('🌐 Hostname detected:', hostname);
+        console.log('🔗 Full URL:', fullUrl);
         
         // Check if subdomain contains "-kiosk" OR if test mode is enabled
         const isKioskSubdomain = hostname.includes('-kiosk.');
-        const testMode = searchParams.get('mode') === 'kiosk';
+        
+        // Check for ?mode=kiosk parameter in URL
+        const testMode = fullUrl.includes('mode=kiosk');
+        
         const isKioskMode = isKioskSubdomain || testMode;
         
         console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}`);
@@ -10567,6 +10571,7 @@ const AppRouter = () => {
       }
     } catch (error) {
       console.log('Environment detection (not critical):', error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
