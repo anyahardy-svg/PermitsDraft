@@ -97,7 +97,7 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
       .insert({
         visitor_name: visitorName,
         visitor_company: company,
-        visitor_phone: phone,
+        phone_number: phone,
         site_id: siteId,
         business_unit_id: businessUnitId,
         check_in_time: new Date().toISOString(),
@@ -188,7 +188,7 @@ export async function getSignedInPeople(siteId) {
         contractor_company,
         visitor_name,
         visitor_company,
-        visitor_phone,
+        phone_number,
         check_in_time,
         inducted,
         induction_status

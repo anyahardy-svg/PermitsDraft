@@ -154,7 +154,7 @@ const KioskScreen = () => {
     }
     
     try {
-      const result = await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId);
+      const result = await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId, visitorPhone);
       
       if (result.success) {
         Alert.alert('Success', `${visitorName} signed in successfully`);
@@ -410,7 +410,7 @@ const KioskScreen = () => {
               const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
               const name = person.name || person.visitor_name || 'Unknown';
               const company = person.company || person.company_name || person.visitor_company || 'N/A';
-              const phone = person.phone || person.visitor_phone || 'N/A';
+              const phone = person.phone_number || 'N/A';
               return (
                 <TouchableOpacity
                   key={person.id}
