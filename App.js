@@ -10552,11 +10552,16 @@ const AppRouter = () => {
       // Detect if we're running in browser environment
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
+        const searchParams = new URLSearchParams(window.location.search);
+        
         console.log('🌐 Hostname detected:', hostname);
         
-        // Check if subdomain contains "-kiosk"
-        const isKioskMode = hostname.includes('-kiosk.');
-        console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} detected`);
+        // Check if subdomain contains "-kiosk" OR if test mode is enabled
+        const isKioskSubdomain = hostname.includes('-kiosk.');
+        const testMode = searchParams.get('mode') === 'kiosk';
+        const isKioskMode = isKioskSubdomain || testMode;
+        
+        console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}`);
         
         setIsKiosk(isKioskMode);
       }
