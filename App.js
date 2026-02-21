@@ -22,6 +22,7 @@ import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyB
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName } from './src/api/sites';
+import KioskScreen from './src/screens/KioskScreen';
 
 // List of all available sites
 const ALL_SITES = [
@@ -10541,4 +10542,46 @@ const pickerStyles = StyleSheet.create({
   },
 });
 
-export default PermitManagementApp;
+// App Router - Detects subdomain and routes to appropriate screen
+const AppRouter = () => {
+  const [isKiosk, setIsKiosk] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    try {
+      // Detect if we're running in browser environment
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        console.log('🌐 Hostname detected:', hostname);
+        
+        // Check if subdomain contains "-kiosk"
+        const isKioskMode = hostname.includes('-kiosk.');
+        console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} detected`);
+        
+        setIsKiosk(isKioskMode);
+      }
+    } catch (error) {
+      console.log('Environment detection (not critical):', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+        <Text style={{ fontSize: 16, color: '#6B7280' }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // Render Kiosk Screen if kiosk subdomain detected
+  if (isKiosk) {
+    return <KioskScreen />;
+  }
+
+  // Render Permit Management Dashboard for main domain
+  return <PermitManagementApp />;
+};
+
+export default AppRouter;
