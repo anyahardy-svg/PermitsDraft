@@ -9,9 +9,11 @@ const transformCompany = (dbCompany) => {
     phone: dbCompany.phone,
     address: dbCompany.address,
     website: dbCompany.website,
+    businessUnitIds: dbCompany.business_unit_ids || [],
+    business_unit_ids: dbCompany.business_unit_ids || [],
     manuallyCreated: dbCompany.manually_created || false,
     manually_created: dbCompany.manually_created || false,
-    createdBy_contractor_id: dbCompany.created_by_contractor_id || null,
+    createdByContractorId: dbCompany.created_by_contractor_id || null,
     created_by_contractor_id: dbCompany.created_by_contractor_id || null,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
@@ -28,6 +30,7 @@ export const createCompany = async (companyData) => {
       phone: companyData.phone || null,
       address: companyData.address || null,
       website: companyData.website || null,
+      business_unit_ids: companyData.businessUnitIds || companyData.business_unit_ids || [],
       manually_created: companyData.manually_created || companyData.manuallyCreated || false,
       created_by_contractor_id: companyData.created_by_contractor_id || companyData.createdByContractorId || null,
     };
@@ -141,6 +144,18 @@ export const upsertCompany = async (companyData) => {
     const existing = await getCompanyByName(companyData.name);
     if (existing) {
       console.log('📦 Company already exists:', existing.name);
+      // If new business units are provided and not already in the company, add them
+      if (companyData.businessUnitIds && companyData.businessUnitIds.length > 0) {
+        const currentBUs = existing.business_unit_ids || [];
+        const newBUs = companyData.businessUnitIds;
+        const mergedBUs = [...new Set([...currentBUs, ...newBUs])];
+        
+        if (mergedBUs.length > currentBUs.length) {
+          console.log('🔗 Adding business units to existing company');
+          const updated = await updateCompany(existing.id, { business_unit_ids: mergedBUs });
+          return updated;
+        }
+      }
       return existing;
     }
 
@@ -152,6 +167,7 @@ export const upsertCompany = async (companyData) => {
       phone: companyData.phone || null,
       address: companyData.address || null,
       website: companyData.website || null,
+      businessUnitIds: companyData.businessUnitIds || companyData.business_unit_ids || [],
       manuallyCreated: companyData.manuallyCreated || companyData.manually_created || false,
       createdByContractorId: companyData.createdByContractorId || companyData.created_by_contractor_id || null,
     });

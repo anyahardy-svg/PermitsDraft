@@ -1418,6 +1418,8 @@ const PermitManagementApp = () => {
   const [siteImportStatus, setSiteImportStatus] = useState('idle');
   const [siteImportMessage, setSiteImportMessage] = useState('');
   const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
+  const [companySearchText, setCompanySearchText] = useState('');
+  const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
   const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
   const [permitIssuerCompanyFilter, setPermitIssuerCompanyFilter] = useState('All');
   
@@ -5296,6 +5298,27 @@ const PermitManagementApp = () => {
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV/Excel</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Company Filters */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB' }]}
+                placeholder="Search companies..."
+                value={companySearchText}
+                onChangeText={setCompanySearchText}
+              />
+              <select 
+                style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white' }} 
+                value={companyFilterBusinessUnit}
+                onChange={(e) => setCompanyFilterBusinessUnit(e.target.value)}
+              >
+                <option value="All">All Business Units</option>
+                {businessUnits.map(bu => (
+                  <option key={bu.id} value={bu.id}>{bu.name}</option>
+                ))}
+              </select>
+            </View>
+
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {companies.length} companies</Text>
             
             {companies.length === 0 ? (
@@ -5303,54 +5326,80 @@ const PermitManagementApp = () => {
                 <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No companies added yet</Text>
               </View>
             ) : (
-              <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
-                <View>
-                  {/* Table Header */}
-                  <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-                    <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
-                    <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company ID</Text>
-                    <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
-                  </View>
+              (() => {
+                const filteredCompanies = companies.filter(company => {
+                  const matchesSearch = companySearchText === '' || 
+                    company.name.toLowerCase().includes(companySearchText.toLowerCase());
+                  
+                  const matchesBUFilter = companyFilterBusinessUnit === 'All' || 
+                    (company.business_unit_ids || []).includes(companyFilterBusinessUnit);
+                  
+                  return matchesSearch && matchesBUFilter;
+                });
 
-                  {/* Table Rows */}
-                  {companies.map((company, index) => (
-                    <View 
-                      key={company.id}
-                      style={{ 
-                        flexDirection: 'row', 
-                        backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
-                        borderBottomWidth: 1,
-                        borderBottomColor: '#E5E7EB',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Text style={{ width: 300, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
-                        {company.name}
-                      </Text>
-                      <Text style={{ width: 250, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
-                        {company.id}
-                      </Text>
-                      <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
-                        <TouchableOpacity 
-                          style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                          onPress={() => {
-                            setCurrentCompany(company);
-                            setEditingCompany(true);
-                          }}
-                        >
-                          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
-                          onPress={() => handleDeleteCompany(company.id)}
-                        >
-                          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Del</Text>
-                        </TouchableOpacity>
+                if (filteredCompanies.length === 0) {
+                  return <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
+                    <Text style={{ color: '#9CA3AF' }}>No companies match your search/filter.</Text>
+                  </View>;
+                }
+
+                return (
+                  <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                    <View>
+                      {/* Table Header */}
+                      <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
+                        <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+                        <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
+                        <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                       </View>
+
+                      {/* Table Rows */}
+                      {filteredCompanies.map((company, index) => {
+                        const companyBUs = businessUnits.filter(bu => 
+                          (company.business_unit_ids || []).includes(bu.id)
+                        ).map(bu => bu.name).join(', ') || 'No BUs assigned';
+                        
+                        return (
+                          <View 
+                            key={company.id}
+                            style={{ 
+                              flexDirection: 'row', 
+                              backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#E5E7EB',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ width: 250, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
+                              {company.name}
+                            </Text>
+                            <Text style={{ width: 300, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              {companyBUs}
+                            </Text>
+                            <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
+                              <TouchableOpacity 
+                                style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
+                                onPress={() => {
+                                  setCurrentCompany(company);
+                                  setEditingCompany(true);
+                                }}
+                              >
+                                <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Edit</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity 
+                                style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
+                                onPress={() => handleDeleteCompany(company.id)}
+                              >
+                                <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Del</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
-                  ))}
-                </View>
-              </ScrollView>
+                  </ScrollView>
+                );
+              })()
             )}
           </View>
         </ScrollView>
@@ -5685,16 +5734,28 @@ const PermitManagementApp = () => {
             {/* Filter section */}
             {sites.length > 0 && (
               <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Name or Location:</Text>
-                <TextInput 
-                  style={styles.input}
-                  value={siteSearchText}
-                  onChangeText={setSiteSearchText}
-                  placeholder="Search sites..."
-                />
-                {siteSearchText.length > 0 && (
-                  <TouchableOpacity onPress={() => setSiteSearchText('')} style={{ marginTop: 8 }}>
-                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '500' }}>Clear filter</Text>
+                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filters:</Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TextInput 
+                    style={[styles.input, { flex: 1 }]}
+                    value={siteSearchText}
+                    onChangeText={setSiteSearchText}
+                    placeholder="Search sites by name or location..."
+                  />
+                  <select 
+                    style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white' }} 
+                    value={siteFilterBusinessUnit}
+                    onChange={(e) => setSiteFilterBusinessUnit(e.target.value)}
+                  >
+                    <option value="">All Business Units</option>
+                    {businessUnits.map(bu => (
+                      <option key={bu.id} value={bu.id}>{bu.name}</option>
+                    ))}
+                  </select>
+                </View>
+                {(siteSearchText.length > 0 || siteFilterBusinessUnit) && (
+                  <TouchableOpacity onPress={() => { setSiteSearchText(''); setSiteFilterBusinessUnit(''); }} style={{ marginTop: 8 }}>
+                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '500' }}>Clear filters</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -5719,10 +5780,14 @@ const PermitManagementApp = () => {
                   {/* Table Rows */}
                   {sites
                     .filter(site => {
-                      if (!siteSearchText) return true;
-                      const searchLower = siteSearchText.toLowerCase();
-                      return site.name.toLowerCase().includes(searchLower) || 
-                             site.location.toLowerCase().includes(searchLower);
+                      const matchesSearch = !siteSearchText || (
+                        site.name.toLowerCase().includes(siteSearchText.toLowerCase()) || 
+                        site.location.toLowerCase().includes(siteSearchText.toLowerCase())
+                      );
+                      
+                      const matchesBUFilter = !siteFilterBusinessUnit || site.businessUnitId === siteFilterBusinessUnit;
+                      
+                      return matchesSearch && matchesBUFilter;
                     })
                     .map((site, index) => {
                     const buName = businessUnits.find(u => u.id === site.businessUnitId)?.name || 'Unknown';
