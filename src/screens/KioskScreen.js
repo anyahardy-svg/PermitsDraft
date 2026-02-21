@@ -23,6 +23,7 @@ const KioskScreen = () => {
   const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-signin, contractor-signin, signout, inductions, permits
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
+  const [businessUnitId, setBusinessUnitId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [testMode, setTestMode] = useState(false); // For development/testing
   
@@ -77,6 +78,7 @@ const KioskScreen = () => {
         if (matchingSite) {
           setSite(matchingSite);
           setSiteId(matchingSite.id);
+          setBusinessUnitId(matchingSite.business_unit_id);
           console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
           
           // Load site-specific data
@@ -137,7 +139,7 @@ const KioskScreen = () => {
     }
     
     try {
-      await checkInContractor(selectedContractor.id, siteId);
+      await checkInContractor(selectedContractor.id, siteId, businessUnitId);
       Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
       setCurrentScreen('welcome');
       setSelectedContractor(null);
@@ -155,7 +157,7 @@ const KioskScreen = () => {
     }
     
     try {
-      await checkInVisitor(visitorName, visitorCompany, visitorPhone, visitingPerson, siteId);
+      await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId);
       Alert.alert('Success', `${visitorName} signed in successfully`);
       setCurrentScreen('welcome');
       setVisitorName('');
