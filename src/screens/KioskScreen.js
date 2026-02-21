@@ -24,6 +24,7 @@ const KioskScreen = () => {
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [testMode, setTestMode] = useState(false); // For development/testing
   
   // For contractor search
   const [contractorSearch, setContractorSearch] = useState('');
@@ -58,19 +59,25 @@ const KioskScreen = () => {
         const hostname = window.location.hostname;
         console.log('🏢 Kiosk hostname:', hostname);
         
-        // Extract subdomain for site matching
-        // Pattern: [prefix]-[site-name]-kiosk.contractorhq.co.nz
+        // Load sites
+        const sitesData = await listSites();
+        
+        // Try to match by kiosk_subdomain
         const parts = hostname.split('.');
         const subdomain = parts[0]; // e.g., "wa-amisfield-quarry-kiosk"
+        let matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
         
-        // Load sites and find matching one
-        const sitesData = await listSites();
-        const matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
+        // Fallback for development/testing: use first site if on localhost or Vercel
+        if (!matchingSite && (hostname.includes('localhost') || hostname.includes('vercel.app'))) {
+          console.warn('⚠️ No matching site for subdomain, using first site for testing');
+          matchingSite = sitesData[0];
+          setTestMode(true);
+        }
         
         if (matchingSite) {
           setSite(matchingSite);
           setSiteId(matchingSite.id);
-          console.log('✅ Kiosk site detected:', matchingSite.name);
+          console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
           
           // Load site-specific data
           const contractorsData = await listContractors();
@@ -86,8 +93,8 @@ const KioskScreen = () => {
           // Load current signins
           loadSignedInPeople();
         } else {
-          Alert.alert('Error', 'Could not detect site from subdomain. Please contact support.');
-          console.error('❌ No site matched for subdomain:', subdomain);
+          Alert.alert('Error', 'Could not detect site. Please use a kiosk subdomain or try from localhost.');
+          console.error('❌ No site found for subdomain:', subdomain);
         }
       } catch (error) {
         console.error('Error initializing kiosk:', error);
@@ -201,6 +208,11 @@ const KioskScreen = () => {
         <View style={styles.header}>
           <Text style={styles.siteName}>{site.name}</Text>
           <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
+          {testMode && (
+            <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
+              <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+            </View>
+          )}
         </View>
 
         <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
