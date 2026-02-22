@@ -174,7 +174,30 @@ export const listContractorsBySite = async (siteId) => {
     }
     
     console.log('✅ Contractors for site:', data?.length || 0);
-    return (data || []).map(transformContractor);
+    
+    // Fetch company names for contractors that have a company_id
+    const contractorsWithCompanies = await Promise.all(
+      (data || []).map(async (contractor) => {
+        if (contractor.company_id) {
+          try {
+            const { data: company, error: companyError } = await supabase
+              .from('companies')
+              .select('name')
+              .eq('id', contractor.company_id)
+              .single();
+            
+            if (company && !companyError) {
+              contractor.company_name = company.name;
+            }
+          } catch (err) {
+            console.warn(`Could not fetch company for contractor ${contractor.id}:`, err.message);
+          }
+        }
+        return contractor;
+      })
+    );
+    
+    return contractorsWithCompanies.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;
