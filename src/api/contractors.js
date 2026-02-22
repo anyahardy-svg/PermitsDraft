@@ -36,7 +36,7 @@ export const createContractor = async (contractorData) => {
     const { data, error } = await supabase
       .from('contractors')
       .insert([contractorData])
-      .select('*, companies(name)');
+      .select();
 
     if (error) throw error;
     return data[0] ? transformContractor(data[0]) : null;
@@ -51,7 +51,7 @@ export const listContractors = async () => {
   try {
     const { data, error } = await supabase
       .from('contractors')
-      .select('*, companies(name)')
+      .select()
       .order('name', { ascending: true });
 
     if (error) {
@@ -78,7 +78,7 @@ export const getContractor = async (contractorId) => {
   try {
     const { data, error } = await supabase
       .from('contractors')
-      .select('*, companies(name)')
+      .select()
       .eq('id', contractorId)
       .single();
 
@@ -97,7 +97,7 @@ export const updateContractor = async (contractorId, updates) => {
       .from('contractors')
       .update(updates)
       .eq('id', contractorId)
-      .select('*, companies(name)');
+      .select();
 
     if (error) throw error;
     return data[0] ? transformContractor(data[0]) : null;
