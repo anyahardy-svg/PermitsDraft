@@ -1340,7 +1340,10 @@ const PermitManagementApp = () => {
         
         // Load contractors LAST (after mappings are ready)
         const contractorsData = await listContractors();
+        console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
+        console.log('📊 Contractor data:', contractorsData);
         setContractors(contractorsData);
+        console.log('🎯 Contractors state should now be:', contractorsData);
         
         // Load isolation registers
         const isolationData = await listIsolationRegisters();

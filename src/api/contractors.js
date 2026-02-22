@@ -54,10 +54,21 @@ export const listContractors = async () => {
       .select('*, companies(name)')
       .order('name', { ascending: true });
 
-    if (error) throw error;
-    return (data || []).map(transformContractor);
+    if (error) {
+      console.error('❌ Supabase error loading contractors:', error.code, error.message);
+      throw error;
+    }
+    
+    console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
+    console.log('📋 First contractor sample:', data?.[0]);
+    
+    const transformed = (data || []).map(transformContractor);
+    console.log('✅ Transformed contractors:', transformed.length, transformed);
+    
+    return transformed;
   } catch (error) {
-    console.error('Error fetching contractors:', error.message);
+    console.error('❌ Error fetching contractors:', error.message);
+    console.error('💾 Full error object:', error);
     throw error;
   }
 };
