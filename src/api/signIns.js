@@ -64,13 +64,6 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
 
     if (error) throw error;
 
-    // Log audit trail
-    await logAudit('contractor_sign_in', {
-      contractor_id: contractorId,
-      site_id: siteId,
-      inducted: isInducted,
-    });
-
     return {
       success: true,
       data,
@@ -110,12 +103,6 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
 
     if (error) throw error;
 
-    await logAudit('visitor_sign_in', {
-      visitor_name: visitorName,
-      visitor_company: company,
-      site_id: siteId,
-    });
-
     return { success: true, data };
   } catch (error) {
     console.error('Visitor check-in error:', error);
@@ -152,14 +139,6 @@ export async function checkOut(signInId) {
     const checkInTime = new Date(data.check_in_time);
     const checkOutTime = new Date(data.check_out_time);
     const durationMinutes = Math.round((checkOutTime - checkInTime) / 60000);
-
-    // Log audit
-    const name = data.contractor_id ? `Contractor ${data.contractor_id}` : data.visitor_name;
-    await logAudit('sign_out', {
-      sign_in_id: signInId,
-      name,
-      duration_minutes: durationMinutes,
-    });
 
     return {
       success: true,
@@ -284,25 +263,6 @@ export async function getContractorHours(contractorId) {
   } catch (error) {
     console.error('Get contractor hours error:', error);
     return { success: false, error: error.message };
-  }
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Log audit trail
- */
-async function logAudit(action, details) {
-  try {
-    await supabase.from('audit_logs').insert({
-      action,
-      details,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('Audit log error:', error);
   }
 }
 
