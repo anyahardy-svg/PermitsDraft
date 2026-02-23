@@ -25,6 +25,7 @@ import { createContractor, listContractors, updateContractor, deleteContractor }
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits } from './src/api/business_units';
+import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import KioskScreen from './src/screens/KioskScreen';
 
 // List of all available sites
@@ -1411,6 +1412,8 @@ const PermitManagementApp = () => {
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
   const [siteSearchText, setSiteSearchText] = useState('');
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
+  const [visitorInductionContent, setVisitorInductionContent] = useState('');
+  const [editingVisitorInduction, setEditingVisitorInduction] = useState(null); // Site ID of the induction being edited
   const [isolationRegisters, setIsolationRegisters] = useState([]);
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
@@ -4546,6 +4549,10 @@ const PermitManagementApp = () => {
             <Text style={styles.cardNumber}>{isolationRegisters.length}</Text>
             <Text style={styles.cardLabel}>Isolation Register</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => setCurrentScreen('manage_visitor_inductions')}>
+            <Text style={styles.cardNumber}>{sites.length}</Text>
+            <Text style={styles.cardLabel}>Visitor Inductions</Text>
+          </TouchableOpacity>
         </View>
         </ScrollView>
       </View>
@@ -6669,6 +6676,165 @@ const PermitManagementApp = () => {
               })()
             )}
           </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Manage Visitor Inductions Screen
+  const renderManageVisitorInductions = () => {
+    const handleLoadInduction = async (siteId) => {
+      try {
+        const result = await getVisitorInduction(siteId);
+        if (result.success) {
+          setVisitorInductionContent(result.data.content);
+          setEditingVisitorInduction(siteId);
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load induction: ' + error.message);
+      }
+    };
+
+    const handleSaveInduction = async () => {
+      if (!editingVisitorInduction || !visitorInductionContent.trim()) {
+        Alert.alert('Error', 'Please select a site and enter induction content');
+        return;
+      }
+
+      try {
+        const result = await updateVisitorInduction(
+          editingVisitorInduction,
+          visitorInductionContent,
+          null // userId - could be enhanced with auth
+        );
+
+        if (result.success) {
+          Alert.alert('Success', 'Visitor induction has been updated');
+          setEditingVisitorInduction(null);
+          setVisitorInductionContent('');
+        } else {
+          Alert.alert('Error', result.error || 'Failed to update induction');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save induction: ' + error.message);
+      }
+    };
+
+    const handleCancel = () => {
+      setEditingVisitorInduction(null);
+      setVisitorInductionContent('');
+    };
+
+    if (editingVisitorInduction) {
+      const siteName = sites.find(s => s.id === editingVisitorInduction)?.name || 'Unknown Site';
+      
+      return (
+        <View style={styles.screenContainer}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleCancel}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Edit Visitor Induction - {siteName}</Text>
+          </View>
+          <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>Induction Content</Text>
+            <TextInput
+              style={{
+                backgroundColor: 'white',
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 14,
+                minHeight: 400,
+                textAlignVertical: 'top',
+                fontFamily: 'monospace'
+              }}
+              multiline
+              placeholder="Enter the visitor induction text that will be displayed at the kiosk..."
+              value={visitorInductionContent}
+              onChangeText={setVisitorInductionContent}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#10B981',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleSaveInduction}
+              >
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>✓ Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#EF4444',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleCancel}
+              >
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Visitor Inductions</Text>
+        </View>
+        <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+            Manage the induction content that visitors must read and accept before signing in at your sites.
+          </Text>
+
+          {sites.map(site => (
+            <TouchableOpacity
+              key={site.id}
+              style={{
+                backgroundColor: 'white',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 12,
+                borderLeftWidth: 4,
+                borderLeftColor: '#06B6D4'
+              }}
+              onPress={() => handleLoadInduction(site.id)}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                {site.name}
+              </Text>
+              <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
+                {site.location}
+              </Text>
+              <Text style={{
+                backgroundColor: '#DBEAFE',
+                color: '#0C63E4',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 4,
+                fontSize: 12,
+                fontWeight: '600',
+                alignSelf: 'flex-start'
+              }}>
+                Edit Content
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
     );
@@ -10692,6 +10858,8 @@ const PermitManagementApp = () => {
       return renderManageContractors();
     case 'manage_isolations':
       return renderManageIsolations();
+    case 'manage_visitor_inductions':
+      return renderManageVisitorInductions();
     case 'services_directory':
       return renderServicesDirectory();
     default:

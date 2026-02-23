@@ -15,6 +15,7 @@ import {
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
+import { getVisitorInduction } from '../api/visitorInductions';
 
 const KioskScreen = () => {
   // State
@@ -36,6 +37,8 @@ const KioskScreen = () => {
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
+  const [visitorInductionContent, setVisitorInductionContent] = useState('');
+  const [visitorInductionConfirmed, setVisitorInductionConfirmed] = useState(false);
   
   // For signout list
   const [signedInPeople, setSignedInPeople] = useState([]);
@@ -75,6 +78,12 @@ const KioskScreen = () => {
           // Load site-specific data
           const contractorsData = await listContractorsBySite(matchingSite.id);
           setContractors(contractorsData);
+          
+          // Load visitor induction content
+          const inductionResult = await getVisitorInduction(matchingSite.id);
+          if (inductionResult.success) {
+            setVisitorInductionContent(inductionResult.data.content);
+          }
           
           // Load current signins
           loadSignedInPeople();
@@ -236,7 +245,8 @@ const KioskScreen = () => {
           <TouchableOpacity 
             style={styles.largeButton}
             onPress={() => {
-              setCurrentScreen('visitor-signin');
+              setCurrentScreen('visitor-induction');
+              setVisitorInductionConfirmed(false);
               setVisitorName('');
               setVisitorCompany('');
               setVisitorPhone('');
@@ -338,6 +348,44 @@ const KioskScreen = () => {
               </TouchableOpacity>
             </View>
           )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // Visitor Induction Screen (before sign-in form)
+  if (currentScreen === 'visitor-induction') {
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Site Induction</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.formContent}>
+          <View style={styles.inductionBox}>
+            <Text style={styles.inductionText}>{visitorInductionContent}</Text>
+          </View>
+
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              style={[styles.checkbox, visitorInductionConfirmed && styles.checkboxChecked]}
+              onPress={() => setVisitorInductionConfirmed(!visitorInductionConfirmed)}
+            >
+              {visitorInductionConfirmed && <Text style={styles.checkboxTick}>✓</Text>}
+            </TouchableOpacity>
+            <Text style={styles.checkboxLabel}>I have read and agree to comply with the above</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.submitButton, !visitorInductionConfirmed && styles.submitButtonDisabled]}
+            disabled={!visitorInductionConfirmed}
+            onPress={() => setCurrentScreen('visitor-signin')}
+          >
+            <Text style={styles.submitButtonText}>Continue to Sign In</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -638,6 +686,52 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     textAlign: 'center',
     marginTop: 40,
+  },
+  inductionBox: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  inductionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#1F2937',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  checkboxTick: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#1F2937',
+    flex: 1,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
 });
 
