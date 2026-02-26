@@ -1414,6 +1414,7 @@ const PermitManagementApp = () => {
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [editingVisitorInduction, setEditingVisitorInduction] = useState(null); // Site ID of the induction being edited
+  const [visitorInductionFilterBusinessUnit, setVisitorInductionFilterBusinessUnit] = useState('');
   const [isolationRegisters, setIsolationRegisters] = useState([]);
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
@@ -6796,11 +6797,54 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>Visitor Inductions</Text>
         </View>
         <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
-          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
             Manage the induction content that visitors must read and accept before signing in at your sites.
           </Text>
 
-          {sites.map(site => (
+          {/* Business Unit Filter */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit:</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor: visitorInductionFilterBusinessUnit === '' ? '#2563EB' : '#E5E7EB',
+                  borderWidth: 1,
+                  borderColor: visitorInductionFilterBusinessUnit === '' ? '#2563EB' : '#D1D5DB'
+                }}
+                onPress={() => setVisitorInductionFilterBusinessUnit('')}
+              >
+                <Text style={{ color: visitorInductionFilterBusinessUnit === '' ? 'white' : '#1F2937', fontSize: 12, fontWeight: '500' }}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              {businessUnits.map(bu => (
+                <TouchableOpacity
+                  key={bu.id}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: visitorInductionFilterBusinessUnit === bu.id ? '#2563EB' : '#E5E7EB',
+                    borderWidth: 1,
+                    borderColor: visitorInductionFilterBusinessUnit === bu.id ? '#2563EB' : '#D1D5DB'
+                  }}
+                  onPress={() => setVisitorInductionFilterBusinessUnit(bu.id)}
+                >
+                  <Text style={{ color: visitorInductionFilterBusinessUnit === bu.id ? 'white' : '#1F2937', fontSize: 12, fontWeight: '500' }}>
+                    {bu.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Filtered Sites */}
+          {sites
+            .filter(site => visitorInductionFilterBusinessUnit === '' || site.business_unit_id === visitorInductionFilterBusinessUnit)
+            .map(site => (
             <TouchableOpacity
               key={site.id}
               style={{
