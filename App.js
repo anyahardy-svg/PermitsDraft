@@ -5200,7 +5200,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         if (editingCompany) {
           await updateCompany(currentCompany.id, { 
             name: currentCompany.name,
-            business_unit_ids: currentCompany.businessUnitIds || []
+            business_unit_ids: currentCompany.businessUnitIds || [],
+            contact_name: currentCompany.contactName || null,
+            contact_surname: currentCompany.contactSurname || null,
+            contact_email: currentCompany.contactEmail || null,
+            contact_phone: currentCompany.contactPhone || null,
+            public_liability_expiry: currentCompany.publicLiabilityExpiry || null,
+            motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry || null,
+            review_date: currentCompany.reviewDate || null,
+            accredited_date: currentCompany.accreditedDate || null,
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -5212,7 +5220,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           setCompanies(freshCompanies);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [] });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '' });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -5485,6 +5493,72 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   );
                 })}
               </View>
+
+              <Text style={styles.label}>Contact Name</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.contactName || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, contactName: text })} 
+                placeholder="Enter contact name" 
+              />
+
+              <Text style={styles.label}>Contact Surname</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.contactSurname || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, contactSurname: text })} 
+                placeholder="Enter contact surname" 
+              />
+
+              <Text style={styles.label}>Contact Email</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.contactEmail || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, contactEmail: text })} 
+                placeholder="Enter contact email" 
+                keyboardType="email-address"
+              />
+
+              <Text style={styles.label}>Contact Phone Number</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.contactPhone || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, contactPhone: text })} 
+                placeholder="Enter contact phone number" 
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.label}>Public Liability Expiry</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.publicLiabilityExpiry || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, publicLiabilityExpiry: text })} 
+                placeholder="DD/MM/YYYY" 
+              />
+
+              <Text style={styles.label}>Motor Vehicle Insurance Expiry</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.motorVehicleInsuranceExpiry || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, motorVehicleInsuranceExpiry: text })} 
+                placeholder="DD/MM/YYYY" 
+              />
+
+              <Text style={styles.label}>Review Date</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.reviewDate || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, reviewDate: text })} 
+                placeholder="DD/MM/YYYY" 
+              />
+
+              <Text style={styles.label}>Accredited Date</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentCompany.accreditedDate || ''} 
+                onChangeText={text => setCurrentCompany({ ...currentCompany, accreditedDate: text })} 
+                placeholder="DD/MM/YYYY" 
+              />
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
                 <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>

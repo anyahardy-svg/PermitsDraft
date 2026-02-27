@@ -8,6 +8,22 @@ const transformCompany = (dbCompany) => {
     email: dbCompany.email,
     businessUnitIds: dbCompany.business_unit_ids || [],
     business_unit_ids: dbCompany.business_unit_ids || [],
+    contactName: dbCompany.contact_name || '',
+    contact_name: dbCompany.contact_name || '',
+    contactSurname: dbCompany.contact_surname || '',
+    contact_surname: dbCompany.contact_surname || '',
+    contactEmail: dbCompany.contact_email || '',
+    contact_email: dbCompany.contact_email || '',
+    contactPhone: dbCompany.contact_phone || '',
+    contact_phone: dbCompany.contact_phone || '',
+    publicLiabilityExpiry: dbCompany.public_liability_expiry || '',
+    public_liability_expiry: dbCompany.public_liability_expiry || '',
+    motorVehicleInsuranceExpiry: dbCompany.motor_vehicle_insurance_expiry || '',
+    motor_vehicle_insurance_expiry: dbCompany.motor_vehicle_insurance_expiry || '',
+    reviewDate: dbCompany.review_date || '',
+    review_date: dbCompany.review_date || '',
+    accreditedDate: dbCompany.accredited_date || '',
+    accredited_date: dbCompany.accredited_date || '',
     manuallyCreated: dbCompany.manually_created || false,
     manually_created: dbCompany.manually_created || false,
     createdAt: dbCompany.created_at,
@@ -25,6 +41,14 @@ export const createCompany = async (companyData) => {
       name: companyData.name,
       email: companyData.email || null,
       manually_created: companyData.manually_created || companyData.manuallyCreated || false,
+      contact_name: companyData.contact_name || companyData.contactName || null,
+      contact_surname: companyData.contact_surname || companyData.contactSurname || null,
+      contact_email: companyData.contact_email || companyData.contactEmail || null,
+      contact_phone: companyData.contact_phone || companyData.contactPhone || null,
+      public_liability_expiry: companyData.public_liability_expiry || companyData.publicLiabilityExpiry || null,
+      motor_vehicle_insurance_expiry: companyData.motor_vehicle_insurance_expiry || companyData.motorVehicleInsuranceExpiry || null,
+      review_date: companyData.review_date || companyData.reviewDate || null,
+      accredited_date: companyData.accredited_date || companyData.accreditedDate || null,
     };
 
     const { data, error } = await supabase
@@ -77,10 +101,14 @@ export const getCompany = async (companyId) => {
 export const updateCompany = async (companyId, updates) => {
   try {
     // Only allow updating fields that exist in the companies table
-    const allowedFields = ['name', 'email', 'business_unit_ids'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
-      if (allowedFields.includes(key)) {
+      // Support both camelCase and snake_case
+      const snakeCaseKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      if (allowedFields.includes(snakeCaseKey)) {
+        validUpdates[snakeCaseKey] = updates[key];
+      } else if (allowedFields.includes(key)) {
         validUpdates[key] = updates[key];
       }
     });
