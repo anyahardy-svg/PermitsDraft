@@ -1280,6 +1280,7 @@ const PermitManagementApp = () => {
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
   const [dashboardSelectedBusinessUnit, setDashboardSelectedBusinessUnit] = useState(null);
   const [isKioskContext, setIsKioskContext] = useState(false);
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
@@ -1304,6 +1305,11 @@ const PermitManagementApp = () => {
         console.log('✅ Sites mapping loaded - Name to ID:', nameToIdMap);
         console.log('✅ Sites mapping loaded - ID to Name:', idToNameMap);
         
+        // Load business units first - needed for site selection screen
+        const businessUnitsData = await listBusinessUnits();
+        setBusinessUnits(businessUnitsData);
+        console.log('✅ Business units loaded:', businessUnitsData?.length || 0);
+        
         // Detect if accessing from kiosk subdomain
         const hostname = window.location.hostname;
         console.log('🌐 Hostname:', hostname);
@@ -1323,8 +1329,7 @@ const PermitManagementApp = () => {
             console.log('✅ Auto-selected site for kiosk:', matchingSite.name);
           }
         } else {
-          console.log('📱 Main domain access - will show site selection screen');
-          setCurrentScreen('select-site');
+          console.log('📱 Main domain access - will show site selection screen after data loads');
         }
         
         // Load permits
@@ -1361,10 +1366,6 @@ const PermitManagementApp = () => {
           // Keep the default mock data, don't overwrite with empty array
         }
         
-        // Load business units
-        const businessUnitsData = await listBusinessUnits();
-        setBusinessUnits(businessUnitsData);
-        
         // Load contractors LAST (after mappings are ready)
         const contractorsData = await listContractors();
         console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
@@ -1376,15 +1377,27 @@ const PermitManagementApp = () => {
         const isolationData = await listIsolationRegisters();
         console.log('Isolation registers fetched:', isolationData?.length || 0, isolationData);
         setIsolationRegisters(isolationData);
+        
+        // Mark initial data as loaded
+        setIsInitialDataLoaded(true);
       } catch (error) {
         console.error('Error loading data:', error);
         Alert.alert('Error', 'Failed to load data from database');
+        setIsInitialDataLoaded(true); // Set to true even on error to avoid blank screen
       } finally {
         setIsLoadingPermits(false);
       }
     };
     loadData();
   }, []);
+
+  // Switch to select-site screen for main domain after data is loaded
+  useEffect(() => {
+    if (isInitialDataLoaded && !isKioskContext && currentScreen === 'dashboard') {
+      console.log('📱 Switching to select-site screen for main domain');
+      setCurrentScreen('select-site');
+    }
+  }, [isInitialDataLoaded, isKioskContext]);
 
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
@@ -4492,6 +4505,20 @@ const PermitManagementApp = () => {
     const filteredSites = selectedBU 
       ? sites.filter(s => s.business_unit_id === selectedBU)
       : [];
+
+    // Safety check if data hasn't loaded yet
+    if (!businessUnits || businessUnits.length === 0) {
+      return (
+        <View style={styles.screenContainer}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Loading...</Text>
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#6B7280' }}>Loading business units...</Text>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.screenContainer}>
