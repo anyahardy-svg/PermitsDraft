@@ -4509,11 +4509,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          {onBackToKiosk && (
-            <TouchableOpacity onPress={onBackToKiosk} style={{ marginBottom: 8 }}>
-              <Text style={styles.backButton}>← Back to Kiosk</Text>
-            </TouchableOpacity>
-          )}
           <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
@@ -4547,6 +4542,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <Text style={styles.primaryButtonText}>Create New Permit</Text>
         </TouchableOpacity>
         </ScrollView>
+        
+        {/* Floating Back to Kiosk button */}
+        {onBackToKiosk && (
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              bottom: 30,
+              left: 20,
+              backgroundColor: '#3B82F6',
+              padding: 16,
+              borderRadius: 50,
+              elevation: 10,
+              zIndex: 1000,
+              width: 70,
+              height: 70,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+            }}
+            onPress={onBackToKiosk}
+          >
+            <Text style={{ fontSize: 24 }}>←</Text>
+            <Text style={{ fontSize: 8, color: 'white', marginTop: 2, fontWeight: '600' }}>Kiosk</Text>
+          </TouchableOpacity>
+        )}
         
         {/* Floating Admin button */}
         <TouchableOpacity
