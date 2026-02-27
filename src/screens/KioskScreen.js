@@ -527,7 +527,7 @@ const KioskScreen = () => {
     );
   }
 
-  // Permits Kiosk View Screen
+  // Permits Kiosk View Screen - Now shows Dashboard with permit statistics
   if (currentScreen === 'permits-kiosk') {
     if (permitsLoading) {
       return (
@@ -536,6 +536,16 @@ const KioskScreen = () => {
         </View>
       );
     }
+
+    // Calculate permit statistics
+    const permitStats = {
+      draft: permits.filter(p => p.status === 'draft').length,
+      pending_approval: permits.filter(p => p.status === 'pending_approval').length,
+      pending_inspection: permits.filter(p => p.status === 'pending_inspection').length,
+      active: permits.filter(p => p.status === 'active').length,
+      completed: permits.filter(p => p.status === 'completed').length,
+      total: permits.length,
+    };
 
     return (
       <View style={styles.container}>
@@ -547,10 +557,97 @@ const KioskScreen = () => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
+          {/* Dashboard Cards */}
+          <View style={{ 
+            flexDirection: 'row', 
+            flexWrap: 'wrap', 
+            gap: 12, 
+            marginBottom: 24,
+            justifyContent: 'space-between' 
+          }}>
+            <View style={{
+              flex: 1,
+              minWidth: 150,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#9CA3AF'
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
+                {permitStats.draft}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Drafts</Text>
+            </View>
+
+            <View style={{
+              flex: 1,
+              minWidth: 150,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#2563EB'
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
+                {permitStats.pending_approval}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Pending Approval</Text>
+            </View>
+
+            <View style={{
+              flex: 1,
+              minWidth: 150,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#F59E42'
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
+                {permitStats.pending_inspection}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Needs Inspection</Text>
+            </View>
+
+            <View style={{
+              flex: 1,
+              minWidth: 150,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#10B981'
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
+                {permitStats.active}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Active</Text>
+            </View>
+
+            <View style={{
+              flex: 1,
+              minWidth: 150,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#EC4899'
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
+                {permitStats.completed}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Completed</Text>
+            </View>
+          </View>
+
+          {/* Recent Permits List */}
           {permits.length > 0 ? (
             <>
-              <Text style={styles.label}>Active Permits ({permits.length}):</Text>
-              {permits.map((permit) => (
+              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 12, color: '#1F2937' }}>
+                Recent Permits:
+              </Text>
+              {permits.slice(0, 10).map((permit) => (
                 <View
                   key={permit.id}
                   style={{
@@ -561,19 +658,28 @@ const KioskScreen = () => {
                     padding: 12,
                     marginBottom: 12,
                     borderLeftWidth: 4,
-                    borderLeftColor: permit.status === 'active' ? '#10B981' : '#F59E42',
+                    borderLeftColor: 
+                      permit.status === 'active' ? '#10B981' : 
+                      permit.status === 'pending_approval' ? '#2563EB' :
+                      permit.status === 'pending_inspection' ? '#F59E42' :
+                      permit.status === 'completed' ? '#EC4899' : '#9CA3AF',
                   }}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
                     {permit.work_description || 'No Description'}
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
-                    Status: <Text style={{ fontWeight: '600', color: permit.status === 'active' ? '#10B981' : '#F59E42' }}>{permit.status?.toUpperCase()}</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>
+                    Status: <Text style={{ fontWeight: '600', color: 
+                      permit.status === 'active' ? '#10B981' : 
+                      permit.status === 'pending_approval' ? '#2563EB' :
+                      permit.status === 'pending_inspection' ? '#F59E42' :
+                      permit.status === 'completed' ? '#EC4899' : '#9CA3AF'
+                    }}>{permit.status?.toUpperCase()}</Text>
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>
                     Issued by: {permit.issued_by || 'Unknown'}
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280' }}>
                     Date: {new Date(permit.created_at).toLocaleDateString()}
                   </Text>
                 </View>
