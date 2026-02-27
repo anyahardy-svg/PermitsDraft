@@ -122,6 +122,27 @@ const KioskScreen = () => {
     }
   };
 
+  // Load permits when switching to permits screen
+  useEffect(() => {
+    const loadSitePermits = async () => {
+      try {
+        if (!siteId) return;
+        const allPermits = await listPermits();
+        // Filter permits for the current site
+        const sitePermits = allPermits.filter(p => p.site_id === siteId);
+        setPermits(sitePermits);
+        setPermitsLoading(false);
+      } catch (error) {
+        console.error('Error loading permits:', error);
+        setPermitsLoading(false);
+      }
+    };
+
+    if (permitsLoading && currentScreen === 'permits-kiosk') {
+      loadSitePermits();
+    }
+  }, [permitsLoading, currentScreen, siteId]);
+
   const handleContractorSearch = (text) => {
     setContractorSearch(text);
     if (text.trim().length > 0) {
@@ -508,26 +529,6 @@ const KioskScreen = () => {
 
   // Permits Kiosk View Screen
   if (currentScreen === 'permits-kiosk') {
-    useEffect(() => {
-      const loadSitePermits = async () => {
-        try {
-          if (!siteId) return;
-          const allPermits = await listPermits();
-          // Filter permits for the current site
-          const sitePermits = allPermits.filter(p => p.site_id === siteId);
-          setPermits(sitePermits);
-        } catch (error) {
-          console.error('Error loading permits:', error);
-        } finally {
-          setPermitsLoading(false);
-        }
-      };
-
-      if (permitsLoading) {
-        loadSitePermits();
-      }
-    }, [permitsLoading, siteId]);
-
     if (permitsLoading) {
       return (
         <View style={styles.container}>
