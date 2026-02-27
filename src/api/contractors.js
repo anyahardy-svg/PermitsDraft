@@ -39,7 +39,28 @@ export const createContractor = async (contractorData) => {
       .select();
 
     if (error) throw error;
-    return data[0] ? transformContractor(data[0]) : null;
+    
+    const contractor = data[0];
+    if (contractor) {
+      // Fetch company name if contractor has company_id
+      if (contractor.company_id) {
+        try {
+          const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', contractor.company_id)
+            .single();
+          
+          if (company && !companyError) {
+            contractor.company_name = company.name;
+          }
+        } catch (err) {
+          console.warn(`Could not fetch company for contractor:`, err.message);
+        }
+      }
+    }
+    
+    return contractor ? transformContractor(contractor) : null;
   } catch (error) {
     console.error('Error creating contractor:', error.message);
     throw error;
@@ -62,7 +83,29 @@ export const listContractors = async () => {
     console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
     console.log('📋 First contractor sample:', data?.[0]);
     
-    const transformed = (data || []).map(transformContractor);
+    // Fetch company names for contractors that have a company_id
+    const contractorsWithCompanies = await Promise.all(
+      (data || []).map(async (contractor) => {
+        if (contractor.company_id) {
+          try {
+            const { data: company, error: companyError } = await supabase
+              .from('companies')
+              .select('name')
+              .eq('id', contractor.company_id)
+              .single();
+            
+            if (company && !companyError) {
+              contractor.company_name = company.name;
+            }
+          } catch (err) {
+            console.warn(`Could not fetch company for contractor ${contractor.id}:`, err.message);
+          }
+        }
+        return contractor;
+      })
+    );
+    
+    const transformed = (contractorsWithCompanies || []).map(transformContractor);
     console.log('✅ Transformed contractors:', transformed.length, transformed);
     
     return transformed;
@@ -83,6 +126,24 @@ export const getContractor = async (contractorId) => {
       .single();
 
     if (error) throw error;
+    
+    // Fetch company name if contractor has company_id
+    if (data?.company_id) {
+      try {
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', data.company_id)
+          .single();
+        
+        if (company && !companyError) {
+          data.company_name = company.name;
+        }
+      } catch (err) {
+        console.warn(`Could not fetch company for contractor:`, err.message);
+      }
+    }
+    
     return data ? transformContractor(data) : null;
   } catch (error) {
     console.error('Error fetching contractor:', error.message);
@@ -100,7 +161,28 @@ export const updateContractor = async (contractorId, updates) => {
       .select();
 
     if (error) throw error;
-    return data[0] ? transformContractor(data[0]) : null;
+    
+    const contractor = data[0];
+    if (contractor) {
+      // Fetch company name if contractor has company_id
+      if (contractor.company_id) {
+        try {
+          const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', contractor.company_id)
+            .single();
+          
+          if (company && !companyError) {
+            contractor.company_name = company.name;
+          }
+        } catch (err) {
+          console.warn(`Could not fetch company for contractor:`, err.message);
+        }
+      }
+    }
+    
+    return contractor ? transformContractor(contractor) : null;
   } catch (error) {
     console.error('Error updating contractor:', error.message);
     throw error;
