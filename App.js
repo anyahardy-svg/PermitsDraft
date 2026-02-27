@@ -6156,6 +6156,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             const servicesIdx = headerValues.findIndex(h => h.includes('service'));
             const sitesIdx = headerValues.findIndex(h => h.includes('site') || h.includes('available'));
             const inductionIdx = headerValues.findIndex(h => h.includes('induction') || h.includes('expiry'));
+            const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -6186,6 +6187,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 const company = values[companyIdx] || '';
                 const services = servicesIdx >= 0 && values[servicesIdx] ? values[servicesIdx].split(';').map(s => s.trim()) : [];
                 const siteNames = sitesIdx >= 0 && values[sitesIdx] ? values[sitesIdx].split(';').map(s => s.trim()) : [];
+                const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] ? values[businessUnitIdx].split(';').map(s => s.trim()) : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
                 if (name && email && company) {
@@ -6210,6 +6212,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     company,
                     services,
                     siteNames,
+                    businessUnitNames,
                     inductionExpiry
                   });
                 }
@@ -6248,6 +6251,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   }
                 }
                 
+                // Convert business unit names to business unit IDs
+                const businessUnitIds = [];
+                if (contractor.businessUnitNames && contractor.businessUnitNames.length > 0) {
+                  for (const buName of contractor.businessUnitNames) {
+                    const bu = businessUnits.find(b => b.name.toLowerCase() === buName.toLowerCase());
+                    if (bu) {
+                      businessUnitIds.push(bu.id);
+                    }
+                  }
+                }
+                
                 await createContractor({
                   name: contractor.name,
                   email: contractor.email,
@@ -6255,6 +6269,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   services: contractor.services,
                   site_ids: siteIds,
                   company_id: company.id,
+                  business_unit_ids: businessUnitIds,
                   induction_expiry: contractor.inductionExpiry
                 });
                 newCount++;
