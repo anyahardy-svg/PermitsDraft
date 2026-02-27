@@ -292,16 +292,6 @@ const KioskScreen = () => {
           >
             <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => {
-              setCurrentScreen('permits-kiosk');
-              setPermitsLoading(true);
-            }}
-          >
-            <Text style={styles.largeButtonText}>📋 Permits & Dashboard</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -645,7 +635,13 @@ const KioskScreen = () => {
 
   // TODO: Inductions and Permits screens coming in Phase 2
 
-  return null;
+  // Return the main component with floating Permits button
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Main content will be rendered by the screen conditionals above */}
+      {/* The permits button is now accessed via a floating button */}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

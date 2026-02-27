@@ -11625,17 +11625,23 @@ const AppRouter = () => {
   // Render Kiosk Screen if kiosk subdomain detected
   const mainContent = isKiosk ? <KioskScreen /> : <PermitManagementApp />;
 
-  // Add dev toggle button in development
-  return (
-    <>
-      {mainContent}
-      {showModeToggle && (
+  // For kiosk: show a Permits button. For main app: show mode toggle
+  const renderFloatingButton = () => {
+    if (isKiosk) {
+      // In kiosk mode, we can't navigate from KioskScreen directly to permits
+      // The permits button is handled within KioskScreen itself
+      return null;
+    }
+    
+    // In main app mode, show the mode toggle for testing
+    return (
+      showModeToggle && (
         <TouchableOpacity
           style={{
             position: 'absolute',
             bottom: 20,
             right: 20,
-            backgroundColor: isKiosk ? '#10B981' : '#3B82F6',
+            backgroundColor: '#3B82F6',
             padding: 12,
             borderRadius: 50,
             elevation: 5,
@@ -11647,9 +11653,16 @@ const AppRouter = () => {
           }}
           onPress={toggleMode}
         >
-          <Text style={{ fontSize: 24 }}>{isKiosk ? '📊' : '🔑'}</Text>
+          <Text style={{ fontSize: 24 }}>🔑</Text>
         </TouchableOpacity>
-      )}
+      )
+    );
+  };
+
+  return (
+    <>
+      {mainContent}
+      {renderFloatingButton()}
     </>
   );
 };
