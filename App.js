@@ -4548,10 +4548,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
           <Text style={styles.primaryButtonText}>Create New Permit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#7C3AED', marginBottom: 16 }]} onPress={() => setCurrentScreen('admin')}>
-          <Text style={styles.primaryButtonText}>⚙️ Admin</Text>
-        </TouchableOpacity>
         </ScrollView>
+        
+        {/* Floating Admin button */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            right: 20,
+            backgroundColor: '#7C3AED',
+            padding: 16,
+            borderRadius: 50,
+            elevation: 10,
+            zIndex: 1000,
+            width: 70,
+            height: 70,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+          }}
+          onPress={() => setCurrentScreen('admin')}
+        >
+          <Text style={{ fontSize: 28 }}>⚙️</Text>
+          <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Admin</Text>
+        </TouchableOpacity>
       </View>
     );
   };
