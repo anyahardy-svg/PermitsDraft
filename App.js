@@ -4509,14 +4509,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
-            {onBackToKiosk && (
-              <TouchableOpacity onPress={onBackToKiosk} style={{ padding: 8 }}>
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>← Back to Kiosk</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {onBackToKiosk && (
+            <TouchableOpacity onPress={onBackToKiosk} style={{ marginBottom: 8 }}>
+              <Text style={styles.backButton}>← Back to Kiosk</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
