@@ -292,6 +292,16 @@ const KioskScreen = () => {
           >
             <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.largeButton}
+            onPress={() => {
+              setCurrentScreen('permits-kiosk');
+              setPermitsLoading(true);
+            }}
+          >
+            <Text style={styles.largeButtonText}>📋 View Permits</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );
