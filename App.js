@@ -5198,7 +5198,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       }
       try {
         if (editingCompany) {
-          await updateCompany(currentCompany.id, { name: currentCompany.name });
+          await updateCompany(currentCompany.id, { 
+            name: currentCompany.name,
+            business_unit_ids: currentCompany.businessUnitIds || []
+          });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
           setEditingCompany(false);
@@ -5209,7 +5212,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           setCompanies(freshCompanies);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '' });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [] });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -5373,11 +5376,53 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 placeholder="Enter company name" 
               />
 
+              <Text style={styles.label}>Business Units</Text>
+              <View style={{ marginBottom: 16 }}>
+                {businessUnits.map(unit => {
+                  const isSelected = (currentCompany.businessUnitIds || []).includes(unit.id);
+                  return (
+                    <TouchableOpacity
+                      key={unit.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 8,
+                        backgroundColor: isSelected ? '#DBEAFE' : 'transparent',
+                        paddingHorizontal: 8,
+                        borderRadius: 4,
+                        marginBottom: 4
+                      }}
+                      onPress={() => {
+                        const newBUs = isSelected
+                          ? (currentCompany.businessUnitIds || []).filter(id => id !== unit.id)
+                          : [...(currentCompany.businessUnitIds || []), unit.id];
+                        setCurrentCompany({ ...currentCompany, businessUnitIds: newBUs });
+                      }}
+                    >
+                      <View style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 3,
+                        borderWidth: 1,
+                        borderColor: '#3B82F6',
+                        backgroundColor: isSelected ? '#3B82F6' : 'white',
+                        marginRight: 8,
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                      </View>
+                      <Text style={{ color: '#1F2937', fontSize: 14 }}>{unit.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
                 <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '' }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [] }); setSelectedCompany(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}

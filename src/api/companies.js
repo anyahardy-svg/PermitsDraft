@@ -6,6 +6,8 @@ const transformCompany = (dbCompany) => {
     id: dbCompany.id,
     name: dbCompany.name,
     email: dbCompany.email,
+    businessUnitIds: dbCompany.business_unit_ids || [],
+    business_unit_ids: dbCompany.business_unit_ids || [],
     manuallyCreated: dbCompany.manually_created || false,
     manually_created: dbCompany.manually_created || false,
     createdAt: dbCompany.created_at,
@@ -75,7 +77,7 @@ export const getCompany = async (companyId) => {
 export const updateCompany = async (companyId, updates) => {
   try {
     // Only allow updating fields that exist in the companies table
-    const allowedFields = ['name', 'email'];
+    const allowedFields = ['name', 'email', 'business_unit_ids'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       if (allowedFields.includes(key)) {
