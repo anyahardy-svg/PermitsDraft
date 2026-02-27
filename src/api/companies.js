@@ -6,33 +6,20 @@ const transformCompany = (dbCompany) => {
     id: dbCompany.id,
     name: dbCompany.name,
     email: dbCompany.email,
-    phone: dbCompany.phone,
-    address: dbCompany.address,
-    website: dbCompany.website,
-    businessUnitIds: dbCompany.business_unit_ids || [],
-    business_unit_ids: dbCompany.business_unit_ids || [],
-    manuallyCreated: dbCompany.manually_created || false,
-    manually_created: dbCompany.manually_created || false,
-    createdByContractorId: dbCompany.created_by_contractor_id || null,
-    created_by_contractor_id: dbCompany.created_by_contractor_id || null,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
+    updatedAt: dbCompany.updated_at,
+    updated_at: dbCompany.updated_at,
   };
 };
 
 // Create a new company
 export const createCompany = async (companyData) => {
   try {
-    // Prepare the data with snake_case field names for database
+    // Prepare the data with only fields that exist in the companies table
     const dbData = {
       name: companyData.name,
       email: companyData.email || null,
-      phone: companyData.phone || null,
-      address: companyData.address || null,
-      website: companyData.website || null,
-      business_unit_ids: companyData.businessUnitIds || companyData.business_unit_ids || [],
-      manually_created: companyData.manually_created || companyData.manuallyCreated || false,
-      created_by_contractor_id: companyData.created_by_contractor_id || companyData.createdByContractorId || null,
     };
 
     const { data, error } = await supabase
@@ -53,7 +40,7 @@ export const listCompanies = async () => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('*')
+      .select('id, name, email, created_at, updated_at')
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -69,7 +56,7 @@ export const getCompany = async (companyId) => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('*')
+      .select('id, name, email, created_at, updated_at')
       .eq('id', companyId)
       .single();
 
@@ -84,9 +71,18 @@ export const getCompany = async (companyId) => {
 // Update a company
 export const updateCompany = async (companyId, updates) => {
   try {
+    // Only allow updating fields that exist in the companies table
+    const allowedFields = ['name', 'email'];
+    const validUpdates = {};
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key)) {
+        validUpdates[key] = updates[key];
+      }
+    });
+
     const { data, error } = await supabase
       .from('companies')
-      .update(updates)
+      .update(validUpdates)
       .eq('id', companyId)
       .select();
 
@@ -119,7 +115,7 @@ export const getCompanyByName = async (companyName) => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('*')
+      .select('id, name, email, created_at, updated_at')
       .ilike('name', companyName)
       .single();
 
@@ -144,32 +140,14 @@ export const upsertCompany = async (companyData) => {
     const existing = await getCompanyByName(companyData.name);
     if (existing) {
       console.log('📦 Company already exists:', existing.name);
-      // If new business units are provided and not already in the company, add them
-      if (companyData.businessUnitIds && companyData.businessUnitIds.length > 0) {
-        const currentBUs = existing.business_unit_ids || [];
-        const newBUs = companyData.businessUnitIds;
-        const mergedBUs = [...new Set([...currentBUs, ...newBUs])];
-        
-        if (mergedBUs.length > currentBUs.length) {
-          console.log('🔗 Adding business units to existing company');
-          const updated = await updateCompany(existing.id, { business_unit_ids: mergedBUs });
-          return updated;
-        }
-      }
       return existing;
     }
 
-    // Company doesn't exist, create it with tracking fields
+    // Company doesn't exist, create it
     console.log('✨ Creating new company:', companyData.name);
     const created = await createCompany({
       name: companyData.name,
       email: companyData.email || null,
-      phone: companyData.phone || null,
-      address: companyData.address || null,
-      website: companyData.website || null,
-      businessUnitIds: companyData.businessUnitIds || companyData.business_unit_ids || [],
-      manuallyCreated: companyData.manuallyCreated || companyData.manually_created || false,
-      createdByContractorId: companyData.createdByContractorId || companyData.created_by_contractor_id || null,
     });
     return created;
   } catch (error) {
