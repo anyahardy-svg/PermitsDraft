@@ -1278,9 +1278,6 @@ const PermitManagementApp = () => {
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
-  const [dashboardSelectedBusinessUnit, setDashboardSelectedBusinessUnit] = useState(null);
-  const [isKioskContext, setIsKioskContext] = useState(false);
-  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
@@ -1305,7 +1302,7 @@ const PermitManagementApp = () => {
         console.log('✅ Sites mapping loaded - Name to ID:', nameToIdMap);
         console.log('✅ Sites mapping loaded - ID to Name:', idToNameMap);
         
-        // Load business units first - needed for site selection screen
+        // Load business units first - needed for filtering
         const businessUnitsData = await listBusinessUnits();
         setBusinessUnits(businessUnitsData);
         console.log('✅ Business units loaded:', businessUnitsData?.length || 0);
@@ -1324,12 +1321,8 @@ const PermitManagementApp = () => {
           const matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
           if (matchingSite) {
             setDashboardSelectedSite(matchingSite.id);
-            setDashboardSelectedBusinessUnit(matchingSite.business_unit_id);
-            setIsKioskContext(true);
             console.log('✅ Auto-selected site for kiosk:', matchingSite.name);
           }
-        } else {
-          console.log('📱 Main domain access - will show site selection screen after data loads');
         }
         
         // Load permits
@@ -1377,27 +1370,15 @@ const PermitManagementApp = () => {
         const isolationData = await listIsolationRegisters();
         console.log('Isolation registers fetched:', isolationData?.length || 0, isolationData);
         setIsolationRegisters(isolationData);
-        
-        // Mark initial data as loaded
-        setIsInitialDataLoaded(true);
       } catch (error) {
         console.error('Error loading data:', error);
         Alert.alert('Error', 'Failed to load data from database');
-        setIsInitialDataLoaded(true); // Set to true even on error to avoid blank screen
       } finally {
         setIsLoadingPermits(false);
       }
     };
     loadData();
   }, []);
-
-  // Switch to select-site screen for main domain after data is loaded
-  useEffect(() => {
-    if (isInitialDataLoaded && !isKioskContext && currentScreen === 'dashboard') {
-      console.log('📱 Switching to select-site screen for main domain');
-      setCurrentScreen('select-site');
-    }
-  }, [isInitialDataLoaded, isKioskContext]);
 
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
@@ -4500,109 +4481,6 @@ const PermitManagementApp = () => {
   };
 
   // Select Site Screen (for main domain access)
-  const renderSelectSite = () => {
-    const [selectedBU, setSelectedBU] = useState('');
-    const filteredSites = selectedBU 
-      ? sites.filter(s => s.business_unit_id === selectedBU)
-      : [];
-
-    // Safety check if data hasn't loaded yet
-    if (!businessUnits || businessUnits.length === 0) {
-      return (
-        <View style={styles.screenContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Loading...</Text>
-          </View>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#6B7280' }}>Loading business units...</Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.screenContainer}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Select Site</Text>
-        </View>
-        <ScrollView style={styles.content} contentContainerStyle={{ padding: 20 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
-            Select your Business Unit and Site to view permits and data.
-          </Text>
-
-          {/* Business Unit Selection */}
-          <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
-            Business Unit:
-          </Text>
-          <View style={{ marginBottom: 24, gap: 8 }}>
-            {businessUnits.map(bu => (
-              <TouchableOpacity
-                key={bu.id}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  backgroundColor: selectedBU === bu.id ? '#2563EB' : '#F3F4F6',
-                  borderWidth: 1,
-                  borderColor: selectedBU === bu.id ? '#2563EB' : '#E5E7EB'
-                }}
-                onPress={() => setSelectedBU(bu.id)}
-              >
-                <Text style={{ 
-                  color: selectedBU === bu.id ? 'white' : '#1F2937',
-                  fontSize: 14,
-                  fontWeight: '500'
-                }}>
-                  {bu.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Site Selection */}
-          {selectedBU && (
-            <>
-              <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
-                Site:
-              </Text>
-              <View style={{ gap: 8 }}>
-                {filteredSites.length > 0 ? (
-                  filteredSites.map(site => (
-                    <TouchableOpacity
-                      key={site.id}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        borderRadius: 8,
-                        backgroundColor: 'white',
-                        borderWidth: 2,
-                        borderColor: dashboardSelectedSite === site.id ? '#2563EB' : '#E5E7EB'
-                      }}
-                      onPress={() => {
-                        setDashboardSelectedSite(site.id);
-                        setDashboardSelectedBusinessUnit(selectedBU);
-                        setCurrentScreen('dashboard');
-                      }}
-                    >
-                      <Text style={{ fontSize: 14, fontWeight: dashboardSelectedSite === site.id ? '600' : '500', color: '#1F2937' }}>
-                        {site.name}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                        {site.location}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <Text style={{ color: '#6B7280', marginTop: 8 }}>No sites for this business unit</Text>
-                )}
-              </View>
-            </>
-          )}
-        </ScrollView>
-      </View>
-    );
-  };
-
   // Dashboard
   const renderDashboard = () => {
     // Filter permits by selected site
@@ -4628,16 +4506,6 @@ const PermitManagementApp = () => {
           <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-        {!isKioskContext && (
-          <TouchableOpacity
-            style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}
-            onPress={() => setCurrentScreen('select-site')}
-          >
-            <Text style={{ fontSize: 13, color: '#2563EB', fontWeight: '600' }}>
-              Change Site: {selectedSiteName}
-            </Text>
-          </TouchableOpacity>
-        )}
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#9CA3AF' }]} onPress={() => setCurrentScreen('drafts')}>
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'draft').length}</Text>
@@ -10959,8 +10827,6 @@ const PermitManagementApp = () => {
     <View style={styles.screenContainer}>
       {(() => {
         switch (currentScreen) {
-          case 'select-site':
-            return renderSelectSite();
           case 'dashboard':
             return renderDashboard();
           case 'drafts':
