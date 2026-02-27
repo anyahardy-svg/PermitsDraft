@@ -5259,7 +5259,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               return;
             }
 
+            // Parse header to find column indices
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            const nameIdx = headerValues.findIndex(h => h.includes('name'));
+            const emailIdx = headerValues.findIndex(h => h.includes('email'));
+            const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
+
             let newCount = 0;
+            let updatedCount = 0;
             let duplicateCount = 0;
             const processedNames = new Set();
 
@@ -5269,8 +5293,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               
               // Simple CSV parsing
               const values = [];
-              let current = '';
-              let inQuotes = false;
+              current = '';
+              inQuotes = false;
               
               for (let j = 0; j < line.length; j++) {
                 const char = line[j];
@@ -5285,8 +5309,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               }
               values.push(current.trim().replace(/^"|"$/g, ''));
               
-              if (values.length > 0 && values[0]) {
-                const companyName = values[0];
+              if (nameIdx >= 0 && values[nameIdx]) {
+                const companyName = values[nameIdx];
+                const email = emailIdx >= 0 ? values[emailIdx] : '';
+                const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] 
+                  ? values[businessUnitIdx].split(';').map(s => s.trim()) 
+                  : [];
                 
                 // Skip if already processed in this CSV
                 if (processedNames.has(companyName.toLowerCase())) {
@@ -5295,15 +5323,51 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }
                 processedNames.add(companyName.toLowerCase());
                 
-                // Upsert: if exists, skip; if new, create
-                const result = await upsertCompany({ name: companyName });
-                if (result) {
+                // Convert business unit names to IDs
+                const businessUnitIds = [];
+                if (businessUnitNames.length > 0) {
+                  for (const buName of businessUnitNames) {
+                    const bu = businessUnits.find(b => b.name.toLowerCase() === buName.toLowerCase());
+                    if (bu) {
+                      businessUnitIds.push(bu.id);
+                    }
+                  }
+                }
+                
+                // Check if company already exists
+                const existingCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+                
+                if (existingCompany) {
+                  // Update existing company
+                  const updateData = {};
+                  if (email) updateData.email = email;
+                  if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
+                  
+                  if (Object.keys(updateData).length > 0) {
+                    await updateCompany(existingCompany.id, updateData);
+                    updatedCount++;
+                  }
+                } else {
+                  // Create new company
+                  const createData = { name: companyName };
+                  if (email) createData.email = email;
+                  
+                  await createCompany(createData);
+                  
+                  // If business units provided, update the created company
+                  if (businessUnitIds.length > 0) {
+                    const created = await getCompanyByName(companyName);
+                    if (created) {
+                      await updateCompany(created.id, { business_unit_ids: businessUnitIds });
+                    }
+                  }
+                  
                   newCount++;
                 }
               }
             }
 
-            if (newCount === 0 && duplicateCount === 0) {
+            if (newCount === 0 && updatedCount === 0 && duplicateCount === 0) {
               Alert.alert('Info', 'No valid companies found in the CSV file.');
               return;
             }
@@ -5316,9 +5380,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             if (newCount > 0) {
               message += `${newCount} new company/companies imported.`;
             }
+            if (updatedCount > 0) {
+              if (message) message += ' ';
+              message += `${updatedCount} company(ies) updated.`;
+            }
             if (duplicateCount > 0) {
               if (message) message += ' ';
-              message += `${duplicateCount} duplicate(s) already exist in the system.`;
+              message += `${duplicateCount} duplicate(s) in this file.`;
             }
             
             Alert.alert('Import Complete', message);
