@@ -6,6 +6,8 @@ const transformCompany = (dbCompany) => {
     id: dbCompany.id,
     name: dbCompany.name,
     email: dbCompany.email,
+    manuallyCreated: dbCompany.manually_created || false,
+    manually_created: dbCompany.manually_created || false,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
     updatedAt: dbCompany.updated_at,
@@ -20,6 +22,7 @@ export const createCompany = async (companyData) => {
     const dbData = {
       name: companyData.name,
       email: companyData.email || null,
+      manually_created: companyData.manually_created || companyData.manuallyCreated || false,
     };
 
     const { data, error } = await supabase
@@ -143,11 +146,12 @@ export const upsertCompany = async (companyData) => {
       return existing;
     }
 
-    // Company doesn't exist, create it
+    // Company doesn't exist, create it and mark as manually created
     console.log('✨ Creating new company:', companyData.name);
     const created = await createCompany({
       name: companyData.name,
       email: companyData.email || null,
+      manually_created: true,
     });
     return created;
   } catch (error) {

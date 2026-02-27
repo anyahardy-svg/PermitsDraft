@@ -6115,7 +6115,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             let newCount = 0;
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
+            let newCompanyCount = 0;
             const processedEmails = new Set();
+            const processedCompanies = new Set();
 
             // Helper function to convert DD/MM/YYYY to YYYY-MM-DD
             const convertDateFormat = (dateStr) => {
@@ -6240,6 +6242,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   continue;
                 }
                 
+                // Track if this is a newly created company
+                if (company.manually_created && !processedCompanies.has(company.id)) {
+                  newCompanyCount++;
+                  processedCompanies.add(company.id);
+                }
+                
                 // Convert site names to site IDs
                 const siteIds = [];
                 if (contractor.siteNames && contractor.siteNames.length > 0) {
@@ -6289,6 +6297,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             
             let message = `✓ Successfully imported ${newCount} contractor(s)!`;
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
+            if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
             setImportStatus('success');
