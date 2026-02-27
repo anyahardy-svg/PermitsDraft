@@ -292,17 +292,36 @@ const KioskScreen = () => {
           >
             <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => {
-              setCurrentScreen('permits-kiosk');
-              setPermitsLoading(true);
-            }}
-          >
-            <Text style={styles.largeButtonText}>📋 View Permits</Text>
-          </TouchableOpacity>
         </ScrollView>
+
+        {/* Floating Permits button */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            right: 20,
+            backgroundColor: '#10B981',
+            padding: 16,
+            borderRadius: 50,
+            elevation: 10,
+            zIndex: 1000,
+            width: 70,
+            height: 70,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+          }}
+          onPress={() => {
+            setCurrentScreen('permits-kiosk');
+            setPermitsLoading(true);
+          }}
+        >
+          <Text style={{ fontSize: 32 }}>📋</Text>
+          <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -646,10 +665,92 @@ const KioskScreen = () => {
   // TODO: Inductions and Permits screens coming in Phase 2
 
   // Return the main component with floating Permits button
+  // The permits button floats at the bottom-right and is visible on all screens
   return (
     <View style={{ flex: 1 }}>
       {/* Main content will be rendered by the screen conditionals above */}
-      {/* The permits button is now accessed via a floating button */}
+      {currentScreen === 'welcome' && (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.siteName}>{site.name}</Text>
+            <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
+            {testMode && (
+              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
+                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+              </View>
+            )}
+          </View>
+
+          <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
+            <TouchableOpacity 
+              style={styles.largeButton}
+              onPress={() => {
+                setCurrentScreen('contractor-signin');
+                setSelectedContractor(null);
+                setContractorSearch('');
+              }}
+            >
+              <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.largeButton}
+              onPress={() => {
+                setCurrentScreen('visitor-induction');
+                setVisitorInductionConfirmed(false);
+                setVisitorName('');
+                setVisitorCompany('');
+                setVisitorPhone('');
+                setVisitingPerson('');
+              }}
+            >
+              <Text style={styles.largeButtonText}>👥 Sign In Visitor</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.largeButton}
+              onPress={() => {
+                setCurrentScreen('signout');
+                setSelectedPerson(null);
+                loadSignedInPeople();
+              }}
+            >
+              <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
+      
+      {/* Floating Permits button - visible on all screens except permits-kiosk */}
+      {currentScreen !== 'permits-kiosk' && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            right: 20,
+            backgroundColor: '#10B981',
+            padding: 16,
+            borderRadius: 50,
+            elevation: 10,
+            zIndex: 1000,
+            width: 70,
+            height: 70,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+          }}
+          onPress={() => {
+            setCurrentScreen('permits-kiosk');
+            setPermitsLoading(true);
+          }}
+        >
+          <Text style={{ fontSize: 32 }}>📋</Text>
+          <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
