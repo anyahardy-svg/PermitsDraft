@@ -451,7 +451,7 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
   );
 };
 
-const PermitManagementApp = () => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -1323,6 +1323,12 @@ const PermitManagementApp = () => {
             setDashboardSelectedSite(matchingSite.id);
             console.log('✅ Auto-selected site for kiosk:', matchingSite.name);
           }
+        }
+        
+        // If initialSiteId is provided (from kiosk permits view), use it
+        if (initialSiteId) {
+          setDashboardSelectedSite(initialSiteId);
+          console.log('✅ Auto-selected site from kiosk:', initialSiteId);
         }
         
         // Load permits
@@ -4503,7 +4509,14 @@ const PermitManagementApp = () => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
+            {onBackToKiosk && (
+              <TouchableOpacity onPress={onBackToKiosk} style={{ padding: 8 }}>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>← Back to Kiosk</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
@@ -11578,6 +11591,8 @@ const AppRouter = () => {
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
+  const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
+  const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
 
   React.useEffect(() => {
     try {
@@ -11622,14 +11637,26 @@ const AppRouter = () => {
     console.log(`🔄 Switched to ${!isKiosk ? 'KIOSK' : 'PERMIT'} mode`);
   };
 
-  // Render Kiosk Screen if kiosk subdomain detected
-  const mainContent = isKiosk ? <KioskScreen /> : <PermitManagementApp />;
+  // Determine what to render
+  let mainContent;
+  if (isKiosk && kioskViewingPermits) {
+    // In kiosk mode viewing permits - render main app with site auto-selected
+    mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
+  } else if (isKiosk) {
+    // In kiosk mode - render kiosk screen
+    mainContent = <KioskScreen onViewPermits={(siteId) => {
+      setKioskSiteId(siteId);
+      setKioskViewingPermits(true);
+    }} />;
+  } else {
+    // Normal permit management app
+    mainContent = <PermitManagementApp />;
+  }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
   const renderFloatingButton = () => {
     if (isKiosk) {
-      // In kiosk mode, we can't navigate from KioskScreen directly to permits
-      // The permits button is handled within KioskScreen itself
+      // In kiosk mode, floating button is handled within KioskScreen itself
       return null;
     }
     

@@ -18,7 +18,7 @@ import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { listPermits } from '../api/permits';
 
-const KioskScreen = () => {
+const KioskScreen = ({ onViewPermits }) => {
   // State
   const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
   const [site, setSite] = useState(null);
@@ -315,8 +315,9 @@ const KioskScreen = () => {
             shadowRadius: 5,
           }}
           onPress={() => {
-            setCurrentScreen('permits-kiosk');
-            setPermitsLoading(true);
+            if (onViewPermits) {
+              onViewPermits(siteId);
+            }
           }}
         >
           <Text style={{ fontSize: 32 }}>📋</Text>
