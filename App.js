@@ -1277,6 +1277,9 @@ const PermitManagementApp = () => {
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
+  const [dashboardSelectedBusinessUnit, setDashboardSelectedBusinessUnit] = useState(null);
+  const [isKioskContext, setIsKioskContext] = useState(false);
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
@@ -1300,6 +1303,29 @@ const PermitManagementApp = () => {
         setSiteIdToNameMap(idToNameMap);
         console.log('✅ Sites mapping loaded - Name to ID:', nameToIdMap);
         console.log('✅ Sites mapping loaded - ID to Name:', idToNameMap);
+        
+        // Detect if accessing from kiosk subdomain
+        const hostname = window.location.hostname;
+        console.log('🌐 Hostname:', hostname);
+        
+        if (hostname.includes('-kiosk.')) {
+          // Extract site from kiosk subdomain (e.g., wa-hunua-quarry-kiosk -> find matching site)
+          const parts = hostname.split('.');
+          const subdomain = parts[0]; // e.g., "wa-hunua-quarry-kiosk"
+          console.log('🏢 Kiosk subdomain detected:', subdomain);
+          
+          // Try to match by kiosk_subdomain
+          const matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
+          if (matchingSite) {
+            setDashboardSelectedSite(matchingSite.id);
+            setDashboardSelectedBusinessUnit(matchingSite.business_unit_id);
+            setIsKioskContext(true);
+            console.log('✅ Auto-selected site for kiosk:', matchingSite.name);
+          }
+        } else {
+          console.log('📱 Main domain access - will show site selection screen');
+          setCurrentScreen('select-site');
+        }
         
         // Load permits
         const permitsData = await listPermits();
@@ -4460,12 +4486,110 @@ const PermitManagementApp = () => {
     );
   };
 
+  // Select Site Screen (for main domain access)
+  const renderSelectSite = () => {
+    const [selectedBU, setSelectedBU] = useState('');
+    const filteredSites = selectedBU 
+      ? sites.filter(s => s.business_unit_id === selectedBU)
+      : [];
+
+    return (
+      <View style={styles.screenContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Select Site</Text>
+        </View>
+        <ScrollView style={styles.content} contentContainerStyle={{ padding: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            Select your Business Unit and Site to view permits and data.
+          </Text>
+
+          {/* Business Unit Selection */}
+          <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+            Business Unit:
+          </Text>
+          <View style={{ marginBottom: 24, gap: 8 }}>
+            {businessUnits.map(bu => (
+              <TouchableOpacity
+                key={bu.id}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: selectedBU === bu.id ? '#2563EB' : '#F3F4F6',
+                  borderWidth: 1,
+                  borderColor: selectedBU === bu.id ? '#2563EB' : '#E5E7EB'
+                }}
+                onPress={() => setSelectedBU(bu.id)}
+              >
+                <Text style={{ 
+                  color: selectedBU === bu.id ? 'white' : '#1F2937',
+                  fontSize: 14,
+                  fontWeight: '500'
+                }}>
+                  {bu.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Site Selection */}
+          {selectedBU && (
+            <>
+              <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>
+                Site:
+              </Text>
+              <View style={{ gap: 8 }}>
+                {filteredSites.length > 0 ? (
+                  filteredSites.map(site => (
+                    <TouchableOpacity
+                      key={site.id}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderRadius: 8,
+                        backgroundColor: 'white',
+                        borderWidth: 2,
+                        borderColor: dashboardSelectedSite === site.id ? '#2563EB' : '#E5E7EB'
+                      }}
+                      onPress={() => {
+                        setDashboardSelectedSite(site.id);
+                        setDashboardSelectedBusinessUnit(selectedBU);
+                        setCurrentScreen('dashboard');
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: dashboardSelectedSite === site.id ? '600' : '500', color: '#1F2937' }}>
+                        {site.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                        {site.location}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={{ color: '#6B7280', marginTop: 8 }}>No sites for this business unit</Text>
+                )}
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
+
   // Dashboard
   const renderDashboard = () => {
+    // Filter permits by selected site
+    const sitePermits = dashboardSelectedSite 
+      ? permits.filter(p => p.site_id === dashboardSelectedSite)
+      : permits;
+
+    // Get selected site name for display
+    const selectedSiteName = sites.find(s => s.id === dashboardSelectedSite)?.name || 'All Sites';
+
     // Calculate permits completed within 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentlyCompleted = permits.filter(p => {
+    const recentlyCompleted = sitePermits.filter(p => {
       if (p.status !== 'completed') return false;
       const completedDate = new Date(p.completedDate || p.createdAt);
       return completedDate >= sevenDaysAgo;
@@ -4474,28 +4598,38 @@ const PermitManagementApp = () => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <Text style={styles.title}>Permit Dashboard</Text>
+          <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        {!isKioskContext && (
+          <TouchableOpacity
+            style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}
+            onPress={() => setCurrentScreen('select-site')}
+          >
+            <Text style={{ fontSize: 13, color: '#2563EB', fontWeight: '600' }}>
+              Change Site: {selectedSiteName}
+            </Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.dashboardGrid}>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#9CA3AF' }]} onPress={() => setCurrentScreen('drafts')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'draft').length}</Text>
+            <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'draft').length}</Text>
             <Text style={styles.cardLabel}>Drafts</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#2563EB' }]} onPress={() => setCurrentScreen('pending_approval')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_approval').length}</Text>
+            <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'pending_approval').length}</Text>
             <Text style={styles.cardLabel}>Pending Approval</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('pending_inspection')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'pending_inspection').length}</Text>
+            <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'pending_inspection').length}</Text>
             <Text style={styles.cardLabel}>Needs Inspection</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'active').length}</Text>
+            <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'active').length}</Text>
             <Text style={styles.cardLabel}>Active Permits</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
-            <Text style={styles.cardNumber}>{permits.filter(p => p.status === 'completed').length}</Text>
+            <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'completed').length}</Text>
             <Text style={styles.cardLabel}>Completed</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#DC2626' }]} onPress={() => setCurrentScreen('completed')}>
@@ -10798,6 +10932,8 @@ const PermitManagementApp = () => {
     <View style={styles.screenContainer}>
       {(() => {
         switch (currentScreen) {
+          case 'select-site':
+            return renderSelectSite();
           case 'dashboard':
             return renderDashboard();
           case 'drafts':
