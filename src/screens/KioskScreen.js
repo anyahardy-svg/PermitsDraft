@@ -16,10 +16,11 @@ import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
+import { listPermits } from '../api/permits';
 
 const KioskScreen = () => {
   // State
-  const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-signin, contractor-signin, signout, inductions, permits
+  const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
@@ -43,6 +44,10 @@ const KioskScreen = () => {
   // For signout list
   const [signedInPeople, setSignedInPeople] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
+
+  // For permits list
+  const [permits, setPermits] = useState([]);
+  const [permitsLoading, setPermitsLoading] = useState(false);
 
   // Initialize - detect site from subdomain
   useEffect(() => {
@@ -270,8 +275,8 @@ const KioskScreen = () => {
           <TouchableOpacity 
             style={styles.largeButton}
             onPress={() => {
-              // Navigate to main permits app on root domain
-              window.location.href = 'https://contractorhq.co.nz/';
+              setCurrentScreen('permits-kiosk');
+              setPermitsLoading(true);
             }}
           >
             <Text style={styles.largeButtonText}>📋 Permits & Dashboard</Text>
@@ -495,6 +500,86 @@ const KioskScreen = () => {
             >
               <Text style={styles.submitButtonText}>✓ Sign Out</Text>
             </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Permits Kiosk View Screen
+  if (currentScreen === 'permits-kiosk') {
+    useEffect(() => {
+      const loadSitePermits = async () => {
+        try {
+          if (!siteId) return;
+          const allPermits = await listPermits();
+          // Filter permits for the current site
+          const sitePermits = allPermits.filter(p => p.site_id === siteId);
+          setPermits(sitePermits);
+        } catch (error) {
+          console.error('Error loading permits:', error);
+        } finally {
+          setPermitsLoading(false);
+        }
+      };
+
+      if (permitsLoading) {
+        loadSitePermits();
+      }
+    }, [permitsLoading, siteId]);
+
+    if (permitsLoading) {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.loadingText}>Loading Permits...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Permits - {site?.name}</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.formContent}>
+          {permits.length > 0 ? (
+            <>
+              <Text style={styles.label}>Active Permits ({permits.length}):</Text>
+              {permits.map((permit) => (
+                <View
+                  key={permit.id}
+                  style={{
+                    backgroundColor: 'white',
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: permit.status === 'active' ? '#10B981' : '#F59E42',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                    {permit.work_description || 'No Description'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
+                    Status: <Text style={{ fontWeight: '600', color: permit.status === 'active' ? '#10B981' : '#F59E42' }}>{permit.status?.toUpperCase()}</Text>
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
+                    Issued by: {permit.issued_by || 'Unknown'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                    Date: {new Date(permit.created_at).toLocaleDateString()}
+                  </Text>
+                </View>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.noResults}>No permits for this site</Text>
           )}
         </ScrollView>
       </View>
