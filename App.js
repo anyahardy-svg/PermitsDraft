@@ -63,7 +63,7 @@ const ALL_SERVICES = [
   'Blasting',
   'Mobile Plant Servicing',
   'Fixed Plant Servicing',
-  'Conveyor Belt Servicing',
+  'Conveyor Servicing',
   'Surveying',
   'Environmental',
   'Transport Driver',
@@ -6474,32 +6474,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   
                   for (const serviceName of contractor.services) {
                     // Find service by name within the contractor's business units
-                    const lowerServiceName = serviceName.toLowerCase();
-                    
-                    // First try exact match
-                    let matchingService = availableServices.find(s => 
-                      s.name.toLowerCase() === lowerServiceName &&
+                    const matchingService = availableServices.find(s => 
+                      s.name.toLowerCase() === serviceName.toLowerCase() &&
                       businessUnitIds.includes(s.business_unit_id)
                     );
-                    
-                    // If no exact match, try fuzzy match (partial match of key words)
-                    if (!matchingService && lowerServiceName.includes('conveyor')) {
-                      matchingService = availableServices.find(s => 
-                        s.name.toLowerCase().includes('conveyor') &&
-                        businessUnitIds.includes(s.business_unit_id)
-                      );
-                    }
-                    
-                    // If still no match, try partial keyword match
-                    if (!matchingService) {
-                      const keywords = lowerServiceName.split(/[\s-]/); // split on space or dash
-                      matchingService = availableServices.find(s => {
-                        const serviceNameLower = s.name.toLowerCase();
-                        return businessUnitIds.includes(s.business_unit_id) &&
-                          keywords.some(kw => serviceNameLower.includes(kw) && kw.length > 2); // min 3 chars
-                      });
-                    }
-                    
                     if (matchingService) {
                       serviceIds.push(matchingService.id);
                     }

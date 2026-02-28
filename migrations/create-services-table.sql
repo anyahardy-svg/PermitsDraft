@@ -32,7 +32,7 @@ INSERT INTO services (business_unit_id, name, description) VALUES
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Blasting', 'Blasting operations permit required'),
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Mobile Plant Servicing', 'Mobile plant servicing permit required'),
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Fixed Plant Servicing', 'Fixed plant servicing permit required'),
-  ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Conveyor Belt Servicing', 'Conveyor belt servicing permit required'),
+  ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Conveyor Servicing', 'Conveyor servicing permit required'),
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Surveying', 'Surveying permit required'),
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Environmental', 'Environmental work permit required'),
   ((SELECT id FROM business_units WHERE name = 'Winstone Aggregates'), 'Transport Driver', 'Transport driver permit required'),
