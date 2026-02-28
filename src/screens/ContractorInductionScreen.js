@@ -500,6 +500,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   // STEP 1: INFO - Fill in contractor details
   if (step === 'info' && isNewContractor !== null) {
+    console.log('Rendering INFO screen - isNewContractor:', isNewContractor, 'contractorInfo:', contractorInfo);
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -643,6 +644,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           )}
 
           {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
+
+          {console.log('About to render Continue button. selectedBUs:', contractorInfo.selectedBusinessUnitIds, 'selectedSites:', contractorInfo.selectedSiteIds)}
 
           <TouchableOpacity
             style={[styles.button, { marginTop: 24 }]}
