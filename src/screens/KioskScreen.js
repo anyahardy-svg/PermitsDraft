@@ -333,8 +333,8 @@ const KioskScreen = ({ onViewPermits }) => {
         <TouchableOpacity
           style={{
             position: 'absolute',
-            bottom: 120,
-            right: 20,
+            bottom: 30,
+            left: 20,
             backgroundColor: '#A855F7',
             width: 70,
             height: 70,
