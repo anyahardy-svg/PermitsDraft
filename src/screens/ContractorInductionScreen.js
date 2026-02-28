@@ -20,7 +20,7 @@ import {
   completeInduction,
 } from '../api/inductions';
 import { listCompanies, createCompany } from '../api/companies';
-import { listContractors, createContractor, getContractor } from '../api/contractors';
+import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 
@@ -763,24 +763,50 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'inductionBoard') {
     const isAllCompulsoryDone = compulsoryInductions.every(ind => completedInductionIds.includes(ind.id));
     
-    const handleOpenInduction = (induction) => {
-      setCurrentModalInduction(induction);
-      setSelectedInductionId(induction.id);
-      setModalStep('video');
-      setModalAnswers({});
-      setModalVisible(true);
+    const handleOpenInduction = async (induction) => {
+      try {
+        setLoading(true);
+        // Start the induction in the database
+        await startInduction(contractorInfo.id, induction.id);
+        
+        setCurrentModalInduction(induction);
+        setSelectedInductionId(induction.id);
+        setModalStep('video');
+        setModalAnswers({});
+        setModalVisible(true);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to start induction: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
     const handleCompleteInduction = async () => {
-      if (!currentModalInduction) return;
+      if (!currentModalInduction || !contractorInfo.id) return;
       
-      // Mark as completed
-      setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
-      
-      // Close modal
-      setModalVisible(false);
-      setCurrentModalInduction(null);
-      setModalAnswers({});
+      try {
+        setLoading(true);
+        
+        // Save answers if there are any
+        if (Object.keys(modalAnswers).length > 0) {
+          await saveInductionAnswers(contractorInfo.id, currentModalInduction.id, modalAnswers);
+        }
+        
+        // Mark as completed in database
+        await completeInduction(contractorInfo.id, currentModalInduction.id);
+        
+        // Update local state
+        setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
+        
+        // Close modal
+        setModalVisible(false);
+        setCurrentModalInduction(null);
+        setModalAnswers({});
+      } catch (error) {
+        Alert.alert('Error', 'Failed to complete induction: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
     return (
@@ -1052,17 +1078,16 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     return ind.induction_name;
                   });
 
-                  // Update contractor with services
-                  const updateData = {
-                    ...contractorInfo,
+                  // Update contractor with services and completion signature
+                  await updateContractor(contractorInfo.id, {
                     service_ids: serviceIds,
-                  };
+                    induction_completion_signature: signatureText,
+                    induction_completed_at: new Date().toISOString(),
+                  });
 
-                  // Note: You'll need to implement updateContractor API call
-                  // For now, just mark complete
                   setStep('complete');
                 } catch (err) {
-                  Alert.alert('Error', 'Failed to submit');
+                  Alert.alert('Error', 'Failed to submit: ' + err.message);
                 } finally {
                   setLoading(false);
                 }
