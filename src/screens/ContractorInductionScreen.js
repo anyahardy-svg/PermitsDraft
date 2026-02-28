@@ -319,7 +319,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         {businessUnits.map((bu) => (
           <TouchableOpacity
             key={bu.id}
-            style={styles.checkbox}
+            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
             onPress={() => {
               const isSelected = contractorInfo.businessUnitIds.includes(bu.id);
               setContractorInfo({
@@ -329,6 +329,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   : [...contractorInfo.businessUnitIds, bu.id],
               });
             }}
+            activeOpacity={0.6}
           >
             <View
               style={[
@@ -401,7 +402,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         {availableSites.map((site) => (
           <TouchableOpacity
             key={site.id}
-            style={styles.checkbox}
+            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
             onPress={() => {
               const isSelected = contractorInfo.siteIds.includes(site.id);
               setContractorInfo({
@@ -411,6 +412,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   : [...contractorInfo.siteIds, site.id],
               });
             }}
+            activeOpacity={0.6}
           >
             <View
               style={[
@@ -488,7 +490,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       {inductionsData.optional.map((induction) => (
         <TouchableOpacity
           key={induction.id}
-          style={styles.checkbox}
+          style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
           onPress={() => {
             const isSelected = selectedOptional.includes(induction.id);
             setSelectedOptional(
@@ -497,6 +499,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 : [...selectedOptional, induction.id]
             );
           }}
+          activeOpacity={0.6}
         >
           <View
             style={[
