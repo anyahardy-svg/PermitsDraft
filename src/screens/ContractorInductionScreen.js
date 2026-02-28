@@ -533,50 +533,56 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <Text style={[styles.label, { marginTop: 16 }]}>Business Units (select one or more) *</Text>
           <View style={{ gap: 8 }}>
-            {businessUnits.map(bu => (
-              <TouchableOpacity
-                key={bu.id}
-                onPress={() => handleBusinessUnitChange(bu.id)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  backgroundColor: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F3F4F6',
-                }}
-              >
-                <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : 'white', marginRight: 10 }}>
-                  {contractorInfo.selectedBusinessUnitIds.includes(bu.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '600' : '400' }}>{bu.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {businessUnits.map(bu => {
+              const isSelected = (contractorInfo.selectedBusinessUnitIds || []).includes(bu.id);
+              return (
+                <TouchableOpacity
+                  key={bu.id}
+                  onPress={() => handleBusinessUnitChange(bu.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                  }}
+                >
+                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3B82F6' : 'white', marginRight: 10 }}>
+                    {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {sites.length > 0 && (
             <>
               <Text style={[styles.label, { marginTop: 16 }]}>Sites (select one or more)</Text>
               <View style={{ gap: 8 }}>
-                {sites.map(site => (
-                  <TouchableOpacity
-                    key={site.id}
-                    onPress={() => toggleSiteSelection(site.id)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 12,
-                      paddingHorizontal: 12,
-                      borderRadius: 8,
-                      backgroundColor: contractorInfo.selectedSiteIds.includes(site.id) ? '#E0E7FF' : '#F3F4F6',
-                    }}
-                  >
-                    <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: contractorInfo.selectedSiteIds.includes(site.id) ? '#3B82F6' : 'white', marginRight: 10 }}>
-                      {contractorInfo.selectedSiteIds.includes(site.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
-                    </View>
-                    <Text style={{ fontSize: 14, fontWeight: contractorInfo.selectedSiteIds.includes(site.id) ? '600' : '400' }}>{site.name}</Text>
-                  </TouchableOpacity>
-                ))}
+                {sites.map(site => {
+                  const isSelected = (contractorInfo.selectedSiteIds || []).includes(site.id);
+                  return (
+                    <TouchableOpacity
+                      key={site.id}
+                      onPress={() => toggleSiteSelection(site.id)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                      }}
+                    >
+                      <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3B82F6' : 'white', marginRight: 10 }}>
+                        {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{site.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </>
           )}
