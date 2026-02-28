@@ -1414,13 +1414,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           if (matchingSite) {
             setDashboardSelectedSite(matchingSite.id);
             console.log('✅ Auto-selected site for kiosk:', matchingSite.name);
+            
+            // Set business unit ID based on the kiosk's site
+            if (matchingSite.business_unit_id) {
+              setBusinessUnitId(matchingSite.business_unit_id);
+              const buName = businessUnitsData.find(bu => bu.id === matchingSite.business_unit_id)?.name;
+              console.log('✅ Business unit set from kiosk site:', buName);
+            }
           }
         }
         
         // If initialSiteId is provided (from kiosk permits view), use it
         if (initialSiteId) {
           setDashboardSelectedSite(initialSiteId);
-          console.log('✅ Auto-selected site from kiosk:', initialSiteId);
+          const siteForId = sitesData.find(s => s.id === initialSiteId);
+          if (siteForId && siteForId.business_unit_id) {
+            setBusinessUnitId(siteForId.business_unit_id);
+            const buName = businessUnitsData.find(bu => bu.id === siteForId.business_unit_id)?.name;
+            console.log('✅ Auto-selected site from kiosk:', siteForId.name, '- BU:', buName);
+          } else {
+            console.log('✅ Auto-selected site from kiosk:', initialSiteId);
+          }
         }
         
         // Load permits
