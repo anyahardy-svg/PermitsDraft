@@ -82,10 +82,10 @@ export const createContractor = async (contractorData) => {
 // Get all contractors with company details
 export const listContractors = async () => {
   try {
-    // Use join to fetch companies in a single query instead of N+1
+    // Fetch contractors without join to avoid relationship ambiguity
     const { data, error } = await supabase
       .from('contractors')
-      .select('*, companies!inner(id, name)')
+      .select()
       .order('name', { ascending: true });
 
     if (error) {
@@ -96,10 +96,32 @@ export const listContractors = async () => {
     console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
     console.log('📋 First contractor sample:', data?.[0]);
     
-    // Map company names from joined data
+    // Get unique company IDs that need lookup
+    const companyIds = [...new Set((data || [])
+      .map(c => c.company_id)
+      .filter(Boolean))];
+
+    let companyMap = {};
+    if (companyIds.length > 0) {
+      try {
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('id, name')
+          .in('id', companyIds);
+        
+        companyMap = (companies || []).reduce((map, comp) => {
+          map[comp.id] = comp.name;
+          return map;
+        }, {});
+      } catch (err) {
+        console.warn('Could not fetch company names:', err.message);
+      }
+    }
+    
+    // Map company names to contractors
     const contractorsWithCompanies = (data || []).map(contractor => ({
       ...contractor,
-      company_name: contractor.companies?.name || contractor.company_name || '',
+      company_name: companyMap[contractor.company_id] || contractor.company_name || '',
     }));
     
     const transformed = (contractorsWithCompanies || []).map(transformContractor);
@@ -252,10 +274,9 @@ export const listContractorsWithExpiredInductions = async () => {
 export const listContractorsBySite = async (siteId) => {
   try {
     console.log('🔍 Loading contractors for site:', siteId);
-    // Use join to fetch company names in a single query instead of N+1
     const { data, error } = await supabase
       .from('contractors')
-      .select('*, companies!inner(name)')
+      .select()
       .contains('site_ids', [siteId])
       .order('name', { ascending: true });
 
@@ -266,10 +287,32 @@ export const listContractorsBySite = async (siteId) => {
     
     console.log('✅ Contractors for site:', data?.length || 0);
     
-    // Map company data from join
+    // Get unique company IDs that need lookup
+    const companyIds = [...new Set((data || [])
+      .map(c => c.company_id)
+      .filter(Boolean))];
+
+    let companyMap = {};
+    if (companyIds.length > 0) {
+      try {
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('id, name')
+          .in('id', companyIds);
+        
+        companyMap = (companies || []).reduce((map, comp) => {
+          map[comp.id] = comp.name;
+          return map;
+        }, {});
+      } catch (err) {
+        console.warn('Could not fetch company names:', err.message);
+      }
+    }
+    
+    // Map company names to contractors
     const contractorsWithCompanies = (data || []).map(contractor => ({
       ...contractor,
-      company_name: contractor.companies?.name || contractor.company_name || '',
+      company_name: companyMap[contractor.company_id] || contractor.company_name || '',
     }));
     
     return contractorsWithCompanies.map(transformContractor);
