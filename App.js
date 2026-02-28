@@ -942,6 +942,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [jseaTemplatesAvailable, setJseaTemplatesAvailable] = useState([]);
   const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
+  const [selectedContractorCompanyId, setSelectedContractorCompanyId] = useState(null);
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1097,7 +1098,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       const response = await saveJseaTemplate(
         jseaTemplateName,
         formData.jsea.taskSteps,
-        businessUnitId
+        businessUnitId,
+        selectedContractorCompanyId
       );
       if (response.success) {
         Alert.alert('Success', `Template "${jseaTemplateName}" saved`);
@@ -1804,6 +1806,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           activeOpacity={0.7}
                           onPress={() => {
                             setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
+                            setSelectedContractorCompanyId(contractor.company_id || null);
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
