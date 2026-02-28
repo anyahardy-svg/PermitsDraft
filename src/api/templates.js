@@ -175,20 +175,17 @@ export async function deleteTemplate(templateId) {
  */
 export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, companyId = null) {
   try {
-    // Create a special permit record to store the JSEA template
+    // Store JSEA template in templates table
     const { data, error } = await supabase
-      .from('permits')
+      .from('templates')
       .insert([{
-        permit_type: 'JSEA',
-        template_name: jseaName,
-        description: `JSEA Template: ${jseaName}`,
-        location: 'Template',
-        status: 'template',
-        is_template: true,
-        business_unit_id: businessUnitId,
-        company_id: companyId, // Store company association
-        jsea: jseaSteps, // Store steps as JSEA field
-        site_id: null,
+        name: jseaName,
+        template_type: 'jsea',
+        data: {
+          steps: jseaSteps,
+          business_unit_id: businessUnitId,
+          company_id: companyId,
+        },
       }])
       .select()
       .single();
@@ -218,16 +215,27 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
 export async function getJseaTemplates(businessUnitId) {
   try {
     const { data, error } = await supabase
-      .from('permits')
-      .select('id, template_name, jsea, company_id, created_at, updated_at')
-      .eq('permit_type', 'JSEA')
-      .eq('is_template', true)
-      .eq('business_unit_id', businessUnitId)
-      .order('template_name', { ascending: true });
+      .from('templates')
+      .select('id, name, data, created_at, updated_at')
+      .eq('template_type', 'jsea')
+      .filter('data->>business_unit_id', 'eq', businessUnitId)
+      .order('name', { ascending: true });
 
     if (error) throw error;
 
-    return { success: true, data };
+    // Transform data for easier access
+    const transformedData = data.map(template => ({
+      id: template.id,
+      template_name: template.name,
+      name: template.name,
+      jsea: template.data?.steps || [],
+      company_id: template.data?.company_id,
+      business_unit_id: businessUnitId,
+      created_at: template.created_at,
+      updated_at: template.updated_at,
+    }));
+
+    return { success: true, data: transformedData };
   } catch (error) {
     console.error('Get JSEA templates error:', error);
     return { success: false, error: error.message };
@@ -242,16 +250,27 @@ export async function getJseaTemplates(businessUnitId) {
 export async function getJseaTemplatesByCompany(companyId) {
   try {
     const { data, error } = await supabase
-      .from('permits')
-      .select('id, template_name, jsea, company_id, created_at, updated_at')
-      .eq('permit_type', 'JSEA')
-      .eq('is_template', true)
-      .eq('company_id', companyId)
-      .order('template_name', { ascending: true });
+      .from('templates')
+      .select('id, name, data, created_at, updated_at')
+      .eq('template_type', 'jsea')
+      .filter('data->>company_id', 'eq', companyId)
+      .order('name', { ascending: true });
 
     if (error) throw error;
 
-    return { success: true, data };
+    // Transform data for easier access
+    const transformedData = data.map(template => ({
+      id: template.id,
+      template_name: template.name,
+      name: template.name,
+      jsea: template.data?.steps || [],
+      company_id: companyId,
+      business_unit_id: template.data?.business_unit_id,
+      created_at: template.created_at,
+      updated_at: template.updated_at,
+    }));
+
+    return { success: true, data: transformedData };
   } catch (error) {
     console.error('Get JSEA templates by company error:', error);
     return { success: false, error: error.message };
@@ -266,16 +285,27 @@ export async function getJseaTemplatesByCompany(companyId) {
 export async function getJseaTemplate(jseaTemplateId) {
   try {
     const { data, error } = await supabase
-      .from('permits')
-      .select('id, template_name, jsea')
+      .from('templates')
+      .select('id, name, data, created_at, updated_at')
+      .eq('template_type', 'jsea')
       .eq('id', jseaTemplateId)
-      .eq('permit_type', 'JSEA')
-      .eq('is_template', true)
       .single();
 
     if (error) throw error;
 
-    return { success: true, data };
+    // Transform data for compatibility
+    const transformedData = {
+      id: data.id,
+      template_name: data.name,
+      name: data.name,
+      jsea: data.data?.steps || [],
+      company_id: data.data?.company_id,
+      business_unit_id: data.data?.business_unit_id,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+
+    return { success: true, data: transformedData };
   } catch (error) {
     console.error('Get JSEA template error:', error);
     return { success: false, error: error.message };
@@ -290,21 +320,23 @@ export async function getJseaTemplate(jseaTemplateId) {
 export async function deleteJseaTemplate(jseaTemplateId) {
   try {
     const { data: template } = await supabase
-      .from('permits')
-      .select('template_name')
+      .from('templates')
+      .select('name')
       .eq('id', jseaTemplateId)
+      .eq('template_type', 'jsea')
       .single();
 
     const { error } = await supabase
-      .from('permits')
+      .from('templates')
       .delete()
-      .eq('id', jseaTemplateId);
+      .eq('id', jseaTemplateId)
+      .eq('template_type', 'jsea');
 
     if (error) throw error;
 
     await logAudit('jsea_template_deleted', {
       template_id: jseaTemplateId,
-      template_name: template?.template_name,
+      template_name: template?.name,
     });
 
     return { success: true, message: 'JSEA template deleted' };
@@ -323,18 +355,43 @@ export async function deleteJseaTemplate(jseaTemplateId) {
  */
 export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
   try {
+    // Get existing template to preserve business_unit_id and company_id
+    const { data: existingTemplate } = await supabase
+      .from('templates')
+      .select('data')
+      .eq('id', jseaTemplateId)
+      .eq('template_type', 'jsea')
+      .single();
+
     const { data, error } = await supabase
-      .from('permits')
+      .from('templates')
       .update({
-        template_name: jseaName,
-        jsea: jseaSteps,
+        name: jseaName,
+        data: {
+          steps: jseaSteps,
+          business_unit_id: existingTemplate?.data?.business_unit_id,
+          company_id: existingTemplate?.data?.company_id,
+        },
         updated_at: new Date().toISOString(),
       })
       .eq('id', jseaTemplateId)
+      .eq('template_type', 'jsea')
       .select()
       .single();
 
     if (error) throw error;
+
+    // Transform data for compatibility
+    const transformedData = {
+      id: data.id,
+      template_name: data.name,
+      name: data.name,
+      jsea: data.data?.steps || [],
+      company_id: data.data?.company_id,
+      business_unit_id: data.data?.business_unit_id,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
 
     await logAudit('jsea_template_updated', {
       template_id: jseaTemplateId,
@@ -342,7 +399,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       step_count: jseaSteps.length,
     });
 
-    return { success: true, data, message: `JSEA template "${jseaName}" updated` };
+    return { success: true, data: transformedData, message: `JSEA template "${jseaName}" updated` };
   } catch (error) {
     console.error('Update JSEA template error:', error);
     return { success: false, error: error.message };
