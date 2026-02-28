@@ -286,9 +286,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       return;
     }
 
-    // Build queue: compulsory first, then selected optional
+    // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
     const selectedOptional = optionalInductions.filter(ind => selectedOptionalIds.includes(ind.id));
-    setInductionQueue([...compulsoryInductions, ...selectedOptional]);
+    const allInductions = [...compulsoryInductions, ...selectedOptional];
+    
+    // Sort so company-wide (site_id = null) come first, then site-specific (site_id != null)
+    const sortedQueue = allInductions.sort((a, b) => {
+      const aIsCompanyWide = a.site_id === null ? 0 : 1;
+      const bIsCompanyWide = b.site_id === null ? 0 : 1;
+      return aIsCompanyWide - bIsCompanyWide;
+    });
+    
+    setInductionQueue(sortedQueue);
     setCurrentInductionIndex(0);
     setAnswers({});
     setSignatureText('');
