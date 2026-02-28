@@ -175,13 +175,12 @@ export async function deleteTemplate(templateId) {
  */
 export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, companyId = null) {
   try {
-    // Store JSEA template in templates table
+    // Save JSEA template to templates table
     const { data, error } = await supabase
       .from('templates')
       .insert([{
         name: jseaName,
         template_type: 'jsea',
-        business_unit_id: businessUnitId,
         company_id: companyId,
         data: {
           steps: jseaSteps,
@@ -191,6 +190,18 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
       .single();
 
     if (error) throw error;
+
+    // Add template to selected business unit(s) in junction table
+    if (businessUnitId) {
+      const { error: juError } = await supabase
+        .from('template_business_units')
+        .insert([{
+          template_id: data.id,
+          business_unit_id: businessUnitId,
+        }]);
+
+      if (juError) throw juError;
+    }
 
     await logAudit('jsea_template_saved', {
       template_id: data.id,
@@ -214,23 +225,49 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
  */
 export async function getJseaTemplates(businessUnitId) {
   try {
-    const { data, error } = await supabase
+    // Get all JSEA templates that either:
+    // 1. Have an entry in template_business_units for this BU, OR
+    // 2. Have NO entries in template_business_units (available to all BUs)
+    const { data: allTemplates, error: listError } = await supabase
       .from('templates')
-      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
+      .select('id, name, data, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
-      .eq('business_unit_id', businessUnitId)
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (listError) throw listError;
+
+    // Get templates specifically assigned to this business unit
+    const { data: assignedToThisBU, error: buError } = await supabase
+      .from('template_business_units')
+      .select('template_id')
+      .eq('business_unit_id', businessUnitId);
+
+    if (buError) throw buError;
+
+    const assignedIds = new Set(assignedToThisBU?.map(row => row.template_id) || []);
+
+    // Get templates assigned to any business unit
+    const { data: templatesWithBU, error: anyBUError } = await supabase
+      .from('template_business_units')
+      .select('template_id');
+
+    if (anyBUError) throw anyBUError;
+
+    const templatesWithBUIds = new Set(templatesWithBU?.map(row => row.template_id) || []);
+
+    // Filter templates: include if assigned to this BU, or if not assigned to any BU (available to all)
+    const filteredTemplates = allTemplates.filter(template => 
+      assignedIds.has(template.id) || !templatesWithBUIds.has(template.id)
+    );
 
     // Transform data for easier access
-    const transformedData = data.map(template => ({
+    const transformedData = filteredTemplates.map(template => ({
       id: template.id,
       template_name: template.name,
       name: template.name,
       jsea: template.data?.steps || [],
       company_id: template.company_id,
-      business_unit_id: template.business_unit_id,
+      business_unit_id: businessUnitId,
       created_at: template.created_at,
       updated_at: template.updated_at,
     }));
@@ -251,26 +288,35 @@ export async function getJseaTemplatesByCompany(companyId) {
   try {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
+      .select('id, name, data, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
       .eq('company_id', companyId)
       .order('name', { ascending: true });
 
     if (error) throw error;
 
-    // Transform data for easier access
-    const transformedData = data.map(template => ({
-      id: template.id,
-      template_name: template.name,
-      name: template.name,
-      jsea: template.data?.steps || [],
-      company_id: template.company_id,
-      business_unit_id: template.business_unit_id,
-      created_at: template.created_at,
-      updated_at: template.updated_at,
-    }));
+    // Get business units for each template
+    const templatesWithBU = await Promise.all(
+      data.map(async (template) => {
+        const { data: buData } = await supabase
+          .from('template_business_units')
+          .select('business_unit_id')
+          .eq('template_id', template.id);
+        
+        return {
+          id: template.id,
+          template_name: template.name,
+          name: template.name,
+          jsea: template.data?.steps || [],
+          company_id: template.company_id,
+          business_units: buData?.map(row => row.business_unit_id) || [],
+          created_at: template.created_at,
+          updated_at: template.updated_at,
+        };
+      })
+    );
 
-    return { success: true, data: transformedData };
+    return { success: true, data: templatesWithBU };
   } catch (error) {
     console.error('Get JSEA templates by company error:', error);
     return { success: false, error: error.message };
@@ -286,12 +332,18 @@ export async function getJseaTemplate(jseaTemplateId) {
   try {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
+      .select('id, name, data, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
       .eq('id', jseaTemplateId)
       .single();
 
     if (error) throw error;
+
+    // Get business units this template is assigned to
+    const { data: buData } = await supabase
+      .from('template_business_units')
+      .select('business_unit_id')
+      .eq('template_id', jseaTemplateId);
 
     // Transform data for compatibility
     const transformedData = {
@@ -300,7 +352,7 @@ export async function getJseaTemplate(jseaTemplateId) {
       name: data.name,
       jsea: data.data?.steps || [],
       company_id: data.company_id,
-      business_unit_id: data.business_unit_id,
+      business_units: buData?.map(row => row.business_unit_id) || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -355,14 +407,6 @@ export async function deleteJseaTemplate(jseaTemplateId) {
  */
 export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
   try {
-    // Get existing template to preserve business_unit_id and company_id
-    const { data: existingTemplate } = await supabase
-      .from('templates')
-      .select('business_unit_id, company_id')
-      .eq('id', jseaTemplateId)
-      .eq('template_type', 'jsea')
-      .single();
-
     const { data, error } = await supabase
       .from('templates')
       .update({
@@ -379,6 +423,12 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
 
     if (error) throw error;
 
+    // Get business units this template is assigned to
+    const { data: buData } = await supabase
+      .from('template_business_units')
+      .select('business_unit_id')
+      .eq('template_id', jseaTemplateId);
+
     // Transform data for compatibility
     const transformedData = {
       id: data.id,
@@ -386,7 +436,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       name: data.name,
       jsea: data.data?.steps || [],
       company_id: data.company_id,
-      business_unit_id: data.business_unit_id,
+      business_units: buData?.map(row => row.business_unit_id) || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
