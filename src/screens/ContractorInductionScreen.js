@@ -6,725 +6,601 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
-  Modal,
-  ActivityIndicator,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import {
-  getInductionsForContractor,
-  getInductionSubsections,
-  getInductionQuestions,
-  saveInductionProgress,
-  completeInductionSubsection,
+  getInductionsByBusinessUnit,
+  startInduction,
+  saveInductionAnswers,
+  completeInduction,
 } from '../api/inductions';
 import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
 
 /**
- * ContractorInductionScreen
- * Complete induction workflow: contractor info → compulsory videos → optional selection → questions → signature
+ * ContractorInductionScreen - Simplified for single inductions table
+ * Flow: Info → Inductions List → Video → Questions → Signature → Complete
  */
 export default function ContractorInductionScreen({ onComplete, onCancel, styles }) {
-  // Steps: 'info', 'compulsory', 'optional', 'induction', 'complete'
-  const [currentStep, setCurrentStep] = useState('info');
+  const [step, setStep] = useState('info'); // info, inductionsList, video, questions, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ======== Step 1: Contractor Info ========
+  // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
     name: '',
     email: '',
     phone: '',
     companyId: '',
-    businessUnitIds: [],
-    siteIds: [],
+    businessUnitId: '',
   });
-
   const [companies, setCompanies] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [sites, setSites] = useState([]);
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
-  useEffect(() => {
-    loadDropdownData();
-  }, []);
-
-  const loadDropdownData = async () => {
-    try {
-      console.log('Loading dropdown data...');
-      const companiesData = await listCompanies();
-      console.log('Companies loaded:', companiesData ? companiesData.length : 0);
-      setCompanies(Array.isArray(companiesData) ? companiesData : []);
-
-      const busUnitsData = await listBusinessUnits();
-      console.log('Business Units loaded:', busUnitsData ? busUnitsData.length : 0);
-      setBusinessUnits(Array.isArray(busUnitsData) ? busUnitsData : []);
-
-      const sitesData = await listSites();
-      console.log('Sites loaded:', sitesData ? sitesData.length : 0);
-      setSites(Array.isArray(sitesData) ? sitesData : []);
-    } catch (err) {
-      console.error('Error loading dropdown data:', err);
-      setError('Could not load form data');
-    }
-  };
-
-  // Filter sites by selected business units
-  const availableSites = sites.filter(site =>
-    contractorInfo.businessUnitIds.includes(site.business_unit_id)
-  );
-
-  // ======== Step 2: Get Compulsory Inductions ========
-  const [inductionsData, setInductionsData] = useState({
-    compulsory: [],
-    optional: [],
-  });
-
-  const loadInductions = async () => {
-    if (!contractorInfo.businessUnitIds.length) {
-      setError('Please select at least one business unit');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await getInductionsForContractor(
-        'temp-contractor-id', // Will use this as placeholder
-        contractorInfo.businessUnitIds,
-        contractorInfo.siteIds
-      );
-
-      if (result.success) {
-        setInductionsData(result.data);
-        setCurrentStep('compulsory');
-      } else {
-        setError(result.error || 'Failed to load inductions');
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ======== Step 3: Selected Optional Inductions ========
-  const [selectedOptional, setSelectedOptional] = useState([]);
-
-  // ======== Step 4: Induction Progress ========
+  // Step 2: Inductions List
+  const [allInductions, setAllInductions] = useState([]);
+  const [selectedInductionIds, setSelectedInductionIds] = useState([]);
+  const [inductionQueue, setInductionQueue] = useState([]); // Ordered list to complete
   const [currentInductionIndex, setCurrentInductionIndex] = useState(0);
-  const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
-  const [subsections, setSubsections] = useState([]);
-  const [currentQuestions, setCurrentQuestions] = useState([]);
-  const [userAnswers, setUserAnswers] = useState({});
+
+  // Current induction being completed
+  const currentInduction = inductionQueue[currentInductionIndex];
+
+  // Step 3: Video
   const [videoWatched, setVideoWatched] = useState(false);
-  const [signature, setSignature] = useState(null);
+
+  // Step 4: Questions
+  const [answers, setAnswers] = useState({});
+  const hasQuestions = currentInduction?.question_1_text?.trim();
+
+  // Step 5: Signature
   const [signatureText, setSignatureText] = useState('');
 
-  // Get list of all inductions to complete (compulsory + selected optional)
-  const allInductionsToComplete = [
-    ...inductionsData.compulsory,
-    ...inductionsData.optional.filter(opt =>
-      selectedOptional.includes(opt.id)
-    ),
-  ];
-
-  const currentInduction = allInductionsToComplete[currentInductionIndex];
-
-  // Load subsections when induction changes
+  // Load initial data
   useEffect(() => {
-    if (currentInduction && currentStep === 'induction') {
-      loadSubsections();
-    }
-  }, [currentInductionIndex, currentStep]);
+    loadCompaniesAndBU();
+  }, []);
 
-  const loadSubsections = async () => {
-    setLoading(true);
+  const loadCompaniesAndBU = async () => {
     try {
-      const result = await getInductionSubsections(currentInduction.id);
-      if (result.success) {
-        setSubsections(result.data);
-        setCurrentSubsectionIndex(0);
-        setVideoWatched(false);
-        setUserAnswers({});
-        loadQuestions(result.data[0].id);
-      }
+      const [companiesData, buData] = await Promise.all([
+        listCompanies(),
+        listBusinessUnits(),
+      ]);
+      setCompanies(Array.isArray(companiesData) ? companiesData : []);
+      setBusinessUnits(Array.isArray(buData) ? buData : []);
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setError('Failed to load data');
     }
   };
 
-  const loadQuestions = async (subsectionId) => {
-    try {
-      const result = await getInductionQuestions(subsectionId);
-      if (result.success) {
-        setCurrentQuestions(result.data);
-      }
-    } catch (err) {
-      console.error('Error loading questions:', err);
-    }
-  };
-
-  // ======== Handlers ========
-
-  const handleInfoContinue = () => {
-    if (!contractorInfo.name || !contractorInfo.email) {
-      setError('Please fill in name and email');
+  const handleInfoContinue = async () => {
+    if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
+      Alert.alert('Error', 'Please enter name and email');
       return;
     }
     if (!contractorInfo.companyId) {
-      setError('Please select a company');
+      Alert.alert('Error', 'Please select a company');
       return;
     }
-    if (!contractorInfo.businessUnitIds.length) {
-      setError('Please select at least one business unit');
-      return;
-    }
-    if (!contractorInfo.siteIds.length) {
-      setError('Please select at least one site');
-      return;
-    }
-
-    setError('');
-    loadInductions();
-  };
-
-  const handleCompulsoryComplete = () => {
-    if (inductionsData.optional.length > 0) {
-      setCurrentStep('optional');
-    } else {
-      // Skip optional and go straight to inductions
-      setCurrentStep('induction');
-    }
-  };
-
-  const handleOptionalComplete = () => {
-    setCurrentStep('induction');
-  };
-
-  const handleAnswerChange = (questionNumber, answer) => {
-    setUserAnswers({
-      ...userAnswers,
-      [`q${questionNumber}`]: answer,
-    });
-  };
-
-  const handleSubmitAnswers = async () => {
-    if (Object.keys(userAnswers).length < currentQuestions.length) {
-      setError('Please answer all questions');
+    if (!contractorInfo.businessUnitId) {
+      Alert.alert('Error', 'Please select a business unit');
       return;
     }
 
     setLoading(true);
-    setError('');
-
     try {
-      const currentSubsection = subsections[currentSubsectionIndex];
-      const result = await saveInductionProgress(
-        'temp-contractor-id',
-        contractorInfo.siteIds[0],
-        contractorInfo.businessUnitIds[0],
-        currentSubsection.id,
-        userAnswers
-      );
-
-      if (result.success) {
-        // Check if more subsections
-        if (currentSubsectionIndex < subsections.length - 1) {
-          // Move to next subsection
-          setCurrentSubsectionIndex(currentSubsectionIndex + 1);
-          setVideoWatched(false);
-          setUserAnswers({});
-          loadQuestions(subsections[currentSubsectionIndex + 1].id);
-        } else if (currentInductionIndex < allInductionsToComplete.length - 1) {
-          // Move to next induction
-          setCurrentInductionIndex(currentInductionIndex + 1);
-        } else {
-          // All done, show signature screen
-          setCurrentStep('signature');
-        }
-      } else {
-        setError(result.error);
-      }
+      const inductions = await getInductionsByBusinessUnit(contractorInfo.businessUnitId);
+      setAllInductions(inductions || []);
+      setStep('inductionsList');
     } catch (err) {
-      setError(err.message);
+      Alert.alert('Error', 'Failed to load inductions');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCaptureSignature = () => {
-    if (signatureText.trim().length < 3) {
-      setError('Please enter at least 3 characters as signature');
+  const toggleInductionSelection = (inductionId) => {
+    setSelectedInductionIds(prev =>
+      prev.includes(inductionId)
+        ? prev.filter(id => id !== inductionId)
+        : [...prev, inductionId]
+    );
+  };
+
+  const handleStartInductions = async () => {
+    if (selectedInductionIds.length === 0) {
+      Alert.alert('Error', 'Please select at least one induction');
       return;
     }
-    setSignature(signatureText);
+
+    // Build queue: compulsory first, then selected optional
+    const compulsory = allInductions.filter(ind => ind.is_compulsory && selectedInductionIds.includes(ind.id));
+    const optional = allInductions.filter(ind => !ind.is_compulsory && selectedInductionIds.includes(ind.id));
+    setInductionQueue([...compulsory, ...optional]);
+    setCurrentInductionIndex(0);
+    setAnswers({});
+    setSignatureText('');
+    setVideoWatched(false);
+
+    // Start first induction
+    setStep('video');
+  };
+
+  const handleVideoComplete = () => {
+    if (!currentInduction.video_url) {
+      // No video, go straight to questions or signature
+      handleGoToQuestions();
+    } else if (hasQuestions) {
+      setStep('questions');
+    } else {
+      setStep('signature');
+    }
+  };
+
+  const handleGoToQuestions = () => {
+    if (hasQuestions) {
+      setStep('questions');
+    } else {
+      setStep('signature');
+    }
+  };
+
+  const handleQuestionsComplete = () => {
+    // Validate answers
+    const questions = [
+      currentInduction.question_1_text,
+      currentInduction.question_2_text,
+      currentInduction.question_3_text,
+    ].filter(q => q?.trim());
+
+    if (questions.length > 0 && Object.keys(answers).length < questions.length) {
+      Alert.alert('Error', 'Please answer all questions');
+      return;
+    }
+
+    setStep('signature');
   };
 
   const handleCompleteInduction = async () => {
-    if (!signature) {
-      setError('Please provide a signature');
+    if (!signatureText?.trim()) {
+      Alert.alert('Error', 'Please enter your signature');
       return;
     }
 
     setLoading(true);
-    setError('');
-
     try {
-      // In real implementation, upload signature and call API
-      // For now, just show completion
-      setCurrentStep('complete');
+      // Save answers
+      if (Object.keys(answers).length > 0) {
+        await saveInductionAnswers(
+          'temp-contractor-id', // Will need contractor ID from signin
+          currentInduction.id,
+          answers
+        );
+      }
+
+      // Complete induction
+      await completeInduction(
+        'temp-contractor-id',
+        currentInduction.id,
+        signatureText
+      );
+
+      // Move to next induction or complete
+      if (currentInductionIndex < inductionQueue.length - 1) {
+        setCurrentInductionIndex(currentInductionIndex + 1);
+        setAnswers({});
+        setSignatureText('');
+        setVideoWatched(false);
+        setStep('video');
+      } else {
+        setStep('complete');
+      }
     } catch (err) {
-      setError(err.message);
+      Alert.alert('Error', 'Failed to complete induction');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ======== UI Renderers ========
+  // ============================================================================
+  // RENDER STEPS
+  // ============================================================================
 
-  const renderInfoStep = () => (
-    <ScrollView style={[styles.container, { padding: 20 }]}>
-      <Text style={[styles.heading, { marginBottom: 28 }]}>Contractor Information</Text>
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
 
-      <Text style={styles.label}>Full Name *</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter full name"
-        value={contractorInfo.name}
-        onChangeText={(text) => setContractorInfo({ ...contractorInfo, name: text })}
-      />
+  // STEP 1: INFO
+  if (step === 'info') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onCancel}>
+            <Text style={styles.backButton}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Contractor Induction</Text>
+        </View>
 
-      <Text style={[styles.label, { marginTop: 18 }]}>Email *</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter email"
-        value={contractorInfo.email}
-        onChangeText={(text) => setContractorInfo({ ...contractorInfo, email: text })}
-        keyboardType="email-address"
-      />
-
-      <Text style={[styles.label, { marginTop: 18 }]}>Phone (Optional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter phone"
-        value={contractorInfo.phone}
-        onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: text })}
-        keyboardType="phone-pad"
-      />
-
-      <Text style={[styles.label, { marginTop: 18 }]}>Company *</Text>
-      <View style={{ position: 'relative', zIndex: 10 }}>
-        <TouchableOpacity
-          style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
-          onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
-        >
-          <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF', fontSize: 16, flex: 1 }}>
-            {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select a company...'}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
+            Please provide your information to begin the induction process.
           </Text>
-          <Text style={{ fontSize: 16, color: '#6B7280' }}>▼</Text>
-        </TouchableOpacity>
-        
-        {showCompanyDropdown && (
-          <View style={{ 
-            borderWidth: 1, 
-            borderColor: '#D1D5DB', 
-            borderTopWidth: 0, 
-            borderRadius: 0, 
-            maxHeight: 200,
-            backgroundColor: 'white',
-            position: 'absolute',
-            top: 48,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-          }}>
-            <ScrollView>
-              {companies.map((company) => (
+
+          <Text style={styles.label}>Full Name *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="John Smith"
+            value={contractorInfo.name}
+            onChangeText={(text) => setContractorInfo({ ...contractorInfo, name: text })}
+          />
+
+          <Text style={[styles.label, { marginTop: 16 }]}>Email *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="john@example.com"
+            keyboardType="email-address"
+            value={contractorInfo.email}
+            onChangeText={(text) => setContractorInfo({ ...contractorInfo, email: text })}
+          />
+
+          <Text style={[styles.label, { marginTop: 16 }]}>Phone</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="021 123 4567"
+            keyboardType="phone-pad"
+            value={contractorInfo.phone}
+            onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: text })}
+          />
+
+          <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
+          <TouchableOpacity
+            style={[styles.input, { justifyContent: 'center', backgroundColor: showCompanyDropdown ? '#F3F4F6' : 'white' }]}
+            onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
+          >
+            <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF' }}>
+              {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select Company'} ▼
+            </Text>
+          </TouchableOpacity>
+          {showCompanyDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, marginBottom: 16 }}>
+              {companies.map(company => (
                 <TouchableOpacity
                   key={company.id}
-                  style={{ 
-                    padding: 14, 
-                    borderBottomWidth: 1, 
-                    borderBottomColor: '#F3F4F6',
-                    backgroundColor: contractorInfo.companyId === company.id ? '#EFF6FF' : 'white'
-                  }}
                   onPress={() => {
                     setContractorInfo({ ...contractorInfo, companyId: company.id });
                     setShowCompanyDropdown(false);
                   }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                 >
-                  <Text style={{ fontSize: 16, color: contractorInfo.companyId === company.id ? '#2563EB' : '#1F2937', fontWeight: contractorInfo.companyId === company.id ? '600' : '400' }}>
-                    {company.name}
+                  <Text style={{ fontSize: 14, color: '#1F2937' }}>{company.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <Text style={[styles.label, { marginTop: 16 }]}>Business Unit *</Text>
+          <View style={{ gap: 8 }}>
+            {businessUnits.map(bu => (
+              <TouchableOpacity
+                key={bu.id}
+                onPress={() => setContractorInfo({ ...contractorInfo, businessUnitId: bu.id })}
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  borderRadius: 8,
+                  backgroundColor: contractorInfo.businessUnitId === bu.id ? '#E0E7FF' : '#F3F4F6',
+                  borderLeftWidth: 3,
+                  borderLeftColor: contractorInfo.businessUnitId === bu.id ? '#3B82F6' : 'transparent',
+                }}
+              >
+                <Text style={{ fontWeight: contractorInfo.businessUnitId === bu.id ? '600' : '400', color: '#1F2937' }}>
+                  {bu.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
+
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 24 }]}
+            onPress={handleInfoContinue}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP 2: INDUCTIONS LIST
+  if (step === 'inductionsList') {
+    const compulsory = allInductions.filter(ind => ind.is_compulsory);
+    const optional = allInductions.filter(ind => !ind.is_compulsory);
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setStep('info')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Select Inductions</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {compulsory.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#DC2626', marginBottom: 12 }}>
+                REQUIRED INDUCTIONS
+              </Text>
+              {compulsory.map(ind => (
+                <TouchableOpacity
+                  key={ind.id}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: '#FEE2E2',
+                    marginBottom: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#DC2626',
+                  }}
+                >
+                  <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
+                    {ind.induction_name}
+                  </Text>
+                  {ind.subsection_name && (
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                      Variant: {ind.subsection_name}
+                    </Text>
+                  )}
+                  {ind.video_url && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>📹 Video included</Text>}
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+
+          {optional.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#3B82F6', marginTop: compulsory.length ? 24 : 0, marginBottom: 12 }}>
+                OPTIONAL INDUCTIONS
+              </Text>
+              {optional.map(ind => (
+                <TouchableOpacity
+                  key={ind.id}
+                  onPress={() => toggleInductionSelection(ind.id)}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: selectedInductionIds.includes(ind.id) ? '#E0E7FF' : '#F9FAFB',
+                    marginBottom: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: selectedInductionIds.includes(ind.id) ? '#3B82F6' : '#E5E7EB',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: '#3B82F6',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: selectedInductionIds.includes(ind.id) ? '#3B82F6' : 'white',
+                      marginRight: 12,
+                    }}
+                  >
+                    {selectedInductionIds.includes(ind.id) && (
+                      <Text style={{ color: 'white', fontWeight: '700' }}>✓</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
+                      {ind.induction_name}
+                    </Text>
+                    {ind.subsection_name && (
+                      <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+                        {ind.subsection_name}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+
+          <TouchableOpacity style={[styles.button, { marginTop: 24 }]} onPress={handleStartInductions}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              Start Inductions ({selectedInductionIds.length + compulsory.length})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP 3: VIDEO
+  if (step === 'video') {
+    const getYoutubeEmbedUrl = (url) => {
+      const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+      return videoId ? `https://www.youtube.com/embed/${videoId[1]}` : null;
+    };
+
+    const embedUrl = currentInduction?.video_url ? getYoutubeEmbedUrl(currentInduction.video_url) : null;
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => { setStep('inductionsList'); setCurrentInductionIndex(0); }}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {currentInduction.induction_name}
+            {currentInduction.subsection_name && ` - ${currentInduction.subsection_name}`}
+          </Text>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          {embedUrl ? (
+            <WebView
+              source={{ uri: embedUrl }}
+              style={{ flex: 1 }}
+              javaScriptEnabled={true}
+            />
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: '#6B7280' }}>No video for this induction</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={{ padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+          <TouchableOpacity
+            style={[styles.button, { marginBottom: 8 }]}
+            onPress={() => {
+              setVideoWatched(true);
+              handleVideoComplete();
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              {hasQuestions ? 'Next: Questions' : 'Next: Signature'}
+            </Text>
+          </TouchableOpacity>
+          {!embedUrl && (
+            <Text style={{ textAlign: 'center', color: '#6B7280', fontSize: 12, marginTop: 8 }}>
+              Click Next to continue
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // STEP 4: QUESTIONS
+  if (step === 'questions') {
+    const questions = [
+      { num: 1, text: currentInduction.question_1_text, options: currentInduction.question_1_options, correct: currentInduction.question_1_correct_answer },
+      { num: 2, text: currentInduction.question_2_text, options: currentInduction.question_2_options, correct: currentInduction.question_2_correct_answer },
+      { num: 3, text: currentInduction.question_3_text, options: currentInduction.question_3_options, correct: currentInduction.question_3_correct_answer },
+    ].filter(q => q.text?.trim());
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setStep('video')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Questions</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {questions.map(q => (
+            <View key={q.num} style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+                Q{q.num}: {q.text}
+              </Text>
+              {Array.isArray(q.options) && q.options.map((option, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => setAnswers({ ...answers, [`q${q.num}`]: idx })}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: answers[`q${q.num}`] === idx ? '#E0E7FF' : '#F9FAFB',
+                    marginBottom: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: answers[`q${q.num}`] === idx ? '#3B82F6' : '#E5E7EB',
+                  }}
+                >
+                  <Text style={{ color: '#1F2937', fontWeight: answers[`q${q.num}`] === idx ? '600' : '400' }}>
+                    {String.fromCharCode(65 + idx)}) {option}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </View>
-        )}
-      </View>
-
-      <Text style={[styles.label, { marginTop: 24 }]}>Business Units *</Text>
-      <View style={[styles.checkboxGroup, { paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }]}>
-        {businessUnits.map((bu) => (
-          <TouchableOpacity
-            key={bu.id}
-            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 0 }]}
-            onPress={() => {
-              const isSelected = contractorInfo.businessUnitIds.includes(bu.id);
-              setContractorInfo({
-                ...contractorInfo,
-                businessUnitIds: isSelected
-                  ? contractorInfo.businessUnitIds.filter((id) => id !== bu.id)
-                  : [...contractorInfo.businessUnitIds, bu.id],
-              });
-            }}
-            activeOpacity={0.6}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                contractorInfo.businessUnitIds.includes(bu.id) && styles.checkboxBoxChecked,
-              ]}
-            >
-              {contractorInfo.businessUnitIds.includes(bu.id) && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
             </View>
-            <Text style={styles.checkboxLabel}>{bu.name}</Text>
+          ))}
+
+          <TouchableOpacity style={[styles.button, { marginTop: 24 }]} onPress={handleQuestionsComplete}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Next: Signature</Text>
           </TouchableOpacity>
-        ))}
+        </ScrollView>
       </View>
-
-      <Text style={[styles.label, { marginTop: 24 }]}>Sites *</Text>
-      <View style={[styles.checkboxGroup, { paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }]}>
-        {availableSites.map((site) => (
-          <TouchableOpacity
-            key={site.id}
-            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 0 }]}
-            onPress={() => {
-              const isSelected = contractorInfo.siteIds.includes(site.id);
-              setContractorInfo({
-                ...contractorInfo,
-                siteIds: isSelected
-                  ? contractorInfo.siteIds.filter((id) => id !== site.id)
-                  : [...contractorInfo.siteIds, site.id],
-              });
-            }}
-            activeOpacity={0.6}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                contractorInfo.siteIds.includes(site.id) && styles.checkboxBoxChecked,
-              ]}
-            >
-              {contractorInfo.siteIds.includes(site.id) && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </View>
-            <Text style={styles.checkboxLabel}>{site.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 30, marginBottom: 20 }]}
-        onPress={handleInfoContinue}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Continue</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-        <Text style={styles.cancelButtonText}>Cancel</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const renderCompulsoryStep = () => (
-    <ScrollView style={[styles.container, { padding: 20 }]}>
-      <Text style={[styles.heading, { marginBottom: 20 }]}>
-        Compulsory Inductions
-      </Text>
-
-      <Text style={styles.subheading}>
-        You must complete the following before you can work:
-      </Text>
-
-      {inductionsData.compulsory.map((induction, index) => (
-        <View key={induction.id} style={styles.inductionCard}>
-          <Text style={styles.inductionTitle}>
-            {index + 1}. {induction.induction_name}
-          </Text>
-          <Text style={styles.inductionStatus}>
-            Status: {induction.progress || 'Not Started'}
-          </Text>
-        </View>
-      ))}
-
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 30 }]}
-        onPress={handleCompulsoryComplete}
-      >
-        <Text style={styles.buttonText}>Continue</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const renderOptionalStep = () => (
-    <ScrollView style={[styles.container, { padding: 20 }]}>
-      <Text style={[styles.heading, { marginBottom: 20 }]}>Optional Inductions</Text>
-
-      <Text style={styles.subheading}>
-        Select additional inductions you'd like to complete:
-      </Text>
-
-      {inductionsData.optional.map((induction) => (
-        <TouchableOpacity
-          key={induction.id}
-          style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
-          onPress={() => {
-            const isSelected = selectedOptional.includes(induction.id);
-            setSelectedOptional(
-              isSelected
-                ? selectedOptional.filter((id) => id !== induction.id)
-                : [...selectedOptional, induction.id]
-            );
-          }}
-          activeOpacity={0.6}
-        >
-          <View
-            style={[
-              styles.checkboxBox,
-              selectedOptional.includes(induction.id) && styles.checkboxBoxChecked,
-            ]}
-          >
-            {selectedOptional.includes(induction.id) && (
-              <Text style={styles.checkmark}>✓</Text>
-            )}
-          </View>
-          <Text style={styles.checkboxLabel}>{induction.induction_name}</Text>
-        </TouchableOpacity>
-      ))}
-
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 30 }]}
-        onPress={handleOptionalComplete}
-      >
-        <Text style={styles.buttonText}>Continue</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const renderInductionStep = () => {
-    if (!currentInduction || !subsections.length) {
-      return (
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-        </View>
-      );
-    }
-
-    const currentSubsection = subsections[currentSubsectionIndex];
-    const isLastInduction = currentInductionIndex === allInductionsToComplete.length - 1;
-    const isLastSubsection = currentSubsectionIndex === subsections.length - 1;
-
-    return (
-      <ScrollView style={[styles.container, { padding: 20 }]}>
-        <Text style={styles.heading}>{currentInduction.induction_name}</Text>
-
-        {subsections.length > 1 && (
-          <Text style={styles.subheading}>
-            Section {currentSubsectionIndex + 1} of {subsections.length}:{' '}
-            {currentSubsection.subsection_name}
-          </Text>
-        )}
-
-        {/* Video Player */}
-        <View style={styles.videoContainer}>
-          <WebView
-            source={{ uri: currentSubsection.video_url }}
-            style={{ height: 250, marginBottom: 10 }}
-            startInLoadingState
-            renderLoading={() => <ActivityIndicator />}
-          />
-        </View>
-
-        {/* Watch confirmation */}
-        {!videoWatched && (
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setVideoWatched(true)}
-          >
-            <Text style={styles.buttonText}>Video Watched - Continue</Text>
-          </TouchableOpacity>
-        )}
-
-        {videoWatched && (
-          <>
-            {/* Questions */}
-            <Text style={styles.heading}>Assessment Questions</Text>
-
-            {currentQuestions.map((question) => (
-              <View key={question.id} style={styles.questionCard}>
-                <Text style={styles.questionText}>
-                  Q{question.question_number}: {question.question_text}
-                </Text>
-
-                {question.question_type === 'multiple-choice' &&
-                  question.options &&
-                  Object.entries(question.options).map(([key, label]) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.optionButton,
-                        userAnswers[`q${question.question_number}`] === key &&
-                          styles.optionButtonSelected,
-                      ]}
-                      onPress={() => handleAnswerChange(question.question_number, key)}
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          userAnswers[`q${question.question_number}`] === key &&
-                            styles.optionTextSelected,
-                        ]}
-                      >
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-              </View>
-            ))}
-
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
-            <TouchableOpacity
-              style={[styles.button, { marginTop: 20 }]}
-              onPress={handleSubmitAnswers}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {isLastInduction && isLastSubsection
-                    ? 'Complete & Sign'
-                    : 'Next'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
     );
-  };
+  }
 
-  const renderSignatureStep = () => (
-    <ScrollView style={[styles.container, { padding: 20 }]}>
-      <Text style={[styles.heading, { marginBottom: 20 }]}>Sign & Complete</Text>
-
-      <Text style={styles.subheading}>
-        By signing below, you acknowledge that you have completed all inductions and understand the site safety requirements.
-      </Text>
-
-      <Text style={styles.label}>Your Signature (Full Name)</Text>
-      <TextInput
-        style={[styles.input, { marginBottom: 20 }]}
-        placeholder="Type your full name here"
-        value={signatureText}
-        onChangeText={setSignatureText}
-      />
-
-      {signature && (
-        <View style={{ 
-          padding: 12, 
-          backgroundColor: '#ECFDF5', 
-          borderRadius: 6, 
-          marginBottom: 20,
-          borderWidth: 1,
-          borderColor: '#10B981'
-        }}>
-          <Text style={{ color: '#065F46', fontSize: 14 }}>
-            ✓ Signature accepted: {signature}
-          </Text>
+  // STEP 5: SIGNATURE
+  if (step === 'signature') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setStep(hasQuestions ? 'questions' : 'video')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Confirm</Text>
         </View>
-      )}
 
-      {error && <Text style={[styles.errorText, { marginBottom: 10 }]}>{error}</Text>}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            I confirm that I have completed the {currentInduction.induction_name} induction and understand all safety procedures.
+          </Text>
 
-      <TouchableOpacity 
-        style={[styles.button, signature && { opacity: 0.6 }]}
-        onPress={handleCaptureSignature}
-      >
-        <Text style={styles.buttonText}>
-          {signature ? '✓ Signed' : 'Accept Signature'}
-        </Text>
-      </TouchableOpacity>
+          <Text style={styles.label}>Your Signature</Text>
+          <TextInput
+            style={[styles.input, { marginBottom: 16 }]}
+            placeholder="Type your full name to sign"
+            value={signatureText}
+            onChangeText={setSignatureText}
+          />
 
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: signature ? '#10B981' : '#D1D5DB' }]}
-        onPress={handleCompleteInduction}
-        disabled={!signature || loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Finish Induction</Text>
-        )}
-
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const renderCompleteStep = () => (
-    <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-      <Text style={[styles.heading, { marginBottom: 40 }]}>✓ Congratulations!</Text>
-
-      <Text style={styles.text}>
-        You have successfully completed all inductions and are now approved to work on site.
-      </Text>
-
-      <View style={styles.servicesList}>
-        <Text style={styles.subheading}>Services Unlocked:</Text>
-        {/* Services will be shown here based on completed inductions */}
+          <TouchableOpacity
+            style={[styles.button, loading && { opacity: 0.6 }]}
+            disabled={loading}
+            onPress={handleCompleteInduction}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              {currentInductionIndex < inductionQueue.length - 1 ? 'Complete & Continue' : 'Complete Induction'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
+    );
+  }
 
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 40 }]}
-        onPress={() => onComplete && onComplete()}
-      >
-        <Text style={styles.buttonText}>Done</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  // ======== Main Render ========
-
-  return (
-    <View style={styles.container}>
-      {currentStep === 'info' && renderInfoStep()}
-      {currentStep === 'compulsory' && renderCompulsoryStep()}
-      {currentStep === 'optional' && renderOptionalStep()}
-      {currentStep === 'induction' && renderInductionStep()}
-      {currentStep === 'signature' && renderSignatureStep()}
-      {currentStep === 'complete' && renderCompleteStep()}
-    </View>
-  );
+  // STEP 6: COMPLETE
+  if (step === 'complete') {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={{ paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 32, textAlign: 'center', marginBottom: 16 }}>✓</Text>
+          <Text style={{ fontSize: 24, fontWeight: '700', textAlign: 'center', color: '#10B981', marginBottom: 8 }}>
+            Inductions Complete!
+          </Text>
+          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+            You have successfully completed all selected inductions.
+          </Text>
+          <TouchableOpacity style={styles.button} onPress={onComplete}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+              Return to Kiosk
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 }
-
-// Note: Styles should be passed from parent component
-// or imported from a common stylesheet
