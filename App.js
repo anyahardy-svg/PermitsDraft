@@ -2668,35 +2668,70 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {jseaTemplatesAvailable.map((template) => (
-                    <TouchableOpacity
-                      key={template.id}
-                      style={{
-                        padding: 12,
-                        borderWidth: 1,
-                        borderColor: '#E5E7EB',
-                        borderRadius: 8,
-                        marginBottom: 8,
-                        backgroundColor: '#F9FAFB'
-                      }}
-                      onPress={() => handleLoadJseaTemplate(template)}
-                    >
-                      <Text style={{
-                        fontSize: 14,
-                        fontWeight: '600',
-                        color: '#1F2937',
-                        marginBottom: 4
-                      }}>
-                        {template.name}
-                      </Text>
-                      <Text style={{
-                        fontSize: 11,
-                        color: '#6B7280'
-                      }}>
-                        {template.jsea?.length || 0} step{template.jsea?.length !== 1 ? 's' : ''}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {jseaTemplatesAvailable.map((template) => {
+                    // Get company name if company_id exists
+                    const companyName = template.company_id 
+                      ? companies.find(c => c.id === template.company_id)?.name 
+                      : null;
+                    
+                    // Get business unit names for this template
+                    const templateBuNames = (template.business_unit_ids || [])
+                      .map(buId => businessUnits.find(bu => bu.id === buId)?.name)
+                      .filter(Boolean);
+
+                    return (
+                      <TouchableOpacity
+                        key={template.id}
+                        style={{
+                          padding: 12,
+                          borderWidth: 1,
+                          borderColor: '#E5E7EB',
+                          borderRadius: 8,
+                          marginBottom: 8,
+                          backgroundColor: '#F9FAFB'
+                        }}
+                        onPress={() => handleLoadJseaTemplate(template)}
+                      >
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: '#1F2937',
+                          marginBottom: 8
+                        }}>
+                          {template.name}
+                        </Text>
+                        
+                        <View style={{ gap: 6 }}>
+                          <Text style={{
+                            fontSize: 11,
+                            color: '#6B7280'
+                          }}>
+                            {template.jsea?.length || 0} step{template.jsea?.length !== 1 ? 's' : ''}
+                          </Text>
+                          
+                          {templateBuNames.length > 0 && (
+                            <Text style={{
+                              fontSize: 11,
+                              color: '#3B82F6',
+                              fontWeight: '500'
+                            }}>
+                              BU: {templateBuNames.join(', ')}
+                            </Text>
+                          )}
+                          
+                          {companyName && (
+                            <Text style={{
+                              fontSize: 11,
+                              color: '#059669',
+                              fontWeight: '500'
+                            }}>
+                              Company: {companyName}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               )}
 
