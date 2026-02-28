@@ -173,7 +173,7 @@ export async function deleteTemplate(templateId) {
  * @param {UUID} companyId - Company ID to associate with the template
  * @returns {Object} Saved JSEA template
  */
-export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, companyId = null) {
+export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, companyId = null) {
   try {
     // Save JSEA template to templates table
     const { data, error } = await supabase
@@ -192,13 +192,15 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
     if (error) throw error;
 
     // Add template to selected business unit(s) in junction table
-    if (businessUnitId) {
+    if (businessUnitIds && businessUnitIds.length > 0) {
+      const businessUnitEntries = businessUnitIds.map(buId => ({
+        template_id: data.id,
+        business_unit_id: buId,
+      }));
+
       const { error: juError } = await supabase
         .from('template_business_units')
-        .insert([{
-          template_id: data.id,
-          business_unit_id: businessUnitId,
-        }]);
+        .insert(businessUnitEntries);
 
       if (juError) throw juError;
     }
@@ -206,7 +208,7 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
     await logAudit('jsea_template_saved', {
       template_id: data.id,
       template_name: jseaName,
-      business_unit_id: businessUnitId,
+      business_unit_ids: businessUnitIds,
       company_id: companyId,
       step_count: jseaSteps.length,
     });

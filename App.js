@@ -943,7 +943,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [jseaTemplatesAvailable, setJseaTemplatesAvailable] = useState([]);
   const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
-  const [selectedBuForTemplate, setSelectedBuForTemplate] = useState('');
+  const [selectedBusForTemplate, setSelectedBusForTemplate] = useState([]);
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1090,13 +1090,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       Alert.alert('Error', 'Please add at least one step before saving as template');
       return;
     }
-    if (!businessUnitId) {
-      Alert.alert('Error', 'Business Unit not set');
-      return;
-    }
-
-    if (!selectedBuForTemplate) {
-      Alert.alert('Error', 'Please select a business unit');
+    if (selectedBusForTemplate.length === 0) {
+      Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
 
@@ -1105,11 +1100,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       const response = await saveJseaTemplate(
         jseaTemplateName,
         formData.jsea.taskSteps,
-        selectedBuForTemplate,
+        selectedBusForTemplate,
         selectedCompanyForTemplate || null
       );
       if (response.success) {
-        Alert.alert('Success', `Template "${jseaTemplateName}" saved`);
+        Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusForTemplate.length} business unit(s)`);
         setJseaTemplateName('');
         setShowJseaSaveTemplate(false);
       } else {
@@ -2725,7 +2720,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <TouchableOpacity onPress={() => {
                   setShowJseaSaveTemplate(false);
                   setJseaTemplateName('');
-                  setSelectedBuForTemplate('');
+                  setSelectedBusForTemplate([]);
                   setSelectedCompanyForTemplate('');
                 }}>
                   <Text style={{
@@ -2765,25 +2760,46 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   fontWeight: '600', 
                   color: '#1F2937', 
                   marginBottom: 8 
-                }}>Business Unit *</Text>
-                <View style={{
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: 'white'
-                }}>
-                  <Picker
-                    selectedValue={selectedBuForTemplate}
-                    onValueChange={(itemValue) => setSelectedBuForTemplate(itemValue)}
-                    style={{
-                      color: '#1F2937'
-                    }}
-                  >
-                    <Picker.Item label="Select a business unit..." value="" />
-                    {businessUnits.map(bu => (
-                      <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
-                    ))}
-                  </Picker>
+                }}>Business Units * (select one or more)</Text>
+                <View style={{ gap: 8 }}>
+                  {businessUnits.map(bu => {
+                    const isSelected = selectedBusForTemplate.includes(bu.id);
+                    return (
+                      <TouchableOpacity
+                        key={bu.id}
+                        onPress={() => {
+                          setSelectedBusForTemplate(prev =>
+                            prev.includes(bu.id)
+                              ? prev.filter(id => id !== bu.id)
+                              : [...prev, bu.id]
+                          );
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 3,
+                          borderWidth: 2,
+                          borderColor: '#3B82F6',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isSelected ? '#3B82F6' : 'white',
+                          marginRight: 10
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -2827,7 +2843,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   onPress={() => {
                     setShowJseaSaveTemplate(false);
                     setJseaTemplateName('');
-                    setSelectedBuForTemplate('');
+                    setSelectedBusForTemplate([]);
                     setSelectedCompanyForTemplate('');
                   }}
                 >
