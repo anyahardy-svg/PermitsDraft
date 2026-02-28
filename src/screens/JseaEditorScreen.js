@@ -30,11 +30,11 @@ export default function JseaEditorScreen({
   const [nextId, setNextId] = useState((initialJsea?.length || 1) + 1);
 
   const handleAddStep = () => {
-    setSteps([
-      ...steps,
-      { id: nextId, description: '', hazards: '', controls: '' }
-    ]);
+    console.log('Add step clicked. Current steps:', steps.length);
+    const newStep = { id: nextId, description: '', hazards: '', controls: '' };
+    setSteps([...steps, newStep]);
     setNextId(nextId + 1);
+    console.log('Step added. New total:', steps.length + 1);
   };
 
   const handleDeleteStep = (id) => {
@@ -106,86 +106,95 @@ export default function JseaEditorScreen({
               const hazardsLines = Math.max(1, (step.hazards.match(/\n/g) || []).length + 1);
               const controlsLines = Math.max(1, (step.controls.match(/\n/g) || []).length + 1);
               const maxLines = Math.max(descriptionLines, hazardsLines, controlsLines);
-              const rowHeight = Math.max(60, 40 + maxLines * 18);
+              const rowHeight = Math.max(120, 80 + maxLines * 18);
 
               return (
-                <View key={step.id} style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: rowHeight }}>
-                  {/* Step Number */}
-                  <View style={{ width: colWidths.step, padding: 12, borderRightWidth: 1, borderRightColor: '#E5E7EB', justifyContent: 'center' }}>
-                    <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 13 }}>Step {index + 1}</Text>
+                <View key={`step-${step.id}`} style={{ borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  {/* Step Header */}
+                  <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: '#F3F4F6', minHeight: 40 }}>
+                    <View style={{ width: colWidths.step, padding: 12, borderRightWidth: 1, borderRightColor: '#E5E7EB', justifyContent: 'center' }}>
+                      <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 13 }}>Step {index + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1 }} />
                   </View>
 
-                  {/* Description */}
-                  <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        color: '#1F2937',
-                        padding: 8,
-                        borderWidth: 1,
-                        borderColor: '#D1D5DB',
-                        borderRadius: 4,
-                        textAlignVertical: 'top',
-                      }}
-                      placeholder="E.g., Drive to site"
-                      placeholderTextColor="#9CA3AF"
-                      value={step.description}
-                      onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
-                      multiline
-                    />
-                  </View>
+                  {/* Step Data Row */}
+                  <View style={{ flexDirection: 'row', minHeight: rowHeight }}>
+                    {/* Step Number Column (empty in data row) */}
+                    <View style={{ width: colWidths.step, borderRightWidth: 1, borderRightColor: '#E5E7EB' }} />
 
-                  {/* Hazards */}
-                  <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        color: '#1F2937',
-                        padding: 8,
-                        borderWidth: 1,
-                        borderColor: '#D1D5DB',
-                        borderRadius: 4,
-                        textAlignVertical: 'top',
-                      }}
-                      placeholder="E.g., Collisions, Fatigue"
-                      placeholderTextColor="#9CA3AF"
-                      value={step.hazards}
-                      onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
-                      multiline
-                    />
-                  </View>
+                    {/* Description */}
+                    <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          fontSize: 12,
+                          color: '#1F2937',
+                          padding: 8,
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 4,
+                          textAlignVertical: 'top',
+                        }}
+                        placeholder="E.g., Drive to site"
+                        placeholderTextColor="#9CA3AF"
+                        value={step.description}
+                        onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
+                        multiline
+                      />
+                    </View>
 
-                  {/* Controls */}
-                  <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        color: '#1F2937',
-                        padding: 8,
-                        borderWidth: 1,
-                        borderColor: '#D1D5DB',
-                        borderRadius: 4,
-                        textAlignVertical: 'top',
-                      }}
-                      placeholder="E.g., RT, Flags, Beacons"
-                      placeholderTextColor="#9CA3AF"
-                      value={step.controls}
-                      onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
-                      multiline
-                    />
-                  </View>
+                    {/* Hazards */}
+                    <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          fontSize: 12,
+                          color: '#1F2937',
+                          padding: 8,
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 4,
+                          textAlignVertical: 'top',
+                        }}
+                        placeholder="E.g., Collisions, Fatigue"
+                        placeholderTextColor="#9CA3AF"
+                        value={step.hazards}
+                        onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
+                        multiline
+                      />
+                    </View>
 
-                  {/* Delete Button */}
-                  <View style={{ width: colWidths.delete, borderRightColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteStep(step.id)}
-                      style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
-                    >
-                      <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 14 }}>✕</Text>
-                    </TouchableOpacity>
+                    {/* Controls */}
+                    <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          fontSize: 12,
+                          color: '#1F2937',
+                          padding: 8,
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 4,
+                          textAlignVertical: 'top',
+                        }}
+                        placeholder="E.g., RT, Flags, Beacons"
+                        placeholderTextColor="#9CA3AF"
+                        value={step.controls}
+                        onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
+                        multiline
+                      />
+                    </View>
+
+                    {/* Delete Button */}
+                    <View style={{ width: colWidths.delete, alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteStep(step.id)}
+                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                      >
+                        <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 14 }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               );
