@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -27,6 +28,29 @@ import { getSitesByBusinessUnits } from '../api/sites';
  * ContractorInductionScreen - Simplified for single inductions table
  * Flow: Info → Inductions List → Video → Questions → Signature → Complete
  */
+
+// Helper function to extract YouTube video ID and create embed URL
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  
+  // Handle various YouTube URL formats
+  let videoId = null;
+  
+  if (url.includes('youtube.com/watch')) {
+    const urlParams = new URLSearchParams(url.split('?')[1]);
+    videoId = urlParams.get('v');
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1]?.split('?')[0];
+  } else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('youtube.com/embed/')[1]?.split('?')[0];
+  } else if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+    // Assume it's a video ID
+    videoId = url;
+  }
+  
+  return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
+};
+
 export default function ContractorInductionScreen({ onComplete, onCancel, styles }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
@@ -850,13 +874,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
                           Video
                         </Text>
-                        {currentModalInduction.video_url ? (
-                          <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, height: 250, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                            <Text style={{ color: '#6B7280' }}>📹 Video Player</Text>
-                            <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 4 }}>
-                              {currentModalInduction.video_duration || '?'} min
-                            </Text>
-                          </View>
+                        {currentModalInduction.video_url && Platform.OS === 'web' ? (
+                          <iframe
+                            src={getYouTubeEmbedUrl(currentModalInduction.video_url)}
+                            style={{
+                              width: '100%',
+                              height: 250,
+                              borderRadius: 8,
+                              border: 'none',
+                              marginBottom: 16,
+                            }}
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          />
+                        ) : currentModalInduction.video_url ? (
+                          <WebView
+                            source={{ uri: getYouTubeEmbedUrl(currentModalInduction.video_url) }}
+                            style={{ height: 250, marginBottom: 16, borderRadius: 8 }}
+                            allowsFullscreenVideo
+                          />
                         ) : (
                           <View style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 8, marginBottom: 16 }}>
                             <Text style={{ color: '#6B7280', textAlign: 'center' }}>No video for this induction</Text>
