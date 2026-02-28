@@ -160,9 +160,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleBusinessUnitChange = async (buId) => {
-    const newSelectedBUs = contractorInfo.selectedBusinessUnitIds.includes(buId)
-      ? contractorInfo.selectedBusinessUnitIds.filter(id => id !== buId)
-      : [...contractorInfo.selectedBusinessUnitIds, buId];
+    const currentBUs = contractorInfo.selectedBusinessUnitIds || [];
+    const newSelectedBUs = currentBUs.includes(buId)
+      ? currentBUs.filter(id => id !== buId)
+      : [...currentBUs, buId];
 
     setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [] });
     
@@ -182,9 +183,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const toggleSiteSelection = (siteId) => {
     setContractorInfo(prev => ({
       ...prev,
-      selectedSiteIds: prev.selectedSiteIds.includes(siteId)
-        ? prev.selectedSiteIds.filter(id => id !== siteId)
-        : [...prev.selectedSiteIds, siteId]
+      selectedSiteIds: (prev.selectedSiteIds || []).includes(siteId)
+        ? (prev.selectedSiteIds || []).filter(id => id !== siteId)
+        : [...(prev.selectedSiteIds || []), siteId]
     }));
   };
 
@@ -609,21 +610,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 value={newCompanyName}
                 onChangeText={setNewCompanyName}
               />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 20 }}>
                 <TouchableOpacity
-                  style={[styles.button, { flex: 1, backgroundColor: '#E5E7EB' }]}
                   onPress={() => {
                     setShowAddCompanyModal(false);
                     setNewCompanyName('');
                     setCompanySearchText('');
                   }}
+                  style={{ flex: 1, backgroundColor: '#E5E7EB', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
                 >
                   <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.button, { flex: 1 }]}
                   onPress={handleAddCompany}
                   disabled={loading}
+                  style={{ flex: 1, backgroundColor: loading ? '#9CA3AF' : '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
                 >
                   <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{loading ? 'Adding...' : 'Create'}</Text>
                 </TouchableOpacity>
