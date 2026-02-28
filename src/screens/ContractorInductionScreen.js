@@ -8,12 +8,9 @@ import {
   StyleSheet,
   Modal,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Picker } from '@react-native-picker/picker';
-import { captureScreen } from 'react-native-view-shot';
 
 import {
   getInductionsForContractor,
@@ -49,6 +46,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [companies, setCompanies] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
   useEffect(() => {
     loadDropdownData();
@@ -120,6 +118,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [userAnswers, setUserAnswers] = useState({});
   const [videoWatched, setVideoWatched] = useState(false);
   const [signature, setSignature] = useState(null);
+  const [signatureText, setSignatureText] = useState('');
 
   // Get list of all inductions to complete (compulsory + selected optional)
   const allInductionsToComplete = [
@@ -255,16 +254,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
   };
 
-  const handleCaptureSignature = async () => {
-    try {
-      const signatureUri = await captureScreen({
-        format: 'png',
-        quality: 0.9,
-      });
-      setSignature(signatureUri);
-    } catch (err) {
-      setError('Failed to capture signature');
+  const handleCaptureSignature = () => {
+    if (signatureText.trim().length < 3) {
+      setError('Please enter at least 3 characters as signature');
+      return;
     }
+    setSignature(signatureText);
   };
 
   const handleCompleteInduction = async () => {
@@ -320,17 +315,40 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       />
 
       <Text style={styles.label}>Company *</Text>
-      <View style={[styles.input, { paddingHorizontal: 0 }]}>
-        <Picker
-          selectedValue={contractorInfo.companyId}
-          onValueChange={(value) => setContractorInfo({ ...contractorInfo, companyId: value })}
-        >
-          <Picker.Item label="Select a company..." value="" />
-          {companies.map((company) => (
-            <Picker.Item key={company.id} label={company.name} value={company.id} />
-          ))}
-        </Picker>
-      </View>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
+      >
+        <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF', fontSize: 16 }}>
+          {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select a company...'}
+        </Text>
+      </TouchableOpacity>
+      
+      {showCompanyDropdown && (
+        <View style={{ 
+          borderWidth: 1, 
+          borderColor: '#D1D5DB', 
+          borderTopWidth: 0, 
+          borderRadius: 0, 
+          maxHeight: 200,
+          backgroundColor: 'white'
+        }}>
+          <ScrollView>
+            {companies.map((company) => (
+              <TouchableOpacity
+                key={company.id}
+                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                onPress={() => {
+                  setContractorInfo({ ...contractorInfo, companyId: company.id });
+                  setShowCompanyDropdown(false);
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>{company.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <Text style={styles.label}>Business Units *</Text>
       <View style={styles.checkboxGroup}>
@@ -596,30 +614,55 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     <ScrollView style={[styles.container, { padding: 20 }]}>
       <Text style={[styles.heading, { marginBottom: 20 }]}>Sign & Complete</Text>
 
-      <View style={styles.signatureBox}>
-        {signature ? (
-          <Image source={{ uri: signature }} style={styles.signatureImage} />
-        ) : (
-          <View style={styles.signaturePlaceholder}>
-            <Text style={{ fontSize: 16, color: '#9CA3AF' }}>
-              Your signature will appear here
-            </Text>
-          </View>
-        )}
-      </View>
+      <Text style={styles.subheading}>
+        By signing below, you acknowledge that you have completed all inductions and understand the site safety requirements.
+      </Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleCaptureSignature}>
+      <Text style={styles.label}>Your Signature (Full Name)</Text>
+      <TextInput
+        style={[styles.input, { marginBottom: 20 }]}
+        placeholder="Type your full name here"
+        value={signatureText}
+        onChangeText={setSignatureText}
+      />
+
+      {signature && (
+        <View style={{ 
+          padding: 12, 
+          backgroundColor: '#ECFDF5', 
+          borderRadius: 6, 
+          marginBottom: 20,
+          borderWidth: 1,
+          borderColor: '#10B981'
+        }}>
+          <Text style={{ color: '#065F46', fontSize: 14 }}>
+            ✓ Signature accepted: {signature}
+          </Text>
+        </View>
+      )}
+
+      {error && <Text style={[styles.errorText, { marginBottom: 10 }]}>{error}</Text>}
+
+      <TouchableOpacity 
+        style={[styles.button, signature && { opacity: 0.6 }]}
+        onPress={handleCaptureSignature}
+      >
         <Text style={styles.buttonText}>
-          {signature ? 'Re-sign' : 'Sign Here'}
+          {signature ? '✓ Signed' : 'Accept Signature'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, { marginTop: 10 }]}
+        style={[styles.button, { marginTop: 10, backgroundColor: signature ? '#10B981' : '#D1D5DB' }]}
         onPress={handleCompleteInduction}
-        disabled={!signature}
+        disabled={!signature || loading}
       >
-        <Text style={styles.buttonText}>Finish Induction</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Finish Induction</Text>
+        )}
+
       </TouchableOpacity>
     </ScrollView>
   );
