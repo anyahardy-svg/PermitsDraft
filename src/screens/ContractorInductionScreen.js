@@ -788,13 +788,26 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           </Text>
         </View>
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
           {embedUrl ? (
-            <WebView
-              source={{ uri: embedUrl }}
-              style={{ flex: 1 }}
-              javaScriptEnabled={true}
-            />
+            Platform.OS === 'web' ? (
+              <iframe
+                src={embedUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                allowFullScreen
+                title="Induction Video"
+              />
+            ) : (
+              <WebView
+                source={{ uri: embedUrl }}
+                style={{ flex: 1 }}
+                javaScriptEnabled={true}
+              />
+            )
           ) : (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Text style={{ color: '#6B7280' }}>No video for this induction</Text>
