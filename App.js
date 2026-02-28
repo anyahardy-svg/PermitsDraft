@@ -26,6 +26,7 @@ import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSi
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
+import ContractorInductionScreen from './src/screens/ContractorInductionScreen';
 import KioskScreen from './src/screens/KioskScreen';
 
 // List of all available sites
@@ -1277,6 +1278,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [showInductionScreen, setShowInductionScreen] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
@@ -6852,6 +6854,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
               </View>
+              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => setShowInductionScreen(true)}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>New Induction</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
@@ -11234,6 +11239,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return renderDashboard();
         }
       })()}
+      
+      {/* Contractor Induction Modal */}
+      <Modal
+        visible={showInductionScreen}
+        animationType="slide"
+        onRequestClose={() => setShowInductionScreen(false)}
+      >
+        <ContractorInductionScreen
+          styles={styles}
+          onComplete={() => setShowInductionScreen(false)}
+          onCancel={() => setShowInductionScreen(false)}
+        />
+      </Modal>
     </View>
   );
 };
