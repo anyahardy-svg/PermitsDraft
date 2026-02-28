@@ -17,6 +17,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
+import { getJseaTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
@@ -28,6 +29,8 @@ import { listBusinessUnits } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
+import JseaEditorScreen from './src/screens/JseaEditorScreen';
+import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
 
 // List of all available sites
 const ALL_SITES = [
@@ -933,6 +936,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   });
   const [previewAttachment, setPreviewAttachment] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [showJseaEditor, setShowJseaEditor] = useState(false);
+  const [showJseaTemplateLoader, setShowJseaTemplateLoader] = useState(false);
+  const [jseaTemplatesAvailable, setJseaTemplatesAvailable] = useState([]);
+  const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1032,6 +1039,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       steps.splice(idx, 1);
       return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
     });
+  };
+
+  // Load available JSEA templates
+  const loadJseaTemplatesForLoader = async () => {
+    if (!businessUnitId) {
+      Alert.alert('Error', 'Business Unit not set');
+      return;
+    }
+    setLoadingJseaTemplates(true);
+    try {
+      const response = await getJseaTemplates(businessUnitId);
+      if (response.success) {
+        setJseaTemplatesAvailable(response.data || []);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to load templates');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load templates: ' + error.message);
+    } finally {
+      setLoadingJseaTemplates(false);
+    }
+  };
+
+  // Load a template into the current form
+  const handleLoadJseaTemplate = (template) => {
+    setFormData(prev => ({
+      ...prev,
+      jsea: {
+        ...prev.jsea,
+        taskSteps: template.jsea || []
+      }
+    }));
+    setShowJseaTemplateLoader(false);
+    Alert.alert('Success', `Loaded template: ${template.name}`);
   };
 
   // --- Print Permit Function ---
@@ -2075,38 +2116,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
-                <Text style={styles.label}>Task Steps</Text>
-                {formData.jsea.taskSteps.map((step, idx) => (
-                  <View key={idx} style={styles.jseaStep}>
-                    <View style={styles.stepHeader}>
-                      <Text style={styles.stepTitle}>Step {idx + 1}</Text>
-                      <TouchableOpacity onPress={() => removeJSEAStep(idx)}>
-                        <Text style={styles.removeButton}>Remove</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <TextInput
-                      style={styles.input}
-                      value={step.step}
-                      onChangeText={text => updateJSEAStep(idx, 'step', text)}
-                      placeholder="Describe step"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={step.hazards}
-                      onChangeText={text => updateJSEAStep(idx, 'hazards', text)}
-                      placeholder="Hazards for this step"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={step.controls}
-                      onChangeText={text => updateJSEAStep(idx, 'controls', text)}
-                      placeholder="Controls for this step"
-                    />
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.label}>Task Steps ({formData.jsea.taskSteps.length})</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => setShowJseaEditor(true)}>
+                      <Text style={styles.addButtonText}>Edit JSEA Table</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
+                      onPress={() => {
+                        setShowJseaTemplateLoader(true);
+                        loadJseaTemplatesForLoader();
+                      }}
+                    >
+                      <Text style={styles.addButtonText}>Load Template</Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
-                <TouchableOpacity style={styles.addButton} onPress={addJSEAStep}>
-                  <Text style={styles.addButtonText}>Add Step</Text>
-                </TouchableOpacity>
+                  {formData.jsea.taskSteps.length > 0 && (
+                    <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      {formData.jsea.taskSteps.map((step, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <View style={styles.riskButtons}>
                   {['low', 'medium', 'high', 'very_high'].map(risk => (
@@ -2131,6 +2167,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   value={formData.jsea.additionalPrecautions}
                   onChangeText={text => setFormData({ ...formData, jsea: { ...formData.jsea, additionalPrecautions: text } })}
                   placeholder="Any additional precautions..."
+                  multiline
                 />
               </View>
             )}
@@ -2462,6 +2499,135 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* JSEA Editor Modal */}
+        <Modal 
+          visible={showJseaEditor} 
+          animationType="slide"
+          onRequestClose={() => setShowJseaEditor(false)}
+        >
+          <JseaEditorScreen
+            initialJsea={formData.jsea.taskSteps}
+            onSave={(steps) => {
+              setFormData({
+                ...formData, 
+                jsea: { 
+                  ...formData.jsea, 
+                  taskSteps: steps 
+                }
+              });
+              setShowJseaEditor(false);
+            }}
+            onCancel={() => setShowJseaEditor(false)}
+            styles={styles}
+          />
+        </Modal>
+
+        {/* JSEA Template Loader Modal */}
+        <Modal 
+          visible={showJseaTemplateLoader} 
+          animationType="slide"
+          onRequestClose={() => setShowJseaTemplateLoader(false)}
+          transparent
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Load JSEA Template
+                </Text>
+                <TouchableOpacity onPress={() => setShowJseaTemplateLoader(false)}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {loadingJseaTemplates ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
+                </View>
+              ) : jseaTemplatesAvailable.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
+                    No templates available. Create one in Contractor Admin.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
+                  {jseaTemplatesAvailable.map((template) => (
+                    <TouchableOpacity
+                      key={template.id}
+                      style={{
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        backgroundColor: '#F9FAFB'
+                      }}
+                      onPress={() => handleLoadJseaTemplate(template)}
+                    >
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        marginBottom: 4
+                      }}>
+                        {template.name}
+                      </Text>
+                      <Text style={{
+                        fontSize: 11,
+                        color: '#6B7280'
+                      }}>
+                        {template.jsea?.length || 0} step{template.jsea?.length !== 1 ? 's' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              <TouchableOpacity
+                style={{
+                  padding: 12,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => setShowJseaTemplateLoader(false)}
+              >
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
@@ -4653,6 +4819,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]} onPress={() => setCurrentScreen('manage_inductions')}>
             <Text style={styles.cardNumber}>📚</Text>
             <Text style={styles.cardLabel}>Inductions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => setCurrentScreen('contractor_admin')}>
+            <Text style={styles.cardNumber}>⚙️</Text>
+            <Text style={styles.cardLabel}>Contractor Admin</Text>
           </TouchableOpacity>
         </View>
         </ScrollView>
@@ -11246,6 +11416,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return (
         <InductionAdminScreen
           onBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
+      );
+    case 'contractor_admin':
+      return (
+        <ContractorAdminScreen
+          onNavigateBack={() => setCurrentScreen('admin')}
+          currentUser={currentUser}
+          businessUnitId={businessUnitId}
           styles={styles}
         />
       );

@@ -162,8 +162,168 @@ export async function deleteTemplate(templateId) {
 }
 
 // ============================================================================
-// CREATE PERMIT FROM TEMPLATE
+// JSEA TEMPLATES
 // ============================================================================
+
+/**
+ * Save JSEA as a reusable template
+ * @param {string} jseaName - Name for this JSEA template
+ * @param {Array} jseaSteps - Array of step objects {description, hazards, controls}
+ * @param {UUID} businessUnitId - Business unit this template belongs to
+ * @returns {Object} Saved JSEA template
+ */
+export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId) {
+  try {
+    // Create a special permit record to store the JSEA template
+    const { data, error } = await supabase
+      .from('permits')
+      .insert([{
+        permit_type: 'JSEA',
+        template_name: jseaName,
+        description: `JSEA Template: ${jseaName}`,
+        location: 'Template',
+        status: 'template',
+        is_template: true,
+        business_unit_id: businessUnitId,
+        jsea: jseaSteps, // Store steps as JSEA field
+        site_id: null,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAudit('jsea_template_saved', {
+      template_id: data.id,
+      template_name: jseaName,
+      business_unit_id: businessUnitId,
+      step_count: jseaSteps.length,
+    });
+
+    return { success: true, data, message: `JSEA template "${jseaName}" saved` };
+  } catch (error) {
+    console.error('Save JSEA template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all JSEA templates for a business unit
+ * @param {UUID} businessUnitId
+ * @returns {Array} JSEA templates
+ */
+export async function getJseaTemplates(businessUnitId) {
+  try {
+    const { data, error } = await supabase
+      .from('permits')
+      .select('id, template_name, jsea, created_at, updated_at')
+      .eq('permit_type', 'JSEA')
+      .eq('is_template', true)
+      .eq('business_unit_id', businessUnitId)
+      .order('template_name', { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Get JSEA templates error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get specific JSEA template by ID
+ * @param {UUID} jseaTemplateId
+ * @returns {Object} JSEA template with steps
+ */
+export async function getJseaTemplate(jseaTemplateId) {
+  try {
+    const { data, error } = await supabase
+      .from('permits')
+      .select('id, template_name, jsea')
+      .eq('id', jseaTemplateId)
+      .eq('permit_type', 'JSEA')
+      .eq('is_template', true)
+      .single();
+
+    if (error) throw error;
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Get JSEA template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete JSEA template
+ * @param {UUID} jseaTemplateId
+ * @returns {boolean} Success
+ */
+export async function deleteJseaTemplate(jseaTemplateId) {
+  try {
+    const { data: template } = await supabase
+      .from('permits')
+      .select('template_name')
+      .eq('id', jseaTemplateId)
+      .single();
+
+    const { error } = await supabase
+      .from('permits')
+      .delete()
+      .eq('id', jseaTemplateId);
+
+    if (error) throw error;
+
+    await logAudit('jsea_template_deleted', {
+      template_id: jseaTemplateId,
+      template_name: template?.template_name,
+    });
+
+    return { success: true, message: 'JSEA template deleted' };
+  } catch (error) {
+    console.error('Delete JSEA template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update JSEA template
+ * @param {UUID} jseaTemplateId
+ * @param {string} jseaName - Updated name
+ * @param {Array} jseaSteps - Updated steps
+ * @returns {Object} Updated template
+ */
+export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
+  try {
+    const { data, error } = await supabase
+      .from('permits')
+      .update({
+        template_name: jseaName,
+        jsea: jseaSteps,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jseaTemplateId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAudit('jsea_template_updated', {
+      template_id: jseaTemplateId,
+      template_name: jseaName,
+      step_count: jseaSteps.length,
+    });
+
+    return { success: true, data, message: `JSEA template "${jseaName}" updated` };
+  } catch (error) {
+    console.error('Update JSEA template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// PERMIT TEMPLATES
 
 /**
  * Create new permit by copying a template
