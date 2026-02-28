@@ -1320,6 +1320,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
+  const [businessUnitId, setBusinessUnitId] = useState(null);
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
@@ -1347,6 +1348,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         // Load business units first - needed for filtering
         const businessUnitsData = await listBusinessUnits();
         setBusinessUnits(businessUnitsData);
+        // Set the first business unit as the default
+        if (businessUnitsData && businessUnitsData.length > 0) {
+          setBusinessUnitId(businessUnitsData[0].id);
+          console.log('✅ Default business unit set to:', businessUnitsData[0].name);
+        }
         console.log('✅ Business units loaded:', businessUnitsData?.length || 0);
         
         // Detect if accessing from kiosk subdomain
