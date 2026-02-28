@@ -6953,7 +6953,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.phone || '-'}</Text>
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
-                            {contractor.services.length > 0 ? contractor.services.slice(0, 2).join(', ') + (contractor.services.length > 2 ? '...' : '') : 'None'}
+                            {(contractor.serviceNames || contractor.services).length > 0 ? (contractor.serviceNames || contractor.services).slice(0, 2).join(', ') + ((contractor.serviceNames || contractor.services).length > 2 ? '...' : '') : 'None'}
                           </Text>
                           <Text style={[{ width: columns.sites, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
@@ -7902,7 +7902,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
                     <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
                     <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }]}>
-                      {contractor.services.length > 0 ? contractor.services.join(', ') : 'None'}
+                      {(contractor.serviceNames || contractor.services).length > 0 ? (contractor.serviceNames || contractor.services).join(', ') : 'None'}
                     </Text>
                   </View>
                 ))}
