@@ -181,10 +181,10 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, comp
       .insert([{
         name: jseaName,
         template_type: 'jsea',
+        business_unit_id: businessUnitId,
+        company_id: companyId,
         data: {
           steps: jseaSteps,
-          business_unit_id: businessUnitId,
-          company_id: companyId,
         },
       }])
       .select()
@@ -216,9 +216,9 @@ export async function getJseaTemplates(businessUnitId) {
   try {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, name, data, created_at, updated_at')
+      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
-      .filter('data->>business_unit_id', 'eq', businessUnitId)
+      .eq('business_unit_id', businessUnitId)
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -229,8 +229,8 @@ export async function getJseaTemplates(businessUnitId) {
       template_name: template.name,
       name: template.name,
       jsea: template.data?.steps || [],
-      company_id: template.data?.company_id,
-      business_unit_id: businessUnitId,
+      company_id: template.company_id,
+      business_unit_id: template.business_unit_id,
       created_at: template.created_at,
       updated_at: template.updated_at,
     }));
@@ -251,9 +251,9 @@ export async function getJseaTemplatesByCompany(companyId) {
   try {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, name, data, created_at, updated_at')
+      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
-      .filter('data->>company_id', 'eq', companyId)
+      .eq('company_id', companyId)
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -264,8 +264,8 @@ export async function getJseaTemplatesByCompany(companyId) {
       template_name: template.name,
       name: template.name,
       jsea: template.data?.steps || [],
-      company_id: companyId,
-      business_unit_id: template.data?.business_unit_id,
+      company_id: template.company_id,
+      business_unit_id: template.business_unit_id,
       created_at: template.created_at,
       updated_at: template.updated_at,
     }));
@@ -286,7 +286,7 @@ export async function getJseaTemplate(jseaTemplateId) {
   try {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, name, data, created_at, updated_at')
+      .select('id, name, data, business_unit_id, company_id, created_at, updated_at')
       .eq('template_type', 'jsea')
       .eq('id', jseaTemplateId)
       .single();
@@ -299,8 +299,8 @@ export async function getJseaTemplate(jseaTemplateId) {
       template_name: data.name,
       name: data.name,
       jsea: data.data?.steps || [],
-      company_id: data.data?.company_id,
-      business_unit_id: data.data?.business_unit_id,
+      company_id: data.company_id,
+      business_unit_id: data.business_unit_id,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -358,7 +358,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
     // Get existing template to preserve business_unit_id and company_id
     const { data: existingTemplate } = await supabase
       .from('templates')
-      .select('data')
+      .select('business_unit_id, company_id')
       .eq('id', jseaTemplateId)
       .eq('template_type', 'jsea')
       .single();
@@ -369,8 +369,6 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
         name: jseaName,
         data: {
           steps: jseaSteps,
-          business_unit_id: existingTemplate?.data?.business_unit_id,
-          company_id: existingTemplate?.data?.company_id,
         },
         updated_at: new Date().toISOString(),
       })
@@ -387,8 +385,8 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       template_name: data.name,
       name: data.name,
       jsea: data.data?.steps || [],
-      company_id: data.data?.company_id,
-      business_unit_id: data.data?.business_unit_id,
+      company_id: data.company_id,
+      business_unit_id: data.business_unit_id,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
