@@ -45,7 +45,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     email: '',
     phone: '',
     companyId: '',
-    businessUnitId: '',
+    selectedBusinessUnitIds: [],
     selectedSiteIds: [],
   });
   const [companies, setCompanies] = useState([]);
@@ -133,7 +133,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         email: contractor.email,
         phone: contractor.phone || '',
         companyId: contractor.company_id,
-        businessUnitId: '',
+        selectedBusinessUnitIds: [],
         selectedSiteIds: [],
       });
       setSelectedContractorId(contractorId);
@@ -154,20 +154,28 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       email: '',
       phone: '',
       companyId: '',
-      businessUnitId: '',
+      selectedBusinessUnitIds: [],
       selectedSiteIds: [],
     });
   };
 
   const handleBusinessUnitChange = async (buId) => {
-    setContractorInfo({ ...contractorInfo, businessUnitId: buId, selectedSiteIds: [] });
+    const newSelectedBUs = contractorInfo.selectedBusinessUnitIds.includes(buId)
+      ? contractorInfo.selectedBusinessUnitIds.filter(id => id !== buId)
+      : [...contractorInfo.selectedBusinessUnitIds, buId];
+
+    setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [] });
     
-    // Load sites for the selected business unit
-    try {
-      const sitesData = await getSitesByBusinessUnits([buId]);
-      setSites(Array.isArray(sitesData) ? sitesData : []);
-    } catch (err) {
-      console.error('Failed to load sites:', err);
+    // Load sites for all selected business units
+    if (newSelectedBUs.length > 0) {
+      try {
+        const sitesData = await getSitesByBusinessUnits(newSelectedBUs);
+        setSites(Array.isArray(sitesData) ? sitesData : []);
+      } catch (err) {
+        console.error('Failed to load sites:', err);
+      }
+    } else {
+      setSites([]);
     }
   };
 
@@ -189,8 +197,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       Alert.alert('Error', 'Please select a company');
       return;
     }
-    if (!contractorInfo.businessUnitId) {
-      Alert.alert('Error', 'Please select a business unit');
+    if (contractorInfo.selectedBusinessUnitIds.length === 0) {
+      Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
 
@@ -210,14 +218,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         setContractorInfo({ ...contractorInfo, id: contractorId });
       }
 
-      // Get inductions for the business unit
-      const inductions = await getInductionsByBusinessUnit(contractorInfo.businessUnitId);
+      // Get inductions for all selected business units
+      let allInductionsData = [];
+      for (const buId of contractorInfo.selectedBusinessUnitIds) {
+        const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        allInductionsData = [...allInductionsData, ...inductionsForBU];
+      }
+
+      // Remove duplicates (in case same induction applies to multiple BUs)
+      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
       
       // Separate compulsory and optional, considering site-specific rules
       const compulsory = [];
       const optional = [];
 
-      inductions.forEach(ind => {
+      uniqueInductions.forEach(ind => {
         const isSiteSpecific = ind.site_id !== null;
         const isApplicableToSelectedSites = !isSiteSpecific || contractorInfo.selectedSiteIds.includes(ind.site_id);
 
@@ -230,7 +245,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
-      setAllInductions(inductions);
+      setAllInductions(uniqueInductions);
       setSelectedOptionalIds([]);
       setStep('inductionsList');
     } catch (err) {
@@ -516,24 +531,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </View>
           )}
 
-          <Text style={[styles.label, { marginTop: 16 }]}>Business Unit *</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>Business Units (select one or more) *</Text>
           <View style={{ gap: 8 }}>
             {businessUnits.map(bu => (
               <TouchableOpacity
                 key={bu.id}
                 onPress={() => handleBusinessUnitChange(bu.id)}
                 style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   paddingVertical: 12,
                   paddingHorizontal: 12,
                   borderRadius: 8,
-                  backgroundColor: contractorInfo.businessUnitId === bu.id ? '#E0E7FF' : '#F3F4F6',
-                  borderLeftWidth: 3,
-                  borderLeftColor: contractorInfo.businessUnitId === bu.id ? '#3B82F6' : 'transparent',
+                  backgroundColor: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F3F4F6',
                 }}
               >
-                <Text style={{ fontWeight: contractorInfo.businessUnitId === bu.id ? '600' : '400', color: '#1F2937' }}>
-                  {bu.name}
-                </Text>
+                <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : 'white', marginRight: 10 }}>
+                  {contractorInfo.selectedBusinessUnitIds.includes(bu.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: contractorInfo.selectedBusinessUnitIds.includes(bu.id) ? '600' : '400' }}>{bu.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
