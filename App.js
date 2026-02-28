@@ -1340,6 +1340,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
+        // Load services from database
+        const servicesData = await listAllServices();
+        setServicesFromDb(servicesData);
+        if (servicesData && servicesData.length > 0) {
+          setSelectedService(servicesData[0].name);
+        }
+        console.log('✅ Services loaded:', servicesData?.length || 0);
+        
         // Load permit issuers from database, fall back to mock data if empty
         let usersData = [];
         try {
@@ -1462,6 +1470,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [importMessage, setImportMessage] = useState('');
   // Filter state for services directory
   const [selectedService, setSelectedService] = useState('Hot Work');
+  const [servicesFromDb, setServicesFromDb] = useState([]);
   
   // Company dropdown state for contractor form
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
@@ -4630,7 +4639,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.cardLabel}>Sites</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('services_directory')}>
-            <Text style={styles.cardNumber}>{ALL_SERVICES.length}</Text>
+            <Text style={styles.cardNumber}>{servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb.length : ALL_SERVICES.length}</Text>
             <Text style={styles.cardLabel}>Services</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EF4444' }]} onPress={() => setCurrentScreen('manage_isolations')}>
@@ -7853,18 +7862,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 16 }}>
             <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Service:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {ALL_SERVICES.map(service => (
+              {(servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb : ALL_SERVICES.map(s => ({ name: s }))).map(service => (
                 <TouchableOpacity
-                  key={service}
+                  key={service.id || service.name}
                   style={[
                     { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
-                    selectedService === service
+                    selectedService === (service.name || service)
                       ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
                       : { backgroundColor: 'white', borderColor: '#D1D5DB' }
                   ]}
-                  onPress={() => setSelectedService(service)}
+                  onPress={() => setSelectedService(service.name || service)}
                 >
-                  <Text style={{ color: selectedService === service ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{service}</Text>
+                  <Text style={{ color: selectedService === (service.name || service) ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{service.name || service}</Text>
                 </TouchableOpacity>
               ))}
             </View>
