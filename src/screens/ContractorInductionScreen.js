@@ -314,42 +314,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         keyboardType="phone-pad"
       />
 
-      <Text style={styles.label}>Company *</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
-      >
-        <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF', fontSize: 16 }}>
-          {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select a company...'}
-        </Text>
-      </TouchableOpacity>
-      
-      {showCompanyDropdown && (
-        <View style={{ 
-          borderWidth: 1, 
-          borderColor: '#D1D5DB', 
-          borderTopWidth: 0, 
-          borderRadius: 0, 
-          maxHeight: 200,
-          backgroundColor: 'white'
-        }}>
-          <ScrollView>
-            {companies.map((company) => (
-              <TouchableOpacity
-                key={company.id}
-                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
-                onPress={() => {
-                  setContractorInfo({ ...contractorInfo, companyId: company.id });
-                  setShowCompanyDropdown(false);
-                }}
-              >
-                <Text style={{ fontSize: 16 }}>{company.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
       <Text style={styles.label}>Business Units *</Text>
       <View style={styles.checkboxGroup}>
         {businessUnits.map((bu) => (
@@ -379,6 +343,57 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             <Text style={styles.checkboxLabel}>{bu.name}</Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      <Text style={styles.label}>Company *</Text>
+      <View style={{ position: 'relative', zIndex: 10 }}>
+        <TouchableOpacity
+          style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+          onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
+        >
+          <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF', fontSize: 16, flex: 1 }}>
+            {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select a company...'}
+          </Text>
+          <Text style={{ fontSize: 16, color: '#6B7280' }}>▼</Text>
+        </TouchableOpacity>
+        
+        {showCompanyDropdown && (
+          <View style={{ 
+            borderWidth: 1, 
+            borderColor: '#D1D5DB', 
+            borderTopWidth: 0, 
+            borderRadius: 0, 
+            maxHeight: 200,
+            backgroundColor: 'white',
+            position: 'absolute',
+            top: 48,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+          }}>
+            <ScrollView>
+              {companies.map((company) => (
+                <TouchableOpacity
+                  key={company.id}
+                  style={{ 
+                    padding: 12, 
+                    borderBottomWidth: 1, 
+                    borderBottomColor: '#F3F4F6',
+                    backgroundColor: contractorInfo.companyId === company.id ? '#EFF6FF' : 'white'
+                  }}
+                  onPress={() => {
+                    setContractorInfo({ ...contractorInfo, companyId: company.id });
+                    setShowCompanyDropdown(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 16, color: contractorInfo.companyId === company.id ? '#2563EB' : '#1F2937', fontWeight: contractorInfo.companyId === company.id ? '600' : '400' }}>
+                    {company.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       <Text style={styles.label}>Sites *</Text>
