@@ -291,7 +291,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   const renderInfoStep = () => (
     <ScrollView style={[styles.container, { padding: 20 }]}>
-      <Text style={[styles.heading, { marginBottom: 20 }]}>Contractor Information</Text>
+      <Text style={[styles.heading, { marginBottom: 28 }]}>Contractor Information</Text>
 
       <Text style={styles.label}>Full Name *</Text>
       <TextInput
@@ -301,7 +301,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         onChangeText={(text) => setContractorInfo({ ...contractorInfo, name: text })}
       />
 
-      <Text style={styles.label}>Email *</Text>
+      <Text style={[styles.label, { marginTop: 18 }]}>Email *</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter email"
@@ -310,7 +310,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         keyboardType="email-address"
       />
 
-      <Text style={styles.label}>Phone (Optional)</Text>
+      <Text style={[styles.label, { marginTop: 18 }]}>Phone (Optional)</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter phone"
@@ -319,39 +319,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         keyboardType="phone-pad"
       />
 
-      <Text style={styles.label}>Business Units *</Text>
-      <View style={styles.checkboxGroup}>
-        {businessUnits.map((bu) => (
-          <TouchableOpacity
-            key={bu.id}
-            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
-            onPress={() => {
-              const isSelected = contractorInfo.businessUnitIds.includes(bu.id);
-              setContractorInfo({
-                ...contractorInfo,
-                businessUnitIds: isSelected
-                  ? contractorInfo.businessUnitIds.filter((id) => id !== bu.id)
-                  : [...contractorInfo.businessUnitIds, bu.id],
-              });
-            }}
-            activeOpacity={0.6}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                contractorInfo.businessUnitIds.includes(bu.id) && styles.checkboxBoxChecked,
-              ]}
-            >
-              {contractorInfo.businessUnitIds.includes(bu.id) && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </View>
-            <Text style={styles.checkboxLabel}>{bu.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.label}>Company *</Text>
+      <Text style={[styles.label, { marginTop: 18 }]}>Company *</Text>
       <View style={{ position: 'relative', zIndex: 10 }}>
         <TouchableOpacity
           style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
@@ -382,7 +350,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 <TouchableOpacity
                   key={company.id}
                   style={{ 
-                    padding: 12, 
+                    padding: 14, 
                     borderBottomWidth: 1, 
                     borderBottomColor: '#F3F4F6',
                     backgroundColor: contractorInfo.companyId === company.id ? '#EFF6FF' : 'white'
@@ -402,12 +370,44 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         )}
       </View>
 
-      <Text style={styles.label}>Sites *</Text>
-      <View style={styles.checkboxGroup}>
+      <Text style={[styles.label, { marginTop: 24 }]}>Business Units *</Text>
+      <View style={[styles.checkboxGroup, { paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }]}>
+        {businessUnits.map((bu) => (
+          <TouchableOpacity
+            key={bu.id}
+            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 0 }]}
+            onPress={() => {
+              const isSelected = contractorInfo.businessUnitIds.includes(bu.id);
+              setContractorInfo({
+                ...contractorInfo,
+                businessUnitIds: isSelected
+                  ? contractorInfo.businessUnitIds.filter((id) => id !== bu.id)
+                  : [...contractorInfo.businessUnitIds, bu.id],
+              });
+            }}
+            activeOpacity={0.6}
+          >
+            <View
+              style={[
+                styles.checkboxBox,
+                contractorInfo.businessUnitIds.includes(bu.id) && styles.checkboxBoxChecked,
+              ]}
+            >
+              {contractorInfo.businessUnitIds.includes(bu.id) && (
+                <Text style={styles.checkmark}>✓</Text>
+              )}
+            </View>
+            <Text style={styles.checkboxLabel}>{bu.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={[styles.label, { marginTop: 24 }]}>Sites *</Text>
+      <View style={[styles.checkboxGroup, { paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }]}>
         {availableSites.map((site) => (
           <TouchableOpacity
             key={site.id}
-            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row' }]}
+            style={[styles.checkbox, { width: '100%', height: 'auto', flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 0 }]}
             onPress={() => {
               const isSelected = contractorInfo.siteIds.includes(site.id);
               setContractorInfo({
