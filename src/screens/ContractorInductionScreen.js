@@ -752,11 +752,16 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </>
           )}
 
-          <TouchableOpacity style={[styles.button, { marginTop: 24 }]} onPress={handleStartInductions}>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              Start Inductions ({selectedOptionalIds.length + compulsoryInductions.length})
-            </Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 24, marginBottom: 40 }}>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#3B82F6', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }} 
+              onPress={handleStartInductions}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                Start Inductions ({selectedOptionalIds.length + compulsoryInductions.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
     );
