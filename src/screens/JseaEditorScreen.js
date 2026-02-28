@@ -88,18 +88,20 @@ export default function JseaEditorScreen({
         </Text>
 
         {/* Table */}
-        <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16 }}>
-          <ScrollView horizontal contentContainerStyle={{ minWidth: totalWidth }}>
-            {/* Header Row */}
-            <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
+        <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16, flex: 1 }}>
+          {/* Header Row - Horizontal Scroll */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+            <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', minWidth: totalWidth }}>
               <Text style={{ width: colWidths.step, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Step</Text>
               <Text style={{ width: colWidths.description, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Description</Text>
               <Text style={{ width: colWidths.hazards, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Hazards</Text>
               <Text style={{ width: colWidths.controls, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Controls</Text>
               <View style={{ width: colWidths.delete, padding: 12, fontWeight: 'bold', color: 'white', justifyContent: 'center', alignItems: 'center' }} />
             </View>
+          </ScrollView>
 
-            {/* Data Rows */}
+          {/* Steps Container - Vertical Stack with Horizontal Scroll for Rows */}
+          <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true} bounces={false}>
             {steps.map((step, index) => {
               // Calculate row height based on content
               const descriptionLines = Math.max(1, (step.description.match(/\n/g) || []).length + 1);
@@ -109,93 +111,95 @@ export default function JseaEditorScreen({
               const rowHeight = Math.max(120, 80 + maxLines * 18);
 
               return (
-                <View key={`step-${step.id}`} style={{ borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                  {/* Step Header */}
-                  <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: '#F3F4F6', minHeight: 40 }}>
+                <View key={`step-${step.id}`}>
+                  {/* Step Header - Gray background with Step number */}
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 40, minWidth: totalWidth }}>
                     <View style={{ width: colWidths.step, padding: 12, borderRightWidth: 1, borderRightColor: '#E5E7EB', justifyContent: 'center' }}>
                       <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 13 }}>Step {index + 1}</Text>
                     </View>
                     <View style={{ flex: 1 }} />
                   </View>
 
-                  {/* Step Data Row */}
-                  <View style={{ flexDirection: 'row', minHeight: rowHeight }}>
-                    {/* Step Number Column (empty in data row) */}
-                    <View style={{ width: colWidths.step, borderRightWidth: 1, borderRightColor: '#E5E7EB' }} />
+                  {/* Step Data Row - Horizontal Scroll */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}>
+                    <View style={{ flexDirection: 'row', minHeight: rowHeight, minWidth: totalWidth, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                      {/* Step Number Column (empty in data row) */}
+                      <View style={{ width: colWidths.step, borderRightWidth: 1, borderRightColor: '#E5E7EB' }} />
 
-                    {/* Description */}
-                    <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., Drive to site"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.description}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
-                        multiline
-                      />
-                    </View>
+                      {/* Description */}
+                      <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 12,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., Drive to site"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.description}
+                          onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
+                          multiline
+                        />
+                      </View>
 
-                    {/* Hazards */}
-                    <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., Collisions, Fatigue"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.hazards}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
-                        multiline
-                      />
-                    </View>
+                      {/* Hazards */}
+                      <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 12,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., Collisions, Fatigue"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.hazards}
+                          onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
+                          multiline
+                        />
+                      </View>
 
-                    {/* Controls */}
-                    <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., RT, Flags, Beacons"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.controls}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
-                        multiline
-                      />
-                    </View>
+                      {/* Controls */}
+                      <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 12,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., RT, Flags, Beacons"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.controls}
+                          onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
+                          multiline
+                        />
+                      </View>
 
-                    {/* Delete Button */}
-                    <View style={{ width: colWidths.delete, alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteStep(step.id)}
-                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
-                      >
-                        <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 14 }}>✕</Text>
-                      </TouchableOpacity>
+                      {/* Delete Button */}
+                      <View style={{ width: colWidths.delete, alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteStep(step.id)}
+                          style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                        >
+                          <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 14 }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
+                  </ScrollView>
                 </View>
               );
             })}

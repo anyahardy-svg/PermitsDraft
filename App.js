@@ -4747,6 +4747,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
         )}
         
+        {/* Floating Contractor Admin button */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 110,
+            right: 20,
+            backgroundColor: '#14B8A6',
+            padding: 16,
+            borderRadius: 50,
+            elevation: 10,
+            zIndex: 1000,
+            width: 70,
+            height: 70,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+          }}
+          onPress={() => setCurrentScreen('contractor_admin')}
+        >
+          <Text style={{ fontSize: 24 }}>📋</Text>
+          <Text style={{ fontSize: 8, color: 'white', marginTop: 2, fontWeight: '600' }}>Contractor</Text>
+        </TouchableOpacity>
+        
         {/* Floating Admin button */}
         <TouchableOpacity
           style={{
@@ -4819,10 +4845,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]} onPress={() => setCurrentScreen('manage_inductions')}>
             <Text style={styles.cardNumber}>📚</Text>
             <Text style={styles.cardLabel}>Inductions</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => setCurrentScreen('contractor_admin')}>
-            <Text style={styles.cardNumber}>⚙️</Text>
-            <Text style={styles.cardLabel}>Contractor Admin</Text>
           </TouchableOpacity>
         </View>
         </ScrollView>
