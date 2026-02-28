@@ -60,13 +60,13 @@ export default function JseaEditorScreen({
     onSave(steps);
   };
 
-  // Column widths
+  // Column widths - reduced for better screen fit
   const colWidths = {
-    step: 120,
-    description: 200,
-    hazards: 200,
-    controls: 250,
-    delete: 50,
+    step: 80,
+    description: 140,
+    hazards: 140,
+    controls: 140,
+    delete: 44,
   };
 
   const totalWidth = colWidths.step + colWidths.description + colWidths.hazards + colWidths.controls + colWidths.delete;
@@ -92,48 +92,41 @@ export default function JseaEditorScreen({
           {/* Header Row - Horizontal Scroll */}
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', minWidth: totalWidth }}>
-              <Text style={{ width: colWidths.step, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Step</Text>
-              <Text style={{ width: colWidths.description, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Description</Text>
-              <Text style={{ width: colWidths.hazards, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Hazards</Text>
-              <Text style={{ width: colWidths.controls, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Controls</Text>
-              <View style={{ width: colWidths.delete, padding: 12, fontWeight: 'bold', color: 'white', justifyContent: 'center', alignItems: 'center' }} />
+              <Text style={{ width: colWidths.step, padding: 8, fontWeight: 'bold', color: 'white', fontSize: 11, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Step</Text>
+              <Text style={{ width: colWidths.description, padding: 8, fontWeight: 'bold', color: 'white', fontSize: 11, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Description</Text>
+              <Text style={{ width: colWidths.hazards, padding: 8, fontWeight: 'bold', color: 'white', fontSize: 11, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Hazards</Text>
+              <Text style={{ width: colWidths.controls, padding: 8, fontWeight: 'bold', color: 'white', fontSize: 11, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Controls</Text>
+              <View style={{ width: colWidths.delete, padding: 8, fontWeight: 'bold', color: 'white', justifyContent: 'center', alignItems: 'center' }} />
             </View>
           </ScrollView>
 
           {/* Steps Container - Vertical Stack with Horizontal Scroll for Rows */}
           <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true} bounces={false}>
             {steps.map((step, index) => {
-              // Calculate row height based on content
-              const descriptionLines = Math.max(1, (step.description.match(/\n/g) || []).length + 1);
-              const hazardsLines = Math.max(1, (step.hazards.match(/\n/g) || []).length + 1);
-              const controlsLines = Math.max(1, (step.controls.match(/\n/g) || []).length + 1);
-              const maxLines = Math.max(descriptionLines, hazardsLines, controlsLines);
-              const rowHeight = Math.max(120, 80 + maxLines * 18);
-
               return (
                 <View key={`step-${step.id}`}>
                   {/* Step Header - Gray background with Step number */}
-                  <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 40, minWidth: totalWidth }}>
-                    <View style={{ width: colWidths.step, padding: 12, borderRightWidth: 1, borderRightColor: '#E5E7EB', justifyContent: 'center' }}>
-                      <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 13 }}>Step {index + 1}</Text>
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 36, minWidth: totalWidth }}>
+                    <View style={{ width: colWidths.step, padding: 8, borderRightWidth: 1, borderRightColor: '#E5E7EB', justifyContent: 'center' }}>
+                      <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 12 }}>Step {index + 1}</Text>
                     </View>
                     <View style={{ flex: 1 }} />
                   </View>
 
                   {/* Step Data Row - Horizontal Scroll */}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}>
-                    <View style={{ flexDirection: 'row', minHeight: rowHeight, minWidth: totalWidth, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', minHeight: 100, minWidth: totalWidth, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                       {/* Step Number Column (empty in data row) */}
                       <View style={{ width: colWidths.step, borderRightWidth: 1, borderRightColor: '#E5E7EB' }} />
 
                       {/* Description */}
-                      <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <View style={{ width: colWidths.description, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 6 }}>
                         <TextInput
                           style={{
                             flex: 1,
-                            fontSize: 12,
+                            fontSize: 11,
                             color: '#1F2937',
-                            padding: 8,
+                            padding: 6,
                             borderWidth: 1,
                             borderColor: '#D1D5DB',
                             borderRadius: 4,
@@ -148,13 +141,13 @@ export default function JseaEditorScreen({
                       </View>
 
                       {/* Hazards */}
-                      <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <View style={{ width: colWidths.hazards, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 6 }}>
                         <TextInput
                           style={{
                             flex: 1,
-                            fontSize: 12,
+                            fontSize: 11,
                             color: '#1F2937',
-                            padding: 8,
+                            padding: 6,
                             borderWidth: 1,
                             borderColor: '#D1D5DB',
                             borderRadius: 4,
@@ -169,13 +162,13 @@ export default function JseaEditorScreen({
                       </View>
 
                       {/* Controls */}
-                      <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 8 }}>
+                      <View style={{ width: colWidths.controls, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 6 }}>
                         <TextInput
                           style={{
                             flex: 1,
-                            fontSize: 12,
+                            fontSize: 11,
                             color: '#1F2937',
-                            padding: 8,
+                            padding: 6,
                             borderWidth: 1,
                             borderColor: '#D1D5DB',
                             borderRadius: 4,
@@ -190,12 +183,12 @@ export default function JseaEditorScreen({
                       </View>
 
                       {/* Delete Button */}
-                      <View style={{ width: colWidths.delete, alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                      <View style={{ width: colWidths.delete, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
                         <TouchableOpacity
                           onPress={() => handleDeleteStep(step.id)}
-                          style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                          style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 4 }}
                         >
-                          <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 14 }}>✕</Text>
+                          <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>✕</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
