@@ -346,17 +346,22 @@ export async function completeInduction(contractorId, inductionId, signatureText
 
     if (progressError) throw progressError;
 
-    // Get the induction to check if there's a service to add
+    // Get the induction name to add as a service earned
     const { data: inductionData, error: inductionError } = await supabase
       .from('inductions')
-      .select('service_id')
+      .select('induction_name, subsection_name')
       .eq('id', inductionId)
       .single();
 
     if (inductionError) throw inductionError;
 
-    // Add service to contractor if induction has a service
-    if (inductionData.service_id) {
+    // Add induction as a service earned
+    if (inductionData) {
+      // Format: "Working at Heights - MEWP" or just "Working at Heights"
+      const serviceName = inductionData.subsection_name
+        ? `${inductionData.induction_name} - ${inductionData.subsection_name}`
+        : inductionData.induction_name;
+
       const { data: contractorData } = await supabase
         .from('contractors')
         .select('service_ids')
@@ -364,8 +369,9 @@ export async function completeInduction(contractorId, inductionId, signatureText
         .single();
 
       const currentServiceIds = contractorData?.service_ids || [];
-      if (!currentServiceIds.includes(inductionData.service_id)) {
-        const updatedServiceIds = [...currentServiceIds, inductionData.service_id];
+      // Add as text service name (not UUID)
+      if (!currentServiceIds.includes(serviceName)) {
+        const updatedServiceIds = [...currentServiceIds, serviceName];
         await supabase
           .from('contractors')
           .update({ service_ids: updatedServiceIds })

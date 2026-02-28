@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS inductions (
   -- Scope & Service
   business_unit_ids UUID[] NOT NULL DEFAULT '{}', -- Array of BU IDs that use this
   site_id UUID REFERENCES sites(id) ON DELETE CASCADE, -- NULL = applies to all sites in BU
-  service_id UUID REFERENCES services(id) ON DELETE SET NULL, -- Service earned on completion
   
   -- Video content
   video_url TEXT,
@@ -52,13 +51,12 @@ CREATE TABLE IF NOT EXISTS inductions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   
-  UNIQUE(induction_name, subsection_name, service_id)
+  UNIQUE(induction_name, subsection_name)
 );
 
-CREATE INDEX idx_inductions_business_units ON inductions USING GIN(business_unit_ids);
-CREATE INDEX idx_inductions_service ON inductions(service_id);
-CREATE INDEX idx_inductions_site ON inductions(site_id);
-CREATE INDEX idx_inductions_compulsory ON inductions(is_compulsory);
+CREATE INDEX IF NOT EXISTS idx_inductions_business_units ON inductions USING GIN(business_unit_ids);
+CREATE INDEX IF NOT EXISTS idx_inductions_site ON inductions(site_id);
+CREATE INDEX IF NOT EXISTS idx_inductions_compulsory ON inductions(is_compulsory);
 
 -- ============================================================================
 -- 3. CREATE CONTRACTOR INDUCTION PROGRESS TABLE
@@ -87,43 +85,15 @@ CREATE TABLE IF NOT EXISTS contractor_induction_progress (
   UNIQUE(contractor_id, induction_id)
 );
 
-CREATE INDEX idx_contractor_induction_contractor ON contractor_induction_progress(contractor_id);
-CREATE INDEX idx_contractor_induction_induction ON contractor_induction_progress(induction_id);
-CREATE INDEX idx_contractor_induction_status ON contractor_induction_progress(status);
+CREATE INDEX IF NOT EXISTS idx_contractor_induction_contractor ON contractor_induction_progress(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_induction_induction ON contractor_induction_progress(induction_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_induction_status ON contractor_induction_progress(status);
 
 -- ============================================================================
 -- 4. SAMPLE DATA
 -- Insert initial induction for testing
 -- ============================================================================
 
--- NOTE: Update with your actual business_unit_ids and service_ids from your database
--- Example: 
--- SELECT id FROM business_units WHERE name = 'Winstone Aggregates';
--- SELECT id FROM services WHERE name = 'Working at Heights';
-
--- Example induction (you'll need to update UUIDs with real values from your DB)
--- INSERT INTO inductions (
---   induction_name,
---   description,
---   subsection_name,
---   is_compulsory,
---   business_unit_ids,
---   video_url,
---   video_duration,
---   question_1_text,
---   question_1_options,
---   question_1_correct_answer,
---   service_id
--- ) VALUES (
---   'Working at Heights',
---   'Safety procedures for working at heights',
---   'MEWP',
---   true,
---   ARRAY['business-unit-uuid-here'],
---   'https://www.youtube.com/watch?v=example',
---   5,
---   'What is the first step when operating a MEWP?',
---   '["Conduct pre-use inspection", "Check weather conditions", "Notify supervisor", "Put on harness"]'::jsonb,
---   0,
---   'service-uuid-here'
--- );
+-- NOTE: Inductions are created via the admin portal
+-- When a contractor completes an induction, the induction_name is added to their service_ids array
+-- Example: Completing "Working at Heights - MEWP" adds "Working at Heights - MEWP" to contractor's services

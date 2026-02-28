@@ -16,7 +16,6 @@ import {
   updateInduction,
   deleteInduction,
 } from '../api/inductions';
-import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
 
@@ -25,7 +24,6 @@ import { listSites } from '../api/sites';
  */
 export default function InductionAdminScreen({ onBack, styles }) {
   const [inductions, setInductions] = useState([]);
-  const [services, setServices] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +37,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
     subsection_name: '',
     business_unit_ids: [],
     site_id: '',
-    service_id: '',
     video_url: '',
     video_duration: '',
     is_compulsory: true,
@@ -61,14 +58,12 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [inductionsData, servicesData, buData, sitesData] = await Promise.all([
+      const [inductionsData, buData, sitesData] = await Promise.all([
         getAllInductions(),
-        listAllServices(),
         listBusinessUnits(),
         listSites(),
       ]);
       setInductions(Array.isArray(inductionsData) ? inductionsData : []);
-      setServices(Array.isArray(servicesData) ? servicesData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setSites(Array.isArray(sitesData) ? sitesData : []);
     } catch (err) {
@@ -87,7 +82,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
       subsection_name: '',
       business_unit_ids: [],
       site_id: '',
-      service_id: '',
       video_url: '',
       video_duration: '',
       is_compulsory: true,
@@ -112,7 +106,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
       subsection_name: induction.subsection_name || '',
       business_unit_ids: induction.business_unit_ids || [],
       site_id: induction.site_id || '',
-      service_id: induction.service_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
       is_compulsory: induction.is_compulsory !== false,
@@ -257,14 +250,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>
-            {sites.map(site => (
+            {sites.filter(site => formData.business_unit_ids.includes(site.business_unit_id)).map(site => (
               <TouchableOpacity key={site.id} onPress={() => setFormData({ ...formData, site_id: site.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === site.id ? '#10B981' : '#E5E7EB', marginBottom: 6 }}><Text style={{ color: formData.site_id === site.id ? 'white' : '#374151' }}>{site.name}</Text></TouchableOpacity>
             ))}
-
-            <Text style={[styles.label, { marginTop: 16 }]}>Service Earned</Text>
-            <ScrollView horizontal contentContainerStyle={{ gap: 8, marginBottom: 20 }}>{services.map(s => (
-              <TouchableOpacity key={s.id} onPress={() => setFormData({ ...formData, service_id: s.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: formData.service_id === s.id ? '#10B981' : '#E5E7EB' }}><Text style={{ color: formData.service_id === s.id ? 'white' : '#374151', fontWeight: '600', fontSize: 12 }}>{s.name}</Text></TouchableOpacity>
-            ))}</ScrollView>
 
             <Text style={[styles.label, { marginTop: 12 }]}>YouTube Video URL</Text>
             <TextInput style={styles.input} placeholder="https://youtube.com/watch?v=..." value={formData.video_url} onChangeText={(text) => setFormData({ ...formData, video_url: text })} />
