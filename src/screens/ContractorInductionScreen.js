@@ -160,22 +160,27 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleBusinessUnitChange = async (buId) => {
+    console.log('handleBusinessUnitChange called for buId:', buId);
     const currentBUs = contractorInfo.selectedBusinessUnitIds || [];
     const newSelectedBUs = currentBUs.includes(buId)
       ? currentBUs.filter(id => id !== buId)
       : [...currentBUs, buId];
 
+    console.log('newSelectedBUs:', newSelectedBUs);
     setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [] });
     
     // Load sites for all selected business units
     if (newSelectedBUs.length > 0) {
       try {
+        console.log('Loading sites for BUs:', newSelectedBUs);
         const sitesData = await getSitesByBusinessUnits(newSelectedBUs);
+        console.log('Sites loaded:', sitesData);
         setSites(Array.isArray(sitesData) ? sitesData : []);
       } catch (err) {
         console.error('Failed to load sites:', err);
       }
     } else {
+      console.log('No BUs selected, clearing sites');
       setSites([]);
     }
   };
@@ -206,9 +211,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     setLoading(true);
     try {
+      console.log('=== handleInfoContinue START ===');
+      console.log('selectedBUs:', selectedBUs);
+      console.log('selectedSiteIds:', contractorInfo.selectedSiteIds);
+      
       // If new contractor, create them first
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
+        console.log('Creating new contractor...');
         const newContractor = await createContractor({
           name: contractorInfo.name,
           email: contractorInfo.email,
@@ -218,14 +228,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         });
         contractorId = newContractor.id;
         setContractorInfo({ ...contractorInfo, id: contractorId });
+        console.log('New contractor created:', contractorId);
       }
 
       // Get inductions for all selected business units
       let allInductionsData = [];
+      console.log('Starting to fetch inductions...');
       for (const buId of selectedBUs) {
+        console.log('  Fetching for BU:', buId);
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        console.log('  Got inductions:', inductionsForBU?.length || 0);
         allInductionsData = [...allInductionsData, ...inductionsForBU];
       }
+      console.log('Total inductions collected:', allInductionsData.length);
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
@@ -250,9 +265,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setOptionalInductions(optional);
       setAllInductions(uniqueInductions);
       setSelectedOptionalIds([]);
+      console.log('Setting step to inductionsList');
       setStep('inductionsList');
+      console.log('=== handleInfoContinue SUCCESS ===');
     } catch (err) {
-      Alert.alert('Error', 'Failed to load inductions');
+      console.error('=== handleInfoContinue ERROR ===', err);
+      Alert.alert('Error', 'Failed to load inductions: ' + (err.message || 'Unknown error'));
       console.error(err);
     } finally {
       setLoading(false);
