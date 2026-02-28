@@ -161,6 +161,134 @@ export default function InductionAdminScreen({ onBack, styles }) {
     ]);
   };
 
+  const handleAddSubsection = () => {
+    setFormData({
+      id: '',
+      subsection_name: '',
+      video_url: '',
+      duration_minutes: '',
+    });
+    setModalVisible(true);
+  };
+
+  const handleEditSubsection = (sub) => {
+    setFormData({
+      id: sub.id,
+      subsection_name: sub.subsection_name,
+      video_url: sub.video_url,
+      duration_minutes: sub.video_duration?.toString() || '',
+    });
+    setModalVisible(true);
+  };
+
+  const handleSaveSubsection = async () => {
+    if (!formData.subsection_name.trim() || !formData.video_url.trim()) {
+      Alert.alert('Error', 'Please fill in subsection name and video URL');
+      return;
+    }
+
+    try {
+      if (formData.id) {
+        await updateInductionSubsection(formData.id, {
+          subsection_name: formData.subsection_name,
+          video_url: formData.video_url,
+          video_duration: parseInt(formData.duration_minutes) || 0,
+        });
+      } else {
+        await createInductionSubsection(selectedSection.id, {
+          subsection_name: formData.subsection_name,
+          video_url: formData.video_url,
+          video_duration: parseInt(formData.duration_minutes) || 0,
+        });
+      }
+      setModalVisible(false);
+      loadSubsections(selectedSection.id);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save subsection');
+    }
+  };
+
+  const handleDeleteSubsection = async (subsectionId) => {
+    Alert.alert('Delete Subsection', 'Are you sure?', [
+      { text: 'Cancel' },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          try {
+            await deleteInductionSubsection(subsectionId);
+            loadSubsections(selectedSection.id);
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete subsection');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleAddQuestion = () => {
+    setFormData({
+      id: '',
+      question_text: '',
+      options: ['', '', '', ''],
+      correct_answer_index: 0,
+    });
+    setModalVisible(true);
+  };
+
+  const handleEditQuestion = (question) => {
+    setFormData({
+      id: question.id,
+      question_text: question.question_text,
+      options: question.answer_options || ['', '', '', ''],
+      correct_answer_index: question.correct_answer_index || 0,
+    });
+    setModalVisible(true);
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!formData.question_text.trim() || formData.options.some(o => !o.trim())) {
+      Alert.alert('Error', 'Please fill in question and all answer options');
+      return;
+    }
+
+    try {
+      if (formData.id) {
+        await updateInductionQuestion(formData.id, {
+          question_text: formData.question_text,
+          answer_options: formData.options,
+          correct_answer_index: formData.correct_answer_index,
+        });
+      } else {
+        await createInductionQuestion(selectedSubsection.id, {
+          question_text: formData.question_text,
+          answer_options: formData.options,
+          correct_answer_index: formData.correct_answer_index,
+        });
+      }
+      setModalVisible(false);
+      loadQuestions(selectedSubsection.id);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save question');
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    Alert.alert('Delete Question', 'Are you sure?', [
+      { text: 'Cancel' },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          try {
+            await deleteInductionQuestion(questionId);
+            loadQuestions(selectedSubsection.id);
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete question');
+          }
+        },
+      },
+    ]);
+  };
+
   // Sections View
   if (currentView === 'sections' && !loading) {
     return (
@@ -432,6 +560,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
               marginBottom: 16,
               alignItems: 'center',
             }}
+            onPress={handleAddSubsection}
           >
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
               + Add Variant/Subsection
@@ -444,13 +573,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
             </Text>
           ) : (
             subsections.map((sub) => (
-              <TouchableOpacity
+              <View
                 key={sub.id}
-                onPress={() => {
-                  setSelectedSubsection(sub);
-                  loadQuestions(sub.id);
-                  setCurrentView('questions');
-                }}
                 style={{
                   backgroundColor: 'white',
                   padding: 16,
@@ -460,16 +584,113 @@ export default function InductionAdminScreen({ onBack, styles }) {
                   borderLeftColor: '#8B5CF6',
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>
-                  {sub.subsection_name}
-                </Text>
-                <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                  Video: {sub.video_duration || 0} min
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedSubsection(sub);
+                    loadQuestions(sub.id);
+                    setCurrentView('questions');
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>
+                    {sub.subsection_name}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    Video: {sub.video_duration || 0} min
+                  </Text>
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => handleEditSubsection(sub)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#E0E7FF',
+                      padding: 8,
+                      borderRadius: 6,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 13 }}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteSubsection(sub.id)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#FEE2E2',
+                      padding: 8,
+                      borderRadius: 6,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 13 }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ))
           )}
         </ScrollView>
+
+        {/* Modal for adding/editing subsections */}
+        <Modal visible={modalVisible && currentView === 'subsections'} animationType="slide">
+          <View style={{ flex: 1 }}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={styles.backButton}>← Back</Text>
+              </TouchableOpacity>
+              <Text style={styles.title}>
+                {formData.id ? 'Edit Variant' : 'New Variant'}
+              </Text>
+            </View>
+
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              <Text style={styles.label}>Variant Name *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="E.g., MEWP, Telehandler, Ladder"
+                value={formData.subsection_name}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, subsection_name: text })
+                }
+              />
+
+              <Text style={[styles.label, { marginTop: 16 }]}>YouTube Video URL *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://youtube.com/watch?v=..."
+                value={formData.video_url}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, video_url: text })
+                }
+              />
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="E.g., 5"
+                keyboardType="number-pad"
+                value={formData.duration_minutes}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, duration_minutes: text })
+                }
+              />
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#10B981',
+                  padding: 16,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginTop: 24,
+                  marginBottom: 16,
+                }}
+                onPress={handleSaveSubsection}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  {formData.id ? 'Update' : 'Create'} Variant
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -494,9 +715,12 @@ export default function InductionAdminScreen({ onBack, styles }) {
               marginBottom: 16,
               alignItems: 'center',
             }}
+            onPress={questions.length < 3 ? handleAddQuestion : () => Alert.alert('Limit', 'Maximum 3 questions per variant')}
+            disabled={questions.length >= 3}
+            opacity={questions.length >= 3 ? 0.5 : 1}
           >
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              + Add Question (Max 3)
+              + Add Question {questions.length >= 3 ? '(Max reached)' : `(${3 - questions.length} left)`}
             </Text>
           </TouchableOpacity>
 
@@ -527,9 +751,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 >
                   Q{index + 1}: {question.question_text}
                 </Text>
-                {question.options && (
-                  <View style={{ marginLeft: 12 }}>
-                    {question.options.map((option, optIdx) => (
+                {question.answer_options && (
+                  <View style={{ marginLeft: 12, marginBottom: 12 }}>
+                    {question.answer_options.map((option, optIdx) => (
                       <Text
                         key={optIdx}
                         style={{
@@ -549,10 +773,128 @@ export default function InductionAdminScreen({ onBack, styles }) {
                     ))}
                   </View>
                 )}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => handleEditQuestion(question)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#E0E7FF',
+                      padding: 8,
+                      borderRadius: 6,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 13 }}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteQuestion(question.id)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#FEE2E2',
+                      padding: 8,
+                      borderRadius: 6,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 13 }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))
           )}
         </ScrollView>
+
+        {/* Modal for adding/editing questions */}
+        <Modal visible={modalVisible && currentView === 'questions'} animationType="slide">
+          <View style={{ flex: 1 }}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={styles.backButton}>← Back</Text>
+              </TouchableOpacity>
+              <Text style={styles.title}>
+                {formData.id ? 'Edit Question' : 'New Question'}
+              </Text>
+            </View>
+
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              <Text style={styles.label}>Question *</Text>
+              <TextInput
+                style={[styles.input, { minHeight: 60 }]}
+                placeholder="What is the correct safety procedure?"
+                value={formData.question_text}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, question_text: text })
+                }
+                multiline
+              />
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Answer Options *</Text>
+              {formData.options.map((option, idx) => (
+                <View key={idx} style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontWeight: '600', color: '#6B7280', width: 30 }}>
+                      {String.fromCharCode(65 + idx)})
+                    </Text>
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder={`Option ${idx + 1}`}
+                      value={option}
+                      onChangeText={(text) => {
+                        const newOptions = [...formData.options];
+                        newOptions[idx] = text;
+                        setFormData({ ...formData, options: newOptions });
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() =>
+                        setFormData({ ...formData, correct_answer_index: idx })
+                      }
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 6,
+                        backgroundColor:
+                          formData.correct_answer_index === idx
+                            ? '#10B981'
+                            : '#E5E7EB',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            formData.correct_answer_index === idx ? 'white' : '#6B7280',
+                          fontWeight: '600',
+                          fontSize: 12,
+                        }}
+                      >
+                        ✓
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8, marginBottom: 16 }}>
+                Tap ✓ to mark correct answer
+              </Text>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#10B981',
+                  padding: 16,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginTop: 24,
+                  marginBottom: 16,
+                }}
+                onPress={handleSaveQuestion}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  {formData.id ? 'Update' : 'Create'} Question
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   }
