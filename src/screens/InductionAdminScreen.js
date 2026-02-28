@@ -18,6 +18,7 @@ import {
 } from '../api/inductions';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
+import { listAllServices } from '../api/services';
 
 /**
  * InductionAdminScreen - Manage inductions (single table, simple form)
@@ -26,6 +27,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [inductions, setInductions] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [filterByBU, setFilterByBU] = useState(null);
@@ -37,6 +39,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
     subsection_name: '',
     business_unit_ids: [],
     site_id: '',
+    service_id: '',
     video_url: '',
     video_duration: '',
     is_compulsory: true,
@@ -58,14 +61,16 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [inductionsData, buData, sitesData] = await Promise.all([
+      const [inductionsData, buData, sitesData, servicesData] = await Promise.all([
         getAllInductions(),
         listBusinessUnits(),
         listSites(),
+        listAllServices(),
       ]);
       setInductions(Array.isArray(inductionsData) ? inductionsData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setSites(Array.isArray(sitesData) ? sitesData : []);
+      setServices(Array.isArray(servicesData) ? servicesData : []);
     } catch (err) {
       console.error('Error loading data:', err);
       Alert.alert('Error', 'Failed to load inductions');
@@ -82,6 +87,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       subsection_name: '',
       business_unit_ids: [],
       site_id: '',
+      service_id: '',
       video_url: '',
       video_duration: '',
       is_compulsory: true,
@@ -106,6 +112,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       subsection_name: induction.subsection_name || '',
       business_unit_ids: induction.business_unit_ids || [],
       site_id: induction.site_id || '',
+      service_id: induction.service_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
       is_compulsory: induction.is_compulsory !== false,
@@ -239,6 +246,18 @@ export default function InductionAdminScreen({ onBack, styles }) {
             
             <Text style={[styles.label, { marginTop: 12 }]}>Description</Text>
             <TextInput style={[styles.input, { minHeight: 60 }]} placeholder="Brief description" value={formData.description} onChangeText={(text) => setFormData({ ...formData, description: text })} multiline />
+
+            <Text style={[styles.label, { marginTop: 20 }]}>Service (optional)</Text>
+            <ScrollView horizontal contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+              <TouchableOpacity onPress={() => setFormData({ ...formData, service_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.service_id === '' ? '#3B82F6' : '#E5E7EB' }}>
+                <Text style={{ color: formData.service_id === '' ? 'white' : '#374151', fontWeight: '600', fontSize: 13 }}>None</Text>
+              </TouchableOpacity>
+              {services.map(service => (
+                <TouchableOpacity key={service.id} onPress={() => setFormData({ ...formData, service_id: service.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.service_id === service.id ? '#3B82F6' : '#E5E7EB' }}>
+                  <Text style={{ color: formData.service_id === service.id ? 'white' : '#374151', fontWeight: '600', fontSize: 13 }}>{service.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             <Text style={[styles.label, { marginTop: 20 }]}>Business Units * (select one or more)</Text>
             {businessUnits.map(bu => (
