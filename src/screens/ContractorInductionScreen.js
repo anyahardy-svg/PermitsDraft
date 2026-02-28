@@ -605,12 +605,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
 
-          <TouchableOpacity
-            style={[styles.button, { marginTop: 24 }]}
-            onPress={handleInfoContinue}
-          >
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 24, backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={handleInfoContinue}
+              style={{ width: '100%', alignItems: 'center' }}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
