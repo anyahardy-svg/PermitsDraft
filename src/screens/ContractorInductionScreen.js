@@ -19,6 +19,7 @@ import {
   completeInduction,
 } from '../api/inductions';
 import { listCompanies, createCompany } from '../api/companies';
+import { listContractors, createContractor, getContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 
@@ -31,8 +32,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Step 0: Select existing or new contractor
+  const [isNewContractor, setIsNewContractor] = useState(null); // null = choosing, true = new, false = existing
+  const [contractors, setContractors] = useState([]);
+  const [selectedContractorId, setSelectedContractorId] = useState('');
+  const [showContractorDropdown, setShowContractorDropdown] = useState(false);
+
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
+    id: '', // For existing contractors
     name: '',
     email: '',
     phone: '',
@@ -75,12 +83,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [companiesData, buData] = await Promise.all([
+      const [companiesData, buData, contractorsData] = await Promise.all([
         listCompanies(),
         listBusinessUnits(),
+        listContractors(),
       ]);
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
+      setContractors(Array.isArray(contractorsData) ? contractorsData : []);
     } catch (err) {
       setError('Failed to load data');
     }
@@ -108,6 +118,42 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectExistingContractor = async (contractorId) => {
+    try {
+      setLoading(true);
+      const contractor = await getContractor(contractorId);
+      setContractorInfo({
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email,
+        phone: contractor.phone || '',
+        companyId: contractor.company_id,
+        businessUnitId: '',
+        selectedSiteIds: [],
+      });
+      setSelectedContractorId(contractorId);
+      setShowContractorDropdown(false);
+      setIsNewContractor(false);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to load contractor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewContractor = () => {
+    setIsNewContractor(true);
+    setContractorInfo({
+      id: '',
+      name: '',
+      email: '',
+      phone: '',
+      companyId: '',
+      businessUnitId: '',
+      selectedSiteIds: [],
+    });
   };
 
   const handleBusinessUnitChange = async (buId) => {
@@ -147,7 +193,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     setLoading(true);
     try {
-      // Get all inductions for the business unit
+      // If new contractor, create them first
+      let contractorId = contractorInfo.id;
+      if (isNewContractor && !contractorId) {
+        const newContractor = await createContractor({
+          name: contractorInfo.name,
+          email: contractorInfo.email,
+          phone: contractorInfo.phone,
+          company_id: contractorInfo.companyId,
+          service_ids: [],
+        });
+        contractorId = newContractor.id;
+        setContractorInfo({ ...contractorInfo, id: contractorId });
+      }
+
+      // Get inductions for the business unit
       const inductions = await getInductionsByBusinessUnit(contractorInfo.businessUnitId);
       
       // Separate compulsory and optional, considering site-specific rules
@@ -172,6 +232,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setStep('inductionsList');
     } catch (err) {
       Alert.alert('Error', 'Failed to load inductions');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -249,7 +310,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Save answers
       if (Object.keys(answers).length > 0) {
         await saveInductionAnswers(
-          'temp-contractor-id', // Will need contractor ID from signin
+          contractorInfo.id,
           currentInduction.id,
           answers
         );
@@ -257,7 +318,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       // Complete induction
       await completeInduction(
-        'temp-contractor-id',
+        contractorInfo.id,
         currentInduction.id,
         signatureText
       );
@@ -292,8 +353,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     );
   }
 
-  // STEP 1: INFO
-  if (step === 'info') {
+  // STEP 1: INFO - First choose existing or new contractor
+  if (step === 'info' && isNewContractor === null) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -303,10 +364,82 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           <Text style={styles.title}>Contractor Induction</Text>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
-            Please provide your information to begin the induction process.
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, justifyContent: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
+            Are you a returning contractor or new?
           </Text>
+
+          <TouchableOpacity 
+            onPress={() => {
+              setIsNewContractor(true);
+              setContractorInfo({
+                id: '',
+                name: '',
+                email: '',
+                phone: '',
+                companyId: '',
+                businessUnitId: '',
+                selectedSiteIds: [],
+              });
+            }}
+            style={{ backgroundColor: '#E0E7FF', borderRadius: 12, padding: 20, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#3B82F6', marginBottom: 8 }}>+ New Contractor</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280' }}>I'm completing my induction for the first time</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => setShowContractorDropdown(true)}
+            style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981', marginBottom: 8 }}>↩️ Returning Contractor</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280' }}>I need to redo my induction</Text>
+          </TouchableOpacity>
+
+          {showContractorDropdown && (
+            <View style={{ marginTop: 16, backgroundColor: '#F9FAFB', borderRadius: 8 }}>
+              <TouchableOpacity 
+                onPress={() => setShowContractorDropdown(false)}
+                style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Close</Text>
+              </TouchableOpacity>
+              <ScrollView style={{ maxHeight: 300 }}>
+                {contractors.map(contractor => (
+                  <TouchableOpacity
+                    key={contractor.id}
+                    onPress={() => handleSelectExistingContractor(contractor.id)}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP 1: INFO - Fill in contractor details
+  if (step === 'info' && isNewContractor !== null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => { setIsNewContractor(null); setShowContractorDropdown(false); }}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Your Information</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {isNewContractor && (
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, fontStyle: 'italic' }}>
+              Please fill in your details to get started
+            </Text>
+          )}
 
           <Text style={styles.label}>Full Name *</Text>
           <TextInput
