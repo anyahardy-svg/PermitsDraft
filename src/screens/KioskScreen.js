@@ -758,28 +758,31 @@ const KioskScreen = ({ onViewPermits }) => {
         </TouchableOpacity>
       )}
       
-      {/* Contractor Induction Floating Button */}
-      <TouchableOpacity
-        style={{
-          position: 'absolute',
-          bottom: 140,
-          right: 20,
-          backgroundColor: '#A855F7',
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          justifyContent: 'center',
-          alignItems: 'center',
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
-        }}
-        onPress={() => setShowInductionModal(true)}
-      >
-        <Text style={{ fontSize: 32 }}>🎓</Text>
-      </TouchableOpacity>
+      {/* Contractor Induction Floating Button - show on welcome screen */}
+      {currentScreen === 'welcome' && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 140,
+            right: 20,
+            backgroundColor: '#A855F7',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            zIndex: 999,
+          }}
+          onPress={() => setShowInductionModal(true)}
+        >
+          <Text style={{ fontSize: 32 }}>🎓</Text>
+        </TouchableOpacity>
+      )}
       
       {/* Contractor Induction Modal */}
       <Modal
