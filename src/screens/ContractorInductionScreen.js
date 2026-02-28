@@ -198,7 +198,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       Alert.alert('Error', 'Please select a company');
       return;
     }
-    if (contractorInfo.selectedBusinessUnitIds.length === 0) {
+    const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+    if (selectedBUs.length === 0) {
       Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
@@ -221,7 +222,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       // Get inductions for all selected business units
       let allInductionsData = [];
-      for (const buId of contractorInfo.selectedBusinessUnitIds) {
+      for (const buId of selectedBUs) {
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
         allInductionsData = [...allInductionsData, ...inductionsForBU];
       }
@@ -232,10 +233,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Separate compulsory and optional, considering site-specific rules
       const compulsory = [];
       const optional = [];
+      const selectedSites = contractorInfo.selectedSiteIds || [];
 
       uniqueInductions.forEach(ind => {
         const isSiteSpecific = ind.site_id !== null;
-        const isApplicableToSelectedSites = !isSiteSpecific || contractorInfo.selectedSiteIds.includes(ind.site_id);
+        const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
 
         if (ind.is_compulsory && isApplicableToSelectedSites) {
           compulsory.push(ind);
