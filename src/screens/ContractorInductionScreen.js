@@ -71,15 +71,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [modalStep, setModalStep] = useState('video'); // video, questions, complete
   const [modalAnswers, setModalAnswers] = useState({}); // Answers for current modal induction
 
-  // Current induction being completed
-  const currentInduction = inductionQueue[currentInductionIndex];
-
   // Step 3: Video
   const [videoWatched, setVideoWatched] = useState(false);
 
   // Step 4: Questions
   const [answers, setAnswers] = useState({});
-  const hasQuestions = currentInduction?.question_1_text?.trim();
 
   // Step 5: Signature
   const [signatureText, setSignatureText] = useState('');
@@ -345,48 +341,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
 
     setStep('signature');
-  };
-
-  const handleCompleteInduction = async () => {
-    if (!signatureText?.trim()) {
-      Alert.alert('Error', 'Please enter your signature');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Save answers
-      if (Object.keys(answers).length > 0) {
-        await saveInductionAnswers(
-          contractorInfo.id,
-          currentInduction.id,
-          answers
-        );
-      }
-
-      // Complete induction
-      await completeInduction(
-        contractorInfo.id,
-        currentInduction.id,
-        signatureText
-      );
-
-      // Move to next induction or complete
-      if (currentInductionIndex < inductionQueue.length - 1) {
-        setCurrentInductionIndex(currentInductionIndex + 1);
-        setAnswers({});
-        setSignatureText('');
-        setVideoWatched(false);
-        setStep('video');
-      } else {
-        setStep('complete');
-      }
-    } catch (err) {
-      Alert.alert('Error', 'Failed to complete induction');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // ============================================================================
