@@ -160,27 +160,22 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleBusinessUnitChange = async (buId) => {
-    console.log('handleBusinessUnitChange called for buId:', buId);
     const currentBUs = contractorInfo.selectedBusinessUnitIds || [];
     const newSelectedBUs = currentBUs.includes(buId)
       ? currentBUs.filter(id => id !== buId)
       : [...currentBUs, buId];
 
-    console.log('newSelectedBUs:', newSelectedBUs);
     setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [] });
     
     // Load sites for all selected business units
     if (newSelectedBUs.length > 0) {
       try {
-        console.log('Loading sites for BUs:', newSelectedBUs);
         const sitesData = await getSitesByBusinessUnits(newSelectedBUs);
-        console.log('Sites loaded:', sitesData);
         setSites(Array.isArray(sitesData) ? sitesData : []);
       } catch (err) {
         console.error('Failed to load sites:', err);
       }
     } else {
-      console.log('No BUs selected, clearing sites');
       setSites([]);
     }
   };
@@ -195,38 +190,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
-    console.log('=== handleInfoContinue CALLED ===');
-    console.log('contractorInfo:', contractorInfo);
-    console.log('isNewContractor:', isNewContractor);
-    
     if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
-      console.log('VALIDATION FAIL: missing name or email');
       Alert.alert('Error', 'Please enter name and email');
       return;
     }
     if (!contractorInfo.companyId) {
-      console.log('VALIDATION FAIL: missing company');
       Alert.alert('Error', 'Please select a company');
       return;
     }
     const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
-    console.log('selectedBUs:', selectedBUs);
     if (selectedBUs.length === 0) {
-      console.log('VALIDATION FAIL: no business units selected');
       Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('=== handleInfoContinue START ===');
-      console.log('selectedBUs:', selectedBUs);
-      console.log('selectedSiteIds:', contractorInfo.selectedSiteIds);
-      
       // If new contractor, create them first
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
-        console.log('Creating new contractor...');
         const newContractor = await createContractor({
           name: contractorInfo.name,
           email: contractorInfo.email,
@@ -236,47 +218,28 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         });
         contractorId = newContractor.id;
         setContractorInfo({ ...contractorInfo, id: contractorId });
-        console.log('New contractor created:', contractorId);
       }
 
       // Get inductions for all selected business units
       let allInductionsData = [];
-      console.log('Starting to fetch inductions...');
       for (const buId of selectedBUs) {
-        console.log('  Fetching inductions for BU:', buId);
-        try {
-          const inductionsForBU = await getInductionsByBusinessUnit(buId);
-          console.log('  Got inductions for BU:', buId, '- count:', inductionsForBU?.length || 0);
-          if (Array.isArray(inductionsForBU)) {
-            allInductionsData = [...allInductionsData, ...inductionsForBU];
-          } else {
-            console.warn('  WARNING: inductionsForBU is not an array:', inductionsForBU);
-          }
-        } catch (buErr) {
-          console.error('  ERROR fetching for BU:', buId, buErr);
-          console.error('  Stack:', buErr?.stack);
-          // Don't throw, continue with other BUs
+        const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        if (Array.isArray(inductionsForBU)) {
+          allInductionsData = [...allInductionsData, ...inductionsForBU];
         }
-      }
-      console.log('Total inductions collected:', allInductionsData.length);
-      if (allInductionsData.length === 0) {
-        console.warn('WARNING: No inductions found for any BU');
       }
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
-      console.log('Unique inductions after dedup:', uniqueInductions.length);
       
       // Separate compulsory and optional, considering site-specific rules
       const compulsory = [];
       const optional = [];
       const selectedSites = contractorInfo.selectedSiteIds || [];
-      console.log('Processing inductions with selectedSites:', selectedSites);
 
       uniqueInductions.forEach(ind => {
         const isSiteSpecific = ind.site_id !== null;
         const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
-        console.log('  Induction:', ind.induction_name, 'SiteSpecific:', isSiteSpecific, 'Applicable:', isApplicableToSelectedSites, 'Compulsory:', ind.is_compulsory);
 
         if (ind.is_compulsory && isApplicableToSelectedSites) {
           compulsory.push(ind);
@@ -285,25 +248,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       });
 
-      console.log('Compulsory inductions:', compulsory.length);
-      console.log('Optional inductions:', optional.length);
-      
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
       setAllInductions(uniqueInductions);
       setSelectedOptionalIds([]);
-      console.log('Setting step to inductionsList');
       setStep('inductionsList');
-      console.log('=== handleInfoContinue SUCCESS ===');
     } catch (err) {
-      console.error('=== handleInfoContinue CATCH ERROR ===', err);
-      console.error('Error message:', err?.message);
-      console.error('Error type:', typeof err);
-      console.error('Error stack:', err?.stack);
-      const errorMsg = err?.message || JSON.stringify(err) || 'Unknown error';
-      Alert.alert('Error Loading Inductions', 'Failed to load inductions: ' + errorMsg);
+      Alert.alert('Error', 'Failed to load inductions');
     } finally {
-      console.log('handleInfoContinue finally block - setting loading to false');
       setLoading(false);
     }
   };
@@ -497,7 +449,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   // STEP 1: INFO - Fill in contractor details
   if (step === 'info' && isNewContractor !== null) {
-    console.log('Rendering INFO screen - isNewContractor:', isNewContractor, 'contractorInfo:', contractorInfo);
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -640,22 +591,13 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </>
           )}
 
-          {console.log('DEBUG: sites.length=', sites.length, 'error=', error, 'selectedBUs=', contractorInfo.selectedBusinessUnitIds, 'selectedSites=', contractorInfo.selectedSiteIds)}
-
           {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
 
-          <View style={{ backgroundColor: '#FFF3CD', padding: 12, borderRadius: 8, marginTop: 20, marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, color: '#856404' }}>Button appears below ↓</Text>
-          </View>
-
           <TouchableOpacity
-            style={[styles.button, { marginTop: 24, backgroundColor: '#10B981' }]}
-            onPress={() => {
-              console.log('BUTTON PRESSED - calling handleInfoContinue');
-              handleInfoContinue();
-            }}
+            style={[styles.button, { marginTop: 24 }]}
+            onPress={handleInfoContinue}
           >
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue [TEST]</Text>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />

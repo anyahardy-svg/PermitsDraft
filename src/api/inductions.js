@@ -35,20 +35,13 @@ export async function getAllInductions() {
  */
 export async function getInductionsByBusinessUnit(businessUnitId) {
   try {
-    console.log('getInductionsByBusinessUnit called with:', businessUnitId);
-    
-    // Try with overlaps instead of contains
     const { data, error } = await supabase
       .from('inductions')
       .select('*')
       .overlaps('business_unit_ids', [businessUnitId])
       .order('induction_name, subsection_name', { ascending: true });
 
-    console.log('Query result - found', data?.length || 0, 'inductions. Error:', error);
-    if (error) {
-      console.error('Overlaps query error:', error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching inductions for business unit:', error);

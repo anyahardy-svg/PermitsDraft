@@ -63,8 +63,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
         listBusinessUnits(),
         listSites(),
       ]);
-      console.log('Loaded inductions:', inductionsData);
-      console.log('Loaded business units:', buData);
       setInductions(Array.isArray(inductionsData) ? inductionsData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setSites(Array.isArray(sitesData) ? sitesData : []);
