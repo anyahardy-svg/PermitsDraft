@@ -37,27 +37,16 @@ export async function getInductionsByBusinessUnit(businessUnitId) {
   try {
     console.log('getInductionsByBusinessUnit called with:', businessUnitId);
     
-    // First, fetch ALL inductions to debug
-    const { data: allData, error: allError } = await supabase
-      .from('inductions')
-      .select('*');
-    console.log('Total inductions in DB:', allData?.length, 'Error:', allError);
-    if (allData) {
-      allData.forEach(ind => {
-        console.log('  -', ind.induction_name, 'BU IDs:', ind.business_unit_ids);
-      });
-    }
-
-    // Now try the contains query
+    // Try with overlaps instead of contains
     const { data, error } = await supabase
       .from('inductions')
       .select('*')
-      .contains('business_unit_ids', [businessUnitId])
+      .overlaps('business_unit_ids', [businessUnitId])
       .order('induction_name, subsection_name', { ascending: true });
 
-    console.log('Query with contains result:', data?.length || 0, 'Error:', error);
+    console.log('Query result - found', data?.length || 0, 'inductions. Error:', error);
     if (error) {
-      console.error('Contains query error:', error);
+      console.error('Overlaps query error:', error);
       throw error;
     }
     return data || [];
