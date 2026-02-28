@@ -51,6 +51,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [companies, setCompanies] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
+  const [companySearchText, setCompanySearchText] = useState('');
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -112,6 +113,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setContractorInfo({ ...contractorInfo, companyId: newCompany.id });
       setShowAddCompanyModal(false);
       setNewCompanyName('');
+      setCompanySearchText('');
+      setShowCompanyDropdown(false);
       Alert.alert('Success', 'Company added successfully');
     } catch (err) {
       Alert.alert('Error', 'Failed to add company');
@@ -372,6 +375,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           <TouchableOpacity 
             onPress={() => {
               setIsNewContractor(true);
+              setCompanySearchText('');
+              setShowCompanyDropdown(false);
               setContractorInfo({
                 id: '',
                 name: '',
@@ -468,37 +473,46 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           />
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
-          <TouchableOpacity
-            style={[styles.input, { justifyContent: 'center', backgroundColor: showCompanyDropdown ? '#F3F4F6' : 'white' }]}
-            onPress={() => setShowCompanyDropdown(!showCompanyDropdown)}
-          >
-            <Text style={{ color: contractorInfo.companyId ? '#1F2937' : '#9CA3AF' }}>
-              {companies.find(c => c.id === contractorInfo.companyId)?.name || 'Select Company'} ▼
-            </Text>
-          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Search or type company name..."
+            value={contractorInfo.companyId ? companies.find(c => c.id === contractorInfo.companyId)?.name || companySearchText : companySearchText}
+            onChangeText={(text) => {
+              setCompanySearchText(text);
+              if (!text.trim()) setContractorInfo({ ...contractorInfo, companyId: '' });
+              setShowCompanyDropdown(true);
+            }}
+            onFocus={() => setShowCompanyDropdown(true)}
+          />
           {showCompanyDropdown && (
-            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, marginBottom: 16 }}>
-              {companies.map(company => (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 16, marginTop: 0 }}>
+              {companies
+                .filter(company => company.name.toLowerCase().includes(companySearchText.toLowerCase()))
+                .map(company => (
+                  <TouchableOpacity
+                    key={company.id}
+                    onPress={() => {
+                      setContractorInfo({ ...contractorInfo, companyId: company.id });
+                      setCompanySearchText('');
+                      setShowCompanyDropdown(false);
+                    }}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{company.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              {companies.filter(company => company.name.toLowerCase().includes(companySearchText.toLowerCase())).length === 0 && companySearchText.trim() && (
                 <TouchableOpacity
-                  key={company.id}
                   onPress={() => {
-                    setContractorInfo({ ...contractorInfo, companyId: company.id });
+                    setNewCompanyName(companySearchText);
                     setShowCompanyDropdown(false);
+                    setShowAddCompanyModal(true);
                   }}
-                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#E0E7FF' }}
                 >
-                  <Text style={{ fontSize: 14, color: '#1F2937' }}>{company.name}</Text>
+                  <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600' }}>+ Add "{companySearchText}"</Text>
                 </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                onPress={() => {
-                  setShowCompanyDropdown(false);
-                  setShowAddCompanyModal(true);
-                }}
-                style={{ paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#E0E7FF' }}
-              >
-                <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600' }}>+ Add New Company</Text>
-              </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -565,7 +579,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         <Modal visible={showAddCompanyModal} animationType="slide" transparent>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
             <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 16, color: '#1F2937' }}>Add New Company</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8, color: '#1F2937' }}>Add New Company</Text>
+              <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>This will be marked as manually created</Text>
               <TextInput
                 style={[styles.input, { marginBottom: 16 }]}
                 placeholder="Company Name"
@@ -578,6 +593,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   onPress={() => {
                     setShowAddCompanyModal(false);
                     setNewCompanyName('');
+                    setCompanySearchText('');
                   }}
                 >
                   <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Cancel</Text>
@@ -587,7 +603,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   onPress={handleAddCompany}
                   disabled={loading}
                 >
-                  <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{loading ? 'Adding...' : 'Add'}</Text>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{loading ? 'Adding...' : 'Create'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
