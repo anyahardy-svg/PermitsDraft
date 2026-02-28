@@ -27,6 +27,7 @@ import { listServicesByBusinessUnit, listAllServices } from './src/api/services'
 import { listBusinessUnits } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import KioskScreen from './src/screens/KioskScreen';
+import InductionAdminScreen from './src/screens/InductionAdminScreen';
 
 // List of all available sites
 const ALL_SITES = [
@@ -4639,6 +4640,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => setCurrentScreen('manage_visitor_inductions')}>
             <Text style={styles.cardNumber}>{sites.length}</Text>
             <Text style={styles.cardLabel}>Visitor Inductions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]} onPress={() => setCurrentScreen('manage_inductions')}>
+            <Text style={styles.cardNumber}>📚</Text>
+            <Text style={styles.cardLabel}>Inductions</Text>
           </TouchableOpacity>
         </View>
         </ScrollView>
@@ -11228,6 +11233,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return renderManageIsolations();
     case 'manage_visitor_inductions':
       return renderManageVisitorInductions();
+    case 'manage_inductions':
+      return (
+        <InductionAdminScreen
+          onBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
+      );
     case 'services_directory':
       return renderServicesDirectory();
     default:

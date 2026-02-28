@@ -967,6 +967,237 @@ async function logAudit(action, details) {
   }
 }
 
+// ============================================================================
+// ADMIN: INDUCTION MANAGEMENT
+// ============================================================================
+
+/**
+ * Get all induction sections
+ * @returns {Array} All induction sections
+ */
+export async function getInductionSections() {
+  try {
+    const { data, error } = await supabase
+      .from('induction_sections')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching induction sections:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a new induction section
+ * @param {Object} sectionData - { induction_name, description, service_id }
+ * @returns {Object} Created section
+ */
+export async function createInductionSection(sectionData) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_sections')
+      .insert([{
+        induction_name: sectionData.induction_name,
+        description: sectionData.description || '',
+        service_id: sectionData.service_id,
+      }])
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error creating induction section:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an induction section
+ * @param {UUID} sectionId
+ * @param {Object} updates - { induction_name, description, service_id }
+ * @returns {Object} Updated section
+ */
+export async function updateInductionSection(sectionId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_sections')
+      .update({
+        induction_name: updates.induction_name,
+        description: updates.description || '',
+        service_id: updates.service_id,
+      })
+      .eq('id', sectionId)
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error updating induction section:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an induction section (cascade deletes subsections and questions)
+ * @param {UUID} sectionId
+ */
+export async function deleteInductionSection(sectionId) {
+  try {
+    const { error } = await supabase
+      .from('induction_sections')
+      .delete()
+      .eq('id', sectionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting induction section:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new induction subsection (variant)
+ * @param {UUID} sectionId
+ * @param {Object} subsectionData - { subsection_name, video_url, video_duration }
+ * @returns {Object} Created subsection
+ */
+export async function createInductionSubsection(sectionId, subsectionData) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_subsections')
+      .insert([{
+        induction_section_id: sectionId,
+        subsection_name: subsectionData.subsection_name,
+        video_url: subsectionData.video_url,
+        video_duration: subsectionData.video_duration || 0,
+      }])
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error creating induction subsection:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an induction subsection
+ * @param {UUID} subsectionId
+ * @param {Object} updates - { subsection_name, video_url, video_duration }
+ * @returns {Object} Updated subsection
+ */
+export async function updateInductionSubsection(subsectionId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_subsections')
+      .update({
+        subsection_name: updates.subsection_name,
+        video_url: updates.video_url,
+        video_duration: updates.video_duration || 0,
+      })
+      .eq('id', subsectionId)
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error updating induction subsection:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an induction subsection (cascade deletes questions)
+ * @param {UUID} subsectionId
+ */
+export async function deleteInductionSubsection(subsectionId) {
+  try {
+    const { error } = await supabase
+      .from('induction_subsections')
+      .delete()
+      .eq('id', subsectionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting induction subsection:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new induction question
+ * @param {UUID} subsectionId
+ * @param {Object} questionData - { question_text, options: [], correct_answer_index }
+ * @returns {Object} Created question
+ */
+export async function createInductionQuestion(subsectionId, questionData) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_questions')
+      .insert([{
+        induction_subsection_id: subsectionId,
+        question_text: questionData.question_text,
+        options: questionData.options || [],
+        correct_answer_index: questionData.correct_answer_index || 0,
+      }])
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error creating induction question:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an induction question
+ * @param {UUID} questionId
+ * @param {Object} updates - { question_text, options: [], correct_answer_index }
+ * @returns {Object} Updated question
+ */
+export async function updateInductionQuestion(questionId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('induction_questions')
+      .update({
+        question_text: updates.question_text,
+        options: updates.options || [],
+        correct_answer_index: updates.correct_answer_index || 0,
+      })
+      .eq('id', questionId)
+      .select();
+
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Error updating induction question:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an induction question
+ * @param {UUID} questionId
+ */
+export async function deleteInductionQuestion(questionId) {
+  try {
+    const { error } = await supabase
+      .from('induction_questions')
+      .delete()
+      .eq('id', questionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting induction question:', error);
+    throw error;
+  }
+}
+
 export default {
   startInduction,
   completeInduction,
@@ -985,4 +1216,15 @@ export default {
   completeInductionSubsection,
   createInductionTemplate,
   getInductionTemplates,
+  // Admin management
+  getInductionSections,
+  createInductionSection,
+  updateInductionSection,
+  deleteInductionSection,
+  createInductionSubsection,
+  updateInductionSubsection,
+  deleteInductionSubsection,
+  createInductionQuestion,
+  updateInductionQuestion,
+  deleteInductionQuestion,
 };
