@@ -195,16 +195,24 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
+    console.log('=== handleInfoContinue CALLED ===');
+    console.log('contractorInfo:', contractorInfo);
+    console.log('isNewContractor:', isNewContractor);
+    
     if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
+      console.log('VALIDATION FAIL: missing name or email');
       Alert.alert('Error', 'Please enter name and email');
       return;
     }
     if (!contractorInfo.companyId) {
+      console.log('VALIDATION FAIL: missing company');
       Alert.alert('Error', 'Please select a company');
       return;
     }
     const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+    console.log('selectedBUs:', selectedBUs);
     if (selectedBUs.length === 0) {
+      console.log('VALIDATION FAIL: no business units selected');
       Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
@@ -235,24 +243,31 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       let allInductionsData = [];
       console.log('Starting to fetch inductions...');
       for (const buId of selectedBUs) {
-        console.log('  Fetching for BU:', buId);
-        const inductionsForBU = await getInductionsByBusinessUnit(buId);
-        console.log('  Got inductions:', inductionsForBU?.length || 0);
-        allInductionsData = [...allInductionsData, ...inductionsForBU];
+        console.log('  Fetching inductions for BU:', buId);
+        try {
+          const inductionsForBU = await getInductionsByBusinessUnit(buId);
+          console.log('  Got inductions for BU:', buId, '- count:', inductionsForBU?.length || 0);
+          allInductionsData = [...allInductionsData, ...inductionsForBU];
+        } catch (buErr) {
+          console.error('  ERROR fetching for BU:', buId, buErr);
+        }
       }
       console.log('Total inductions collected:', allInductionsData.length);
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+      console.log('Unique inductions after dedup:', uniqueInductions.length);
       
       // Separate compulsory and optional, considering site-specific rules
       const compulsory = [];
       const optional = [];
       const selectedSites = contractorInfo.selectedSiteIds || [];
+      console.log('Processing inductions with selectedSites:', selectedSites);
 
       uniqueInductions.forEach(ind => {
         const isSiteSpecific = ind.site_id !== null;
         const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
+        console.log('  Induction:', ind.induction_name, 'SiteSpecific:', isSiteSpecific, 'Applicable:', isApplicableToSelectedSites, 'Compulsory:', ind.is_compulsory);
 
         if (ind.is_compulsory && isApplicableToSelectedSites) {
           compulsory.push(ind);
@@ -261,6 +276,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       });
 
+      console.log('Compulsory inductions:', compulsory.length);
+      console.log('Optional inductions:', optional.length);
+      
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
       setAllInductions(uniqueInductions);
