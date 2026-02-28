@@ -6218,7 +6218,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           name: currentContractor.name,
           email: currentContractor.email,
           phone: currentContractor.phone,
-          services: currentContractor.services,
+          service_ids: currentContractor.serviceIds || [],
           site_ids: siteIds,
           company_id: companyId,
           business_unit_ids: currentContractor.businessUnitIds,
@@ -6457,11 +6457,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   }
                 }
                 
+                // Convert service names to service IDs
+                const serviceIds = [];
+                if (contractor.services && contractor.services.length > 0) {
+                  for (const serviceName of contractor.services) {
+                    // Find all services that match this name in any of the contractor's business units
+                    const matchingServices = servicesForContractors.filter(s => 
+                      s.name.toLowerCase() === serviceName.toLowerCase() &&
+                      businessUnitIds.includes(s.business_unit_id)
+                    );
+                    if (matchingServices.length > 0) {
+                      serviceIds.push(matchingServices[0].id);
+                    }
+                  }
+                }
+                
                 await createContractor({
                   name: contractor.name,
                   email: contractor.email,
                   phone: contractor.phone,
-                  services: contractor.services,
+                  service_ids: serviceIds,
                   site_ids: siteIds,
                   company_id: company.id,
                   business_unit_ids: businessUnitIds,

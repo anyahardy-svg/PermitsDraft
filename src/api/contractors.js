@@ -22,7 +22,11 @@ const transformContractor = (dbContractor) => {
     business_unit_ids: dbContractor.business_unit_ids || [],
     inductionExpiry: dbContractor.induction_expiry,
     induction_expiry: dbContractor.induction_expiry,
+    serviceIds: dbContractor.service_ids || [],
+    service_ids: dbContractor.service_ids || [],
     services: dbContractor.services || [],
+    serviceNames: dbContractor.service_names || [],
+    service_names: dbContractor.service_names || [],
     siteIds: dbContractor.site_ids || [],
     site_ids: dbContractor.site_ids || [],
     createdAt: dbContractor.created_at,
@@ -33,9 +37,17 @@ const transformContractor = (dbContractor) => {
 // Create a new contractor
 export const createContractor = async (contractorData) => {
   try {
+    // Prepare data: map services to service_ids if needed
+    const dbData = {
+      ...contractorData,
+      service_ids: contractorData.service_ids || contractorData.serviceIds || [],
+      // Keep services field for backward compatibility during migration
+      services: contractorData.services || []
+    };
+    
     const { data, error } = await supabase
       .from('contractors')
-      .insert([contractorData])
+      .insert([dbData])
       .select();
 
     if (error) throw error;
@@ -154,9 +166,20 @@ export const getContractor = async (contractorId) => {
 // Update a contractor
 export const updateContractor = async (contractorId, updates) => {
   try {
+    // Map service_ids/serviceIds to service_ids in the update
+    const dbUpdates = {
+      ...updates
+    };
+    
+    // Handle service IDs mapping
+    if (updates.serviceIds !== undefined) {
+      dbUpdates.service_ids = updates.serviceIds;
+      delete dbUpdates.serviceIds;
+    }
+    
     const { data, error } = await supabase
       .from('contractors')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', contractorId)
       .select();
 
