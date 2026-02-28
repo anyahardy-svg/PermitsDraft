@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate } from '../api/templates';
 import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
+import { listCompanies } from '../api/companies';
 import JseaEditorScreen from './JseaEditorScreen';
 
 export default function ContractorAdminScreen({ 
@@ -27,9 +28,31 @@ export default function ContractorAdminScreen({
   const [loadingJsea, setLoadingJsea] = useState(false);
   const [loadingPermits, setLoadingPermits] = useState(false);
   const [showJseaEditor, setShowJseaEditor] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [editingJseaTemplate, setEditingJseaTemplate] = useState(null);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+
+  // Load companies
+  const loadCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      const companiesData = await listCompanies();
+      if (Array.isArray(companiesData)) {
+        setCompanies(companiesData);
+        if (companiesData.length > 0 && !selectedCompanyId) {
+          setSelectedCompanyId(companiesData[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load companies:', error);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
 
   // Load JSEA templates
   const loadJseaTemplates = async () => {
@@ -64,6 +87,10 @@ export default function ContractorAdminScreen({
   };
 
   useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'jsea') {
       loadJseaTemplates();
     } else {
@@ -71,7 +98,7 @@ export default function ContractorAdminScreen({
     }
   }, [activeTab, businessUnitId]);
 
-  // Handle save JSEA template
+  // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
     if (!jseaTemplateName.trim()) {
       Alert.alert('Validation', 'Please enter a template name');
@@ -81,38 +108,36 @@ export default function ContractorAdminScreen({
       Alert.alert('Validation', 'Please add at least one step');
       return;
     }
+    if (!selectedCompanyId) {
+      Alert.alert('Validation', 'Please select a company');
+      return;
+    }
 
     try {
-      if (editingJseaTemplate) {
-        // Update existing template
-        const response = await updateJseaTemplate(
-          editingJseaTemplate.id,
-          jseaTemplateName,
-          currentJseaSteps
-        );
-        if (response.success) {
-          Alert.alert('Success', 'JSEA template updated');
-          setShowJseaEditor(false);
-          resetJseaForm();
-          loadJseaTemplates();
-        }
-      } else {
-        // Create new template
-        const response = await saveJseaTemplate(
-          jseaTemplateName,
-          currentJseaSteps,
-          businessUnitId
-        );
-        if (response.success) {
-          Alert.alert('Success', 'JSEA template saved');
-          setShowJseaEditor(false);
-          resetJseaForm();
-          loadJseaTemplates();
-        }
+      const response = await saveJseaTemplate(
+        jseaTemplateName,
+        currentJseaSteps,
+        businessUnitId,
+        selectedCompanyId
+      );
+      if (response.success) {
+        const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+        Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedCompany?.name}`);
+        setShowSaveModal(false);
+        setShowJseaEditor(false);
+        resetJseaForm();
+        loadJseaTemplates();
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to save template: ' + error.message);
     }
+  };
+
+  // Open save modal when JSEA steps are ready
+  const handleJseaSaved = (steps) => {
+    setCurrentJseaSteps(steps);
+    setShowJseaEditor(false);
+    setShowSaveModal(true);
   };
 
   // Handle delete JSEA template
@@ -525,12 +550,135 @@ export default function ContractorAdminScreen({
                   borderRadius: 6,
                   alignItems: 'center'
                 }}
-                onPress={handleSaveJseaTemplate}
+                onPress={() => {
+                  if (!jseaTemplateName.trim()) {
+                    Alert.alert('Validation', 'Please enter a template name');
+                    return;
+                  }
+                  // Show the save modal to select company
+                  setShowSaveModal(true);
+                }}
               >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
-                  {editingJseaTemplate ? 'Update' : 'Save'}
-                </Text>
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Save Template</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Save Template Modal - Select Company */}
+      {showSaveModal && (
+        <Modal
+          visible={showSaveModal}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowSaveModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              padding: 20,
+              maxHeight: '80%'
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Save JSEA Template</Text>
+                <TouchableOpacity onPress={() => setShowSaveModal(false)}>
+                  <Text style={{ fontSize: 24, color: '#9CA3AF' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Template Name */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Template Name</Text>
+                  <View style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: '#F9FAFB'
+                  }}>
+                    <Text style={{ fontSize: 14, color: '#1F2937' }}>{jseaTemplateName}</Text>
+                  </View>
+                </View>
+
+                {/* Company Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Contractor Company *</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
+                    This template will be saved for the selected company
+                  </Text>
+
+                  {loadingCompanies ? (
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                  ) : (
+                    <View style={{ gap: 8 }}>
+                      {companies.map((company) => (
+                        <TouchableOpacity
+                          key={company.id}
+                          onPress={() => setSelectedCompanyId(company.id)}
+                          style={{
+                            paddingVertical: 12,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
+                            borderWidth: 2,
+                            borderColor: selectedCompanyId === company.id ? '#3B82F6' : '#E5E7EB',
+                            backgroundColor: selectedCompanyId === company.id ? '#E0E7FF' : '#F9FAFB',
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <View style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 10,
+                            borderWidth: 2,
+                            borderColor: '#3B82F6',
+                            backgroundColor: selectedCompanyId === company.id ? '#3B82F6' : 'white',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 12
+                          }}>
+                            {selectedCompanyId === company.id && (
+                              <Text style={{ color: 'white', fontWeight: 'bold' }}>✓</Text>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{company.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Save Button */}
+              <View style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 6,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setShowSaveModal(false)}
+                >
+                  <Text style={{ color: '#374151', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: 12,
+                    backgroundColor: '#10B981',
+                    borderRadius: 6,
+                    alignItems: 'center'
+                  }}
+                  onPress={handleSaveJseaTemplate}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Save Template</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>

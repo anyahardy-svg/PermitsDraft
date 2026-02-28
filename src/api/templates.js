@@ -170,9 +170,10 @@ export async function deleteTemplate(templateId) {
  * @param {string} jseaName - Name for this JSEA template
  * @param {Array} jseaSteps - Array of step objects {description, hazards, controls}
  * @param {UUID} businessUnitId - Business unit this template belongs to
+ * @param {UUID} companyId - Company ID to associate with the template
  * @returns {Object} Saved JSEA template
  */
-export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId) {
+export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId, companyId = null) {
   try {
     // Create a special permit record to store the JSEA template
     const { data, error } = await supabase
@@ -185,6 +186,7 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId) {
         status: 'template',
         is_template: true,
         business_unit_id: businessUnitId,
+        company_id: companyId, // Store company association
         jsea: jseaSteps, // Store steps as JSEA field
         site_id: null,
       }])
@@ -197,6 +199,7 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitId) {
       template_id: data.id,
       template_name: jseaName,
       business_unit_id: businessUnitId,
+      company_id: companyId,
       step_count: jseaSteps.length,
     });
 
@@ -216,7 +219,7 @@ export async function getJseaTemplates(businessUnitId) {
   try {
     const { data, error } = await supabase
       .from('permits')
-      .select('id, template_name, jsea, created_at, updated_at')
+      .select('id, template_name, jsea, company_id, created_at, updated_at')
       .eq('permit_type', 'JSEA')
       .eq('is_template', true)
       .eq('business_unit_id', businessUnitId)
@@ -227,6 +230,30 @@ export async function getJseaTemplates(businessUnitId) {
     return { success: true, data };
   } catch (error) {
     console.error('Get JSEA templates error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all JSEA templates for a specific company
+ * @param {UUID} companyId
+ * @returns {Array} JSEA templates for company
+ */
+export async function getJseaTemplatesByCompany(companyId) {
+  try {
+    const { data, error } = await supabase
+      .from('permits')
+      .select('id, template_name, jsea, company_id, created_at, updated_at')
+      .eq('permit_type', 'JSEA')
+      .eq('is_template', true)
+      .eq('company_id', companyId)
+      .order('template_name', { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Get JSEA templates by company error:', error);
     return { success: false, error: error.message };
   }
 }
