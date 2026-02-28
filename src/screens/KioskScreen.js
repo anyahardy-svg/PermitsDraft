@@ -760,46 +760,48 @@ const KioskScreen = ({ onViewPermits }) => {
       
       {/* Contractor Induction Floating Button - show on welcome screen */}
       {currentScreen === 'welcome' && (
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 120,
-            right: 20,
-            backgroundColor: '#A855F7',
-            width: 70,
-            height: 70,
-            borderRadius: 35,
-            justifyContent: 'center',
-            alignItems: 'center',
-            elevation: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-            zIndex: 1001,
-          }}
-          onPress={() => {
-            console.log('🎓 Induction button pressed');
-            setShowInductionModal(true);
-          }}
-        >
-          <Text style={{ fontSize: 32, textAlign: 'center' }}>🎓</Text>
-          <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Induction</Text>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              bottom: 120,
+              right: 20,
+              backgroundColor: '#A855F7',
+              width: 70,
+              height: 70,
+              borderRadius: 35,
+              justifyContent: 'center',
+              alignItems: 'center',
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              zIndex: 1001,
+            }}
+            onPress={() => {
+              console.log('🎓 Induction button pressed');
+              setShowInductionModal(true);
+            }}
+          >
+            <Text style={{ fontSize: 32, textAlign: 'center' }}>🎓</Text>
+            <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Induction</Text>
+          </TouchableOpacity>
+          
+          {/* Contractor Induction Modal */}
+          <Modal
+            visible={showInductionModal}
+            animationType="slide"
+            onRequestClose={() => setShowInductionModal(false)}
+          >
+            <ContractorInductionScreen
+              styles={styles}
+              onComplete={() => setShowInductionModal(false)}
+              onCancel={() => setShowInductionModal(false)}
+            />
+          </Modal>
+        </>
       )}
-      
-      {/* Contractor Induction Modal */}
-      <Modal
-        visible={showInductionModal}
-        animationType="slide"
-        onRequestClose={() => setShowInductionModal(false)}
-      >
-        <ContractorInductionScreen
-          styles={styles}
-          onComplete={() => setShowInductionModal(false)}
-          onCancel={() => setShowInductionModal(false)}
-        />
-      </Modal>
     </View>
   );
 };
