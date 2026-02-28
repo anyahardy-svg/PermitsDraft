@@ -95,9 +95,10 @@ export const listContractors = async () => {
     console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
     console.log('📋 First contractor sample:', data?.[0]);
     
-    // Fetch company names for contractors that have a company_id
-    const contractorsWithCompanies = await Promise.all(
+    // Fetch company names and service names for contractors
+    const contractorsWithDetails = await Promise.all(
       (data || []).map(async (contractor) => {
+        // Fetch company name if contractor has company_id
         if (contractor.company_id) {
           try {
             const { data: company, error: companyError } = await supabase
@@ -113,11 +114,28 @@ export const listContractors = async () => {
             console.warn(`Could not fetch company for contractor ${contractor.id}:`, err.message);
           }
         }
+        
+        // Fetch service names if contractor has service_ids
+        if (contractor.service_ids && contractor.service_ids.length > 0) {
+          try {
+            const { data: services, error: servicesError } = await supabase
+              .from('services')
+              .select('id, name')
+              .in('id', contractor.service_ids);
+            
+            if (services && !servicesError) {
+              contractor.service_names = services.map(s => s.name);
+            }
+          } catch (err) {
+            console.warn(`Could not fetch services for contractor ${contractor.id}:`, err.message);
+          }
+        }
+        
         return contractor;
       })
     );
     
-    const transformed = (contractorsWithCompanies || []).map(transformContractor);
+    const transformed = (contractorsWithDetails || []).map(transformContractor);
     console.log('✅ Transformed contractors:', transformed.length, transformed);
     
     return transformed;

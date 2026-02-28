@@ -6460,14 +6460,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 // Convert service names to service IDs
                 const serviceIds = [];
                 if (contractor.services && contractor.services.length > 0) {
+                  // Fetch services for this contractor's business units if not already done
+                  let availableServices = servicesForContractors;
+                  if (availableServices.length === 0 && businessUnitIds.length > 0) {
+                    // Fetch services for the business units
+                    const allServices = [];
+                    for (const buId of businessUnitIds) {
+                      const services = await listServicesByBusinessUnit(buId);
+                      allServices.push(...services);
+                    }
+                    availableServices = allServices;
+                  }
+                  
                   for (const serviceName of contractor.services) {
-                    // Find all services that match this name in any of the contractor's business units
-                    const matchingServices = servicesForContractors.filter(s => 
+                    // Find service by name within the contractor's business units
+                    const matchingService = availableServices.find(s => 
                       s.name.toLowerCase() === serviceName.toLowerCase() &&
                       businessUnitIds.includes(s.business_unit_id)
                     );
-                    if (matchingServices.length > 0) {
-                      serviceIds.push(matchingServices[0].id);
+                    if (matchingService) {
+                      serviceIds.push(matchingService.id);
                     }
                   }
                 }
