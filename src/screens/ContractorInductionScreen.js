@@ -640,19 +640,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </>
           )}
 
+          {console.log('DEBUG: sites.length=', sites.length, 'error=', error, 'selectedBUs=', contractorInfo.selectedBusinessUnitIds, 'selectedSites=', contractorInfo.selectedSiteIds)}
+
           {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
 
-          {console.log('About to render Continue button. selectedBUs:', contractorInfo.selectedBusinessUnitIds, 'selectedSites:', contractorInfo.selectedSiteIds)}
+          <View style={{ backgroundColor: '#FFF3CD', padding: 12, borderRadius: 8, marginTop: 20, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, color: '#856404' }}>Button appears below ↓</Text>
+          </View>
 
           <TouchableOpacity
-            style={[styles.button, { marginTop: 24 }]}
+            style={[styles.button, { marginTop: 24, backgroundColor: '#10B981' }]}
             onPress={() => {
-              console.log('BUTTON PRESSED');
+              console.log('BUTTON PRESSED - calling handleInfoContinue');
               handleInfoContinue();
             }}
           >
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue [TEST]</Text>
           </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
 
         {/* Add Company Modal */}
