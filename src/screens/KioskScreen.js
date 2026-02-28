@@ -10,13 +10,15 @@ import {
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Modal,
 } from 'react-native';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { listPermits } from '../api/permits';
+import ContractorInductionScreen from './ContractorInductionScreen';
 
 const KioskScreen = ({ onViewPermits }) => {
   // State
@@ -48,6 +50,9 @@ const KioskScreen = ({ onViewPermits }) => {
   // For permits list
   const [permits, setPermits] = useState([]);
   const [permitsLoading, setPermitsLoading] = useState(false);
+  
+  // For contractor induction
+  const [showInductionModal, setShowInductionModal] = useState(false);
 
   // Initialize - detect site from subdomain
   useEffect(() => {
@@ -752,6 +757,42 @@ const KioskScreen = ({ onViewPermits }) => {
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
       )}
+      
+      {/* Contractor Induction Floating Button */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: 140,
+          right: 20,
+          backgroundColor: '#A855F7',
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          justifyContent: 'center',
+          alignItems: 'center',
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+        }}
+        onPress={() => setShowInductionModal(true)}
+      >
+        <Text style={{ fontSize: 32 }}>🎓</Text>
+      </TouchableOpacity>
+      
+      {/* Contractor Induction Modal */}
+      <Modal
+        visible={showInductionModal}
+        animationType="slide"
+        onRequestClose={() => setShowInductionModal(false)}
+      >
+        <ContractorInductionScreen
+          styles={styles}
+          onComplete={() => setShowInductionModal(false)}
+          onCancel={() => setShowInductionModal(false)}
+        />
+      </Modal>
     </View>
   );
 };
