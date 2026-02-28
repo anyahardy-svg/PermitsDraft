@@ -12,7 +12,8 @@ import {
   FlatList,
   Modal,
   Dimensions,
-  Image
+  Image,
+  Picker
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
@@ -942,7 +943,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [jseaTemplatesAvailable, setJseaTemplatesAvailable] = useState([]);
   const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
-  const [selectedContractorCompanyId, setSelectedContractorCompanyId] = useState(null);
+  const [selectedBuForTemplate, setSelectedBuForTemplate] = useState('');
+  const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1093,13 +1095,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return;
     }
 
+    if (!selectedBuForTemplate) {
+      Alert.alert('Error', 'Please select a business unit');
+      return;
+    }
+
     setLoadingJseaTemplates(true);
     try {
       const response = await saveJseaTemplate(
         jseaTemplateName,
         formData.jsea.taskSteps,
-        businessUnitId,
-        selectedContractorCompanyId
+        selectedBuForTemplate,
+        selectedCompanyForTemplate || null
       );
       if (response.success) {
         Alert.alert('Success', `Template "${jseaTemplateName}" saved`);
@@ -1806,7 +1813,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           activeOpacity={0.7}
                           onPress={() => {
                             setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
-                            setSelectedContractorCompanyId(contractor.company_id || null);
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
@@ -2719,6 +2725,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <TouchableOpacity onPress={() => {
                   setShowJseaSaveTemplate(false);
                   setJseaTemplateName('');
+                  setSelectedBuForTemplate('');
+                  setSelectedCompanyForTemplate('');
                 }}>
                   <Text style={{
                     fontSize: 24,
@@ -2734,7 +2742,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   fontWeight: '600', 
                   color: '#1F2937', 
                   marginBottom: 8 
-                }}>Template Name</Text>
+                }}>Template Name *</Text>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -2751,6 +2759,62 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 />
               </View>
 
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Business Unit *</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedBuForTemplate}
+                    onValueChange={(itemValue) => setSelectedBuForTemplate(itemValue)}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="Select a business unit..." value="" />
+                    {businessUnits.map(bu => (
+                      <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Company (Optional)</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedCompanyForTemplate}
+                    onValueChange={(itemValue) => setSelectedCompanyForTemplate(itemValue)}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="All companies (leave blank)" value="" />
+                    {companies.map(company => (
+                      <Picker.Item key={company.id} label={company.name} value={company.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
                   style={{
@@ -2763,6 +2827,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   onPress={() => {
                     setShowJseaSaveTemplate(false);
                     setJseaTemplateName('');
+                    setSelectedBuForTemplate('');
+                    setSelectedCompanyForTemplate('');
                   }}
                 >
                   <Text style={{
