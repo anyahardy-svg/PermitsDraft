@@ -817,7 +817,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
         <View style={{ padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
           <TouchableOpacity
-            style={[styles.button, { marginBottom: 8 }]}
+            style={{ backgroundColor: '#3B82F6', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', marginBottom: 8 }}
             onPress={() => {
               setVideoWatched(true);
               handleVideoComplete();
