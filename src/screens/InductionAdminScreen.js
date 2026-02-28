@@ -25,7 +25,9 @@ import {
   updateInductionQuestion,
   deleteInductionQuestion,
 } from '../api/inductions';
-import { listServices } from '../api/services';
+import { listAllServices } from '../api/services';
+import { listBusinessUnits } from '../api/business_units';
+import { listSites } from '../api/sites';
 
 /**
  * InductionAdminScreen - Manage induction sections, subsections, and questions
@@ -34,6 +36,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [currentView, setCurrentView] = useState('sections'); // 'sections', 'subsections', 'questions'
   const [sections, setSections] = useState([]);
   const [services, setServices] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedSubsection, setSelectedSubsection] = useState(null);
@@ -42,6 +46,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
+    business_unit_id: '',
+    site_id: '', // Empty string means 'All Sites'
     induction_name: '',
     description: '',
     service_id: '',
@@ -59,12 +65,16 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [sectionsData, servicesData] = await Promise.all([
+      const [sectionsData, servicesData, buData, sitesData] = await Promise.all([
         getInductionSections(),
-        listServices(),
+        listAllServices(),
+        listBusinessUnits(),
+        listSites(),
       ]);
       setSections(sectionsData || []);
       setServices(Array.isArray(servicesData) ? servicesData : []);
+      setBusinessUnits(Array.isArray(buData) ? buData : []);
+      setSites(Array.isArray(sitesData) ? sitesData : []);
     } catch (err) {
       console.error('Error loading induction data:', err);
       Alert.alert('Error', 'Failed to load inductions');
@@ -94,6 +104,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const handleAddSection = () => {
     setFormData({
       id: '',
+      business_unit_id: '',
+      site_id: '',
       induction_name: '',
       description: '',
       service_id: '',
@@ -104,6 +116,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const handleEditSection = (section) => {
     setFormData({
       id: section.id,
+      business_unit_id: section.business_unit_id || '',
+      site_id: section.site_id || '',
       induction_name: section.induction_name,
       description: section.description,
       service_id: section.service_id,
@@ -112,8 +126,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const handleSaveSection = async () => {
-    if (!formData.induction_name.trim() || !formData.service_id) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!formData.induction_name.trim() || !formData.service_id || !formData.business_unit_id) {
+      Alert.alert('Error', 'Please fill in all required fields (Name, Business Unit, Service)');
       return;
     }
 
@@ -266,6 +280,86 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 }
                 multiline
               />
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Business Unit *</Text>
+              <ScrollView
+                horizontal
+                contentContainerStyle={{ gap: 8, marginBottom: 20 }}
+              >
+                {businessUnits.map((bu) => (
+                  <TouchableOpacity
+                    key={bu.id}
+                    onPress={() => setFormData({ ...formData, business_unit_id: bu.id })}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor:
+                        formData.business_unit_id === bu.id ? '#8B5CF6' : '#E5E7EB',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: formData.business_unit_id === bu.id ? 'white' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                      }}
+                    >
+                      {bu.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Applies To *</Text>
+              <ScrollView
+                horizontal
+                contentContainerStyle={{ gap: 8, marginBottom: 20 }}
+              >
+                <TouchableOpacity
+                  onPress={() => setFormData({ ...formData, site_id: '' })}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor:
+                      formData.site_id === '' ? '#10B981' : '#E5E7EB',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: formData.site_id === '' ? 'white' : '#374151',
+                      fontWeight: '600',
+                      fontSize: 13,
+                    }}
+                  >
+                    All Sites
+                  </Text>
+                </TouchableOpacity>
+                {sites.map((site) => (
+                  <TouchableOpacity
+                    key={site.id}
+                    onPress={() => setFormData({ ...formData, site_id: site.id })}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor:
+                        formData.site_id === site.id ? '#10B981' : '#E5E7EB',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: formData.site_id === site.id ? 'white' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                      }}
+                    >
+                      {site.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
               <Text style={[styles.label, { marginTop: 16 }]}>Service *</Text>
               <ScrollView

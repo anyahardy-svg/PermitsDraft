@@ -1000,6 +1000,8 @@ export async function createInductionSection(sectionData) {
     const { data, error } = await supabase
       .from('induction_sections')
       .insert([{
+        business_unit_id: sectionData.business_unit_id,
+        site_id: sectionData.site_id || null, // Empty string becomes NULL (all sites)
         induction_name: sectionData.induction_name,
         description: sectionData.description || '',
         service_id: sectionData.service_id,
@@ -1025,6 +1027,8 @@ export async function updateInductionSection(sectionId, updates) {
     const { data, error } = await supabase
       .from('induction_sections')
       .update({
+        business_unit_id: updates.business_unit_id,
+        site_id: updates.site_id || null, // Empty string becomes NULL (all sites)
         induction_name: updates.induction_name,
         description: updates.description || '',
         service_id: updates.service_id,
