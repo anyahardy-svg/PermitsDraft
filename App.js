@@ -945,6 +945,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
   const [selectedBusForTemplate, setSelectedBusForTemplate] = useState([]);
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
+  const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1047,14 +1048,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   // Load available JSEA templates
-  const loadJseaTemplatesForLoader = async () => {
-    if (!businessUnitId) {
-      Alert.alert('Error', 'Business Unit not set');
+  const loadJseaTemplatesForLoader = async (buIdToLoad = null) => {
+    const buIdToUse = buIdToLoad || selectedBuForLoader || businessUnitId;
+    if (!buIdToUse) {
+      Alert.alert('Error', 'Please select a business unit');
       return;
     }
     setLoadingJseaTemplates(true);
     try {
-      const response = await getJseaTemplates(businessUnitId);
+      const response = await getJseaTemplates(buIdToUse);
       if (response.success) {
         setJseaTemplatesAvailable(response.data || []);
       } else {
@@ -2173,8 +2175,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TouchableOpacity 
                       style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
                       onPress={() => {
+                        setSelectedBuForLoader(businessUnitId || '');
                         setShowJseaTemplateLoader(true);
-                        loadJseaTemplatesForLoader();
+                        loadJseaTemplatesForLoader(businessUnitId);
                       }}
                     >
                       <Text style={styles.addButtonText}>Load Template</Text>
@@ -2620,6 +2623,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </TouchableOpacity>
               </View>
 
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Business Unit</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedBuForLoader}
+                    onValueChange={(itemValue) => {
+                      setSelectedBuForLoader(itemValue);
+                      if (itemValue) {
+                        loadJseaTemplatesForLoader(itemValue);
+                      }
+                    }}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="Select a business unit..." value="" />
+                    {businessUnits.map(bu => (
+                      <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
               {loadingJseaTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
@@ -2627,7 +2663,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               ) : jseaTemplatesAvailable.length === 0 ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
-                    No templates available. Create one in Contractor Admin.
+                    No templates available for this business unit.
                   </Text>
                 </View>
               ) : (
@@ -11698,6 +11734,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           onNavigateBack={() => setCurrentScreen('admin')}
           currentUser={currentUser}
           businessUnitId={businessUnitId}
+          businessUnits={businessUnits}
           styles={styles}
         />
       );

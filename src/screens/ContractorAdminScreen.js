@@ -20,7 +20,8 @@ export default function ContractorAdminScreen({
   onNavigateBack, 
   currentUser, 
   businessUnitId, 
-  styles 
+  styles,
+  businessUnits = []
 }) {
   const [activeTab, setActiveTab] = useState('jsea'); // 'jsea' or 'permits'
   const [jseaTemplates, setJseaTemplates] = useState([]);
@@ -32,6 +33,7 @@ export default function ContractorAdminScreen({
   const [editingJseaTemplate, setEditingJseaTemplate] = useState(null);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [selectedBusinessUnitIds, setSelectedBusinessUnitIds] = useState([]);
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
@@ -108,8 +110,8 @@ export default function ContractorAdminScreen({
       Alert.alert('Validation', 'Please add at least one step');
       return;
     }
-    if (!selectedCompanyId) {
-      Alert.alert('Validation', 'Please select a company');
+    if (selectedBusinessUnitIds.length === 0) {
+      Alert.alert('Validation', 'Please select at least one business unit');
       return;
     }
 
@@ -117,12 +119,11 @@ export default function ContractorAdminScreen({
       const response = await saveJseaTemplate(
         jseaTemplateName,
         currentJseaSteps,
-        businessUnitId,
+        selectedBusinessUnitIds,
         selectedCompanyId
       );
       if (response.success) {
-        const selectedCompany = companies.find(c => c.id === selectedCompanyId);
-        Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedCompany?.name}`);
+        Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusinessUnitIds.length} business unit(s)`);
         setShowSaveModal(false);
         setShowJseaEditor(false);
         resetJseaForm();
@@ -197,6 +198,8 @@ export default function ContractorAdminScreen({
     setJseaTemplateName('');
     setCurrentJseaSteps([]);
     setEditingJseaTemplate(null);
+    setSelectedBusinessUnitIds([]);
+    setSelectedCompanyId(null);
   };
 
   // Open JSEA editor for new template
@@ -615,15 +618,45 @@ export default function ContractorAdminScreen({
 
                 {/* Company Selection */}
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Contractor Company *</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Contractor Company</Text>
                   <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-                    This template will be saved for the selected company
+                    Optional - restrict this template to a specific company
                   </Text>
 
                   {loadingCompanies ? (
                     <ActivityIndicator size="large" color="#3B82F6" />
                   ) : (
                     <View style={{ gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => setSelectedCompanyId(null)}
+                        style={{
+                          paddingVertical: 12,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          borderWidth: 2,
+                          borderColor: selectedCompanyId === null ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedCompanyId === null ? '#E0E7FF' : '#F9FAFB',
+                          flexDirection: 'row',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          borderWidth: 2,
+                          borderColor: '#3B82F6',
+                          backgroundColor: selectedCompanyId === null ? '#3B82F6' : 'white',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 12
+                        }}>
+                          {selectedCompanyId === null && (
+                            <Text style={{ color: 'white', fontWeight: 'bold' }}>✓</Text>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>All Companies</Text>
+                      </TouchableOpacity>
                       {companies.map((company) => (
                         <TouchableOpacity
                           key={company.id}
@@ -659,6 +692,60 @@ export default function ContractorAdminScreen({
                       ))}
                     </View>
                   )}
+                </View>
+
+                {/* Business Unit Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Business Units *</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
+                    Select which business units can use this template
+                  </Text>
+
+                  <View style={{ gap: 8 }}>
+                    {businessUnits && businessUnits.length > 0 ? (
+                      businessUnits.map((bu) => (
+                        <TouchableOpacity
+                          key={bu.id}
+                          onPress={() => {
+                            setSelectedBusinessUnitIds(prev =>
+                              prev.includes(bu.id)
+                                ? prev.filter(id => id !== bu.id)
+                                : [...prev, bu.id]
+                            );
+                          }}
+                          style={{
+                            paddingVertical: 12,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
+                            borderWidth: 2,
+                            borderColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
+                            backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F9FAFB',
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <View style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 4,
+                            borderWidth: 2,
+                            borderColor: '#3B82F6',
+                            backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : 'white',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 12
+                          }}>
+                            {selectedBusinessUnitIds.includes(bu.id) && (
+                              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>✓</Text>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{bu.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
+                    )}
+                  </View>
                 </View>
               </ScrollView>
 
