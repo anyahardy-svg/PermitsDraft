@@ -28,7 +28,7 @@ import { getSitesByBusinessUnits } from '../api/sites';
  * Flow: Info → Inductions List → Video → Questions → Signature → Complete
  */
 export default function ContractorInductionScreen({ onComplete, onCancel, styles }) {
-  const [step, setStep] = useState('info'); // info, inductionsList, video, questions, signature, complete
+  const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,8 +61,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [compulsoryInductions, setCompulsoryInductions] = useState([]);
   const [optionalInductions, setOptionalInductions] = useState([]);
   const [selectedOptionalIds, setSelectedOptionalIds] = useState([]);
-  const [inductionQueue, setInductionQueue] = useState([]); // Ordered list to complete
-  const [currentInductionIndex, setCurrentInductionIndex] = useState(0);
+  const [inductionQueue, setInductionQueue] = useState([]); // All selected inductions to complete
+  
+  // NEW: Board workflow state
+  const [completedInductionIds, setCompletedInductionIds] = useState([]); // IDs of completed inductions
+  const [selectedInductionId, setSelectedInductionId] = useState(null); // Which induction is open in modal
+  const [modalVisible, setModalVisible] = useState(false); // Whether induction modal is open
+  const [currentModalInduction, setCurrentModalInduction] = useState(null); // Current induction in modal
+  const [modalStep, setModalStep] = useState('video'); // video, questions, complete
+  const [modalAnswers, setModalAnswers] = useState({}); // Answers for current modal induction
 
   // Current induction being completed
   const currentInduction = inductionQueue[currentInductionIndex];
@@ -298,13 +305,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     });
     
     setInductionQueue(sortedQueue);
-    setCurrentInductionIndex(0);
-    setAnswers({});
-    setSignatureText('');
-    setVideoWatched(false);
-
-    // Start first induction
-    setStep('video');
+    setCompletedInductionIds([]); // Reset completed
+    setModalAnswers({}); // Reset modal answers
+    
+    // Go to board view instead of sequential
+    setStep('inductionBoard');
   };
 
   const handleVideoComplete = () => {
@@ -776,7 +781,335 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     );
   }
 
-  // STEP 3: VIDEO
+  // STEP 3: INDUCTION BOARD - Dashboard view of all inductions
+  if (step === 'inductionBoard') {
+    const isAllCompulsoryDone = compulsoryInductions.every(ind => completedInductionIds.includes(ind.id));
+    
+    const handleOpenInduction = (induction) => {
+      setCurrentModalInduction(induction);
+      setSelectedInductionId(induction.id);
+      setModalStep('video');
+      setModalAnswers({});
+      setModalVisible(true);
+    };
+
+    const handleCompleteInduction = async () => {
+      if (!currentModalInduction) return;
+      
+      // Mark as completed
+      setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
+      
+      // Close modal
+      setModalVisible(false);
+      setCurrentModalInduction(null);
+      setModalAnswers({});
+    };
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setStep('inductionsList')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Inductions</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+            Progress: {completedInductionIds.length}/{inductionQueue.length} completed
+          </Text>
+
+          <View style={{ gap: 12, marginBottom: 24 }}>
+            {inductionQueue.map(induction => {
+              const isCompleted = completedInductionIds.includes(induction.id);
+              const isCompulsory = compulsoryInductions.some(ind => ind.id === induction.id);
+              
+              return (
+                <TouchableOpacity
+                  key={induction.id}
+                  onPress={() => !isCompleted && handleOpenInduction(induction)}
+                  disabled={isCompleted}
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    backgroundColor: isCompleted ? '#D1FAE5' : '#F9FAFB',
+                    borderLeftWidth: 4,
+                    borderLeftColor: isCompleted ? '#10B981' : (isCompulsory ? '#DC2626' : '#3B82F6'),
+                    opacity: isCompleted ? 0.7 : 1,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                        {induction.induction_name}
+                        {induction.subsection_name && ` - ${induction.subsection_name}`}
+                      </Text>
+                      {isCompulsory && (
+                        <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, fontWeight: '500' }}>
+                          REQUIRED
+                        </Text>
+                      )}
+                    </View>
+                    <View style={{ marginLeft: 12 }}>
+                      {isCompleted ? (
+                        <Text style={{ fontSize: 20 }}>✅</Text>
+                      ) : (
+                        <Text style={{ fontSize: 14, color: '#9CA3AF' }}>→</Text>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {isAllCompulsoryDone && (
+            <TouchableOpacity
+              style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+              onPress={() => setStep('signature')}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                Continue to Signature
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+
+        {/* Induction Modal */}
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' }}>
+            <View style={{ flex: 1, backgroundColor: 'white', marginTop: 80, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+              {currentModalInduction && (
+                <>
+                  {/* Header */}
+                  <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>
+                      {currentModalInduction.induction_name}
+                      {currentModalInduction.subsection_name && ` - ${currentModalInduction.subsection_name}`}
+                    </Text>
+                  </View>
+
+                  {/* Content */}
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+                    {modalStep === 'video' && (
+                      <View>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+                          Video
+                        </Text>
+                        {currentModalInduction.video_url ? (
+                          <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, height: 250, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ color: '#6B7280' }}>📹 Video Player</Text>
+                            <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 4 }}>
+                              {currentModalInduction.video_duration || '?'} min
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+                            <Text style={{ color: '#6B7280', textAlign: 'center' }}>No video for this induction</Text>
+                          </View>
+                        )}
+
+                        <TouchableOpacity
+                          style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+                          onPress={() => setModalStep(currentModalInduction.question_1_text ? 'questions' : 'complete')}
+                        >
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                            Next: {currentModalInduction.question_1_text ? 'Questions' : 'Complete'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {modalStep === 'questions' && (
+                      <View>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 16 }}>
+                          Questions
+                        </Text>
+                        
+                        {currentModalInduction.question_1_text && (
+                          <View style={{ marginBottom: 16 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                              {currentModalInduction.question_1_text}
+                            </Text>
+                            <View style={{ gap: 6 }}>
+                              {currentModalInduction.question_1_options?.map((option, idx) => (
+                                <TouchableOpacity
+                                  key={idx}
+                                  onPress={() => setModalAnswers({ ...modalAnswers, q1: idx })}
+                                  style={{
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 12,
+                                    borderRadius: 6,
+                                    backgroundColor: modalAnswers.q1 === idx ? '#E0E7FF' : '#F3F4F6',
+                                    borderLeftWidth: 3,
+                                    borderLeftColor: modalAnswers.q1 === idx ? '#3B82F6' : '#E5E7EB',
+                                  }}
+                                >
+                                  <Text style={{ color: '#1F2937', fontSize: 13 }}>{option}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        )}
+
+                        <TouchableOpacity
+                          style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+                          onPress={() => setModalStep('complete')}
+                        >
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                            Next: Complete
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {modalStep === 'complete' && (
+                      <View style={{ alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: '#10B981', marginBottom: 8 }}>✅</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                          Ready to Complete?
+                        </Text>
+                        <Text style={{ fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+                          You've completed this induction. Click below to save.
+                        </Text>
+
+                        <TouchableOpacity
+                          style={{ backgroundColor: '#10B981', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8, width: '100%', alignItems: 'center' }}
+                          onPress={handleCompleteInduction}
+                        >
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                            Mark Complete
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </ScrollView>
+
+                  {/* Close Button */}
+                  <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#F3F4F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+                      onPress={() => setModalVisible(false)}
+                    >
+                      <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  }
+
+  // OLD STEPS - Keep for now but will be replaced
+  if (step === 'signature') {
+    const isAllCompulsoryDone = compulsoryInductions.every(ind => completedInductionIds.includes(ind.id));
+    
+    if (!isAllCompulsoryDone) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>All Required Inductions Must Be Completed</Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setStep('inductionBoard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Sign & Submit</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            All required inductions are complete. Please sign below to submit.
+          </Text>
+
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
+            Signature
+          </Text>
+          <TextInput
+            style={[styles.input, { minHeight: 80, paddingTop: 12 }]}
+            placeholder="Type your name"
+            value={signatureText}
+            onChangeText={setSignatureText}
+            multiline
+          />
+
+          <View style={{ gap: 8, marginTop: 24 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+              onPress={async () => {
+                if (!signatureText.trim()) {
+                  Alert.alert('Error', 'Please sign');
+                  return;
+                }
+                
+                setLoading(true);
+                try {
+                  // Build service_ids from completed inductions
+                  const completedInductions = inductionQueue.filter(ind => completedInductionIds.includes(ind.id));
+                  const serviceIds = completedInductions.map(ind => {
+                    if (ind.subsection_name) {
+                      return `${ind.induction_name} - ${ind.subsection_name}`;
+                    }
+                    return ind.induction_name;
+                  });
+
+                  // Update contractor with services
+                  const updateData = {
+                    ...contractorInfo,
+                    service_ids: serviceIds,
+                  };
+
+                  // Note: You'll need to implement updateContractor API call
+                  // For now, just mark complete
+                  setStep('complete');
+                } catch (err) {
+                  Alert.alert('Error', 'Failed to submit');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={!signatureText.trim() || loading}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                {loading ? 'Submitting...' : 'Submit'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (step === 'complete') {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 32, marginBottom: 16 }}>✅</Text>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#10B981', marginBottom: 8, textAlign: 'center' }}>
+          All Done!
+        </Text>
+        <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+          Your inductions have been submitted successfully.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 }}
+          onPress={onComplete}
+        >
+          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Close</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // STEP 3: VIDEO - OLD (keeping for reference, will be removed)
   if (step === 'video') {
     const getYoutubeEmbedUrl = (url) => {
       const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
