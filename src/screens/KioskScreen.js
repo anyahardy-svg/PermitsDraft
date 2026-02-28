@@ -250,7 +250,7 @@ const KioskScreen = ({ onViewPermits }) => {
   // Welcome Screen
   if (currentScreen === 'welcome') {
     return (
-      <View style={styles.container}>
+      <View style={{ ...styles.container, position: 'relative' }}>
         <View style={styles.header}>
           <Text style={styles.siteName}>{site.name}</Text>
           <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
@@ -328,6 +328,47 @@ const KioskScreen = ({ onViewPermits }) => {
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
+
+        {/* Contractor Induction Button */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 120,
+            right: 20,
+            backgroundColor: '#A855F7',
+            width: 70,
+            height: 70,
+            borderRadius: 35,
+            justifyContent: 'center',
+            alignItems: 'center',
+            elevation: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+            zIndex: 1001,
+          }}
+          onPress={() => {
+            console.log('🎓 Induction button pressed');
+            setShowInductionModal(true);
+          }}
+        >
+          <Text style={{ fontSize: 32 }}>🎓</Text>
+          <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Induction</Text>
+        </TouchableOpacity>
+
+        {/* Contractor Induction Modal */}
+        <Modal
+          visible={showInductionModal}
+          animationType="slide"
+          onRequestClose={() => setShowInductionModal(false)}
+        >
+          <ContractorInductionScreen
+            styles={styles}
+            onComplete={() => setShowInductionModal(false)}
+            onCancel={() => setShowInductionModal(false)}
+          />
+        </Modal>
       </View>
     );
   }
@@ -673,7 +714,7 @@ const KioskScreen = ({ onViewPermits }) => {
   // Return the main component with floating Permits button
   // The permits button floats at the bottom-right and is visible on all screens
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, position: 'relative' }}>
       {/* Main content will be rendered by the screen conditionals above */}
       {currentScreen === 'welcome' && (
         <View style={styles.container}>
@@ -756,71 +797,6 @@ const KioskScreen = ({ onViewPermits }) => {
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
-      )}
-      
-      {/* TEST BUTTON - DEBUG */}
-      {currentScreen === 'welcome' && (
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 110,
-            left: 20,
-            backgroundColor: '#FF0000',
-            width: 100,
-            height: 50,
-            borderRadius: 8,
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 2000,
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>TEST</Text>
-        </TouchableOpacity>
-      )}
-      
-      {/* Contractor Induction Floating Button - show on welcome screen */}
-      {currentScreen === 'welcome' && (
-        <>
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              bottom: 120,
-              right: 20,
-              backgroundColor: '#A855F7',
-              width: 70,
-              height: 70,
-              borderRadius: 35,
-              justifyContent: 'center',
-              alignItems: 'center',
-              elevation: 12,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-              zIndex: 1001,
-            }}
-            onPress={() => {
-              console.log('🎓 Induction button pressed');
-              setShowInductionModal(true);
-            }}
-          >
-            <Text style={{ fontSize: 32, textAlign: 'center' }}>🎓</Text>
-            <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Induction</Text>
-          </TouchableOpacity>
-          
-          {/* Contractor Induction Modal */}
-          <Modal
-            visible={showInductionModal}
-            animationType="slide"
-            onRequestClose={() => setShowInductionModal(false)}
-          >
-            <ContractorInductionScreen
-              styles={styles}
-              onComplete={() => setShowInductionModal(false)}
-              onCancel={() => setShowInductionModal(false)}
-            />
-          </Modal>
-        </>
       )}
     </View>
   );
