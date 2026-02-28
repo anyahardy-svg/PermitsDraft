@@ -54,16 +54,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   const loadDropdownData = async () => {
     try {
-      const companiesResult = await listCompanies();
-      if (companiesResult.success) setCompanies(companiesResult.data);
+      console.log('Loading dropdown data...');
+      const companiesData = await listCompanies();
+      console.log('Companies loaded:', companiesData ? companiesData.length : 0);
+      setCompanies(Array.isArray(companiesData) ? companiesData : []);
 
-      const busUnitsResult = await listBusinessUnits();
-      if (busUnitsResult.success) setBusinessUnits(busUnitsResult.data);
+      const busUnitsData = await listBusinessUnits();
+      console.log('Business Units loaded:', busUnitsData ? busUnitsData.length : 0);
+      setBusinessUnits(Array.isArray(busUnitsData) ? busUnitsData : []);
 
-      const sitesResult = await listSites();
-      if (sitesResult.success) setSites(sitesResult.data);
+      const sitesData = await listSites();
+      console.log('Sites loaded:', sitesData ? sitesData.length : 0);
+      setSites(Array.isArray(sitesData) ? sitesData : []);
     } catch (err) {
       console.error('Error loading dropdown data:', err);
+      setError('Could not load form data');
     }
   };
 
