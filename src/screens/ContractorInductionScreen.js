@@ -190,6 +190,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
+    console.log('BUTTON CLICKED - handleInfoContinue called');
+    
     if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
       Alert.alert('Error', 'Please enter name and email');
       return;
@@ -206,6 +208,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     setLoading(true);
     try {
+      console.log('Starting induction load for BUs:', selectedBUs);
       // If new contractor, create them first
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
@@ -224,10 +227,13 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       let allInductionsData = [];
       for (const buId of selectedBUs) {
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        console.log('Got inductions for BU', buId, ':', inductionsForBU?.length || 0);
         if (Array.isArray(inductionsForBU)) {
           allInductionsData = [...allInductionsData, ...inductionsForBU];
         }
       }
+
+      console.log('Total inductions:', allInductionsData.length);
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
@@ -248,13 +254,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       });
 
+      console.log('Compulsory:', compulsory.length, 'Optional:', optional.length);
+
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
       setAllInductions(uniqueInductions);
       setSelectedOptionalIds([]);
+      
+      console.log('About to setStep to inductionsList');
       setStep('inductionsList');
+      console.log('setStep called');
     } catch (err) {
-      Alert.alert('Error', 'Failed to load inductions');
+      console.error('ERROR in handleInfoContinue:', err);
+      Alert.alert('Error', 'Failed to load inductions: ' + err.message);
     } finally {
       setLoading(false);
     }
