@@ -195,6 +195,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
+    // Immediate feedback that button was pressed
+    Alert.alert('Debug', 'Continue button pressed!');
+    
     console.log('=== handleInfoContinue CALLED ===');
     console.log('contractorInfo:', contractorInfo);
     console.log('isNewContractor:', isNewContractor);
@@ -247,12 +250,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         try {
           const inductionsForBU = await getInductionsByBusinessUnit(buId);
           console.log('  Got inductions for BU:', buId, '- count:', inductionsForBU?.length || 0);
-          allInductionsData = [...allInductionsData, ...inductionsForBU];
+          if (Array.isArray(inductionsForBU)) {
+            allInductionsData = [...allInductionsData, ...inductionsForBU];
+          } else {
+            console.warn('  WARNING: inductionsForBU is not an array:', inductionsForBU);
+          }
         } catch (buErr) {
           console.error('  ERROR fetching for BU:', buId, buErr);
+          console.error('  Stack:', buErr?.stack);
+          // Don't throw, continue with other BUs
         }
       }
       console.log('Total inductions collected:', allInductionsData.length);
+      if (allInductionsData.length === 0) {
+        console.warn('WARNING: No inductions found for any BU');
+      }
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
@@ -287,10 +299,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setStep('inductionsList');
       console.log('=== handleInfoContinue SUCCESS ===');
     } catch (err) {
-      console.error('=== handleInfoContinue ERROR ===', err);
-      Alert.alert('Error', 'Failed to load inductions: ' + (err.message || 'Unknown error'));
-      console.error(err);
+      console.error('=== handleInfoContinue CATCH ERROR ===', err);
+      console.error('Error message:', err?.message);
+      console.error('Error type:', typeof err);
+      console.error('Error stack:', err?.stack);
+      const errorMsg = err?.message || JSON.stringify(err) || 'Unknown error';
+      Alert.alert('Error Loading Inductions', 'Failed to load inductions: ' + errorMsg);
     } finally {
+      console.log('handleInfoContinue finally block - setting loading to false');
       setLoading(false);
     }
   };
