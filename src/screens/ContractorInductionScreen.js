@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -17,9 +18,9 @@ import {
   saveInductionAnswers,
   completeInduction,
 } from '../api/inductions';
-import { listCompanies } from '../api/companies';
+import { listCompanies, createCompany } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
-import { listSites } from '../api/sites';
+import { getSitesByBusinessUnits } from '../api/sites';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -37,14 +38,20 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     phone: '',
     companyId: '',
     businessUnitId: '',
+    selectedSiteIds: [],
   });
   const [companies, setCompanies] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
+  const [sites, setSites] = useState([]);
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
 
   // Step 2: Inductions List
   const [allInductions, setAllInductions] = useState([]);
-  const [selectedInductionIds, setSelectedInductionIds] = useState([]);
+  const [compulsoryInductions, setCompulsoryInductions] = useState([]);
+  const [optionalInductions, setOptionalInductions] = useState([]);
+  const [selectedOptionalIds, setSelectedOptionalIds] = useState([]);
   const [inductionQueue, setInductionQueue] = useState([]); // Ordered list to complete
   const [currentInductionIndex, setCurrentInductionIndex] = useState(0);
 
@@ -79,6 +86,51 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
   };
 
+  const handleAddCompany = async () => {
+    if (!newCompanyName.trim()) {
+      Alert.alert('Error', 'Please enter a company name');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const newCompany = await createCompany({
+        name: newCompanyName,
+        is_manually_created: true,
+      });
+      setCompanies([...companies, newCompany]);
+      setContractorInfo({ ...contractorInfo, companyId: newCompany.id });
+      setShowAddCompanyModal(false);
+      setNewCompanyName('');
+      Alert.alert('Success', 'Company added successfully');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to add company');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBusinessUnitChange = async (buId) => {
+    setContractorInfo({ ...contractorInfo, businessUnitId: buId, selectedSiteIds: [] });
+    
+    // Load sites for the selected business unit
+    try {
+      const sitesData = await getSitesByBusinessUnits([buId]);
+      setSites(Array.isArray(sitesData) ? sitesData : []);
+    } catch (err) {
+      console.error('Failed to load sites:', err);
+    }
+  };
+
+  const toggleSiteSelection = (siteId) => {
+    setContractorInfo(prev => ({
+      ...prev,
+      selectedSiteIds: prev.selectedSiteIds.includes(siteId)
+        ? prev.selectedSiteIds.filter(id => id !== siteId)
+        : [...prev.selectedSiteIds, siteId]
+    }));
+  };
+
   const handleInfoContinue = async () => {
     if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
       Alert.alert('Error', 'Please enter name and email');
@@ -95,8 +147,28 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     setLoading(true);
     try {
+      // Get all inductions for the business unit
       const inductions = await getInductionsByBusinessUnit(contractorInfo.businessUnitId);
-      setAllInductions(inductions || []);
+      
+      // Separate compulsory and optional, considering site-specific rules
+      const compulsory = [];
+      const optional = [];
+
+      inductions.forEach(ind => {
+        const isSiteSpecific = ind.site_id !== null;
+        const isApplicableToSelectedSites = !isSiteSpecific || contractorInfo.selectedSiteIds.includes(ind.site_id);
+
+        if (ind.is_compulsory && isApplicableToSelectedSites) {
+          compulsory.push(ind);
+        } else if (!ind.is_compulsory) {
+          optional.push(ind);
+        }
+      });
+
+      setCompulsoryInductions(compulsory);
+      setOptionalInductions(optional);
+      setAllInductions(inductions);
+      setSelectedOptionalIds([]);
       setStep('inductionsList');
     } catch (err) {
       Alert.alert('Error', 'Failed to load inductions');
@@ -106,7 +178,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const toggleInductionSelection = (inductionId) => {
-    setSelectedInductionIds(prev =>
+    setSelectedOptionalIds(prev =>
       prev.includes(inductionId)
         ? prev.filter(id => id !== inductionId)
         : [...prev, inductionId]
@@ -114,15 +186,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleStartInductions = async () => {
-    if (selectedInductionIds.length === 0) {
+    if (compulsoryInductions.length === 0 && selectedOptionalIds.length === 0) {
       Alert.alert('Error', 'Please select at least one induction');
       return;
     }
 
     // Build queue: compulsory first, then selected optional
-    const compulsory = allInductions.filter(ind => ind.is_compulsory && selectedInductionIds.includes(ind.id));
-    const optional = allInductions.filter(ind => !ind.is_compulsory && selectedInductionIds.includes(ind.id));
-    setInductionQueue([...compulsory, ...optional]);
+    const selectedOptional = optionalInductions.filter(ind => selectedOptionalIds.includes(ind.id));
+    setInductionQueue([...compulsoryInductions, ...selectedOptional]);
     setCurrentInductionIndex(0);
     setAnswers({});
     setSignatureText('');
@@ -286,6 +357,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   <Text style={{ fontSize: 14, color: '#1F2937' }}>{company.name}</Text>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowCompanyDropdown(false);
+                  setShowAddCompanyModal(true);
+                }}
+                style={{ paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#E0E7FF' }}
+              >
+                <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600' }}>+ Add New Company</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -294,7 +374,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             {businessUnits.map(bu => (
               <TouchableOpacity
                 key={bu.id}
-                onPress={() => setContractorInfo({ ...contractorInfo, businessUnitId: bu.id })}
+                onPress={() => handleBusinessUnitChange(bu.id)}
                 style={{
                   paddingVertical: 12,
                   paddingHorizontal: 12,
@@ -311,6 +391,33 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             ))}
           </View>
 
+          {sites.length > 0 && (
+            <>
+              <Text style={[styles.label, { marginTop: 16 }]}>Sites (select one or more)</Text>
+              <View style={{ gap: 8 }}>
+                {sites.map(site => (
+                  <TouchableOpacity
+                    key={site.id}
+                    onPress={() => toggleSiteSelection(site.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      backgroundColor: contractorInfo.selectedSiteIds.includes(site.id) ? '#E0E7FF' : '#F3F4F6',
+                    }}
+                  >
+                    <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: contractorInfo.selectedSiteIds.includes(site.id) ? '#3B82F6' : 'white', marginRight: 10 }}>
+                      {contractorInfo.selectedSiteIds.includes(site.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: contractorInfo.selectedSiteIds.includes(site.id) ? '600' : '400' }}>{site.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
           {error && <Text style={{ color: '#DC2626', marginTop: 16 }}>{error}</Text>}
 
           <TouchableOpacity
@@ -320,15 +427,45 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
           </TouchableOpacity>
         </ScrollView>
+
+        {/* Add Company Modal */}
+        <Modal visible={showAddCompanyModal} animationType="slide" transparent>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 16, color: '#1F2937' }}>Add New Company</Text>
+              <TextInput
+                style={[styles.input, { marginBottom: 16 }]}
+                placeholder="Company Name"
+                value={newCompanyName}
+                onChangeText={setNewCompanyName}
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.button, { flex: 1, backgroundColor: '#E5E7EB' }]}
+                  onPress={() => {
+                    setShowAddCompanyModal(false);
+                    setNewCompanyName('');
+                  }}
+                >
+                  <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, { flex: 1 }]}
+                  onPress={handleAddCompany}
+                  disabled={loading}
+                >
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{loading ? 'Adding...' : 'Add'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
 
   // STEP 2: INDUCTIONS LIST
   if (step === 'inductionsList') {
-    const compulsory = allInductions.filter(ind => ind.is_compulsory);
-    const optional = allInductions.filter(ind => !ind.is_compulsory);
-
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -339,12 +476,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          {compulsory.length > 0 && (
+          {compulsoryInductions.length > 0 && (
             <>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#DC2626', marginBottom: 12 }}>
                 REQUIRED INDUCTIONS
               </Text>
-              {compulsory.map(ind => (
+              {compulsoryInductions.map(ind => (
                 <TouchableOpacity
                   key={ind.id}
                   style={{
@@ -371,12 +508,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </>
           )}
 
-          {optional.length > 0 && (
+          {optionalInductions.length > 0 && (
             <>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#3B82F6', marginTop: compulsory.length ? 24 : 0, marginBottom: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#3B82F6', marginTop: compulsoryInductions.length ? 24 : 0, marginBottom: 12 }}>
                 OPTIONAL INDUCTIONS
               </Text>
-              {optional.map(ind => (
+              {optionalInductions.map(ind => (
                 <TouchableOpacity
                   key={ind.id}
                   onPress={() => toggleInductionSelection(ind.id)}
@@ -384,10 +521,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     paddingVertical: 12,
                     paddingHorizontal: 12,
                     borderRadius: 8,
-                    backgroundColor: selectedInductionIds.includes(ind.id) ? '#E0E7FF' : '#F9FAFB',
+                    backgroundColor: selectedOptionalIds.includes(ind.id) ? '#E0E7FF' : '#F9FAFB',
                     marginBottom: 8,
                     borderLeftWidth: 3,
-                    borderLeftColor: selectedInductionIds.includes(ind.id) ? '#3B82F6' : '#E5E7EB',
+                    borderLeftColor: selectedOptionalIds.includes(ind.id) ? '#3B82F6' : '#E5E7EB',
                     flexDirection: 'row',
                     alignItems: 'center',
                   }}
@@ -401,11 +538,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                       borderColor: '#3B82F6',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: selectedInductionIds.includes(ind.id) ? '#3B82F6' : 'white',
+                      backgroundColor: selectedOptionalIds.includes(ind.id) ? '#3B82F6' : 'white',
                       marginRight: 12,
                     }}
                   >
-                    {selectedInductionIds.includes(ind.id) && (
+                    {selectedOptionalIds.includes(ind.id) && (
                       <Text style={{ color: 'white', fontWeight: '700' }}>✓</Text>
                     )}
                   </View>
@@ -426,7 +563,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <TouchableOpacity style={[styles.button, { marginTop: 24 }]} onPress={handleStartInductions}>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              Start Inductions ({selectedInductionIds.length + compulsory.length})
+              Start Inductions ({selectedOptionalIds.length + compulsoryInductions.length})
             </Text>
           </TouchableOpacity>
         </ScrollView>
