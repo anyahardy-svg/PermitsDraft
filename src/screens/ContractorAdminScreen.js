@@ -448,7 +448,15 @@ export default function ContractorAdminScreen({
       </View>
 
       {/* Content */}
-      {activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()}
+      {!businessUnitId ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
+            Business Unit not loaded. Please go back and try again.
+          </Text>
+        </View>
+      ) : (
+        activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
+      )}
 
       {/* JSEA Editor Modal */}
       {showJseaEditor && (

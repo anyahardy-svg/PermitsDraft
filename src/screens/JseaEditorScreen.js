@@ -62,6 +62,7 @@ export default function JseaEditorScreen({
       Alert.alert('Error', 'All steps must have a description');
       return;
     }
+    // Auto-save before closing
     onSave(steps);
   };
 
@@ -273,20 +274,14 @@ export default function JseaEditorScreen({
           <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '600' }}>+ Add Another Step</Text>
         </TouchableOpacity>
 
-        {/* Save/Cancel Buttons - Only show if not hideButtons */}
+        {/* Close Button - Auto-saves on close */}
         {!hideButtons && (
           <View style={{ gap: 8, marginBottom: 20 }}>
             <TouchableOpacity
               onPress={handleSave}
-              style={{ backgroundColor: '#10B981', padding: 14, borderRadius: 8, alignItems: 'center' }}
+              style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center' }}
             >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Save JSEA</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onCancel}
-              style={{ backgroundColor: '#E5E7EB', padding: 14, borderRadius: 8, alignItems: 'center' }}
-            >
-              <Text style={{ color: '#374151', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Done Editing</Text>
             </TouchableOpacity>
           </View>
         )}

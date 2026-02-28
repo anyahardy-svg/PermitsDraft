@@ -17,7 +17,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { getJseaTemplates } from './src/api/templates';
+import { getJseaTemplates, saveJseaTemplate } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
@@ -938,6 +938,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [showJseaEditor, setShowJseaEditor] = useState(false);
   const [showJseaTemplateLoader, setShowJseaTemplateLoader] = useState(false);
+  const [showJseaSaveTemplate, setShowJseaSaveTemplate] = useState(false);
+  const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [jseaTemplatesAvailable, setJseaTemplatesAvailable] = useState([]);
   const [loadingJseaTemplates, setLoadingJseaTemplates] = useState(false);
   // --- Handlers for advanced form ---
@@ -1073,6 +1075,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }));
     setShowJseaTemplateLoader(false);
     Alert.alert('Success', `Loaded template: ${template.name}`);
+  };
+
+  // Save current JSEA as a template
+  const handleSaveJseaAsTemplate = async () => {
+    if (!jseaTemplateName.trim()) {
+      Alert.alert('Error', 'Please enter a template name');
+      return;
+    }
+    if (formData.jsea.taskSteps.length === 0) {
+      Alert.alert('Error', 'Please add at least one step before saving as template');
+      return;
+    }
+    if (!businessUnitId) {
+      Alert.alert('Error', 'Business Unit not set');
+      return;
+    }
+
+    setLoadingJseaTemplates(true);
+    try {
+      const response = await saveJseaTemplate(
+        jseaTemplateName,
+        formData.jsea.taskSteps,
+        businessUnitId
+      );
+      if (response.success) {
+        Alert.alert('Success', `Template "${jseaTemplateName}" saved`);
+        setJseaTemplateName('');
+        setShowJseaSaveTemplate(false);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to save template');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save template: ' + error.message);
+    } finally {
+      setLoadingJseaTemplates(false);
+    }
   };
 
   // --- Print Permit Function ---
@@ -2139,6 +2177,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                   {formData.jsea.taskSteps.length > 0 && (
+                    <TouchableOpacity 
+                      style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
+                      onPress={() => setShowJseaSaveTemplate(true)}
+                    >
+                      <Text style={styles.addButtonText}>Save as Template</Text>
+                    </TouchableOpacity>
+                  )}
+                  {formData.jsea.taskSteps.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                       {formData.jsea.taskSteps.map((step, idx) => (
@@ -2631,6 +2677,120 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   Cancel
                 </Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* JSEA Save as Template Modal */}
+        <Modal 
+          visible={showJseaSaveTemplate} 
+          animationType="slide"
+          onRequestClose={() => setShowJseaSaveTemplate(false)}
+          transparent
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Save JSEA as Template
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowJseaSaveTemplate(false);
+                  setJseaTemplateName('');
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Template Name</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 14,
+                    color: '#1F2937'
+                  }}
+                  placeholder="e.g., Crane Installation"
+                  value={jseaTemplateName}
+                  onChangeText={setJseaTemplateName}
+                  editable={!loadingJseaTemplates}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowJseaSaveTemplate(false);
+                    setJseaTemplateName('');
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#F59E0B',
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    opacity: loadingJseaTemplates ? 0.6 : 1
+                  }}
+                  onPress={handleSaveJseaAsTemplate}
+                  disabled={loadingJseaTemplates}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: 'white'
+                  }}>
+                    {loadingJseaTemplates ? 'Saving...' : 'Save Template'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
