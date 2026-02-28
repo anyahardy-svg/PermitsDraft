@@ -195,9 +195,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
-    // Immediate feedback that button was pressed
-    Alert.alert('Debug', 'Continue button pressed!');
-    
     console.log('=== handleInfoContinue CALLED ===');
     console.log('contractorInfo:', contractorInfo);
     console.log('isNewContractor:', isNewContractor);
@@ -649,9 +646,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <TouchableOpacity
             style={[styles.button, { marginTop: 24 }]}
-            onPress={handleInfoContinue}
+            onPress={() => {
+              console.log('BUTTON PRESSED');
+              handleInfoContinue();
+            }}
           >
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue [TEST]</Text>
           </TouchableOpacity>
         </ScrollView>
 
