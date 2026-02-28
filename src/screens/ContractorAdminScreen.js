@@ -272,7 +272,7 @@ export default function ContractorAdminScreen({
                   <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4, fontWeight: '500' }}>Steps:</Text>
                   {template.jsea.slice(0, 3).map((step, idx) => (
                     <Text key={idx} style={{ fontSize: 10, color: '#374151', marginBottom: 2 }}>
-                      • {step.step?.substring(0, 70) || 'Step ' + (idx + 1)}
+                      • {step.description?.substring(0, 70) || 'Step ' + (idx + 1)}
                     </Text>
                   ))}
                   {template.jsea.length > 3 && (
