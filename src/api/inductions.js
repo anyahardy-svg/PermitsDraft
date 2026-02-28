@@ -461,6 +461,494 @@ export async function notifyExpiringInductions() {
 }
 
 // ============================================================================
+// NEW COMPREHENSIVE INDUCTION SYSTEM
+// ============================================================================
+
+/**
+ * Get all inductions (compulsory + optional) for a contractor
+ * Based on their business units and selected sites
+ * @param {UUID} contractorId
+ * @param {Array<UUID>} businessUnitIds - Business units contractor works for
+ * @param {Array<UUID>} siteIds - Sites contractor works for
+ * @returns {Object} { compulsory: [...], optional: [...] }
+ */
+export async function getInductionsForContractor(contractorId, businessUnitIds, siteIds) {
+  try {
+    if (!businessUnitIds || businessUnitIds.length === 0) {
+      return { success: true, data: { compulsory: [], optional: [] } };
+    }
+
+    // Get all induction sections for contractor's BUs (site-specific or ALL sites)
+    const { data: sections, error: sectionsError } = await supabase
+      .from('induction_sections')
+      .select('*')
+      .in('business_unit_id', businessUnitIds)
+      .or(`site_id.is.null,site_id.in.(${siteIds.join(',')})`)
+      .order('order_number', { ascending: true });
+
+    if (sectionsError) throw sectionsError;
+
+    // Separate compulsory vs optional
+    const compulsory = sections.filter(s => s.is_compulsory);
+    const optional = sections.filter(s => !s.is_compulsory);
+
+    // Get contractor's progress for each section
+    const { data: progress } = await supabase
+      .from('contractor_induction_progress')
+      .select('induction_section_id, status')
+      .eq('contractor_id', contractorId);
+
+    const progressMap = {};
+    (progress || []).forEach(p => {
+      progressMap[p.induction_section_id] = p.status;
+    });
+
+    // Enrich sections with progress
+    const enriched = (sections) => sections.map(s => ({
+      ...s,
+      progress: progressMap[s.id] || 'not_started',
+    }));
+
+    return {
+      success: true,
+      data: {
+        compulsory: enriched(compulsory),
+        optional: enriched(optional),
+      },
+    };
+  } catch (error) {
+    console.error('Get inductions for contractor error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get subsections for an induction section
+ * @param {UUID} sectionId
+ * @returns {Array} Subsections with video URLs
+ */
+export async function getInductionSubsections(sectionId) {
+  try {
+    const { data: subsections, error } = await supabase
+      .from('induction_subsections')
+      .select('*')
+      .eq('induction_section_id', sectionId)
+      .order('order_number', { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data: subsections };
+  } catch (error) {
+    console.error('Get induction subsections error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get questions for an induction subsection
+ * @param {UUID} subsectionId
+ * @returns {Array} Questions (without answers/correct_answer)
+ */
+export async function getInductionQuestions(subsectionId) {
+  try {
+    const { data: questions, error } = await supabase
+      .from('induction_questions')
+      .select('id, question_number, question_text, question_type, options')
+      .eq('induction_subsection_id', subsectionId)
+      .order('question_number', { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data: questions };
+  } catch (error) {
+    console.error('Get induction questions error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Save contractor's progress on a subsection
+ * Called when contractor submits answers to questions
+ * @param {UUID} contractorId
+ * @param {UUID} siteId
+ * @param {UUID} businessUnitId
+ * @param {UUID} subsectionId
+ * @param {Object} answers - { q1: 'a', q2: 'b', q3: 'c' }
+ * @returns {Object} Score and completion status
+ */
+export async function saveInductionProgress(
+  contractorId,
+  siteId,
+  businessUnitId,
+  subsectionId,
+  answers
+) {
+  try {
+    // Get section info
+    const { data: subsection, error: subError } = await supabase
+      .from('induction_subsections')
+      .select('induction_section_id')
+      .eq('id', subsectionId)
+      .single();
+
+    if (subError) throw subError;
+
+    const sectionId = subsection.induction_section_id;
+
+    // Get all questions to verify answers
+    const { data: questions, error: questionsError } = await supabase
+      .from('induction_questions')
+      .select('id, question_number, correct_answer')
+      .eq('induction_subsection_id', subsectionId);
+
+    if (questionsError) throw questionsError;
+
+    // Calculate score
+    let score = 0;
+    questions.forEach(q => {
+      const answerKey = `q${q.question_number}`;
+      if (answers[answerKey] === q.correct_answer) {
+        score++;
+      }
+    });
+
+    // Check if progress record exists
+    const { data: existing } = await supabase
+      .from('contractor_induction_progress')
+      .select('id')
+      .eq('contractor_id', contractorId)
+      .eq('induction_subsection_id', subsectionId)
+      .eq('business_unit_id', businessUnitId)
+      .single();
+
+    // Upsert progress record
+    const progressData = {
+      contractor_id: contractorId,
+      site_id: siteId,
+      business_unit_id: businessUnitId,
+      induction_section_id: sectionId,
+      induction_subsection_id: subsectionId,
+      status: 'questions_answered',
+      answers_submitted: answers,
+      questions_score: score,
+      answered_at: new Date().toISOString(),
+    };
+
+    if (existing) {
+      const { data: updated, error: updateError } = await supabase
+        .from('contractor_induction_progress')
+        .update(progressData)
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return { success: true, data: updated, score };
+    } else {
+      const { data: created, error: createError } = await supabase
+        .from('contractor_induction_progress')
+        .insert(progressData)
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      return { success: true, data: created, score };
+    }
+  } catch (error) {
+    console.error('Save induction progress error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Complete an induction subsection (with signature)
+ * Auto-adds service if all subsections in section are completed
+ * @param {UUID} contractorId
+ * @param {UUID} siteId
+ * @param {UUID} businessUnitId
+ * @param {UUID} subsectionId
+ * @param {string} signatureUrl - URL to signature image
+ * @returns {Object} Completion record with service info (if added)
+ */
+export async function completeInductionSubsection(
+  contractorId,
+  siteId,
+  businessUnitId,
+  subsectionId,
+  signatureUrl
+) {
+  try {
+    // Get subsection and section info
+    const { data: subsection, error: subError } = await supabase
+      .from('induction_subsections')
+      .select('*, induction_section_id')
+      .eq('id', subsectionId)
+      .single();
+
+    if (subError) throw subError;
+
+    const sectionId = subsection.induction_section_id;
+
+    // Update progress record with signature and completion
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+    const { data: completed, error: completeError } = await supabase
+      .from('contractor_induction_progress')
+      .update({
+        status: 'completed',
+        signature_url: signatureUrl,
+        completed_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      })
+      .eq('contractor_id', contractorId)
+      .eq('induction_subsection_id', subsectionId)
+      .eq('business_unit_id', businessUnitId)
+      .select()
+      .single();
+
+    if (completeError) throw completeError;
+
+    // Check if ALL subsections in this section are completed
+    const { data: allSubsections } = await supabase
+      .from('induction_subsections')
+      .select('id')
+      .eq('induction_section_id', sectionId);
+
+    const { data: completedSubsections } = await supabase
+      .from('contractor_induction_progress')
+      .select('id')
+      .eq('contractor_id', contractorId)
+      .eq('induction_section_id', sectionId)
+      .eq('status', 'completed');
+
+    let serviceAdded = false;
+    let serviceData = null;
+
+    // If all subsections completed, add service to contractor
+    if (allSubsections && completedSubsections && 
+        completedSubsections.length === allSubsections.length) {
+      
+      const { data: section } = await supabase
+        .from('induction_sections')
+        .select('service_id')
+        .eq('id', sectionId)
+        .single();
+
+      if (section && section.service_id) {
+        // Get contractor's current service_ids
+        const { data: contractor } = await supabase
+          .from('contractors')
+          .select('service_ids')
+          .eq('id', contractorId)
+          .single();
+
+        const currentServiceIds = contractor?.service_ids || [];
+        
+        // Add service if not already there
+        if (!currentServiceIds.includes(section.service_id)) {
+          const updatedServiceIds = [...currentServiceIds, section.service_id];
+          
+          const { data: updated, error: updateError } = await supabase
+            .from('contractors')
+            .update({
+              service_ids: updatedServiceIds,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', contractorId)
+            .select()
+            .single();
+
+          if (!updateError) {
+            serviceAdded = true;
+            serviceData = {
+              serviceId: section.service_id,
+              sections: allSubsections.length,
+              allCompleted: true,
+            };
+
+            // Update the progress record to track service addition
+            await supabase
+              .from('contractor_induction_progress')
+              .update({ service_added_at: new Date().toISOString() })
+              .eq('contractor_id', contractorId)
+              .eq('induction_section_id', sectionId);
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: completed,
+      serviceAdded,
+      serviceData,
+    };
+  } catch (error) {
+    console.error('Complete induction subsection error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin: Create induction section with subsections and questions
+ * @param {Object} template - {
+ *   businessUnitId, siteId (optional), inductionName, serviceId,
+ *   subsections: [{ name, videoUrl, videoDuration, questions: [{text, type, options, correctAnswer}] }]
+ * }
+ * @returns {Object} Created section with all relationships
+ */
+export async function createInductionTemplate(template) {
+  try {
+    const {
+      businessUnitId,
+      siteId = null,
+      inductionName,
+      description = '',
+      isCompulsory = true,
+      serviceId = null,
+      orderNumber = 0,
+      subsections = [],
+    } = template;
+
+    // Create section
+    const { data: section, error: sectionError } = await supabase
+      .from('induction_sections')
+      .insert({
+        business_unit_id: businessUnitId,
+        site_id: siteId,
+        induction_name: inductionName,
+        description,
+        is_compulsory: isCompulsory,
+        service_id: serviceId,
+        order_number: orderNumber,
+      })
+      .select()
+      .single();
+
+    if (sectionError) throw sectionError;
+
+    const createdSubsections = [];
+
+    // Create subsections and questions
+    for (let i = 0; i < subsections.length; i++) {
+      const sub = subsections[i];
+
+      const { data: subsection, error: subError } = await supabase
+        .from('induction_subsections')
+        .insert({
+          induction_section_id: section.id,
+          subsection_name: sub.name,
+          description: sub.description || '',
+          video_url: sub.videoUrl,
+          video_duration_minutes: sub.videoDuration || 15,
+          is_default: sub.isDefault !== false && i === 0, // First subsection is default
+          order_number: i,
+        })
+        .select()
+        .single();
+
+      if (subError) throw subError;
+
+      // Create questions
+      const createdQuestions = [];
+      for (let j = 0; j < (sub.questions || []).length; j++) {
+        const question = sub.questions[j];
+
+        const { data: questionRecord, error: qError } = await supabase
+          .from('induction_questions')
+          .insert({
+            induction_subsection_id: subsection.id,
+            question_number: j + 1,
+            question_text: question.text,
+            question_type: question.type || 'multiple-choice',
+            options: question.options || {},
+            correct_answer: question.correctAnswer || 'a',
+          })
+          .select()
+          .single();
+
+        if (qError) throw qError;
+        createdQuestions.push(questionRecord);
+      }
+
+      createdSubsections.push({
+        ...subsection,
+        questions: createdQuestions,
+      });
+    }
+
+    await logAudit('induction_template_created', {
+      section_id: section.id,
+      induction_name: inductionName,
+      subsections_count: createdSubsections.length,
+    });
+
+    return {
+      success: true,
+      data: {
+        ...section,
+        subsections: createdSubsections,
+      },
+    };
+  } catch (error) {
+    console.error('Create induction template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin: Get all induction templates for a business unit
+ * @param {UUID} businessUnitId
+ * @param {UUID} siteId (optional) - Filter by site
+ * @returns {Array} Induction sections with subsections
+ */
+export async function getInductionTemplates(businessUnitId, siteId = null) {
+  try {
+    let query = supabase
+      .from('induction_sections')
+      .select('*')
+      .eq('business_unit_id', businessUnitId);
+
+    if (siteId) {
+      query = query.or(`site_id.eq.${siteId},site_id.is.null`);
+    }
+
+    const { data: sections, error: sectionsError } = await query.order('order_number');
+
+    if (sectionsError) throw sectionsError;
+
+    // Get subsections and questions for each section
+    const enriched = await Promise.all(
+      (sections || []).map(async (section) => {
+        const { data: subsections } = await supabase
+          .from('induction_subsections')
+          .select('*')
+          .eq('induction_section_id', section.id);
+
+        const subsectionsWithQuestions = await Promise.all(
+          (subsections || []).map(async (sub) => {
+            const { data: questions } = await supabase
+              .from('induction_questions')
+              .select('*')
+              .eq('induction_subsection_id', sub.id);
+
+            return { ...sub, questions };
+          })
+        );
+
+        return { ...section, subsections: subsectionsWithQuestions };
+      })
+    );
+
+    return { success: true, data: enriched };
+  } catch (error) {
+    console.error('Get induction templates error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -489,4 +977,12 @@ export default {
   updateInductionModule,
   deleteInductionModule,
   notifyExpiringInductions,
+  // New comprehensive system
+  getInductionsForContractor,
+  getInductionSubsections,
+  getInductionQuestions,
+  saveInductionProgress,
+  completeInductionSubsection,
+  createInductionTemplate,
+  getInductionTemplates,
 };
