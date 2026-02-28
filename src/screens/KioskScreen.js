@@ -758,6 +758,26 @@ const KioskScreen = ({ onViewPermits }) => {
         </TouchableOpacity>
       )}
       
+      {/* TEST BUTTON - DEBUG */}
+      {currentScreen === 'welcome' && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 110,
+            left: 20,
+            backgroundColor: '#FF0000',
+            width: 100,
+            height: 50,
+            borderRadius: 8,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>TEST</Text>
+        </TouchableOpacity>
+      )}
+      
       {/* Contractor Induction Floating Button - show on welcome screen */}
       {currentScreen === 'welcome' && (
         <>
