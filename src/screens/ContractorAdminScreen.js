@@ -38,6 +38,9 @@ export default function ContractorAdminScreen({
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
+  // Use first business unit if none is provided
+  const effectiveBuId = businessUnitId || businessUnits[0]?.id;
+
   // Load companies
   const loadCompanies = async () => {
     setLoadingCompanies(true);
@@ -58,10 +61,10 @@ export default function ContractorAdminScreen({
 
   // Load JSEA templates
   const loadJseaTemplates = async () => {
-    if (!businessUnitId) return;
+    if (!effectiveBuId) return;
     setLoadingJsea(true);
     try {
-      const response = await getJseaTemplates(businessUnitId);
+      const response = await getJseaTemplates(effectiveBuId);
       if (response.success) {
         setJseaTemplates(response.data || []);
       }
@@ -74,10 +77,10 @@ export default function ContractorAdminScreen({
 
   // Load Permit templates
   const loadPermitTemplates = async () => {
-    if (!businessUnitId) return;
+    if (!effectiveBuId) return;
     setLoadingPermits(true);
     try {
-      const response = await getPermitTemplates(businessUnitId);
+      const response = await getPermitTemplates(effectiveBuId);
       if (response.success) {
         setPermitTemplates(response.data || []);
       }
@@ -98,7 +101,7 @@ export default function ContractorAdminScreen({
     } else {
       loadPermitTemplates();
     }
-  }, [activeTab, businessUnitId]);
+  }, [activeTab, effectiveBuId]);
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
@@ -451,10 +454,10 @@ export default function ContractorAdminScreen({
       </View>
 
       {/* Content */}
-      {!businessUnitId ? (
+      {!effectiveBuId ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
-            Business Unit not loaded. Please go back and try again.
+            No business units available. Please contact your administrator.
           </Text>
         </View>
       ) : (
