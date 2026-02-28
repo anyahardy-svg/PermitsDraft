@@ -2143,7 +2143,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                       {formData.jsea.taskSteps.map((step, idx) => (
                         <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
-                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
+                          Step {idx + 1}: {step.description.substring(0, 50)}{step.description.length > 50 ? '...' : ''}
                         </Text>
                       ))}
                     </View>
