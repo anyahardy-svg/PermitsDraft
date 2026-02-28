@@ -82,9 +82,10 @@ export const createContractor = async (contractorData) => {
 // Get all contractors with company details
 export const listContractors = async () => {
   try {
+    // Use join to fetch companies in a single query instead of N+1
     const { data, error } = await supabase
       .from('contractors')
-      .select()
+      .select('*, companies!inner(id, name)')
       .order('name', { ascending: true });
 
     if (error) {
@@ -95,48 +96,14 @@ export const listContractors = async () => {
     console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
     console.log('📋 First contractor sample:', data?.[0]);
     
-    // Fetch company names and service names for contractors
-    const contractorsWithDetails = await Promise.all(
-      (data || []).map(async (contractor) => {
-        // Fetch company name if contractor has company_id
-        if (contractor.company_id) {
-          try {
-            const { data: company, error: companyError } = await supabase
-              .from('companies')
-              .select('name')
-              .eq('id', contractor.company_id)
-              .single();
-            
-            if (company && !companyError) {
-              contractor.company_name = company.name;
-            }
-          } catch (err) {
-            console.warn(`Could not fetch company for contractor ${contractor.id}:`, err.message);
-          }
-        }
-        
-        // Fetch service names if contractor has service_ids
-        if (contractor.service_ids && contractor.service_ids.length > 0) {
-          try {
-            const { data: services, error: servicesError } = await supabase
-              .from('services')
-              .select('id, name')
-              .in('id', contractor.service_ids);
-            
-            if (services && !servicesError) {
-              contractor.service_names = services.map(s => s.name);
-            }
-          } catch (err) {
-            console.warn(`Could not fetch services for contractor ${contractor.id}:`, err.message);
-          }
-        }
-        
-        return contractor;
-      })
-    );
+    // Map company names from joined data
+    const contractorsWithCompanies = (data || []).map(contractor => ({
+      ...contractor,
+      company_name: contractor.companies?.name || contractor.company_name || '',
+    }));
     
-    const transformed = (contractorsWithDetails || []).map(transformContractor);
-    console.log('✅ Transformed contractors:', transformed.length, transformed);
+    const transformed = (contractorsWithCompanies || []).map(transformContractor);
+    console.log('✅ Transformed contractors:', transformed.length);
     
     return transformed;
   } catch (error) {
@@ -285,9 +252,10 @@ export const listContractorsWithExpiredInductions = async () => {
 export const listContractorsBySite = async (siteId) => {
   try {
     console.log('🔍 Loading contractors for site:', siteId);
+    // Use join to fetch company names in a single query instead of N+1
     const { data, error } = await supabase
       .from('contractors')
-      .select()
+      .select('*, companies!inner(name)')
       .contains('site_ids', [siteId])
       .order('name', { ascending: true });
 
@@ -298,27 +266,11 @@ export const listContractorsBySite = async (siteId) => {
     
     console.log('✅ Contractors for site:', data?.length || 0);
     
-    // Fetch company names for contractors that have a company_id
-    const contractorsWithCompanies = await Promise.all(
-      (data || []).map(async (contractor) => {
-        if (contractor.company_id) {
-          try {
-            const { data: company, error: companyError } = await supabase
-              .from('companies')
-              .select('name')
-              .eq('id', contractor.company_id)
-              .single();
-            
-            if (company && !companyError) {
-              contractor.company_name = company.name;
-            }
-          } catch (err) {
-            console.warn(`Could not fetch company for contractor ${contractor.id}:`, err.message);
-          }
-        }
-        return contractor;
-      })
-    );
+    // Map company data from join
+    const contractorsWithCompanies = (data || []).map(contractor => ({
+      ...contractor,
+      company_name: contractor.companies?.name || contractor.company_name || '',
+    }));
     
     return contractorsWithCompanies.map(transformContractor);
   } catch (error) {
