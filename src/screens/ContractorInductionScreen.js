@@ -1097,11 +1097,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     return matchingService ? matchingService.id : inductionDisplayName;
                   });
 
-                  // Update contractor with services and completion signature
+                  // Update contractor with earned services
                   await updateContractor(contractorInfo.id, {
                     service_ids: serviceIds,
-                    induction_completion_signature: signatureText,
-                    induction_completed_at: new Date().toISOString(),
                   });
 
                   setStep('complete');
