@@ -171,15 +171,37 @@ export const getContractor = async (contractorId) => {
 // Update a contractor
 export const updateContractor = async (contractorId, updates) => {
   try {
-    // Map service_ids/serviceIds to service_ids in the update
-    const dbUpdates = {
-      ...updates
+    // Only include valid contractor table columns
+    const validFields = {
+      'name': true,
+      'email': true,
+      'phone': true,
+      'company_id': true,
+      'service_ids': true,
+      'site_ids': true,
+      'business_unit_ids': true,
+      'induction_expiry': true,
     };
     
-    // Handle service IDs mapping
-    if (updates.serviceIds !== undefined) {
-      dbUpdates.service_ids = updates.serviceIds;
-      delete dbUpdates.serviceIds;
+    // Filter updates to only valid fields
+    const dbUpdates = {};
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (validFields[key]) {
+        dbUpdates[key] = value;
+      } else if (key === 'serviceIds') {
+        // Map camelCase to snake_case
+        dbUpdates['service_ids'] = value;
+      } else if (key === 'siteIds') {
+        dbUpdates['site_ids'] = value;
+      } else if (key === 'businessUnitIds') {
+        dbUpdates['business_unit_ids'] = value;
+      } else if (key === 'companyId') {
+        dbUpdates['company_id'] = value;
+      } else if (key === 'inductionExpiry') {
+        dbUpdates['induction_expiry'] = value;
+      }
+      // All other fields are silently ignored to prevent schema errors
     }
     
     const { data, error } = await supabase

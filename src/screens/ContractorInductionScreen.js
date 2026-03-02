@@ -1098,9 +1098,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   });
 
                   // Update contractor with earned services
-                  await updateContractor(contractorInfo.id, {
+                  // Only pass valid contractor fields to avoid schema errors
+                  const contractorUpdate = {
                     service_ids: serviceIds,
-                  });
+                  };
+                  
+                  await updateContractor(contractorInfo.id, contractorUpdate);
 
                   setStep('complete');
                 } catch (err) {
