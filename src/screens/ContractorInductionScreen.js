@@ -240,11 +240,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // If new contractor, create them first
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
+        const selectedSites = contractorInfo.selectedSiteIds || [];
         const newContractor = await createContractor({
           name: contractorInfo.name,
           email: contractorInfo.email,
           phone: contractorInfo.phone,
           company_id: contractorInfo.companyId,
+          business_unit_ids: selectedBUs,
+          site_ids: selectedSites,
           service_ids: [],
         });
         contractorId = newContractor.id;
@@ -1070,35 +1073,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 
                 setLoading(true);
                 try {
-                  // Build service_ids from completed inductions
+                  // Build service_ids from completed optional inductions
+                  // (Compulsory inductions don't earn services, only optional ones do)
                   const completedInductions = inductionQueue.filter(ind => completedInductionIds.includes(ind.id));
                   
-                  // Fetch services for this contractor's business units to match induction names
-                  let allServices = [];
-                  if (contractorInfo.businessUnitIds && contractorInfo.businessUnitIds.length > 0) {
-                    for (const buId of contractorInfo.businessUnitIds) {
-                      const buServices = await listServicesByBusinessUnit(buId);
-                      allServices = [...allServices, ...buServices];
-                    }
-                  }
+                  // Only include optional inductions as earned services
+                  const serviceIds = completedInductions
+                    .filter(ind => !ind.is_compulsory) // Only optional inductions
+                    .map(ind => {
+                      // Return the induction name (or with subsection if it exists)
+                      return ind.subsection_name 
+                        ? `${ind.induction_name} - ${ind.subsection_name}` 
+                        : ind.induction_name;
+                    });
 
-                  // For each completed induction, try to find matching service by name and store the ID
-                  const serviceIds = completedInductions.map(ind => {
-                    const inductionDisplayName = ind.subsection_name 
-                      ? `${ind.induction_name} - ${ind.subsection_name}` 
-                      : ind.induction_name;
-                    
-                    // Try to find a matching service in the services table
-                    const matchingService = allServices.find(s => 
-                      s.name.toLowerCase() === inductionDisplayName.toLowerCase()
-                    );
-                    
-                    // Return service ID if found, otherwise return the induction name as fallback
-                    return matchingService ? matchingService.id : inductionDisplayName;
-                  });
-
-                  // Update contractor with earned services
-                  // Only pass valid contractor fields to avoid schema errors
+                  // Update contractor with earned services from optional inductions
                   const contractorUpdate = {
                     service_ids: serviceIds,
                   };
