@@ -1078,9 +1078,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   const completedInductions = inductionQueue.filter(ind => completedInductionIds.includes(ind.id));
                   
                   // Only include optional inductions as earned services
+                  // Use service_id (UUID) from induction table for proper service reference
                   const serviceIds = completedInductions
-                    .filter(ind => !ind.is_compulsory) // Only optional inductions
-                    .map(ind => ind.induction_name); // Only use base induction name, not subsection
+                    .filter(ind => !ind.is_compulsory && ind.service_id) // Only optional inductions with service_id
+                    .map(ind => ind.service_id); // Store UUID reference to service
 
                   // Update contractor with earned services from optional inductions
                   const contractorUpdate = {
