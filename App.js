@@ -6681,11 +6681,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Manage Contractors Screen
   const renderManageContractors = () => {
-    // Helper function to display services (already stored as names from both CSV and inductions)
+    // Load all services if not already loaded (for service name lookups)
+    React.useEffect(() => {
+      const loadAllServices = async () => {
+        try {
+          const allServices = await listAllServices();
+          setServicesForContractors(allServices);
+        } catch (error) {
+          console.error('Error loading services:', error);
+        }
+      };
+      
+      if (!servicesForContractors || servicesForContractors.length === 0) {
+        loadAllServices();
+      }
+    }, []);
+
+    // Helper function to look up service names from IDs
     const getServiceNames = (serviceIds) => {
       if (!serviceIds || serviceIds.length === 0) return [];
-      // Services are stored as names, not IDs, so just return them directly
-      return serviceIds;
+      
+      return serviceIds.map(serviceId => {
+        // Check if this looks like a UUID (contains hyphens and is 36 chars)
+        if (typeof serviceId === 'string' && serviceId.includes('-') && serviceId.length === 36) {
+          // Try to find in services list
+          const service = servicesForContractors.find(s => s.id === serviceId);
+          if (service) {
+            return service.name;
+          }
+          // If not found in loaded services, try to return a truncated version of the UUID for display
+          return serviceId.substring(0, 8) + '...';
+        }
+        // It's already a text service name (fallback from induction)
+        return serviceId;
+      });
     };
 
     const handleAddContractor = async () => {
@@ -7006,13 +7035,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   }
                 }
                 
-                // Convert service names to service IDs
+                // Convert service names to service IDs by looking them up
                 const serviceIds = [];
                 if ((contractor.services || contractor.serviceIds) && (contractor.services || contractor.serviceIds).length > 0) {
-                  // Use service names directly (don't convert to UUIDs)
-                  // This matches the induction workflow which stores service names
+                  // Fetch services for this contractor's business units
+                  let allServices = [];
+                  if (businessUnitIds.length > 0) {
+                    for (const buId of businessUnitIds) {
+                      const buServices = await listServicesByBusinessUnit(buId);
+                      allServices = [...allServices, ...buServices];
+                    }
+                  }
+                  
+                  // Match service names to service IDs
                   const serviceNames = contractor.services || contractor.serviceIds;
-                  serviceIds.push(...serviceNames);
+                  for (const serviceName of serviceNames) {
+                    const matchingService = allServices.find(s => 
+                      s.name.toLowerCase() === serviceName.toLowerCase()
+                    );
+                    if (matchingService) {
+                      serviceIds.push(matchingService.id);
+                    } else {
+                      console.warn(`Service not found: "${serviceName}" for contractor ${contractor.name}`);
+                    }
+                  }
                 }
                 
                 await createContractor({

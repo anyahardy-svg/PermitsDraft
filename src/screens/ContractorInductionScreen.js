@@ -23,6 +23,7 @@ import { listCompanies, createCompany } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
+import { listServicesByBusinessUnit } from '../api/services';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -1071,11 +1072,29 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 try {
                   // Build service_ids from completed inductions
                   const completedInductions = inductionQueue.filter(ind => completedInductionIds.includes(ind.id));
-                  const serviceIds = completedInductions.map(ind => {
-                    if (ind.subsection_name) {
-                      return `${ind.induction_name} - ${ind.subsection_name}`;
+                  
+                  // Fetch services for this contractor's business units to match induction names
+                  let allServices = [];
+                  if (contractorInfo.businessUnitIds && contractorInfo.businessUnitIds.length > 0) {
+                    for (const buId of contractorInfo.businessUnitIds) {
+                      const buServices = await listServicesByBusinessUnit(buId);
+                      allServices = [...allServices, ...buServices];
                     }
-                    return ind.induction_name;
+                  }
+
+                  // For each completed induction, try to find matching service by name and store the ID
+                  const serviceIds = completedInductions.map(ind => {
+                    const inductionDisplayName = ind.subsection_name 
+                      ? `${ind.induction_name} - ${ind.subsection_name}` 
+                      : ind.induction_name;
+                    
+                    // Try to find a matching service in the services table
+                    const matchingService = allServices.find(s => 
+                      s.name.toLowerCase() === inductionDisplayName.toLowerCase()
+                    );
+                    
+                    // Return service ID if found, otherwise return the induction name as fallback
+                    return matchingService ? matchingService.id : inductionDisplayName;
                   });
 
                   // Update contractor with services and completion signature
