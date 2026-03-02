@@ -41,8 +41,6 @@ export const createContractor = async (contractorData) => {
     const dbData = {
       ...contractorData,
       service_ids: contractorData.service_ids || contractorData.serviceIds || [],
-      // Keep services field for backward compatibility during migration
-      services: contractorData.services || []
     };
     
     const { data, error } = await supabase
