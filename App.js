@@ -6681,22 +6681,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Manage Contractors Screen
   const renderManageContractors = () => {
-    // Load all services if not already loaded (for service name lookups)
-    React.useEffect(() => {
-      const loadAllServices = async () => {
-        try {
-          const allServices = await listAllServices();
-          setServicesForContractors(allServices);
-        } catch (error) {
-          console.error('Error loading services:', error);
-        }
-      };
-      
-      if (!servicesForContractors || servicesForContractors.length === 0) {
-        loadAllServices();
-      }
-    }, []);
-
     // Helper function to look up service names from IDs
     const getServiceNames = (serviceIds) => {
       if (!serviceIds || serviceIds.length === 0) return [];
@@ -6709,13 +6693,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           if (service) {
             return service.name;
           }
-          // If not found in loaded services, try to return a truncated version of the UUID for display
+          // If not found in loaded services, we'll try to load them now
+          // For now, return a truncated UUID as fallback
           return serviceId.substring(0, 8) + '...';
         }
         // It's already a text service name (fallback from induction)
         return serviceId;
       });
     };
+
+    // Load all services on first render if not already loaded
+    if (servicesForContractors.length === 0) {
+      listAllServices().then(services => {
+        setServicesForContractors(services);
+      }).catch(err => console.error('Error loading services:', err));
+    }
 
     const handleAddContractor = async () => {
       console.log('🔴 [HANDLER] Add/Save button pressed. Editing:', editingContractor);
