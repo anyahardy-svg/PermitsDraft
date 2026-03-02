@@ -1083,9 +1083,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     .filter(ind => !ind.is_compulsory && ind.service_id) // Only optional inductions with service_id
                     .map(ind => ind.service_id); // Store UUID reference to service
 
+                  // Calculate induction expiry: current date + 365 days
+                  const expiryDate = new Date();
+                  expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                  const inductionExpiryIso = expiryDate.toISOString();
+
                   // Update contractor with earned services from optional inductions
                   const contractorUpdate = {
                     service_ids: serviceIds,
+                    induction_expiry: inductionExpiryIso,
                   };
                   
                   await updateContractor(contractorInfo.id, contractorUpdate);
