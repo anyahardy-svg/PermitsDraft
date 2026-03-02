@@ -6681,20 +6681,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Manage Contractors Screen
   const renderManageContractors = () => {
-    // Helper function to convert service IDs to service names
+    // Helper function to display services (already stored as names from both CSV and inductions)
     const getServiceNames = (serviceIds) => {
       if (!serviceIds || serviceIds.length === 0) return [];
-      
-      return serviceIds.map(serviceId => {
-        // Check if this is a UUID (looks like a UUID with hyphens)
-        if (typeof serviceId === 'string' && serviceId.includes('-') && serviceId.length === 36) {
-          // It's likely a UUID, look it up
-          const service = servicesForContractors.find(s => s.id === serviceId);
-          return service ? service.name : serviceId;
-        }
-        // It's already a service name (from induction)
-        return serviceId;
-      });
+      // Services are stored as names, not IDs, so just return them directly
+      return serviceIds;
     };
 
     const handleAddContractor = async () => {
@@ -7018,30 +7009,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 // Convert service names to service IDs
                 const serviceIds = [];
                 if ((contractor.services || contractor.serviceIds) && (contractor.services || contractor.serviceIds).length > 0) {
-                  // Fetch services for this contractor's business units if not already done
-                  let availableServices = servicesForContractors;
-                  if (availableServices.length === 0 && businessUnitIds.length > 0) {
-                    // Fetch services for the business units
-                    const allServices = [];
-                    for (const buId of businessUnitIds) {
-                      const services = await listServicesByBusinessUnit(buId);
-                      allServices.push(...services);
-                    }
-                    availableServices = allServices;
-                  }
-                  
-                  // Use service names from either services (CSV) or serviceIds (database)
+                  // Use service names directly (don't convert to UUIDs)
+                  // This matches the induction workflow which stores service names
                   const serviceNames = contractor.services || contractor.serviceIds;
-                  for (const serviceName of serviceNames) {
-                    // Find service by name within the contractor's business units
-                    const matchingService = availableServices.find(s => 
-                      s.name.toLowerCase() === serviceName.toLowerCase() &&
-                      businessUnitIds.includes(s.business_unit_id)
-                    );
-                    if (matchingService) {
-                      serviceIds.push(matchingService.id);
-                    }
-                  }
+                  serviceIds.push(...serviceNames);
                 }
                 
                 await createContractor({
