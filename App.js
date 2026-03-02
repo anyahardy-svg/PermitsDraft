@@ -7001,7 +7001,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 
                 // Convert service names to service IDs
                 const serviceIds = [];
-                if (contractor.services && contractor.services.length > 0) {
+                if ((contractor.services || contractor.serviceIds) && (contractor.services || contractor.serviceIds).length > 0) {
                   // Fetch services for this contractor's business units if not already done
                   let availableServices = servicesForContractors;
                   if (availableServices.length === 0 && businessUnitIds.length > 0) {
@@ -7014,7 +7014,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     availableServices = allServices;
                   }
                   
-                  for (const serviceName of contractor.services) {
+                  // Use service names from either services (CSV) or serviceIds (database)
+                  const serviceNames = contractor.services || contractor.serviceIds;
+                  for (const serviceName of serviceNames) {
                     // Find service by name within the contractor's business units
                     const matchingService = availableServices.find(s => 
                       s.name.toLowerCase() === serviceName.toLowerCase() &&
@@ -7495,7 +7497,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.phone || '-'}</Text>
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
-                            {(contractor.serviceNames || contractor.services).length > 0 ? (contractor.serviceNames || contractor.services).slice(0, 2).join(', ') + ((contractor.serviceNames || contractor.services).length > 2 ? '...' : '') : 'None'}
+                            {(contractor.serviceIds || []).length > 0 ? (contractor.serviceIds || []).slice(0, 2).join(', ') + ((contractor.serviceIds || []).length > 2 ? '...' : '') : 'None'}
                           </Text>
                           <Text style={[{ width: columns.sites, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
@@ -8444,7 +8446,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
                     <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
                     <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }]}>
-                      {(contractor.serviceNames || contractor.services).length > 0 ? (contractor.serviceNames || contractor.services).join(', ') : 'None'}
+                      {(contractor.serviceIds || []).length > 0 ? (contractor.serviceIds || []).join(', ') : 'None'}
                     </Text>
                   </View>
                 ))}
