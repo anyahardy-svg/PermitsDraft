@@ -1080,12 +1080,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   // Only include optional inductions as earned services
                   const serviceIds = completedInductions
                     .filter(ind => !ind.is_compulsory) // Only optional inductions
-                    .map(ind => {
-                      // Return the induction name (or with subsection if it exists)
-                      return ind.subsection_name 
-                        ? `${ind.induction_name} - ${ind.subsection_name}` 
-                        : ind.induction_name;
-                    });
+                    .map(ind => ind.induction_name); // Only use base induction name, not subsection
 
                   // Update contractor with earned services from optional inductions
                   const contractorUpdate = {
