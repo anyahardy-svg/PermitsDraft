@@ -15,8 +15,10 @@ import { WebView } from 'react-native-webview';
 
 import {
   getInductionsByBusinessUnit,
+  getContractorInductionProgress,
   startInduction,
   saveInductionAnswers,
+  saveInductionProgress,
   completeInduction,
 } from '../api/inductions';
 import { listCompanies, createCompany } from '../api/companies';
@@ -292,8 +294,46 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setAllInductions(uniqueInductions);
       setSelectedOptionalIds([]);
       
-      console.log('About to setStep to inductionsList');
-      setStep('inductionsList');
+      // Check for existing inductions in progress
+      const existingProgress = await getContractorInductionProgress(contractorId);
+      if (existingProgress && existingProgress.length > 0) {
+        const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
+        if (inProgressInductions.length > 0) {
+          console.log('Found', inProgressInductions.length, 'inductions in progress - offering to resume');
+          // Show dialog asking if they want to resume
+          Alert.alert(
+            'Resume Inductions?',
+            `You have ${inProgressInductions.length} induction(s) in progress. Do you want to resume where you left off?`,
+            [
+              {
+                text: 'Start Over',
+                onPress: () => {
+                  setStep('inductionsList');
+                },
+              },
+              {
+                text: 'Resume',
+                onPress: () => {
+                  // Load the in-progress inductions and continue
+                  const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
+                  const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
+                  setCompletedInductionIds(
+                    existingProgress
+                      .filter(p => p.status === 'completed')
+                      .map(p => p.induction_id)
+                  );
+                  setInductionQueue(resumeQueue);
+                  setStep('inductionBoard');
+                },
+              },
+            ]
+          );
+        } else {
+          setStep('inductionsList');
+        }
+      } else {
+        setStep('inductionsList');
+      }
       console.log('setStep called');
     } catch (err) {
       console.error('ERROR in handleInfoContinue:', err);
@@ -1092,6 +1132,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   const contractorUpdate = {
                     service_ids: serviceIds,
                     induction_expiry: inductionExpiryIso,
+                    signature: signatureText, // Store signature
                   };
                   
                   await updateContractor(contractorInfo.id, contractorUpdate);
@@ -1107,6 +1148,38 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                 {loading ? 'Submitting...' : 'Submit'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#64748B',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 8,
+              }}
+              onPress={async () => {
+                setLoading(true);
+                try {
+                  // Save progress for each completed induction without marking as complete
+                  for (const completedId of completedInductionIds) {
+                    const induction = inductionQueue.find(ind => ind.id === completedId);
+                    if (induction && modalAnswers[completedId]) {
+                      await saveInductionProgress(contractorInfo.id, induction.id, modalAnswers[completedId]);
+                    }
+                  }
+                  Alert.alert('Success', 'Progress saved! You can continue later.');
+                  setStep('inductionsList'); // Go back to list so they can exit
+                } catch (err) {
+                  Alert.alert('Error', 'Failed to save progress: ' + err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                {loading ? 'Saving...' : 'Save for Later'}
               </Text>
             </TouchableOpacity>
           </View>

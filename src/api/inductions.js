@@ -6,6 +6,28 @@
 import { supabase } from '../supabaseClient';
 
 // ============================================================================
+// TIMEZONE UTILITY
+// ============================================================================
+
+/**
+ * Get current timestamp in NZ timezone
+ * @returns {string} ISO string with NZ timezone info
+ */
+function getNZTimestamp() {
+  const now = new Date();
+  return now.toLocaleString('en-NZ', { 
+    timeZone: 'Pacific/Auckland',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+}
+
+// ============================================================================
 // INDUCTIONS MANAGEMENT (Creation, Reading, Updating, Deleting)
 // ============================================================================
 
@@ -275,7 +297,10 @@ export async function startInduction(contractorId, inductionId) {
   try {
     // Check if already exists
     const existing = await getInductionProgress(contractorId, inductionId);
-    if (existing) return existing;
+    if (existing) {
+      console.log(`[${getNZTimestamp()}] ℹ️ Induction already started, resuming`, { contractorId, inductionId, status: existing.status });
+      return existing;
+    }
 
     // Create new progress record
     const { data, error } = await supabase
@@ -288,9 +313,10 @@ export async function startInduction(contractorId, inductionId) {
       .select();
 
     if (error) throw error;
+    console.log(`[${getNZTimestamp()}] ✅ Induction started for contractor`, { contractorId, inductionId });
     return data ? data[0] : null;
   } catch (error) {
-    console.error('Error starting induction:', error);
+    console.error(`[${getNZTimestamp()}] ❌ Error starting induction:`, error);
     throw error;
   }
 }
@@ -315,9 +341,39 @@ export async function saveInductionAnswers(contractorId, inductionId, answers) {
       .select();
 
     if (error) throw error;
+    console.log(`[${getNZTimestamp()}] 💾 Saved answers for induction`, { contractorId, inductionId, answerCount: Object.keys(answers).length });
     return data ? data[0] : null;
   } catch (error) {
-    console.error('Error saving induction answers:', error);
+    console.error(`[${getNZTimestamp()}] ❌ Error saving induction answers:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Save induction progress without completing (for "Save for Later")
+ * @param {UUID} contractorId
+ * @param {UUID} inductionId
+ * @param {Object} answers - (optional) answers to save
+ * @returns {Object} Updated progress record
+ */
+export async function saveInductionProgress(contractorId, inductionId, answers = {}) {
+  try {
+    const { data, error } = await supabase
+      .from('contractor_induction_progress')
+      .update({
+        answers: answers || {},
+        updated_at: new Date().toISOString(),
+        // status stays 'in_progress', don't mark as completed
+      })
+      .eq('contractor_id', contractorId)
+      .eq('induction_id', inductionId)
+      .select();
+
+    if (error) throw error;
+    console.log(`[${getNZTimestamp()}] 📌 Progress saved for later - contractor can resume`, { contractorId, inductionId });
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error(`[${getNZTimestamp()}] ❌ Error saving progress:`, error);
     throw error;
   }
 }
@@ -379,9 +435,10 @@ export async function completeInduction(contractorId, inductionId, signatureText
       }
     }
 
+    console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId, serviceName: inductionData?.induction_name });
     return progressData ? progressData[0] : null;
   } catch (error) {
-    console.error('Error completing induction:', error);
+    console.error(`[${getNZTimestamp()}] ❌ Error completing induction:`, error);
     throw error;
   }
 }
