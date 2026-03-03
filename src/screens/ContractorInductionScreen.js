@@ -1045,10 +1045,34 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     )}
                   </ScrollView>
 
-                  {/* Close Button */}
-                  <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                  {/* Bottom Buttons */}
+                  <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB', gap: 8 }}>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#F3F4F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+                      style={{ backgroundColor: '#64748B', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+                      onPress={async () => {
+                        try {
+                          setLoading(true);
+                          // Save current answers to this induction
+                          if (Object.keys(modalAnswers).length > 0 && currentModalInduction) {
+                            await saveInductionProgress(contractorInfo.id, currentModalInduction.id, modalAnswers);
+                          }
+                          Alert.alert('Success', 'Progress saved! You can continue later.');
+                          setModalVisible(false);
+                        } catch (err) {
+                          Alert.alert('Error', 'Failed to save progress: ' + err.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                        {loading ? 'Saving...' : 'Save for Later'}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#F3F4F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
                       onPress={() => setModalVisible(false)}
                     >
                       <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Close</Text>
