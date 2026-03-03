@@ -1157,6 +1157,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 paddingHorizontal: 20,
                 paddingVertical: 12,
                 borderRadius: 8,
+                alignItems: 'center',
               }}
               onPress={async () => {
                 setLoading(true);
