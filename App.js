@@ -1500,6 +1500,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     loadData();
   }, []);
 
+  // Auto-populate permit form site when entering from kiosk
+  useEffect(() => {
+    if (currentScreen === 'new_permit' && dashboardSelectedSite) {
+      const selectedSiteName = siteIdToNameMap[dashboardSelectedSite];
+      if (selectedSiteName) {
+        setFormData(prev => ({
+          ...prev,
+          site: selectedSiteName
+        }));
+        console.log('✅ Auto-populated site in new permit form:', selectedSiteName);
+      }
+    }
+  }, [currentScreen, dashboardSelectedSite, siteIdToNameMap]);
+
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
     { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
@@ -1696,13 +1710,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     'Other'
   ];
   const renderNewPermitForm = () => {
+    // Check if accessing from kiosk subdomain
+    const isKioskMode = typeof window !== 'undefined' && window.location.hostname.includes('-kiosk.');
+    
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>New Permit</Text>
+          <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
         <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
           {/* General Section */}
@@ -1723,17 +1740,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   placeholder="Describe the work to be performed..."
                 />
                 <Text style={styles.label}>Site</Text>
-                <CustomDropdown
-                  label="Select Site"
-                  options={ALL_SITES}
-                  selectedValue={formData.site || ''}
-                  onValueChange={value => {
-                    setFormData({ ...formData, site: value, requestedBy: '' });
-                    setShowRequestedByDropdown(false);
-                    setFilteredRequestedBy([]);
-                  }}
-                  style={styles.input}
-                />
+                {isKioskMode && formData.site ? (
+                  // Show site as read-only text when in kiosk mode
+                  <View style={[styles.input, { backgroundColor: '#F3F4F6', paddingVertical: 12, justifyContent: 'center' }]}>
+                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{formData.site}</Text>
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Determined by kiosk location</Text>
+                  </View>
+                ) : (
+                  <CustomDropdown
+                    label="Select Site"
+                    options={ALL_SITES}
+                    selectedValue={formData.site || ''}
+                    onValueChange={value => {
+                      setFormData({ ...formData, site: value, requestedBy: '' });
+                      setShowRequestedByDropdown(false);
+                      setFilteredRequestedBy([]);
+                    }}
+                    style={styles.input}
+                  />
+                )}
                 
                 <Text style={styles.label}>Permit Issuer</Text>
                 <CustomDropdown
