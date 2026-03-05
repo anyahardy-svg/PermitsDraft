@@ -44,6 +44,11 @@ export default function ContractorAdminScreen({
   const [jseaFilterSiteIds, setJseaFilterSiteIds] = useState([]);
   const [sites, setSites] = useState([]);
   const [loadingSites, setLoadingSites] = useState(false);
+  // Filter search state
+  const [jseaCompanySearch, setJseaCompanySearch] = useState('');
+  const [jseaBusinessUnitSearch, setJseaBusinessUnitSearch] = useState('');
+  const [jseaSiteSearch, setJseaSiteSearch] = useState('');
+  const [openDropdown, setOpenDropdown] = useState(null); // null, 'company', 'businessunit', or 'site'
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -228,6 +233,10 @@ export default function ContractorAdminScreen({
     setSelectedBusinessUnitIds([]);
     setSelectedCompanyId(null);
     setSelectedSiteIds([]);
+    setOpenDropdown(null);
+    setJseaCompanySearch('');
+    setJseaBusinessUnitSearch('');
+    setJseaSiteSearch('');
   };
 
   // Open JSEA editor for new template
@@ -299,126 +308,346 @@ export default function ContractorAdminScreen({
 
         {/* Filter Section */}
         <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Filters</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Filters</Text>
           
-          {/* Company Filter */}
-          <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Company</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {/* Company Filter Dropdown */}
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Company</Text>
+            <View style={{ position: 'relative', zIndex: 10 }}>
               <TouchableOpacity
-                onPress={() => setJseaFilterCompanyId(null)}
+                onPress={() => {
+                  if (openDropdown === 'company') {
+                    setJseaCompanySearch('');
+                  }
+                  setOpenDropdown(openDropdown === 'company' ? null : 'company');
+                }}
                 style={{
-                  backgroundColor: !jseaFilterCompanyId ? '#3B82F6' : '#E5E7EB',
-                  padding: 6,
-                  borderRadius: 4,
-                  minWidth: 60,
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'white',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ fontSize: 11, color: !jseaFilterCompanyId ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
+                <Text style={{ fontSize: 13, color: jseaFilterCompanyId ? '#1F2937' : '#9CA3AF' }}>
+                  {jseaFilterCompanyId ? companies.find(c => c.id === jseaFilterCompanyId)?.name || 'Select company' : 'All Companies'}
+                </Text>
+                <Text style={{ fontSize: 16, color: '#6B7280' }}>▼</Text>
               </TouchableOpacity>
-              {companies.map(company => (
-                <TouchableOpacity
-                  key={company.id}
-                  onPress={() => setJseaFilterCompanyId(company.id)}
-                  style={{
-                    backgroundColor: jseaFilterCompanyId === company.id ? '#3B82F6' : '#E5E7EB',
-                    padding: 6,
-                    borderRadius: 4,
-                    maxWidth: 120
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: jseaFilterCompanyId === company.id ? 'white' : '#374151', fontWeight: '500' }}>
-                    {company.name?.substring(0, 15) || 'Company'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+
+              {openDropdown === 'company' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 46,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  maxHeight: 250,
+                  zIndex: 20
+                }}>
+                  <TextInput
+                    placeholder="Type to search..."
+                    value={jseaCompanySearch}
+                    onChangeText={setJseaCompanySearch}
+                    style={{
+                      borderBottomWidth: 1,
+                      borderColor: '#E5E7EB',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      fontSize: 12
+                    }}
+                  />
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setJseaFilterCompanyId(null);
+                        setOpenDropdown(null);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderColor: '#F3F4F6',
+                        backgroundColor: !jseaFilterCompanyId ? '#EEF2FF' : 'white'
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: !jseaFilterCompanyId ? '#3B82F6' : '#1F2937', fontWeight: '500' }}>
+                        All Companies
+                      </Text>
+                    </TouchableOpacity>
+                    {companies
+                      .filter(c => c.name?.toLowerCase().includes(jseaCompanySearch.toLowerCase()))
+                      .map(company => (
+                        <TouchableOpacity
+                          key={company.id}
+                          onPress={() => {
+                            setJseaFilterCompanyId(company.id);
+                            setOpenDropdown(null);
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderBottomWidth: 1,
+                            borderColor: '#F3F4F6',
+                            backgroundColor: jseaFilterCompanyId === company.id ? '#EEF2FF' : 'white'
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: jseaFilterCompanyId === company.id ? '#3B82F6' : '#1F2937' }}>
+                            {company.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           </View>
 
-          {/* Business Unit Filter */}
+          {/* Business Unit Filter Dropdown */}
           {businessUnits && businessUnits.length > 0 && (
-            <View>
-              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Business Units</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <TouchableOpacity
-                  onPress={() => setJseaFilterBusinessUnitIds([])}
-                  style={{
-                    backgroundColor: jseaFilterBusinessUnitIds.length === 0 ? '#3B82F6' : '#E5E7EB',
-                    padding: 6,
-                    borderRadius: 4,
-                    minWidth: 60,
-                    alignItems: 'center'
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: jseaFilterBusinessUnitIds.length === 0 ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
-                </TouchableOpacity>
-                {businessUnits.map(bu => (
-                  <TouchableOpacity
-                    key={bu.id}
-                    onPress={() => {
-                      if (jseaFilterBusinessUnitIds.includes(bu.id)) {
-                        setJseaFilterBusinessUnitIds(jseaFilterBusinessUnitIds.filter(id => id !== bu.id));
-                      } else {
-                        setJseaFilterBusinessUnitIds([...jseaFilterBusinessUnitIds, bu.id]);
-                      }
-                    }}
+            <View style={{ marginBottom: 12, zIndex: 5 }}>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Business Units</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (openDropdown === 'businessunit') {
+                    setJseaBusinessUnitSearch('');
+                  }
+                  setOpenDropdown(openDropdown === 'businessunit' ? null : 'businessunit');
+                }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'white',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 13, color: jseaFilterBusinessUnitIds.length > 0 ? '#1F2937' : '#9CA3AF' }}>
+                  {jseaFilterBusinessUnitIds.length === 0
+                    ? 'All Business Units'
+                    : `${jseaFilterBusinessUnitIds.length} selected`}
+                </Text>
+                <Text style={{ fontSize: 16, color: '#6B7280' }}>▼</Text>
+              </TouchableOpacity>
+
+              {openDropdown === 'businessunit' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 200,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  maxHeight: 250,
+                  zIndex: 20,
+                  marginHorizontal: 12
+                }}>
+                  <TextInput
+                    placeholder="Type to search..."
+                    value={jseaBusinessUnitSearch}
+                    onChangeText={setJseaBusinessUnitSearch}
                     style={{
-                      backgroundColor: jseaFilterBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
-                      padding: 6,
-                      borderRadius: 4,
-                      maxWidth: 120
+                      borderBottomWidth: 1,
+                      borderColor: '#E5E7EB',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      fontSize: 12
                     }}
-                  >
-                    <Text style={{ fontSize: 11, color: jseaFilterBusinessUnitIds.includes(bu.id) ? 'white' : '#374151', fontWeight: '500' }}>
-                      {bu.name?.substring(0, 15) || 'BU'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                  />
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setJseaFilterBusinessUnitIds([]);
+                        setOpenDropdown(null);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderColor: '#F3F4F6',
+                        backgroundColor: jseaFilterBusinessUnitIds.length === 0 ? '#EEF2FF' : 'white'
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: jseaFilterBusinessUnitIds.length === 0 ? '#3B82F6' : '#1F2937', fontWeight: '500' }}>
+                        All Business Units
+                      </Text>
+                    </TouchableOpacity>
+                    {businessUnits
+                      .filter(bu => bu.name?.toLowerCase().includes(jseaBusinessUnitSearch.toLowerCase()))
+                      .map(bu => (
+                        <TouchableOpacity
+                          key={bu.id}
+                          onPress={() => {
+                            setJseaFilterBusinessUnitIds(prev =>
+                              prev.includes(bu.id)
+                                ? prev.filter(id => id !== bu.id)
+                                : [...prev, bu.id]
+                            );
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderBottomWidth: 1,
+                            borderColor: '#F3F4F6',
+                            backgroundColor: jseaFilterBusinessUnitIds.includes(bu.id) ? '#EEF2FF' : 'white',
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <View style={{
+                            width: 16,
+                            height: 16,
+                            borderWidth: 2,
+                            borderColor: '#3B82F6',
+                            borderRadius: 3,
+                            backgroundColor: jseaFilterBusinessUnitIds.includes(bu.id) ? '#3B82F6' : 'white',
+                            marginRight: 8,
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {jseaFilterBusinessUnitIds.includes(bu.id) && (
+                              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>✓</Text>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: 12, color: '#1F2937' }}>{bu.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           )}
 
-          {/* Site Filter */}
+          {/* Site Filter Dropdown */}
           {sites && sites.length > 0 && (
-            <View style={{ marginTop: 10 }}>
-              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Sites</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <TouchableOpacity
-                  onPress={() => setJseaFilterSiteIds([])}
-                  style={{
-                    backgroundColor: jseaFilterSiteIds.length === 0 ? '#3B82F6' : '#E5E7EB',
-                    padding: 6,
-                    borderRadius: 4,
-                    minWidth: 60,
-                    alignItems: 'center'
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: jseaFilterSiteIds.length === 0 ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
-                </TouchableOpacity>
-                {sites.map(site => (
-                  <TouchableOpacity
-                    key={site.id}
-                    onPress={() => {
-                      if (jseaFilterSiteIds.includes(site.id)) {
-                        setJseaFilterSiteIds(jseaFilterSiteIds.filter(id => id !== site.id));
-                      } else {
-                        setJseaFilterSiteIds([...jseaFilterSiteIds, site.id]);
-                      }
-                    }}
+            <View style={{ zIndex: 0 }}>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Sites</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (openDropdown === 'site') {
+                    setJseaSiteSearch('');
+                  }
+                  setOpenDropdown(openDropdown === 'site' ? null : 'site');
+                }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'white',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 13, color: jseaFilterSiteIds.length > 0 ? '#1F2937' : '#9CA3AF' }}>
+                  {jseaFilterSiteIds.length === 0
+                    ? 'All Sites'
+                    : `${jseaFilterSiteIds.length} selected`}
+                </Text>
+                <Text style={{ fontSize: 16, color: '#6B7280' }}>▼</Text>
+              </TouchableOpacity>
+
+              {openDropdown === 'site' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 46,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  maxHeight: 250,
+                  zIndex: 20
+                }}>
+                  <TextInput
+                    placeholder="Type to search..."
+                    value={jseaSiteSearch}
+                    onChangeText={setJseaSiteSearch}
                     style={{
-                      backgroundColor: jseaFilterSiteIds.includes(site.id) ? '#3B82F6' : '#E5E7EB',
-                      padding: 6,
-                      borderRadius: 4,
-                      maxWidth: 120
+                      borderBottomWidth: 1,
+                      borderColor: '#E5E7EB',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      fontSize: 12
                     }}
-                  >
-                    <Text style={{ fontSize: 11, color: jseaFilterSiteIds.includes(site.id) ? 'white' : '#374151', fontWeight: '500' }}>
-                      {site.name?.substring(0, 15)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                  />
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setJseaFilterSiteIds([]);
+                        setOpenDropdown(null);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderColor: '#F3F4F6',
+                        backgroundColor: jseaFilterSiteIds.length === 0 ? '#EEF2FF' : 'white'
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: jseaFilterSiteIds.length === 0 ? '#3B82F6' : '#1F2937', fontWeight: '500' }}>
+                        All Sites
+                      </Text>
+                    </TouchableOpacity>
+                    {sites
+                      .filter(site => site.name?.toLowerCase().includes(jseaSiteSearch.toLowerCase()))
+                      .map(site => (
+                        <TouchableOpacity
+                          key={site.id}
+                          onPress={() => {
+                            setJseaFilterSiteIds(prev =>
+                              prev.includes(site.id)
+                                ? prev.filter(id => id !== site.id)
+                                : [...prev, site.id]
+                            );
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderBottomWidth: 1,
+                            borderColor: '#F3F4F6',
+                            backgroundColor: jseaFilterSiteIds.includes(site.id) ? '#EEF2FF' : 'white',
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <View style={{
+                            width: 16,
+                            height: 16,
+                            borderWidth: 2,
+                            borderColor: '#3B82F6',
+                            borderRadius: 3,
+                            backgroundColor: jseaFilterSiteIds.includes(site.id) ? '#3B82F6' : 'white',
+                            marginRight: 8,
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {jseaFilterSiteIds.includes(site.id) && (
+                              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>✓</Text>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: 12, color: '#1F2937' }}>{site.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           )}
         </View>
