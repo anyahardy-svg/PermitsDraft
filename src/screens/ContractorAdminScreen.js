@@ -18,7 +18,6 @@ import JseaEditorScreen from './JseaEditorScreen';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack, 
-  currentUser, 
   businessUnitId, 
   styles,
   businessUnits = []

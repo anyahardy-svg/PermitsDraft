@@ -11833,7 +11833,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return (
         <ContractorAdminScreen
           onNavigateBack={() => setCurrentScreen('admin')}
-          currentUser={currentUser}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}
