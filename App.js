@@ -1502,9 +1502,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Auto-populate permit form site when entering from kiosk
   useEffect(() => {
-    if (currentScreen === 'new_permit' && dashboardSelectedSite) {
+    if (currentScreen === 'new_permit' && dashboardSelectedSite && siteIdToNameMap && Object.keys(siteIdToNameMap).length > 0) {
       const selectedSiteName = siteIdToNameMap[dashboardSelectedSite];
-      if (selectedSiteName) {
+      if (selectedSiteName && !formData.site) {
         setFormData(prev => ({
           ...prev,
           site: selectedSiteName
@@ -1512,7 +1512,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         console.log('✅ Auto-populated site in new permit form:', selectedSiteName);
       }
     }
-  }, [currentScreen, dashboardSelectedSite, siteIdToNameMap]);
+  }, [currentScreen, dashboardSelectedSite]);
 
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
