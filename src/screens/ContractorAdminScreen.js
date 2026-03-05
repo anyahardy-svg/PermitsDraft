@@ -14,6 +14,7 @@ import {
 import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate } from '../api/templates';
 import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
 import { listCompanies } from '../api/companies';
+import { getSitesByBusinessUnits } from '../api/sites';
 import JseaEditorScreen from './JseaEditorScreen';
 
 export default function ContractorAdminScreen({ 
@@ -33,9 +34,16 @@ export default function ContractorAdminScreen({
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [selectedBusinessUnitIds, setSelectedBusinessUnitIds] = useState([]);
+  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  // JSEA filter states
+  const [jseaFilterCompanyId, setJseaFilterCompanyId] = useState(null);
+  const [jseaFilterBusinessUnitIds, setJseaFilterBusinessUnitIds] = useState([]);
+  const [jseaFilterSiteIds, setJseaFilterSiteIds] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loadingSites, setLoadingSites] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -55,6 +63,21 @@ export default function ContractorAdminScreen({
       console.error('Failed to load companies:', error);
     } finally {
       setLoadingCompanies(false);
+    }
+  };
+
+  // Load sites for selected business units
+  const loadSites = async () => {
+    if (jseaFilterBusinessUnitIds.length === 0 && !effectiveBuId) return;
+    setLoadingSites(true);
+    try {
+      const buIds = jseaFilterBusinessUnitIds.length > 0 ? jseaFilterBusinessUnitIds : [effectiveBuId];
+      const sitesData = await getSitesByBusinessUnits(buIds);
+      setSites(sitesData || []);
+    } catch (error) {
+      console.error('Failed to load sites:', error);
+    } finally {
+      setLoadingSites(false);
     }
   };
 
@@ -97,10 +120,11 @@ export default function ContractorAdminScreen({
   useEffect(() => {
     if (activeTab === 'jsea') {
       loadJseaTemplates();
+      loadSites();
     } else {
       loadPermitTemplates();
     }
-  }, [activeTab, effectiveBuId]);
+  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds]);
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
@@ -122,7 +146,8 @@ export default function ContractorAdminScreen({
         jseaTemplateName,
         currentJseaSteps,
         selectedBusinessUnitIds,
-        selectedCompanyId
+        selectedCompanyId,
+        selectedSiteIds
       );
       if (response.success) {
         Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusinessUnitIds.length} business unit(s)`);
@@ -202,6 +227,7 @@ export default function ContractorAdminScreen({
     setEditingJseaTemplate(null);
     setSelectedBusinessUnitIds([]);
     setSelectedCompanyId(null);
+    setSelectedSiteIds([]);
   };
 
   // Open JSEA editor for new template
@@ -228,6 +254,40 @@ export default function ContractorAdminScreen({
       );
     }
 
+    // Filter templates based on selected filters
+    const filteredTemplates = jseaTemplates.filter(template => {
+      // Filter by company if selected
+      if (jseaFilterCompanyId && template.company_id !== jseaFilterCompanyId) {
+        return false;
+      }
+      // Filter by business units if selected
+      if (jseaFilterBusinessUnitIds.length > 0) {
+        const hasMatchingBU = template.business_unit_ids?.some(buId =>
+          jseaFilterBusinessUnitIds.includes(buId)
+        );
+        if (!hasMatchingBU) {
+          return false;
+        }
+      }
+      // Filter by sites if selected
+      // If no site filter is selected, show all templates regardless of site restriction
+      // If site filter is selected, show if:
+      // 1. Template has no site restriction (empty site_ids), OR
+      // 2. Template has at least one matching site
+      if (jseaFilterSiteIds.length > 0) {
+        const templateSiteIds = template.site_ids || [];
+        if (templateSiteIds.length > 0) {
+          const hasMatchingSite = templateSiteIds.some(siteId =>
+            jseaFilterSiteIds.includes(siteId)
+          );
+          if (!hasMatchingSite) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+
     return (
       <ScrollView style={styles.section}>
         <TouchableOpacity 
@@ -237,14 +297,141 @@ export default function ContractorAdminScreen({
           <Text style={styles.addButtonText}>+ Create New Template</Text>
         </TouchableOpacity>
 
-        {jseaTemplates.length === 0 ? (
+        {/* Filter Section */}
+        <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Filters</Text>
+          
+          {/* Company Filter */}
+          <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Company</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => setJseaFilterCompanyId(null)}
+                style={{
+                  backgroundColor: !jseaFilterCompanyId ? '#3B82F6' : '#E5E7EB',
+                  padding: 6,
+                  borderRadius: 4,
+                  minWidth: 60,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 11, color: !jseaFilterCompanyId ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
+              </TouchableOpacity>
+              {companies.map(company => (
+                <TouchableOpacity
+                  key={company.id}
+                  onPress={() => setJseaFilterCompanyId(company.id)}
+                  style={{
+                    backgroundColor: jseaFilterCompanyId === company.id ? '#3B82F6' : '#E5E7EB',
+                    padding: 6,
+                    borderRadius: 4,
+                    maxWidth: 120
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: jseaFilterCompanyId === company.id ? 'white' : '#374151', fontWeight: '500' }}>
+                    {company.name?.substring(0, 15) || 'Company'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Business Unit Filter */}
+          {businessUnits && businessUnits.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Business Units</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setJseaFilterBusinessUnitIds([])}
+                  style={{
+                    backgroundColor: jseaFilterBusinessUnitIds.length === 0 ? '#3B82F6' : '#E5E7EB',
+                    padding: 6,
+                    borderRadius: 4,
+                    minWidth: 60,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: jseaFilterBusinessUnitIds.length === 0 ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
+                </TouchableOpacity>
+                {businessUnits.map(bu => (
+                  <TouchableOpacity
+                    key={bu.id}
+                    onPress={() => {
+                      if (jseaFilterBusinessUnitIds.includes(bu.id)) {
+                        setJseaFilterBusinessUnitIds(jseaFilterBusinessUnitIds.filter(id => id !== bu.id));
+                      } else {
+                        setJseaFilterBusinessUnitIds([...jseaFilterBusinessUnitIds, bu.id]);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: jseaFilterBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
+                      padding: 6,
+                      borderRadius: 4,
+                      maxWidth: 120
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: jseaFilterBusinessUnitIds.includes(bu.id) ? 'white' : '#374151', fontWeight: '500' }}>
+                      {bu.name?.substring(0, 15) || 'BU'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Site Filter */}
+          {sites && sites.length > 0 && (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Sites</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setJseaFilterSiteIds([])}
+                  style={{
+                    backgroundColor: jseaFilterSiteIds.length === 0 ? '#3B82F6' : '#E5E7EB',
+                    padding: 6,
+                    borderRadius: 4,
+                    minWidth: 60,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: jseaFilterSiteIds.length === 0 ? 'white' : '#374151', fontWeight: '500' }}>All</Text>
+                </TouchableOpacity>
+                {sites.map(site => (
+                  <TouchableOpacity
+                    key={site.id}
+                    onPress={() => {
+                      if (jseaFilterSiteIds.includes(site.id)) {
+                        setJseaFilterSiteIds(jseaFilterSiteIds.filter(id => id !== site.id));
+                      } else {
+                        setJseaFilterSiteIds([...jseaFilterSiteIds, site.id]);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: jseaFilterSiteIds.includes(site.id) ? '#3B82F6' : '#E5E7EB',
+                      padding: 6,
+                      borderRadius: 4,
+                      maxWidth: 120
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: jseaFilterSiteIds.includes(site.id) ? 'white' : '#374151', fontWeight: '500' }}>
+                      {site.name?.substring(0, 15)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Templates List */}
+        {filteredTemplates.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 40 }}>
             <Text style={{ fontSize: 16, color: '#9CA3AF', fontStyle: 'italic' }}>
-              No JSEA templates yet
+              {jseaTemplates.length === 0 ? 'No JSEA templates yet' : 'No templates match current filters'}
             </Text>
           </View>
         ) : (
-          jseaTemplates.map((template) => (
+          filteredTemplates.map((template) => (
             <View 
               key={template.id} 
               style={{
@@ -748,6 +935,64 @@ export default function ContractorAdminScreen({
                       <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
                     )}
                   </View>
+                </View>
+
+                {/* Site Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Sites (Optional)</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
+                    Restrict this template to specific sites (leave empty to apply to all sites)
+                  </Text>
+
+                  {loadingSites ? (
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                  ) : (
+                    <View style={{ gap: 8 }}>
+                      {sites && sites.length > 0 ? (
+                        sites.map((site) => (
+                          <TouchableOpacity
+                            key={site.id}
+                            onPress={() => {
+                              setSelectedSiteIds(prev =>
+                                prev.includes(site.id)
+                                  ? prev.filter(id => id !== site.id)
+                                  : [...prev, site.id]
+                              );
+                            }}
+                            style={{
+                              paddingVertical: 12,
+                              paddingHorizontal: 12,
+                              borderRadius: 8,
+                              borderWidth: 2,
+                              borderColor: selectedSiteIds.includes(site.id) ? '#3B82F6' : '#E5E7EB',
+                              backgroundColor: selectedSiteIds.includes(site.id) ? '#E0E7FF' : '#F9FAFB',
+                              flexDirection: 'row',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <View style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: '#3B82F6',
+                              backgroundColor: selectedSiteIds.includes(site.id) ? '#3B82F6' : 'white',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: 12
+                            }}>
+                              {selectedSiteIds.includes(site.id) && (
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>✓</Text>
+                              )}
+                            </View>
+                            <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{site.name}</Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No sites available for selected business units</Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               </ScrollView>
 

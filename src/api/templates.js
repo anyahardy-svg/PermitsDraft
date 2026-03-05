@@ -173,9 +173,9 @@ export async function deleteTemplate(templateId) {
  * @param {UUID} companyId - Company ID to associate with the template
  * @returns {Object} Saved JSEA template
  */
-export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, companyId = null) {
+export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, companyId = null, siteIds = []) {
   try {
-    // Save JSEA template to templates table with business unit IDs in data
+    // Save JSEA template to templates table with business unit IDs and site IDs in data
     const { data, error } = await supabase
       .from('templates')
       .insert([{
@@ -185,6 +185,7 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
         data: {
           steps: jseaSteps,
           business_unit_ids: businessUnitIds || [],
+          site_ids: siteIds || [],
         },
       }])
       .select()
@@ -210,6 +211,7 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
       template_id: data.id,
       template_name: jseaName,
       business_unit_ids: businessUnitIds,
+      site_ids: siteIds,
       company_id: companyId,
       step_count: jseaSteps.length,
     });
@@ -271,6 +273,7 @@ export async function getJseaTemplates(businessUnitId) {
       jsea: template.data?.steps || [],
       company_id: template.company_id,
       business_unit_ids: template.data?.business_unit_ids || [],
+      site_ids: template.data?.site_ids || [],
       business_unit_id: businessUnitId,
       created_at: template.created_at,
       updated_at: template.updated_at,
@@ -314,6 +317,7 @@ export async function getJseaTemplatesByCompany(companyId) {
           jsea: template.data?.steps || [],
           company_id: template.company_id,
           business_unit_ids: template.data?.business_unit_ids || [],
+          site_ids: template.data?.site_ids || [],
           business_units: buData?.map(row => row.business_unit_id) || [],
           created_at: template.created_at,
           updated_at: template.updated_at,
@@ -358,6 +362,7 @@ export async function getJseaTemplate(jseaTemplateId) {
       jsea: data.data?.steps || [],
       company_id: data.company_id,
       business_unit_ids: data.data?.business_unit_ids || [],
+      site_ids: data.data?.site_ids || [],
       business_units: buData?.map(row => row.business_unit_id) || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
@@ -413,7 +418,7 @@ export async function deleteJseaTemplate(jseaTemplateId) {
  */
 export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
   try {
-    // Get existing template to preserve business_unit_ids
+    // Get existing template to preserve business_unit_ids and site_ids
     const { data: existingTemplate } = await supabase
       .from('templates')
       .select('data')
@@ -428,6 +433,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
         data: {
           steps: jseaSteps,
           business_unit_ids: existingTemplate?.data?.business_unit_ids || [],
+          site_ids: existingTemplate?.data?.site_ids || [],
         },
         updated_at: new Date().toISOString(),
       })
@@ -452,6 +458,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       jsea: data.data?.steps || [],
       company_id: data.company_id,
       business_units: buData?.map(row => row.business_unit_id) || [],
+      site_ids: data.data?.site_ids || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
