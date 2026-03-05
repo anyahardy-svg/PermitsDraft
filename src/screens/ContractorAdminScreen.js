@@ -307,13 +307,13 @@ export default function ContractorAdminScreen({
         </TouchableOpacity>
 
         {/* Filter Section */}
-        <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, padding: 12, marginBottom: 16, zIndex: 1000 }}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Filters</Text>
           
           {/* Company Filter Dropdown */}
           <View style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Company</Text>
-            <View style={{ position: 'relative', zIndex: 10 }}>
+            <View style={{ position: 'relative', zIndex: 1050 }}>
               <TouchableOpacity
                 onPress={() => {
                   if (openDropdown === 'company') {
@@ -350,7 +350,7 @@ export default function ContractorAdminScreen({
                   borderColor: '#D1D5DB',
                   borderRadius: 6,
                   maxHeight: 250,
-                  zIndex: 20
+                  zIndex: 1100
                 }}>
                   <TextInput
                     placeholder="Type to search..."
@@ -412,7 +412,7 @@ export default function ContractorAdminScreen({
 
           {/* Business Unit Filter Dropdown */}
           {businessUnits && businessUnits.length > 0 && (
-            <View style={{ marginBottom: 12, zIndex: 5 }}>
+            <View style={{ marginBottom: 12, zIndex: 1045 }}>
               <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Business Units</Text>
               <TouchableOpacity
                 onPress={() => {
@@ -444,7 +444,7 @@ export default function ContractorAdminScreen({
               {openDropdown === 'businessunit' && (
                 <View style={{
                   position: 'absolute',
-                  top: 200,
+                  top: 46,
                   left: 0,
                   right: 0,
                   backgroundColor: 'white',
@@ -452,8 +452,7 @@ export default function ContractorAdminScreen({
                   borderColor: '#D1D5DB',
                   borderRadius: 6,
                   maxHeight: 250,
-                  zIndex: 20,
-                  marginHorizontal: 12
+                  zIndex: 1100
                 }}>
                   <TextInput
                     placeholder="Type to search..."
@@ -533,7 +532,7 @@ export default function ContractorAdminScreen({
 
           {/* Site Filter Dropdown */}
           {sites && sites.length > 0 && (
-            <View style={{ zIndex: 0 }}>
+            <View style={{ zIndex: 1040 }}>
               <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Sites</Text>
               <TouchableOpacity
                 onPress={() => {
@@ -573,7 +572,7 @@ export default function ContractorAdminScreen({
                   borderColor: '#D1D5DB',
                   borderRadius: 6,
                   maxHeight: 250,
-                  zIndex: 20
+                  zIndex: 1100
                 }}>
                   <TextInput
                     placeholder="Type to search..."
