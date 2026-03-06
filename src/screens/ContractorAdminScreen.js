@@ -313,7 +313,7 @@ export default function ContractorAdminScreen({
           {/* Company Filter Dropdown */}
           <View style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Company</Text>
-            <View style={{ position: 'relative', zIndex: 1050 }}>
+            <View style={{ position: 'relative', zIndex: openDropdown === 'company' ? 1300 : 1050 }}>
               <TouchableOpacity
                 onPress={() => {
                   if (openDropdown === 'company') {
@@ -412,7 +412,7 @@ export default function ContractorAdminScreen({
 
           {/* Business Unit Filter Dropdown */}
           {businessUnits && businessUnits.length > 0 && (
-            <View style={{ marginBottom: 12, zIndex: 1045 }}>
+            <View style={{ marginBottom: 12, zIndex: openDropdown === 'businessunit' ? 1300 : 1045 }}>
               <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Business Units</Text>
               <TouchableOpacity
                 onPress={() => {
@@ -532,7 +532,7 @@ export default function ContractorAdminScreen({
 
           {/* Site Filter Dropdown */}
           {sites && sites.length > 0 && (
-            <View style={{ zIndex: 1040 }}>
+            <View style={{ zIndex: openDropdown === 'site' ? 1300 : 1040 }}>
               <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>Sites</Text>
               <TouchableOpacity
                 onPress={() => {
