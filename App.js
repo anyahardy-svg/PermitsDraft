@@ -1915,6 +1915,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   />
                 )}
 
+                {/* Contractor Inducted Services */}
+                {formData.contractorSelected && (
+                  (() => {
+                    const selectedContractor = contractors.find(c => c.name === formData.requestedBy);
+                    return (
+                      <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
+                        {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
+                          <View>
+                            {selectedContractor.services.map((service, idx) => (
+                              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
+                                <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
+                                <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
+                        )}
+                      </View>
+                    );
+                  })()
+                )}
+
                 {/* Start Date/Time */}
                 <Text style={styles.label}>Start Date</Text>
                 <TouchableOpacity style={styles.dateTimeInput} onPress={() => setShowStartDatePicker(true)}>
@@ -2292,7 +2316,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           {/* Controls Summary Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
-              <Text style={styles.sectionTitle}>Controls Summary</Text>
+              <Text style={[styles.sectionTitle, { color: '#D97706' }]}>Controls Summary</Text>
               <Text style={styles.expandIcon}>{expandedSections.controlsSummary ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
@@ -4563,6 +4587,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         ) : (
           <Text style={styles.detailText}>{editData.contractorCompany || editData.manualCompany || ''}</Text>
         )}
+        
+        {/* Contractor Inducted Services */}
+        {isDraft && editData.contractorSelected && (
+          (() => {
+            const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
+            return (
+              <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
+                {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
+                  <View>
+                    {selectedContractor.services.map((service, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
+                        <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
+                        <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
+                )}
+              </View>
+            );
+          })()
+        )}
+        
         <Text style={styles.label}>Permit Issuer:</Text>
         {isDraft ? (
           <CustomDropdown
