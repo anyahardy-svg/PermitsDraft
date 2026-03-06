@@ -13,6 +13,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
@@ -378,8 +379,8 @@ const KioskScreen = ({ onViewPermits }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('welcome')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sign In Contractor</Text>
         </View>
@@ -450,8 +451,8 @@ const KioskScreen = ({ onViewPermits }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('welcome')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Site Induction</Text>
         </View>
@@ -488,8 +489,8 @@ const KioskScreen = ({ onViewPermits }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('welcome')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sign In Visitor</Text>
         </View>
@@ -544,8 +545,8 @@ const KioskScreen = ({ onViewPermits }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('welcome')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sign Out</Text>
         </View>
@@ -606,8 +607,8 @@ const KioskScreen = ({ onViewPermits }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('welcome')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Permits - {site?.name}</Text>
         </View>

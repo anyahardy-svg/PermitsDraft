@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
@@ -332,11 +333,11 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
     return (
       <View style={pickerStyles.dateContainer}>
         <View style={pickerStyles.dateHeader}>
-          <TouchableOpacity onPress={() => handleYearChange(-1)}>
+          <TouchableOpacity style={styles.backButton} onPress={() => handleYearChange(-1)}>
             <Text style={pickerStyles.yearButton}>‹</Text>
           </TouchableOpacity>
           <Text style={pickerStyles.currentYear}>{year}</Text>
-          <TouchableOpacity onPress={() => handleYearChange(1)}>
+          <TouchableOpacity style={styles.backButton} onPress={() => handleYearChange(1)}>
             <Text style={pickerStyles.yearButton}>›</Text>
           </TouchableOpacity>
         </View>
@@ -946,6 +947,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedBusForTemplate, setSelectedBusForTemplate] = useState([]);
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
+  const [selectedCompanyForLoader, setSelectedCompanyForLoader] = useState('');
+  const [jseaTitleSearch, setJseaTitleSearch] = useState('');
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1716,8 +1719,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
@@ -2122,7 +2125,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }} 
                       placeholder="dd/mm/yyyy"
                     />
-                    <TouchableOpacity onPress={() => removeIsolation(idx)}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => removeIsolation(idx)}>
                       <Text style={styles.removeButton}>Remove</Text>
                     </TouchableOpacity>
                   </View>
@@ -2455,7 +2458,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                       placeholder="Signature (type name or initials)"
                     />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       const updated = [...formData.signOns];
                       updated.splice(idx, 1);
                       setFormData({ ...formData, signOns: updated });
@@ -2471,10 +2474,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             )}
           </View>
 
-          {/* Permit Completion Section */}
+          {/* Additional Comments Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('completion')}>
-              <Text style={styles.sectionTitle}>Permit Completion</Text>
+              <Text style={styles.sectionTitle}>Additional Comments</Text>
               <Text style={styles.expandIcon}>{expandedSections.completion ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.completion && (
@@ -2653,7 +2656,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }}>
                   Load JSEA Template
                 </Text>
-                <TouchableOpacity onPress={() => setShowJseaTemplateLoader(false)}>
+                <TouchableOpacity style={styles.backButton} onPress={() => {
+                  setShowJseaTemplateLoader(false);
+                  setSelectedCompanyForLoader('');
+                  setJseaTitleSearch('');
+                }}>
                   <Text style={{
                     fontSize: 24,
                     color: '#9CA3AF',
@@ -2679,6 +2686,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     selectedValue={selectedBuForLoader}
                     onValueChange={(itemValue) => {
                       setSelectedBuForLoader(itemValue);
+                      setSelectedCompanyForLoader('');
+                      setJseaTitleSearch('');
                       if (itemValue) {
                         loadJseaTemplatesForLoader(itemValue);
                       }
@@ -2695,6 +2704,59 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
               </View>
 
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Company</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedCompanyForLoader}
+                    onValueChange={setSelectedCompanyForLoader}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="All Companies" value="" />
+                    {companies.map(company => (
+                      <Picker.Item key={company.id} label={company.name} value={company.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Search by Title</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    backgroundColor: 'white'
+                  }}
+                  placeholder="Search template name..."
+                  value={jseaTitleSearch}
+                  onChangeText={setJseaTitleSearch}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
               {loadingJseaTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
@@ -2705,9 +2767,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     No templates available for this business unit.
                   </Text>
                 </View>
+              ) : jseaTemplatesAvailable.filter(t => 
+                (!selectedCompanyForLoader || t.company_id === selectedCompanyForLoader) &&
+                (!jseaTitleSearch || t.name.toLowerCase().includes(jseaTitleSearch.toLowerCase()))
+              ).length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
+                    No templates match your filters.
+                  </Text>
+                </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {jseaTemplatesAvailable.map((template) => {
+                  {jseaTemplatesAvailable
+                    .filter(template => {
+                      // Filter by company
+                      if (selectedCompanyForLoader && template.company_id !== selectedCompanyForLoader) {
+                        return false;
+                      }
+                      // Filter by title search
+                      if (jseaTitleSearch && !template.name.toLowerCase().includes(jseaTitleSearch.toLowerCase())) {
+                        return false;
+                      }
+                      return true;
+                    })
+                    .map((template) => {
                     // Get company name if company_id exists
                     const companyName = template.company_id 
                       ? companies.find(c => c.id === template.company_id)?.name 
@@ -2770,7 +2853,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </View>
                       </TouchableOpacity>
                     );
-                  })}
+                    })}
                 </ScrollView>
               )}
 
@@ -2781,7 +2864,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   borderRadius: 8,
                   alignItems: 'center'
                 }}
-                onPress={() => setShowJseaTemplateLoader(false)}
+                onPress={() => {
+                  setShowJseaTemplateLoader(false);
+                  setSelectedCompanyForLoader('');
+                  setJseaTitleSearch('');
+                }}
               >
                 <Text style={{
                   fontSize: 14,
@@ -2827,7 +2914,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }}>
                   Save JSEA as Template
                 </Text>
-                <TouchableOpacity onPress={() => {
+                <TouchableOpacity style={styles.backButton} onPress={() => {
                   setShowJseaSaveTemplate(false);
                   setJseaTemplateName('');
                   setSelectedBusForTemplate([]);
@@ -3844,7 +3931,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                       <Text style={styles.attachmentButtonText}>{fileName ? '📎 ' + fileName : 'Choose File'}</Text>
                                     </TouchableOpacity>
                                     {fileName && (
-                                      <TouchableOpacity onPress={() => handleQuestionnaireResponse(permitKey, depQ.id, '')}>
+                                      <TouchableOpacity style={styles.backButton} onPress={() => handleQuestionnaireResponse(permitKey, depQ.id, '')}>
                                         <Text style={styles.removeButton}>Remove</Text>
                                       </TouchableOpacity>
                                     )}
@@ -4158,8 +4245,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
-          <Text style={styles.backButton}>← Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
@@ -4626,7 +4713,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={[styles.label, { marginBottom: 8 }]}>Attachments ({editData.attachments.length})</Text>
             {editData.attachments.map((attachment, idx) => (
               <View key={idx} style={{ marginBottom: 8, paddingBottom: 8, borderBottomWidth: idx < editData.attachments.length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB' }}>
-                <TouchableOpacity onPress={() => {
+                <TouchableOpacity style={styles.backButton} onPress={() => {
                   if (attachment.url) {
                     Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
                       { text: 'OK', onPress: () => {} }
@@ -4757,8 +4844,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
         </View>
@@ -4802,8 +4889,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
         </View>
@@ -5168,8 +5255,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
         </View>
@@ -5440,8 +5527,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingPermitIssuer(false); setSelectedPermitIssuer(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingPermitIssuer(false); setSelectedPermitIssuer(null); }}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{editingPermitIssuer ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
@@ -5978,8 +6065,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
@@ -6476,8 +6563,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{editingSite ? 'Edit Site' : 'Manage Sites'}</Text>
         </View>
@@ -7128,8 +7215,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
@@ -7650,8 +7737,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return (
         <View style={styles.screenContainer}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={handleCancel}>
-              <Text style={styles.backButton}>← Back</Text>
+            <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
+              <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <Text style={styles.title}>Edit Visitor Induction - {siteName}</Text>
           </View>
@@ -7709,8 +7796,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Visitor Inductions</Text>
         </View>
@@ -8210,12 +8297,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => {
+          <TouchableOpacity style={styles.backButton} onPress={() => {
             setCurrentScreen('admin');
             setEditingIsolation(false);
             setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
           }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Manage Isolation Register</Text>
         </View>
@@ -8432,8 +8519,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Services Directory</Text>
         </View>
@@ -8665,8 +8752,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.permitNumber}` : `Review/Edit Permit #${permit.permitNumber}`}</Text>
         </View>
@@ -8988,7 +9075,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
                     <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -9193,7 +9280,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }} 
                       placeholder="Date"
                     />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       const updated = editData.isolations.filter((_, i) => i !== idx);
                       setEditData(prev => ({ ...prev, isolations: updated }));
                     }}>
@@ -9354,7 +9441,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -9419,7 +9506,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity onPress={() => {
+                        <TouchableOpacity style={styles.backButton} onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -9590,7 +9677,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -9784,8 +9871,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('pending_inspection')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Inspect/Edit Permit #{editData.permitNumber}</Text>
         </View>
@@ -9997,7 +10084,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -10243,7 +10330,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -10438,7 +10525,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity onPress={() => {
+                        <TouchableOpacity style={styles.backButton} onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -10526,7 +10613,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -10576,8 +10663,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Needs Inspection</Text>
         </View>
@@ -10622,8 +10709,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Active Permits</Text>
         </View>
@@ -10835,8 +10922,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('active')}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('active')}>
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Edit/Complete ACTIVE Permit #{editData.permitNumber}{siteName ? ` - ${siteName}` : ''}</Text>
         </View>
@@ -11070,7 +11157,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -11311,7 +11398,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -11505,7 +11592,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity onPress={() => {
+                        <TouchableOpacity style={styles.backButton} onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -11666,7 +11753,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -11867,8 +11954,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
-    color: 'white',
-    fontSize: 16,
+    padding: 8,
     marginRight: 15,
   },
   content: {
