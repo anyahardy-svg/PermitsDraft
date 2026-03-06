@@ -2924,26 +2924,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Likelihood Selection */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {['rare', 'unlikely', 'possible', 'likely', 'almost_certain'].map(likelihood => (
+                  <View style={{ gap: 12 }}>
+                    {[
+                      { value: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
+                      { value: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
+                      { value: 'possible', label: 'Possible', desc: 'Might occur at some time' },
+                      { value: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
+                      { value: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
+                    ].map(item => (
                       <TouchableOpacity
-                        key={likelihood}
+                        key={item.value}
                         style={{
                           paddingHorizontal: 16,
-                          paddingVertical: 10,
+                          paddingVertical: 12,
                           borderRadius: 8,
                           borderWidth: 2,
-                          borderColor: selectedLikelihood === likelihood ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedLikelihood === likelihood ? '#EFF6FF' : 'white'
+                          borderColor: selectedLikelihood === item.value ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedLikelihood === item.value ? '#EFF6FF' : 'white'
                         }}
-                        onPress={() => setSelectedLikelihood(likelihood)}
+                        onPress={() => setSelectedLikelihood(item.value)}
                       >
                         <Text style={{
-                          color: selectedLikelihood === likelihood ? '#3B82F6' : '#374151',
-                          fontWeight: '500',
-                          fontSize: 13
+                          color: selectedLikelihood === item.value ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
                         }}>
-                          {likelihood.replace('_', ' ').toUpperCase()}
+                          {item.label.toUpperCase()}
+                        </Text>
+                        <Text style={{
+                          color: selectedLikelihood === item.value ? '#1E40AF' : '#6B7280',
+                          fontSize: 12,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -2953,26 +2967,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Severity Selection */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {['insignificant', 'minor', 'moderate', 'major', 'catastrophic'].map(severity => (
+                  <View style={{ gap: 12 }}>
+                    {[
+                      { value: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
+                      { value: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
+                      { value: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
+                      { value: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
+                      { value: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
+                    ].map(item => (
                       <TouchableOpacity
-                        key={severity}
+                        key={item.value}
                         style={{
                           paddingHorizontal: 16,
-                          paddingVertical: 10,
+                          paddingVertical: 12,
                           borderRadius: 8,
                           borderWidth: 2,
-                          borderColor: selectedSeverity === severity ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedSeverity === severity ? '#EFF6FF' : 'white'
+                          borderColor: selectedSeverity === item.value ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedSeverity === item.value ? '#EFF6FF' : 'white'
                         }}
-                        onPress={() => setSelectedSeverity(severity)}
+                        onPress={() => setSelectedSeverity(item.value)}
                       >
                         <Text style={{
-                          color: selectedSeverity === severity ? '#3B82F6' : '#374151',
-                          fontWeight: '500',
-                          fontSize: 13
+                          color: selectedSeverity === item.value ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
                         }}>
-                          {severity.toUpperCase()}
+                          {item.label.toUpperCase()}
+                        </Text>
+                        <Text style={{
+                          color: selectedSeverity === item.value ? '#1E40AF' : '#6B7280',
+                          fontSize: 12,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
                         </Text>
                       </TouchableOpacity>
                     ))}
