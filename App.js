@@ -2515,7 +2515,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     />
                   </>
                 )}
-                <Text style={styles.label}>Completion Notes</Text>
+                <Text style={styles.label}>Comments</Text>
                 <TextInput
                   style={[styles.input, { minHeight: 80 }]}
                   value={formData.completion.completionNotes}
@@ -2523,7 +2523,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     ...formData, 
                     completion: { ...formData.completion, completionNotes: text } 
                   })}
-                  placeholder="Enter any additional completion notes"
+                  placeholder="Enter any additional comments"
                   multiline
                   numberOfLines={4}
                 />
