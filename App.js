@@ -1717,6 +1717,46 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return matrix[likelihood]?.[severity] || 'low';
   };
 
+  // Check if permit needs daily verification (>24 hours since last verification)
+  const needsVerification = (permit) => {
+    if (!permit.last_verified_at) return true; // Never verified
+    const lastVerified = new Date(permit.last_verified_at);
+    const now = new Date();
+    const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
+    return hoursSinceVerification > 24;
+  };
+
+  // Handle permit verification - update last_verified_at and verified_by
+  const handleVerifyPermit = async (permit) => {
+    try {
+      const now = new Date().toISOString();
+      const currentUser = localStorage.getItem('user_name') || 'Unknown';
+      
+      // Update in Supabase
+      const { data, error } = await supabaseClient
+        .from('permits')
+        .update({
+          last_verified_at: now,
+          verified_by: currentUser
+        })
+        .eq('id', permit.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setPermits(prev => prev.map(p => 
+        p.id === permit.id 
+          ? { ...p, last_verified_at: now, verified_by: currentUser }
+          : p
+      ));
+      
+      Alert.alert('Success', `Permit verified by ${currentUser}`);
+    } catch (err) {
+      console.error('Verification error:', err);
+      Alert.alert('Error', 'Failed to verify permit. Please try again.');
+    }
+  };
+
   // New Permit Form
   const specialisedOptions = [
     'Hot Work',
@@ -11206,6 +11246,62 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Active Permit List: editable, with completion sign-off
   const renderActivePermitList = () => {
+    const activePermits = permits.filter(p => p.status === 'active');
+    const needsVerificationPermits = activePermits.filter(p => needsVerification(p));
+    const verifiedPermits = activePermits.filter(p => !needsVerification(p));
+
+    const PermitCard = ({ item, showVerifyButton }) => (
+      <View style={[styles.permitListCard, showVerifyButton && { borderLeftWidth: 4, borderLeftColor: '#DC2626' }]}>
+        <View style={styles.permitListHeader}>
+          <Text style={styles.permitId}>#{item.permitNumber}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+          </View>
+        </View>
+        <Text style={styles.permitType}>{item.type}</Text>
+        <Text style={styles.permitDescription}>{item.description}</Text>
+        <View style={styles.permitDetails}>
+          <Text style={styles.detailText}>Location: {item.location}</Text>
+          <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+          {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
+          <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+        </View>
+        
+        {/* Verification Status */}
+        {item.verified_by ? (
+          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+            <Text style={{ fontSize: 12, color: '#059669' }}>✓ Last verified by {item.verified_by}</Text>
+            <Text style={{ fontSize: 11, color: '#6B7280' }}>{item.last_verified_at ? formatDateNZ(item.last_verified_at) : 'N/A'}</Text>
+          </View>
+        ) : (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic', marginBottom: 6 }}>Not yet verified</Text>
+          </View>
+        )}
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity 
+            style={[styles.primaryButton, { flex: 1 }]} 
+            onPress={() => {
+              setSelectedPermit(item);
+              setCurrentScreen('edit_active_permit');
+            }}
+          >
+            <Text style={styles.primaryButtonText}>Edit / Complete</Text>
+          </TouchableOpacity>
+          
+          {showVerifyButton && (
+            <TouchableOpacity 
+              style={[styles.primaryButton, { flex: 1, backgroundColor: '#059669' }]} 
+              onPress={() => handleVerifyPermit(item)}
+            >
+              <Text style={styles.primaryButtonText}>Verify</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -11214,36 +11310,37 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           <Text style={styles.title}>Active Permits</Text>
         </View>
-        <FlatList
-          data={permits.filter(p => p.status === 'active')}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.permitListCard}>
-              <View style={styles.permitListHeader}>
-                <Text style={styles.permitId}>#{item.permitNumber}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
-                  <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
-                </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {/* NEEDS VERIFICATION SECTION */}
+          {needsVerificationPermits.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#991B1B' }}>
+                  ⚠️ {needsVerificationPermits.length} Permit{needsVerificationPermits.length !== 1 ? 's' : ''} Need Daily Verification
+                </Text>
               </View>
-              <Text style={styles.permitType}>{item.type}</Text>
-              <Text style={styles.permitDescription}>{item.description}</Text>
-              <View style={styles.permitDetails}>
-                <Text style={styles.detailText}>Location: {item.location}</Text>
-                <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-                {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
-                <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
-              </View>
-              <TouchableOpacity style={styles.primaryButton} onPress={() => {
-                setSelectedPermit(item);
-                setCurrentScreen('edit_active_permit');
-              }}>
-                <Text style={styles.primaryButtonText}>Edit / Complete</Text>
-              </TouchableOpacity>
+              {needsVerificationPermits.map(item => (
+                <PermitCard key={item.id} item={item} showVerifyButton={true} />
+              ))}
             </View>
           )}
-          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>}
-          contentContainerStyle={{ padding: 16 }}
-        />
+
+          {/* VERIFIED PERMITS SECTION */}
+          {verifiedPermits.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600', marginBottom: 12, marginTop: needsVerificationPermits.length > 0 ? 8 : 0 }}>
+                Active Permits
+              </Text>
+              {verifiedPermits.map(item => (
+                <PermitCard key={item.id} item={item} showVerifyButton={false} />
+              ))}
+            </View>
+          )}
+
+          {activePermits.length === 0 && (
+            <Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>
+          )}
+        </ScrollView>
       </View>
     );
   };
@@ -11427,6 +11524,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           <Text style={styles.title}>Edit/Complete ACTIVE Permit #{editData.permitNumber}{siteName ? ` - ${siteName}` : ''}</Text>
         </View>
+
+        {/* VERIFICATION STATUS - Show above form */}
+        {needsVerification(editData) ? (
+          <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#991B1B', marginBottom: 8 }}>⚠️ Daily Verification Required</Text>
+            <Text style={{ fontSize: 11, color: '#7F1D1D', marginBottom: 10 }}>This permit hasn't been verified in the last 24 hours. Please review and verify that the work scope hasn't changed.</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#DC2626', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6 }}
+              onPress={() => handleVerifyPermit(editData)}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', textAlign: 'center' }}>Verify Work Scope Unchanged</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#10B981' }}>
+            <Text style={{ fontSize: 12, color: '#059669' }}>✓ Verified by {editData.verified_by || 'Unknown'}</Text>
+            <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.last_verified_at ? formatDateNZ(editData.last_verified_at) : 'N/A'}</Text>
+          </View>
+        )}
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
         <View style={styles.section}>
