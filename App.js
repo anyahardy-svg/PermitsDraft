@@ -5427,13 +5427,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     // Calculate active permits needing verification
     const needsVerificationCount = sitePermits.filter(p => p.status === 'active' && needsVerification(p)).length;
 
-    // Auto-redirect if permits need verification
-    React.useEffect(() => {
-      if (needsVerificationCount > 0 && currentScreen === 'dashboard') {
-        setCurrentScreen('active');
-      }
-    }, [needsVerificationCount]);
-
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
