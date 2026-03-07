@@ -5423,6 +5423,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return completedDate >= sevenDaysAgo;
     }).length;
 
+    // Calculate active permits needing verification
+    const needsVerificationCount = sitePermits.filter(p => p.status === 'active' && needsVerification(p)).length;
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -5442,9 +5445,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'pending_inspection').length}</Text>
             <Text style={styles.cardLabel}>Needs Inspection</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: needsVerificationCount > 0 ? '#DC2626' : '#10B981' }]} onPress={() => setCurrentScreen('active')}>
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'active').length}</Text>
             <Text style={styles.cardLabel}>Active Permits</Text>
+            {needsVerificationCount > 0 && (
+              <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600', marginTop: 4 }}>({needsVerificationCount} need verification)</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'completed').length}</Text>
