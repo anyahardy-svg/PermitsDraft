@@ -4299,12 +4299,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
   
+  // Risk matrix modal states
+  const [showRiskMatrix, setShowRiskMatrix] = React.useState(false);
+  const [selectedLikelihood, setSelectedLikelihood] = React.useState('');
+  const [selectedSeverity, setSelectedSeverity] = React.useState('');
+  
   // Requested By dropdown states
   const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
   const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
   
   const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
+  
+  // Calculate risk level from likelihood and severity matrix
+  const calculateRiskLevel = () => {
+    const riskMatrix = {
+      rare: { insignificant: 'low', minor: 'low', moderate: 'low', major: 'medium', catastrophic: 'high' },
+      unlikely: { insignificant: 'low', minor: 'low', moderate: 'medium', major: 'medium', catastrophic: 'high' },
+      possible: { insignificant: 'low', minor: 'medium', moderate: 'medium', major: 'high', catastrophic: 'very_high' },
+      likely: { insignificant: 'medium', minor: 'medium', moderate: 'high', major: 'high', catastrophic: 'very_high' },
+      almost_certain: { insignificant: 'medium', minor: 'high', moderate: 'high', major: 'very_high', catastrophic: 'very_high' }
+    };
+    return riskMatrix[selectedLikelihood]?.[selectedSeverity] || '';
+  };
   
   const handleEditChange = (field, value) => {
     setEditData({ ...editData, [field]: value });
@@ -4878,23 +4895,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             )) : <Text style={styles.detailText}>None</Text>}
             <Text style={styles.label}>Overall Risk Rating</Text>
             {isDraft ? (
-              <View style={styles.riskButtons}>
-                {['low', 'medium', 'high', 'very_high'].map(risk => (
-                  <TouchableOpacity
-                    key={risk}
-                    style={[
-                      styles.riskButton,
-                      { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
-                    ]}
-                    onPress={() => handleEditChange('jsea', { ...editData.jsea, overallRiskRating: risk })}
-                  >
-                    <Text style={[
-                      styles.riskButtonText,
-                      { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
-                    ]}>{risk.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  { 
+                    backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                    marginBottom: 16
+                  }
+                ]}
+                onPress={() => {
+                  setSelectedLikelihood('');
+                  setSelectedSeverity('');
+                  setShowRiskMatrix(true);
+                }}
+              >
+                <Text style={styles.addButtonText}>
+                  {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK RATING'}
+                </Text>
+              </TouchableOpacity>
             ) : (
               <Text style={styles.detailText}>{editData.jsea.overallRiskRating}</Text>
             )}
@@ -9352,22 +9370,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
-                <View style={styles.riskButtons}>
-                  {['low', 'medium', 'high', 'very_high'].map(risk => (
-                    <TouchableOpacity
-                      key={risk}
-                      style={[
-                        styles.riskButton,
-                        { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
-                      ]}
-                      onPress={() => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: risk } }))}>
-                      <Text style={[
-                        styles.riskButtonText,
-                        { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
-                      ]}>{risk.toUpperCase()}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.addButton,
+                    { 
+                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                      marginBottom: 16
+                    }
+                  ]}
+                  onPress={() => {
+                    setSelectedLikelihood('');
+                    setSelectedSeverity('');
+                    setShowRiskMatrix(true);
+                  }}
+                >
+                  <Text style={styles.addButtonText}>
+                    {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK RATING'}
+                  </Text>
+                </TouchableOpacity>
                 <Text style={styles.label}>Additional Precautions:</Text>
                 <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
               </View>
@@ -9977,6 +9997,107 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
       </Modal>
+      
+      {/* Risk Matrix Modal for JSEA */}
+      <Modal visible={showRiskMatrix} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxHeight: '90%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, color: '#1F2937' }}>Risk Assessment Matrix</Text>
+            
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Likelihood</Text>
+              {[
+                { key: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
+                { key: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
+                { key: 'possible', label: 'Possible', desc: 'Might occur at some time' },
+                { key: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
+                { key: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
+              ].map(option => (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setSelectedLikelihood(option.key)}
+                  style={{
+                    padding: 12,
+                    marginBottom: 10,
+                    borderRadius: 6,
+                    backgroundColor: selectedLikelihood === option.key ? '#DBEAFE' : '#F3F4F6',
+                    borderLeftWidth: 4,
+                    borderLeftColor: selectedLikelihood === option.key ? '#3B82F6' : '#D1D5DB'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, marginTop: 20 }}>Severity</Text>
+              {[
+                { key: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
+                { key: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
+                { key: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
+                { key: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
+                { key: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
+              ].map(option => (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setSelectedSeverity(option.key)}
+                  style={{
+                    padding: 12,
+                    marginBottom: 10,
+                    borderRadius: 6,
+                    backgroundColor: selectedSeverity === option.key ? '#DBEAFE' : '#F3F4F6',
+                    borderLeftWidth: 4,
+                    borderLeftColor: selectedSeverity === option.key ? '#3B82F6' : '#D1D5DB'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              {selectedLikelihood && selectedSeverity && (
+                <View style={{ marginTop: 20, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 6, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Calculated Risk Level:</Text>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: 'white',
+                    backgroundColor: getRiskColor(calculateRiskLevel()),
+                    padding: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 4,
+                    alignSelf: 'flex-start'
+                  }}>
+                    {calculateRiskLevel().toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
+                onPress={() => setShowRiskMatrix(false)}
+              >
+                <Text style={styles.submitButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, opacity: selectedLikelihood && selectedSeverity ? 1 : 0.5 }]}
+                onPress={() => {
+                  if (selectedLikelihood && selectedSeverity) {
+                    const riskLevel = calculateRiskLevel();
+                    handleEditChange('jsea', { ...editData.jsea, overallRiskRating: riskLevel });
+                    setShowRiskMatrix(false);
+                  }
+                }}
+                disabled={!selectedLikelihood || !selectedSeverity}
+              >
+                <Text style={styles.submitButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </View>
     );
   };
@@ -10002,6 +10123,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
     const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+    
+    // Risk matrix modal states
+    const [showRiskMatrix, setShowRiskMatrix] = React.useState(false);
+    const [selectedLikelihood, setSelectedLikelihood] = React.useState('');
+    const [selectedSeverity, setSelectedSeverity] = React.useState('');
+    
+    // Calculate risk level from likelihood and severity matrix
+    const calculateRiskLevel = () => {
+      const riskMatrix = {
+        rare: { insignificant: 'low', minor: 'low', moderate: 'low', major: 'medium', catastrophic: 'high' },
+        unlikely: { insignificant: 'low', minor: 'low', moderate: 'medium', major: 'medium', catastrophic: 'high' },
+        possible: { insignificant: 'low', minor: 'medium', moderate: 'medium', major: 'high', catastrophic: 'very_high' },
+        likely: { insignificant: 'medium', minor: 'medium', moderate: 'high', major: 'high', catastrophic: 'very_high' },
+        almost_certain: { insignificant: 'medium', minor: 'high', moderate: 'high', major: 'very_high', catastrophic: 'very_high' }
+      };
+      return riskMatrix[selectedLikelihood]?.[selectedSeverity] || '';
+    };
+    
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -10911,6 +11050,107 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </TouchableOpacity>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Risk Matrix Modal for JSEA */}
+      <Modal visible={showRiskMatrix} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxHeight: '90%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, color: '#1F2937' }}>Risk Assessment Matrix</Text>
+            
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Likelihood</Text>
+              {[
+                { key: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
+                { key: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
+                { key: 'possible', label: 'Possible', desc: 'Might occur at some time' },
+                { key: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
+                { key: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
+              ].map(option => (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setSelectedLikelihood(option.key)}
+                  style={{
+                    padding: 12,
+                    marginBottom: 10,
+                    borderRadius: 6,
+                    backgroundColor: selectedLikelihood === option.key ? '#DBEAFE' : '#F3F4F6',
+                    borderLeftWidth: 4,
+                    borderLeftColor: selectedLikelihood === option.key ? '#3B82F6' : '#D1D5DB'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, marginTop: 20 }}>Severity</Text>
+              {[
+                { key: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
+                { key: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
+                { key: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
+                { key: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
+                { key: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
+              ].map(option => (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setSelectedSeverity(option.key)}
+                  style={{
+                    padding: 12,
+                    marginBottom: 10,
+                    borderRadius: 6,
+                    backgroundColor: selectedSeverity === option.key ? '#DBEAFE' : '#F3F4F6',
+                    borderLeftWidth: 4,
+                    borderLeftColor: selectedSeverity === option.key ? '#3B82F6' : '#D1D5DB'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              {selectedLikelihood && selectedSeverity && (
+                <View style={{ marginTop: 20, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 6, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Calculated Risk Level:</Text>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: 'white',
+                    backgroundColor: getRiskColor(calculateRiskLevel()),
+                    padding: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 4,
+                    alignSelf: 'flex-start'
+                  }}>
+                    {calculateRiskLevel().toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
+                onPress={() => setShowRiskMatrix(false)}
+              >
+                <Text style={styles.submitButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, opacity: selectedLikelihood && selectedSeverity ? 1 : 0.5 }]}
+                onPress={() => {
+                  if (selectedLikelihood && selectedSeverity) {
+                    const riskLevel = calculateRiskLevel();
+                    setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: riskLevel } }));
+                    setShowRiskMatrix(false);
+                  }
+                }}
+                disabled={!selectedLikelihood || !selectedSeverity}
+              >
+                <Text style={styles.submitButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
