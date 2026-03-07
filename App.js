@@ -1748,6 +1748,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.general && (
               <View style={styles.sectionContent}>
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.location}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
+                
                 <Text style={styles.label}>Description</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -1787,13 +1795,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   style={styles.input}
                 />
                 
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.location}
-                  onChangeText={text => setFormData({ ...formData, location: text })}
-                  placeholder="Work location"
-                />
                 <Text style={styles.label}>Requested By</Text>
                 <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
                 <TextInput
@@ -4460,6 +4461,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
       <View style={styles.sectionContent}>
+        <Text style={styles.label}>Location:</Text>
+        {isDraft ? (
+          <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => handleEditChange('location', text)} placeholder="Work location" />
+        ) : (
+          <Text style={styles.detailText}>{editData.location || ''}</Text>
+        )}
+        
         <Text style={styles.label}>Description:</Text>
         {isDraft ? (
           <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => handleEditChange('description', text)} placeholder="Describe the work..." />
@@ -4484,13 +4492,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           />
         ) : (
           <Text style={styles.detailText}>{siteIdToNameMap[editData.site_id] || 'Not specified'}</Text>
-        )}
-        
-        <Text style={styles.label}>Location:</Text>
-        {isDraft ? (
-          <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => handleEditChange('location', text)} placeholder="Work location" />
-        ) : (
-          <Text style={styles.detailText}>{editData.location || ''}</Text>
         )}
         
         <Text style={styles.label}>Requested By:</Text>
@@ -9000,6 +9001,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
+              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} placeholder="Describe the work..." />
               
@@ -9066,9 +9070,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
-              
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
               
               <Text style={styles.label}>Requested By</Text>
               <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
@@ -9151,6 +9152,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   placeholder="Enter company name"
                   onChangeText={text => setEditData({ ...editData, manualCompany: text })}
                 />
+              )}
+              
+              {/* Contractor Inducted Services */}
+              {editData.contractorSelected && (
+                (() => {
+                  const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
+                  return (
+                    <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
+                      {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
+                        <View>
+                          {selectedContractor.services.map((service, idx) => (
+                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
+                              <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
+                              <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
+                      )}
+                    </View>
+                  );
+                })()
               )}
               
               <Text style={styles.label}>Start Date</Text>
@@ -10119,6 +10144,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               
@@ -10139,8 +10167,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
               <Text style={styles.label}>Status:</Text>
@@ -11170,6 +11196,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
+              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               
@@ -11212,8 +11241,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 style={styles.input}
               />
               
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text, contractorSelected: false })} />
               <Text style={styles.label}>Company:</Text>
@@ -11221,6 +11248,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
               ) : (
                 <TextInput style={styles.input} value={editData.manualCompany || ''} placeholder="Enter company name" onChangeText={text => setEditData({ ...editData, manualCompany: text })} />
+              )}
+              
+              {/* Contractor Inducted Services */}
+              {editData.contractorSelected && (
+                (() => {
+                  const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
+                  return (
+                    <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
+                      {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
+                        <View>
+                          {selectedContractor.services.map((service, idx) => (
+                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
+                              <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
+                              <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
+                      )}
+                    </View>
+                  );
+                })()
               )}
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
