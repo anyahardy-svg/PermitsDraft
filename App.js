@@ -5406,25 +5406,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Select Site Screen (for main domain access)
   // Dashboard
   const renderDashboard = () => {
-    // Filter permits by selected site
-    const sitePermits = dashboardSelectedSite 
+    // Calculate 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Filter permits by selected site AND last 7 days (active, completed, pending)
+    let sitePermits = dashboardSelectedSite 
       ? permits.filter(p => p.site_id === dashboardSelectedSite)
       : permits;
+
+    // Filter to show only permits from last 7 days for dashboard display
+    sitePermits = sitePermits.filter(p => {
+      const permitDate = new Date(p.submittedDate || p.approvedDate || p.completedDate || p.createdAt);
+      return permitDate >= sevenDaysAgo;
+    });
 
     // Get selected site name for display
     const selectedSiteName = sites.find(s => s.id === dashboardSelectedSite)?.name || 'All Sites';
 
-    // Calculate permits completed within 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentlyCompleted = sitePermits.filter(p => {
-      if (p.status !== 'completed') return false;
-      const completedDate = new Date(p.completedDate || p.createdAt);
-      return completedDate >= sevenDaysAgo;
-    }).length;
-
     // Calculate active permits needing verification
     const needsVerificationCount = sitePermits.filter(p => p.status === 'active' && needsVerification(p)).length;
+
+    // Auto-redirect if permits need verification
+    React.useEffect(() => {
+      if (needsVerificationCount > 0 && currentScreen === 'dashboard') {
+        setCurrentScreen('active');
+      }
+    }, [needsVerificationCount]);
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -5445,20 +5453,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'pending_inspection').length}</Text>
             <Text style={styles.cardLabel}>Needs Inspection</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: needsVerificationCount > 0 ? '#DC2626' : '#10B981' }]} onPress={() => setCurrentScreen('active')}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('active')}>
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'active').length}</Text>
             <Text style={styles.cardLabel}>Active Permits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: needsVerificationCount > 0 ? '#DC2626' : '#6B7280' }]} onPress={() => setCurrentScreen('active')}>
+            <Text style={styles.cardNumber}>{needsVerificationCount}</Text>
+            <Text style={styles.cardLabel}>Needs Verification</Text>
             {needsVerificationCount > 0 && (
-              <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600', marginTop: 4 }}>({needsVerificationCount} need verification)</Text>
+              <Text style={{ fontSize: 10, color: '#DC2626', fontWeight: '600', marginTop: 4 }}>⚠️ Action Required</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'completed').length}</Text>
             <Text style={styles.cardLabel}>Completed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#DC2626' }]} onPress={() => setCurrentScreen('completed')}>
-            <Text style={styles.cardNumber}>{recentlyCompleted}</Text>
-            <Text style={styles.cardLabel}>7 Days</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('new_permit')}>
