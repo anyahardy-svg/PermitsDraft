@@ -220,77 +220,79 @@ await saveJseaTemplate(
 
 ---
 
-## Recent Commits Summary
+## Today's Fixes to Verification Workflow (March 8 - Current Session)
 
-### **FIXED: Permit Verification Workflow (Commit 0e33235c)**
-**Date**: March 8, 2026
-**What was fixed**:
-- ✅ Added missing `supabaseClient` import to App.js 
-- ✅ Added `last_verified_at` and `verified_by` fields to permits API transform
-- ✅ Restored "Needs Verification" dashboard card with red warning badge
-- ✅ Added verification section to active permit edit screen
-- ✅ Implemented verify button that updates permit verification status
-- ✅ Shows green confirmation when permit recently verified
-- ✅ Verification logic: checks if permit >24 hours since last verification
+### **FIXED: Permit Verification Workflow**
 
-**How it works**:
-1. Dashboard shows "Needs Verification" card with count of permits needing verification
-2. Red warning badge appears when count > 0
-3. Click card to go to Active Permits
-4. In active permit detail screen, if permit needs verification:
-   - Red warning box shows "Daily Verification Required"
+**Commits made today:**
+- `0e33235c` - Restored verification dashboard card with proper function definitions
+- `e3a25c30` - Added missing `needsVerification` and `handleVerifyPermit` functions
+- `f4a4d68e` - Added verification name modal for systems without login
+
+**What was fixed:**
+1. ✅ Added missing `supabaseClient` import
+2. ✅ Added `last_verified_at` and `verified_by` to permits API transform
+3. ✅ Fixed blank screen by defining missing functions
+4. ✅ **NEW**: Added verification modal that asks for verifier's name (since no login yet)
+
+**How it works now:**
+1. Dashboard shows "Needs Verification" card with red warning badge if any active permits need daily verification
+2. Click card to view Active Permits
+3. In active permit details, if permit needs verification (>24 hours):
+   - Red warning box appears: "⚠️ Daily Verification Required"
    - Shows when last verified and by whom
-   - Red button to "✓ Verify Permit Now"
-5. Clicking verify updates `last_verified_at` timestamp and `verified_by` user
-6. Green confirmation appears after verification
-7. 24-hour timer resets
+   - Button: "✓ Verify Permit Now"
+4. **NEW**: Clicking verify opens a bottom-sheet modal:
+   - Text field asking for "Verifier's Name"
+   - Name is mandatory - can't verify without entering one
+   - Green "✓ Confirm Verification" button
+   - Cancel button to close
+5. After verification:
+   - Updates `last_verified_at` with current timestamp
+   - Updates `verified_by` with entered name
+   - Shows green confirmation: "✓ Verified by [Name]"
+   - Resets 24-hour verification timer
 
-**Database columns ready**:
-- `last_verified_at` (timestamp)
-- `verified_by` (text)
+**Database columns used:**
+- `last_verified_at` (timestamp) - When last verified
+- `verified_by` (text) - Who verified it (now accepts manual entry)
 - `business_unit_id` (uuid)
 
-### Earlier Verification & UI Features
+---
+
+## Recent Commits Summary
+
+### Verification & Dashboard Features (Earlier)
 - **84f2bae1** - `feat: auto-redirect to verification and update dashboard`
-  - Implements permit verification workflow
-  - Auto-redirects to verification when needed
-  
 - **787cc443** - `feat: add permit verification indicator to dashboard`
-  - Shows verification status in dashboard
-  
 - **c40b3e70** - `feat: add 24-hour permit verification tracking`
-  - Tracks verification state across 24-hour window
 
 ### Risk Matrix & UI Improvements
 - **45ccf1b6** - `feat: add interactive risk matrix modal for JSEA risk rating`
-  - Interactive modal for risk matrix selection
-  
 - **16cbe41f** - `fix: add risk matrix modal to approval and inspection screens`
-  - Applies risk matrix to other screens
-
 - **59b25655** - `feat: move Location to top of all permit forms`
-  - Reorganized form layout for better UX
 
 ### Other Improvements
-- **c26b8f18** - Renamed 'Completion Notes' to 'Comments' in Additional Comments section
-- **337e2f42** - Added descriptive text to risk matrix likelihood and severity options
-- **a9457bc8** - Colored Controls Summary and display contractor inducted services
+- **c26b8f18** - Renamed 'Completion Notes' to 'Comments'
+- **337e2f42** - Added descriptive text to risk matrix options
+- **a9457bc8** - Colored Controls Summary and contractor services
 - **c582682d** - Dynamic z-index for filter dropdowns
-- **62447cdc** - Merge with all combined changes
+- **62447cdc** - Merge all changes
 
 ### Latest Docs
-- **c99f4d06** - Note that permission columns already exist in permits table
-- **325d7d41** - Removed problematic auto-redirect from dashboard (refined)
+- **c99f4d06** - Note columns already exist in permits table
+- **325d7d41** - Removed problematic auto-redirect from dashboard
 
 ---
 
 ## What's Working Now
 
-✅ **Permit Verification Workflow** - Can verify permits with dashboard indicator  
-✅ **24-Hour Verification Tracking** - Automatic tracking and visual indicators  
-✅ **Risk Matrix Modal** - Interactive modal for risk rating during approval  
-✅ **Form Organization** - Location field moved to top of all forms  
-✅ **Dashboard Updates** - Verification card with warning indicators
+✅ **Permit Verification Workflow** - Dashboard card with verification modal  
+✅ **Name Entry Modal** - Works without login system  
+✅ **24-Hour Tracking** - Automatic verification requirement after 24 hours  
+✅ **Risk Matrix Modal** - Interactive risk rating during approval
+✅ **Form Organization** - Location field at top of all forms  
+✅ **Dashboard Updates** - Verification indicators on permit cards
 
 ---
 
@@ -298,9 +300,9 @@ await saveJseaTemplate(
 
 The following still need attention:
 1. **Mandatory Fields Not Visually Marked** - No red border/highlighting on required fields
-   - Need to add red borders to empty required fields on form submission attempts
+   - Need to add: Red borders to empty required fields on form submission attempts
    - Show validation error list specifying which fields are required when blocking submission
-   
+
 ---
 
-**Last Updated**: March 8, 2026 (Morning)
+**Last Updated**: March 8, 2026 (Afternoon - Verification Modal Added)
