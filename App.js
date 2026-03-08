@@ -10657,6 +10657,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   await handleVerifyPermit(permit, verifierName.trim());
                   setShowVerificationModal(false);
                   setVerifierName('');
+                  // Auto-navigate back to verification list after successful verification
+                  setCurrentScreen('needs_verification');
                 } catch (err) {
                   console.error('Error verifying permit:', err);
                 }
@@ -11969,6 +11971,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   await handleVerifyPermit(latestPermit, verifierName.trim());
                   setShowVerificationModal(false);
                   setVerifierName('');
+                  // Auto-navigate back to verification list after successful verification
+                  setCurrentScreen('needs_verification');
                 } catch (err) {
                   console.error('Error verifying permit:', err);
                 }
