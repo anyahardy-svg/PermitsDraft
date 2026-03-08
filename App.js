@@ -5110,7 +5110,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.cardNumber}>{sitePermits.filter(p => p.status === 'active').length}</Text>
             <Text style={styles.cardLabel}>Active Permits</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: needsVerificationCount > 0 ? '#DC2626' : '#6B7280' }]} onPress={() => setCurrentScreen('active')}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: needsVerificationCount > 0 ? '#DC2626' : '#6B7280' }]} onPress={() => setCurrentScreen('needs_verification')}>
             <Text style={styles.cardNumber}>{needsVerificationCount}</Text>
             <Text style={styles.cardLabel}>Needs Verification</Text>
             {needsVerificationCount > 0 && (
@@ -10830,6 +10830,57 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     );
   };
 
+  // Render list of permits needing verification (both active and pending_inspection)
+  const renderNeedsVerificationList = () => {
+    const needsVerificationPermits = permits.filter(p => (p.status === 'active' || p.status === 'pending_inspection') && needsVerification(p));
+    
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Needs Verification</Text>
+        </View>
+        <FlatList
+          data={needsVerificationPermits}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.permitListCard}>
+              <View style={styles.permitListHeader}>
+                <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+                  <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                </View>
+              </View>
+              <Text style={styles.permitType}>{item.type}</Text>
+              <Text style={styles.permitDescription}>{item.description}</Text>
+              <View style={styles.permitDetails}>
+                <Text style={styles.detailText}>Location: {item.location}</Text>
+                <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
+                <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+                {item.last_verified_at && (
+                  <Text style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>
+                    ⚠️ Last verified: {formatDateNZ(item.last_verified_at)}{item.verified_by && ` by ${item.verified_by}`}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity style={styles.primaryButton} onPress={() => {
+                setSelectedPermit(item);
+                setCurrentScreen(item.status === 'pending_inspection' ? 'inspect_permit' : 'edit_active_permit');
+              }}>
+                <Text style={styles.primaryButtonText}>{item.status === 'pending_inspection' ? 'Review & Verify' : 'Edit / Complete'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No permits need verification at this time.</Text>}
+          contentContainerStyle={{ padding: 16 }}
+        />
+      </View>
+    );
+  };
+
   // Edit/Complete Active Permit Screen
   const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, users, sites, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters }) => {
     // Always get the latest permit from permits array
@@ -12053,6 +12104,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       );
     case 'active':
       return renderActivePermitList();
+    case 'needs_verification':
+      return renderNeedsVerificationList();
     case 'edit_active_permit':
       return (
         <EditActivePermitScreen
