@@ -5084,8 +5084,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return completedDate >= sevenDaysAgo;
     }).length;
 
-    // Calculate active permits needing verification (>24 hours since last verification)
-    const needsVerificationCount = sitePermits.filter(p => p.status === 'active' && needsVerification(p)).length;
+    // Calculate permits needing verification (active OR pending_inspection that haven't been verified in >5 minutes)
+    const needsVerificationCount = sitePermits.filter(p => (p.status === 'active' || p.status === 'pending_inspection') && needsVerification(p)).length;
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -9703,6 +9703,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
     const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+    
+    // Verification modal state
+    const [showVerificationModal, setShowVerificationModal] = React.useState(false);
+    const [verifierName, setVerifierName] = React.useState('');
+    
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -10536,6 +10541,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
 
+        {/* VERIFICATION SECTION - Show if permit needs verification */}
+        {needsVerification(permit) && (
+          <View style={[styles.section, { backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626' }]}>
+            <View style={{ padding: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
+                ⚠️ Daily Verification Required
+              </Text>
+              <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                This permit has not been verified in the last 5 minutes. Verify it's still safe to proceed with inspection.
+              </Text>
+              {permit.last_verified_at && (
+                <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+                  Last verified: {formatDateNZ(permit.last_verified_at)}
+                  {permit.verified_by && ` by ${permit.verified_by}`}
+                </Text>
+              )}
+              <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => setShowVerificationModal(true)}>
+                <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* VERIFICATION CONFIRMATION - Show if recently verified */}
+        {permit.last_verified_at && !needsVerification(permit) && (
+          <View style={[styles.section, { backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
+            <View style={{ padding: 12 }}>
+              <Text style={{ fontSize: 12, color: '#059669' }}>
+                ✓ Verified by {permit.verified_by || 'Unknown'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                {permit.last_verified_at ? formatDateNZ(permit.last_verified_at) : 'N/A'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             try {
@@ -10561,6 +10603,86 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* VERIFICATION MODAL */}
+      <Modal
+        visible={showVerificationModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowVerificationModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Verify Permit</Text>
+              <TouchableOpacity onPress={() => setShowVerificationModal(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 14, color: '#4B5563', marginBottom: 16 }}>
+              Enter the name of the person verifying this permit is still safe to proceed:
+            </Text>
+
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 14,
+                marginBottom: 20,
+                backgroundColor: '#F9FAFB'
+              }}
+              placeholder="Verifier's Name"
+              value={verifierName}
+              onChangeText={setVerifierName}
+              placeholderTextColor="#9CA3AF"
+            />
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#10B981',
+                padding: 14,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 8
+              }}
+              onPress={async () => {
+                if (!verifierName.trim()) {
+                  Alert.alert('Required', 'Please enter the verifier name');
+                  return;
+                }
+                try {
+                  await handleVerifyPermit(permit, verifierName.trim());
+                  setShowVerificationModal(false);
+                  setVerifierName('');
+                } catch (err) {
+                  console.error('Error verifying permit:', err);
+                }
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>✓ Confirm Verification</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                padding: 14,
+                borderRadius: 8,
+                alignItems: 'center'
+              }}
+              onPress={() => {
+                setShowVerificationModal(false);
+                setVerifierName('');
+              }}
+            >
+              <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ATTACHMENT PREVIEW MODAL */}
       <Modal
