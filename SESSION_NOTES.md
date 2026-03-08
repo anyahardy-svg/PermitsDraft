@@ -211,4 +211,72 @@ await saveJseaTemplate(
 
 ---
 
-**Last Updated**: March 6, 2026
+---
+
+# UPDATE: March 7-8 Features (From Other Machine)
+
+**Status**: Pushed to GitHub, integrated into main  
+**New Features**: Permit verification, risk matrix, auto-redirect, location improvements
+
+---
+
+## Recent Commits Summary
+
+### Verification & Dashboard Features
+- **84f2bae1** - `feat: auto-redirect to verification and update dashboard`
+  - Implements permit verification workflow
+  - Auto-redirects to verification when needed
+  
+- **787cc443** - `feat: add permit verification indicator to dashboard`
+  - Shows verification status in dashboard
+  
+- **c40b3e70** - `feat: add 24-hour permit verification tracking`
+  - Tracks verification state across 24-hour window
+
+### Risk Matrix & UI Improvements
+- **45ccf1b6** - `feat: add interactive risk matrix modal for JSEA risk rating`
+  - Interactive modal for risk matrix selection
+  
+- **16cbe41f** - `fix: add risk matrix modal to approval and inspection screens`
+  - Applies risk matrix to other screens
+
+- **59b25655** - `feat: move Location to top of all permit forms`
+  - Reorganized form layout for better UX
+
+### Other Improvements
+- **c26b8f18** - Renamed 'Completion Notes' to 'Comments' in Additional Comments section
+- **337e2f42** - Added descriptive text to risk matrix likelihood and severity options
+- **a9457bc8** - Colored Controls Summary and display contractor inducted services
+- **c582682d** - Dynamic z-index for filter dropdowns
+- **62447cdc** - Merge with all combined changes
+
+### Latest Docs
+- **c99f4d06** - Note that permission columns already exist in permits table
+- **325d7d41** - Removed problematic auto-redirect from dashboard (refined)
+
+---
+
+## What's Working Now
+
+✅ **Permit Verification Workflow** - Can verify permits through dashboard  
+✅ **Risk Matrix Modal** - Interactive modal for risk rating during approval  
+✅ **Verification Tracking** - 24-hour tracking of permit verification state  
+✅ **Auto-Redirect** - Intelligent redirect to verification when needed  
+✅ **Form Organization** - Location field moved to top of all forms  
+✅ **Dashboard Updates** - Verification indicators on permit cards
+
+---
+
+## Known Issues to Address
+
+The following still need attention:
+1. **Mandatory Fields Not Visually Marked** - No red border/highlighting on required fields
+   - Suggestion: Add red border to empty required fields on form submission attempt
+   - Show validation error list specifying which fields are required
+   
+2. **supabaseClient Error** - `supabaseClient is not defined` error seen in some contexts
+   - Need to verify imports are correct in App.js
+
+---
+
+**Last Updated**: March 8, 2026

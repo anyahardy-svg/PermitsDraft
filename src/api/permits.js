@@ -48,7 +48,11 @@ const transformPermit = (dbPermit) => {
     attachments: dbPermit.attachments || [],
     createdAt: dbPermit.created_at,
     created_at: dbPermit.created_at,
-    submittedDate: dbPermit.created_at?.split('T')[0]
+    submittedDate: dbPermit.created_at?.split('T')[0],
+    lastVerifiedAt: dbPermit.last_verified_at,
+    last_verified_at: dbPermit.last_verified_at,
+    verifiedBy: dbPermit.verified_by,
+    verified_by: dbPermit.verified_by
   };
 };
 

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
@@ -333,11 +333,11 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
     return (
       <View style={pickerStyles.dateContainer}>
         <View style={pickerStyles.dateHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => handleYearChange(-1)}>
+          <TouchableOpacity onPress={() => handleYearChange(-1)}>
             <Text style={pickerStyles.yearButton}>‹</Text>
           </TouchableOpacity>
           <Text style={pickerStyles.currentYear}>{year}</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => handleYearChange(1)}>
+          <TouchableOpacity onPress={() => handleYearChange(1)}>
             <Text style={pickerStyles.yearButton}>›</Text>
           </TouchableOpacity>
         </View>
@@ -947,11 +947,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedBusForTemplate, setSelectedBusForTemplate] = useState([]);
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
-  const [selectedCompanyForLoader, setSelectedCompanyForLoader] = useState('');
-  const [jseaTitleSearch, setJseaTitleSearch] = useState('');
-  const [showRiskMatrix, setShowRiskMatrix] = useState(false);
-  const [selectedLikelihood, setSelectedLikelihood] = useState('');
-  const [selectedSeverity, setSelectedSeverity] = useState('');
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -1705,58 +1700,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
   };
 
-  // Calculate risk level from likelihood and severity matrix
-  const calculateRiskLevel = (likelihood, severity) => {
-    const matrix = {
-      'almost_certain': { 'insignificant': 'medium', 'minor': 'high', 'moderate': 'very_high', 'major': 'very_high', 'catastrophic': 'very_high' },
-      'likely': { 'insignificant': 'low', 'minor': 'medium', 'moderate': 'high', 'major': 'very_high', 'catastrophic': 'very_high' },
-      'possible': { 'insignificant': 'low', 'minor': 'medium', 'moderate': 'high', 'major': 'very_high', 'catastrophic': 'very_high' },
-      'unlikely': { 'insignificant': 'low', 'minor': 'low', 'moderate': 'medium', 'major': 'high', 'catastrophic': 'very_high' },
-      'rare': { 'insignificant': 'low', 'minor': 'low', 'moderate': 'low', 'major': 'high', 'catastrophic': 'high' }
-    };
-    return matrix[likelihood]?.[severity] || 'low';
-  };
-
-  // Check if permit needs daily verification (>24 hours since last verification)
-  const needsVerification = (permit) => {
-    if (!permit.last_verified_at) return true; // Never verified
-    const lastVerified = new Date(permit.last_verified_at);
-    const now = new Date();
-    const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
-    return hoursSinceVerification > 24;
-  };
-
-  // Handle permit verification - update last_verified_at and verified_by
-  const handleVerifyPermit = async (permit) => {
-    try {
-      const now = new Date().toISOString();
-      const currentUser = localStorage.getItem('user_name') || 'Unknown';
-      
-      // Update in Supabase
-      const { data, error } = await supabaseClient
-        .from('permits')
-        .update({
-          last_verified_at: now,
-          verified_by: currentUser
-        })
-        .eq('id', permit.id);
-      
-      if (error) throw error;
-      
-      // Update local state
-      setPermits(prev => prev.map(p => 
-        p.id === permit.id 
-          ? { ...p, last_verified_at: now, verified_by: currentUser }
-          : p
-      ));
-      
-      Alert.alert('Success', `Permit verified by ${currentUser}`);
-    } catch (err) {
-      console.error('Verification error:', err);
-      Alert.alert('Error', 'Failed to verify permit. Please try again.');
-    }
-  };
-
   // New Permit Form
   const specialisedOptions = [
     'Hot Work',
@@ -1774,8 +1717,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
@@ -1788,14 +1731,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.general && (
               <View style={styles.sectionContent}>
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.location}
-                  onChangeText={text => setFormData({ ...formData, location: text })}
-                  placeholder="Work location"
-                />
-                
                 <Text style={styles.label}>Description</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -1835,6 +1770,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   style={styles.input}
                 />
                 
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.location}
+                  onChangeText={text => setFormData({ ...formData, location: text })}
+                  placeholder="Work location"
+                />
                 <Text style={styles.label}>Requested By</Text>
                 <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
                 <TextInput
@@ -1954,30 +1896,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     placeholder="Enter company name for manual requester"
                     onChangeText={text => setFormData({ ...formData, manualCompany: text })}
                   />
-                )}
-
-                {/* Contractor Inducted Services */}
-                {formData.contractorSelected && (
-                  (() => {
-                    const selectedContractor = contractors.find(c => c.name === formData.requestedBy);
-                    return (
-                      <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
-                        {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
-                          <View>
-                            {selectedContractor.services.map((service, idx) => (
-                              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
-                                <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
-                                <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        ) : (
-                          <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
-                        )}
-                      </View>
-                    );
-                  })()
                 )}
 
                 {/* Start Date/Time */}
@@ -2205,7 +2123,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }} 
                       placeholder="dd/mm/yyyy"
                     />
-                    <TouchableOpacity style={styles.backButton} onPress={() => removeIsolation(idx)}>
+                    <TouchableOpacity onPress={() => removeIsolation(idx)}>
                       <Text style={styles.removeButton}>Remove</Text>
                     </TouchableOpacity>
                   </View>
@@ -2325,24 +2243,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   )}
                 </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    { 
-                      backgroundColor: formData.jsea.overallRiskRating ? getRiskColor(formData.jsea.overallRiskRating) : '#3B82F6',
-                      marginBottom: 16
-                    }
-                  ]}
-                  onPress={() => {
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setShowRiskMatrix(true);
-                  }}
-                >
-                  <Text style={styles.addButtonText}>
-                    {formData.jsea.overallRiskRating ? formData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK RATING'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high', 'very_high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: formData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: risk } })}
+                    >
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: formData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.label}>Additional Precautions</Text>
                 <TextInput
                   style={styles.input}
@@ -2357,7 +2274,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           {/* Controls Summary Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
-              <Text style={[styles.sectionTitle, { color: '#D97706' }]}>Controls Summary</Text>
+              <Text style={styles.sectionTitle}>Controls Summary</Text>
               <Text style={styles.expandIcon}>{expandedSections.controlsSummary ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
@@ -2539,7 +2456,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                       placeholder="Signature (type name or initials)"
                     />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       const updated = [...formData.signOns];
                       updated.splice(idx, 1);
                       setFormData({ ...formData, signOns: updated });
@@ -2555,10 +2472,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             )}
           </View>
 
-          {/* Additional Comments Section */}
+          {/* Permit Completion Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('completion')}>
-              <Text style={styles.sectionTitle}>Additional Comments</Text>
+              <Text style={styles.sectionTitle}>Permit Completion</Text>
               <Text style={styles.expandIcon}>{expandedSections.completion ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.completion && (
@@ -2580,7 +2497,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     />
                   </>
                 )}
-                <Text style={styles.label}>Comments</Text>
+                <Text style={styles.label}>Completion Notes</Text>
                 <TextInput
                   style={[styles.input, { minHeight: 80 }]}
                   value={formData.completion.completionNotes}
@@ -2588,7 +2505,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     ...formData, 
                     completion: { ...formData.completion, completionNotes: text } 
                   })}
-                  placeholder="Enter any additional comments"
+                  placeholder="Enter any additional completion notes"
                   multiline
                   numberOfLines={4}
                 />
@@ -2737,11 +2654,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }}>
                   Load JSEA Template
                 </Text>
-                <TouchableOpacity style={styles.backButton} onPress={() => {
-                  setShowJseaTemplateLoader(false);
-                  setSelectedCompanyForLoader('');
-                  setJseaTitleSearch('');
-                }}>
+                <TouchableOpacity onPress={() => setShowJseaTemplateLoader(false)}>
                   <Text style={{
                     fontSize: 24,
                     color: '#9CA3AF',
@@ -2767,8 +2680,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     selectedValue={selectedBuForLoader}
                     onValueChange={(itemValue) => {
                       setSelectedBuForLoader(itemValue);
-                      setSelectedCompanyForLoader('');
-                      setJseaTitleSearch('');
                       if (itemValue) {
                         loadJseaTemplatesForLoader(itemValue);
                       }
@@ -2785,59 +2696,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  color: '#1F2937', 
-                  marginBottom: 8 
-                }}>Company</Text>
-                <View style={{
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: 'white'
-                }}>
-                  <Picker
-                    selectedValue={selectedCompanyForLoader}
-                    onValueChange={setSelectedCompanyForLoader}
-                    style={{
-                      color: '#1F2937'
-                    }}
-                  >
-                    <Picker.Item label="All Companies" value="" />
-                    {companies.map(company => (
-                      <Picker.Item key={company.id} label={company.name} value={company.id} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  color: '#1F2937', 
-                  marginBottom: 8 
-                }}>Search by Title</Text>
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: '#1F2937',
-                    backgroundColor: 'white'
-                  }}
-                  placeholder="Search template name..."
-                  value={jseaTitleSearch}
-                  onChangeText={setJseaTitleSearch}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
               {loadingJseaTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
@@ -2848,30 +2706,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     No templates available for this business unit.
                   </Text>
                 </View>
-              ) : jseaTemplatesAvailable.filter(t => 
-                (!selectedCompanyForLoader || t.company_id === selectedCompanyForLoader) &&
-                (!jseaTitleSearch || t.name.toLowerCase().includes(jseaTitleSearch.toLowerCase()))
-              ).length === 0 ? (
-                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                  <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
-                    No templates match your filters.
-                  </Text>
-                </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {jseaTemplatesAvailable
-                    .filter(template => {
-                      // Filter by company
-                      if (selectedCompanyForLoader && template.company_id !== selectedCompanyForLoader) {
-                        return false;
-                      }
-                      // Filter by title search
-                      if (jseaTitleSearch && !template.name.toLowerCase().includes(jseaTitleSearch.toLowerCase())) {
-                        return false;
-                      }
-                      return true;
-                    })
-                    .map((template) => {
+                  {jseaTemplatesAvailable.map((template) => {
                     // Get company name if company_id exists
                     const companyName = template.company_id 
                       ? companies.find(c => c.id === template.company_id)?.name 
@@ -2934,7 +2771,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </View>
                       </TouchableOpacity>
                     );
-                    })}
+                  })}
                 </ScrollView>
               )}
 
@@ -2945,11 +2782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   borderRadius: 8,
                   alignItems: 'center'
                 }}
-                onPress={() => {
-                  setShowJseaTemplateLoader(false);
-                  setSelectedCompanyForLoader('');
-                  setJseaTitleSearch('');
-                }}
+                onPress={() => setShowJseaTemplateLoader(false)}
               >
                 <Text style={{
                   fontSize: 14,
@@ -2959,175 +2792,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   Cancel
                 </Text>
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Risk Matrix Modal */}
-        <Modal
-          visible={showRiskMatrix}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowRiskMatrix(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-            <View style={{
-              backgroundColor: 'white',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              padding: 20,
-              maxHeight: '90%'
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Risk Assessment Matrix</Text>
-                <TouchableOpacity onPress={() => setShowRiskMatrix(false)}>
-                  <Text style={{ fontSize: 24, color: '#9CA3AF' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView>
-                {/* Likelihood Selection */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
-                  <View style={{ gap: 12 }}>
-                    {[
-                      { value: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
-                      { value: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
-                      { value: 'possible', label: 'Possible', desc: 'Might occur at some time' },
-                      { value: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
-                      { value: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
-                    ].map(item => (
-                      <TouchableOpacity
-                        key={item.value}
-                        style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                          borderRadius: 8,
-                          borderWidth: 2,
-                          borderColor: selectedLikelihood === item.value ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedLikelihood === item.value ? '#EFF6FF' : 'white'
-                        }}
-                        onPress={() => setSelectedLikelihood(item.value)}
-                      >
-                        <Text style={{
-                          color: selectedLikelihood === item.value ? '#3B82F6' : '#374151',
-                          fontWeight: '600',
-                          fontSize: 13,
-                          marginBottom: 4
-                        }}>
-                          {item.label.toUpperCase()}
-                        </Text>
-                        <Text style={{
-                          color: selectedLikelihood === item.value ? '#1E40AF' : '#6B7280',
-                          fontSize: 12,
-                          fontStyle: 'italic'
-                        }}>
-                          {item.desc}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Severity Selection */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
-                  <View style={{ gap: 12 }}>
-                    {[
-                      { value: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
-                      { value: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
-                      { value: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
-                      { value: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
-                      { value: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
-                    ].map(item => (
-                      <TouchableOpacity
-                        key={item.value}
-                        style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                          borderRadius: 8,
-                          borderWidth: 2,
-                          borderColor: selectedSeverity === item.value ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedSeverity === item.value ? '#EFF6FF' : 'white'
-                        }}
-                        onPress={() => setSelectedSeverity(item.value)}
-                      >
-                        <Text style={{
-                          color: selectedSeverity === item.value ? '#3B82F6' : '#374151',
-                          fontWeight: '600',
-                          fontSize: 13,
-                          marginBottom: 4
-                        }}>
-                          {item.label.toUpperCase()}
-                        </Text>
-                        <Text style={{
-                          color: selectedSeverity === item.value ? '#1E40AF' : '#6B7280',
-                          fontSize: 12,
-                          fontStyle: 'italic'
-                        }}>
-                          {item.desc}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Result Display */}
-                {selectedLikelihood && selectedSeverity && (
-                  <View style={{
-                    padding: 16,
-                    backgroundColor: '#F3F4F6',
-                    borderRadius: 8,
-                    marginBottom: 24
-                  }}>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
-                    <View style={{
-                      backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihood, selectedSeverity)),
-                      paddingVertical: 12,
-                      paddingHorizontal: 16,
-                      borderRadius: 6,
-                      alignItems: 'center'
-                    }}>
-                      <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
-                        {calculateRiskLevel(selectedLikelihood, selectedSeverity).toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Action Buttons */}
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      backgroundColor: '#E5E7EB',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    onPress={() => setShowRiskMatrix(false)}
-                  >
-                    <Text style={{ color: '#374151', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      backgroundColor: selectedLikelihood && selectedSeverity ? '#3B82F6' : '#D1D5DB',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    disabled={!selectedLikelihood || !selectedSeverity}
-                    onPress={() => {
-                      const riskLevel = calculateRiskLevel(selectedLikelihood, selectedSeverity);
-                      setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: riskLevel } });
-                      setShowRiskMatrix(false);
-                    }}
-                  >
-                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Apply</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -3164,7 +2828,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }}>
                   Save JSEA as Template
                 </Text>
-                <TouchableOpacity style={styles.backButton} onPress={() => {
+                <TouchableOpacity onPress={() => {
                   setShowJseaSaveTemplate(false);
                   setJseaTemplateName('');
                   setSelectedBusForTemplate([]);
@@ -4181,7 +3845,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                       <Text style={styles.attachmentButtonText}>{fileName ? '📎 ' + fileName : 'Choose File'}</Text>
                                     </TouchableOpacity>
                                     {fileName && (
-                                      <TouchableOpacity style={styles.backButton} onPress={() => handleQuestionnaireResponse(permitKey, depQ.id, '')}>
+                                      <TouchableOpacity onPress={() => handleQuestionnaireResponse(permitKey, depQ.id, '')}>
                                         <Text style={styles.removeButton}>Remove</Text>
                                       </TouchableOpacity>
                                     )}
@@ -4339,29 +4003,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
   
-  // Risk matrix modal states
-  const [showRiskMatrix, setShowRiskMatrix] = React.useState(false);
-  const [selectedLikelihood, setSelectedLikelihood] = React.useState('');
-  const [selectedSeverity, setSelectedSeverity] = React.useState('');
-  
   // Requested By dropdown states
   const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
   const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
   
   const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
-  
-  // Calculate risk level from likelihood and severity matrix
-  const calculateRiskLevel = () => {
-    const riskMatrix = {
-      rare: { insignificant: 'low', minor: 'low', moderate: 'low', major: 'medium', catastrophic: 'high' },
-      unlikely: { insignificant: 'low', minor: 'low', moderate: 'medium', major: 'medium', catastrophic: 'high' },
-      possible: { insignificant: 'low', minor: 'medium', moderate: 'medium', major: 'high', catastrophic: 'very_high' },
-      likely: { insignificant: 'medium', minor: 'medium', moderate: 'high', major: 'high', catastrophic: 'very_high' },
-      almost_certain: { insignificant: 'medium', minor: 'high', moderate: 'high', major: 'very_high', catastrophic: 'very_high' }
-    };
-    return riskMatrix[selectedLikelihood]?.[selectedSeverity] || '';
-  };
   
   const handleEditChange = (field, value) => {
     setEditData({ ...editData, [field]: value });
@@ -4512,19 +4159,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
+          <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
       <View style={styles.sectionContent}>
-        <Text style={styles.label}>Location:</Text>
-        {isDraft ? (
-          <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => handleEditChange('location', text)} placeholder="Work location" />
-        ) : (
-          <Text style={styles.detailText}>{editData.location || ''}</Text>
-        )}
-        
         <Text style={styles.label}>Description:</Text>
         {isDraft ? (
           <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => handleEditChange('description', text)} placeholder="Describe the work..." />
@@ -4549,6 +4189,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           />
         ) : (
           <Text style={styles.detailText}>{siteIdToNameMap[editData.site_id] || 'Not specified'}</Text>
+        )}
+        
+        <Text style={styles.label}>Location:</Text>
+        {isDraft ? (
+          <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => handleEditChange('location', text)} placeholder="Work location" />
+        ) : (
+          <Text style={styles.detailText}>{editData.location || ''}</Text>
         )}
         
         <Text style={styles.label}>Requested By:</Text>
@@ -4645,31 +4292,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         ) : (
           <Text style={styles.detailText}>{editData.contractorCompany || editData.manualCompany || ''}</Text>
         )}
-        
-        {/* Contractor Inducted Services */}
-        {isDraft && editData.contractorSelected && (
-          (() => {
-            const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
-            return (
-              <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
-                {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
-                  <View>
-                    {selectedContractor.services.map((service, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
-                        <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
-                        <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
-                )}
-              </View>
-            );
-          })()
-        )}
-        
         <Text style={styles.label}>Permit Issuer:</Text>
         {isDraft ? (
           <CustomDropdown
@@ -4935,24 +4557,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             )) : <Text style={styles.detailText}>None</Text>}
             <Text style={styles.label}>Overall Risk Rating</Text>
             {isDraft ? (
-              <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  { 
-                    backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
-                    marginBottom: 16
-                  }
-                ]}
-                onPress={() => {
-                  setSelectedLikelihood('');
-                  setSelectedSeverity('');
-                  setShowRiskMatrix(true);
-                }}
-              >
-                <Text style={styles.addButtonText}>
-                  {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK RATING'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.riskButtons}>
+                {['low', 'medium', 'high', 'very_high'].map(risk => (
+                  <TouchableOpacity
+                    key={risk}
+                    style={[
+                      styles.riskButton,
+                      { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                    ]}
+                    onPress={() => handleEditChange('jsea', { ...editData.jsea, overallRiskRating: risk })}
+                  >
+                    <Text style={[
+                      styles.riskButtonText,
+                      { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                    ]}>{risk.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             ) : (
               <Text style={styles.detailText}>{editData.jsea.overallRiskRating}</Text>
             )}
@@ -5006,7 +4627,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={[styles.label, { marginBottom: 8 }]}>Attachments ({editData.attachments.length})</Text>
             {editData.attachments.map((attachment, idx) => (
               <View key={idx} style={{ marginBottom: 8, paddingBottom: 8, borderBottomWidth: idx < editData.attachments.length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB' }}>
-                <TouchableOpacity style={styles.backButton} onPress={() => {
+                <TouchableOpacity onPress={() => {
                   if (attachment.url) {
                     Alert.alert('Attachment', `${attachment.name}\n\nURL: ${attachment.url}`, [
                       { text: 'OK', onPress: () => {} }
@@ -5137,8 +4758,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
         </View>
@@ -5182,8 +4803,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
         </View>
@@ -5406,25 +5027,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Select Site Screen (for main domain access)
   // Dashboard
   const renderDashboard = () => {
-    // Calculate 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    // Filter permits by selected site AND last 7 days (active, completed, pending)
-    let sitePermits = dashboardSelectedSite 
+    // Filter permits by selected site
+    const sitePermits = dashboardSelectedSite 
       ? permits.filter(p => p.site_id === dashboardSelectedSite)
       : permits;
-
-    // Filter to show only permits from last 7 days for dashboard display
-    sitePermits = sitePermits.filter(p => {
-      const permitDate = new Date(p.submittedDate || p.approvedDate || p.completedDate || p.createdAt);
-      return permitDate >= sevenDaysAgo;
-    });
 
     // Get selected site name for display
     const selectedSiteName = sites.find(s => s.id === dashboardSelectedSite)?.name || 'All Sites';
 
-    // Calculate active permits needing verification
+    // Calculate permits completed within 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentlyCompleted = sitePermits.filter(p => {
+      if (p.status !== 'completed') return false;
+      const completedDate = new Date(p.completedDate || p.createdAt);
+      return completedDate >= sevenDaysAgo;
+    }).length;
+
+    // Calculate active permits needing verification (>24 hours since last verification)
     const needsVerificationCount = sitePermits.filter(p => p.status === 'active' && needsVerification(p)).length;
 
     return (
@@ -5555,8 +5175,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
         </View>
@@ -5827,8 +5447,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingPermitIssuer(false); setSelectedPermitIssuer(null); }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingPermitIssuer(false); setSelectedPermitIssuer(null); }}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingPermitIssuer ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
@@ -6365,8 +5985,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
@@ -6863,8 +6483,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingSite ? 'Edit Site' : 'Manage Sites'}</Text>
         </View>
@@ -7515,8 +7135,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
@@ -8037,8 +7657,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return (
         <View style={styles.screenContainer}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
-              <Ionicons name="arrow-back" size={24} color="white" />
+            <TouchableOpacity onPress={handleCancel}>
+              <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Edit Visitor Induction - {siteName}</Text>
           </View>
@@ -8096,8 +7716,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Visitor Inductions</Text>
         </View>
@@ -8597,12 +8217,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => {
+          <TouchableOpacity onPress={() => {
             setCurrentScreen('admin');
             setEditingIsolation(false);
             setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
           }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Manage Isolation Register</Text>
         </View>
@@ -8819,8 +8439,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Services Directory</Text>
         </View>
@@ -9052,8 +8672,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.permitNumber}` : `Review/Edit Permit #${permit.permitNumber}`}</Text>
         </View>
@@ -9066,9 +8686,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
-              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={3} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} placeholder="Describe the work..." />
               
@@ -9135,6 +8752,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
+              
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
               
               <Text style={styles.label}>Requested By</Text>
               <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
@@ -9217,30 +8837,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   placeholder="Enter company name"
                   onChangeText={text => setEditData({ ...editData, manualCompany: text })}
                 />
-              )}
-              
-              {/* Contractor Inducted Services */}
-              {editData.contractorSelected && (
-                (() => {
-                  const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
-                  return (
-                    <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
-                      {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
-                        <View>
-                          {selectedContractor.services.map((service, idx) => (
-                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
-                              <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
-                              <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
-                      )}
-                    </View>
-                  );
-                })()
               )}
               
               <Text style={styles.label}>Start Date</Text>
@@ -9399,7 +8995,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
                     <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -9417,24 +9013,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    { 
-                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
-                      marginBottom: 16
-                    }
-                  ]}
-                  onPress={() => {
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setShowRiskMatrix(true);
-                  }}
-                >
-                  <Text style={styles.addButtonText}>
-                    {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK RATING'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.riskButtons}>
+                  {['low', 'medium', 'high', 'very_high'].map(risk => (
+                    <TouchableOpacity
+                      key={risk}
+                      style={[
+                        styles.riskButton,
+                        { backgroundColor: editData.jsea.overallRiskRating === risk ? getRiskColor(risk) : '#E5E7EB' }
+                      ]}
+                      onPress={() => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: risk } }))}>
+                      <Text style={[
+                        styles.riskButtonText,
+                        { color: editData.jsea.overallRiskRating === risk ? 'white' : '#374151' }
+                      ]}>{risk.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.label}>Additional Precautions:</Text>
                 <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
               </View>
@@ -9606,7 +9200,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }} 
                       placeholder="Date"
                     />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       const updated = editData.isolations.filter((_, i) => i !== idx);
                       setEditData(prev => ({ ...prev, isolations: updated }));
                     }}>
@@ -9767,7 +9361,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -9832,7 +9426,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => {
+                        <TouchableOpacity onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -10003,7 +9597,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -10044,107 +9638,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
       </Modal>
-      
-      {/* Risk Matrix Modal for JSEA */}
-      <Modal visible={showRiskMatrix} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxHeight: '90%' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, color: '#1F2937' }}>Risk Assessment Matrix</Text>
-            
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Likelihood</Text>
-              {[
-                { key: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
-                { key: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
-                { key: 'possible', label: 'Possible', desc: 'Might occur at some time' },
-                { key: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
-                { key: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
-              ].map(option => (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setSelectedLikelihood(option.key)}
-                  style={{
-                    padding: 12,
-                    marginBottom: 10,
-                    borderRadius: 6,
-                    backgroundColor: selectedLikelihood === option.key ? '#DBEAFE' : '#F3F4F6',
-                    borderLeftWidth: 4,
-                    borderLeftColor: selectedLikelihood === option.key ? '#3B82F6' : '#D1D5DB'
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
-                </TouchableOpacity>
-              ))}
-              
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, marginTop: 20 }}>Severity</Text>
-              {[
-                { key: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
-                { key: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
-                { key: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
-                { key: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
-                { key: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
-              ].map(option => (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setSelectedSeverity(option.key)}
-                  style={{
-                    padding: 12,
-                    marginBottom: 10,
-                    borderRadius: 6,
-                    backgroundColor: selectedSeverity === option.key ? '#DBEAFE' : '#F3F4F6',
-                    borderLeftWidth: 4,
-                    borderLeftColor: selectedSeverity === option.key ? '#3B82F6' : '#D1D5DB'
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
-                </TouchableOpacity>
-              ))}
-              
-              {selectedLikelihood && selectedSeverity && (
-                <View style={{ marginTop: 20, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 6, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Calculated Risk Level:</Text>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: '700',
-                    color: 'white',
-                    backgroundColor: getRiskColor(calculateRiskLevel()),
-                    padding: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 4,
-                    alignSelf: 'flex-start'
-                  }}>
-                    {calculateRiskLevel().toUpperCase()}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-            
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
-                onPress={() => setShowRiskMatrix(false)}
-              >
-                <Text style={styles.submitButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, opacity: selectedLikelihood && selectedSeverity ? 1 : 0.5 }]}
-                onPress={() => {
-                  if (selectedLikelihood && selectedSeverity) {
-                    const riskLevel = calculateRiskLevel();
-                    handleEditChange('jsea', { ...editData.jsea, overallRiskRating: riskLevel });
-                    setShowRiskMatrix(false);
-                  }
-                }}
-                disabled={!selectedLikelihood || !selectedSeverity}
-              >
-                <Text style={styles.submitButtonText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
       </View>
     );
   };
@@ -10170,24 +9663,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
     const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
-    
-    // Risk matrix modal states
-    const [showRiskMatrix, setShowRiskMatrix] = React.useState(false);
-    const [selectedLikelihood, setSelectedLikelihood] = React.useState('');
-    const [selectedSeverity, setSelectedSeverity] = React.useState('');
-    
-    // Calculate risk level from likelihood and severity matrix
-    const calculateRiskLevel = () => {
-      const riskMatrix = {
-        rare: { insignificant: 'low', minor: 'low', moderate: 'low', major: 'medium', catastrophic: 'high' },
-        unlikely: { insignificant: 'low', minor: 'low', moderate: 'medium', major: 'medium', catastrophic: 'high' },
-        possible: { insignificant: 'low', minor: 'medium', moderate: 'medium', major: 'high', catastrophic: 'very_high' },
-        likely: { insignificant: 'medium', minor: 'medium', moderate: 'high', major: 'high', catastrophic: 'very_high' },
-        almost_certain: { insignificant: 'medium', minor: 'high', moderate: 'high', major: 'very_high', catastrophic: 'very_high' }
-      };
-      return riskMatrix[selectedLikelihood]?.[selectedSeverity] || '';
-    };
-    
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -10316,8 +9791,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('pending_inspection')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Inspect/Edit Permit #{editData.permitNumber}</Text>
         </View>
@@ -10330,9 +9805,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
-              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               
@@ -10353,6 +9825,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text })} />
               <Text style={styles.label}>Status:</Text>
@@ -10530,7 +10004,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -10776,7 +10250,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -10971,7 +10445,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => {
+                        <TouchableOpacity onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -11059,7 +10533,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -11100,107 +10574,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
       </Modal>
-      
-      {/* Risk Matrix Modal for JSEA */}
-      <Modal visible={showRiskMatrix} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxHeight: '90%' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, color: '#1F2937' }}>Risk Assessment Matrix</Text>
-            
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Likelihood</Text>
-              {[
-                { key: 'rare', label: 'Rare', desc: 'May occur only in exceptional circumstances' },
-                { key: 'unlikely', label: 'Unlikely', desc: 'Could occur at some time' },
-                { key: 'possible', label: 'Possible', desc: 'Might occur at some time' },
-                { key: 'likely', label: 'Likely', desc: 'Will probably occur in most circumstances' },
-                { key: 'almost_certain', label: 'Almost Certain', desc: 'Is expected to occur in most circumstances' }
-              ].map(option => (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setSelectedLikelihood(option.key)}
-                  style={{
-                    padding: 12,
-                    marginBottom: 10,
-                    borderRadius: 6,
-                    backgroundColor: selectedLikelihood === option.key ? '#DBEAFE' : '#F3F4F6',
-                    borderLeftWidth: 4,
-                    borderLeftColor: selectedLikelihood === option.key ? '#3B82F6' : '#D1D5DB'
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
-                </TouchableOpacity>
-              ))}
-              
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, marginTop: 20 }}>Severity</Text>
-              {[
-                { key: 'insignificant', label: 'Insignificant', desc: 'First aid treatment • Onsite/offsite release cleaned up with internal resources' },
-                { key: 'minor', label: 'Minor', desc: 'Medical treatment injury (MTI) • Lost Time Injury (LTI) • Release cleaned up with specialist assistance' },
-                { key: 'moderate', label: 'Moderate', desc: 'Damage to items of ecological or cultural significance' },
-                { key: 'major', label: 'Major', desc: 'Serious injury • Major short term negative effects • Major damage to ecological/cultural items' },
-                { key: 'catastrophic', label: 'Catastrophic', desc: 'Fatality(s) • Toxic release with detrimental long term effects' }
-              ].map(option => (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setSelectedSeverity(option.key)}
-                  style={{
-                    padding: 12,
-                    marginBottom: 10,
-                    borderRadius: 6,
-                    backgroundColor: selectedSeverity === option.key ? '#DBEAFE' : '#F3F4F6',
-                    borderLeftWidth: 4,
-                    borderLeftColor: selectedSeverity === option.key ? '#3B82F6' : '#D1D5DB'
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>{option.label}</Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>{option.desc}</Text>
-                </TouchableOpacity>
-              ))}
-              
-              {selectedLikelihood && selectedSeverity && (
-                <View style={{ marginTop: 20, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 6, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Calculated Risk Level:</Text>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: '700',
-                    color: 'white',
-                    backgroundColor: getRiskColor(calculateRiskLevel()),
-                    padding: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 4,
-                    alignSelf: 'flex-start'
-                  }}>
-                    {calculateRiskLevel().toUpperCase()}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-            
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, backgroundColor: '#9CA3AF' }]}
-                onPress={() => setShowRiskMatrix(false)}
-              >
-                <Text style={styles.submitButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, opacity: selectedLikelihood && selectedSeverity ? 1 : 0.5 }]}
-                onPress={() => {
-                  if (selectedLikelihood && selectedSeverity) {
-                    const riskLevel = calculateRiskLevel();
-                    setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, overallRiskRating: riskLevel } }));
-                    setShowRiskMatrix(false);
-                  }
-                }}
-                disabled={!selectedLikelihood || !selectedSeverity}
-              >
-                <Text style={styles.submitButtonText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
       </View>
     );
   };
@@ -11210,8 +10583,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Needs Inspection</Text>
         </View>
@@ -11253,101 +10626,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Active Permit List: editable, with completion sign-off
   const renderActivePermitList = () => {
-    const activePermits = permits.filter(p => p.status === 'active');
-    const needsVerificationPermits = activePermits.filter(p => needsVerification(p));
-    const verifiedPermits = activePermits.filter(p => !needsVerification(p));
-
-    const PermitCard = ({ item, showVerifyButton }) => (
-      <View style={[styles.permitListCard, showVerifyButton && { borderLeftWidth: 4, borderLeftColor: '#DC2626' }]}>
-        <View style={styles.permitListHeader}>
-          <Text style={styles.permitId}>#{item.permitNumber}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
-            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
-          </View>
-        </View>
-        <Text style={styles.permitType}>{item.type}</Text>
-        <Text style={styles.permitDescription}>{item.description}</Text>
-        <View style={styles.permitDetails}>
-          <Text style={styles.detailText}>Location: {item.location}</Text>
-          <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-          {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
-          <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
-        </View>
-        
-        {/* Verification Status */}
-        {item.verified_by ? (
-          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-            <Text style={{ fontSize: 12, color: '#059669' }}>✓ Last verified by {item.verified_by}</Text>
-            <Text style={{ fontSize: 11, color: '#6B7280' }}>{item.last_verified_at ? formatDateNZ(item.last_verified_at) : 'N/A'}</Text>
-          </View>
-        ) : (
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic', marginBottom: 6 }}>Not yet verified</Text>
-          </View>
-        )}
-
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity 
-            style={[styles.primaryButton, { flex: 1 }]} 
-            onPress={() => {
-              setSelectedPermit(item);
-              setCurrentScreen('edit_active_permit');
-            }}
-          >
-            <Text style={styles.primaryButtonText}>Edit / Complete</Text>
-          </TouchableOpacity>
-          
-          {showVerifyButton && (
-            <TouchableOpacity 
-              style={[styles.primaryButton, { flex: 1, backgroundColor: '#059669' }]} 
-              onPress={() => handleVerifyPermit(item)}
-            >
-              <Text style={styles.primaryButtonText}>Verify</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('dashboard')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Active Permits</Text>
         </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          {/* NEEDS VERIFICATION SECTION */}
-          {needsVerificationPermits.length > 0 && (
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#991B1B' }}>
-                  ⚠️ {needsVerificationPermits.length} Permit{needsVerificationPermits.length !== 1 ? 's' : ''} Need Daily Verification
-                </Text>
+        <FlatList
+          data={permits.filter(p => p.status === 'active')}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.permitListCard}>
+              <View style={styles.permitListHeader}>
+                <Text style={styles.permitId}>#{item.permitNumber}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
+                  <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                </View>
               </View>
-              {needsVerificationPermits.map(item => (
-                <PermitCard key={item.id} item={item} showVerifyButton={true} />
-              ))}
+              <Text style={styles.permitType}>{item.type}</Text>
+              <Text style={styles.permitDescription}>{item.description}</Text>
+              <View style={styles.permitDetails}>
+                <Text style={styles.detailText}>Location: {item.location}</Text>
+                <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
+                {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
+                <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+              </View>
+              <TouchableOpacity style={styles.primaryButton} onPress={() => {
+                setSelectedPermit(item);
+                setCurrentScreen('edit_active_permit');
+              }}>
+                <Text style={styles.primaryButtonText}>Edit / Complete</Text>
+              </TouchableOpacity>
             </View>
           )}
-
-          {/* VERIFIED PERMITS SECTION */}
-          {verifiedPermits.length > 0 && (
-            <View>
-              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600', marginBottom: 12, marginTop: needsVerificationPermits.length > 0 ? 8 : 0 }}>
-                Active Permits
-              </Text>
-              {verifiedPermits.map(item => (
-                <PermitCard key={item.id} item={item} showVerifyButton={false} />
-              ))}
-            </View>
-          )}
-
-          {activePermits.length === 0 && (
-            <Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>
-          )}
-        </ScrollView>
+          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>}
+          contentContainerStyle={{ padding: 16 }}
+        />
       </View>
     );
   };
@@ -11526,30 +10842,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('active')}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => setCurrentScreen('active')}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit/Complete ACTIVE Permit #{editData.permitNumber}{siteName ? ` - ${siteName}` : ''}</Text>
         </View>
-
-        {/* VERIFICATION STATUS - Show above form */}
-        {needsVerification(editData) ? (
-          <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#991B1B', marginBottom: 8 }}>⚠️ Daily Verification Required</Text>
-            <Text style={{ fontSize: 11, color: '#7F1D1D', marginBottom: 10 }}>This permit hasn't been verified in the last 24 hours. Please review and verify that the work scope hasn't changed.</Text>
-            <TouchableOpacity 
-              style={{ backgroundColor: '#DC2626', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6 }}
-              onPress={() => handleVerifyPermit(editData)}
-            >
-              <Text style={{ color: 'white', fontWeight: '600', textAlign: 'center' }}>Verify Work Scope Unchanged</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#10B981' }}>
-            <Text style={{ fontSize: 12, color: '#059669' }}>✓ Verified by {editData.verified_by || 'Unknown'}</Text>
-            <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.last_verified_at ? formatDateNZ(editData.last_verified_at) : 'N/A'}</Text>
-          </View>
-        )}
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
         <View style={styles.section}>
@@ -11559,9 +10856,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           {expandedSections.general && (
             <View style={styles.sectionContent}>
-              <Text style={styles.label}>Location:</Text>
-              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
-              
               <Text style={styles.label}>Description:</Text>
               <TextInput style={styles.input} value={editData.description || ''} onChangeText={text => setEditData({ ...editData, description: text })} multiline />
               
@@ -11604,6 +10898,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 style={styles.input}
               />
               
+              <Text style={styles.label}>Location:</Text>
+              <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
               <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text, contractorSelected: false })} />
               <Text style={styles.label}>Company:</Text>
@@ -11611,30 +10907,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
               ) : (
                 <TextInput style={styles.input} value={editData.manualCompany || ''} placeholder="Enter company name" onChangeText={text => setEditData({ ...editData, manualCompany: text })} />
-              )}
-              
-              {/* Contractor Inducted Services */}
-              {editData.contractorSelected && (
-                (() => {
-                  const selectedContractor = contractors.find(c => c.name === editData.requestedBy);
-                  return (
-                    <View style={{ marginTop: 12, marginBottom: 12, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#0EA5E9' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginBottom: 8 }}>Inducted Services</Text>
-                      {selectedContractor && selectedContractor.services && selectedContractor.services.length > 0 ? (
-                        <View>
-                          {selectedContractor.services.map((service, idx) => (
-                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx === selectedContractor.services.length - 1 ? 0 : 6 }}>
-                              <Text style={{ color: '#0EA5E9', marginRight: 8, fontSize: 14, fontWeight: '600' }}>✓</Text>
-                              <Text style={{ fontSize: 12, color: '#1F2937' }}>{service}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>No inducted services recorded</Text>
-                      )}
-                    </View>
-                  );
-                })()
               )}
               <Text style={styles.label}>Status:</Text>
               <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }]} value={editData.status || ''} editable={false} />
@@ -11805,7 +11077,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
                         steps.splice(idx, 1);
@@ -12046,7 +11318,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
                     <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
-                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
                         return { ...prev, signOns };
@@ -12240,7 +11512,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => {
+                        <TouchableOpacity onPress={() => {
                           // Open attachment preview
                           if (attachment.url) {
                             setPreviewAttachment(attachment);
@@ -12370,6 +11642,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           )}
         </View>
 
+        {/* VERIFICATION SECTION - Show if permit needs verification */}
+        {needsVerification(latestPermit) && (
+          <View style={[styles.section, { backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626' }]}>
+            <View style={{ padding: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
+                ⚠️ Daily Verification Required
+              </Text>
+              <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                This permit has not been verified in the last 24 hours. Click the button below to verify it's still safe to proceed.
+              </Text>
+              {latestPermit.last_verified_at && (
+                <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+                  Last verified: {formatDateNZ(latestPermit.last_verified_at)}
+                  {latestPermit.verified_by && ` by ${latestPermit.verified_by}`}
+                </Text>
+              )}
+              <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => handleVerifyPermit(latestPermit)}>
+                <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* VERIFICATION CONFIRMATION - Show if recently verified */}
+        {latestPermit.last_verified_at && !needsVerification(latestPermit) && (
+          <View style={[styles.section, { backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
+            <View style={{ padding: 12 }}>
+              <Text style={{ fontSize: 12, color: '#059669' }}>
+                ✓ Verified by {latestPermit.verified_by || 'Unknown'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                {latestPermit.last_verified_at ? formatDateNZ(latestPermit.last_verified_at) : 'N/A'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             try {
@@ -12401,7 +11710,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '80%', padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '600', flex: 1 }}>{previewAttachment?.name}</Text>
-              <TouchableOpacity style={styles.backButton} onPress={() => setPreviewModalVisible(false)}>
+              <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -12602,7 +11911,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
-    padding: 8,
+    color: 'white',
+    fontSize: 16,
     marginRight: 15,
   },
   content: {
