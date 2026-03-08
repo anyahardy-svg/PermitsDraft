@@ -222,7 +222,35 @@ await saveJseaTemplate(
 
 ## Recent Commits Summary
 
-### Verification & Dashboard Features
+### **FIXED: Permit Verification Workflow (Commit 0e33235c)**
+**Date**: March 8, 2026
+**What was fixed**:
+- ✅ Added missing `supabaseClient` import to App.js 
+- ✅ Added `last_verified_at` and `verified_by` fields to permits API transform
+- ✅ Restored "Needs Verification" dashboard card with red warning badge
+- ✅ Added verification section to active permit edit screen
+- ✅ Implemented verify button that updates permit verification status
+- ✅ Shows green confirmation when permit recently verified
+- ✅ Verification logic: checks if permit >24 hours since last verification
+
+**How it works**:
+1. Dashboard shows "Needs Verification" card with count of permits needing verification
+2. Red warning badge appears when count > 0
+3. Click card to go to Active Permits
+4. In active permit detail screen, if permit needs verification:
+   - Red warning box shows "Daily Verification Required"
+   - Shows when last verified and by whom
+   - Red button to "✓ Verify Permit Now"
+5. Clicking verify updates `last_verified_at` timestamp and `verified_by` user
+6. Green confirmation appears after verification
+7. 24-hour timer resets
+
+**Database columns ready**:
+- `last_verified_at` (timestamp)
+- `verified_by` (text)
+- `business_unit_id` (uuid)
+
+### Earlier Verification & UI Features
 - **84f2bae1** - `feat: auto-redirect to verification and update dashboard`
   - Implements permit verification workflow
   - Auto-redirects to verification when needed
@@ -258,25 +286,21 @@ await saveJseaTemplate(
 
 ## What's Working Now
 
-✅ **Permit Verification Workflow** - Can verify permits through dashboard  
+✅ **Permit Verification Workflow** - Can verify permits with dashboard indicator  
+✅ **24-Hour Verification Tracking** - Automatic tracking and visual indicators  
 ✅ **Risk Matrix Modal** - Interactive modal for risk rating during approval  
-✅ **Verification Tracking** - 24-hour tracking of permit verification state  
-✅ **Auto-Redirect** - Intelligent redirect to verification when needed  
 ✅ **Form Organization** - Location field moved to top of all forms  
-✅ **Dashboard Updates** - Verification indicators on permit cards
+✅ **Dashboard Updates** - Verification card with warning indicators
 
 ---
 
-## Known Issues to Address
+## Still To Do
 
 The following still need attention:
 1. **Mandatory Fields Not Visually Marked** - No red border/highlighting on required fields
-   - Suggestion: Add red border to empty required fields on form submission attempt
-   - Show validation error list specifying which fields are required
+   - Need to add red borders to empty required fields on form submission attempts
+   - Show validation error list specifying which fields are required when blocking submission
    
-2. **supabaseClient Error** - `supabaseClient is not defined` error seen in some contexts
-   - Need to verify imports are correct in App.js
-
 ---
 
-**Last Updated**: March 8, 2026
+**Last Updated**: March 8, 2026 (Morning)

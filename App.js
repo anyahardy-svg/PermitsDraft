@@ -1710,6 +1710,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     'Radiation',
     'Other'
   ];
+
+  // Check if permit needs daily verification (>24 hours since last verification)
+  const needsVerification = (permit) => {
+    if (!permit.last_verified_at) return true; // Never verified
+    const lastVerified = new Date(permit.last_verified_at);
+    const now = new Date();
+    const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
+    return hoursSinceVerification > 24;
+  };
+
+  // Handle permit verification - update last_verified_at and verified_by
+  const handleVerifyPermit = async (permit) => {
+    try {
+      const now = new Date().toISOString();
+      const currentUser = localStorage.getItem('user_name') || 'Unknown';
+      
+      // Update in Supabase
+      const { data, error } = await supabaseClient
+        .from('permits')
+        .update({
+          last_verified_at: now,
+          verified_by: currentUser
+        })
+        .eq('id', permit.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setPermits(prev => prev.map(p => 
+        p.id === permit.id 
+          ? { ...p, last_verified_at: now, verified_by: currentUser }
+          : p
+      ));
+      
+      Alert.alert('Success', `Permit verified by ${currentUser}`);
+    } catch (err) {
+      console.error('Verification error:', err);
+      Alert.alert('Error', 'Failed to verify permit. Please try again.');
+    }
+  };
+
   const renderNewPermitForm = () => {
     // Check if accessing from kiosk subdomain
     const isKioskMode = typeof window !== 'undefined' && window.location.hostname.includes('-kiosk.');
