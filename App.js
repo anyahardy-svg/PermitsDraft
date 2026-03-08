@@ -1711,13 +1711,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     'Other'
   ];
 
-  // Check if permit needs daily verification (>24 hours since last verification)
+  // Check if permit needs daily verification (>5 minutes since last verification - FOR TESTING ONLY)
   const needsVerification = (permit) => {
     if (!permit.last_verified_at) return true; // Never verified
     const lastVerified = new Date(permit.last_verified_at);
     const now = new Date();
-    const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
-    return hoursSinceVerification > 24;
+    const minutesSinceVerification = (now - lastVerified) / (1000 * 60);
+    return minutesSinceVerification > 5; // 5 minutes for testing, change to 1440 (24 hours) for production
   };
 
   // Handle permit verification - update last_verified_at and verified_by
