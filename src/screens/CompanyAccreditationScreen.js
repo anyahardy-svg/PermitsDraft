@@ -327,6 +327,8 @@ export default function CompanyAccreditationScreen({
 
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
+    const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
+    
     const updateData = {
       name: companyDetails.companyName,
       email: companyDetails.companyEmail,
@@ -335,7 +337,8 @@ export default function CompanyAccreditationScreen({
       contact_email: companyDetails.contactEmail,
       contact_phone: companyDetails.contactPhone,
       approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
-      fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]),
+      fletcher_business_units: selectedBusinessUnitIds,
+      business_unit_ids: selectedBusinessUnitIds,
       accreditation_status: status
     };
 
