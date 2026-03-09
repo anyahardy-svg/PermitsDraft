@@ -2589,6 +2589,109 @@ export default function CompanyAccreditationScreen({
                   </View>
                 </View>
               )}
+
+              {/* SECTION 6: Induction & Training */}
+              {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.expandableHeader, { marginTop: 16 }]}
+                    onPress={() => setExpandedSections(prev => ({ ...prev, 6: !prev[6] }))}
+                  >
+                    <Text style={[styles.expandableTitle, { color: '#059669' }]}>Section 6: Induction & Training</Text>
+                    <Text style={styles.expandableTitle}>{expandedSections[6] ? '▼' : '▶'}</Text>
+                  </TouchableOpacity>
+
+                  {expandedSections[6] && (
+                    <View style={styles.expandableContent}>
+                      <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
+                        <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
+                        <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
+                          1: Minimal/informal processes; no written procedures{'\n'}
+                          2: Basic systems exist; assigned responsibilities{'\n'}
+                          3: Formal systems in place; consistent application; structured communication{'\n'}
+                          4: Comprehensive systems embedded; proactive & collaborative; continuous improvement
+                        </Text>
+                      </View>
+
+                      {[
+                        { key: 'induction_programme', question: 'A worker induction programme that includes Health & Safety, Environmental and Quality training?' },
+                        { key: 'induction_records_process', question: 'A process to maintain and record worker\'s induction & training records?' },
+                        { key: 'skills_training_list', question: 'A documented list of the skills and training your workers require?' },
+                        { key: 'competency_testing_system', question: 'A system for testing the competency of your workers?' }
+                      ].map((item, idx) => (
+                        <View key={idx} style={{ marginBottom: 16 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                              {item.question}
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                              {[1, 2, 3, 4].map(score => (
+                                <TouchableOpacity
+                                  key={score}
+                                  onPress={() => setSection6(prev => ({
+                                    ...prev,
+                                    [item.key]: { ...prev[item.key], score, exists: true }
+                                  }))}
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 6,
+                                    backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                                    borderWidth: section6[item.key]?.score === score ? 3 : 1,
+                                    borderColor: section6[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    position: 'relative'
+                                  }}
+                                >
+                                  <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                                  {section6[item.key]?.score === score && score > 1 && (
+                                    <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+                                      <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
+                                    </View>
+                                  )}
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                          {section6[item.key]?.score > 0 && (
+                            <View style={{ marginTop: 8 }}>
+                              {section6[item.key]?.score > 1 && !section6[item.key]?.evidence && (
+                                <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                                  <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section6[item.key]?.score}</Text>
+                                </View>
+                              )}
+                              {section6[item.key]?.evidence && (
+                                <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
+                                  <TouchableOpacity onPress={() => Linking.openURL(section6[item.key]?.evidence)}>
+                                    <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                              <TouchableOpacity
+                                style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                                onPress={() => handleUploadEvidence('section6', item.key, item.question)}
+                              >
+                                <Text style={{ color: 'white' }}>📄 {section6[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section6[item.key]?.score > 1 ? ' *' : ''}</Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Sections 7-19 renderquickly following same pattern */}
+              {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ fontSize: 13, color: '#6B7280', textAlign: 'center', marginVertical: 20 }}>
+                    Sections 7-19 coming soon...
+                  </Text>
+                </View>
+              )}
             </>
           )}
         </View>
