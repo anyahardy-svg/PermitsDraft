@@ -267,10 +267,10 @@ export default function CompanyAccreditationScreen({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { flex: 1 }]}>
       <ScrollView 
         style={[styles.screenContainer, { flex: 1 }]}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
         scrollEnabled={true}
       >
         {/* Contractor Selection */}

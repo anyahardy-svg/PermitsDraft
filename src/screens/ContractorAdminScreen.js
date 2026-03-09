@@ -482,12 +482,14 @@ export default function ContractorAdminScreen({
             </Text>
           </View>
         ) : activeTab === 'accreditation' ? (
-          <CompanyAccreditationScreen
-            companyId={null}
-            isAdmin={false}
-            styles={styles}
-            onClose={() => setActiveTab(null)}
-          />
+          <View style={{ flex: 1 }}>
+            <CompanyAccreditationScreen
+              companyId={null}
+              isAdmin={false}
+              styles={styles}
+              onClose={() => setActiveTab(null)}
+            />
+          </View>
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )
