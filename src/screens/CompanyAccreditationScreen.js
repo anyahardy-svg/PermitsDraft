@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate } from '../api/accreditations';
 import { listCompanies } from '../api/companies';
+import { listContractors } from '../api/contractors';
 
 /**
  * CompanyAccreditationScreen
@@ -34,6 +35,9 @@ export default function CompanyAccreditationScreen({
   const [currentCompanyId, setCurrentCompanyId] = useState(companyId);
   const [company, setCompany] = useState(null);
   const [companies, setCompanies] = useState([]); // For admin dropdown
+  const [contractors, setContractors] = useState([]); // List of all contractors for selection
+  const [selectedContractor, setSelectedContractor] = useState(null); // Currently selected contractor
+  const [showContractorPicker, setShowContractorPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [section, setSection] = useState(2); // Start with Section 2
@@ -94,6 +98,24 @@ export default function CompanyAccreditationScreen({
     { key: 'iso_9001_certified', label: 'ISO 9001 (Quality)' },
     { key: 'iso_14001_certified', label: 'ISO 14001 (Environmental)' }
   ];
+
+  // Load contractors on mount
+  useEffect(() => {
+    const loadAllContractors = async () => {
+      try {
+        const data = await listContractors();
+        setContractors(data || []);
+        // Auto-select first contractor if none selected
+        if (data && data.length > 0 && !selectedContractor) {
+          setSelectedContractor(data[0]);
+          setCurrentCompanyId(data[0].company_id);
+        }
+      } catch (error) {
+        console.error('Failed to load contractors:', error);
+      }
+    };
+    loadAllContractors();
+  }, []);
 
   // Load company data
   useEffect(() => {
@@ -231,20 +253,59 @@ export default function CompanyAccreditationScreen({
       </View>
 
       <ScrollView style={styles.screenContainer}>
-        {/* Company Selection (Admin Only) */}
-        {isAdmin && companies.length > 0 && (
-          <View style={{ marginBottom: 20, paddingHorizontal: 16 }}>
-            <Text style={styles.label}>Select Company:</Text>
-            <TouchableOpacity
-              style={[styles.input, { paddingVertical: 12 }]}
-              onPress={() => {
-                // Show company picker
-              }}
-            >
-              <Text>{company?.name || 'Select a company'}</Text>
-            </TouchableOpacity>
+        {/* Contractor Selection */}
+        <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
+          <Text style={styles.label}>Select Contractor:</Text>
+          <TouchableOpacity
+            style={[styles.input, { paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+            onPress={() => setShowContractorPicker(true)}
+          >
+            <Text style={{ color: selectedContractor ? '#1F2937' : '#9CA3AF' }}>
+              {selectedContractor?.name || 'Select a contractor...'}
+            </Text>
+            <Text style={{ fontSize: 16 }}>▼</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Contractor Picker Modal */}
+        <Modal
+          visible={showContractorPicker}
+          animationType="slide"
+          onRequestClose={() => setShowContractorPicker(false)}
+        >
+          <View style={[styles.container, { paddingTop: 50 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+              <Text style={[styles.title, { margin: 0 }]}>Select Contractor</Text>
+              <TouchableOpacity onPress={() => setShowContractorPicker(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={contractors}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  onPress={() => {
+                    setSelectedContractor(item);
+                    setCurrentCompanyId(item.company_id);
+                    setShowContractorPicker(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937' }}>
+                    {item.name}
+                  </Text>
+                  {item.company && (
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                      {item.company}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
           </View>
-        )}
+        </Modal>
 
         {/* Section Navigation */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20, gap: 8 }}>
