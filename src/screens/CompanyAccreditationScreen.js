@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
+  Linking,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
@@ -822,10 +823,9 @@ export default function CompanyAccreditationScreen({
                           </Text>
                           <TouchableOpacity 
                             onPress={() => {
-                              // Open certificate in browser
-                              const url = accreditedSystems[system.key].certificateUrl;
+                              const url = accreditedSystems[system.key]?.certificateUrl;
                               if (url) {
-                                fetch(url).catch(e => 
+                                Linking.openURL(url).catch(() => 
                                   Alert.alert('Error', 'Could not open certificate')
                                 );
                               }
