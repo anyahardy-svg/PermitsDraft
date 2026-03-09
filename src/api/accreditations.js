@@ -142,10 +142,16 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
       .from('accreditations')
       .getPublicUrl(fileName);
 
-    return publicUrl.publicUrl;
+    return {
+      success: true,
+      url: publicUrl.publicUrl
+    };
   } catch (error) {
     console.error('Error uploading certificate:', error.message);
-    throw error;
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 

@@ -12,6 +12,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate } from '../api/accreditations';
 import { listCompanies } from '../api/companies';
 import { listContractors } from '../api/contractors';
@@ -159,15 +160,17 @@ export default function CompanyAccreditationScreen({
       ACCREDITED_SYSTEMS.forEach(sys => {
         const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
         const isoDate = data[expiryKeyName] || null;
-        // Convert ISO date to NZ format (dd/mm/yyyy)
+        // Convert ISO date (yyyy-mm-dd) to NZ format (dd/mm/yyyy)
         let nzDate = null;
         if (isoDate) {
           try {
-            const d = new Date(isoDate);
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const year = d.getFullYear();
-            nzDate = `${day}/${month}/${year}`;
+            // Parse ISO date string directly to avoid timezone issues
+            const [year, month, day] = isoDate.split('-');
+            if (year && month && day) {
+              nzDate = `${day}/${month}/${year}`;
+            } else {
+              nzDate = isoDate;
+            }
           } catch (e) {
             nzDate = isoDate;
           }
@@ -175,7 +178,7 @@ export default function CompanyAccreditationScreen({
         systems[sys.key] = {
           checked: data[sys.key] || false,
           expiryDate: nzDate,
-          fileUrl: data[`${sys.key.replace('_accredited', '_certificate_url').replace('_certified', '_certificate_url').replace('_qualified', '_certificate_url').replace('_prequalified', '_certificate_url')}`] || null
+          certificateUrl: data[`${sys.key}_certificate_url`] || null
         };
       });
       setAccreditedSystems(systems);
@@ -239,6 +242,54 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
+  const handleUploadCertificate = async (systemKey, systemLabel) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*']
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (!file) return;
+
+      // Convert the file URI to a blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      
+      // Create a File object from the blob
+      const fileObject = new File([blob], file.name, { type: file.mimeType });
+
+      // Upload to Supabase Storage
+      setLoading(true);
+      const uploadResult = await uploadAccreditationCertificate(
+        currentCompanyId,
+        systemKey,
+        fileObject
+      );
+
+      if (uploadResult.success) {
+        // Update state with the new URL
+        setAccreditedSystems(prev => ({
+          ...prev,
+          [systemKey]: {
+            ...prev[systemKey],
+            certificateUrl: uploadResult.url
+          }
+        }));
+        Alert.alert('Success', `${systemLabel} certificate uploaded successfully`);
+      } else {
+        Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult.error || 'Unknown error'));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!currentCompanyId) {
       Alert.alert('Error', 'No company selected');
@@ -255,6 +306,14 @@ export default function CompanyAccreditationScreen({
       // Add accredited systems
       ACCREDITED_SYSTEMS.forEach(sys => {
         updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
+        
+        // Save certificate URL
+        const urlKeyName = `${sys.key}_certificate_url`;
+        if (accreditedSystems[sys.key]?.certificateUrl) {
+          updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
+        }
+        
+        // Save expiry date
         const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
         const expiryValue = accreditedSystems[sys.key]?.expiryDate;
         
@@ -498,15 +557,15 @@ export default function CompanyAccreditationScreen({
                         keyboardType="numeric"
                       />
                       
-                      {accreditedSystems[system.key]?.fileUrl && (
+                      {accreditedSystems[system.key]?.certificateUrl && (
                         <Text style={{ fontSize: 12, color: '#10B981', marginTop: 8 }}>
                           ✓ Certificate uploaded
                         </Text>
                       )}
 
                       <TouchableOpacity
-                        style={[styles.addButton, { backgroundColor: '#9CA3AF', marginTop: 8 }]}
-                        onPress={() => Alert.alert('File Upload', 'Upload certificate functionality coming soon')}
+                        style={[styles.addButton, { backgroundColor: '#3B82F6', marginTop: 8 }]}
+                        onPress={() => handleUploadCertificate(system.key, system.label)}
                         pointerEvents="auto"
                       >
                         <Text style={{ color: 'white' }}>📄 Upload Certificate</Text>
