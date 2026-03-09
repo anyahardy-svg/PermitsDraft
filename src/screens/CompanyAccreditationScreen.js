@@ -173,7 +173,14 @@ export default function CompanyAccreditationScreen({
       // Populate accredited systems
       const systems = {};
       ACCREDITED_SYSTEMS.forEach(sys => {
-        const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
+        // Get base name by removing status suffixes
+        const baseName = sys.key
+          .replace('_accredited', '')
+          .replace('_certified', '')
+          .replace('_qualified', '')
+          .replace('_prequalified', '');
+
+        const expiryKeyName = `${baseName}_certificate_expiry`;
         const isoDate = data[expiryKeyName] || null;
         // Convert ISO date (yyyy-mm-dd) to NZ format (dd/mm/yyyy)
         let nzDate = null;
@@ -193,7 +200,7 @@ export default function CompanyAccreditationScreen({
         systems[sys.key] = {
           checked: data[sys.key] || false,
           expiryDate: nzDate,
-          certificateUrl: data[`${sys.key}_certificate_url`] || null
+          certificateUrl: data[`${baseName}_certificate_url`] || null
         };
       });
       setAccreditedSystems(systems);
@@ -330,14 +337,22 @@ export default function CompanyAccreditationScreen({
       ACCREDITED_SYSTEMS.forEach(sys => {
         updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
         
-        // Save certificate URL
-        const urlKeyName = `${sys.key}_certificate_url`;
+        // Get base name by removing status suffixes
+        const baseName = sys.key
+          .replace('_accredited', '')
+          .replace('_certified', '')
+          .replace('_qualified', '')
+          .replace('_prequalified', '');
+        
+        // Save certificate URL with correct column name pattern
+        const urlKeyName = `${baseName}_certificate_url`;
         if (accreditedSystems[sys.key]?.certificateUrl) {
           updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
+          console.log(`💾 Saving ${sys.label} certificate URL to ${urlKeyName}`);
         }
         
-        // Save expiry date
-        const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
+        // Save expiry date with correct column name pattern
+        const expiryKeyName = `${baseName}_certificate_expiry`;
         const expiryValue = accreditedSystems[sys.key]?.expiryDate;
         
         if (expiryValue) {
