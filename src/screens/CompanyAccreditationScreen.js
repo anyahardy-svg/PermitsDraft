@@ -242,7 +242,7 @@ export default function CompanyAccreditationScreen({
       // Set accreditation status
       setAccreditationStatus(data.accreditation_status || 'in-progress');
 
-      // Load policies (Section 4)
+      // Load policies (Section 3)
       setPolicies({
         health_safety: {
           exists: data.health_safety_policy_exists || false,
@@ -259,6 +259,51 @@ export default function CompanyAccreditationScreen({
         quality: {
           exists: data.quality_policy_exists || false,
           url: data.quality_policy_url || null
+        }
+      });
+
+      // Load section 4 (Accident & Incident Management)
+      setSection4({
+        accident_reporting: {
+          exists: data.accident_reporting_exists || false,
+          score: data.accident_reporting_score || 0,
+          evidence: data.accident_reporting_evidence_url || null
+        },
+        accident_investigation: {
+          exists: data.accident_investigation_exists || false,
+          score: data.accident_investigation_score || 0,
+          evidence: data.accident_investigation_evidence_url || null
+        }
+      });
+
+      // Load section 5 (Health Hazard Management)
+      setSection5({
+        health_hazard_plan: {
+          exists: data.health_hazard_plan_exists || false,
+          score: data.health_hazard_plan_score || 0,
+          evidence: data.health_hazard_plan_evidence_url || null
+        },
+        exposure_monitoring: {
+          exists: data.exposure_monitoring_exists || false,
+          frequency: data.exposure_monitoring_frequency || 1,
+          score: data.exposure_monitoring_score || 0,
+          evidence: data.exposure_monitoring_evidence_url || null
+        },
+        respiratory_training: {
+          exists: data.respiratory_training_exists || false,
+          score: data.respiratory_training_score || 0,
+          evidence: data.respiratory_training_evidence_url || null
+        },
+        exhaust_ventilation: {
+          exists: data.exhaust_ventilation_exists || false,
+          score: data.exhaust_ventilation_score || 0,
+          evidence: data.exhaust_ventilation_evidence_url || null
+        },
+        health_monitoring: {
+          exists: data.health_monitoring_exists || false,
+          frequency: data.health_monitoring_frequency || 1,
+          score: data.health_monitoring_score || 0,
+          evidence: data.health_monitoring_evidence_url || null
         }
       });
     } catch (error) {
