@@ -560,6 +560,65 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  // Handle evidence upload for sections 4 & 5
+  const handleUploadEvidence = async (section, itemKey, itemLabel) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*']
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (!file) return;
+
+      // Convert the file URI to a blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      
+      // Create a File object from the blob
+      const fileObject = new File([blob], file.name, { type: file.mimeType });
+
+      // Upload to Supabase Storage
+      setLoading(true);
+      const uploadResult = await uploadAccreditationCertificate(
+        currentCompanyId,
+        `${section}_${itemKey}_evidence`,
+        fileObject
+      );
+
+      if (uploadResult.success) {
+        // Update state with the new URL
+        if (section === 'section4') {
+          setSection4(prev => ({
+            ...prev,
+            [itemKey]: {
+              ...prev[itemKey],
+              evidence: uploadResult.url
+            }
+          }));
+        } else if (section === 'section5') {
+          setSection5(prev => ({
+            ...prev,
+            [itemKey]: {
+              ...prev[itemKey],
+              evidence: uploadResult.url
+            }
+          }));
+        }
+        Alert.alert('Success', `${itemLabel} evidence uploaded successfully`);
+      } else {
+        Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
@@ -1482,7 +1541,7 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section4_accident_evidence', 'Accident Reporting Evidence')}
+                          onPress={() => handleUploadEvidence('section4', 'accident_reporting', 'Accident Reporting Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section4.accident_reporting.evidence ? 'Replace' : 'Upload'} Evidence{section4.accident_reporting.score > 1 ? ' *' : ''}</Text>
@@ -1561,7 +1620,7 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section4_investigation_evidence', 'Investigation Evidence')}
+                          onPress={() => handleUploadEvidence('section4', 'accident_investigation', 'Investigation Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section4.accident_investigation.evidence ? 'Replace' : 'Upload'} Evidence{section4.accident_investigation.score > 1 ? ' *' : ''}</Text>
@@ -1694,7 +1753,7 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section5_hazard_plan_evidence', 'Health Hazard Plan Evidence')}
+                          onPress={() => handleUploadEvidence('section5', 'health_hazard_plan', 'Health Hazard Plan Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section5.health_hazard_plan.evidence ? 'Replace' : 'Upload'} Evidence{section5.health_hazard_plan.score > 1 ? ' *' : ''}</Text>
@@ -1798,7 +1857,7 @@ export default function CompanyAccreditationScreen({
 
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section5_monitoring_evidence', 'Exposure Monitoring Evidence')}
+                          onPress={() => handleUploadEvidence('section5', 'exposure_monitoring', 'Exposure Monitoring Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section5.exposure_monitoring.evidence ? 'Replace' : 'Upload'} Evidence{section5.exposure_monitoring.score > 1 ? ' *' : ''}</Text>
@@ -1877,7 +1936,7 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section5_training_evidence', 'Respiratory Training Evidence')}
+                          onPress={() => handleUploadEvidence('section5', 'respiratory_training', 'Respiratory Training Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section5.respiratory_training.evidence ? 'Replace' : 'Upload'} Evidence{section5.respiratory_training.score > 1 ? ' *' : ''}</Text>
@@ -1956,7 +2015,7 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section5_ventilation_evidence', 'Ventilation Evidence')}
+                          onPress={() => handleUploadEvidence('section5', 'exhaust_ventilation', 'Ventilation Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section5.exhaust_ventilation.evidence ? 'Replace' : 'Upload'} Evidence{section5.exhaust_ventilation.score > 1 ? ' *' : ''}</Text>
@@ -2060,7 +2119,7 @@ export default function CompanyAccreditationScreen({
 
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('section5_health_monitoring_evidence', 'Health Monitoring Evidence')}
+                          onPress={() => handleUploadEvidence('section5', 'health_monitoring', 'Health Monitoring Evidence')}
                           pointerEvents="auto"
                         >
                           <Text style={{ color: 'white' }}>📄 {section5.health_monitoring.evidence ? 'Replace' : 'Upload'} Evidence{section5.health_monitoring.score > 1 ? ' *' : ''}</Text>
