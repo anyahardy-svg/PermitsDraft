@@ -40,7 +40,7 @@ export default function CompanyAccreditationScreen({
   const [showContractorPicker, setShowContractorPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [section, setSection] = useState(2); // Start with Section 2
+  const [expandedSections, setExpandedSections] = useState({ 2: true, 3: false }); // Track which sections are expanded
 
   // Section 2 state
   const [approvedServices, setApprovedServices] = useState([]);
@@ -197,6 +197,13 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
+  const toggleSection = (sectionNum) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionNum]: !prev[sectionNum]
+    }));
+  };
+
   const handleSave = async () => {
     if (!currentCompanyId) {
       Alert.alert('Error', 'No company selected');
@@ -244,14 +251,6 @@ export default function CompanyAccreditationScreen({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Accreditation</Text>
-      </View>
-
       <ScrollView style={styles.screenContainer}>
         {/* Contractor Selection */}
         <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
@@ -308,114 +307,130 @@ export default function CompanyAccreditationScreen({
         </Modal>
 
         {/* Section Navigation */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20, gap: 8 }}>
+        {/* Collapsible Sections */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+          {/* SECTION 2: Services & Business Units */}
           <TouchableOpacity
-            onPress={() => setSection(2)}
-            style={[
-              styles.addButton,
-              { flex: 1, backgroundColor: section === 2 ? '#3B82F6' : '#E5E7EB' }
-            ]}
+            onPress={() => toggleSection(2)}
+            style={{
+              backgroundColor: 'white',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              marginBottom: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
           >
-            <Text style={{ color: section === 2 ? 'white' : '#374151', fontWeight: '600' }}>
-              Section 2
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+              Section 2: Services & Business Units
+            </Text>
+            <Text style={{ fontSize: 18, color: '#6B7280' }}>
+              {expandedSections[2] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSection(3)}
-            style={[
-              styles.addButton,
-              { flex: 1, backgroundColor: section === 3 ? '#3B82F6' : '#E5E7EB' }
-            ]}
-          >
-            <Text style={{ color: section === 3 ? 'white' : '#374151', fontWeight: '600' }}>
-              Section 3
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* SECTION 2: Services & Business Units */}
-        {section === 2 && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>
-              Section 2: Services
-            </Text>
-
-            <Text style={styles.label}>Which services will you perform on our site?</Text>
-            {SERVICES_LIST.map(service => (
-              <View key={service} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <CheckBox
-                  value={selectedServices[service] || false}
-                  onValueChange={() => handleServiceToggle(service)}
-                  style={{ marginRight: 12 }}
-                />
-                <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service}</Text>
-              </View>
-            ))}
-
-            <Text style={[styles.label, { marginTop: 24, marginBottom: 12 }]}>
-              Which Fletcher business units do you work for?
-            </Text>
-            {FLETCHER_UNITS.map(unit => (
-              <View key={unit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <CheckBox
-                  value={fletherBusinessUnits[unit] || false}
-                  onValueChange={() => handleFletcherUnitToggle(unit)}
-                  style={{ marginRight: 12 }}
-                />
-                <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* SECTION 3: Accredited Systems */}
-        {section === 3 && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>
-              Section 3: Accredited Systems
-            </Text>
-
-            {ACCREDITED_SYSTEMS.map(system => (
-              <View key={system.key} style={{ marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          {expandedSections[2] && (
+            <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
+              <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>Which services will you perform on our site?</Text>
+              {SERVICES_LIST.map(service => (
+                <View key={service} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                   <CheckBox
-                    value={accreditedSystems[system.key]?.checked || false}
-                    onValueChange={() => handleAccreditationToggle(system.key)}
+                    value={selectedServices[service] || false}
+                    onValueChange={() => handleServiceToggle(service)}
                     style={{ marginRight: 12 }}
                   />
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
-                    {system.label}
-                  </Text>
+                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service}</Text>
                 </View>
+              ))}
 
-                {accreditedSystems[system.key]?.checked && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={styles.label}>Expiry Date:</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="YYYY-MM-DD"
-                      value={accreditedSystems[system.key]?.expiryDate || ''}
-                      onChangeText={(text) => handleExpiryDateChange(system.key, text)}
+              <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
+                Which Fletcher business units do you work for?
+              </Text>
+              {FLETCHER_UNITS.map(unit => (
+                <View key={unit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <CheckBox
+                    value={fletherBusinessUnits[unit] || false}
+                    onValueChange={() => handleFletcherUnitToggle(unit)}
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* SECTION 3: Accredited Systems */}
+          <TouchableOpacity
+            onPress={() => toggleSection(3)}
+            style={{
+              backgroundColor: 'white',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              marginBottom: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+              Section 3: Accredited Systems
+            </Text>
+            <Text style={{ fontSize: 18, color: '#6B7280' }}>
+              {expandedSections[3] ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
+
+          {expandedSections[3] && (
+            <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
+              {ACCREDITED_SYSTEMS.map(system => (
+                <View key={system.key} style={{ marginBottom: 20, paddingHorizontal: 12, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <CheckBox
+                      value={accreditedSystems[system.key]?.checked || false}
+                      onValueChange={() => handleAccreditationToggle(system.key)}
+                      style={{ marginRight: 12 }}
                     />
-                    
-                    {accreditedSystems[system.key]?.fileUrl && (
-                      <Text style={{ fontSize: 12, color: '#10B981', marginTop: 8 }}>
-                        ✓ Certificate uploaded
-                      </Text>
-                    )}
-
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#9CA3AF', marginTop: 8 }]}
-                      onPress={() => Alert.alert('File Upload', 'Upload certificate functionality coming soon')}
-                    >
-                      <Text style={{ color: 'white' }}>📄 Upload Certificate</Text>
-                    </TouchableOpacity>
+                    <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                      {system.label}
+                    </Text>
                   </View>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
+
+                  {accreditedSystems[system.key]?.checked && (
+                    <View style={{ paddingLeft: 36 }}>
+                      <Text style={styles.label}>Expiry Date:</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="YYYY-MM-DD"
+                        value={accreditedSystems[system.key]?.expiryDate || ''}
+                        onChangeText={(text) => handleExpiryDateChange(system.key, text)}
+                      />
+                      
+                      {accreditedSystems[system.key]?.fileUrl && (
+                        <Text style={{ fontSize: 12, color: '#10B981', marginTop: 8 }}>
+                          ✓ Certificate uploaded
+                        </Text>
+                      )}
+
+                      <TouchableOpacity
+                        style={[styles.addButton, { backgroundColor: '#9CA3AF', marginTop: 8 }]}
+                        onPress={() => Alert.alert('File Upload', 'Upload certificate functionality coming soon')}
+                      >
+                        <Text style={{ color: 'white' }}>📄 Upload Certificate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* Save Button */}
