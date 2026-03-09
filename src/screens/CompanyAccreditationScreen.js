@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate } from '../api/accreditations';
-import { listCompanies } from '../api/companies';
+import { listCompanies, getCompany } from '../api/companies';
 import { listContractors } from '../api/contractors';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
@@ -412,15 +412,29 @@ export default function CompanyAccreditationScreen({
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                  onPress={() => {
+                  onPress={async () => {
                     setSelectedContractor(item);
                     setCurrentCompanyId(item.company_id);
-                    // Set contractor details
-                    setCompanyDetails(prev => ({
-                      ...prev,
-                      contractorName: item.name || '',
-                      contractorEmail: item.email || ''
-                    }));
+                    
+                    // Fetch company details from companies table
+                    try {
+                      const companyData = await getCompany(item.company_id);
+                      setCompanyDetails({
+                        companyName: companyData?.name || '',
+                        companyEmail: companyData?.email || '',
+                        contractorName: item.name || '',
+                        contractorEmail: item.email || ''
+                      });
+                    } catch (error) {
+                      console.error('Error fetching company:', error);
+                      // Fallback to just contractor details
+                      setCompanyDetails(prev => ({
+                        ...prev,
+                        contractorName: item.name || '',
+                        contractorEmail: item.email || ''
+                      }));
+                    }
+                    
                     setShowContractorPicker(false);
                   }}
                 >
