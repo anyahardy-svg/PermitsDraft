@@ -33,6 +33,7 @@ import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
+import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
 
 // List of all available sites
 const ALL_SITES = [
@@ -1380,6 +1381,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
   const [permits, setPermits] = useState([]);
@@ -12372,6 +12375,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       );
     case 'services_directory':
       return renderServicesDirectory();
+    case 'company_accreditation':
+      return (
+        <CompanyAccreditationScreen
+          companyId={selectedCompanyId}
+          isAdmin={isAdmin}
+          styles={styles}
+          onClose={() => setCurrentScreen('admin')}
+        />
+      );
     default:
       return renderDashboard();
         }
