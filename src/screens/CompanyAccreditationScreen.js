@@ -157,9 +157,24 @@ export default function CompanyAccreditationScreen({
       // Populate accredited systems
       const systems = {};
       ACCREDITED_SYSTEMS.forEach(sys => {
+        const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
+        const isoDate = data[expiryKeyName] || null;
+        // Convert ISO date to NZ format (dd/mm/yyyy)
+        let nzDate = null;
+        if (isoDate) {
+          try {
+            const d = new Date(isoDate);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            nzDate = `${day}/${month}/${year}`;
+          } catch (e) {
+            nzDate = isoDate;
+          }
+        }
         systems[sys.key] = {
           checked: data[sys.key] || false,
-          expiryDate: data[`${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`] || null,
+          expiryDate: nzDate,
           fileUrl: data[`${sys.key.replace('_accredited', '_certificate_url').replace('_certified', '_certificate_url').replace('_qualified', '_certificate_url').replace('_prequalified', '_certificate_url')}`] || null
         };
       });
@@ -204,12 +219,15 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
-  const handleExpiryDateChange = (key, date) => {
+  // Handle expiry date input - accepts dd/mm/yyyy and converts to ISO for storage
+  const handleExpiryDateInput = (systemKey, rawInput) => {
+    // Store the raw input as-is (user is typing)
     setAccreditedSystems(prev => ({
       ...prev,
-      [key]: {
-        ...(prev[key] || {}),
-        expiryDate: date
+      [systemKey]: {
+        ...(prev[systemKey] || {}),
+        expiryDate: rawInput,
+        displayValue: rawInput // Track what the user is typing
       }
     }));
   };
@@ -236,10 +254,20 @@ export default function CompanyAccreditationScreen({
 
       // Add accredited systems
       ACCREDITED_SYSTEMS.forEach(sys => {
-        updateData[sys.key] = accreditedSystems[sys.key].checked;
-        const expiryKey = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
-        if (accreditedSystems[sys.key].expiryDate) {
-          updateData[expiryKey] = accreditedSystems[sys.key].expiryDate;
+        updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
+        const expiryKeyName = `${sys.key.replace('_accredited', '_certificate_expiry').replace('_certified', '_certificate_expiry').replace('_qualified', '_certificate_expiry').replace('_prequalified', '_certificate_expiry')}`;
+        const expiryValue = accreditedSystems[sys.key]?.expiryDate;
+        
+        if (expiryValue) {
+          // If it's already in ISO format (yyyy-MM-dd), use as-is
+          if (expiryValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            updateData[expiryKeyName] = expiryValue;
+          } 
+          // If it's in NZ format (dd/mm/yyyy), convert to ISO
+          else if (expiryValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            const isoDate = parseNZDate(expiryValue);
+            updateData[expiryKeyName] = isoDate;
+          }
         }
       });
 
@@ -447,15 +475,27 @@ export default function CompanyAccreditationScreen({
                       <Text style={styles.label}>Expiry Date (dd/mm/yyyy):</Text>
                       <TextInput
                         style={styles.input}
-                        placeholder="dd/mm/yyyy"
+                        placeholder="dd/mm/yyyy (e.g., 25/12/2025)"
                         placeholderTextColor="#9CA3AF"
-                        value={formatDateNZ(accreditedSystems[system.key]?.expiryDate) || ''}
-                        onChangeText={(text) => {
-                          const isoDate = parseNZDate(text);
-                          handleExpiryDateChange(system.key, isoDate || text);
+                        value={accreditedSystems[system.key]?.expiryDate || ''}
+                        onChangeText={(text) => handleExpiryDateInput(system.key, text)}
+                        onBlur={() => {
+                          // Convert and validate when user leaves the field
+                          const rawDate = accreditedSystems[system.key]?.expiryDate || '';
+                          if (rawDate && rawDate.length === 10 && rawDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                            const isoDate = parseNZDate(rawDate);
+                            setAccreditedSystems(prev => ({
+                              ...prev,
+                              [system.key]: {
+                                ...prev[system.key],
+                                expiryDate: isoDate
+                              }
+                            }));
+                          }
                         }}
                         pointerEvents="auto"
                         editable={true}
+                        keyboardType="numeric"
                       />
                       
                       {accreditedSystems[system.key]?.fileUrl && (
