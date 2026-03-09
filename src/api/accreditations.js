@@ -40,7 +40,6 @@ export const getCompanyAccreditation = async (companyId) => {
         id,
         name,
         email,
-        nzbn,
         approved_services,
         fletcher_business_units,
         aep_accredited,
