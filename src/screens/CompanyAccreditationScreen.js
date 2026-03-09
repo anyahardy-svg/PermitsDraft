@@ -1294,7 +1294,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 7,
         title: 'Hazard Identification & Management',
-        color: '#10B981',
         state: section7,
         setState: setSection7,
         items: [
@@ -1306,7 +1305,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 8,
         title: 'Personal Protective Equipment (PPE)',
-        color: '#0891B2',
         state: section8,
         setState: setSection8,
         items: [
@@ -1319,7 +1317,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 9,
         title: 'Plant & Equipment',
-        color: '#7C3AED',
         state: section9,
         setState: setSection9,
         items: [
@@ -1332,7 +1329,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 10,
         title: 'Electrical Equipment',
-        color: '#EC4899',
         state: section10,
         setState: setSection10,
         items: [
@@ -1345,7 +1341,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 11,
         title: 'Emergency Preparedness & Response',
-        color: '#F59E0B',
         state: section11,
         setState: setSection11,
         items: [
@@ -1356,7 +1351,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 12,
         title: 'Site Specific Safety Plans',
-        color: '#06B6D4',
         state: section12,
         setState: setSection12,
         items: [
@@ -1367,7 +1361,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 13,
         title: 'Contractor Management',
-        color: '#8B5CF6',
         state: section13,
         setState: setSection13,
         items: [
@@ -1378,7 +1371,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 14,
         title: 'Health & Wellbeing',
-        color: '#84CC16',
         state: section14,
         setState: setSection14,
         items: [
@@ -1389,7 +1381,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 15,
         title: 'Competency & Qualifications',
-        color: '#E879F9',
         state: section15,
         setState: setSection15,
         items: [
@@ -1400,7 +1391,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 16,
         title: 'Communication & Reporting',
-        color: '#00D9FF',
         state: section16,
         setState: setSection16,
         items: [
@@ -1411,7 +1401,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 17,
         title: 'Performance & Review',
-        color: '#FF6384',
         state: section17,
         setState: setSection17,
         items: [
@@ -1422,7 +1411,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 18,
         title: 'Incident Analysis & Learning',
-        color: '#36A2EB',
         state: section18,
         setState: setSection18,
         items: [
@@ -1433,7 +1421,6 @@ export default function CompanyAccreditationScreen({
       {
         number: 19,
         title: 'Continuous Improvement',
-        color: '#FFCE56',
         state: section19,
         setState: setSection19,
         items: [
@@ -1446,15 +1433,31 @@ export default function CompanyAccreditationScreen({
     return sections.map(section => (
       <View key={section.number}>
         <TouchableOpacity
-          style={[styles.expandableHeader, { marginTop: 16 }]}
           onPress={() => setExpandedSections(prev => ({ ...prev, [section.number]: !prev[section.number] }))}
+          style={{
+            backgroundColor: 'white',
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+            borderRadius: 8,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            marginBottom: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 16
+          }}
         >
-          <Text style={[styles.expandableTitle, { color: section.color }]}>Section {section.number}: {section.title}</Text>
-          <Text style={styles.expandableTitle}>{expandedSections[section.number] ? '▼' : '▶'}</Text>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+            Section {section.number}: {section.title}
+          </Text>
+          <Text style={{ fontSize: 18, color: '#6B7280' }}>
+            {expandedSections[section.number] ? '▼' : '▶'}
+          </Text>
         </TouchableOpacity>
 
         {expandedSections[section.number] && (
-          <View style={styles.expandableContent}>
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
             <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
               <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
               <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
@@ -2838,15 +2841,31 @@ export default function CompanyAccreditationScreen({
               {!Object.values(accreditedSystems).some(sys => sys.checked) && (
                 <>
                   <TouchableOpacity
-                    style={[styles.expandableHeader, { marginTop: 16 }]}
                     onPress={() => setExpandedSections(prev => ({ ...prev, 6: !prev[6] }))}
+                    style={{
+                      backgroundColor: 'white',
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 8,
+                      paddingVertical: 14,
+                      paddingHorizontal: 14,
+                      marginBottom: 12,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 16
+                    }}
                   >
-                    <Text style={[styles.expandableTitle, { color: '#059669' }]}>Section 6: Induction & Training</Text>
-                    <Text style={styles.expandableTitle}>{expandedSections[6] ? '▼' : '▶'}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                      Section 6: Induction & Training
+                    </Text>
+                    <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                      {expandedSections[6] ? '▼' : '▶'}
+                    </Text>
                   </TouchableOpacity>
 
                   {expandedSections[6] && (
-                    <View style={styles.expandableContent}>
+                    <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
                       <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
                         <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
                         <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
