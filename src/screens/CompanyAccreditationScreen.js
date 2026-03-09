@@ -58,6 +58,14 @@ export default function CompanyAccreditationScreen({
   const [accreditedSystems, setAccreditedSystems] = useState({});
   const [certificateFiles, setCertificateFiles] = useState({});
 
+  // Company information state (for verification/updates)
+  const [companyDetails, setCompanyDetails] = useState({
+    companyName: '',
+    companyEmail: '',
+    contractorName: '',
+    contractorEmail: ''
+  });
+
 
 
   const ACCREDITED_SYSTEMS = [
@@ -140,6 +148,14 @@ export default function CompanyAccreditationScreen({
     try {
       const data = await getCompanyAccreditation(currentCompanyId);
       setCompany(data);
+      
+      // Populate company details
+      setCompanyDetails({
+        companyName: data.name || '',
+        companyEmail: data.email || '',
+        contractorName: selectedContractor?.name || '',
+        contractorEmail: selectedContractor?.email || ''
+      });
       
       // Populate approved services (now using service IDs from database)
       setApprovedServices(data.approved_services || []);
@@ -299,6 +315,8 @@ export default function CompanyAccreditationScreen({
     setSaving(true);
     try {
       const updateData = {
+        name: companyDetails.companyName,
+        email: companyDetails.companyEmail,
         approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
         fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u])
       };
@@ -414,6 +432,64 @@ export default function CompanyAccreditationScreen({
             />
           </View>
         </Modal>
+
+        {/* Company Information Section */}
+        {selectedContractor && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
+            
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.label}>Company Name</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.companyName}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, companyName: text }))}
+                placeholder="Company name"
+                editable={true}
+                pointerEvents="auto"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.label}>Company Email</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.companyEmail}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, companyEmail: text }))}
+                placeholder="Company email"
+                keyboardType="email-address"
+                editable={true}
+                pointerEvents="auto"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.label}>Primary Contact Name</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.contractorName}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contractorName: text }))}
+                placeholder="Contact name"
+                editable={true}
+                pointerEvents="auto"
+              />
+            </View>
+
+            <View style={{ marginBottom: 0 }}>
+              <Text style={styles.label}>Primary Contact Email</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.contractorEmail}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contractorEmail: text }))}
+                placeholder="Contact email"
+                keyboardType="email-address"
+                editable={true}
+                pointerEvents="auto"
+              />
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Please verify or update the above information as needed</Text>
+            </View>
+          </View>
+        )}
 
         {/* Section Navigation */}
         {/* Collapsible Sections */}
