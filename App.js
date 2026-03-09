@@ -2879,26 +2879,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Likelihood Selection */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {['rare', 'unlikely', 'possible', 'likely', 'almost_certain'].map(likelihood => (
+                  <View style={{ flexDirection: 'column', gap: 12 }}>
+                    {[
+                      { key: 'rare', label: 'RARE', desc: 'Will only occur in exceptional circumstances' },
+                      { key: 'unlikely', label: 'UNLIKELY', desc: 'Could occur' },
+                      { key: 'possible', label: 'POSSIBLE', desc: 'Might occur' },
+                      { key: 'likely', label: 'LIKELY', desc: 'Will probably occur' },
+                      { key: 'almost_certain', label: 'ALMOST CERTAIN', desc: 'Will occur most of the time' }
+                    ].map(item => (
                       <TouchableOpacity
-                        key={likelihood}
+                        key={item.key}
                         style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 10,
                           borderRadius: 8,
                           borderWidth: 2,
-                          borderColor: selectedLikelihood === likelihood ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedLikelihood === likelihood ? '#EFF6FF' : 'white'
+                          borderColor: selectedLikelihood === item.key ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedLikelihood === item.key ? '#EFF6FF' : 'white',
+                          padding: 12
                         }}
-                        onPress={() => setSelectedLikelihood(likelihood)}
+                        onPress={() => setSelectedLikelihood(item.key)}
                       >
                         <Text style={{
-                          color: selectedLikelihood === likelihood ? '#3B82F6' : '#374151',
-                          fontWeight: '500',
-                          fontSize: 13
+                          color: selectedLikelihood === item.key ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
                         }}>
-                          {likelihood.replace('_', ' ').toUpperCase()}
+                          {item.label}
+                        </Text>
+                        <Text style={{
+                          color: selectedLikelihood === item.key ? '#1E40AF' : '#6B7280',
+                          fontSize: 12,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -2908,26 +2921,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Severity Selection */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {['insignificant', 'minor', 'moderate', 'major', 'catastrophic'].map(severity => (
+                  <View style={{ flexDirection: 'column', gap: 12 }}>
+                    {[
+                      { key: 'insignificant', label: 'INSIGNIFICANT', desc: 'Report Only Incidents' },
+                      { key: 'minor', label: 'MINOR', desc: 'First Aid' },
+                      { key: 'moderate', label: 'MODERATE', desc: 'MTI, LTI' },
+                      { key: 'major', label: 'MAJOR', desc: 'Serious Injury' },
+                      { key: 'catastrophic', label: 'CATASTROPHIC', desc: 'Fatality' }
+                    ].map(item => (
                       <TouchableOpacity
-                        key={severity}
+                        key={item.key}
                         style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 10,
                           borderRadius: 8,
                           borderWidth: 2,
-                          borderColor: selectedSeverity === severity ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedSeverity === severity ? '#EFF6FF' : 'white'
+                          borderColor: selectedSeverity === item.key ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedSeverity === item.key ? '#EFF6FF' : 'white',
+                          padding: 12
                         }}
-                        onPress={() => setSelectedSeverity(severity)}
+                        onPress={() => setSelectedSeverity(item.key)}
                       >
                         <Text style={{
-                          color: selectedSeverity === severity ? '#3B82F6' : '#374151',
-                          fontWeight: '500',
-                          fontSize: 13
+                          color: selectedSeverity === item.key ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
                         }}>
-                          {severity.toUpperCase()}
+                          {item.label}
+                        </Text>
+                        <Text style={{
+                          color: selectedSeverity === item.key ? '#1E40AF' : '#6B7280',
+                          fontSize: 12,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
                         </Text>
                       </TouchableOpacity>
                     ))}
