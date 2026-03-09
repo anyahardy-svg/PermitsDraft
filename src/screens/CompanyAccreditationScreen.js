@@ -110,6 +110,13 @@ export default function CompanyAccreditationScreen({
     { key: 'iso_14001_certified', label: 'ISO 14001 (Environmental)' }
   ];
 
+  const SCORING_CRITERIA = {
+    1: 'Minimal/informal processes; no written procedures',
+    2: 'Basic systems exist; assigned responsibilities',
+    3: 'Formal systems in place; consistent application; structured communication',
+    4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+  };
+
   // Load contractors on mount
   useEffect(() => {
     const loadAllContractors = async () => {
@@ -1387,6 +1394,24 @@ export default function CompanyAccreditationScreen({
                     Does your organisation have:
                   </Text>
 
+                  {/* Scoring Criteria */}
+                  <View style={{ 
+                    backgroundColor: 'white', 
+                    borderRadius: 6, 
+                    padding: 12, 
+                    marginBottom: 16,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#F59E0B'
+                  }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', marginBottom: 8 }}>SCORING GUIDE:</Text>
+                    {[1, 2, 3, 4].map(score => (
+                      <Text key={score} style={{ fontSize: 10, color: '#4B5563', marginBottom: 4, lineHeight: 14 }}>
+                        <Text style={{ fontWeight: '600' }}>{score}</Text> - {SCORING_CRITERIA[score]}
+                        {score > 1 && <Text style={{ fontWeight: '700', color: '#EF4444' }}> *REQUIRES EVIDENCE</Text>}
+                      </Text>
+                    ))}
+                  </View>
+
                   {/* Accident Reporting Item - Table Row */}
                   <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1409,10 +1434,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section4.accident_reporting.score === score ? 3 : 1,
                               borderColor: section4.accident_reporting.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section4.accident_reporting.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1420,6 +1461,13 @@ export default function CompanyAccreditationScreen({
 
                     {section4.accident_reporting.score > 0 && (
                       <View style={{ marginTop: 12, paddingLeft: 0 }}>
+                        {section4.accident_reporting.score > 1 && !section4.accident_reporting.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section4.accident_reporting.score}
+                            </Text>
+                          </View>
+                        )}
                         {section4.accident_reporting.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1437,7 +1485,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section4_accident_evidence', 'Accident Reporting Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section4.accident_reporting.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section4.accident_reporting.evidence ? 'Replace' : 'Upload'} Evidence{section4.accident_reporting.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1465,10 +1513,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section4.accident_investigation.score === score ? 3 : 1,
                               borderColor: section4.accident_investigation.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section4.accident_investigation.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1476,6 +1540,13 @@ export default function CompanyAccreditationScreen({
 
                     {section4.accident_investigation.score > 0 && (
                       <View style={{ marginTop: 12, paddingLeft: 0 }}>
+                        {section4.accident_investigation.score > 1 && !section4.accident_investigation.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section4.accident_investigation.score}
+                            </Text>
+                          </View>
+                        )}
                         {section4.accident_investigation.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1493,7 +1564,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section4_investigation_evidence', 'Investigation Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section4.accident_investigation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section4.accident_investigation.evidence ? 'Replace' : 'Upload'} Evidence{section4.accident_investigation.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1535,6 +1606,24 @@ export default function CompanyAccreditationScreen({
                     Does your organisation have:
                   </Text>
 
+                  {/* Scoring Criteria */}
+                  <View style={{ 
+                    backgroundColor: 'white', 
+                    borderRadius: 6, 
+                    padding: 12, 
+                    marginBottom: 16,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#F59E0B'
+                  }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', marginBottom: 8 }}>SCORING GUIDE:</Text>
+                    {[1, 2, 3, 4].map(score => (
+                      <Text key={score} style={{ fontSize: 10, color: '#4B5563', marginBottom: 4, lineHeight: 14 }}>
+                        <Text style={{ fontWeight: '600' }}>{score}</Text> - {SCORING_CRITERIA[score]}
+                        {score > 1 && <Text style={{ fontWeight: '700', color: '#EF4444' }}> *REQUIRES EVIDENCE</Text>}
+                      </Text>
+                    ))}
+                  </View>
+
                   {/* Health Hazard Plan - Table Row */}
                   <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1557,10 +1646,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section5.health_hazard_plan.score === score ? 3 : 1,
                               borderColor: section5.health_hazard_plan.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section5.health_hazard_plan.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1568,6 +1673,13 @@ export default function CompanyAccreditationScreen({
 
                     {section5.health_hazard_plan.score > 0 && (
                       <View style={{ marginTop: 12 }}>
+                        {section5.health_hazard_plan.score > 1 && !section5.health_hazard_plan.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section5.health_hazard_plan.score}
+                            </Text>
+                          </View>
+                        )}
                         {section5.health_hazard_plan.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1585,7 +1697,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section5_hazard_plan_evidence', 'Health Hazard Plan Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section5.health_hazard_plan.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section5.health_hazard_plan.evidence ? 'Replace' : 'Upload'} Evidence{section5.health_hazard_plan.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1613,10 +1725,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section5.exposure_monitoring.score === score ? 3 : 1,
                               borderColor: section5.exposure_monitoring.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section5.exposure_monitoring.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1648,6 +1776,13 @@ export default function CompanyAccreditationScreen({
                           ))}
                         </View>
 
+                        {section5.exposure_monitoring.score > 1 && !section5.exposure_monitoring.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section5.exposure_monitoring.score}
+                            </Text>
+                          </View>
+                        )}
                         {section5.exposure_monitoring.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1666,7 +1801,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section5_monitoring_evidence', 'Exposure Monitoring Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section5.exposure_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section5.exposure_monitoring.evidence ? 'Replace' : 'Upload'} Evidence{section5.exposure_monitoring.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1694,10 +1829,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section5.respiratory_training.score === score ? 3 : 1,
                               borderColor: section5.respiratory_training.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section5.respiratory_training.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1705,6 +1856,13 @@ export default function CompanyAccreditationScreen({
 
                     {section5.respiratory_training.score > 0 && (
                       <View style={{ marginTop: 12 }}>
+                        {section5.respiratory_training.score > 1 && !section5.respiratory_training.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section5.respiratory_training.score}
+                            </Text>
+                          </View>
+                        )}
                         {section5.respiratory_training.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1722,7 +1880,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section5_training_evidence', 'Respiratory Training Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section5.respiratory_training.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section5.respiratory_training.evidence ? 'Replace' : 'Upload'} Evidence{section5.respiratory_training.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1750,10 +1908,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section5.exhaust_ventilation.score === score ? 3 : 1,
                               borderColor: section5.exhaust_ventilation.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section5.exhaust_ventilation.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1761,6 +1935,13 @@ export default function CompanyAccreditationScreen({
 
                     {section5.exhaust_ventilation.score > 0 && (
                       <View style={{ marginTop: 12 }}>
+                        {section5.exhaust_ventilation.score > 1 && !section5.exhaust_ventilation.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section5.exhaust_ventilation.score}
+                            </Text>
+                          </View>
+                        )}
                         {section5.exhaust_ventilation.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1778,7 +1959,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section5_ventilation_evidence', 'Ventilation Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section5.exhaust_ventilation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section5.exhaust_ventilation.evidence ? 'Replace' : 'Upload'} Evidence{section5.exhaust_ventilation.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1806,10 +1987,26 @@ export default function CompanyAccreditationScreen({
                               borderWidth: section5.health_monitoring.score === score ? 3 : 1,
                               borderColor: section5.health_monitoring.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              position: 'relative'
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section5.health_monitoring.score === score && score > 1 && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                backgroundColor: '#EF4444',
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>!</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1841,6 +2038,13 @@ export default function CompanyAccreditationScreen({
                           ))}
                         </View>
 
+                        {section5.health_monitoring.score > 1 && !section5.health_monitoring.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>
+                              ⚠️ Evidence Required for Score {section5.health_monitoring.score}
+                            </Text>
+                          </View>
+                        )}
                         {section5.health_monitoring.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
                             <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
@@ -1859,7 +2063,7 @@ export default function CompanyAccreditationScreen({
                           onPress={() => handleUploadPolicy('section5_health_monitoring_evidence', 'Health Monitoring Evidence')}
                           pointerEvents="auto"
                         >
-                          <Text style={{ color: 'white' }}>📄 {section5.health_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                          <Text style={{ color: 'white' }}>📄 {section5.health_monitoring.evidence ? 'Replace' : 'Upload'} Evidence{section5.health_monitoring.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
