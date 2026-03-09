@@ -107,6 +107,51 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_policy_url TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_policy_uploaded_at TIMESTAMP WITH TIME ZONE;
 
 -- ============================================================================
+-- SECTION 4: Accident, Incident & Investigation Management
+-- ============================================================================
+
+-- Accident/incident reporting and recording system
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_reporting_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_reporting_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_reporting_evidence_url TEXT;
+
+-- Accident/investigation process
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_investigation_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_investigation_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accident_investigation_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 5: Health Hazard Management
+-- ============================================================================
+
+-- Health Hazard Management Plan
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_hazard_plan_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_hazard_plan_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_hazard_plan_evidence_url TEXT;
+
+-- Exposure monitoring
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exposure_monitoring_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exposure_monitoring_frequency INT DEFAULT 1; -- 1-5 years
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exposure_monitoring_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exposure_monitoring_evidence_url TEXT;
+
+-- Respiratory protection training
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS respiratory_training_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS respiratory_training_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS respiratory_training_evidence_url TEXT;
+
+-- Exhaust ventilation systems
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exhaust_ventilation_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exhaust_ventilation_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS exhaust_ventilation_evidence_url TEXT;
+
+-- Health monitoring
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_frequency INT DEFAULT 1; -- 1-5 years
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_score INT DEFAULT 0; -- 1-4 rating
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_evidence_url TEXT;
+
+-- ============================================================================
 -- Create Indexes for Common Queries
 -- ============================================================================
 

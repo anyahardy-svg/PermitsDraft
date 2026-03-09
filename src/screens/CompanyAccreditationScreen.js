@@ -61,12 +61,27 @@ export default function CompanyAccreditationScreen({
   const [accreditedSystems, setAccreditedSystems] = useState({});
   const [certificateFiles, setCertificateFiles] = useState({});
 
-  // Section 4 state (Policies)
+  // Section 3 state (Policies)
   const [policies, setPolicies] = useState({
     health_safety: { exists: false, url: null },
     environmental: { exists: false, url: null },
     drug_alcohol: { exists: false, url: null },
     quality: { exists: false, url: null }
+  });
+
+  // Section 4 state (Accident, Incident & Investigation)
+  const [section4, setSection4] = useState({
+    accident_reporting: { exists: false, score: 0, evidence: null },
+    accident_investigation: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 5 state (Health Hazard Management)
+  const [section5, setSection5] = useState({
+    health_hazard_plan: { exists: false, score: 0, evidence: null },
+    exposure_monitoring: { exists: false, frequency: 1, score: 0, evidence: null },
+    respiratory_training: { exists: false, score: 0, evidence: null },
+    exhaust_ventilation: { exists: false, score: 0, evidence: null },
+    health_monitoring: { exists: false, frequency: 1, score: 0, evidence: null }
   });
 
   // Company information state (for verification/updates)
@@ -1005,11 +1020,11 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 4: Policies - Only show if NO accreditation systems selected */}
+          {/* SECTION 3: Policies - Only show if NO accreditation systems selected */}
           {!Object.values(accreditedSystems).some(sys => sys.checked) && (
             <>
               <TouchableOpacity
-                onPress={() => toggleSection(4)}
+                onPress={() => toggleSection(3)}
                 style={{
                   backgroundColor: 'white',
                   borderWidth: 1,
@@ -1024,14 +1039,14 @@ export default function CompanyAccreditationScreen({
                 }}
               >
                 <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-                  Section 4: Policies
+                  Section 3: Policies
                 </Text>
                 <Text style={{ fontSize: 18, color: '#6B7280' }}>
-                  {expandedSections[4] ? '▼' : '▶'}
+                  {expandedSections[3] ? '▼' : '▶'}
                 </Text>
               </TouchableOpacity>
 
-              {expandedSections[4] && (
+              {expandedSections[3] && (
                 <View style={{ paddingHorizontal: 0, paddingBottom:  20, marginBottom: 12 }}>
                   <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>
                     Does your organisation have the following policies?

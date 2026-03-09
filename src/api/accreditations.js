@@ -88,7 +88,30 @@ export const getCompanyAccreditation = async (companyId) => {
         drug_alcohol_policy_exists,
         drug_alcohol_policy_url,
         quality_policy_exists,
-        quality_policy_url
+        quality_policy_url,
+        accident_reporting_exists,
+        accident_reporting_score,
+        accident_reporting_evidence_url,
+        accident_investigation_exists,
+        accident_investigation_score,
+        accident_investigation_evidence_url,
+        health_hazard_plan_exists,
+        health_hazard_plan_score,
+        health_hazard_plan_evidence_url,
+        exposure_monitoring_exists,
+        exposure_monitoring_frequency,
+        exposure_monitoring_score,
+        exposure_monitoring_evidence_url,
+        respiratory_training_exists,
+        respiratory_training_score,
+        respiratory_training_evidence_url,
+        exhaust_ventilation_exists,
+        exhaust_ventilation_score,
+        exhaust_ventilation_evidence_url,
+        health_monitoring_exists,
+        health_monitoring_frequency,
+        health_monitoring_score,
+        health_monitoring_evidence_url
       `)
       .eq('id', companyId)
       .single();
