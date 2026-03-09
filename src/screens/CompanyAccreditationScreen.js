@@ -62,6 +62,10 @@ export default function CompanyAccreditationScreen({
   const [companyDetails, setCompanyDetails] = useState({
     companyName: '',
     companyEmail: '',
+    contactName: '',
+    contactSurname: '',
+    contactEmail: '',
+    contactPhone: '',
     contractorName: '',
     contractorEmail: ''
   });
@@ -153,7 +157,11 @@ export default function CompanyAccreditationScreen({
       setCompanyDetails(prev => ({
         ...prev,
         companyName: data.name || '',
-        companyEmail: data.email || ''
+        companyEmail: data.email || '',
+        contactName: data.contact_name || '',
+        contactSurname: data.contact_surname || '',
+        contactEmail: data.contact_email || '',
+        contactPhone: data.contact_phone || ''
       }));
       
       // Populate approved services (now using service IDs from database)
@@ -323,6 +331,10 @@ export default function CompanyAccreditationScreen({
       const updateData = {
         name: companyDetails.companyName,
         email: companyDetails.companyEmail,
+        contact_name: companyDetails.contactName,
+        contact_surname: companyDetails.contactSurname,
+        contact_email: companyDetails.contactEmail,
+        contact_phone: companyDetails.contactPhone,
         approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
         fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u])
       };
@@ -330,7 +342,11 @@ export default function CompanyAccreditationScreen({
       console.log('💾 Saving company details:', { 
         companyId: currentCompanyId,
         companyName: companyDetails.companyName,
-        companyEmail: companyDetails.companyEmail 
+        companyEmail: companyDetails.companyEmail,
+        contactName: companyDetails.contactName,
+        contactSurname: companyDetails.contactSurname,
+        contactEmail: companyDetails.contactEmail,
+        contactPhone: companyDetails.contactPhone
       });
 
       // Add accredited systems
@@ -496,22 +512,47 @@ export default function CompanyAccreditationScreen({
               <Text style={styles.label}>Primary Contact Name</Text>
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
-                value={companyDetails.contractorName}
-                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contractorName: text }))}
-                placeholder="Contact name"
+                value={companyDetails.contactName}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contactName: text }))}
+                placeholder="Contact first name"
+                editable={true}
+                pointerEvents="auto"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.label}>Primary Contact Surname</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.contactSurname}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contactSurname: text }))}
+                placeholder="Contact surname"
+                editable={true}
+                pointerEvents="auto"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.label}>Primary Contact Email</Text>
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={companyDetails.contactEmail}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contactEmail: text }))}
+                placeholder="Contact email"
+                keyboardType="email-address"
                 editable={true}
                 pointerEvents="auto"
               />
             </View>
 
             <View style={{ marginBottom: 0 }}>
-              <Text style={styles.label}>Primary Contact Email</Text>
+              <Text style={styles.label}>Primary Contact Phone</Text>
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
-                value={companyDetails.contractorEmail}
-                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contractorEmail: text }))}
-                placeholder="Contact email"
-                keyboardType="email-address"
+                value={companyDetails.contactPhone}
+                onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, contactPhone: text }))}
+                placeholder="Contact phone number"
+                keyboardType="phone-pad"
                 editable={true}
                 pointerEvents="auto"
               />
