@@ -43,6 +43,8 @@ export default function CompanyAccreditationScreen({
   const [showContractorPicker, setShowContractorPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
   const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false }); // Track which sections are expanded
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -212,6 +214,9 @@ export default function CompanyAccreditationScreen({
         };
       });
       setAccreditedSystems(systems);
+      
+      // Set accreditation status
+      setAccreditationStatus(data.accreditation_status || 'in-progress');
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
@@ -320,6 +325,74 @@ export default function CompanyAccreditationScreen({
     }
   };
 
+  // Build update data object
+  const buildUpdateData = (status = accreditationStatus) => {
+    const updateData = {
+      name: companyDetails.companyName,
+      email: companyDetails.companyEmail,
+      contact_name: companyDetails.contactName,
+      contact_surname: companyDetails.contactSurname,
+      contact_email: companyDetails.contactEmail,
+      contact_phone: companyDetails.contactPhone,
+      approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
+      fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]),
+      accreditation_status: status
+    };
+
+    // Add accredited systems
+    ACCREDITED_SYSTEMS.forEach(sys => {
+      updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
+      
+      // Get base name by removing status suffixes
+      const baseName = sys.key
+        .replace('_accredited', '')
+        .replace('_certified', '')
+        .replace('_qualified', '')
+        .replace('_prequalified', '');
+      
+      // Save certificate URL with correct column name pattern
+      const urlKeyName = `${baseName}_certificate_url`;
+      if (accreditedSystems[sys.key]?.certificateUrl) {
+        updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
+      }
+      
+      // Save expiry date with correct column name pattern
+      const expiryKeyName = `${baseName}_certificate_expiry`;
+      const expiryValue = accreditedSystems[sys.key]?.expiryDate;
+      
+      if (expiryValue) {
+        // If it's already in ISO format (yyyy-MM-dd), use as-is
+        if (expiryValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          updateData[expiryKeyName] = expiryValue;
+        } 
+        // If it's in NZ format (dd/mm/yyyy), convert to ISO
+        else if (expiryValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const isoDate = parseNZDate(expiryValue);
+          updateData[expiryKeyName] = isoDate;
+        }
+      }
+    });
+
+    return updateData;
+  };
+
+  // Auto-save function (silent, no alerts)
+  const autoSave = async () => {
+    if (!currentCompanyId) return;
+    
+    try {
+      setAutoSaving(true);
+      const updateData = buildUpdateData();
+      await updateCompanyAccreditation(currentCompanyId, updateData);
+      console.log('✨ Auto-saved accreditation data');
+    } catch (error) {
+      console.error('Auto-save error:', error);
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  // Manual save with user feedback
   const handleSave = async () => {
     if (!currentCompanyId) {
       Alert.alert('Error', 'No company selected');
@@ -328,65 +401,11 @@ export default function CompanyAccreditationScreen({
 
     setSaving(true);
     try {
-      const updateData = {
-        name: companyDetails.companyName,
-        email: companyDetails.companyEmail,
-        contact_name: companyDetails.contactName,
-        contact_surname: companyDetails.contactSurname,
-        contact_email: companyDetails.contactEmail,
-        contact_phone: companyDetails.contactPhone,
-        approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
-        fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u])
-      };
-
-      console.log('💾 Saving company details:', { 
-        companyId: currentCompanyId,
-        companyName: companyDetails.companyName,
-        companyEmail: companyDetails.companyEmail,
-        contactName: companyDetails.contactName,
-        contactSurname: companyDetails.contactSurname,
-        contactEmail: companyDetails.contactEmail,
-        contactPhone: companyDetails.contactPhone
-      });
-
-      // Add accredited systems
-      ACCREDITED_SYSTEMS.forEach(sys => {
-        updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
-        
-        // Get base name by removing status suffixes
-        const baseName = sys.key
-          .replace('_accredited', '')
-          .replace('_certified', '')
-          .replace('_qualified', '')
-          .replace('_prequalified', '');
-        
-        // Save certificate URL with correct column name pattern
-        const urlKeyName = `${baseName}_certificate_url`;
-        if (accreditedSystems[sys.key]?.certificateUrl) {
-          updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
-          console.log(`💾 Saving ${sys.label} certificate URL to ${urlKeyName}`);
-        }
-        
-        // Save expiry date with correct column name pattern
-        const expiryKeyName = `${baseName}_certificate_expiry`;
-        const expiryValue = accreditedSystems[sys.key]?.expiryDate;
-        
-        if (expiryValue) {
-          // If it's already in ISO format (yyyy-MM-dd), use as-is
-          if (expiryValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            updateData[expiryKeyName] = expiryValue;
-          } 
-          // If it's in NZ format (dd/mm/yyyy), convert to ISO
-          else if (expiryValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-            const isoDate = parseNZDate(expiryValue);
-            updateData[expiryKeyName] = isoDate;
-          }
-        }
-      });
-
+      const updateData = buildUpdateData();
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       console.log('📊 Update result:', result);
+      
       
       if (result.success) {
         Alert.alert('Success', 'Accreditation saved successfully');
@@ -400,6 +419,50 @@ export default function CompanyAccreditationScreen({
       setSaving(false);
     }
   };
+
+  // Submit accreditation as complete
+  const handleSubmitAsComplete = async () => {
+    Alert.alert(
+      'Submit Accreditation',
+      'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            setSaving(true);
+            try {
+              const updateData = buildUpdateData('completed');
+              const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+              
+              if (result.success) {
+                setAccreditationStatus('completed');
+                Alert.alert('Success', 'Accreditation submitted successfully');
+                loadCompanyData();
+              } else {
+                Alert.alert('Error', 'Failed to submit: ' + result.error);
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Submit failed: ' + error.message);
+            } finally {
+              setSaving(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Auto-save when data changes (debounced)
+  useEffect(() => {
+    if (!currentCompanyId || !selectedContractor) return;
+    
+    const timer = setTimeout(() => {
+      autoSave();
+    }, 2000); // Auto-save after 2 seconds of inactivity
+    
+    return () => clearTimeout(timer);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, currentCompanyId]);
 
   if (loading) {
     return (
@@ -725,16 +788,82 @@ export default function CompanyAccreditationScreen({
         </View>
       </ScrollView>
 
-      {/* Save Button */}
-      <TouchableOpacity
-        style={[styles.addButton, { marginHorizontal: 16, marginBottom: 16 }]}
-        onPress={handleSave}
-        disabled={saving}
-      >
-        <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-          {saving ? 'Saving...' : '✓ Save Accreditation'}
-        </Text>
-      </TouchableOpacity>
+      {/* Status Badge and Buttons */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}>
+        {/* Status Badge */}
+        <View style={{
+          backgroundColor: accreditationStatus === 'completed' ? '#D1FAE5' : '#FEF3C7',
+          borderLeftWidth: 4,
+          borderLeftColor: accreditationStatus === 'completed' ? '#10B981' : '#FBBF24',
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderRadius: 6,
+          marginBottom: 12
+        }}>
+          <Text style={{
+            fontSize: 14,
+            fontWeight: '600',
+            color: accreditationStatus === 'completed' ? '#065F46' : '#92400E'
+          }}>
+            Status: {accreditationStatus === 'completed' ? '✓ Completed' : '⏳ In Progress'}
+          </Text>
+          {autoSaving && (
+            <Text style={{
+              fontSize: 12,
+              color: '#6B7280',
+              marginTop: 4
+            }}>
+              Auto-saving...
+            </Text>
+          )}
+        </View>
+
+        {/* Save Button */}
+        <TouchableOpacity
+          style={[styles.addButton, { marginBottom: 10 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+            {saving ? 'Saving...' : '✓ Save Accreditation'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Submit Button - Only show if not completed */}
+        {accreditationStatus !== 'completed' && (
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: '#10B981' }]}
+            onPress={handleSubmitAsComplete}
+            disabled={saving}
+          >
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+              {saving ? 'Submitting...' : '✓ Submit as Complete'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Completed Badge - Show if submitted */}
+        {accreditationStatus === 'completed' && (
+          <View style={{
+            backgroundColor: '#D1FAE5',
+            borderWidth: 1,
+            borderColor: '#10B981',
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 6,
+            marginTop: 8
+          }}>
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: '#065F46',
+              textAlign: 'center'
+            }}>
+              ✓ This accreditation is complete
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }

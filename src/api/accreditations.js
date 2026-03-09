@@ -77,6 +77,7 @@ export const getCompanyAccreditation = async (companyId) => {
         iso_14001_certified,
         iso_14001_certificate_url,
         iso_14001_certificate_expiry,
+        accreditation_status,
         accreditation_last_updated,
         accreditation_expiry_date
       `)

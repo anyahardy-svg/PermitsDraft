@@ -78,6 +78,7 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS iso_14001_certificate_expiry DATE
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS iso_14001_certificate_uploaded_at TIMESTAMP WITH TIME ZONE;
 
 -- Track accreditation questionnaire completion
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_status TEXT DEFAULT 'in-progress';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_last_updated TIMESTAMP WITH TIME ZONE;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_expiry_date DATE;
 
