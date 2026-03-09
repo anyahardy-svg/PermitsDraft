@@ -155,6 +155,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
               setLoading(true);
               await deleteInduction(induction.id);
               await loadData();
+              setLoading(false);
               Alert.alert('Success', 'Induction deleted');
             } catch (err) {
               console.error('Delete error:', err);
