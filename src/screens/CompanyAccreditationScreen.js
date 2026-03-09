@@ -1288,6 +1288,250 @@ export default function CompanyAccreditationScreen({
     return () => clearTimeout(timer);
   }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, currentCompanyId]);
 
+  // Helper function to render sections 7-19
+  const renderSections__719 = () => {
+    const sections = [
+      {
+        number: 7,
+        title: 'Hazard Identification & Management',
+        color: '#10B981',
+        state: section7,
+        setState: setSection7,
+        items: [
+          { key: 'hazard_identification_process', question: 'A process to identify, report and control hazards in the workplace?' },
+          { key: 'jha_jsea_system', question: 'A Job Hazard Analysis (JHA), Job Safety & Environmental Analysis (JSEA) system or equivalent?' },
+          { key: 'risk_registers', question: 'Risk registers relevant to the workplace?' }
+        ]
+      },
+      {
+        number: 8,
+        title: 'Personal Protective Equipment (PPE)',
+        color: '#0891B2',
+        state: section8,
+        setState: setSection8,
+        items: [
+          { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?' },
+          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?' },
+          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?' },
+          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?' }
+        ]
+      },
+      {
+        number: 9,
+        title: 'Plant & Equipment',
+        color: '#7C3AED',
+        state: section9,
+        setState: setSection9,
+        items: [
+          { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?' },
+          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?' },
+          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?' },
+          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?' }
+        ]
+      },
+      {
+        number: 10,
+        title: 'Electrical Equipment',
+        color: '#EC4899',
+        state: section10,
+        setState: setSection10,
+        items: [
+          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?' },
+          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?' },
+          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?' },
+          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?' }
+        ]
+      },
+      {
+        number: 11,
+        title: 'Emergency Preparedness & Response',
+        color: '#F59E0B',
+        state: section11,
+        setState: setSection11,
+        items: [
+          { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?' },
+          { key: 'emergency_first_aid', question: 'Will your organisation have first aid kits, eye wash stations, first aid room and certified first-aiders on site who can respond in the event of an emergency?' }
+        ]
+      },
+      {
+        number: 12,
+        title: 'Site Specific Safety Plans',
+        color: '#06B6D4',
+        state: section12,
+        setState: setSection12,
+        items: [
+          { key: 'site_safety_plans', question: 'Does your organisation have site-specific safety plans for all work undertaken at our locations?' },
+          { key: 'site_induction_process', question: 'Do you have a documented site induction process for staff and contractors working at our locations?' }
+        ]
+      },
+      {
+        number: 13,
+        title: 'Contractor Management',
+        color: '#8B5CF6',
+        state: section13,
+        setState: setSection13,
+        items: [
+          { key: 'contractor_induction', question: 'Do you ensure all contractors working on your behalf receive appropriate induction and training before starting work?' },
+          { key: 'contractor_compliance', question: 'Do you monitor and ensure contractors comply with your health and safety requirements?' }
+        ]
+      },
+      {
+        number: 14,
+        title: 'Health & Wellbeing',
+        color: '#84CC16',
+        state: section14,
+        setState: setSection14,
+        items: [
+          { key: 'health_wellbeing_program', question: 'Does your organisation have a health and wellbeing program for workers?' },
+          { key: 'fatigue_management', question: 'Do you have procedures for managing worker fatigue and ensuring adequate rest periods?' }
+        ]
+      },
+      {
+        number: 15,
+        title: 'Competency & Qualifications',
+        color: '#E879F9',
+        state: section15,
+        setState: setSection15,
+        items: [
+          { key: 'competency_framework', question: 'Does your organisation have a documented competency framework for all roles?' },
+          { key: 'training_records', question: 'Do you maintain comprehensive training and competency records for all workers?' }
+        ]
+      },
+      {
+        number: 16,
+        title: 'Communication & Reporting',
+        color: '#00D9FF',
+        state: section16,
+        setState: setSection16,
+        items: [
+          { key: 'safety_communication', question: 'Does your organisation have consistent and effective safety communication systems with workers?' },
+          { key: 'near_miss_reporting', question: 'Do you have a system for reporting and investigating near-miss incidents?' }
+        ]
+      },
+      {
+        number: 17,
+        title: 'Performance & Review',
+        color: '#FF6384',
+        state: section17,
+        setState: setSection17,
+        items: [
+          { key: 'performance_monitoring', question: 'Does your organisation regularly monitor safety performance and key performance indicators?' },
+          { key: 'regular_audits', question: 'Do you conduct regular safety audits and inspections of your operations?' }
+        ]
+      },
+      {
+        number: 18,
+        title: 'Incident Analysis & Learning',
+        color: '#36A2EB',
+        state: section18,
+        setState: setSection18,
+        items: [
+          { key: 'incident_investigation_process', question: 'Do you have a documented incident investigation process to identify root causes?' },
+          { key: 'corrective_actions', question: 'Do you implement corrective and preventive actions based on incident investigations?' }
+        ]
+      },
+      {
+        number: 19,
+        title: 'Continuous Improvement',
+        color: '#FFCE56',
+        state: section19,
+        setState: setSection19,
+        items: [
+          { key: 'safety_objectives', question: 'Does your organisation have documented safety objectives and targets?' },
+          { key: 'management_review', question: 'Does management regularly review and update health and safety policies and procedures?' }
+        ]
+      }
+    ];
+
+    return sections.map(section => (
+      <View key={section.number}>
+        <TouchableOpacity
+          style={[styles.expandableHeader, { marginTop: 16 }]}
+          onPress={() => setExpandedSections(prev => ({ ...prev, [section.number]: !prev[section.number] }))}
+        >
+          <Text style={[styles.expandableTitle, { color: section.color }]}>Section {section.number}: {section.title}</Text>
+          <Text style={styles.expandableTitle}>{expandedSections[section.number] ? '▼' : '▶'}</Text>
+        </TouchableOpacity>
+
+        {expandedSections[section.number] && (
+          <View style={styles.expandableContent}>
+            <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
+              <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
+                1: Minimal/informal processes; no written procedures{'\n'}
+                2: Basic systems exist; assigned responsibilities{'\n'}
+                3: Formal systems in place; consistent application; structured communication{'\n'}
+                4: Comprehensive systems embedded; proactive & collaborative; continuous improvement
+              </Text>
+            </View>
+
+            {section.items.map((item, idx) => (
+              <View key={idx} style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                    {item.question}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {[1, 2, 3, 4].map(score => (
+                      <TouchableOpacity
+                        key={score}
+                        onPress={() => section.setState(prev => ({
+                          ...prev,
+                          [item.key]: { ...prev[item.key], score, exists: true }
+                        }))}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 6,
+                          backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                          borderWidth: section.state[item.key]?.score === score ? 3 : 1,
+                          borderColor: section.state[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          position: 'relative'
+                        }}
+                      >
+                        <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                        {section.state[item.key]?.score === score && score > 1 && (
+                          <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                {section.state[item.key]?.score > 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    {section.state[item.key]?.score > 1 && !section.state[item.key]?.evidence && (
+                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                        <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section.state[item.key]?.score}</Text>
+                      </View>
+                    )}
+                    {section.state[item.key]?.evidence && (
+                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                        <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
+                        <TouchableOpacity onPress={() => Linking.openURL(section.state[item.key]?.evidence)}>
+                          <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => handleUploadEvidence(`section${section.number}`, item.key, item.question)}
+                    >
+                      <Text style={{ color: 'white' }}>📄 {section.state[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section.state[item.key]?.score > 1 ? ' *' : ''}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    ));
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -2684,14 +2928,8 @@ export default function CompanyAccreditationScreen({
                 </>
               )}
 
-              {/* Sections 7-19 renderquickly following same pattern */}
-              {!Object.values(accreditedSystems).some(sys => sys.checked) && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={{ fontSize: 13, color: '#6B7280', textAlign: 'center', marginVertical: 20 }}>
-                    Sections 7-19 coming soon...
-                  </Text>
-                </View>
-              )}
+              {/* Sections 7-19 */}
+              {!Object.values(accreditedSystems).some(sys => sys.checked) && renderSections__719()}
             </>
           )}
         </View>
