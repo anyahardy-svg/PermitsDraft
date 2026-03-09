@@ -46,7 +46,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false }); // Track which sections are expanded
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
@@ -82,6 +82,99 @@ export default function CompanyAccreditationScreen({
     respiratory_training: { exists: false, score: 0, evidence: null },
     exhaust_ventilation: { exists: false, score: 0, evidence: null },
     health_monitoring: { exists: false, frequency: 1, score: 0, evidence: null }
+  });
+
+  // Section 6 state (Induction & Training)
+  const [section6, setSection6] = useState({
+    induction_programme: { exists: false, score: 0, evidence: null },
+    induction_records_process: { exists: false, score: 0, evidence: null },
+    skills_training_list: { exists: false, score: 0, evidence: null },
+    competency_testing_system: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 7 state (Hazard Identification & Management)
+  const [section7, setSection7] = useState({
+    hazard_identification_process: { exists: false, score: 0, evidence: null },
+    jha_jsea_system: { exists: false, score: 0, evidence: null },
+    risk_registers: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 8 state (PPE)
+  const [section8, setSection8] = useState({
+    ppe_compliance: { exists: false, score: 0, evidence: null },
+    ppe_training_maintenance: { exists: false, score: 0, evidence: null },
+    ppe_job_assessment: { exists: false, score: 0, evidence: null },
+    ppe_maintenance_schedule: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 9 state (Plant & Equipment)
+  const [section9, setSection9] = useState({
+    plant_equipment_onsite: { exists: false, score: 0, evidence: null },
+    plant_equipment_licenses: { exists: false, score: 0, evidence: null },
+    plant_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
+    plant_equipment_maintenance: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 10 state (Electrical Equipment)
+  const [section10, setSection10] = useState({
+    electrical_equipment_testing: { exists: false, score: 0, evidence: null },
+    electrical_equipment_licenses: { exists: false, score: 0, evidence: null },
+    electrical_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
+    electrical_equipment_maintenance: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 11 state (Emergency Preparedness & Response)
+  const [section11, setSection11] = useState({
+    emergency_procedures: { exists: false, score: 0, evidence: null },
+    emergency_first_aid: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 12 state (Site Specific Safety Plans)
+  const [section12, setSection12] = useState({
+    site_safety_plans: { exists: false, score: 0, evidence: null },
+    site_induction_process: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 13 state (Contractor Management)
+  const [section13, setSection13] = useState({
+    contractor_induction: { exists: false, score: 0, evidence: null },
+    contractor_compliance: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 14 state (Health & Wellbeing)
+  const [section14, setSection14] = useState({
+    health_wellbeing_program: { exists: false, score: 0, evidence: null },
+    fatigue_management: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 15 state (Competency & Qualifications)
+  const [section15, setSection15] = useState({
+    competency_framework: { exists: false, score: 0, evidence: null },
+    training_records: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 16 state (Communication & Reporting)
+  const [section16, setSection16] = useState({
+    safety_communication: { exists: false, score: 0, evidence: null },
+    near_miss_reporting: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 17 state (Performance & Review)
+  const [section17, setSection17] = useState({
+    performance_monitoring: { exists: false, score: 0, evidence: null },
+    regular_audits: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 18 state (Incident Analysis & Learning)
+  const [section18, setSection18] = useState({
+    incident_investigation_process: { exists: false, score: 0, evidence: null },
+    corrective_actions: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 19 state (Continuous Improvement)
+  const [section19, setSection19] = useState({
+    safety_objectives: { exists: false, score: 0, evidence: null },
+    management_review: { exists: false, score: 0, evidence: null }
   });
 
   // Company information state (for verification/updates)
@@ -311,6 +404,247 @@ export default function CompanyAccreditationScreen({
           frequency: data.health_monitoring_frequency || 1,
           score: data.health_monitoring_score || 0,
           evidence: data.health_monitoring_evidence_url || null
+        }
+      });
+
+      // Load section 6 (Induction & Training)
+      setSection6({
+        induction_programme: {
+          exists: data.induction_programme_exists || false,
+          score: data.induction_programme_score || 0,
+          evidence: data.induction_programme_evidence_url || null
+        },
+        induction_records_process: {
+          exists: data.induction_records_process_exists || false,
+          score: data.induction_records_process_score || 0,
+          evidence: data.induction_records_process_evidence_url || null
+        },
+        skills_training_list: {
+          exists: data.skills_training_list_exists || false,
+          score: data.skills_training_list_score || 0,
+          evidence: data.skills_training_list_evidence_url || null
+        },
+        competency_testing_system: {
+          exists: data.competency_testing_system_exists || false,
+          score: data.competency_testing_system_score || 0,
+          evidence: data.competency_testing_system_evidence_url || null
+        }
+      });
+
+      // Load section 7 (Hazard Identification & Management)
+      setSection7({
+        hazard_identification_process: {
+          exists: data.hazard_identification_process_exists || false,
+          score: data.hazard_identification_process_score || 0,
+          evidence: data.hazard_identification_process_evidence_url || null
+        },
+        jha_jsea_system: {
+          exists: data.jha_jsea_system_exists || false,
+          score: data.jha_jsea_system_score || 0,
+          evidence: data.jha_jsea_system_evidence_url || null
+        },
+        risk_registers: {
+          exists: data.risk_registers_exists || false,
+          score: data.risk_registers_score || 0,
+          evidence: data.risk_registers_evidence_url || null
+        }
+      });
+
+      // Load section 8 (PPE)
+      setSection8({
+        ppe_compliance: {
+          exists: data.ppe_compliance_exists || false,
+          score: data.ppe_compliance_score || 0,
+          evidence: data.ppe_compliance_evidence_url || null
+        },
+        ppe_training_maintenance: {
+          exists: data.ppe_training_maintenance_exists || false,
+          score: data.ppe_training_maintenance_score || 0,
+          evidence: data.ppe_training_maintenance_evidence_url || null
+        },
+        ppe_job_assessment: {
+          exists: data.ppe_job_assessment_exists || false,
+          score: data.ppe_job_assessment_score || 0,
+          evidence: data.ppe_job_assessment_evidence_url || null
+        },
+        ppe_maintenance_schedule: {
+          exists: data.ppe_maintenance_schedule_exists || false,
+          score: data.ppe_maintenance_schedule_score || 0,
+          evidence: data.ppe_maintenance_schedule_evidence_url || null
+        }
+      });
+
+      // Load section 9 (Plant & Equipment)
+      setSection9({
+        plant_equipment_onsite: {
+          exists: data.plant_equipment_onsite_exists || false,
+          score: data.plant_equipment_onsite_score || 0,
+          evidence: data.plant_equipment_onsite_evidence_url || null
+        },
+        plant_equipment_licenses: {
+          exists: data.plant_equipment_licenses_exists || false,
+          score: data.plant_equipment_licenses_score || 0,
+          evidence: data.plant_equipment_licenses_evidence_url || null
+        },
+        plant_equipment_safety_provisions: {
+          exists: data.plant_equipment_safety_provisions_exists || false,
+          score: data.plant_equipment_safety_provisions_score || 0,
+          evidence: data.plant_equipment_safety_provisions_evidence_url || null
+        },
+        plant_equipment_maintenance: {
+          exists: data.plant_equipment_maintenance_exists || false,
+          score: data.plant_equipment_maintenance_score || 0,
+          evidence: data.plant_equipment_maintenance_evidence_url || null
+        }
+      });
+
+      // Load section 10 (Electrical Equipment)
+      setSection10({
+        electrical_equipment_testing: {
+          exists: data.electrical_equipment_testing_exists || false,
+          score: data.electrical_equipment_testing_score || 0,
+          evidence: data.electrical_equipment_testing_evidence_url || null
+        },
+        electrical_equipment_licenses: {
+          exists: data.electrical_equipment_licenses_exists || false,
+          score: data.electrical_equipment_licenses_score || 0,
+          evidence: data.electrical_equipment_licenses_evidence_url || null
+        },
+        electrical_equipment_safety_provisions: {
+          exists: data.electrical_equipment_safety_provisions_exists || false,
+          score: data.electrical_equipment_safety_provisions_score || 0,
+          evidence: data.electrical_equipment_safety_provisions_evidence_url || null
+        },
+        electrical_equipment_maintenance: {
+          exists: data.electrical_equipment_maintenance_exists || false,
+          score: data.electrical_equipment_maintenance_score || 0,
+          evidence: data.electrical_equipment_maintenance_evidence_url || null
+        }
+      });
+
+      // Load section 11 (Emergency Preparedness & Response)
+      setSection11({
+        emergency_procedures: {
+          exists: data.emergency_procedures_exists || false,
+          score: data.emergency_procedures_score || 0,
+          evidence: data.emergency_procedures_evidence_url || null
+        },
+        emergency_first_aid: {
+          exists: data.emergency_first_aid_exists || false,
+          score: data.emergency_first_aid_score || 0,
+          evidence: data.emergency_first_aid_evidence_url || null
+        }
+      });
+
+      // Load section 12 (Site Specific Safety Plans)
+      setSection12({
+        site_safety_plans: {
+          exists: data.site_safety_plans_exists || false,
+          score: data.site_safety_plans_score || 0,
+          evidence: data.site_safety_plans_evidence_url || null
+        },
+        site_induction_process: {
+          exists: data.site_induction_process_exists || false,
+          score: data.site_induction_process_score || 0,
+          evidence: data.site_induction_process_evidence_url || null
+        }
+      });
+
+      // Load section 13 (Contractor Management)
+      setSection13({
+        contractor_induction: {
+          exists: data.contractor_induction_exists || false,
+          score: data.contractor_induction_score || 0,
+          evidence: data.contractor_induction_evidence_url || null
+        },
+        contractor_compliance: {
+          exists: data.contractor_compliance_exists || false,
+          score: data.contractor_compliance_score || 0,
+          evidence: data.contractor_compliance_evidence_url || null
+        }
+      });
+
+      // Load section 14 (Health & Wellbeing)
+      setSection14({
+        health_wellbeing_program: {
+          exists: data.health_wellbeing_program_exists || false,
+          score: data.health_wellbeing_program_score || 0,
+          evidence: data.health_wellbeing_program_evidence_url || null
+        },
+        fatigue_management: {
+          exists: data.fatigue_management_exists || false,
+          score: data.fatigue_management_score || 0,
+          evidence: data.fatigue_management_evidence_url || null
+        }
+      });
+
+      // Load section 15 (Competency & Qualifications)
+      setSection15({
+        competency_framework: {
+          exists: data.competency_framework_exists || false,
+          score: data.competency_framework_score || 0,
+          evidence: data.competency_framework_evidence_url || null
+        },
+        training_records: {
+          exists: data.training_records_exists || false,
+          score: data.training_records_score || 0,
+          evidence: data.training_records_evidence_url || null
+        }
+      });
+
+      // Load section 16 (Communication & Reporting)
+      setSection16({
+        safety_communication: {
+          exists: data.safety_communication_exists || false,
+          score: data.safety_communication_score || 0,
+          evidence: data.safety_communication_evidence_url || null
+        },
+        near_miss_reporting: {
+          exists: data.near_miss_reporting_exists || false,
+          score: data.near_miss_reporting_score || 0,
+          evidence: data.near_miss_reporting_evidence_url || null
+        }
+      });
+
+      // Load section 17 (Performance & Review)
+      setSection17({
+        performance_monitoring: {
+          exists: data.performance_monitoring_exists || false,
+          score: data.performance_monitoring_score || 0,
+          evidence: data.performance_monitoring_evidence_url || null
+        },
+        regular_audits: {
+          exists: data.regular_audits_exists || false,
+          score: data.regular_audits_score || 0,
+          evidence: data.regular_audits_evidence_url || null
+        }
+      });
+
+      // Load section 18 (Incident Analysis & Learning)
+      setSection18({
+        incident_investigation_process: {
+          exists: data.incident_investigation_process_exists || false,
+          score: data.incident_investigation_process_score || 0,
+          evidence: data.incident_investigation_process_evidence_url || null
+        },
+        corrective_actions: {
+          exists: data.corrective_actions_exists || false,
+          score: data.corrective_actions_score || 0,
+          evidence: data.corrective_actions_evidence_url || null
+        }
+      });
+
+      // Load section 19 (Continuous Improvement)
+      setSection19({
+        safety_objectives: {
+          exists: data.safety_objectives_exists || false,
+          score: data.safety_objectives_score || 0,
+          evidence: data.safety_objectives_evidence_url || null
+        },
+        management_review: {
+          exists: data.management_review_exists || false,
+          score: data.management_review_score || 0,
+          evidence: data.management_review_evidence_url || null
         }
       });
     } catch (error) {
@@ -737,6 +1071,132 @@ export default function CompanyAccreditationScreen({
       updateData.health_monitoring_evidence_url = section5.health_monitoring.evidence;
     }
 
+    // Add Section 6 data (Induction & Training)
+    Object.entries(section6).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 7 data (Hazard Identification & Management)
+    Object.entries(section7).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 8 data (PPE)
+    Object.entries(section8).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 9 data (Plant & Equipment)
+    Object.entries(section9).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 10 data (Electrical Equipment)
+    Object.entries(section10).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 11 data (Emergency Preparedness & Response)
+    Object.entries(section11).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 12 data (Site Specific Safety Plans)
+    Object.entries(section12).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 13 data (Contractor Management)
+    Object.entries(section13).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 14 data (Health & Wellbeing)
+    Object.entries(section14).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 15 data (Competency & Qualifications)
+    Object.entries(section15).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 16 data (Communication & Reporting)
+    Object.entries(section16).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 17 data (Performance & Review)
+    Object.entries(section17).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 18 data (Incident Analysis & Learning)
+    Object.entries(section18).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
+    // Add Section 19 data (Continuous Improvement)
+    Object.entries(section19).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
     return updateData;
   };
 
@@ -826,7 +1286,7 @@ export default function CompanyAccreditationScreen({
     }, 2000); // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, currentCompanyId]);
 
   if (loading) {
     return (

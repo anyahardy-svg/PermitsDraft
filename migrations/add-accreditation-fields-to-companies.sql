@@ -152,6 +152,210 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_score INT DEFAU
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_monitoring_evidence_url TEXT;
 
 -- ============================================================================
+-- SECTION 6: Induction & Training
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_programme_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_programme_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_programme_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_records_process_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_records_process_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS induction_records_process_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS skills_training_list_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS skills_training_list_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS skills_training_list_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_testing_system_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_testing_system_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_testing_system_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 7: Hazard Identification & Management
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS hazard_identification_process_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS hazard_identification_process_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS hazard_identification_process_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS jha_jsea_system_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS jha_jsea_system_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS jha_jsea_system_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS risk_registers_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS risk_registers_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS risk_registers_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 8: Personal Protective Equipment (PPE)
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_training_maintenance_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_training_maintenance_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_training_maintenance_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_job_assessment_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_job_assessment_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_job_assessment_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_maintenance_schedule_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_maintenance_schedule_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_maintenance_schedule_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 9: Plant & Equipment
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_licenses_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_licenses_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_licenses_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_safety_provisions_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_safety_provisions_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_safety_provisions_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_maintenance_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_maintenance_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_maintenance_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 10: Electrical Equipment
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_testing_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_testing_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_testing_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_licenses_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_licenses_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_licenses_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_safety_provisions_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_safety_provisions_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_safety_provisions_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_maintenance_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_maintenance_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_maintenance_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 11: Emergency Preparedness & Response
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 12: Site Specific Safety Plans
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_safety_plans_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_safety_plans_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_safety_plans_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_induction_process_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_induction_process_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS site_induction_process_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 13: Contractor Management
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_induction_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_induction_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_induction_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_compliance_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_compliance_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_compliance_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 14: Health & Wellbeing
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 15: Competency & Qualifications
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_framework_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_framework_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS competency_framework_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS training_records_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS training_records_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS training_records_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 16: Communication & Reporting
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_communication_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_communication_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_communication_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS near_miss_reporting_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS near_miss_reporting_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS near_miss_reporting_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 17: Performance & Review
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS performance_monitoring_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS performance_monitoring_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS performance_monitoring_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS regular_audits_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS regular_audits_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS regular_audits_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 18: Incident Analysis & Learning
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 19: Continuous Improvement
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_objectives_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_objectives_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS safety_objectives_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS management_review_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS management_review_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS management_review_evidence_url TEXT;
+
+-- ============================================================================
 -- Create Indexes for Common Queries
 -- ============================================================================
 
