@@ -80,7 +80,15 @@ export const getCompanyAccreditation = async (companyId) => {
         iso_14001_certificate_expiry,
         accreditation_status,
         accreditation_last_updated,
-        accreditation_expiry_date
+        accreditation_expiry_date,
+        health_safety_policy_exists,
+        health_safety_policy_url,
+        environmental_policy_exists,
+        environmental_policy_url,
+        drug_alcohol_policy_exists,
+        drug_alcohol_policy_url,
+        quality_policy_exists,
+        quality_policy_url
       `)
       .eq('id', companyId)
       .single();

@@ -83,6 +83,30 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_last_updated TIMEST
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_expiry_date DATE;
 
 -- ============================================================================
+-- SECTION 4: Policies
+-- ============================================================================
+
+-- Health and Safety Policy
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_safety_policy_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_safety_policy_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_safety_policy_uploaded_at TIMESTAMP WITH TIME ZONE;
+
+-- Environmental Policy
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS environmental_policy_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS environmental_policy_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS environmental_policy_uploaded_at TIMESTAMP WITH TIME ZONE;
+
+-- Drug and Alcohol Policy
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS drug_alcohol_policy_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS drug_alcohol_policy_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS drug_alcohol_policy_uploaded_at TIMESTAMP WITH TIME ZONE;
+
+-- Quality Policy
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_policy_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_policy_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_policy_uploaded_at TIMESTAMP WITH TIME ZONE;
+
+-- ============================================================================
 -- Create Indexes for Common Queries
 -- ============================================================================
 

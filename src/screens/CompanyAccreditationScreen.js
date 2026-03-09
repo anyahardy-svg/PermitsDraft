@@ -61,6 +61,14 @@ export default function CompanyAccreditationScreen({
   const [accreditedSystems, setAccreditedSystems] = useState({});
   const [certificateFiles, setCertificateFiles] = useState({});
 
+  // Section 4 state (Policies)
+  const [policies, setPolicies] = useState({
+    health_safety: { exists: false, url: null },
+    environmental: { exists: false, url: null },
+    drug_alcohol: { exists: false, url: null },
+    quality: { exists: false, url: null }
+  });
+
   // Company information state (for verification/updates)
   const [companyDetails, setCompanyDetails] = useState({
     companyName: '',
@@ -218,6 +226,26 @@ export default function CompanyAccreditationScreen({
       
       // Set accreditation status
       setAccreditationStatus(data.accreditation_status || 'in-progress');
+
+      // Load policies (Section 4)
+      setPolicies({
+        health_safety: {
+          exists: data.health_safety_policy_exists || false,
+          url: data.health_safety_policy_url || null
+        },
+        environmental: {
+          exists: data.environmental_policy_exists || false,
+          url: data.environmental_policy_url || null
+        },
+        drug_alcohol: {
+          exists: data.drug_alcohol_policy_exists || false,
+          url: data.drug_alcohol_policy_url || null
+        },
+        quality: {
+          exists: data.quality_policy_exists || false,
+          url: data.quality_policy_url || null
+        }
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
@@ -371,6 +399,100 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  // Handle uploading policy document
+  const handleUploadPolicy = async (policyKey, policyLabel) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*']
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (!file) return;
+
+      // Convert the file URI to a blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      
+      // Create a File object from the blob
+      const fileObject = new File([blob], file.name, { type: file.mimeType });
+
+      // Upload to Supabase Storage
+      setLoading(true);
+      const uploadResult = await uploadAccreditationCertificate(
+        currentCompanyId,
+        `policy_${policyKey}`,
+        fileObject
+      );
+
+      if (uploadResult.success) {
+        // Update state with the new URL
+        setPolicies(prev => ({
+          ...prev,
+          [policyKey]: {
+            ...prev[policyKey],
+            url: uploadResult.url
+          }
+        }));
+        Alert.alert('Success', `${policyLabel} document uploaded successfully`);
+      } else {
+        Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete policy document
+  const handleDeletePolicy = async (policyKey, policyLabel) => {
+    Alert.alert(
+      'Delete Document',
+      `Are you sure you want to delete the ${policyLabel} document?`,
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const policyUrl = policies[policyKey]?.url;
+              
+              if (!policyUrl) {
+                Alert.alert('Error', 'No document URL found');
+                return;
+              }
+
+              const result = await deleteAccreditationCertificate(policyUrl);
+
+              if (result.success) {
+                // Clear from state
+                setPolicies(prev => ({
+                  ...prev,
+                  [policyKey]: {
+                    ...prev[policyKey],
+                    url: null
+                  }
+                }));
+                Alert.alert('Success', `${policyLabel} document deleted`);
+              } else {
+                Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
@@ -421,6 +543,27 @@ export default function CompanyAccreditationScreen({
         }
       }
     });
+
+    // Add policies (Section 4)
+    updateData.health_safety_policy_exists = policies.health_safety.exists;
+    if (policies.health_safety.url) {
+      updateData.health_safety_policy_url = policies.health_safety.url;
+    }
+    
+    updateData.environmental_policy_exists = policies.environmental.exists;
+    if (policies.environmental.url) {
+      updateData.environmental_policy_url = policies.environmental.url;
+    }
+    
+    updateData.drug_alcohol_policy_exists = policies.drug_alcohol.exists;
+    if (policies.drug_alcohol.url) {
+      updateData.drug_alcohol_policy_url = policies.drug_alcohol.url;
+    }
+    
+    updateData.quality_policy_exists = policies.quality.exists;
+    if (policies.quality.url) {
+      updateData.quality_policy_url = policies.quality.url;
+    }
 
     return updateData;
   };
@@ -511,7 +654,7 @@ export default function CompanyAccreditationScreen({
     }, 2000); // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, currentCompanyId]);
 
   if (loading) {
     return (
@@ -860,6 +1003,250 @@ export default function CompanyAccreditationScreen({
                 </View>
               ))}
             </View>
+          )}
+
+          {/* SECTION 4: Policies - Only show if NO accreditation systems selected */}
+          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+            <>
+              <TouchableOpacity
+                onPress={() => toggleSection(4)}
+                style={{
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                  Section 4: Policies
+                </Text>
+                <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                  {expandedSections[4] ? '▼' : '▶'}
+                </Text>
+              </TouchableOpacity>
+
+              {expandedSections[4] && (
+                <View style={{ paddingHorizontal: 0, paddingBottom:  20, marginBottom: 12 }}>
+                  <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>
+                    Does your organisation have the following policies?
+                  </Text>
+
+                  {/* Health and Safety Policy */}
+                  <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <CheckBox
+                        value={policies.health_safety.exists}
+                        onValueChange={() => setPolicies(prev => ({
+                          ...prev,
+                          health_safety: { ...prev.health_safety, exists: !prev.health_safety.exists }
+                        }))}
+                        style={{ marginRight: 12 }}
+                        pointerEvents="auto"
+                      />
+                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                        Health and Safety Policy
+                      </Text>
+                    </View>
+
+                    {policies.health_safety.exists && (
+                      <View style={{ paddingLeft: 36 }}>
+                        {policies.health_safety.url && (
+                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
+                              ✓ Document Uploaded
+                            </Text>
+                            <TouchableOpacity 
+                              onPress={() => Linking.openURL(policies.health_safety.url)}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Document
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeletePolicy('health_safety', 'Health and Safety Policy')}
+                            >
+                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
+                                🗑 Delete Document
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('health_safety', 'Health and Safety Policy')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {policies.health_safety.url ? 'Replace' : 'Upload'} Document</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Environmental Policy */}
+                  <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <CheckBox
+                        value={policies.environmental.exists}
+                        onValueChange={() => setPolicies(prev => ({
+                          ...prev,
+                          environmental: { ...prev.environmental, exists: !prev.environmental.exists }
+                        }))}
+                        style={{ marginRight: 12 }}
+                        pointerEvents="auto"
+                      />
+                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                        Environmental Policy
+                      </Text>
+                    </View>
+
+                    {policies.environmental.exists && (
+                      <View style={{ paddingLeft: 36 }}>
+                        {policies.environmental.url && (
+                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
+                              ✓ Document Uploaded
+                            </Text>
+                            <TouchableOpacity 
+                              onPress={() => Linking.openURL(policies.environmental.url)}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Document
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeletePolicy('environmental', 'Environmental Policy')}
+                            >
+                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
+                                🗑 Delete Document
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('environmental', 'Environmental Policy')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {policies.environmental.url ? 'Replace' : 'Upload'} Document</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Drug and Alcohol Policy */}
+                  <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <CheckBox
+                        value={policies.drug_alcohol.exists}
+                        onValueChange={() => setPolicies(prev => ({
+                          ...prev,
+                          drug_alcohol: { ...prev.drug_alcohol, exists: !prev.drug_alcohol.exists }
+                        }))}
+                        style={{ marginRight: 12 }}
+                        pointerEvents="auto"
+                      />
+                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                        Drug and Alcohol Policy
+                      </Text>
+                    </View>
+
+                    {policies.drug_alcohol.exists && (
+                      <View style={{ paddingLeft: 36 }}>
+                        {policies.drug_alcohol.url && (
+                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
+                              ✓ Document Uploaded
+                            </Text>
+                            <TouchableOpacity 
+                              onPress={() => Linking.openURL(policies.drug_alcohol.url)}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Document
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeletePolicy('drug_alcohol', 'Drug and Alcohol Policy')}
+                            >
+                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
+                                🗑 Delete Document
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('drug_alcohol', 'Drug and Alcohol Policy')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {policies.drug_alcohol.url ? 'Replace' : 'Upload'} Document</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Quality Policy */}
+                  <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <CheckBox
+                        value={policies.quality.exists}
+                        onValueChange={() => setPolicies(prev => ({
+                          ...prev,
+                          quality: { ...prev.quality, exists: !prev.quality.exists }
+                        }))}
+                        style={{ marginRight: 12 }}
+                        pointerEvents="auto"
+                      />
+                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                        Quality Policy
+                      </Text>
+                    </View>
+
+                    {policies.quality.exists && (
+                      <View style={{ paddingLeft: 36 }}>
+                        {policies.quality.url && (
+                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
+                              ✓ Document Uploaded
+                            </Text>
+                            <TouchableOpacity 
+                              onPress={() => Linking.openURL(policies.quality.url)}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Document
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeletePolicy('quality', 'Quality Policy')}
+                            >
+                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
+                                🗑 Delete Document
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('quality', 'Quality Policy')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {policies.quality.url ? 'Replace' : 'Upload'} Document</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
