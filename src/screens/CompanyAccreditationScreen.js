@@ -1355,520 +1355,518 @@ export default function CompanyAccreditationScreen({
             </>
           )}
 
-          {/* SECTION 4: Accident, Incident & Investigation Management */}
-          <TouchableOpacity
-            onPress={() => toggleSection(4)}
-            style={{
-              backgroundColor: 'white',
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              borderRadius: 8,
-              paddingVertical: 14,
-              paddingHorizontal: 14,
-              marginBottom: 12,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-              Section 4: Accident, Incident & Investigation Management
-            </Text>
-            <Text style={{ fontSize: 18, color: '#6B7280' }}>
-              {expandedSections[4] ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
+          {/* SECTION 4: Accident, Incident & Investigation Management - Only show if no safety accreditations selected */}
+          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+            <>
+              <TouchableOpacity
+                onPress={() => toggleSection(4)}
+                style={{
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                  Section 4: Accident, Incident & Investigation Management
+                </Text>
+                <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                  {expandedSections[4] ? '▼' : '▶'}
+                </Text>
+              </TouchableOpacity>
 
-          {expandedSections[4] && (
-            <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
-              <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>
-                Does your organisation have:
-              </Text>
-
-              {/* Accident Reporting Item */}
-              <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section4.accident_reporting.exists}
-                    onValueChange={() => setSection4(prev => ({
-                      ...prev,
-                      accident_reporting: { ...prev.accident_reporting, exists: !prev.accident_reporting.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
-                    An accident/incident reporting and recording system?
+              {expandedSections[4] && (
+                <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+                  <Text style={[styles.label, { marginBottom: 16 }]}>
+                    Does your organisation have:
                   </Text>
-                </View>
 
-                {section4.accident_reporting.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection4(prev => ({
-                            ...prev,
-                            accident_reporting: { ...prev.accident_reporting, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section4.accident_reporting.score === score ? 2 : 1,
-                            borderColor: section4.accident_reporting.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Accident Reporting Item - Table Row */}
+                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        An accident/incident reporting and recording system?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection4(prev => ({
+                              ...prev,
+                              accident_reporting: { ...prev.accident_reporting, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section4.accident_reporting.score === score ? 3 : 1,
+                              borderColor: section4.accident_reporting.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    {section4.accident_reporting.evidence && (
-                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                        <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
-                          ✓ Evidence Uploaded
-                        </Text>
-                        <TouchableOpacity onPress={() => Linking.openURL(section4.accident_reporting.evidence)}>
-                          <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                            📄 View Evidence
-                          </Text>
+                    {section4.accident_reporting.score > 0 && (
+                      <View style={{ marginTop: 12, paddingLeft: 0 }}>
+                        {section4.accident_reporting.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section4.accident_reporting.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section4_accident_evidence', 'Accident Reporting Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section4.accident_reporting.evidence ? 'Replace' : 'Upload'} Evidence</Text>
                         </TouchableOpacity>
                       </View>
                     )}
-
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section4_accident_evidence', 'Accident Reporting Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section4.accident_reporting.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
 
-              {/* Accident Investigation Item */}
-              <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section4.accident_investigation.exists}
-                    onValueChange={() => setSection4(prev => ({
-                      ...prev,
-                      accident_investigation: { ...prev.accident_investigation, exists: !prev.accident_investigation.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
-                    An accident/investigation process?
-                  </Text>
-                </View>
-
-                {section4.accident_investigation.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection4(prev => ({
-                            ...prev,
-                            accident_investigation: { ...prev.accident_investigation, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section4.accident_investigation.score === score ? 2 : 1,
-                            borderColor: section4.accident_investigation.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Accident Investigation Item - Table Row */}
+                  <View style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        An accident/investigation process?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection4(prev => ({
+                              ...prev,
+                              accident_investigation: { ...prev.accident_investigation, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section4.accident_investigation.score === score ? 3 : 1,
+                              borderColor: section4.accident_investigation.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    {section4.accident_investigation.evidence && (
-                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                        <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
-                          ✓ Evidence Uploaded
-                        </Text>
-                        <TouchableOpacity onPress={() => Linking.openURL(section4.accident_investigation.evidence)}>
-                          <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                            📄 View Evidence
-                          </Text>
+                    {section4.accident_investigation.score > 0 && (
+                      <View style={{ marginTop: 12, paddingLeft: 0 }}>
+                        {section4.accident_investigation.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section4.accident_investigation.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section4_investigation_evidence', 'Investigation Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section4.accident_investigation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
                         </TouchableOpacity>
                       </View>
                     )}
-
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section4_investigation_evidence', 'Investigation Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section4.accident_investigation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            </View>
+                </View>
+              )}
+            </>
           )}
 
-          {/* SECTION 5: Health Hazard Management */}
-          <TouchableOpacity
-            onPress={() => toggleSection(5)}
-            style={{
-              backgroundColor: 'white',
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              borderRadius: 8,
-              paddingVertical: 14,
-              paddingHorizontal: 14,
-              marginBottom: 12,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-              Section 5: Health Hazard Management
-            </Text>
-            <Text style={{ fontSize: 18, color: '#6B7280' }}>
-              {expandedSections[5] ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
+          {/* SECTION 5: Health Hazard Management - Only show if no safety accreditations selected */}
+          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+            <>
+              <TouchableOpacity
+                onPress={() => toggleSection(5)}
+                style={{
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                  Section 5: Health Hazard Management
+                </Text>
+                <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                  {expandedSections[5] ? '▼' : '▶'}
+                </Text>
+              </TouchableOpacity>
 
-          {expandedSections[5] && (
-            <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
-              <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>
-                Does your organisation have:
-              </Text>
-
-              {/* Health Hazard Plan */}
-              <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section5.health_hazard_plan.exists}
-                    onValueChange={() => setSection5(prev => ({
-                      ...prev,
-                      health_hazard_plan: { ...prev.health_hazard_plan, exists: !prev.health_hazard_plan.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
-                    A Health Hazard Management Plan?
+              {expandedSections[5] && (
+                <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+                  <Text style={[styles.label, { marginBottom: 16 }]}>
+                    Does your organisation have:
                   </Text>
-                </View>
 
-                {section5.health_hazard_plan.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            health_hazard_plan: { ...prev.health_hazard_plan, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section5.health_hazard_plan.score === score ? 2 : 1,
-                            borderColor: section5.health_hazard_plan.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Health Hazard Plan - Table Row */}
+                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        A Health Hazard Management Plan?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection5(prev => ({
+                              ...prev,
+                              health_hazard_plan: { ...prev.health_hazard_plan, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section5.health_hazard_plan.score === score ? 3 : 1,
+                              borderColor: section5.health_hazard_plan.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section5_hazard_plan_evidence', 'Health Hazard Plan Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section5.health_hazard_plan.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
+                    {section5.health_hazard_plan.score > 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        {section5.health_hazard_plan.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section5.health_hazard_plan.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section5_hazard_plan_evidence', 'Health Hazard Plan Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section5.health_hazard_plan.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
 
-              {/* Exposure Monitoring */}
-              <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section5.exposure_monitoring.exists}
-                    onValueChange={() => setSection5(prev => ({
-                      ...prev,
-                      exposure_monitoring: { ...prev.exposure_monitoring, exists: !prev.exposure_monitoring.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
-                    A plan to conduct exposure monitoring?
-                  </Text>
-                </View>
-
-                {section5.exposure_monitoring.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Frequency (years):</Text>
-                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                      {[1, 2, 3, 4, 5].map(freq => (
-                        <TouchableOpacity
-                          key={freq}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            exposure_monitoring: { ...prev.exposure_monitoring, frequency: freq }
-                          }))}
-                          style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 6,
-                            borderRadius: 4,
-                            backgroundColor: section5.exposure_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
-                            marginRight: 6
-                          }}
-                        >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: section5.exposure_monitoring.frequency === freq ? 'white' : '#374151' }}>
-                            {freq}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Exposure Monitoring - Table Row */}
+                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        A plan to conduct exposure monitoring?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection5(prev => ({
+                              ...prev,
+                              exposure_monitoring: { ...prev.exposure_monitoring, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section5.exposure_monitoring.score === score ? 3 : 1,
+                              borderColor: section5.exposure_monitoring.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            exposure_monitoring: { ...prev.exposure_monitoring, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section5.exposure_monitoring.score === score ? 2 : 1,
-                            borderColor: section5.exposure_monitoring.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                    {section5.exposure_monitoring.score > 0 && (
+                      <View style={{ paddingLeft: 0 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8, marginTop: 8 }}>Frequency (years):</Text>
+                        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                          {[1, 2, 3, 4, 5].map(freq => (
+                            <TouchableOpacity
+                              key={freq}
+                              onPress={() => setSection5(prev => ({
+                                ...prev,
+                                exposure_monitoring: { ...prev.exposure_monitoring, frequency: freq }
+                              }))}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 4,
+                                backgroundColor: section5.exposure_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
+                                marginRight: 6
+                              }}
+                            >
+                              <Text style={{ fontSize: 11, fontWeight: '600', color: section5.exposure_monitoring.frequency === freq ? 'white' : '#374151' }}>
+                                {freq}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
 
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section5_monitoring_evidence', 'Exposure Monitoring Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section5.exposure_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
+                        {section5.exposure_monitoring.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section5.exposure_monitoring.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section5_monitoring_evidence', 'Exposure Monitoring Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section5.exposure_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
 
-              {/* Respiratory Training */}
-              <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section5.respiratory_training.exists}
-                    onValueChange={() => setSection5(prev => ({
-                      ...prev,
-                      respiratory_training: { ...prev.respiratory_training, exists: !prev.respiratory_training.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
-                    A programme of training and fit testing for respiratory protection?
-                  </Text>
-                </View>
-
-                {section5.respiratory_training.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            respiratory_training: { ...prev.respiratory_training, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section5.respiratory_training.score === score ? 2 : 1,
-                            borderColor: section5.respiratory_training.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Respiratory Training - Table Row */}
+                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        A programme of training and fit testing for respiratory protection?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection5(prev => ({
+                              ...prev,
+                              respiratory_training: { ...prev.respiratory_training, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section5.respiratory_training.score === score ? 3 : 1,
+                              borderColor: section5.respiratory_training.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section5_training_evidence', 'Respiratory Training Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section5.respiratory_training.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
+                    {section5.respiratory_training.score > 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        {section5.respiratory_training.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section5.respiratory_training.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section5_training_evidence', 'Respiratory Training Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section5.respiratory_training.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
 
-              {/* Exhaust Ventilation */}
-              <View style={{ marginBottom: 16, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section5.exhaust_ventilation.exists}
-                    onValueChange={() => setSection5(prev => ({
-                      ...prev,
-                      exhaust_ventilation: { ...prev.exhaust_ventilation, exists: !prev.exhaust_ventilation.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
-                    A routine maintenance and inspection programme for ventilation systems?
-                  </Text>
-                </View>
-
-                {section5.exhaust_ventilation.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            exhaust_ventilation: { ...prev.exhaust_ventilation, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section5.exhaust_ventilation.score === score ? 2 : 1,
-                            borderColor: section5.exhaust_ventilation.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Exhaust Ventilation - Table Row */}
+                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        A routine maintenance programme for ventilation systems?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection5(prev => ({
+                              ...prev,
+                              exhaust_ventilation: { ...prev.exhaust_ventilation, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section5.exhaust_ventilation.score === score ? 3 : 1,
+                              borderColor: section5.exhaust_ventilation.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section5_ventilation_evidence', 'Ventilation Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section5.exhaust_ventilation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
+                    {section5.exhaust_ventilation.score > 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        {section5.exhaust_ventilation.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section5.exhaust_ventilation.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section5_ventilation_evidence', 'Ventilation Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section5.exhaust_ventilation.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
 
-              {/* Health Monitoring */}
-              <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <CheckBox
-                    value={section5.health_monitoring.exists}
-                    onValueChange={() => setSection5(prev => ({
-                      ...prev,
-                      health_monitoring: { ...prev.health_monitoring, exists: !prev.health_monitoring.exists }
-                    }))}
-                    style={{ marginRight: 12 }}
-                    pointerEvents="auto"
-                  />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
-                    Health monitoring conducted regularly for all workers exposed?
-                  </Text>
-                </View>
-
-                {section5.health_monitoring.exists && (
-                  <View style={{ paddingLeft: 36 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Frequency (years):</Text>
-                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                      {[1, 2, 3, 4, 5].map(freq => (
-                        <TouchableOpacity
-                          key={freq}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            health_monitoring: { ...prev.health_monitoring, frequency: freq }
-                          }))}
-                          style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 6,
-                            borderRadius: 4,
-                            backgroundColor: section5.health_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
-                            marginRight: 6
-                          }}
-                        >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: section5.health_monitoring.frequency === freq ? 'white' : '#374151' }}>
-                            {freq}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* Health Monitoring - Table Row */}
+                  <View style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        Health monitoring for all exposed workers?
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => setSection5(prev => ({
+                              ...prev,
+                              health_monitoring: { ...prev.health_monitoring, score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section5.health_monitoring.score === score ? 3 : 1,
+                              borderColor: section5.health_monitoring.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Score (1-4):</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                      {[1, 2, 3, 4].map(score => (
-                        <TouchableOpacity
-                          key={score}
-                          onPress={() => setSection5(prev => ({
-                            ...prev,
-                            health_monitoring: { ...prev.health_monitoring, score }
-                          }))}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 6,
-                            backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                            borderWidth: section5.health_monitoring.score === score ? 2 : 1,
-                            borderColor: section5.health_monitoring.score === score ? '#1F2937' : '#D1D5DB',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Text style={{ fontWeight: '600', color: '#1F2937' }}>{score}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                    {section5.health_monitoring.score > 0 && (
+                      <View style={{ paddingLeft: 0 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8, marginTop: 8 }}>Frequency (years):</Text>
+                        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                          {[1, 2, 3, 4, 5].map(freq => (
+                            <TouchableOpacity
+                              key={freq}
+                              onPress={() => setSection5(prev => ({
+                                ...prev,
+                                health_monitoring: { ...prev.health_monitoring, frequency: freq }
+                              }))}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 4,
+                                backgroundColor: section5.health_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
+                                marginRight: 6
+                              }}
+                            >
+                              <Text style={{ fontSize: 11, fontWeight: '600', color: section5.health_monitoring.frequency === freq ? 'white' : '#374151' }}>
+                                {freq}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
 
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadPolicy('section5_health_monitoring_evidence', 'Health Monitoring Evidence')}
-                      pointerEvents="auto"
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section5.health_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
-                    </TouchableOpacity>
+                        {section5.health_monitoring.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 6 }}>
+                              ✓ Evidence Uploaded
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section5.health_monitoring.evidence)}>
+                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                                📄 View Evidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadPolicy('section5_health_monitoring_evidence', 'Health Monitoring Evidence')}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section5.health_monitoring.evidence ? 'Replace' : 'Upload'} Evidence</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            </View>
+                </View>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
