@@ -13,11 +13,15 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
       accreditation_last_updated: new Date().toISOString(),
     };
 
+    console.log('📤 Update request to Supabase:', { companyId, updates });
+
     const { data, error } = await supabase
       .from('companies')
       .update(updates)
       .eq('id', companyId)
       .select();
+
+    console.log('📥 Supabase response:', { data, error });
 
     if (error) throw error;
     return { success: true, data: data[0] };

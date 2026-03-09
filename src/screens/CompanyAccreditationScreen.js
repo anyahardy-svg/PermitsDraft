@@ -320,6 +320,12 @@ export default function CompanyAccreditationScreen({
         fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u])
       };
 
+      console.log('💾 Saving company details:', { 
+        companyId: currentCompanyId,
+        companyName: companyDetails.companyName,
+        companyEmail: companyDetails.companyEmail 
+      });
+
       // Add accredited systems
       ACCREDITED_SYSTEMS.forEach(sys => {
         updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
@@ -348,6 +354,8 @@ export default function CompanyAccreditationScreen({
       });
 
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+      
+      console.log('📊 Update result:', result);
       
       if (result.success) {
         Alert.alert('Success', 'Accreditation saved successfully');
