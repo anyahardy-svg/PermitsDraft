@@ -186,14 +186,20 @@ export default function CompanyAccreditationScreen({
   const handleAccreditationToggle = (key) => {
     setAccreditedSystems(prev => ({
       ...prev,
-      [key]: { ...prev[key], checked: !prev[key].checked }
+      [key]: {
+        ...(prev[key] || {}),
+        checked: !(prev[key]?.checked || false)
+      }
     }));
   };
 
   const handleExpiryDateChange = (key, date) => {
     setAccreditedSystems(prev => ({
       ...prev,
-      [key]: { ...prev[key], expiryDate: date }
+      [key]: {
+        ...(prev[key] || {}),
+        expiryDate: date
+      }
     }));
   };
 
