@@ -149,13 +149,12 @@ export default function CompanyAccreditationScreen({
       const data = await getCompanyAccreditation(currentCompanyId);
       setCompany(data);
       
-      // Populate company details
-      setCompanyDetails({
+      // Populate company details from the fetched company data
+      setCompanyDetails(prev => ({
+        ...prev,
         companyName: data.name || '',
-        companyEmail: data.email || '',
-        contractorName: selectedContractor?.name || '',
-        contractorEmail: selectedContractor?.email || ''
-      });
+        companyEmail: data.email || ''
+      }));
       
       // Populate approved services (now using service IDs from database)
       setApprovedServices(data.approved_services || []);
@@ -416,6 +415,12 @@ export default function CompanyAccreditationScreen({
                   onPress={() => {
                     setSelectedContractor(item);
                     setCurrentCompanyId(item.company_id);
+                    // Set contractor details
+                    setCompanyDetails(prev => ({
+                      ...prev,
+                      contractorName: item.name || '',
+                      contractorEmail: item.email || ''
+                    }));
                     setShowContractorPicker(false);
                   }}
                 >

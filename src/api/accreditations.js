@@ -39,6 +39,7 @@ export const getCompanyAccreditation = async (companyId) => {
       .select(`
         id,
         name,
+        email,
         nzbn,
         approved_services,
         fletcher_business_units,
