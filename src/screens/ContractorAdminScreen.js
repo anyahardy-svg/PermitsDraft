@@ -430,9 +430,11 @@ export default function ContractorAdminScreen({
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
+        {!activeTab && (
+          <TouchableOpacity onPress={onNavigateBack}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>
           {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : 'Accreditation') : 'Contractor Admin'}
         </Text>

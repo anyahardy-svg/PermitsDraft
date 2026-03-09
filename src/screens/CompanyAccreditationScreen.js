@@ -269,7 +269,7 @@ export default function CompanyAccreditationScreen({
   return (
     <View style={styles.container}>
       <ScrollView 
-        style={styles.screenContainer}
+        style={[styles.screenContainer, { flex: 1 }]}
         contentContainerStyle={{ paddingBottom: 80 }}
         scrollEnabled={true}
       >
