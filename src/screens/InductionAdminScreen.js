@@ -145,19 +145,24 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const handleDeleteInduction = (induction) => {
     Alert.alert(
       'Delete Induction',
-      `Delete "${induction.induction_name}" - "${induction.subsection_name}"?`,
+      `Delete "${induction.induction_name}"?`,
       [
         { text: 'Cancel' },
         {
           text: 'Delete',
           onPress: async () => {
             try {
+              setLoading(true);
               await deleteInduction(induction.id);
-              loadData();
+              await loadData();
+              Alert.alert('Success', 'Induction deleted');
             } catch (err) {
-              Alert.alert('Error', 'Failed to delete');
+              console.error('Delete error:', err);
+              Alert.alert('Error', 'Failed to delete induction: ' + err.message);
+              setLoading(false);
             }
           },
+          style: 'destructive'
         },
       ]
     );
@@ -212,7 +217,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', flex: 1 }}>{ind.induction_name}</Text>
                 {ind.is_compulsory && <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', backgroundColor: '#DC2626', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>REQUIRED</Text>}
               </View>
-              {ind.subsection_name && <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Variant: {ind.subsection_name}</Text>}
               <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Applies to: {ind.business_unit_ids?.length > 0 ? businessUnits.filter(bu => ind.business_unit_ids.includes(bu.id)).map(bu => bu.name).join(', ') : 'None'}</Text>
               {ind.video_url && <Text style={{ fontSize: 11, color: '#0EA5E9', marginTop: 8 }}>📹 {ind.video_duration ? `${ind.video_duration} min` : 'Video'}</Text>}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
