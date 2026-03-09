@@ -16,6 +16,7 @@ import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, u
 import { listCompanies } from '../api/companies';
 import { listContractors } from '../api/contractors';
 import { listAllServices } from '../api/services';
+import { listBusinessUnits } from '../api/business_units';
 
 /**
  * CompanyAccreditationScreen
@@ -43,26 +44,20 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false }); // Track which sections are expanded
   const [services, setServices] = useState([]); // Services from database
+  const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
   // Section 1 state (Services)
   const [approvedServices, setApprovedServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState({});
   
   // Section 2 state (Business Units & Accreditations)
-  const [fletherBusinessUnits, setFletherBusinessUnits] = useState({});
+  const [selectedBusinessUnits, setSelectedBusinessUnits] = useState({});
 
   // Section 3 state
   const [accreditedSystems, setAccreditedSystems] = useState({});
   const [certificateFiles, setCertificateFiles] = useState({});
 
-  const FLETCHER_UNITS = [
-    'Firth',
-    'Fletcher Steel',
-    'Golden Bay',
-    'Humes',
-    'Stramit',
-    'Winstone Aggregates'
-  ];
+
 
   const ACCREDITED_SYSTEMS = [
     { key: 'aep_accredited', label: 'ACC Accredited Employer Programme (AEP)' },
@@ -100,18 +95,44 @@ export default function CompanyAccreditationScreen({
     if (isAdmin) loadAllCompanies();
   }, [currentCompanyId]);
 
-  // Load services on mount
+  // Load services and business units on mount
   useEffect(() => {
-    const loadServices = async () => {
+    const loadData = async () => {
       try {
-        const data = await listAllServices();
-        setServices(data || []);
+        const [servicesData, businessUnitsData] = await Promise.all([
+          listAllServices(),
+          listBusinessUnits()
+        ]);
+        setServices(servicesData || []);
+        setBusinessUnits(businessUnitsData || []);
       } catch (error) {
-        console.error('Failed to load services:', error);
+        console.error('Failed to load data:', error);
       }
     };
-    loadServices();
+    loadData();
   }, []);
+
+  // Format date to NZ format (dd/mm/yyyy)
+  const formatDateNZ = (date) => {
+    if (!date) return '';
+    try {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      return date;
+    }
+  };
+
+  // Parse NZ date format (dd/mm/yyyy) to ISO string
+  const parseNZDate = (dateString) => {
+    if (!dateString) return null;
+    const [day, month, year] = dateString.split('/');
+    if (!day || !month || !year) return null;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
 
   const loadCompanyData = async () => {
     setLoading(true);
@@ -128,10 +149,10 @@ export default function CompanyAccreditationScreen({
       setSelectedServices(serviceMap);
 
       const buMap = {};
-      FLETCHER_UNITS.forEach(unit => {
-        buMap[unit] = (data.fletcher_business_units || []).includes(unit);
+      (data.fletcher_business_units || []).forEach(unitId => {
+        buMap[unitId] = true;
       });
-      setFletherBusinessUnits(buMap);
+      setSelectedBusinessUnits(buMap);
 
       // Populate accredited systems
       const systems = {};
@@ -166,10 +187,10 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
-  const handleFletcherUnitToggle = (unit) => {
-    setFletherBusinessUnits(prev => ({
+  const handleBusinessUnitToggle = (unitId) => {
+    setSelectedBusinessUnits(prev => ({
       ...prev,
-      [unit]: !prev[unit]
+      [unitId]: !prev[unitId]
     }));
   };
 
@@ -210,7 +231,7 @@ export default function CompanyAccreditationScreen({
     try {
       const updateData = {
         approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
-        fletcher_business_units: Object.keys(fletherBusinessUnits).filter(u => fletherBusinessUnits[u])
+        fletcher_business_units: Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u])
       };
 
       // Add accredited systems
@@ -348,24 +369,10 @@ export default function CompanyAccreditationScreen({
                   Loading services...
                 </Text>
               )}
-
-              <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
-                Which Fletcher business units do you work for?
-              </Text>
-              {FLETCHER_UNITS.map(unit => (
-                <View key={unit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                  <CheckBox
-                    value={fletherBusinessUnits[unit] || false}
-                    onValueChange={() => handleFletcherUnitToggle(unit)}
-                    style={{ marginRight: 12 }}
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit}</Text>
-                </View>
-              ))}
             </View>
           )}
 
-          {/* SECTION 2: Business Units & Accredited Systems */}
+          {/* SECTION 2: Business Units & Accreditations */}
           <TouchableOpacity
             onPress={() => toggleSection(2)}
             style={{
@@ -392,18 +399,24 @@ export default function CompanyAccreditationScreen({
           {expandedSections[2] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
               <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
-                Which Fletcher business units do you work for?
+                Which business units do you work for?
               </Text>
-              {FLETCHER_UNITS.map(unit => (
-                <View key={unit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                  <CheckBox
-                    value={fletherBusinessUnits[unit] || false}
-                    onValueChange={() => handleFletcherUnitToggle(unit)}
-                    style={{ marginRight: 12 }}
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit}</Text>
-                </View>
-              ))}
+              {businessUnits.length > 0 ? (
+                businessUnits.map(unit => (
+                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <CheckBox
+                      value={selectedBusinessUnits[unit.id] || false}
+                      onValueChange={() => handleBusinessUnitToggle(unit.id)}
+                      style={{ marginRight: 12 }}
+                    />
+                    <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit.name}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Loading business units...
+                </Text>
+              )}
 
               <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
                 Accreditation Systems
@@ -423,12 +436,15 @@ export default function CompanyAccreditationScreen({
 
                   {accreditedSystems[system.key]?.checked && (
                     <View style={{ paddingLeft: 36 }}>
-                      <Text style={styles.label}>Expiry Date:</Text>
+                      <Text style={styles.label}>Expiry Date (dd/mm/yyyy):</Text>
                       <TextInput
                         style={styles.input}
-                        placeholder="YYYY-MM-DD"
-                        value={accreditedSystems[system.key]?.expiryDate || ''}
-                        onChangeText={(text) => handleExpiryDateChange(system.key, text)}
+                        placeholder="dd/mm/yyyy"
+                        value={formatDateNZ(accreditedSystems[system.key]?.expiryDate) || ''}
+                        onChangeText={(text) => {
+                          const isoDate = parseNZDate(text);
+                          handleExpiryDateChange(system.key, isoDate || text);
+                        }}
                       />
                       
                       {accreditedSystems[system.key]?.fileUrl && (
