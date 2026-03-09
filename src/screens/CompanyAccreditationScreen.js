@@ -15,6 +15,7 @@ import {
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate } from '../api/accreditations';
 import { listCompanies } from '../api/companies';
 import { listContractors } from '../api/contractors';
+import { listAllServices } from '../api/services';
 
 /**
  * CompanyAccreditationScreen
@@ -40,43 +41,19 @@ export default function CompanyAccreditationScreen({
   const [showContractorPicker, setShowContractorPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({ 2: true, 3: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false }); // Track which sections are expanded
+  const [services, setServices] = useState([]); // Services from database
 
-  // Section 2 state
+  // Section 1 state (Services)
   const [approvedServices, setApprovedServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState({});
+  
+  // Section 2 state (Business Units & Accreditations)
   const [fletherBusinessUnits, setFletherBusinessUnits] = useState({});
 
   // Section 3 state
   const [accreditedSystems, setAccreditedSystems] = useState({});
   const [certificateFiles, setCertificateFiles] = useState({});
-
-  const SERVICES_LIST = [
-    'Air Compressors',
-    'Air Conditioners',
-    'Blasting',
-    'Chemicals',
-    'Cleaning',
-    'Confined Space Entry',
-    'Conveyor Servicing',
-    'Crane Certification',
-    'Drilling',
-    'Electrical Tagging',
-    'Electrical work',
-    'Gardening',
-    'General Maintenance Works',
-    'Hot work',
-    'Hygiene Monitoring',
-    'Labour hire',
-    'Mobile Plant Servicing',
-    'Onsite Refuelling',
-    'Operation of Mobile Cranes and/or slinging / lifting activities',
-    'Pest Control',
-    'Road Transport',
-    'Scaffolding',
-    'Use of Mobile Plant (e.g. Forklifts, Elevated Work Platforms)',
-    'Working at Heights'
-  ];
 
   const FLETCHER_UNITS = [
     'Firth',
@@ -123,17 +100,30 @@ export default function CompanyAccreditationScreen({
     if (isAdmin) loadAllCompanies();
   }, [currentCompanyId]);
 
+  // Load services on mount
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await listAllServices();
+        setServices(data || []);
+      } catch (error) {
+        console.error('Failed to load services:', error);
+      }
+    };
+    loadServices();
+  }, []);
+
   const loadCompanyData = async () => {
     setLoading(true);
     try {
       const data = await getCompanyAccreditation(currentCompanyId);
       setCompany(data);
       
-      // Populate form fields
+      // Populate approved services (now using service IDs from database)
       setApprovedServices(data.approved_services || []);
       const serviceMap = {};
-      SERVICES_LIST.forEach(service => {
-        serviceMap[service] = (data.approved_services || []).includes(service);
+      (data.approved_services || []).forEach(serviceId => {
+        serviceMap[serviceId] = true;
       });
       setSelectedServices(serviceMap);
 
@@ -315,9 +305,9 @@ export default function CompanyAccreditationScreen({
         {/* Section Navigation */}
         {/* Collapsible Sections */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          {/* SECTION 2: Services & Business Units */}
+          {/* SECTION 1: Services */}
           <TouchableOpacity
-            onPress={() => toggleSection(2)}
+            onPress={() => toggleSection(1)}
             style={{
               backgroundColor: 'white',
               borderWidth: 1,
@@ -332,26 +322,32 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-              Section 2: Services & Business Units
+              Section 1: Services
             </Text>
             <Text style={{ fontSize: 18, color: '#6B7280' }}>
-              {expandedSections[2] ? '▼' : '▶'}
+              {expandedSections[1] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
 
-          {expandedSections[2] && (
+          {expandedSections[1] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
               <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>Which services will you perform on our site?</Text>
-              {SERVICES_LIST.map(service => (
-                <View key={service} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                  <CheckBox
-                    value={selectedServices[service] || false}
-                    onValueChange={() => handleServiceToggle(service)}
-                    style={{ marginRight: 12 }}
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service}</Text>
-                </View>
-              ))}
+              {services.length > 0 ? (
+                services.map(service => (
+                  <View key={service.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <CheckBox
+                      value={selectedServices[service.id] || false}
+                      onValueChange={() => handleServiceToggle(service.id)}
+                      style={{ marginRight: 12 }}
+                    />
+                    <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service.name}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Loading services...
+                </Text>
+              )}
 
               <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
                 Which Fletcher business units do you work for?
@@ -369,9 +365,9 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 3: Accredited Systems */}
+          {/* SECTION 2: Business Units & Accredited Systems */}
           <TouchableOpacity
-            onPress={() => toggleSection(3)}
+            onPress={() => toggleSection(2)}
             style={{
               backgroundColor: 'white',
               borderWidth: 1,
@@ -386,15 +382,32 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-              Section 3: Accredited Systems
+              Section 2: Business Units & Accreditations
             </Text>
             <Text style={{ fontSize: 18, color: '#6B7280' }}>
-              {expandedSections[3] ? '▼' : '▶'}
+              {expandedSections[2] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
 
-          {expandedSections[3] && (
+          {expandedSections[2] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
+              <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
+                Which Fletcher business units do you work for?
+              </Text>
+              {FLETCHER_UNITS.map(unit => (
+                <View key={unit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <CheckBox
+                    value={fletherBusinessUnits[unit] || false}
+                    onValueChange={() => handleFletcherUnitToggle(unit)}
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit}</Text>
+                </View>
+              ))}
+
+              <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
+                Accreditation Systems
+              </Text>
               {ACCREDITED_SYSTEMS.map(system => (
                 <View key={system.key} style={{ marginBottom: 20, paddingHorizontal: 12, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
