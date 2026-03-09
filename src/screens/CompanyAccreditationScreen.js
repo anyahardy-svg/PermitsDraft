@@ -272,6 +272,7 @@ export default function CompanyAccreditationScreen({
         style={[styles.screenContainer, { flex: 1 }]}
         contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
         scrollEnabled={true}
+        nestedScrollEnabled={true}
       >
         {/* Contractor Selection */}
         <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
@@ -359,11 +360,12 @@ export default function CompanyAccreditationScreen({
               <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>Which services will you perform on our site?</Text>
               {services.length > 0 ? (
                 services.map(service => (
-                  <View key={service.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <View key={service.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
                     <CheckBox
                       value={selectedServices[service.id] || false}
                       onValueChange={() => handleServiceToggle(service.id)}
                       style={{ marginRight: 12 }}
+                      pointerEvents="auto"
                     />
                     <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service.name}</Text>
                   </View>
@@ -407,11 +409,12 @@ export default function CompanyAccreditationScreen({
               </Text>
               {businessUnits.length > 0 ? (
                 businessUnits.map(unit => (
-                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
                     <CheckBox
                       value={selectedBusinessUnits[unit.id] || false}
                       onValueChange={() => handleBusinessUnitToggle(unit.id)}
                       style={{ marginRight: 12 }}
+                      pointerEvents="auto"
                     />
                     <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit.name}</Text>
                   </View>
@@ -426,12 +429,13 @@ export default function CompanyAccreditationScreen({
                 Accreditation Systems
               </Text>
               {ACCREDITED_SYSTEMS.map(system => (
-                <View key={system.key} style={{ marginBottom: 20, paddingHorizontal: 12, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <View key={system.key} style={{ marginBottom: 20, paddingHorizontal: 12, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }} pointerEvents="auto">
                     <CheckBox
                       value={accreditedSystems[system.key]?.checked || false}
                       onValueChange={() => handleAccreditationToggle(system.key)}
                       style={{ marginRight: 12 }}
+                      pointerEvents="auto"
                     />
                     <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
                       {system.label}
@@ -444,11 +448,14 @@ export default function CompanyAccreditationScreen({
                       <TextInput
                         style={styles.input}
                         placeholder="dd/mm/yyyy"
+                        placeholderTextColor="#9CA3AF"
                         value={formatDateNZ(accreditedSystems[system.key]?.expiryDate) || ''}
                         onChangeText={(text) => {
                           const isoDate = parseNZDate(text);
                           handleExpiryDateChange(system.key, isoDate || text);
                         }}
+                        pointerEvents="auto"
+                        editable={true}
                       />
                       
                       {accreditedSystems[system.key]?.fileUrl && (
@@ -460,6 +467,7 @@ export default function CompanyAccreditationScreen({
                       <TouchableOpacity
                         style={[styles.addButton, { backgroundColor: '#9CA3AF', marginTop: 8 }]}
                         onPress={() => Alert.alert('File Upload', 'Upload certificate functionality coming soon')}
+                        pointerEvents="auto"
                       >
                         <Text style={{ color: 'white' }}>📄 Upload Certificate</Text>
                       </TouchableOpacity>
