@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate } from '../api/accreditations';
+import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
 import { listCompanies } from '../api/companies';
 import { listContractors } from '../api/contractors';
 import { listAllServices } from '../api/services';
@@ -323,6 +323,51 @@ export default function CompanyAccreditationScreen({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Delete accreditation certificate
+  const handleDeleteCertificate = async (systemKey, systemLabel) => {
+    Alert.alert(
+      'Delete Certificate',
+      `Are you sure you want to delete the ${systemLabel} certificate? You can upload a new one afterwards.`,
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const certificateUrl = accreditedSystems[systemKey]?.certificateUrl;
+              
+              if (!certificateUrl) {
+                Alert.alert('Error', 'No certificate URL found');
+                return;
+              }
+
+              const result = await deleteAccreditationCertificate(certificateUrl);
+
+              if (result.success) {
+                // Clear from state
+                setAccreditedSystems(prev => ({
+                  ...prev,
+                  [systemKey]: {
+                    ...prev[systemKey],
+                    certificateUrl: null
+                  }
+                }));
+                Alert.alert('Success', `${systemLabel} certificate deleted`);
+              } else {
+                Alert.alert('Error', 'Failed to delete certificate: ' + (result.error || 'Unknown error'));
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Build update data object
@@ -769,18 +814,46 @@ export default function CompanyAccreditationScreen({
                         keyboardType="numeric"
                       />
                       
+                      {/* Certificate Management */}
                       {accreditedSystems[system.key]?.certificateUrl && (
-                        <Text style={{ fontSize: 12, color: '#10B981', marginTop: 8 }}>
-                          ✓ Certificate uploaded
-                        </Text>
+                        <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
+                            ✓ Certificate Uploaded
+                          </Text>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              // Open certificate in browser
+                              const url = accreditedSystems[system.key].certificateUrl;
+                              if (url) {
+                                fetch(url).catch(e => 
+                                  Alert.alert('Error', 'Could not open certificate')
+                                );
+                              }
+                            }}
+                            style={{ marginBottom: 8 }}
+                          >
+                            <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                              📄 View Certificate
+                            </Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity
+                            style={{ paddingVertical: 6 }}
+                            onPress={() => handleDeleteCertificate(system.key, system.label)}
+                          >
+                            <Text style={{ fontSize: 12, color: '#EF4444' }}>
+                              🗑 Delete Certificate
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                       )}
 
                       <TouchableOpacity
-                        style={[styles.addButton, { backgroundColor: '#3B82F6', marginTop: 8 }]}
+                        style={[styles.addButton, { backgroundColor: '#3B82F6', marginTop: accreditedSystems[system.key]?.certificateUrl ? 8 : 8 }]}
                         onPress={() => handleUploadCertificate(system.key, system.label)}
                         pointerEvents="auto"
                       >
-                        <Text style={{ color: 'white' }}>📄 Upload Certificate</Text>
+                        <Text style={{ color: 'white' }}>📄 {accreditedSystems[system.key]?.certificateUrl ? 'Replace' : 'Upload'} Certificate</Text>
                       </TouchableOpacity>
                     </View>
                   )}

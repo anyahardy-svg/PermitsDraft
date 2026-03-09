@@ -166,6 +166,41 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 };
 
 /**
+ * Delete accreditation certificate from Supabase Storage
+ * @param {string} certificateUrl - Full URL of the certificate to delete
+ * @returns {Object} Success status
+ */
+export const deleteAccreditationCertificate = async (certificateUrl) => {
+  try {
+    if (!certificateUrl) throw new Error('No certificate URL provided');
+
+    // Extract the file path from the URL
+    // URL format: https://...supabase.co/storage/v1/object/public/accreditations/[filePath]
+    const urlParts = certificateUrl.split('/accreditations/');
+    if (urlParts.length !== 2) throw new Error('Invalid certificate URL format');
+    
+    const filePath = urlParts[1];
+
+    const { error } = await supabase.storage
+      .from('accreditations')
+      .remove([filePath]);
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      message: 'Certificate deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting certificate:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
  * Check expiry status of accreditations
  * Returns 'valid', 'expiring_soon' (< 90 days), or 'expired'
  */
