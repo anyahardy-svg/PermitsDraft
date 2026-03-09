@@ -268,7 +268,11 @@ export default function CompanyAccreditationScreen({
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.screenContainer}>
+      <ScrollView 
+        style={styles.screenContainer}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        scrollEnabled={true}
+      >
         {/* Contractor Selection */}
         <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
           <Text style={styles.label}>Select Contractor:</Text>
