@@ -147,10 +147,18 @@ export default function CompanyAccreditationScreen({
     contractor_compliance: { exists: false, score: 0, evidence: null }
   });
 
-  // Section 14 state (Health & Wellbeing)
+  // Section 14 state (Quality Management)
   const [section14, setSection14] = useState({
-    health_wellbeing_program: { exists: false, score: 0, evidence: null },
-    fatigue_management: { exists: false, score: 0, evidence: null }
+    quality_manager_and_plan: { exists: false, score: 0, evidence: null },
+    roles_and_responsibilities: { exists: false, score: 0, evidence: null },
+    purchasing_procedures: { exists: false, score: 0, evidence: null },
+    subcontractor_evaluation: { exists: false, score: 0, evidence: null },
+    process_control_plan: { exists: false, score: 0, evidence: null },
+    nonconformance_procedure: { exists: false, score: 0, evidence: null },
+    product_rejection: { exists: false, score: 0, evidence: null },
+    personnel_induction: { exists: false, score: 0, evidence: null },
+    internal_audits: { exists: false, score: 0, evidence: null },
+    continuous_improvement: { exists: false, score: 0, evidence: null }
   });
 
   // Section 15 state (Competency & Qualifications)
@@ -581,17 +589,57 @@ export default function CompanyAccreditationScreen({
         }
       });
 
-      // Load section 14 (Health & Wellbeing)
+      // Load section 14 (Quality Management)
       setSection14({
-        health_wellbeing_program: {
-          exists: data.health_wellbeing_program_exists || false,
-          score: data.health_wellbeing_program_score || 0,
-          evidence: data.health_wellbeing_program_evidence_url || null
+        quality_manager_and_plan: {
+          exists: data.quality_manager_and_plan_exists || false,
+          score: data.quality_manager_and_plan_score || 0,
+          evidence: data.quality_manager_and_plan_evidence_url || null
         },
-        fatigue_management: {
-          exists: data.fatigue_management_exists || false,
-          score: data.fatigue_management_score || 0,
-          evidence: data.fatigue_management_evidence_url || null
+        roles_and_responsibilities: {
+          exists: data.roles_and_responsibilities_exists || false,
+          score: data.roles_and_responsibilities_score || 0,
+          evidence: data.roles_and_responsibilities_evidence_url || null
+        },
+        purchasing_procedures: {
+          exists: data.purchasing_procedures_exists || false,
+          score: data.purchasing_procedures_score || 0,
+          evidence: data.purchasing_procedures_evidence_url || null
+        },
+        subcontractor_evaluation: {
+          exists: data.subcontractor_evaluation_exists || false,
+          score: data.subcontractor_evaluation_score || 0,
+          evidence: data.subcontractor_evaluation_evidence_url || null
+        },
+        process_control_plan: {
+          exists: data.process_control_plan_exists || false,
+          score: data.process_control_plan_score || 0,
+          evidence: data.process_control_plan_evidence_url || null
+        },
+        nonconformance_procedure: {
+          exists: data.nonconformance_procedure_exists || false,
+          score: data.nonconformance_procedure_score || 0,
+          evidence: data.nonconformance_procedure_evidence_url || null
+        },
+        product_rejection: {
+          exists: data.product_rejection_exists || false,
+          score: data.product_rejection_score || 0,
+          evidence: data.product_rejection_evidence_url || null
+        },
+        personnel_induction: {
+          exists: data.personnel_induction_exists || false,
+          score: data.personnel_induction_score || 0,
+          evidence: data.personnel_induction_evidence_url || null
+        },
+        internal_audits: {
+          exists: data.internal_audits_exists || false,
+          score: data.internal_audits_score || 0,
+          evidence: data.internal_audits_evidence_url || null
+        },
+        continuous_improvement: {
+          exists: data.continuous_improvement_exists || false,
+          score: data.continuous_improvement_score || 0,
+          evidence: data.continuous_improvement_evidence_url || null
         }
       });
 
@@ -1602,12 +1650,23 @@ export default function CompanyAccreditationScreen({
       },
       {
         number: 14,
-        title: 'Health & Wellbeing',
+        title: 'Quality Management',
         state: section14,
         setState: setSection14,
+        isConditional: true,
+        conditionalKey: 'iso_9001_certified',
+        conditionalShowWhen: false,
         items: [
-          { key: 'health_wellbeing_program', question: 'Does your organisation have a health and wellbeing program for workers?' },
-          { key: 'fatigue_management', question: 'Do you have procedures for managing worker fatigue and ensuring adequate rest periods?' }
+          { key: 'quality_manager_and_plan', question: 'Does your organisation have a dedicated Quality Manager, if not who in your company is responsible for Quality Assurance? (provide name and role). Does your organisation have a Quality Management Plan?' },
+          { key: 'roles_and_responsibilities', question: 'Are roles and responsibilities (i.e. who, when, how and review) identified?' },
+          { key: 'purchasing_procedures', question: 'Are procedures for purchasing adequately identified, including: Sources of materials, Procedures for inspection and test of incoming materials, Compliance with suppliers recommendations, Provision of SDS and safety information, Evidence and verification of quality control checks' },
+          { key: 'subcontractor_evaluation', question: 'Are procedures for evaluation of subcontractor\'s ability to meet specification requirements and for monitoring quality of subcontract works defined?' },
+          { key: 'process_control_plan', question: 'Is there a process control plan for your company\'s activities that identifies: The process steps, Factors affecting quality, Methods to monitor process, Acceptability criteria and verification procedure, Activities requiring independent inspection or witness points' },
+          { key: 'nonconformance_procedure', question: 'Is there a procedure for nonconformances and tests in accordance with defined acceptance criteria, including recording and follow-up analysis and improvement?' },
+          { key: 'product_rejection', question: 'Have you ever had product/project rejected that required significant rework or programme impact? (if yes, please explain)' },
+          { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?' },
+          { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?' },
+          { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
@@ -1717,6 +1776,13 @@ export default function CompanyAccreditationScreen({
     return sections.map(section => {
       // Skip section 20 here - it will be rendered separately and always visible
       if (section.alwaysShow) return null;
+      
+      // Handle conditional sections based on accreditation systems
+      if (section.isConditional && section.conditionalKey) {
+        const isSystemChecked = accreditedSystems[section.conditionalKey]?.checked || false;
+        const shouldShow = section.conditionalShowWhen ? isSystemChecked : !isSystemChecked;
+        if (!shouldShow) return null;
+      }
       
       return (
       <View key={section.number}>
