@@ -171,10 +171,10 @@ export default function CompanyAccreditationScreen({
     regular_audits: { exists: false, score: 0, evidence: null }
   });
 
-  // Section 18 state (Incident Analysis & Learning)
+  // Section 18 state (Injury Management)
   const [section18, setSection18] = useState({
-    incident_investigation_process: { exists: false, score: 0, evidence: null },
-    corrective_actions: { exists: false, score: 0, evidence: null }
+    injury_management: { exists: false, score: 0, evidence: null },
+    early_intervention: { exists: false, score: 0, evidence: null }
   });
 
   // Section 19 state (Continuous Improvement)
@@ -637,17 +637,17 @@ export default function CompanyAccreditationScreen({
         }
       });
 
-      // Load section 18 (Incident Analysis & Learning)
+      // Load section 18 (Injury Management)
       setSection18({
-        incident_investigation_process: {
-          exists: data.incident_investigation_process_exists || false,
-          score: data.incident_investigation_process_score || 0,
-          evidence: data.incident_investigation_process_evidence_url || null
+        injury_management: {
+          exists: data.injury_management_exists || false,
+          score: data.injury_management_score || 0,
+          evidence: data.injury_management_evidence_url || null
         },
-        corrective_actions: {
-          exists: data.corrective_actions_exists || false,
-          score: data.corrective_actions_score || 0,
-          evidence: data.corrective_actions_evidence_url || null
+        early_intervention: {
+          exists: data.early_intervention_exists || false,
+          score: data.early_intervention_score || 0,
+          evidence: data.early_intervention_evidence_url || null
         }
       });
 
@@ -1666,12 +1666,12 @@ export default function CompanyAccreditationScreen({
       },
       {
         number: 18,
-        title: 'Incident Analysis & Learning',
+        title: 'Injury Management',
         state: section18,
         setState: setSection18,
         items: [
-          { key: 'incident_investigation_process', question: 'Do you have a documented incident investigation process to identify root causes?' },
-          { key: 'corrective_actions', question: 'Do you implement corrective and preventive actions based on incident investigations?' }
+          { key: 'injury_management', question: 'Do you have an injury management procedure and system in place?' },
+          { key: 'early_intervention', question: 'Do you have an Early Intervention programme for Pain and Discomfort in place?' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
