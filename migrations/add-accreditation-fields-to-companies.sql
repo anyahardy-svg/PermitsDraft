@@ -335,16 +335,16 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS regular_audits_score INT DEFAULT 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS regular_audits_evidence_url TEXT;
 
 -- ============================================================================
--- SECTION 18: Incident Analysis & Learning
+-- SECTION 18: Injury Management
 -- ============================================================================
 
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_exists BOOLEAN DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_score INT DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS incident_investigation_process_evidence_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS injury_management_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS injury_management_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS injury_management_evidence_url TEXT;
 
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_exists BOOLEAN DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_score INT DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS corrective_actions_evidence_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS early_intervention_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS early_intervention_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS early_intervention_evidence_url TEXT;
 
 -- ============================================================================
 -- SECTION 19: Continuous Improvement
