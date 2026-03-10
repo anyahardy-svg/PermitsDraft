@@ -47,6 +47,7 @@ export default function CompanyAccreditationScreen({
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
   const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false }); // Track which sections are expanded
+  const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
@@ -1560,13 +1561,16 @@ export default function CompanyAccreditationScreen({
                 );
               } else {
                 // Scoring question
+                const evidenceUIKey = `section${section.number}-${item.key}`;
+                const isEvidenceUIExpanded = expandedEvidenceUI === evidenceUIKey;
+                
                 return (
                   <View key={idx} style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         {item.question}
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -1594,10 +1598,32 @@ export default function CompanyAccreditationScreen({
                             )}
                           </TouchableOpacity>
                         ))}
+                        {/* Evidence Toggle Button */}
+                        {section.state[item.key]?.score > 0 && (
+                          <TouchableOpacity
+                            onPress={() => setExpandedEvidenceUI(isEvidenceUIExpanded ? null : evidenceUIKey)}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: section.state[item.key]?.evidence ? '#D1FAE5' : '#FEE2E2',
+                              borderWidth: 1,
+                              borderColor: section.state[item.key]?.evidence ? '#10B981' : '#FCA5A5',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text style={{ fontSize: 18 }}>
+                              {section.state[item.key]?.evidence ? '✓' : section.state[item.key]?.score > 1 ? '!' : '+'}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
-                    {section.state[item.key]?.score > 0 && (
-                      <View style={{ marginTop: 8 }}>
+                    
+                    {/* Expanded Evidence UI - Only shown when toggle is active */}
+                    {isEvidenceUIExpanded && (
+                      <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                         {section.state[item.key]?.score > 1 && !section.state[item.key]?.evidence && (
                           <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
                             <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section.state[item.key]?.score}</Text>
@@ -1613,7 +1639,10 @@ export default function CompanyAccreditationScreen({
                         )}
                         <TouchableOpacity
                           style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadEvidence(`section${section.number}`, item.key, item.question)}
+                          onPress={() => {
+                            handleUploadEvidence(`section${section.number}`, item.key, item.question);
+                            // Don't auto-collapse; let user close manually
+                          }}
                         >
                           <Text style={{ color: 'white' }}>📄 {section.state[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section.state[item.key]?.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
