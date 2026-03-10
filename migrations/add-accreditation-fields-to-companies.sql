@@ -299,7 +299,7 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_score INT DEFA
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_evidence_url TEXT;
 
 -- ============================================================================
--- SECTION 14b: Quality Management (shown when ISO 9001 is not certified)
+-- SECTION 21: Quality Management (shown when ISO 9001 is not certified)
 -- ============================================================================
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_manager_and_plan_exists BOOLEAN DEFAULT FALSE;

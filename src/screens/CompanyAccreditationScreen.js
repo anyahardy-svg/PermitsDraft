@@ -153,8 +153,8 @@ export default function CompanyAccreditationScreen({
     fatigue_management: { exists: false, score: 0, evidence: null }
   });
 
-  // Section 14b state (Quality Management - shown when ISO 9001 is NOT certified)
-  const [section14b, setSection14b] = useState({
+  // Section 21 state (Quality Management - shown when ISO 9001 is NOT certified)
+  const [section21, setSection21] = useState({
     quality_manager_and_plan: { exists: false, score: 0, evidence: null },
     roles_and_responsibilities: { exists: false, score: 0, evidence: null },
     purchasing_procedures: { exists: false, score: 0, evidence: null },
@@ -609,8 +609,8 @@ export default function CompanyAccreditationScreen({
         }
       });
 
-      // Load section 14b (Quality Management)
-      setSection14b({
+      // Load section 21 (Quality Management)
+      setSection21({
         quality_manager_and_plan: {
           exists: data.quality_manager_and_plan_exists || false,
           score: data.quality_manager_and_plan_score || 0,
@@ -1348,8 +1348,8 @@ export default function CompanyAccreditationScreen({
       }
     });
 
-    // Add Section 14b data (Quality Management)
-    Object.entries(section14b).forEach(([key, value]) => {
+    // Add Section 21 data (Quality Management)
+    Object.entries(section21).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
       if (value.evidence) {
@@ -1491,7 +1491,7 @@ export default function CompanyAccreditationScreen({
     }, 2000); // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section14b, section15, section16, section17, section18, section19, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section21, currentCompanyId]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -1694,10 +1694,10 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 14,
+        number: 21,
         title: 'Quality Management',
-        state: section14b,
-        setState: setSection14b,
+        state: section21,
+        setState: setSection21,
         isConditional: true,
         conditionalKey: 'iso_9001_certified',
         conditionalShowWhen: false,
