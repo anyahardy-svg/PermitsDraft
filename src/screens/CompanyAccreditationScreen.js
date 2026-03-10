@@ -946,73 +946,89 @@ export default function CompanyAccreditationScreen({
     }
   };
 
-  // Helper function to render evidence toggle button and UI
-  const renderEvidenceToggle = (sectionNum, itemKey, itemData, itemLabel) => {
-    const evidenceUIKey = `section${sectionNum}-${itemKey}`;
-    const isEvidenceUIExpanded = expandedEvidenceUI === evidenceUIKey;
-    const needsEvidence = itemData?.score > 1 && !itemData?.evidence;
-    const hasEvidence = itemData?.evidence;
+  // Unified helper function to render document toggle button and UI
+  const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence') => {
+    const isDocUIExpanded = expandedEvidenceUI === documentKey;
+    const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
+    const needsDocument = itemData?.score > 1 && !hasDocument;
 
     return (
       <>
-        {/* Paperclip Toggle Button - only show if score selected */}
-        {itemData?.score > 0 && (
-          <TouchableOpacity
-            onPress={() => setExpandedEvidenceUI(isEvidenceUIExpanded ? null : evidenceUIKey)}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 5,
-              backgroundColor: hasEvidence ? '#D1FAE5' : needsEvidence ? '#FEE2E2' : '#F3F4F6',
-              borderWidth: 1,
-              borderColor: hasEvidence ? '#10B981' : needsEvidence ? '#FCA5A5' : '#D1D5DB',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginLeft: 4
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>
-              {hasEvidence ? '📎' : needsEvidence ? '📎' : '📎'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Paperclip Toggle Button */}
+        <TouchableOpacity
+          onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 5,
+            backgroundColor: hasDocument ? '#D1FAE5' : needsDocument ? '#FEE2E2' : '#F3F4F6',
+            borderWidth: 1,
+            borderColor: hasDocument ? '#10B981' : needsDocument ? '#FCA5A5' : '#D1D5DB',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginLeft: 4
+          }}
+        >
+          <Text style={{ fontSize: 14 }}>📎</Text>
+        </TouchableOpacity>
         
-        {/* Expanded Evidence UI */}
-        {isEvidenceUIExpanded && itemData?.score > 0 && (
+        {/* Expanded Document UI */}
+        {isDocUIExpanded && (
           <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
-            {hasEvidence ? (
+            {hasDocument ? (
               <>
                 <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL(itemData.evidence)}>
+                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ {documentType} Uploaded</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(itemData?.url || itemData?.evidence || itemData?.certificateUrl)}>
                     <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
                 </View>
+                {handleDeleteFn && (
+                  <TouchableOpacity
+                    style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
+                    onPress={() => handleDeleteFn()}
+                  >
+                    <Text style={{ color: 'white' }}>🗑 Delete {documentType}</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                  onPress={() => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel)}
+                  onPress={() => handleUploadFn()}
                 >
-                  <Text style={{ color: 'white' }}>📄 Replace Evidence</Text>
+                  <Text style={{ color: 'white' }}>📄 Replace {documentType}</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                {needsEvidence && (
+                {needsDocument && (
                   <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                    <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {itemData?.score}</Text>
+                    <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required for Score {itemData?.score}</Text>
                   </View>
                 )}
                 <TouchableOpacity
                   style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                  onPress={() => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel)}
+                  onPress={() => handleUploadFn()}
                 >
-                  <Text style={{ color: 'white' }}>📄 Upload Evidence</Text>
+                  <Text style={{ color: 'white' }}>📄 Upload {documentType}</Text>
                 </TouchableOpacity>
               </>
             )}
           </View>
         )}
       </>
+    );
+  };
+
+  // Helper function to render evidence toggle button and UI (for backward compatibility)
+  const renderEvidenceToggle = (sectionNum, itemKey, itemData, itemLabel) => {
+    const evidenceUIKey = `section${sectionNum}-${itemKey}`;
+    return renderDocumentToggle(
+      evidenceUIKey,
+      itemData,
+      itemLabel,
+      () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
+      null,
+      'Evidence'
     );
   };
 
@@ -2030,46 +2046,15 @@ export default function CompanyAccreditationScreen({
                         keyboardType="numeric"
                       />
                       
-                      {/* Certificate Management */}
-                      {accreditedSystems[system.key]?.certificateUrl && (
-                        <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
-                            ✓ Certificate Uploaded
-                          </Text>
-                          <TouchableOpacity 
-                            onPress={() => {
-                              const url = accreditedSystems[system.key]?.certificateUrl;
-                              if (url) {
-                                Linking.openURL(url).catch(() => 
-                                  Alert.alert('Error', 'Could not open certificate')
-                                );
-                              }
-                            }}
-                            style={{ marginBottom: 8 }}
-                          >
-                            <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                              📄 View Certificate
-                            </Text>
-                          </TouchableOpacity>
-                          
-                          <TouchableOpacity
-                            style={{ paddingVertical: 6 }}
-                            onPress={() => handleDeleteCertificate(system.key, system.label)}
-                          >
-                            <Text style={{ fontSize: 12, color: '#EF4444' }}>
-                              🗑 Delete Certificate
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
+                      {/* Certificate Management - Using unified toggle */}
+                      {renderDocumentToggle(
+                        `certificate-${system.key}`,
+                        accreditedSystems[system.key],
+                        system.label,
+                        () => handleUploadCertificate(system.key, system.label),
+                        () => handleDeleteCertificate(system.key, system.label),
+                        'Certificate'
                       )}
-
-                      <TouchableOpacity
-                        style={[styles.addButton, { backgroundColor: '#3B82F6', marginTop: accreditedSystems[system.key]?.certificateUrl ? 8 : 8 }]}
-                        onPress={() => handleUploadCertificate(system.key, system.label)}
-                        pointerEvents="auto"
-                      >
-                        <Text style={{ color: 'white' }}>📄 {accreditedSystems[system.key]?.certificateUrl ? 'Replace' : 'Upload'} Certificate</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -2128,35 +2113,14 @@ export default function CompanyAccreditationScreen({
 
                     {policies.health_safety.exists && (
                       <View style={{ paddingLeft: 36 }}>
-                        {policies.health_safety.url && (
-                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
-                              ✓ Document Uploaded
-                            </Text>
-                            <TouchableOpacity 
-                              onPress={() => Linking.openURL(policies.health_safety.url)}
-                              style={{ marginBottom: 8 }}
-                            >
-                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                                📄 View Document
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleDeletePolicy('health_safety', 'Health and Safety Policy')}
-                            >
-                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
-                                🗑 Delete Document
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
+                        {renderDocumentToggle(
+                          'policy-health_safety',
+                          policies.health_safety,
+                          'Health and Safety Policy',
+                          () => handleUploadPolicy('health_safety', 'Health and Safety Policy'),
+                          () => handleDeletePolicy('health_safety', 'Health and Safety Policy'),
+                          'Document'
                         )}
-                        <TouchableOpacity
-                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('health_safety', 'Health and Safety Policy')}
-                          pointerEvents="auto"
-                        >
-                          <Text style={{ color: 'white' }}>📄 {policies.health_safety.url ? 'Replace' : 'Upload'} Document</Text>
-                        </TouchableOpacity>
                       </View>
                     )}
                   </View>
@@ -2180,35 +2144,14 @@ export default function CompanyAccreditationScreen({
 
                     {policies.environmental.exists && (
                       <View style={{ paddingLeft: 36 }}>
-                        {policies.environmental.url && (
-                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
-                              ✓ Document Uploaded
-                            </Text>
-                            <TouchableOpacity 
-                              onPress={() => Linking.openURL(policies.environmental.url)}
-                              style={{ marginBottom: 8 }}
-                            >
-                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                                📄 View Document
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleDeletePolicy('environmental', 'Environmental Policy')}
-                            >
-                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
-                                🗑 Delete Document
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
+                        {renderDocumentToggle(
+                          'policy-environmental',
+                          policies.environmental,
+                          'Environmental Policy',
+                          () => handleUploadPolicy('environmental', 'Environmental Policy'),
+                          () => handleDeletePolicy('environmental', 'Environmental Policy'),
+                          'Document'
                         )}
-                        <TouchableOpacity
-                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('environmental', 'Environmental Policy')}
-                          pointerEvents="auto"
-                        >
-                          <Text style={{ color: 'white' }}>📄 {policies.environmental.url ? 'Replace' : 'Upload'} Document</Text>
-                        </TouchableOpacity>
                       </View>
                     )}
                   </View>
@@ -2232,35 +2175,14 @@ export default function CompanyAccreditationScreen({
 
                     {policies.drug_alcohol.exists && (
                       <View style={{ paddingLeft: 36 }}>
-                        {policies.drug_alcohol.url && (
-                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
-                              ✓ Document Uploaded
-                            </Text>
-                            <TouchableOpacity 
-                              onPress={() => Linking.openURL(policies.drug_alcohol.url)}
-                              style={{ marginBottom: 8 }}
-                            >
-                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                                📄 View Document
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleDeletePolicy('drug_alcohol', 'Drug and Alcohol Policy')}
-                            >
-                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
-                                🗑 Delete Document
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
+                        {renderDocumentToggle(
+                          'policy-drug_alcohol',
+                          policies.drug_alcohol,
+                          'Drug and Alcohol Policy',
+                          () => handleUploadPolicy('drug_alcohol', 'Drug and Alcohol Policy'),
+                          () => handleDeletePolicy('drug_alcohol', 'Drug and Alcohol Policy'),
+                          'Document'
                         )}
-                        <TouchableOpacity
-                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('drug_alcohol', 'Drug and Alcohol Policy')}
-                          pointerEvents="auto"
-                        >
-                          <Text style={{ color: 'white' }}>📄 {policies.drug_alcohol.url ? 'Replace' : 'Upload'} Document</Text>
-                        </TouchableOpacity>
                       </View>
                     )}
                   </View>
@@ -2284,35 +2206,14 @@ export default function CompanyAccreditationScreen({
 
                     {policies.quality.exists && (
                       <View style={{ paddingLeft: 36 }}>
-                        {policies.quality.url && (
-                          <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                            <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 8 }}>
-                              ✓ Document Uploaded
-                            </Text>
-                            <TouchableOpacity 
-                              onPress={() => Linking.openURL(policies.quality.url)}
-                              style={{ marginBottom: 8 }}
-                            >
-                              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }}>
-                                📄 View Document
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleDeletePolicy('quality', 'Quality Policy')}
-                            >
-                              <Text style={{ fontSize: 12, color: '#EF4444' }}>
-                                🗑 Delete Document
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
+                        {renderDocumentToggle(
+                          'policy-quality',
+                          policies.quality,
+                          'Quality Policy',
+                          () => handleUploadPolicy('quality', 'Quality Policy'),
+                          () => handleDeletePolicy('quality', 'Quality Policy'),
+                          'Document'
                         )}
-                        <TouchableOpacity
-                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => handleUploadPolicy('quality', 'Quality Policy')}
-                          pointerEvents="auto"
-                        >
-                          <Text style={{ color: 'white' }}>📄 {policies.quality.url ? 'Replace' : 'Upload'} Document</Text>
-                        </TouchableOpacity>
                       </View>
                     )}
                   </View>
