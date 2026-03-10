@@ -8,6 +8,11 @@ import { supabase } from '../supabaseClient';
  */
 export const updateCompanyAccreditation = async (companyId, accreditationData) => {
   try {
+    // Validate that companyId is provided
+    if (!companyId) {
+      throw new Error('Company ID is required');
+    }
+
     const updates = {
       ...accreditationData,
       accreditation_last_updated: new Date().toISOString(),
@@ -38,6 +43,11 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
  */
 export const getCompanyAccreditation = async (companyId) => {
   try {
+    // Validate that companyId is provided
+    if (!companyId) {
+      throw new Error('Company ID is required');
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .select(`

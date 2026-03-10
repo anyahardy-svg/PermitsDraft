@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,9 @@ export default function CompanyAccreditationScreen({
   styles,
   onClose 
 }) {
+  const scrollViewRef = useRef(null);
+  const [scrollOffset, setScrollOffset] = useState(0);
+
   const [currentCompanyId, setCurrentCompanyId] = useState(companyId);
   const [company, setCompany] = useState(null);
   const [companies, setCompanies] = useState([]); // For admin dropdown
@@ -277,6 +280,12 @@ export default function CompanyAccreditationScreen({
   };
 
   const loadCompanyData = async () => {
+    // Don't load if no company ID is set
+    if (!currentCompanyId) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await getCompanyAccreditation(currentCompanyId);
@@ -737,6 +746,12 @@ export default function CompanyAccreditationScreen({
             certificateUrl: uploadResult.url
           }
         }));
+        // Restore scroll position after state update
+        setTimeout(() => {
+          if (scrollOffset > 0) {
+            scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
+          }
+        }, 100);
         Alert.alert('Success', `${systemLabel} certificate uploaded successfully`);
       } else {
         Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult.error || 'Unknown error'));
@@ -831,6 +846,12 @@ export default function CompanyAccreditationScreen({
             url: uploadResult.url
           }
         }));
+        // Restore scroll position after state update
+        setTimeout(() => {
+          if (scrollOffset > 0) {
+            scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
+          }
+        }, 100);
         Alert.alert('Success', `${policyLabel} document uploaded successfully`);
       } else {
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
@@ -1761,10 +1782,13 @@ export default function CompanyAccreditationScreen({
   return (
     <View style={[styles.container, { flex: 1 }]}>
       <ScrollView 
+        ref={scrollViewRef}
         style={[styles.screenContainer, { flex: 1 }]}
         contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
         scrollEnabled={true}
         nestedScrollEnabled={true}
+        onScroll={(event) => setScrollOffset(event.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
         {/* Contractor Selection */}
         <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
@@ -1917,22 +1941,27 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             onPress={() => toggleSection(1)}
             style={{
-              backgroundColor: 'white',
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
+              backgroundColor: expandedSections[1] ? '#F0F9FF' : 'white',
+              borderWidth: 2,
+              borderColor: expandedSections[1] ? '#0284C7' : '#E5E7EB',
               borderRadius: 8,
               paddingVertical: 14,
               paddingHorizontal: 14,
               marginBottom: 12,
               flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: expandedSections[1] ? 0.15 : 0.05,
+              shadowRadius: 4,
+              elevation: expandedSections[1] ? 4 : 1
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[1] ? '#0284C7' : '#1F2937' }}>
               Section 1: Services
             </Text>
-            <Text style={{ fontSize: 18, color: '#6B7280' }}>
+            <Text style={{ fontSize: 18, color: expandedSections[1] ? '#0284C7' : '#6B7280' }}>
               {expandedSections[1] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
@@ -1964,22 +1993,27 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             onPress={() => toggleSection(2)}
             style={{
-              backgroundColor: 'white',
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
+              backgroundColor: expandedSections[2] ? '#F0FDF4' : 'white',
+              borderWidth: 2,
+              borderColor: expandedSections[2] ? '#22C55E' : '#E5E7EB',
               borderRadius: 8,
               paddingVertical: 14,
               paddingHorizontal: 14,
               marginBottom: 12,
               flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: expandedSections[2] ? 0.15 : 0.05,
+              shadowRadius: 4,
+              elevation: expandedSections[2] ? 4 : 1
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[2] ? '#22C55E' : '#1F2937' }}>
               Section 2: Business Units & Accreditations
             </Text>
-            <Text style={{ fontSize: 18, color: '#6B7280' }}>
+            <Text style={{ fontSize: 18, color: expandedSections[2] ? '#22C55E' : '#6B7280' }}>
               {expandedSections[2] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
@@ -2074,22 +2108,27 @@ export default function CompanyAccreditationScreen({
               <TouchableOpacity
                 onPress={() => toggleSection(3)}
                 style={{
-                  backgroundColor: 'white',
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
+                  backgroundColor: expandedSections[3] ? '#FEF3C7' : 'white',
+                  borderWidth: 2,
+                  borderColor: expandedSections[3] ? '#F59E0B' : '#E5E7EB',
                   borderRadius: 8,
                   paddingVertical: 14,
                   paddingHorizontal: 14,
                   marginBottom: 12,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: expandedSections[3] ? 0.15 : 0.05,
+                  shadowRadius: 4,
+                  elevation: expandedSections[3] ? 4 : 1
                 }}
               >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[3] ? '#F59E0B' : '#1F2937' }}>
                   Section 3: Policies
                 </Text>
-                <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                <Text style={{ fontSize: 18, color: expandedSections[3] ? '#F59E0B' : '#6B7280' }}>
                   {expandedSections[3] ? '▼' : '▶'}
                 </Text>
               </TouchableOpacity>
