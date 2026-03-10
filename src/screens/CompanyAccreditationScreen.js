@@ -1380,9 +1380,32 @@ export default function CompanyAccreditationScreen({
     return () => clearTimeout(timer);
   }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, currentCompanyId]);
 
-  // Helper function to render sections 7-19
+  // Helper function to render sections 4-19
   const renderSections__719 = () => {
     const sections = [
+      {
+        number: 4,
+        title: 'Accident, Incident & Investigation Management',
+        state: section4,
+        setState: setSection4,
+        items: [
+          { key: 'accident_reporting', question: 'An accident/incident reporting and recording system?' },
+          { key: 'accident_investigation', question: 'An accident/investigation process?' }
+        ]
+      },
+      {
+        number: 5,
+        title: 'Health Hazard Management',
+        state: section5,
+        setState: setSection5,
+        items: [
+          { key: 'health_hazard_plan', question: 'A Health Hazard Management Plan?' },
+          { key: 'exposure_monitoring', question: 'A plan to conduct exposure monitoring?', hasFrequency: true },
+          { key: 'respiratory_training', question: 'A programme of training and fit testing for respiratory protection?' },
+          { key: 'exhaust_ventilation', question: 'A routine maintenance programme for ventilation systems?' },
+          { key: 'health_monitoring', question: 'A health monitoring programme for workers exposed to hazous substances?', hasFrequency: true }
+        ]
+      },
       {
         number: 7,
         title: 'Hazard Identification & Management',
@@ -1687,6 +1710,35 @@ export default function CompanyAccreditationScreen({
                         {renderEvidenceToggle(section.number, item.key, section.state[item.key], item.question)}
                       </View>
                     </View>
+
+                    {/* Frequency selector for exposure_monitoring and health_monitoring */}
+                    {item.hasFrequency && section.state[item.key]?.score > 0 && (
+                      <View style={{ paddingLeft: 0, marginTop: 12 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Frequency (years):</Text>
+                        <View style={{ flexDirection: 'row' }}>
+                          {[1, 2, 3, 4, 5].map(freq => (
+                            <TouchableOpacity
+                              key={freq}
+                              onPress={() => section.setState(prev => ({
+                                ...prev,
+                                [item.key]: { ...prev[item.key], frequency: freq }
+                              }))}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 4,
+                                backgroundColor: section.state[item.key]?.frequency === freq ? '#3B82F6' : '#E5E7EB',
+                                marginRight: 6
+                              }}
+                            >
+                              <Text style={{ fontSize: 11, fontWeight: '600', color: section.state[item.key]?.frequency === freq ? 'white' : '#374151' }}>
+                                {freq}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
                     
                   </View>
                 );
@@ -2176,520 +2228,8 @@ export default function CompanyAccreditationScreen({
             </>
           )}
 
-          {/* SECTION 4: Accident, Incident & Investigation Management - Only show if no safety accreditations selected */}
-          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
-            <>
-              <TouchableOpacity
-                onPress={() => toggleSection(4)}
-                style={{
-                  backgroundColor: 'white',
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  paddingVertical: 14,
-                  paddingHorizontal: 14,
-                  marginBottom: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-                  Section 4: Accident, Incident & Investigation Management
-                </Text>
-                <Text style={{ fontSize: 18, color: '#6B7280' }}>
-                  {expandedSections[4] ? '▼' : '▶'}
-                </Text>
-              </TouchableOpacity>
-
-              {expandedSections[4] && (
-                <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-                  <Text style={[styles.label, { marginBottom: 16 }]}>
-                    Does your organisation have:
-                  </Text>
-
-                  {/* Scoring Criteria */}
-                  <View style={{ 
-                    backgroundColor: 'white', 
-                    borderRadius: 6, 
-                    padding: 12, 
-                    marginBottom: 16,
-                    borderLeftWidth: 4,
-                    borderLeftColor: '#F59E0B'
-                  }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', marginBottom: 8 }}>SCORING GUIDE:</Text>
-                    {[1, 2, 3, 4].map(score => (
-                      <Text key={score} style={{ fontSize: 10, color: '#4B5563', marginBottom: 4, lineHeight: 14 }}>
-                        <Text style={{ fontWeight: '600' }}>{score}</Text> - {SCORING_CRITERIA[score]}
-                        {score > 1 && <Text style={{ fontWeight: '700', color: '#EF4444' }}> *REQUIRES EVIDENCE</Text>}
-                      </Text>
-                    ))}
-                  </View>
-
-                  {/* Accident Reporting Item - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        An accident/incident reporting and recording system?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection4(prev => ({
-                              ...prev,
-                              accident_reporting: { ...prev.accident_reporting, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section4.accident_reporting.score === score ? 3 : 1,
-                              borderColor: section4.accident_reporting.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(4, 'accident_reporting', section4.accident_reporting, 'Accident Reporting Evidence')}
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Accident Investigation Item - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        An accident/investigation process?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection4(prev => ({
-                              ...prev,
-                              accident_investigation: { ...prev.accident_investigation, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section4.accident_investigation.score === score ? 3 : 1,
-                              borderColor: section4.accident_investigation.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(4, 'accident_investigation', section4.accident_investigation, 'Accident Investigation Evidence')}
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              )}
-            </>
-          )}
-
-          {/* SECTION 5: Health Hazard Management - Only show if no safety accreditations selected */}
-          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
-            <>
-              <TouchableOpacity
-                onPress={() => toggleSection(5)}
-                style={{
-                  backgroundColor: 'white',
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  paddingVertical: 14,
-                  paddingHorizontal: 14,
-                  marginBottom: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-                  Section 5: Health Hazard Management
-                </Text>
-                <Text style={{ fontSize: 18, color: '#6B7280' }}>
-                  {expandedSections[5] ? '▼' : '▶'}
-                </Text>
-              </TouchableOpacity>
-
-              {expandedSections[5] && (
-                <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-                  <Text style={[styles.label, { marginBottom: 16 }]}>
-                    Does your organisation have:
-                  </Text>
-
-                  {/* Scoring Criteria */}
-                  <View style={{ 
-                    backgroundColor: 'white', 
-                    borderRadius: 6, 
-                    padding: 12, 
-                    marginBottom: 16,
-                    borderLeftWidth: 4,
-                    borderLeftColor: '#F59E0B'
-                  }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', marginBottom: 8 }}>SCORING GUIDE:</Text>
-                    {[1, 2, 3, 4].map(score => (
-                      <Text key={score} style={{ fontSize: 10, color: '#4B5563', marginBottom: 4, lineHeight: 14 }}>
-                        <Text style={{ fontWeight: '600' }}>{score}</Text> - {SCORING_CRITERIA[score]}
-                        {score > 1 && <Text style={{ fontWeight: '700', color: '#EF4444' }}> *REQUIRES EVIDENCE</Text>}
-                      </Text>
-                    ))}
-                  </View>
-
-                  {/* Health Hazard Plan - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        A Health Hazard Management Plan?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection5(prev => ({
-                              ...prev,
-                              health_hazard_plan: { ...prev.health_hazard_plan, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section5.health_hazard_plan.score === score ? 3 : 1,
-                              borderColor: section5.health_hazard_plan.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(5, 'health_hazard_plan', section5.health_hazard_plan, 'Health Hazard Plan Evidence')}
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Exposure Monitoring - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        A plan to conduct exposure monitoring?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection5(prev => ({
-                              ...prev,
-                              exposure_monitoring: { ...prev.exposure_monitoring, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section5.exposure_monitoring.score === score ? 3 : 1,
-                              borderColor: section5.exposure_monitoring.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(5, 'exposure_monitoring', section5.exposure_monitoring, 'Exposure Monitoring Evidence')}
-                      </View>
-                    </View>
-
-                    {section5.exposure_monitoring.score > 0 && (
-                      <View style={{ paddingLeft: 0 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8, marginTop: 8 }}>Frequency (years):</Text>
-                        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                          {[1, 2, 3, 4, 5].map(freq => (
-                            <TouchableOpacity
-                              key={freq}
-                              onPress={() => setSection5(prev => ({
-                                ...prev,
-                                exposure_monitoring: { ...prev.exposure_monitoring, frequency: freq }
-                              }))}
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 6,
-                                borderRadius: 4,
-                                backgroundColor: section5.exposure_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
-                                marginRight: 6
-                              }}
-                            >
-                              <Text style={{ fontSize: 11, fontWeight: '600', color: section5.exposure_monitoring.frequency === freq ? 'white' : '#374151' }}>
-                                {freq}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Respiratory Training - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        A programme of training and fit testing for respiratory protection?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection5(prev => ({
-                              ...prev,
-                              respiratory_training: { ...prev.respiratory_training, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section5.respiratory_training.score === score ? 3 : 1,
-                              borderColor: section5.respiratory_training.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(5, 'respiratory_training', section5.respiratory_training, 'Respiratory Training Evidence')}
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Exhaust Ventilation - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        A routine maintenance programme for ventilation systems?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection5(prev => ({
-                              ...prev,
-                              exhaust_ventilation: { ...prev.exhaust_ventilation, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section5.exhaust_ventilation.score === score ? 3 : 1,
-                              borderColor: section5.exhaust_ventilation.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(5, 'exhaust_ventilation', section5.exhaust_ventilation, 'Ventilation Evidence')}
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Health Monitoring - Table Row */}
-                  <View style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                        Health monitoring for all exposed workers?
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                        {[1, 2, 3, 4].map(score => (
-                          <TouchableOpacity
-                            key={score}
-                            onPress={() => setSection5(prev => ({
-                              ...prev,
-                              health_monitoring: { ...prev.health_monitoring, score, exists: true }
-                            }))}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                              borderWidth: section5.health_monitoring.score === score ? 3 : 1,
-                              borderColor: section5.health_monitoring.score === score ? '#1F2937' : '#D1D5DB',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              position: 'relative'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        {renderEvidenceToggle(5, 'health_monitoring', section5.health_monitoring, 'Health Monitoring Evidence')}
-                      </View>
-                    </View>
-
-                    {section5.health_monitoring.score > 0 && (
-                      <View style={{ paddingLeft: 0 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8, marginTop: 8 }}>Frequency (years):</Text>
-                        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                          {[1, 2, 3, 4, 5].map(freq => (
-                            <TouchableOpacity
-                              key={freq}
-                              onPress={() => setSection5(prev => ({
-                                ...prev,
-                                health_monitoring: { ...prev.health_monitoring, frequency: freq }
-                              }))}
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 6,
-                                borderRadius: 4,
-                                backgroundColor: section5.health_monitoring.frequency === freq ? '#3B82F6' : '#E5E7EB',
-                                marginRight: 6
-                              }}
-                            >
-                              <Text style={{ fontSize: 11, fontWeight: '600', color: section5.health_monitoring.frequency === freq ? 'white' : '#374151' }}>
-                                {freq}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* SECTION 6: Induction & Training */}
-              {!Object.values(accreditedSystems).some(sys => sys.checked) && (
-                <>
-                  <TouchableOpacity
-                    onPress={() => setExpandedSections(prev => ({ ...prev, 6: !prev[6] }))}
-                    style={{
-                      backgroundColor: 'white',
-                      borderWidth: 1,
-                      borderColor: '#E5E7EB',
-                      borderRadius: 8,
-                      paddingVertical: 14,
-                      paddingHorizontal: 14,
-                      marginBottom: 12,
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 16
-                    }}
-                  >
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-                      Section 6: Induction & Training
-                    </Text>
-                    <Text style={{ fontSize: 18, color: '#6B7280' }}>
-                      {expandedSections[6] ? '▼' : '▶'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {expandedSections[6] && (
-                    <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-                      <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
-                        <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
-                        <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
-                          1: Minimal/informal processes; no written procedures{'\n'}
-                          2: Basic systems exist; assigned responsibilities{'\n'}
-                          3: Formal systems in place; consistent application; structured communication{'\n'}
-                          4: Comprehensive systems embedded; proactive & collaborative; continuous improvement
-                        </Text>
-                      </View>
-
-                      {[
-                        { key: 'induction_programme', question: 'A worker induction programme that includes Health & Safety, Environmental and Quality training?' },
-                        { key: 'induction_records_process', question: 'A process to maintain and record worker\'s induction & training records?' },
-                        { key: 'skills_training_list', question: 'A documented list of the skills and training your workers require?' },
-                        { key: 'competency_testing_system', question: 'A system for testing the competency of your workers?' }
-                      ].map((item, idx) => (
-                        <View key={idx} style={{ marginBottom: 16 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                              {item.question}
-                            </Text>
-                            <View style={{ flexDirection: 'row', gap: 6 }}>
-                              {[1, 2, 3, 4].map(score => (
-                                <TouchableOpacity
-                                  key={score}
-                                  onPress={() => setSection6(prev => ({
-                                    ...prev,
-                                    [item.key]: { ...prev[item.key], score, exists: true }
-                                  }))}
-                                  style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 6,
-                                    backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                                    borderWidth: section6[item.key]?.score === score ? 3 : 1,
-                                    borderColor: section6[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    position: 'relative'
-                                  }}
-                                >
-                                  <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                                  {section6[item.key]?.score === score && score > 1 && (
-                                    <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
-                                      <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
-                                    </View>
-                                  )}
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          </View>
-                          {section6[item.key]?.score > 0 && (
-                            <View style={{ marginTop: 8 }}>
-                              {section6[item.key]?.score > 1 && !section6[item.key]?.evidence && (
-                                <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                                  <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section6[item.key]?.score}</Text>
-                                </View>
-                              )}
-                              {section6[item.key]?.evidence && (
-                                <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
-                                  <TouchableOpacity onPress={() => Linking.openURL(section6[item.key]?.evidence)}>
-                                    <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
-                                  </TouchableOpacity>
-                                </View>
-                              )}
-                              <TouchableOpacity
-                                style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                                onPress={() => handleUploadEvidence('section6', item.key, item.question)}
-                              >
-                                <Text style={{ color: 'white' }}>📄 {section6[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section6[item.key]?.score > 1 ? ' *' : ''}</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </>
-              )}
-
-              {/* Sections 7-19 */}
+              {/* Sections 4-19 (Dynamic Rendering) */}
               {!Object.values(accreditedSystems).some(sys => sys.checked) && renderSections__719()}
-            </>
-          )}
         </View>
       </ScrollView>
 
