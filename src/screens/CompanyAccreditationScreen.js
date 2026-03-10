@@ -147,8 +147,14 @@ export default function CompanyAccreditationScreen({
     contractor_compliance: { exists: false, score: 0, evidence: null }
   });
 
-  // Section 14 state (Quality Management)
+  // Section 14 state (Health & Wellbeing)
   const [section14, setSection14] = useState({
+    health_wellbeing_program: { exists: false, score: 0, evidence: null },
+    fatigue_management: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 14b state (Quality Management - shown when ISO 9001 is NOT certified)
+  const [section14b, setSection14b] = useState({
     quality_manager_and_plan: { exists: false, score: 0, evidence: null },
     roles_and_responsibilities: { exists: false, score: 0, evidence: null },
     purchasing_procedures: { exists: false, score: 0, evidence: null },
@@ -589,8 +595,22 @@ export default function CompanyAccreditationScreen({
         }
       });
 
-      // Load section 14 (Quality Management)
+      // Load section 14 (Health & Wellbeing)
       setSection14({
+        health_wellbeing_program: {
+          exists: data.health_wellbeing_program_exists || false,
+          score: data.health_wellbeing_program_score || 0,
+          evidence: data.health_wellbeing_program_evidence_url || null
+        },
+        fatigue_management: {
+          exists: data.fatigue_management_exists || false,
+          score: data.fatigue_management_score || 0,
+          evidence: data.fatigue_management_evidence_url || null
+        }
+      });
+
+      // Load section 14b (Quality Management)
+      setSection14b({
         quality_manager_and_plan: {
           exists: data.quality_manager_and_plan_exists || false,
           score: data.quality_manager_and_plan_score || 0,
@@ -1328,6 +1348,15 @@ export default function CompanyAccreditationScreen({
       }
     });
 
+    // Add Section 14b data (Quality Management)
+    Object.entries(section14b).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
     // Add Section 15 data (Competency & Qualifications)
     Object.entries(section15).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
@@ -1462,7 +1491,7 @@ export default function CompanyAccreditationScreen({
     }, 2000); // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section14b, section15, section16, section17, section18, section19, currentCompanyId]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -1650,9 +1679,25 @@ export default function CompanyAccreditationScreen({
       },
       {
         number: 14,
-        title: 'Quality Management',
+        title: 'Health & Wellbeing',
         state: section14,
         setState: setSection14,
+        items: [
+          { key: 'health_wellbeing_program', question: 'Does your organisation have a health and wellbeing program for workers?' },
+          { key: 'fatigue_management', question: 'Do you have procedures for managing worker fatigue and ensuring adequate rest periods?' }
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
+      },
+      {
+        number: 14,
+        title: 'Quality Management',
+        state: section14b,
+        setState: setSection14b,
         isConditional: true,
         conditionalKey: 'iso_9001_certified',
         conditionalShowWhen: false,

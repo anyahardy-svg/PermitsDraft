@@ -287,7 +287,19 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_compliance_score INT D
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS contractor_compliance_evidence_url TEXT;
 
 -- ============================================================================
--- SECTION 14: Quality Management (shown when ISO 9001 is not certified)
+-- SECTION 14: Health & Wellbeing
+-- ============================================================================
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS health_wellbeing_program_evidence_url TEXT;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_exists BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_score INT DEFAULT 0;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fatigue_management_evidence_url TEXT;
+
+-- ============================================================================
+-- SECTION 14b: Quality Management (shown when ISO 9001 is not certified)
 -- ============================================================================
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS quality_manager_and_plan_exists BOOLEAN DEFAULT FALSE;
