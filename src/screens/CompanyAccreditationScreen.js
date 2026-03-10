@@ -1694,33 +1694,6 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 21,
-        title: 'Quality Management',
-        state: section21,
-        setState: setSection21,
-        isConditional: true,
-        conditionalKey: 'iso_9001_certified',
-        conditionalShowWhen: false,
-        items: [
-          { key: 'quality_manager_and_plan', question: 'Does your organisation have a dedicated Quality Manager, if not who in your company is responsible for Quality Assurance? (provide name and role). Does your organisation have a Quality Management Plan?' },
-          { key: 'roles_and_responsibilities', question: 'Are roles and responsibilities (i.e. who, when, how and review) identified?' },
-          { key: 'purchasing_procedures', question: 'Are procedures for purchasing adequately identified, including: Sources of materials, Procedures for inspection and test of incoming materials, Compliance with suppliers recommendations, Provision of SDS and safety information, Evidence and verification of quality control checks' },
-          { key: 'subcontractor_evaluation', question: 'Are procedures for evaluation of subcontractor\'s ability to meet specification requirements and for monitoring quality of subcontract works defined?' },
-          { key: 'process_control_plan', question: 'Is there a process control plan for your company\'s activities that identifies: The process steps, Factors affecting quality, Methods to monitor process, Acceptability criteria and verification procedure, Activities requiring independent inspection or witness points' },
-          { key: 'nonconformance_procedure', question: 'Is there a procedure for nonconformances and tests in accordance with defined acceptance criteria, including recording and follow-up analysis and improvement?' },
-          { key: 'product_rejection', question: 'Have you ever had product/project rejected that required significant rework or programme impact? (if yes, please explain)' },
-          { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?' },
-          { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?' },
-          { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)' }
-        ],
-        scoringCriteria: {
-          1: 'Minimal/informal processes; no written procedures',
-          2: 'Basic systems exist; assigned responsibilities',
-          3: 'Formal systems in place; consistent application; structured communication',
-          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
-        }
-      },
-      {
         number: 15,
         title: 'Competency & Qualifications',
         state: section15,
@@ -1815,6 +1788,33 @@ export default function CompanyAccreditationScreen({
           4: '0 incidents in 5 years; strong near-miss reporting; >20% annual improvement.'
         },
         alwaysShow: true
+      },
+      {
+        number: 21,
+        title: 'Quality Management',
+        state: section21,
+        setState: setSection21,
+        isConditional: true,
+        conditionalKey: 'iso_9001_certified',
+        conditionalShowWhen: false,
+        items: [
+          { key: 'quality_manager_and_plan', question: 'Does your organisation have a dedicated Quality Manager, if not who in your company is responsible for Quality Assurance? (provide name and role). Does your organisation have a Quality Management Plan?' },
+          { key: 'roles_and_responsibilities', question: 'Are roles and responsibilities (i.e. who, when, how and review) identified?' },
+          { key: 'purchasing_procedures', question: 'Are procedures for purchasing adequately identified, including: Sources of materials, Procedures for inspection and test of incoming materials, Compliance with suppliers recommendations, Provision of SDS and safety information, Evidence and verification of quality control checks' },
+          { key: 'subcontractor_evaluation', question: 'Are procedures for evaluation of subcontractor\'s ability to meet specification requirements and for monitoring quality of subcontract works defined?' },
+          { key: 'process_control_plan', question: 'Is there a process control plan for your company\'s activities that identifies: The process steps, Factors affecting quality, Methods to monitor process, Acceptability criteria and verification procedure, Activities requiring independent inspection or witness points' },
+          { key: 'nonconformance_procedure', question: 'Is there a procedure for nonconformances and tests in accordance with defined acceptance criteria, including recording and follow-up analysis and improvement?' },
+          { key: 'product_rejection', question: 'Have you ever had product/project rejected that required significant rework or programme impact? (if yes, please explain)' },
+          { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?' },
+          { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?' },
+          { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)' }
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       }
     ];
 
