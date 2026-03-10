@@ -49,7 +49,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, '2.5': false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -72,6 +72,10 @@ export default function CompanyAccreditationScreen({
     drug_alcohol: { exists: false, url: null },
     quality: { exists: false, url: null }
   });
+
+  // Section 1 state (Services) - No state needed, handled separately
+  // Section 2 state (Business Units) - No state needed, handled separately  
+  // Section 3 state (Policies) - Using policies state above
 
   // Section 4 state (Accident, Incident & Investigation)
   const [section4, setSection4] = useState({
@@ -198,6 +202,20 @@ export default function CompanyAccreditationScreen({
       score: 0, 
       evidence: null 
     }
+  });
+
+   // Section 21 state (Quality Management - shown when ISO 9001 is NOT certified)
+  const [section21, setSection21] = useState({
+    quality_manager_and_plan: { exists: false, score: 0, evidence: null },
+    roles_and_responsibilities: { exists: false, score: 0, evidence: null },
+    purchasing_procedures: { exists: false, score: 0, evidence: null },
+    subcontractor_evaluation: { exists: false, score: 0, evidence: null },
+    process_control_plan: { exists: false, score: 0, evidence: null },
+    nonconformance_procedure: { exists: false, score: 0, evidence: null },
+    product_rejection: { exists: false, score: 0, evidence: null },
+    personnel_induction: { exists: false, score: 0, evidence: null },
+    internal_audits: { exists: false, score: 0, evidence: null },
+    continuous_improvement: { exists: false, score: 0, evidence: null }
   });
 
   // Company information state (for verification/updates)
