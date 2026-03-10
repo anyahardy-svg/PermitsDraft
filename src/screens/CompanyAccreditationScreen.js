@@ -49,7 +49,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, '2.5': false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, '2.5': false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -216,6 +216,15 @@ export default function CompanyAccreditationScreen({
     personnel_induction: { exists: false, score: 0, evidence: null },
     internal_audits: { exists: false, score: 0, evidence: null },
     continuous_improvement: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 22 state (Environmental Management - shown when ISO 14001 is NOT certified)
+  const [section22, setSection22] = useState({
+    environmental_aspects_assessment: { exists: false, score: 0, evidence: null },
+    environmental_system_and_plans: { exists: false, score: 0, evidence: null },
+    waste_management_policy: { exists: false, score: 0, evidence: null },
+    environmental_improvement_targets: { exists: false, score: 0, evidence: null },
+    environmental_training_programme: { exists: false, score: 0, evidence: null }
   });
 
   // Company information state (for verification/updates)
@@ -666,6 +675,35 @@ export default function CompanyAccreditationScreen({
           exists: data.continuous_improvement_exists || false,
           score: data.continuous_improvement_score || 0,
           evidence: data.continuous_improvement_evidence_url || null
+        }
+      });
+
+      // Load section 22 (Environmental Management)
+      setSection22({
+        environmental_aspects_assessment: {
+          exists: data.environmental_aspects_assessment_exists || false,
+          score: data.environmental_aspects_assessment_score || 0,
+          evidence: data.environmental_aspects_assessment_evidence_url || null
+        },
+        environmental_system_and_plans: {
+          exists: data.environmental_system_and_plans_exists || false,
+          score: data.environmental_system_and_plans_score || 0,
+          evidence: data.environmental_system_and_plans_evidence_url || null
+        },
+        waste_management_policy: {
+          exists: data.waste_management_policy_exists || false,
+          score: data.waste_management_policy_score || 0,
+          evidence: data.waste_management_policy_evidence_url || null
+        },
+        environmental_improvement_targets: {
+          exists: data.environmental_improvement_targets_exists || false,
+          score: data.environmental_improvement_targets_score || 0,
+          evidence: data.environmental_improvement_targets_evidence_url || null
+        },
+        environmental_training_programme: {
+          exists: data.environmental_training_programme_exists || false,
+          score: data.environmental_training_programme_score || 0,
+          evidence: data.environmental_training_programme_evidence_url || null
         }
       });
 
@@ -1363,6 +1401,15 @@ export default function CompanyAccreditationScreen({
       }
     });
 
+    // Add Section 22 data (Environmental Management)
+    Object.entries(section22).forEach(([key, value]) => {
+      updateData[`${key}_exists`] = value.exists;
+      updateData[`${key}_score`] = value.score;
+      if (value.evidence) {
+        updateData[`${key}_evidence_url`] = value.evidence;
+      }
+    });
+
     // Add Section 15 data (Competency & Qualifications)
     Object.entries(section15).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
@@ -1497,7 +1544,7 @@ export default function CompanyAccreditationScreen({
     }, 2000); // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section21, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, currentCompanyId]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -1814,6 +1861,28 @@ export default function CompanyAccreditationScreen({
           { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?' },
           { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?' },
           { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)' }
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
+      },
+      {
+        number: 22,
+        title: 'Environmental Management',
+        state: section22,
+        setState: setSection22,
+        isConditional: true,
+        conditionalKey: 'iso_14001_certified',
+        conditionalShowWhen: false,
+        items: [
+          { key: 'environmental_aspects_assessment', question: 'Has your company formally assessed the significant environmental aspects of its activities and associated risks and impacts of these on the environment?' },
+          { key: 'environmental_system_and_plans', question: 'Does your company have a documented Environmental System and/or Environmental Plans?' },
+          { key: 'waste_management_policy', question: 'Does the company have a specific policy or action plan relating to managing waste?' },
+          { key: 'environmental_improvement_targets', question: 'Has your company set targets for environmental improvements, for example, sustainable purchasing, carbon footprint, cleaner production etc?' },
+          { key: 'environmental_training_programme', question: 'Has your company set up a programme for training workers on environmental issues?' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
