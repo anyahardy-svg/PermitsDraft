@@ -49,7 +49,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -181,6 +181,11 @@ export default function CompanyAccreditationScreen({
   const [section19, setSection19] = useState({
     safety_objectives: { exists: false, score: 0, evidence: null },
     management_review: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 20 state (Incidents & Breaches)
+  const [section20, setSection20] = useState({
+    incidents_breaches: { fatalities: '', serious_harm: '', lost_time: '', property_damage: '', regulatory: '', incidents_past_5: '', exists: false, score: 0, evidence: null }
   });
 
   // Company information state (for verification/updates)
@@ -1412,7 +1417,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'accident_reporting', question: 'An accident/incident reporting and recording system?' },
           { key: 'accident_investigation', question: 'An accident/investigation process?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 5,
@@ -1425,7 +1436,13 @@ export default function CompanyAccreditationScreen({
           { key: 'respiratory_training', question: 'A programme of training and fit testing for respiratory protection?' },
           { key: 'exhaust_ventilation', question: 'A routine maintenance programme for ventilation systems?' },
           { key: 'health_monitoring', question: 'A health monitoring programme for workers exposed to hazous substances?', hasFrequency: true }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 6,
@@ -1437,7 +1454,13 @@ export default function CompanyAccreditationScreen({
           { key: 'induction_records_process', question: 'A documented induction records management process?' },
           { key: 'skills_training_list', question: 'A Skills & Training List/Matrix identifying required skills for each role?' },
           { key: 'competency_testing_system', question: 'A competency testing/assessment system for staff?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 7,
@@ -1448,7 +1471,13 @@ export default function CompanyAccreditationScreen({
           { key: 'hazard_identification_process', question: 'A process to identify, report and control hazards in the workplace?' },
           { key: 'jha_jsea_system', question: 'A Job Hazard Analysis (JHA), Job Safety & Environmental Analysis (JSEA) system or equivalent?' },
           { key: 'risk_registers', question: 'Risk registers relevant to the workplace?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 8,
@@ -1462,7 +1491,13 @@ export default function CompanyAccreditationScreen({
           { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
           { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
           { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 9,
@@ -1476,7 +1511,13 @@ export default function CompanyAccreditationScreen({
           { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
           { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
           { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 10,
@@ -1491,7 +1532,13 @@ export default function CompanyAccreditationScreen({
           { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
           { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
           { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 11,
@@ -1503,7 +1550,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?', type: 'scoring' },
           { key: 'emergency_first_aid', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 12,
@@ -1513,7 +1566,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'site_safety_plans', question: 'Does your organisation have site-specific safety plans for all work undertaken at our locations?' },
           { key: 'site_induction_process', question: 'Do you have a documented site induction process for staff and contractors working at our locations?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 13,
@@ -1523,7 +1582,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'contractor_induction', question: 'Do you ensure all contractors working on your behalf receive appropriate induction and training before starting work?' },
           { key: 'contractor_compliance', question: 'Do you monitor and ensure contractors comply with your health and safety requirements?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 14,
@@ -1533,7 +1598,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'health_wellbeing_program', question: 'Does your organisation have a health and wellbeing program for workers?' },
           { key: 'fatigue_management', question: 'Do you have procedures for managing worker fatigue and ensuring adequate rest periods?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 15,
@@ -1543,7 +1614,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'competency_framework', question: 'Does your organisation have a documented competency framework for all roles?' },
           { key: 'training_records', question: 'Do you maintain comprehensive training and competency records for all workers?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 16,
@@ -1553,7 +1630,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'safety_communication', question: 'Does your organisation have consistent and effective safety communication systems with workers?' },
           { key: 'near_miss_reporting', question: 'Do you have a system for reporting and investigating near-miss incidents?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 17,
@@ -1563,7 +1646,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'performance_monitoring', question: 'Does your organisation regularly monitor safety performance and key performance indicators?' },
           { key: 'regular_audits', question: 'Do you conduct regular safety audits and inspections of your operations?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 18,
@@ -1573,7 +1662,13 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'incident_investigation_process', question: 'Do you have a documented incident investigation process to identify root causes?' },
           { key: 'corrective_actions', question: 'Do you implement corrective and preventive actions based on incident investigations?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
       },
       {
         number: 19,
@@ -1583,11 +1678,37 @@ export default function CompanyAccreditationScreen({
         items: [
           { key: 'safety_objectives', question: 'Does your organisation have documented safety objectives and targets?' },
           { key: 'management_review', question: 'Does management regularly review and update health and safety policies and procedures?' }
-        ]
+        ],
+        scoringCriteria: {
+          1: 'Minimal/informal processes; no written procedures',
+          2: 'Basic systems exist; assigned responsibilities',
+          3: 'Formal systems in place; consistent application; structured communication',
+          4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
+        }
+      },
+      {
+        number: 20,
+        title: 'Incidents & Breaches',
+        state: section20,
+        setState: setSection20,
+        items: [
+          { key: 'incidents_breaches', question: 'Has your organisation had any of the following accidents/incidents in the past 12 months?', type: 'incidents_table' }
+        ],
+        scoringCriteria: {
+          1: '>1 LTI / Fatality in 5 years; insufficient info provided.',
+          2: '1 MTI / LTI / Fatality in 5 years; rate not improving.',
+          3: 'Only First Aid incidents; minor improvement only.',
+          4: '0 incidents in 5 years; strong near-miss reporting; >20% annual improvement.'
+        },
+        alwaysShow: true
       }
     ];
 
-    return sections.map(section => (
+    return sections.map(section => {
+      // Skip section 20 here - it will be rendered separately and always visible
+      if (section.alwaysShow) return null;
+      
+      return (
       <View key={section.number}>
         <TouchableOpacity
           onPress={() => setExpandedSections(prev => ({ ...prev, [section.number]: !prev[section.number] }))}
@@ -1620,14 +1741,54 @@ export default function CompanyAccreditationScreen({
 
         {expandedSections[section.number] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-            <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, color: '#78350F', fontWeight: '600', marginBottom: 8 }}>Scoring Guide:</Text>
-              <Text style={{ fontSize: 11, color: '#92400E', lineHeight: 16 }}>
-                1: Minimal/informal processes; no written procedures{'\n'}
-                2: Basic systems exist; assigned responsibilities{'\n'}
-                3: Formal systems in place; consistent application; structured communication{'\n'}
-                4: Comprehensive systems embedded; proactive & collaborative; continuous improvement
-              </Text>
+            {/* Scoring Criteria Table */}
+            <View style={{ marginBottom: 16, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB' }}>
+              <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6' }}>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>1</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>2</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>3</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>4</Text>
+                </View>
+              </View>
+              
+              {/* Color row with backgrounds */}
+              <View style={{ flexDirection: 'row', height: 8 }}>
+                <View style={{ flex: 1, backgroundColor: '#FECACA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#FED7AA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#BBEF63', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#22C55E' }} />
+              </View>
+              
+              {/* Criteria row */}
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    {section.scoringCriteria ? section.scoringCriteria[1] : '1: Minimal/informal processes; no written procedures'}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    {section.scoringCriteria ? section.scoringCriteria[2] : '2: Basic systems exist; assigned responsibilities'}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    {section.scoringCriteria ? section.scoringCriteria[3] : '3: Formal systems in place; consistent application; structured communication'}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    {section.scoringCriteria ? section.scoringCriteria[4] : '4: Comprehensive systems embedded; proactive & collaborative; continuous improvement'}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {section.items.map((item, idx) => {
@@ -1729,7 +1890,7 @@ export default function CompanyAccreditationScreen({
                               width: 36,
                               height: 36,
                               borderRadius: 6,
-                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              backgroundColor: score === 1 ? '#FECACA' : score === 2 ? '#FED7AA' : score === 3 ? '#BBEF63' : '#22C55E',
                               borderWidth: section.state[item.key]?.score === score ? 3 : 1,
                               borderColor: section.state[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
                               justifyContent: 'center',
@@ -1785,7 +1946,136 @@ export default function CompanyAccreditationScreen({
           </View>
         )}
       </View>
-    ));
+      );
+    });
+  };
+
+  const renderSection20 = () => {
+    // Section 20: Incidents & Breaches - Always visible
+    return (
+      <View key={20}>
+        <TouchableOpacity
+          onPress={() => setExpandedSections(prev => ({ ...prev, 20: !prev[20] }))}
+          style={{
+            backgroundColor: '#F0F9FF',
+            borderWidth: 2,
+            borderColor: '#0284C7',
+            borderRadius: 8,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            marginBottom: 12,
+            marginTop: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+            Section 20: Incidents & Breaches
+          </Text>
+          <Text style={{ fontSize: 18, color: '#0284C7' }}>
+            {expandedSections[20] ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {expandedSections[20] && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+            {/* Scoring Criteria Table */}
+            <View style={{ marginBottom: 16, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB' }}>
+              <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6' }}>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>1</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>2</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>3</Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>4</Text>
+                </View>
+              </View>
+              
+              <View style={{ flexDirection: 'row', height: 8 }}>
+                <View style={{ flex: 1, backgroundColor: '#FECACA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#FED7AA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#BBEF63', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
+                <View style={{ flex: 1, backgroundColor: '#22C55E' }} />
+              </View>
+              
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    &gt;1 LTI / Fatality in 5 years; insufficient info provided.
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    1 MTI / LTI / Fatality in 5 years; rate not improving.
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    Only First Aid incidents; minor improvement only.
+                  </Text>
+                </View>
+                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
+                    0 incidents in 5 years; strong near-miss reporting; &gt;20% annual improvement.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', marginBottom: 12 }}>
+                Has your organisation had any of the following accidents/incidents in the past 12 months?
+              </Text>
+            </View>
+
+            {/* Evidence toggle and scoring */}
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                  Overall Safety Rating
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  {[1, 2, 3, 4].map(score => (
+                    <TouchableOpacity
+                      key={score}
+                      onPress={() => setSection20(prev => ({
+                        ...prev,
+                        incidents_breaches: { ...prev.incidents_breaches, score, exists: true }
+                      }))}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 6,
+                        backgroundColor: score === 1 ? '#FECACA' : score === 2 ? '#FED7AA' : score === 3 ? '#BBEF63' : '#22C55E',
+                        borderWidth: section20.incidents_breaches?.score === score ? 3 : 1,
+                        borderColor: section20.incidents_breaches?.score === score ? '#1F2937' : '#D1D5DB',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        position: 'relative'
+                      }}
+                    >
+                      <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {renderEvidenceToggle(20, 'incidents_breaches', section20.incidents_breaches, 'Incidents & Breaches Evidence')}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    );
   };
 
   if (loading) {
@@ -2286,6 +2576,9 @@ export default function CompanyAccreditationScreen({
 
               {/* Sections 4-19 (Dynamic Rendering) */}
               {!Object.values(accreditedSystems).some(sys => sys.checked) && renderSections__719()}
+              
+              {/* Section 20: Always Show */}
+              {renderSection20()}
         </View>
       </ScrollView>
 
