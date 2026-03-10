@@ -2490,6 +2490,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </View>
                   </View>
                 )}
+                {/* Safety Watches & Firewatch */}
+                {(() => {
+                  const safetyWatches = [];
+                  
+                  // Hot Work - Safety Watch
+                  if (formData.specializedPermits.hotWork?.required) {
+                    const hwSafetyWatch = formData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyPeriod = formData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    if (hwSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Hot Work',
+                        person: hwSafetyWatch,
+                        period: hwSafetyPeriod
+                      });
+                    }
+                  }
+                  
+                  // Confined Space - Safety Watch
+                  if (formData.specializedPermits.confinedSpace?.required) {
+                    const csSafetyWatch = formData.specializedPermits.confinedSpace.questionnaire.safety_watch?.answer;
+                    const csSafetyWatchName = formData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    if (csSafetyWatch === 'yes' || csSafetyWatchName) {
+                      safetyWatches.push({
+                        permit: 'Confined Space',
+                        person: csSafetyWatchName || csSafetyWatch
+                      });
+                    }
+                  }
+                  
+                  return safetyWatches.length > 0 && (
+                    <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>🔒 Safety Watches & Firewatch</Text>
+                      {safetyWatches.map((watch, idx) => (
+                        <View key={idx} style={{ marginBottom: 12, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#10B981' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#047857', marginBottom: 4 }}>{watch.permit}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', marginBottom: 2 }}>👤 {watch.person}</Text>
+                          {watch.period && (
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>⏱️ {watch.period}</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
                 {!Object.keys(formData.specializedPermits).some(permitKey => formData.specializedPermits[permitKey].required && permitQuestionnaires[permitKey]?.some(q => formData.specializedPermits[permitKey].questionnaire[q.id]?.controls)) &&
                  !Object.keys(formData.singleHazards).some(hazardKey => formData.singleHazards[hazardKey].present && formData.singleHazards[hazardKey].controls) &&
                  !formData.jsea.additionalPrecautions && (
@@ -3356,6 +3400,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               )}
             </View>
           )}
+
+          {/* Safety Watches & Firewatch - List Card Version */}
+          {(() => {
+            const safetyWatches = [];
+            
+            if (item.specializedPermits?.hotWork?.required) {
+              const hwSafetyWatch = item.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+              const hwSafetyPeriod = item.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+              if (hwSafetyWatch) {
+                safetyWatches.push({
+                  permit: 'Hot Work',
+                  person: hwSafetyWatch,
+                  period: hwSafetyPeriod
+                });
+              }
+            }
+            
+            if (item.specializedPermits?.confinedSpace?.required) {
+              const csSafetyWatch = item.specializedPermits.confinedSpace.questionnaire.safety_watch?.answer;
+              const csSafetyWatchName = item.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+              if (csSafetyWatch === 'yes' || csSafetyWatchName) {
+                safetyWatches.push({
+                  permit: 'Confined Space',
+                  person: csSafetyWatchName || csSafetyWatch
+                });
+              }
+            }
+            
+            return safetyWatches.length > 0 ? (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>🔒 Safety Watches:</Text>
+                {safetyWatches.map((watch, idx) => (
+                  <View key={idx} style={{ marginLeft: 6, marginBottom: 3 }}>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>{watch.permit}:</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>👤 {watch.person}</Text>
+                    {watch.period && <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>⏱️ {watch.period}</Text>}
+                  </View>
+                ))}
+              </View>
+            ) : null;
+          })()}
         </View>
       )}
 
@@ -4734,6 +4819,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 )}
               </View>
             )}
+
+            {/* Safety Watches & Firewatch */}
+            {(() => {
+              const safetyWatches = [];
+              
+              if (editData.specializedPermits?.hotWork?.required) {
+                const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                if (hwSafetyWatch) {
+                  safetyWatches.push({
+                    permit: 'Hot Work',
+                    person: hwSafetyWatch,
+                    period: hwSafetyPeriod
+                  });
+                }
+              }
+              
+              if (editData.specializedPermits?.confinedSpace?.required) {
+                const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch?.answer;
+                const csSafetyWatchName = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                if (csSafetyWatch === 'yes' || csSafetyWatchName) {
+                  safetyWatches.push({
+                    permit: 'Confined Space',
+                    person: csSafetyWatchName || csSafetyWatch
+                  });
+                }
+              }
+              
+              return safetyWatches.length > 0 ? (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>🔒 Safety Watches & Firewatch:</Text>
+                  {safetyWatches.map((watch, idx) => (
+                    <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                      <Text style={[styles.detailText, { fontWeight: '500', color: '#047857' }]}>{watch.permit}:</Text>
+                      <Text style={[styles.detailText, { color: '#374151', marginBottom: 2 }]}>👤 {watch.person}</Text>
+                      {watch.period && <Text style={[styles.detailText, { color: '#374151' }]}>⏱️ {watch.period}</Text>}
+                    </View>
+                  ))}
+                </View>
+              ) : null;
+            })()}
           </View>
         )}
 
@@ -9587,6 +9713,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
                   </View>
                 )}
+
+                {/* Safety Watches & Firewatch */}
+                {(() => {
+                  const safetyWatches = [];
+                  
+                  if (editData.specializedPermits?.hotWork?.required) {
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    if (hwSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Hot Work',
+                        person: hwSafetyWatch,
+                        period: hwSafetyPeriod
+                      });
+                    }
+                  }
+                  
+                  if (editData.specializedPermits?.confinedSpace?.required) {
+                    const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch?.answer;
+                    const csSafetyWatchName = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    if (csSafetyWatch === 'yes' || csSafetyWatchName) {
+                      safetyWatches.push({
+                        permit: 'Confined Space',
+                        person: csSafetyWatchName || csSafetyWatch
+                      });
+                    }
+                  }
+                  
+                  return safetyWatches.length > 0 ? (
+                    <View style={{ marginTop: 12 }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>🔒 Safety Watches & Firewatch:</Text>
+                      {safetyWatches.map((watch, idx) => (
+                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                          <Text style={[styles.detailText, { fontWeight: '500', color: '#047857' }]}>{watch.permit}:</Text>
+                          <Text style={[styles.detailText, { color: '#374151', marginBottom: 2 }]}>👤 {watch.person}</Text>
+                          {watch.period && <Text style={[styles.detailText, { color: '#374151' }]}>⏱️ {watch.period}</Text>}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
               </View>
             )}
           </View>
@@ -10639,6 +10806,46 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
                   </View>
                 )}
+
+                {/* Safety Watches & Firewatch Summary */}
+                {(() => {
+                  const safetyWatches = [];
+                  if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    if (hwSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Hot Work',
+                        person: hwSafetyWatch,
+                        period: hwSafetyPeriod
+                      });
+                    }
+                  }
+                  if (editData.specializedPermits?.confinedSpace?.required && editData.specializedPermits?.confinedSpace?.questionnaire) {
+                    const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    if (csSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Confined Space',
+                        person: csSafetyWatch,
+                        period: null
+                      });
+                    }
+                  }
+                  return safetyWatches.length > 0 ? (
+                    <View style={{ marginTop: 12, marginBottom: 12, padding: 10, backgroundColor: '#ECFDF5', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#059669' }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 8, color: '#047857' }}>🔒 Safety Watches & Firewatch:</Text>
+                      {safetyWatches.map((watch, idx) => (
+                        <View key={idx} style={{ marginBottom: 8 }}>
+                          <Text style={{ color: '#047857', fontWeight: '600', marginBottom: 4 }}>{watch.permit}:</Text>
+                          <Text style={{ color: '#059669', marginLeft: 8, marginBottom: 2 }}>👤 {watch.person}</Text>
+                          {watch.period && (
+                            <Text style={{ color: '#059669', marginLeft: 8 }}>⏱️ {watch.period}</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
               </View>
             )}
           </View>
@@ -11881,6 +12088,46 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
                   </View>
                 )}
+
+                {/* Safety Watches & Firewatch Summary */}
+                {(() => {
+                  const safetyWatches = [];
+                  if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    if (hwSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Hot Work',
+                        person: hwSafetyWatch,
+                        period: hwSafetyPeriod
+                      });
+                    }
+                  }
+                  if (editData.specializedPermits?.confinedSpace?.required && editData.specializedPermits?.confinedSpace?.questionnaire) {
+                    const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    if (csSafetyWatch) {
+                      safetyWatches.push({
+                        permit: 'Confined Space',
+                        person: csSafetyWatch,
+                        period: null
+                      });
+                    }
+                  }
+                  return safetyWatches.length > 0 ? (
+                    <View style={{ marginTop: 12, marginBottom: 12, padding: 10, backgroundColor: '#ECFDF5', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#059669' }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 8, color: '#047857' }}>🔒 Safety Watches & Firewatch:</Text>
+                      {safetyWatches.map((watch, idx) => (
+                        <View key={idx} style={{ marginBottom: 8 }}>
+                          <Text style={{ color: '#047857', fontWeight: '600', marginBottom: 4 }}>{watch.permit}:</Text>
+                          <Text style={{ color: '#059669', marginLeft: 8, marginBottom: 2 }}>👤 {watch.person}</Text>
+                          {watch.period && (
+                            <Text style={{ color: '#059669', marginLeft: 8 }}>⏱️ {watch.period}</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null;
+                })()}
               </View>
             )}
           </View>
