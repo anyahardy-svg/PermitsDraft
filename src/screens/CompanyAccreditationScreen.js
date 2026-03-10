@@ -101,7 +101,7 @@ export default function CompanyAccreditationScreen({
 
   // Section 8 state (PPE)
   const [section8, setSection8] = useState({
-    ppe_compliance: { exists: false, score: 0, evidence: null },
+    ppe_compliance_yesno: 'no',
     ppe_training_maintenance: { exists: false, score: 0, evidence: null },
     ppe_job_assessment: { exists: false, score: 0, evidence: null },
     ppe_maintenance_schedule: { exists: false, score: 0, evidence: null }
@@ -109,7 +109,7 @@ export default function CompanyAccreditationScreen({
 
   // Section 9 state (Plant & Equipment)
   const [section9, setSection9] = useState({
-    plant_equipment_onsite: { exists: false, score: 0, evidence: null },
+    plant_equipment_onsite_yesno: 'no',
     plant_equipment_licenses: { exists: false, score: 0, evidence: null },
     plant_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
     plant_equipment_maintenance: { exists: false, score: 0, evidence: null }
@@ -117,6 +117,7 @@ export default function CompanyAccreditationScreen({
 
   // Section 10 state (Electrical Equipment)
   const [section10, setSection10] = useState({
+    electrical_equipment_onsite_yesno: 'no',
     electrical_equipment_testing: { exists: false, score: 0, evidence: null },
     electrical_equipment_licenses: { exists: false, score: 0, evidence: null },
     electrical_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
@@ -126,7 +127,8 @@ export default function CompanyAccreditationScreen({
   // Section 11 state (Emergency Preparedness & Response)
   const [section11, setSection11] = useState({
     emergency_procedures: { exists: false, score: 0, evidence: null },
-    emergency_first_aid: { exists: false, score: 0, evidence: null }
+    emergency_first_aid_yesno: 'no',
+    emergency_first_aid_equipment: ''
   });
 
   // Section 12 state (Site Specific Safety Plans)
@@ -452,11 +454,7 @@ export default function CompanyAccreditationScreen({
 
       // Load section 8 (PPE)
       setSection8({
-        ppe_compliance: {
-          exists: data.ppe_compliance_exists || false,
-          score: data.ppe_compliance_score || 0,
-          evidence: data.ppe_compliance_evidence_url || null
-        },
+        ppe_compliance_yesno: data.ppe_compliance_yesno || 'no',
         ppe_training_maintenance: {
           exists: data.ppe_training_maintenance_exists || false,
           score: data.ppe_training_maintenance_score || 0,
@@ -476,11 +474,7 @@ export default function CompanyAccreditationScreen({
 
       // Load section 9 (Plant & Equipment)
       setSection9({
-        plant_equipment_onsite: {
-          exists: data.plant_equipment_onsite_exists || false,
-          score: data.plant_equipment_onsite_score || 0,
-          evidence: data.plant_equipment_onsite_evidence_url || null
-        },
+        plant_equipment_onsite_yesno: data.plant_equipment_onsite_yesno || 'no',
         plant_equipment_licenses: {
           exists: data.plant_equipment_licenses_exists || false,
           score: data.plant_equipment_licenses_score || 0,
@@ -500,6 +494,7 @@ export default function CompanyAccreditationScreen({
 
       // Load section 10 (Electrical Equipment)
       setSection10({
+        electrical_equipment_onsite_yesno: data.electrical_equipment_onsite_yesno || 'no',
         electrical_equipment_testing: {
           exists: data.electrical_equipment_testing_exists || false,
           score: data.electrical_equipment_testing_score || 0,
@@ -529,11 +524,8 @@ export default function CompanyAccreditationScreen({
           score: data.emergency_procedures_score || 0,
           evidence: data.emergency_procedures_evidence_url || null
         },
-        emergency_first_aid: {
-          exists: data.emergency_first_aid_exists || false,
-          score: data.emergency_first_aid_score || 0,
-          evidence: data.emergency_first_aid_evidence_url || null
-        }
+        emergency_first_aid_yesno: data.emergency_first_aid_yesno || 'no',
+        emergency_first_aid_equipment: data.emergency_first_aid_equipment || ''
       });
 
       // Load section 12 (Site Specific Safety Plans)
@@ -1090,38 +1082,51 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 8 data (PPE)
+    updateData.ppe_compliance_yesno = section8.ppe_compliance_yesno || 'no';
     Object.entries(section8).forEach(([key, value]) => {
-      updateData[`${key}_exists`] = value.exists;
-      updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
+      if (key !== 'ppe_compliance_yesno' && typeof value === 'object' && value !== null) {
+        updateData[`${key}_exists`] = value.exists;
+        updateData[`${key}_score`] = value.score;
+        if (value.evidence) {
+          updateData[`${key}_evidence_url`] = value.evidence;
+        }
       }
     });
 
     // Add Section 9 data (Plant & Equipment)
+    updateData.plant_equipment_onsite_yesno = section9.plant_equipment_onsite_yesno || 'no';
     Object.entries(section9).forEach(([key, value]) => {
-      updateData[`${key}_exists`] = value.exists;
-      updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
+      if (key !== 'plant_equipment_onsite_yesno' && typeof value === 'object' && value !== null) {
+        updateData[`${key}_exists`] = value.exists;
+        updateData[`${key}_score`] = value.score;
+        if (value.evidence) {
+          updateData[`${key}_evidence_url`] = value.evidence;
+        }
       }
     });
 
     // Add Section 10 data (Electrical Equipment)
+    updateData.electrical_equipment_onsite_yesno = section10.electrical_equipment_onsite_yesno || 'no';
     Object.entries(section10).forEach(([key, value]) => {
-      updateData[`${key}_exists`] = value.exists;
-      updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
+      if (key !== 'electrical_equipment_onsite_yesno' && typeof value === 'object' && value !== null) {
+        updateData[`${key}_exists`] = value.exists;
+        updateData[`${key}_score`] = value.score;
+        if (value.evidence) {
+          updateData[`${key}_evidence_url`] = value.evidence;
+        }
       }
     });
 
     // Add Section 11 data (Emergency Preparedness & Response)
+    updateData.emergency_first_aid_yesno = section11.emergency_first_aid_yesno || 'no';
+    updateData.emergency_first_aid_equipment = section11.emergency_first_aid_equipment || '';
     Object.entries(section11).forEach(([key, value]) => {
-      updateData[`${key}_exists`] = value.exists;
-      updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
+      if (key !== 'emergency_first_aid_yesno' && key !== 'emergency_first_aid_equipment' && typeof value === 'object' && value !== null) {
+        updateData[`${key}_exists`] = value.exists;
+        updateData[`${key}_score`] = value.score;
+        if (value.evidence) {
+          updateData[`${key}_evidence_url`] = value.evidence;
+        }
       }
     });
 
@@ -1307,11 +1312,13 @@ export default function CompanyAccreditationScreen({
         title: 'Personal Protective Equipment (PPE)',
         state: section8,
         setState: setSection8,
+        isConditional: true,
+        conditionalKey: 'ppe_compliance_yesno',
         items: [
-          { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?' },
-          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?' },
-          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?' },
-          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?' }
+          { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?', type: 'yes_no' },
+          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
+          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
+          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' }
         ]
       },
       {
@@ -1319,11 +1326,13 @@ export default function CompanyAccreditationScreen({
         title: 'Plant & Equipment',
         state: section9,
         setState: setSection9,
+        isConditional: true,
+        conditionalKey: 'plant_equipment_onsite_yesno',
         items: [
-          { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?' },
-          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?' },
-          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?' },
-          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?' }
+          { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?', type: 'yes_no' },
+          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
+          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
+          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' }
         ]
       },
       {
@@ -1331,11 +1340,14 @@ export default function CompanyAccreditationScreen({
         title: 'Electrical Equipment',
         state: section10,
         setState: setSection10,
+        isConditional: true,
+        conditionalKey: 'electrical_equipment_onsite_yesno',
         items: [
-          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?' },
-          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?' },
-          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?' },
-          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?' }
+          { key: 'electrical_equipment_onsite', question: 'Will you be bringing any electrical equipment on site?', type: 'yes_no' },
+          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' }
         ]
       },
       {
@@ -1343,9 +1355,11 @@ export default function CompanyAccreditationScreen({
         title: 'Emergency Preparedness & Response',
         state: section11,
         setState: setSection11,
+        isConditional: true,
+        conditionalKey: 'emergency_first_aid_yesno',
         items: [
-          { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?' },
-          { key: 'emergency_first_aid', question: 'Will your organisation have first aid kits, eye wash stations, first aid room and certified first-aiders on site who can respond in the event of an emergency?' }
+          { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?', type: 'scoring' },
+          { key: 'emergency_first_aid', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
         ]
       },
       {
@@ -1468,67 +1482,147 @@ export default function CompanyAccreditationScreen({
               </Text>
             </View>
 
-            {section.items.map((item, idx) => (
-              <View key={idx} style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                    {item.question}
-                  </Text>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {[1, 2, 3, 4].map(score => (
-                      <TouchableOpacity
-                        key={score}
-                        onPress={() => section.setState(prev => ({
-                          ...prev,
-                          [item.key]: { ...prev[item.key], score, exists: true }
-                        }))}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 6,
-                          backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
-                          borderWidth: section.state[item.key]?.score === score ? 3 : 1,
-                          borderColor: section.state[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          position: 'relative'
-                        }}
-                      >
-                        <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                        {section.state[item.key]?.score === score && score > 1 && (
-                          <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
-                            <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-                {section.state[item.key]?.score > 0 && (
-                  <View style={{ marginTop: 8 }}>
-                    {section.state[item.key]?.score > 1 && !section.state[item.key]?.evidence && (
-                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                        <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section.state[item.key]?.score}</Text>
+            {section.items.map((item, idx) => {
+              // Check if this item should be shown (conditional rendering)
+              if (item.showIfKey && section.state[item.showIfKey] !== 'yes') {
+                return null;
+              }
+
+              if (item.type === 'yes_no') {
+                // Yes/No question
+                return (
+                  <View key={idx} style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        {item.question}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => section.setState(prev => ({
+                            ...prev,
+                            [item.key]: 'yes'
+                          }))}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 16,
+                            borderRadius: 6,
+                            backgroundColor: section.state[item.key] === 'yes' ? '#10B981' : '#E5E7EB',
+                            borderWidth: section.state[item.key] === 'yes' ? 2 : 1,
+                            borderColor: section.state[item.key] === 'yes' ? '#059669' : '#D1D5DB'
+                          }}
+                        >
+                          <Text style={{ color: section.state[item.key] === 'yes' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 13 }}>Yes</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => section.setState(prev => ({
+                            ...prev,
+                            [item.key]: 'no'
+                          }))}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 16,
+                            borderRadius: 6,
+                            backgroundColor: section.state[item.key] === 'no' ? '#EF4444' : '#E5E7EB',
+                            borderWidth: section.state[item.key] === 'no' ? 2 : 1,
+                            borderColor: section.state[item.key] === 'no' ? '#DC2626' : '#D1D5DB'
+                          }}
+                        >
+                          <Text style={{ color: section.state[item.key] === 'no' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 13 }}>No</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    
+                    {/* Special cases: Section 11 Q2 - text input for first aid equipment */}
+                    {section.number === 11 && item.key === 'emergency_first_aid' && section.state[item.key] === 'yes' && (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Please specify the first aid equipment you will provide:</Text>
+                        <TextInput
+                          style={{
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 6,
+                            padding: 10,
+                            fontSize: 13,
+                            minHeight: 100,
+                            textAlignVertical: 'top'
+                          }}
+                          multiline
+                          placeholder="Enter details of first aid equipment..."
+                          value={section.state.emergency_first_aid_equipment || ''}
+                          onChangeText={(text) => section.setState(prev => ({
+                            ...prev,
+                            emergency_first_aid_equipment: text
+                          }))}
+                        />
                       </View>
                     )}
-                    {section.state[item.key]?.evidence && (
-                      <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                        <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
-                        <TouchableOpacity onPress={() => Linking.openURL(section.state[item.key]?.evidence)}>
-                          <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
+                  </View>
+                );
+              } else {
+                // Scoring question
+                return (
+                  <View key={idx} style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                        {item.question}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[1, 2, 3, 4].map(score => (
+                          <TouchableOpacity
+                            key={score}
+                            onPress={() => section.setState(prev => ({
+                              ...prev,
+                              [item.key]: { ...prev[item.key], score, exists: true }
+                            }))}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              backgroundColor: score === 1 ? '#FED7AA' : score === 2 ? '#FEF08A' : score === 3 ? '#DCFCE7' : '#DBEAFE',
+                              borderWidth: section.state[item.key]?.score === score ? 3 : 1,
+                              borderColor: section.state[item.key]?.score === score ? '#1F2937' : '#D1D5DB',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              position: 'relative'
+                            }}
+                          >
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            {section.state[item.key]?.score === score && score > 1 && (
+                              <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+                                <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                    {section.state[item.key]?.score > 0 && (
+                      <View style={{ marginTop: 8 }}>
+                        {section.state[item.key]?.score > 1 && !section.state[item.key]?.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section.state[item.key]?.score}</Text>
+                          </View>
+                        )}
+                        {section.state[item.key]?.evidence && (
+                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(section.state[item.key]?.evidence)}>
+                              <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+                          onPress={() => handleUploadEvidence(`section${section.number}`, item.key, item.question)}
+                        >
+                          <Text style={{ color: 'white' }}>📄 {section.state[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section.state[item.key]?.score > 1 ? ' *' : ''}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
-                    <TouchableOpacity
-                      style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleUploadEvidence(`section${section.number}`, item.key, item.question)}
-                    >
-                      <Text style={{ color: 'white' }}>📄 {section.state[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section.state[item.key]?.score > 1 ? ' *' : ''}</Text>
-                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            ))}
+                );
+              }
+            })}
           </View>
         )}
       </View>

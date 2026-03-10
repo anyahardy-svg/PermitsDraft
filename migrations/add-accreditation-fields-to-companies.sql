@@ -191,9 +191,8 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS risk_registers_evidence_url TEXT;
 -- SECTION 8: Personal Protective Equipment (PPE)
 -- ============================================================================
 
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_exists BOOLEAN DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_score INT DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_evidence_url TEXT;
+-- Q1: Yes/No - Do you supply workers with PPE that complies with AS/NZS Standards?
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_compliance_yesno TEXT DEFAULT 'no';
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_training_maintenance_exists BOOLEAN DEFAULT FALSE;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_training_maintenance_score INT DEFAULT 0;
@@ -211,9 +210,8 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS ppe_maintenance_schedule_evidence
 -- SECTION 9: Plant & Equipment
 -- ============================================================================
 
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_exists BOOLEAN DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_score INT DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_evidence_url TEXT;
+-- Q1: Yes/No - Will you be bringing any plant/equipment onto sites?
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_onsite_yesno TEXT DEFAULT 'no';
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_licenses_exists BOOLEAN DEFAULT FALSE;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_licenses_score INT DEFAULT 0;
@@ -230,6 +228,9 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS plant_equipment_maintenance_evide
 -- ============================================================================
 -- SECTION 10: Electrical Equipment
 -- ============================================================================
+
+-- Q1: Yes/No - Will you be bringing any electrical equipment on site?
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_onsite_yesno TEXT DEFAULT 'no';
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_testing_exists BOOLEAN DEFAULT FALSE;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS electrical_equipment_testing_score INT DEFAULT 0;
@@ -255,9 +256,11 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_exists BOOLE
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_score INT DEFAULT 0;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_procedures_evidence_url TEXT;
 
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_exists BOOLEAN DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_score INT DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_evidence_url TEXT;
+-- Q2: Yes/No - Will your company provide necessary first aid equipment?
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_yesno TEXT DEFAULT 'no';
+
+-- Q2 Details: Free text - Please specify the first aid equipment
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS emergency_first_aid_equipment TEXT;
 
 -- ============================================================================
 -- SECTION 12: Site Specific Safety Plans
