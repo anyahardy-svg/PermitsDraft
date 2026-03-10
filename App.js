@@ -1830,7 +1830,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <Text style={styles.label}>Permit Issuer</Text>
                 <CustomDropdown
                   label="Select Permit Issuer"
-                  options={permitIssuers && permitIssuers.length > 0 ? permitIssuers.map(issuer => issuer.name) : []}
+                  options={
+                    formData.site && permitIssuers && permitIssuers.length > 0
+                      ? permitIssuers
+                          .filter(issuer => {
+                            // Get the site ID for the selected site name
+                            const selectedSiteId = Object.entries(siteIdToNameMap).find(
+                              ([_, name]) => name === formData.site
+                            )?.[0];
+                            
+                            // Show issuer if they have the selected site in their siteIds
+                            return selectedSiteId && issuer.siteIds && issuer.siteIds.includes(selectedSiteId);
+                          })
+                          .map(issuer => issuer.name)
+                      : permitIssuers && permitIssuers.length > 0 ? permitIssuers.map(issuer => issuer.name) : []
+                  }
                   selectedValue={formData.permitIssuer || ''}
                   onValueChange={value => setFormData({ ...formData, permitIssuer: value })}
                   style={styles.input}
