@@ -1400,12 +1400,12 @@ export default function CompanyAccreditationScreen({
         state: section8,
         setState: setSection8,
         isConditional: true,
-        conditionalKey: 'ppe_compliance_yesno',
+        conditionalKey: 'ppe_compliance',
         items: [
           { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?', type: 'yes_no' },
-          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
-          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
-          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' }
+          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
+          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
+          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance' }
         ]
       },
       {
@@ -1414,12 +1414,12 @@ export default function CompanyAccreditationScreen({
         state: section9,
         setState: setSection9,
         isConditional: true,
-        conditionalKey: 'plant_equipment_onsite_yesno',
+        conditionalKey: 'plant_equipment_onsite',
         items: [
           { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?', type: 'yes_no' },
-          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
-          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
-          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' }
+          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
+          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
+          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite' }
         ]
       },
       {
@@ -1428,13 +1428,13 @@ export default function CompanyAccreditationScreen({
         state: section10,
         setState: setSection10,
         isConditional: true,
-        conditionalKey: 'electrical_equipment_onsite_yesno',
+        conditionalKey: 'electrical_equipment_onsite',
         items: [
           { key: 'electrical_equipment_onsite', question: 'Will you be bringing any electrical equipment on site?', type: 'yes_no' },
-          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
-          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
-          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
-          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' }
+          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
+          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
+          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
+          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' }
         ]
       },
       {
@@ -1443,7 +1443,7 @@ export default function CompanyAccreditationScreen({
         state: section11,
         setState: setSection11,
         isConditional: true,
-        conditionalKey: 'emergency_first_aid_yesno',
+        conditionalKey: 'emergency_first_aid',
         items: [
           { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?', type: 'scoring' },
           { key: 'emergency_first_aid', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
@@ -1684,56 +1684,10 @@ export default function CompanyAccreditationScreen({
                             )}
                           </TouchableOpacity>
                         ))}
-                        {/* Evidence Toggle Button */}
-                        {section.state[item.key]?.score > 0 && (
-                          <TouchableOpacity
-                            onPress={() => setExpandedEvidenceUI(isEvidenceUIExpanded ? null : evidenceUIKey)}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 6,
-                              backgroundColor: section.state[item.key]?.evidence ? '#D1FAE5' : '#FEE2E2',
-                              borderWidth: 1,
-                              borderColor: section.state[item.key]?.evidence ? '#10B981' : '#FCA5A5',
-                              justifyContent: 'center',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <Text style={{ fontSize: 18 }}>
-                              {section.state[item.key]?.evidence ? '✓' : section.state[item.key]?.score > 1 ? '!' : '+'}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
+                        {renderEvidenceToggle(section.number, item.key, section.state[item.key], item.question)}
                       </View>
                     </View>
                     
-                    {/* Expanded Evidence UI - Only shown when toggle is active */}
-                    {isEvidenceUIExpanded && (
-                      <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        {section.state[item.key]?.score > 1 && !section.state[item.key]?.evidence && (
-                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ Evidence Required for Score {section.state[item.key]?.score}</Text>
-                          </View>
-                        )}
-                        {section.state[item.key]?.evidence && (
-                          <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                            <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ Evidence Uploaded</Text>
-                            <TouchableOpacity onPress={() => Linking.openURL(section.state[item.key]?.evidence)}>
-                              <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>View / Download</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                        <TouchableOpacity
-                          style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                          onPress={() => {
-                            handleUploadEvidence(`section${section.number}`, item.key, item.question);
-                            // Don't auto-collapse; let user close manually
-                          }}
-                        >
-                          <Text style={{ color: 'white' }}>📄 {section.state[item.key]?.evidence ? 'Replace' : 'Upload'} Evidence{section.state[item.key]?.score > 1 ? ' *' : ''}</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
                   </View>
                 );
               }
