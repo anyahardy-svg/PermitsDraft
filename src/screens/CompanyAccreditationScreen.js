@@ -153,19 +153,7 @@ export default function CompanyAccreditationScreen({
     fatigue_management: { exists: false, score: 0, evidence: null }
   });
 
-  // Section 21 state (Quality Management - shown when ISO 9001 is NOT certified)
-  const [section21, setSection21] = useState({
-    quality_manager_and_plan: { exists: false, score: 0, evidence: null },
-    roles_and_responsibilities: { exists: false, score: 0, evidence: null },
-    purchasing_procedures: { exists: false, score: 0, evidence: null },
-    subcontractor_evaluation: { exists: false, score: 0, evidence: null },
-    process_control_plan: { exists: false, score: 0, evidence: null },
-    nonconformance_procedure: { exists: false, score: 0, evidence: null },
-    product_rejection: { exists: false, score: 0, evidence: null },
-    personnel_induction: { exists: false, score: 0, evidence: null },
-    internal_audits: { exists: false, score: 0, evidence: null },
-    continuous_improvement: { exists: false, score: 0, evidence: null }
-  });
+ 
 
   // Section 15 state (Competency & Qualifications)
   const [section15, setSection15] = useState({
@@ -2585,7 +2573,7 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 2: Business Units & Accreditations */}
+          {/* SECTION 2: Business Units */}
           <TouchableOpacity
             onPress={() => toggleSection(2)}
             style={{
@@ -2607,7 +2595,7 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-              Section 2: Business Units & Accreditations
+              Section 2: Business Units
             </Text>
             <Text style={{ fontSize: 18, color: '#0284C7' }}>
               {expandedSections[2] ? '▼' : '▶'}
@@ -2636,8 +2624,41 @@ export default function CompanyAccreditationScreen({
                   Loading business units...
                 </Text>
               )}
+            </View>
+          )}
 
-              <Text style={[styles.label, { margin: 12, marginTop: 24, marginBottom: 12 }]}>
+          {/* SECTION 2.5: Accreditation Systems */}
+          <TouchableOpacity
+            onPress={() => toggleSection('2.5')}
+            style={{
+              backgroundColor: '#F0F9FF',
+              borderWidth: 2,
+              borderColor: '#0284C7',
+              borderRadius: 8,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              marginBottom: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 4
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+              Section 2.5: Accreditation Systems
+            </Text>
+            <Text style={{ fontSize: 18, color: '#0284C7' }}>
+              {expandedSections['2.5'] ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
+
+          {expandedSections['2.5'] && (
+            <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
+              <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
                 Accreditation Systems
               </Text>
               {ACCREDITED_SYSTEMS.map(system => (
