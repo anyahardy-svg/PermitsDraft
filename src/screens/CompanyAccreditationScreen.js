@@ -1428,6 +1428,18 @@ export default function CompanyAccreditationScreen({
         ]
       },
       {
+        number: 6,
+        title: 'Induction & Training',
+        state: section6,
+        setState: setSection6,
+        items: [
+          { key: 'induction_programme', question: 'An induction programme?' },
+          { key: 'induction_records_process', question: 'A documented induction records management process?' },
+          { key: 'skills_training_list', question: 'A Skills & Training List/Matrix identifying required skills for each role?' },
+          { key: 'competency_testing_system', question: 'A competency testing/assessment system for staff?' }
+        ]
+      },
+      {
         number: 7,
         title: 'Hazard Identification & Management',
         state: section7,
