@@ -296,6 +296,211 @@ await saveJseaTemplate(
 
 ---
 
+# UPDATE: March 10, 2026 - Company Accreditation Screen Refactoring
+
+**Status**: Complete and Pushed to GitHub  
+**Main Goal**: Fix ReferenceError bugs and add Section 22 (Environmental Management)
+
+---
+
+## Summary of Changes
+
+### **FIXED: ReferenceError: section21 not defined**
+
+**Problem**: After splitting Section 2 into Business Units and Accreditation Systems, a commit accidentally removed the `section21` state declaration, causing ReferenceError in browser console.
+
+**Commits Made**:
+1. **48903a55** - "Fix: Restore Section 21 state and update expandedSections initialization"
+   - Restored `section21` state with all 10 Quality Management fields
+   - Added Section 1-3 state documentation comments
+   - Updated `expandedSections` initialization to include `'2.5': false` and `21: false`
+   - Fixed ReferenceError blocking entire app
+
+### **NEW SECTION: Section 22 - Environmental Management**
+
+**Commits Made**:
+1. **0c396856** - "Add Section 22: Environmental Management"
+   - Created Section 22 with 5 environmental assessment items
+   - Shows when ISO 14001 is NOT certified (independent conditional logic)
+   - Added to buildUpdateData() function for data persistence
+   - Updated API to query section 22 fields
+   - Added section22 loading in loadCompanyData()
+
+2. **98cadc42** - "Add database migration for Section 22: Environmental Management"
+   - Created migration: `add-section22-environmental-management.sql`
+   - Adds 15 columns to companies table (each of 5 items has _exists, _score, _evidence_url)
+   - Uses IF NOT EXISTS for idempotency
+
+---
+
+## Section 18 - Injury Management (Completed Earlier)
+
+**Previously completed**:
+- Renamed fields: `incident_investigation_process` → `injury_management`
+- Renamed fields: `corrective_actions` → `early_intervention`
+- Created migration to rename database columns
+- Updated API to query new field names
+
+---
+
+## Section 21 - Quality Management
+
+**Status**: Functional (conditionally shows when ISO 9001 NOT certified)
+
+**5 Assessment Items**:
+1. Quality Manager and Plan
+2. Roles and Responsibilities
+3. Purchasing Procedures
+4. Subcontractor Evaluation
+5. Process Control Plan
+6. Nonconformance Procedure
+7. Product Rejection
+8. Personnel Induction
+9. Internal Audits
+10. Continuous Improvement
+
+---
+
+## Section 22 - Environmental Management
+
+**Status**: Newly Added
+
+**5 Assessment Items**:
+1. Has your company formally assessed the significant environmental aspects of its activities?
+2. Does your company have a documented Environmental System and/or Environmental Plans?
+3. Does the company have a specific policy or action plan relating to managing waste?
+4. Has your company set targets for environmental improvements (sustainable purchasing, carbon footprint, etc.)?
+5. Has your company set up a programme for training workers on environmental issues?
+
+**Conditional Logic**:
+- **Shows when**: ISO 14001 is **NOT** certified
+- **Independent of**: Section 21 (Quality Management) and safety accreditations
+- **Both can display simultaneously** if their respective ISO certifications are unchecked
+
+---
+
+## Database Schema Updates
+
+### Section 18 Column Renames (Previously Done)
+- `incident_investigation_process_exists` → `injury_management_exists`
+- `incident_investigation_process_score` → `injury_management_score`
+- `incident_investigation_process_evidence_url` → `injury_management_evidence_url`
+- `corrective_actions_exists` → `early_intervention_exists`
+- `corrective_actions_score` → `early_intervention_score`
+- `corrective_actions_evidence_url` → `early_intervention_evidence_url`
+
+### Section 22 New Columns (Just Added)
+```sql
+-- Each item has 3 columns (_exists, _score, _evidence_url)
+environmental_aspects_assessment_*
+environmental_system_and_plans_*
+waste_management_policy_*
+environmental_improvement_targets_*
+environmental_training_programme_*
+```
+
+---
+
+## Code Structure Overview
+
+### State Declarations (CompanyAccreditationScreen.js)
+- Lines 52: `expandedSections` - Includes all 22 sections + Section 2.5
+- Lines 193-227: section20-22 state declarations
+- Lines 208-223: section21 state (Quality Management - 10 items)
+- Lines 225-231: section22 state (Environmental Management - 5 items)
+
+### Conditional Section Logic
+```javascript
+isConditional: true,
+conditionalKey: 'iso_9001_certified',  // Section 21
+conditionalShowWhen: false,            // Show when NOT certified
+
+isConditional: true,
+conditionalKey: 'iso_14001_certified', // Section 22
+conditionalShowWhen: false,            // Show when NOT certified
+```
+
+### Data Loading & Saving
+- **loadCompanyData()**: Lines 627-671 load section22 from database
+- **buildUpdateData()**: Lines 1357-1406 save section22 to database
+- **useEffect dependencies**: Includes section22
+- **API**: accreditations.js includes all section22 select fields
+
+---
+
+## Testing Checklist
+
+- [x] Section 21 renders correctly when ISO 9001 NOT checked
+- [x] Section 22 renders correctly when ISO 14001 NOT checked
+- [x] Both sections can display simultaneously (independent logic)
+- [x] Section 22 data loads from database
+- [x] Section 22 data saves to database
+- [x] Assessment scoring (1-4 scale) works for both sections
+- [x] Evidence upload/delete functional for both sections
+- [x] Database migration creates all 15 columns
+- [x] API queries include all section22 fields
+- [x] No errors in code compilation
+
+---
+
+## How It Works Now
+
+### Accreditation Logic (Updated)
+1. **User selects accreditations** in Section 2.5
+2. **Safety Accreditation** (e.g., AEP, ISO 45001) → Skip safety questions (Sections 4-20)
+3. **ISO 9001 (Quality)** → Skip Section 21 (Quality Management)
+4. **ISO 14001 (Environmental)** → Skip Section 22 (Environmental Management)
+5. Each section **independently conditional** - user must answer questions for any ISO they DON'T have
+
+### User Experience
+- Company without ANY ISO certifications: Must answer all questions (Sections 4-22)
+- Company with ISO 9001 only: Must answer Sections 4-20 and 22 (skip 21)
+- Company with ISO 14001 only: Must answer Sections 4-21 (skip 22)
+- Company with both ISO 9001 and 14001: Must answer Sections 4-20 only (skip 21 & 22)
+- Company with safety accreditation: Safety questions skipped (Sections 4-20)
+
+---
+
+## Files Modified
+
+### src/screens/CompanyAccreditationScreen.js
+- Added section22 state (line 225)
+- Updated expandedSections initialization to include '2.5' and 22 (line 52)
+- Updated useEffect dependencies to include section22 (line 1501)
+- Added section22 data handling in buildUpdateData() (lines 1357-1406)
+- Added section22 loading in loadCompanyData() (lines 627-671)
+- Added Section 22 to renderSections__719() array with conditional logic (after Section 21)
+
+### src/api/accreditations.js
+- Added 15 section22 fields to getCompanyAccreditation() select statement (lines 245-260)
+
+### migrations/add-section22-environmental-management.sql (NEW FILE)
+- Adds all 15 columns for Section 22 to companies table
+- Uses IF NOT EXISTS for safe migration execution
+
+---
+
+## Important Notes for Future Work
+
+### Critical Information
+1. **Section 21 Show Logic**: ISO 9001 NOT certified (conditionalShowWhen: false)
+2. **Section 22 Show Logic**: ISO 14001 NOT certified (conditionalShowWhen: false)
+3. **Database columns all added**: Ready to store section22 data
+4. **API fully updated**: Can query and save section22 fields
+
+### If Issues Occur
+- Check expandedSections initialization includes '2.5' and 22
+- Verify section22 is in useEffect dependencies
+- Confirm section22 state fields match database column names
+- Ensure API getCompanyAccreditation() includes all section22 fields
+
+### Next Steps (If Needed)
+- Create Section 23+ if required
+- Add more accreditation-specific conditional rules
+- Modify conditional logic if requirements change
+
+---
+
 ## Still To Do
 
 The following still need attention:
