@@ -960,17 +960,18 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             onPress={() => setExpandedEvidenceUI(isEvidenceUIExpanded ? null : evidenceUIKey)}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 6,
+              width: 30,
+              height: 30,
+              borderRadius: 5,
               backgroundColor: hasEvidence ? '#D1FAE5' : needsEvidence ? '#FEE2E2' : '#F3F4F6',
               borderWidth: 1,
               borderColor: hasEvidence ? '#10B981' : needsEvidence ? '#FCA5A5' : '#D1D5DB',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              marginLeft: 4
             }}
           >
-            <Text style={{ fontSize: 16 }}>
+            <Text style={{ fontSize: 14 }}>
               {hasEvidence ? '📎' : needsEvidence ? '📎' : '📎'}
             </Text>
           </TouchableOpacity>
@@ -1639,7 +1640,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         {item.question}
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2376,7 +2377,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         An accident/incident reporting and recording system?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2410,7 +2411,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         An accident/investigation process?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2498,7 +2499,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         A Health Hazard Management Plan?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2532,7 +2533,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         A plan to conduct exposure monitoring?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2594,7 +2595,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         A programme of training and fit testing for respiratory protection?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2628,7 +2629,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         A routine maintenance programme for ventilation systems?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2662,7 +2663,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         Health monitoring for all exposed workers?
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
