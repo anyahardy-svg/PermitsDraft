@@ -1580,9 +1580,9 @@ export default function CompanyAccreditationScreen({
         <TouchableOpacity
           onPress={() => setExpandedSections(prev => ({ ...prev, [section.number]: !prev[section.number] }))}
           style={{
-            backgroundColor: 'white',
-            borderWidth: 1,
-            borderColor: '#E5E7EB',
+            backgroundColor: '#F0F9FF',
+            borderWidth: 2,
+            borderColor: '#0284C7',
             borderRadius: 8,
             paddingVertical: 14,
             paddingHorizontal: 14,
@@ -1590,13 +1590,18 @@ export default function CompanyAccreditationScreen({
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginTop: 16
+            marginTop: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
             Section {section.number}: {section.title}
           </Text>
-          <Text style={{ fontSize: 18, color: '#6B7280' }}>
+          <Text style={{ fontSize: 18, color: '#0284C7' }}>
             {expandedSections[section.number] ? '▼' : '▶'}
           </Text>
         </TouchableOpacity>
@@ -1941,9 +1946,9 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             onPress={() => toggleSection(1)}
             style={{
-              backgroundColor: expandedSections[1] ? '#F0F9FF' : 'white',
+              backgroundColor: '#F0F9FF',
               borderWidth: 2,
-              borderColor: expandedSections[1] ? '#0284C7' : '#E5E7EB',
+              borderColor: '#0284C7',
               borderRadius: 8,
               paddingVertical: 14,
               paddingHorizontal: 14,
@@ -1953,15 +1958,15 @@ export default function CompanyAccreditationScreen({
               alignItems: 'center',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: expandedSections[1] ? 0.15 : 0.05,
+              shadowOpacity: 0.15,
               shadowRadius: 4,
-              elevation: expandedSections[1] ? 4 : 1
+              elevation: 4
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[1] ? '#0284C7' : '#1F2937' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
               Section 1: Services
             </Text>
-            <Text style={{ fontSize: 18, color: expandedSections[1] ? '#0284C7' : '#6B7280' }}>
+            <Text style={{ fontSize: 18, color: '#0284C7' }}>
               {expandedSections[1] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
@@ -1993,9 +1998,9 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             onPress={() => toggleSection(2)}
             style={{
-              backgroundColor: expandedSections[2] ? '#F0FDF4' : 'white',
+              backgroundColor: '#F0F9FF',
               borderWidth: 2,
-              borderColor: expandedSections[2] ? '#22C55E' : '#E5E7EB',
+              borderColor: '#0284C7',
               borderRadius: 8,
               paddingVertical: 14,
               paddingHorizontal: 14,
@@ -2005,15 +2010,15 @@ export default function CompanyAccreditationScreen({
               alignItems: 'center',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: expandedSections[2] ? 0.15 : 0.05,
+              shadowOpacity: 0.15,
               shadowRadius: 4,
-              elevation: expandedSections[2] ? 4 : 1
+              elevation: 4
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[2] ? '#22C55E' : '#1F2937' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
               Section 2: Business Units & Accreditations
             </Text>
-            <Text style={{ fontSize: 18, color: expandedSections[2] ? '#22C55E' : '#6B7280' }}>
+            <Text style={{ fontSize: 18, color: '#0284C7' }}>
               {expandedSections[2] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
@@ -2108,9 +2113,9 @@ export default function CompanyAccreditationScreen({
               <TouchableOpacity
                 onPress={() => toggleSection(3)}
                 style={{
-                  backgroundColor: expandedSections[3] ? '#FEF3C7' : 'white',
+                  backgroundColor: '#F0F9FF',
                   borderWidth: 2,
-                  borderColor: expandedSections[3] ? '#F59E0B' : '#E5E7EB',
+                  borderColor: '#0284C7',
                   borderRadius: 8,
                   paddingVertical: 14,
                   paddingHorizontal: 14,
@@ -2120,15 +2125,15 @@ export default function CompanyAccreditationScreen({
                   alignItems: 'center',
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: expandedSections[3] ? 0.15 : 0.05,
+                  shadowOpacity: 0.15,
                   shadowRadius: 4,
-                  elevation: expandedSections[3] ? 4 : 1
+                  elevation: 4
                 }}
               >
-                <Text style={{ fontSize: 15, fontWeight: '700', color: expandedSections[3] ? '#F59E0B' : '#1F2937' }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
                   Section 3: Policies
                 </Text>
-                <Text style={{ fontSize: 18, color: expandedSections[3] ? '#F59E0B' : '#6B7280' }}>
+                <Text style={{ fontSize: 18, color: '#0284C7' }}>
                   {expandedSections[3] ? '▼' : '▶'}
                 </Text>
               </TouchableOpacity>
