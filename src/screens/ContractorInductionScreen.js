@@ -230,14 +230,22 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setLoading(true);
       // Get the contractor details
       const contractor = await getContractor(contractorId);
+      
+      // Load their business units and sites from previous work
+      const contractorBUs = contractor.business_unit_ids || [];
+      let contractorSites = [];
+      if (contractorBUs.length > 0 && contractor.site_ids) {
+        contractorSites = contractor.site_ids || [];
+      }
+      
       setContractorInfo({
         id: contractor.id,
         name: contractor.name,
         email: contractor.email,
         phone: contractor.phone || '',
         companyId: contractor.company_id,
-        selectedBusinessUnitIds: [],
-        selectedSiteIds: [],
+        selectedBusinessUnitIds: contractorBUs,
+        selectedSiteIds: contractorSites,
       });
       setSelectedContractorId(contractorId);
       
@@ -256,6 +264,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load contractor');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -277,12 +286,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setSelectedInductionId(resumeInduction.id);
       setCurrentModalInduction(resumeInduction);
       setModalAnswers(savedAnswers);
-      setShowIncompleteInductionsDropdown(false);
-      setIsNewContractor(false); // Hide the choice screen
-      setModalVisible(true);
+
+      // Load all incomplete inductions for the queue (so they can navigate between them if needed)
+      const allIncompleteInductions = incompleteInductions.map(p => p.inductions).filter(ind => ind);
+      setInductionQueue(allIncompleteInductions);
+      
+      // Track which ones are already completed
+      const completedIds = new Set(incompleteInductions
+        .filter(p => p.status === 'completed')
+        .map(p => p.induction_id));
+      setCompletedInductionIds(Array.from(completedIds));
+      
+      // Advance to the board step where the modal will display
+      setStep('inductionBoard');
       
       // Determine which step to resume from based on saved progress
-      // If they have all answers, they're ready to sign
       const questions = resumeInduction.questions || [];
       const hasAllAnswers = questions.length > 0 && Object.keys(savedAnswers).length >= questions.length;
       
@@ -291,6 +309,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       } else {
         setModalStep('questions'); // Resume answering questions
       }
+      
+      // Open the modal
+      setModalVisible(true);
+      setShowIncompleteInductionsDropdown(false);
+      setIsNewContractor(null); // Hide the choice screens
     } catch (err) {
       console.error('Error resuming induction:', err);
       Alert.alert('Error', 'Failed to load induction');
