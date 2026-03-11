@@ -5097,7 +5097,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       )}
       {/* Only show Approve/Reject if not completed and not draft */}
       {!isCompleted && !isDraft && (
-        <View style={styles.submitSection}>
+        <>
+          {/* Rejection Comment Field */}
+          <View style={{ backgroundColor: '#FEF2F2', padding: 16, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#7F1D1D', marginBottom: 8 }}>If Rejecting: Add Feedback (Optional)</Text>
+            <TextInput
+              style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+              placeholder="Enter reason for rejection so the permit requester can address the issues..."
+              value={rejectionComment}
+              onChangeText={setRejectionComment}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+        
+          <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981' }]} onPress={() => {
             Alert.alert('Test', 'PENDING APPROVAL Print button clicked');
           }}>
@@ -5135,24 +5149,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.submitButtonText}>Approve</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} onPress={async () => {
-            // Reject: set status to 'rejected' and update permit
+            // Reject: set status back to 'draft' with rejection comment and update permit
             try {
               await updatePermit(editData.id, {
-                status: 'rejected'
+                status: 'draft',
+                rejection_comment: rejectionComment.trim()
               });
               
-              const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'rejected', rejectedDate: new Date().toISOString().split('T')[0] } : p);
+              const updated = permits.map(p => p.id === editData.id ? { ...editData, status: 'draft', rejection_comment: rejectionComment.trim() } : p);
               setPermits(updated);
               setCurrentScreen('dashboard');
-              Alert.alert('Permit Rejected', 'Permit has been rejected.');
+              Alert.alert('Permit Sent Back to Draft', 'Permit has been sent back to draft with feedback for revision.');
             } catch (error) {
               console.error('Error rejecting permit:', error);
-              Alert.alert('Error', 'Failed to reject permit. Please try again.');
+              Alert.alert('Error', 'Failed to send permit back to draft. Please try again.');
             }
           }}>
             <Text style={styles.submitButtonText}>Reject</Text>
           </TouchableOpacity>
         </View>
+        </>
       )}
       {/* Show Print button for completed permits */}
       {isCompleted && (
@@ -9138,6 +9154,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
+    const [rejectionComment, setRejectionComment] = React.useState('');
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
@@ -9257,6 +9274,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.permitNumber}` : `Review/Edit Permit #${permit.permitNumber}`}</Text>
         </View>
+
+        {/* REJECTION COMMENT ALERT - Show if this draft was rejected */}
+        {isDraft && permit.rejection_comment && (
+          <View style={{ backgroundColor: '#FEF2F2', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#7F1D1D', marginBottom: 6 }}>⚠️ Feedback from Reviewer:</Text>
+            <Text style={{ fontSize: 13, color: '#991B1B' }}>{permit.rejection_comment}</Text>
+          </View>
+        )}
 
         {/* GENERAL DETAILS - COLLAPSIBLE */}
         <View style={styles.section}>
