@@ -27,7 +27,7 @@ import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermit
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
-import { listBusinessUnits } from './src/api/business_units';
+import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
@@ -1593,6 +1593,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
   const [currentIsolation, setCurrentIsolation] = useState({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
+  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState(null);
+  const [editingBusinessUnit, setEditingBusinessUnit] = useState(false);
+  const [currentBusinessUnit, setCurrentBusinessUnit] = useState({ id: '', name: '', description: '' });
   
   // Filter states for contractors and permit issuers
   const [contractorSearchText, setContractorSearchText] = useState('');
@@ -5626,6 +5629,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.cardNumber}>📚</Text>
             <Text style={styles.cardLabel}>Inductions</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => setCurrentScreen('manage_business_units')}>
+            <Text style={styles.cardNumber}>{businessUnits.length}</Text>
+            <Text style={styles.cardLabel}>Business Units</Text>
+          </TouchableOpacity>
         </View>
         </ScrollView>
       </View>
@@ -8216,6 +8223,167 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Manage Business Units Screen
+  const renderManageBusinessUnits = () => {
+    const handleAddBusinessUnit = async () => {
+      if (!currentBusinessUnit.name.trim()) {
+        Alert.alert('Missing Info', 'Please enter a business unit name.');
+        return;
+      }
+      try {
+        if (editingBusinessUnit) {
+          await updateBusinessUnit(currentBusinessUnit.id, {
+            name: currentBusinessUnit.name.trim(),
+            description: currentBusinessUnit.description.trim()
+          });
+          const freshBusinessUnits = await listBusinessUnits();
+          setBusinessUnits(freshBusinessUnits);
+          setEditingBusinessUnit(false);
+          Alert.alert('Success', 'Business unit has been updated successfully.');
+        } else {
+          await createBusinessUnit({
+            name: currentBusinessUnit.name.trim(),
+            description: currentBusinessUnit.description.trim()
+          });
+          const freshBusinessUnits = await listBusinessUnits();
+          setBusinessUnits(freshBusinessUnits);
+          Alert.alert('Success', 'New business unit has been added successfully.');
+        }
+        setCurrentBusinessUnit({ id: '', name: '', description: '' });
+        setSelectedBusinessUnit(null);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save business unit: ' + error.message);
+      }
+    };
+
+    const handleDeleteBusinessUnit = (id) => {
+      if (window.confirm('Delete Business Unit?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            await deleteBusinessUnit(id);
+            const freshBusinessUnits = await listBusinessUnits();
+            setBusinessUnits(freshBusinessUnits);
+            setEditingBusinessUnit(false);
+            setSelectedBusinessUnit(null);
+            Alert.alert('Success', 'Business unit has been deleted.');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete business unit: ' + error.message);
+          }
+        })();
+      }
+    };
+
+    const handleSelectBusinessUnit = (bu) => {
+      setSelectedBusinessUnit(bu.id);
+      setCurrentBusinessUnit({
+        id: bu.id,
+        name: bu.name || '',
+        description: bu.description || ''
+      });
+      setEditingBusinessUnit(true);
+    };
+
+    const handleNewBusinessUnit = () => {
+      setCurrentBusinessUnit({ id: '', name: '', description: '' });
+      setSelectedBusinessUnit(null);
+      setEditingBusinessUnit(false);
+    };
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Manage Business Units</Text>
+        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+          <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
+            {/* Add/Edit Form */}
+            <View style={{ backgroundColor: 'white', borderRadius: 8, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 16 }}>
+                {editingBusinessUnit ? 'Edit Business Unit' : 'Add New Business Unit'}
+              </Text>
+              
+              <Text style={styles.label}>Business Unit Name *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter business unit name"
+                value={currentBusinessUnit.name}
+                onChangeText={(text) => setCurrentBusinessUnit({ ...currentBusinessUnit, name: text })}
+              />
+              
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                placeholder="Enter business unit description (optional)"
+                value={currentBusinessUnit.description}
+                onChangeText={(text) => setCurrentBusinessUnit({ ...currentBusinessUnit, description: text })}
+                multiline
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  style={[styles.primaryButton, { flex: 1 }]}
+                  onPress={handleAddBusinessUnit}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                    {editingBusinessUnit ? 'Update' : 'Add'} Business Unit
+                  </Text>
+                </TouchableOpacity>
+                {editingBusinessUnit && (
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]}
+                    onPress={() => handleNewBusinessUnit()}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Business Units List */}
+            <View style={{ backgroundColor: 'white', borderRadius: 8, paddingVertical: 0, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', padding: 16, paddingBottom: 8 }}>
+                Business Units ({businessUnits.length})
+              </Text>
+              {businessUnits.length === 0 ? (
+                <Text style={{ paddingHorizontal: 16, paddingBottom: 16, color: '#9CA3AF', fontStyle: 'italic' }}>No business units yet.</Text>
+              ) : (
+                businessUnits.map((bu, idx) => (
+                  <View key={bu.id} style={{ borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: '#E5E7EB' }}>
+                    <TouchableOpacity
+                      style={{
+                        padding: 16,
+                        backgroundColor: selectedBusinessUnit === bu.id ? '#F3F4F6' : 'white'
+                      }}
+                      onPress={() => handleSelectBusinessUnit(bu)}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                        {bu.name}
+                      </Text>
+                      {bu.description && (
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+                          {bu.description}
+                        </Text>
+                      )}
+                      <TouchableOpacity
+                        style={{ alignSelf: 'flex-start', marginTop: 8 }}
+                        onPress={() => handleDeleteBusinessUnit(bu.id)}
+                      >
+                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
         </ScrollView>
       </View>
     );
@@ -12656,6 +12824,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return renderManageSites();
     case 'manage_contractors':
       return renderManageContractors();
+    case 'manage_business_units':
+      return renderManageBusinessUnits();
     case 'manage_isolations':
       return renderManageIsolations();
     case 'manage_visitor_inductions':
