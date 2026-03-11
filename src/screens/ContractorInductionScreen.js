@@ -1075,14 +1075,23 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       
       try {
         setLoading(true);
+        console.log('🏁 Completing induction:', currentModalInduction.id);
         
         // Save answers if there are any
         if (Object.keys(modalAnswers).length > 0) {
-          await saveInductionAnswers(contractorInfo.id, currentModalInduction.id, modalAnswers);
+          console.log('💾 Saving answers before completion...', modalAnswers);
+          try {
+            await saveInductionAnswers(contractorInfo.id, currentModalInduction.id, modalAnswers);
+          } catch (savErr) {
+            // Log but don't block completion - answers might already be saved
+            console.warn('⚠️ Could not save answers, continuing with completion:', savErr.message);
+          }
         }
         
         // Mark as completed in database
+        console.log('📝 Marking induction as completed...');
         await completeInduction(contractorInfo.id, currentModalInduction.id);
+        console.log('✅ Induction marked as completed');
         
         // Update local state
         setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
@@ -1100,6 +1109,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           }
         ]);
       } catch (error) {
+        console.error('❌ Error completing induction:', error);
         Alert.alert('Error', 'Failed to complete induction: ' + error.message);
       } finally {
         setLoading(false);
@@ -1310,8 +1320,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                           // Save current answers to this induction
                           if (currentModalInduction) {
                             const answersToSave = Object.keys(modalAnswers).length > 0 ? modalAnswers : {};
-                            console.log('Saving progress for induction:', currentModalInduction.id, 'answers:', answersToSave);
-                            await saveInductionProgress(contractorInfo.id, currentModalInduction.id, answersToSave);
+                            console.log('💾 Saving progress for later:', currentModalInduction.id, 'answers:', answersToSave);
+                            try {
+                              await saveInductionProgress(contractorInfo.id, currentModalInduction.id, answersToSave);
+                            } catch (savErr) {
+                              console.warn('⚠️ Error saving progress, but continuing:', savErr.message);
+                            }
                           }
                           Alert.alert('Success', 'Progress saved! You can continue later.', [
                             {

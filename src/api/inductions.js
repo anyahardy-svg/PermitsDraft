@@ -330,6 +330,8 @@ export async function startInduction(contractorId, inductionId) {
  */
 export async function saveInductionAnswers(contractorId, inductionId, answers) {
   try {
+    console.log(`[${getNZTimestamp()}] 📝 Attempting to save answers`, { contractorId, inductionId, answers });
+    
     const { data, error } = await supabase
       .from('contractor_induction_progress')
       .update({
@@ -340,9 +342,34 @@ export async function saveInductionAnswers(contractorId, inductionId, answers) {
       .eq('induction_id', inductionId)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error(`[${getNZTimestamp()}] 🔍 PATCH error details:`, error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn(`[${getNZTimestamp()}] ⚠️ No rows updated. Attempting to create record...`);
+      // Record might not exist, try to create it
+      const { data: insertData, error: insertError } = await supabase
+        .from('contractor_induction_progress')
+        .insert([{
+          contractor_id: contractorId,
+          induction_id: inductionId,
+          status: 'in_progress',
+          answers: answers || {},
+        }])
+        .select();
+      
+      if (insertError) {
+        console.error(`[${getNZTimestamp()}] ❌ Failed to create record:`, insertError);
+        throw insertError;
+      }
+      console.log(`[${getNZTimestamp()}] ✅ Created new progress record with answers`);
+      return insertData ? insertData[0] : null;
+    }
+    
     console.log(`[${getNZTimestamp()}] 💾 Saved answers for induction`, { contractorId, inductionId, answerCount: Object.keys(answers).length });
-    return data ? data[0] : null;
+    return data[0];
   } catch (error) {
     console.error(`[${getNZTimestamp()}] ❌ Error saving induction answers:`, error);
     throw error;
@@ -358,6 +385,8 @@ export async function saveInductionAnswers(contractorId, inductionId, answers) {
  */
 export async function saveInductionProgress(contractorId, inductionId, answers = {}) {
   try {
+    console.log(`[${getNZTimestamp()}] 📌 Saving progress for later`, { contractorId, inductionId });
+    
     const { data, error } = await supabase
       .from('contractor_induction_progress')
       .update({
@@ -369,9 +398,34 @@ export async function saveInductionProgress(contractorId, inductionId, answers =
       .eq('induction_id', inductionId)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error(`[${getNZTimestamp()}] 🔍 PATCH error details:`, error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn(`[${getNZTimestamp()}] ⚠️ No rows updated. Attempting to create record...`);
+      // Record might not exist, try to create it
+      const { data: insertData, error: insertError } = await supabase
+        .from('contractor_induction_progress')
+        .insert([{
+          contractor_id: contractorId,
+          induction_id: inductionId,
+          status: 'in_progress',
+          answers: answers || {},
+        }])
+        .select();
+      
+      if (insertError) {
+        console.error(`[${getNZTimestamp()}] ❌ Failed to create record:`, insertError);
+        throw insertError;
+      }
+      console.log(`[${getNZTimestamp()}] ✅ Created new progress record`);
+      return insertData ? insertData[0] : null;
+    }
+    
     console.log(`[${getNZTimestamp()}] 📌 Progress saved for later - contractor can resume`, { contractorId, inductionId });
-    return data ? data[0] : null;
+    return data[0];
   } catch (error) {
     console.error(`[${getNZTimestamp()}] ❌ Error saving progress:`, error);
     throw error;
