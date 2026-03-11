@@ -1335,8 +1335,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                           if (Object.keys(modalAnswers).length > 0 && currentModalInduction) {
                             await saveInductionProgress(contractorInfo.id, currentModalInduction.id, modalAnswers);
                           }
-                          Alert.alert('Success', 'Progress saved! You can continue later.');
-                          setModalVisible(false);
+                          Alert.alert('Success', 'Progress saved! You can continue later.', [
+                            {
+                              text: 'OK',
+                              onPress: () => {
+                                setModalVisible(false);
+                                onCancel(); // Go back to kiosk
+                              }
+                            }
+                          ]);
                         } catch (err) {
                           Alert.alert('Error', 'Failed to save progress: ' + err.message);
                         } finally {
