@@ -1121,10 +1121,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         // Update local state
         setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
         
-        // Close modal
+        // Close modal and return to kiosk
         setModalVisible(false);
-        setCurrentModalInduction(null);
-        setModalAnswers({});
+        Alert.alert('Success', 'Induction completed!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setCurrentModalInduction(null);
+              setModalAnswers({});
+              onCancel(); // Go back to kiosk
+            }
+          }
+        ]);
       } catch (error) {
         Alert.alert('Error', 'Failed to complete induction: ' + error.message);
       } finally {
