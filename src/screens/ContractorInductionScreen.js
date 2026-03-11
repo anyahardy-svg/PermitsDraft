@@ -301,6 +301,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       }
       
+      alert('Loading inductions for BUs: ' + JSON.stringify(selectedBUs));
+      
       let allInductionsData = [];
       for (const buId of selectedBUs) {
         console.log('Fetching inductions for BU:', buId);
@@ -314,6 +316,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Remove duplicates
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
       console.log('Total unique inductions:', uniqueInductions.length);
+      
+      alert('Found ' + uniqueInductions.length + ' total inductions');
 
       // Get all progress records to find completed ones
       const allProgress = await getContractorInductionProgress(contractorInfo.id);
@@ -329,6 +333,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       );
       
       console.log('Remaining inductions to show:', remainingInductions.length);
+      
+      alert('Remaining to complete: ' + remainingInductions.length + '\nInduction names: ' + remainingInductions.map(i => i.induction_name).join(', '));
 
       // Set up the state from saved progress
       const savedAnswers = progressRecord.answers || {};
