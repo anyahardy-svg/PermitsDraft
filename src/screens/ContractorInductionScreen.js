@@ -192,8 +192,37 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleLoadIncompleteInductions = async () => {
-    // First ask user to select contractor to resume for
-    setIsNewContractor('choose-contractor-for-resume');
+    try {
+      setLoading(true);
+      // Load all contractors and check which ones have incomplete inductions
+      const allContractorsData = await listContractors();
+      const contractorsWithIncomplete = [];
+      
+      for (const contractor of allContractorsData) {
+        const progressData = await getContractorInductionProgress(contractor.id);
+        const incomplete = progressData.filter(p => p.status === 'in_progress');
+        if (incomplete.length > 0) {
+          contractorsWithIncomplete.push({
+            ...contractor,
+            incompleteCount: incomplete.length
+          });
+        }
+      }
+      
+      if (contractorsWithIncomplete.length === 0) {
+        Alert.alert('No Saved Inductions', 'No contractors have incomplete inductions to resume.');
+        return;
+      }
+      
+      // Temporarily store contractors with incomplete inductions
+      setContractors(contractorsWithIncomplete);
+      setIsNewContractor('choose-contractor-for-resume');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to load contractors');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResumeContractorSelected = async (contractorId) => {
@@ -247,11 +276,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setAnswers(savedAnswers);
       setSelectedInductionId(resumeInduction.id);
       setCurrentModalInduction(resumeInduction);
-      setModalVisible(true);
-      setModalStep('questions'); // Skip video, go directly to questions since they're resuming
       setModalAnswers(savedAnswers);
       setShowIncompleteInductionsDropdown(false);
       setIsNewContractor(false); // Hide the choice screen
+      setModalVisible(true);
+      
+      // Determine which step to resume from based on saved progress
+      // If they have all answers, they're ready to sign
+      const questions = resumeInduction.questions || [];
+      const hasAllAnswers = questions.length > 0 && Object.keys(savedAnswers).length >= questions.length;
+      
+      if (hasAllAnswers) {
+        setModalStep('complete'); // Ready to sign
+      } else {
+        setModalStep('questions'); // Resume answering questions
+      }
     } catch (err) {
       console.error('Error resuming induction:', err);
       Alert.alert('Error', 'Failed to load induction');
@@ -580,7 +619,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setIsNewContractor(null)}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Select Contractor</Text>
         </View>
@@ -596,10 +635,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 <TouchableOpacity
                   key={contractor.id}
                   onPress={() => handleResumeContractorSelected(contractor.id)}
-                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                  </View>
+                  {contractor.incompleteCount > 0 && (
+                    <View style={{ backgroundColor: '#FCD34D', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginLeft: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#78350F' }}>
+                        {contractor.incompleteCount} saved
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -619,7 +667,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             setIncompleteInductions([]);
             setShowIncompleteInductionsDropdown(false);
           }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Resume Induction</Text>
         </View>
