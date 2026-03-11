@@ -1850,6 +1850,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   style={styles.input}
                 />
                 
+                {/* Display permitted services for selected issuer */}
+                {formData.permitIssuer && (
+                  (() => {
+                    const selectedIssuer = permitIssuers?.find(issuer => issuer.name === formData.permitIssuer);
+                    const permittedServices = selectedIssuer?.permittedServiceIds || [];
+                    const serviceNames = permittedServices.length > 0
+                      ? permittedServices.map(serviceId => {
+                          const service = services?.find(s => s.id === serviceId);
+                          return service?.name || serviceId;
+                        }).join(', ')
+                      : 'No services assigned';
+                    
+                    return (
+                      <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
+                        <Text style={{ fontSize: 13, color: '#1E40AF' }}>{serviceNames}</Text>
+                      </View>
+                    );
+                  })()
+                )}
+                
                 <Text style={styles.label}>Requested By</Text>
                 <View style={{ position: 'relative', marginBottom: 16, zIndex: 20 }} pointerEvents="box-none">
                 <TextInput
@@ -1952,6 +1973,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 )}
                 </View>
+
+                {/* Display inducted services for selected contractor */}
+                {formData.requestedBy && formData.contractorSelected && (
+                  (() => {
+                    const selectedContractor = contractors?.find(c => c.name === formData.requestedBy);
+                    const inductedServices = selectedContractor?.serviceIds || [];
+                    const serviceNames = inductedServices.length > 0
+                      ? inductedServices.map(serviceId => {
+                          const service = services?.find(s => s.id === serviceId);
+                          return service?.name || serviceId;
+                        }).join(', ')
+                      : 'No services inducted';
+                    
+                    return (
+                      <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#22C55E' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
+                        <Text style={{ fontSize: 13, color: '#15803D' }}>{serviceNames}</Text>
+                      </View>
+                    );
+                  })()
+                )}
 
                 {/* Contractor Company (auto-populated) */}
                 <Text style={styles.label}>Company</Text>
