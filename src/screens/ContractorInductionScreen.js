@@ -273,6 +273,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const handleResumeInduction = async (progressRecord) => {
     try {
       setLoading(true);
+      console.log('Resuming induction for contractor:', contractorInfo.id);
+      console.log('Contractor selected BUs:', contractorInfo.selectedBusinessUnitIds);
+      
       // The induction details should already be included in the progress record
       const resumeInduction = progressRecord.inductions;
       if (!resumeInduction) {
@@ -281,10 +284,28 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       }
 
       // Load ALL inductions for the contractor's business units (same as normal flow)
-      const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+      let selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+      
+      // If no BUs were saved, try to load them from the contractor record
+      if (!selectedBUs || selectedBUs.length === 0) {
+        console.log('No BUs in contractorInfo, reloading contractor...');
+        const contractor = await getContractor(contractorInfo.id);
+        selectedBUs = contractor.business_unit_ids || [];
+        console.log('Loaded BUs from contractor:', selectedBUs);
+        
+        if (selectedBUs.length > 0) {
+          setContractorInfo(prev => ({
+            ...prev,
+            selectedBusinessUnitIds: selectedBUs,
+          }));
+        }
+      }
+      
       let allInductionsData = [];
       for (const buId of selectedBUs) {
+        console.log('Fetching inductions for BU:', buId);
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        console.log('Inductions for BU', buId, ':', inductionsForBU?.length || 0);
         if (Array.isArray(inductionsForBU)) {
           allInductionsData = [...allInductionsData, ...inductionsForBU];
         }
@@ -292,17 +313,22 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       // Remove duplicates
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+      console.log('Total unique inductions:', uniqueInductions.length);
 
       // Get all progress records to find completed ones
       const allProgress = await getContractorInductionProgress(contractorInfo.id);
       const completedIds = allProgress
         .filter(p => p.status === 'completed')
         .map(p => p.induction_id);
+      
+      console.log('Completed inductions:', completedIds.length);
 
       // Filter to show only non-completed inductions
       const remainingInductions = uniqueInductions.filter(
         ind => !completedIds.includes(ind.id)
       );
+      
+      console.log('Remaining inductions to show:', remainingInductions.length);
 
       // Set up the state from saved progress
       const savedAnswers = progressRecord.answers || {};
