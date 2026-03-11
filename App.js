@@ -9098,7 +9098,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
 
   // Editable Approval Permit Screen (for Pending Approval)
-  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters }) => {
+  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
@@ -9292,7 +9292,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   if (editData.site_id) {
                     const siteName = siteIdToNameMap[editData.site_id];
                     console.log('🔍 Filtering users for site_id:', editData.site_id, 'site name:', siteName);
-                    console.log('📊 Available users:', permitIssuers.map(u => ({ 
+                    console.log('📊 Available users:', users.map(u => ({ 
                       name: u.name, 
                       site_ids: u.site_ids, 
                       sites: u.sites,
@@ -9300,7 +9300,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     })));
 
                     // Filter users who have this site
-                    const filtered = permitIssuers.filter(issuer => {
+                    const filtered = users.filter(issuer => {
                       // Check if issuer has site_ids array and it includes the selected site_id
                       const hasSiteId = issuer.site_ids && Array.isArray(issuer.site_ids) && issuer.site_ids.length > 0 && issuer.site_ids.includes(editData.site_id);
                       // Check if issuer has sites array and it includes the selected site name
@@ -9319,11 +9319,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     // If no users found and site_id is set, show all users as fallback
                     if (options.length === 0) {
                       console.warn('⚠️ No users found for site, showing all users as fallback');
-                      options = permitIssuers.map(issuer => issuer.name);
+                      options = users.map(issuer => issuer.name);
                     }
                   } else {
                     console.log('⚠️ No site selected - showing all users');
-                    options = permitIssuers.map(issuer => issuer.name);
+                    options = users.map(issuer => issuer.name);
                   }
                   
                   return options;
@@ -9332,6 +9332,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onValueChange={value => setEditData({ ...editData, permitIssuer: value })}
                 style={styles.input}
               />
+              
+              {/* Display permitted services for selected issuer */}
+              {editData.permitIssuer && (
+                (() => {
+                  const selectedIssuer = users?.find(issuer => issuer.name === editData.permitIssuer);
+                  const permittedServices = selectedIssuer?.permittedServiceIds || [];
+                  const serviceNames = permittedServices.length > 0
+                    ? permittedServices.map(serviceId => {
+                        const service = servicesFromDb?.find(s => s.id === serviceId);
+                        return service?.name || serviceId;
+                      }).join(', ')
+                    : 'No services assigned';
+                  
+                  return (
+                    <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
+                      <Text style={{ fontSize: 13, color: '#1E40AF' }}>{serviceNames}</Text>
+                    </View>
+                  );
+                })()
+              )}
               
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} placeholder="Work location" />
@@ -9401,6 +9422,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 )}
               </View>
+              
+              {/* Display inducted services for selected contractor */}
+              {editData.requestedBy && editData.contractorSelected && (
+                (() => {
+                  const selectedContractor = contractors?.find(c => c.name === editData.requestedBy);
+                  const inductedServices = selectedContractor?.serviceIds || [];
+                  const serviceNames = inductedServices.length > 0
+                    ? inductedServices.map(serviceId => {
+                        const service = servicesFromDb?.find(s => s.id === serviceId);
+                        return service?.name || serviceId;
+                      }).join(', ')
+                    : 'No services inducted';
+                  
+                  return (
+                    <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#22C55E' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
+                      <Text style={{ fontSize: 13, color: '#15803D' }}>{serviceNames}</Text>
+                    </View>
+                  );
+                })()
+              )}
               
               <Text style={styles.label}>Company</Text>
               {editData.contractorSelected ? (
@@ -12740,6 +12782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           sites={sites}
           users={permitIssuers}
           contractors={contractors}
+          servicesFromDb={servicesFromDb}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
           permitQuestionnaires={permitQuestionnaires}
