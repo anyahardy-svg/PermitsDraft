@@ -10275,10 +10275,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
             // Reject: send back to draft or reject pending approval
             try {
-              await updatePermit(editData.id, { 
-                status: isDraft ? 'rejected' : 'draft',
-                rejection_comment: !isDraft ? rejectionComment.trim() : undefined
-              });
+              const updateData = {
+                status: isDraft ? 'rejected' : 'draft'
+              };
+              
+              // Only add rejection_comment if not a draft (i.e., it's a pending approval being sent back)
+              if (!isDraft && rejectionComment.trim()) {
+                updateData.rejection_comment = rejectionComment.trim();
+              }
+              
+              await updatePermit(editData.id, updateData);
               
               const freshPermits = await listPermits();
               setPermits(freshPermits);
