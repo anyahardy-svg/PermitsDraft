@@ -1860,7 +1860,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     const permittedServices = selectedIssuer?.permittedServiceIds || [];
                     const serviceNames = permittedServices.length > 0
                       ? permittedServices.map(serviceId => {
-                          const service = services?.find(s => s.id === serviceId);
+                          const service = servicesFromDb?.find(s => s.id === serviceId);
                           return service?.name || serviceId;
                         }).join(', ')
                       : 'No services assigned';
