@@ -1169,10 +1169,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           {isAllCompulsoryDone && (
             <TouchableOpacity
               style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-              onPress={() => setStep('signature')}
+              onPress={() => onCancel()} 
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Continue to Signature
+                All Inductions Complete - Return to Kiosk
               </Text>
             </TouchableOpacity>
           )}
@@ -1338,7 +1338,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     
                     <TouchableOpacity
                       style={{ backgroundColor: '#F3F4F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-                      onPress={() => setModalVisible(false)}
+                      onPress={() => onCancel()} 
                     >
                       <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Close</Text>
                     </TouchableOpacity>
