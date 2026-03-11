@@ -1984,7 +1984,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     const inductedServices = selectedContractor?.serviceIds || [];
                     const serviceNames = inductedServices.length > 0
                       ? inductedServices.map(serviceId => {
-                          const service = services?.find(s => s.id === serviceId);
+                          const service = servicesFromDb?.find(s => s.id === serviceId);
                           return service?.name || serviceId;
                         }).join(', ')
                       : 'No services inducted';
