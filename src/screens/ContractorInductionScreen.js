@@ -543,9 +543,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
       
       // Create progress records for ALL inductions upfront
-      for (const induction of sortedQueue) {
-        await startInduction(contractorInfo.id, induction.id);
-      }
+      // Use Promise.allSettled to continue even if some fail (unlikely to happen)
+      const promises = sortedQueue.map(induction => 
+        startInduction(contractorInfo.id, induction.id).catch(err => {
+          console.error('Error starting induction', induction.id, ':', err);
+          return null; // Continue anyway
+        })
+      );
+      
+      await Promise.all(promises);
       
       setInductionQueue(sortedQueue);
       setCompletedInductionIds([]); // Reset completed
