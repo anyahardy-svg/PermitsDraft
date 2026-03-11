@@ -9151,6 +9151,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     });
     
     const isDraft = permit.status === 'draft';
+    const isCompleted = permit.status === 'completed';
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
