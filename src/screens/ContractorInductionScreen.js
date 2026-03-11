@@ -301,13 +301,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       }
       
-      alert('Loading inductions for BUs: ' + JSON.stringify(selectedBUs));
-      
       let allInductionsData = [];
       for (const buId of selectedBUs) {
-        console.log('Fetching inductions for BU:', buId);
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
-        console.log('Inductions for BU', buId, ':', inductionsForBU?.length || 0);
         if (Array.isArray(inductionsForBU)) {
           allInductionsData = [...allInductionsData, ...inductionsForBU];
         }
@@ -315,9 +311,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       // Remove duplicates
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
-      console.log('Total unique inductions:', uniqueInductions.length);
-      
-      alert('Found ' + uniqueInductions.length + ' total inductions');
 
       // Get all progress records to find completed ones
       const allProgress = await getContractorInductionProgress(contractorInfo.id);
@@ -331,10 +324,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       const remainingInductions = uniqueInductions.filter(
         ind => !completedIds.includes(ind.id)
       );
-      
-      console.log('Remaining inductions to show:', remainingInductions.length);
-      
-      alert('Remaining to complete: ' + remainingInductions.length + '\nInduction names: ' + remainingInductions.map(i => i.induction_name).join(', '));
 
       // Set up the state from saved progress
       const savedAnswers = progressRecord.answers || {};
@@ -540,23 +529,35 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       return;
     }
 
-    // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
-    const selectedOptional = optionalInductions.filter(ind => selectedOptionalIds.includes(ind.id));
-    const allInductions = [...compulsoryInductions, ...selectedOptional];
-    
-    // Sort so company-wide (site_id = null) come first, then site-specific (site_id != null)
-    const sortedQueue = allInductions.sort((a, b) => {
-      const aIsCompanyWide = a.site_id === null ? 0 : 1;
-      const bIsCompanyWide = b.site_id === null ? 0 : 1;
-      return aIsCompanyWide - bIsCompanyWide;
-    });
-    
-    setInductionQueue(sortedQueue);
-    setCompletedInductionIds([]); // Reset completed
-    setModalAnswers({}); // Reset modal answers
-    
-    // Go to board view instead of sequential
-    setStep('inductionBoard');
+    setLoading(true);
+    try {
+      // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
+      const selectedOptional = optionalInductions.filter(ind => selectedOptionalIds.includes(ind.id));
+      const allInductions = [...compulsoryInductions, ...selectedOptional];
+      
+      // Sort so company-wide (site_id = null) come first, then site-specific (site_id != null)
+      const sortedQueue = allInductions.sort((a, b) => {
+        const aIsCompanyWide = a.site_id === null ? 0 : 1;
+        const bIsCompanyWide = b.site_id === null ? 0 : 1;
+        return aIsCompanyWide - bIsCompanyWide;
+      });
+      
+      // Create progress records for ALL inductions upfront
+      for (const induction of sortedQueue) {
+        await startInduction(contractorInfo.id, induction.id);
+      }
+      
+      setInductionQueue(sortedQueue);
+      setCompletedInductionIds([]); // Reset completed
+      setModalAnswers({}); // Reset modal answers
+      
+      // Go to board view instead of sequential
+      setStep('inductionBoard');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to start inductions: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVideoComplete = () => {
