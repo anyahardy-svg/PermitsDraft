@@ -280,6 +280,30 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         return;
       }
 
+      // Load ALL inductions for the contractor's business units (same as normal flow)
+      const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+      let allInductionsData = [];
+      for (const buId of selectedBUs) {
+        const inductionsForBU = await getInductionsByBusinessUnit(buId);
+        if (Array.isArray(inductionsForBU)) {
+          allInductionsData = [...allInductionsData, ...inductionsForBU];
+        }
+      }
+
+      // Remove duplicates
+      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+
+      // Get all progress records to find completed ones
+      const allProgress = await getContractorInductionProgress(contractorInfo.id);
+      const completedIds = allProgress
+        .filter(p => p.status === 'completed')
+        .map(p => p.induction_id);
+
+      // Filter to show only non-completed inductions
+      const remainingInductions = uniqueInductions.filter(
+        ind => !completedIds.includes(ind.id)
+      );
+
       // Set up the state from saved progress
       const savedAnswers = progressRecord.answers || {};
       setAnswers(savedAnswers);
@@ -287,16 +311,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setCurrentModalInduction(resumeInduction);
       setModalAnswers(savedAnswers);
 
-      // Load all incomplete inductions for the queue (so they can navigate between them if needed)
-      const allIncompleteInductions = incompleteInductions.map(p => p.inductions).filter(ind => ind);
-      setInductionQueue(allIncompleteInductions);
-      
-      // Track which ones are already completed
-      const completedIds = new Set(incompleteInductions
-        .filter(p => p.status === 'completed')
-        .map(p => p.induction_id));
-      setCompletedInductionIds(Array.from(completedIds));
-      
+      // Set the full queue of remaining inductions
+      setInductionQueue(remainingInductions);
+      setCompletedInductionIds(completedIds);
+
       // Advance to the board step where the modal will display
       setStep('inductionBoard');
       
@@ -316,7 +334,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setIsNewContractor(null); // Hide the choice screens
     } catch (err) {
       console.error('Error resuming induction:', err);
-      Alert.alert('Error', 'Failed to load induction');
+      Alert.alert('Error', 'Failed to load induction: ' + err.message);
     } finally {
       setLoading(false);
     }
