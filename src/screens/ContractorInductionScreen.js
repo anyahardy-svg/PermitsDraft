@@ -339,15 +339,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Advance to the board step where the modal will display
       setStep('inductionBoard');
       
-      // Determine which step to resume from based on saved progress
-      const questions = resumeInduction.questions || [];
-      const hasAllAnswers = questions.length > 0 && Object.keys(savedAnswers).length >= questions.length;
-      
-      if (hasAllAnswers) {
-        setModalStep('complete'); // Ready to sign
-      } else {
-        setModalStep('questions'); // Resume answering questions
-      }
+      // Always resume from video first on resume workflow
+      // (Video was already watched, but we restart the flow for consistency)
+      setModalStep('video');
       
       // Open the modal
       setModalVisible(true);
@@ -1153,7 +1147,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           </Text>
 
           <View style={{ gap: 12, marginBottom: 24 }}>
-            {inductionQueue.map(induction => {
+            {inductionQueue
+              .filter(ind => !completedInductionIds.includes(ind.id)) // Only show remaining inductions
+              .map(induction => {
               const isCompleted = completedInductionIds.includes(induction.id);
               const isCompulsory = compulsoryInductions.some(ind => ind.id === induction.id);
               
@@ -1338,8 +1334,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                         try {
                           setLoading(true);
                           // Save current answers to this induction
-                          if (Object.keys(modalAnswers).length > 0 && currentModalInduction) {
-                            await saveInductionProgress(contractorInfo.id, currentModalInduction.id, modalAnswers);
+                          if (currentModalInduction) {
+                            const answersToSave = Object.keys(modalAnswers).length > 0 ? modalAnswers : {};
+                            console.log('Saving progress for induction:', currentModalInduction.id, 'answers:', answersToSave);
+                            await saveInductionProgress(contractorInfo.id, currentModalInduction.id, answersToSave);
                           }
                           Alert.alert('Success', 'Progress saved! You can continue later.', [
                             {
@@ -1351,6 +1349,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                             }
                           ]);
                         } catch (err) {
+                          console.error('Save error:', err);
                           Alert.alert('Error', 'Failed to save progress: ' + err.message);
                         } finally {
                           setLoading(false);
