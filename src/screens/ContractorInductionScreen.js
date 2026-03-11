@@ -283,35 +283,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         return;
       }
 
-      // Load ALL inductions for the contractor's business units (same as normal flow)
-      let selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
-      
-      // If no BUs were saved, try to load them from the contractor record
-      if (!selectedBUs || selectedBUs.length === 0) {
-        console.log('No BUs in contractorInfo, reloading contractor...');
-        const contractor = await getContractor(contractorInfo.id);
-        selectedBUs = contractor.business_unit_ids || [];
-        console.log('Loaded BUs from contractor:', selectedBUs);
-        
-        if (selectedBUs.length > 0) {
-          setContractorInfo(prev => ({
-            ...prev,
-            selectedBusinessUnitIds: selectedBUs,
-          }));
-        }
-      }
-      
-      let allInductionsData = [];
-      for (const buId of selectedBUs) {
-        const inductionsForBU = await getInductionsByBusinessUnit(buId);
-        if (Array.isArray(inductionsForBU)) {
-          allInductionsData = [...allInductionsData, ...inductionsForBU];
-        }
-      }
-
-      // Remove duplicates
-      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
-
       // Get all progress records to find completed ones
       const allProgress = await getContractorInductionProgress(contractorInfo.id);
       const completedIds = allProgress
@@ -320,11 +291,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       
       console.log('Completed inductions:', completedIds.length);
 
-      // Filter to show only non-completed inductions
-      const remainingInductions = uniqueInductions.filter(
-        ind => !completedIds.includes(ind.id)
-      );
-
       // Set up the state from saved progress
       const savedAnswers = progressRecord.answers || {};
       setAnswers(savedAnswers);
@@ -332,8 +298,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setCurrentModalInduction(resumeInduction);
       setModalAnswers(savedAnswers);
 
-      // Set the full queue of remaining inductions
-      setInductionQueue(remainingInductions);
+      // Don't reload the queue - keep the original selected inductions
+      // Just track which ones are completed against the existing queue
       setCompletedInductionIds(completedIds);
 
       // Advance to the board step where the modal will display
