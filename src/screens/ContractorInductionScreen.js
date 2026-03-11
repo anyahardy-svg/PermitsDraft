@@ -60,10 +60,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [error, setError] = useState('');
 
   // Step 0: Select existing or new contractor
-  const [isNewContractor, setIsNewContractor] = useState(null); // null = choosing, true = new, false = existing
+  const [isNewContractor, setIsNewContractor] = useState(null); // null = choosing, true = new, false = existing, 'resume' = resuming saved
   const [contractors, setContractors] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState('');
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
+  const [incompleteInductions, setIncompleteInductions] = useState([]);
+  const [showIncompleteInductionsDropdown, setShowIncompleteInductionsDropdown] = useState(false);
 
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
@@ -187,6 +189,75 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       selectedBusinessUnitIds: [],
       selectedSiteIds: [],
     });
+  };
+
+  const handleLoadIncompleteInductions = async () => {
+    // First ask user to select contractor to resume for
+    setIsNewContractor('choose-contractor-for-resume');
+  };
+
+  const handleResumeContractorSelected = async (contractorId) => {
+    try {
+      setLoading(true);
+      // Get the contractor details
+      const contractor = await getContractor(contractorId);
+      setContractorInfo({
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email,
+        phone: contractor.phone || '',
+        companyId: contractor.company_id,
+        selectedBusinessUnitIds: [],
+        selectedSiteIds: [],
+      });
+      setSelectedContractorId(contractorId);
+      
+      // Load their incomplete inductions
+      const progressData = await getContractorInductionProgress(contractorId);
+      const incomplete = progressData.filter(p => p.status === 'in_progress');
+      
+      if (incomplete.length === 0) {
+        Alert.alert('No Saved Inductions', `${contractor.name} has no incomplete inductions to resume.`);
+        setIsNewContractor(null);
+        setIncompleteInductions([]);
+      } else {
+        setIncompleteInductions(incomplete);
+        setIsNewContractor('resume');
+        setShowIncompleteInductionsDropdown(true);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to load contractor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResumeInduction = async (progressRecord) => {
+    try {
+      setLoading(true);
+      // The induction details should already be included in the progress record
+      const resumeInduction = progressRecord.inductions;
+      if (!resumeInduction) {
+        Alert.alert('Error', 'Could not load the induction details');
+        return;
+      }
+
+      // Set up the state from saved progress
+      const savedAnswers = progressRecord.answers || {};
+      setAnswers(savedAnswers);
+      setSelectedInductionId(resumeInduction.id);
+      setCurrentModalInduction(resumeInduction);
+      setModalVisible(true);
+      setModalStep('questions'); // Skip video, go directly to questions since they're resuming
+      setModalAnswers(savedAnswers);
+      setShowIncompleteInductionsDropdown(false);
+      setIsNewContractor(false); // Hide the choice screen
+    } catch (err) {
+      console.error('Error resuming induction:', err);
+      Alert.alert('Error', 'Failed to load induction');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBusinessUnitChange = async (buId) => {
@@ -468,6 +539,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             <Text style={{ fontSize: 13, color: '#6B7280' }}>I need to redo my induction</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            onPress={handleLoadIncompleteInductions}
+            style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706', marginBottom: 8 }}>⏸️ Resume Saved Induction</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280' }}>Complete my induction in progress</Text>
+          </TouchableOpacity>
+
           {showContractorDropdown && (
             <View style={{ marginTop: 16, backgroundColor: '#F9FAFB', borderRadius: 8 }}>
               <TouchableOpacity 
@@ -495,8 +574,86 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     );
   }
 
+  // STEP 0: Choose contractor to resume induction for
+  if (step === 'info' && isNewContractor === 'choose-contractor-for-resume') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setIsNewContractor(null)}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Select Contractor</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            Which contractor would you like to resume an induction for?
+          </Text>
+
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {contractors.map(contractor => (
+                <TouchableOpacity
+                  key={contractor.id}
+                  onPress={() => handleResumeContractorSelected(contractor.id)}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP 0: Choose incomplete induction to resume
+  if (step === 'info' && isNewContractor === 'resume') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => {
+            setIsNewContractor(null);
+            setIncompleteInductions([]);
+            setShowIncompleteInductionsDropdown(false);
+          }}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Resume Induction</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            {contractorInfo.name} has {incompleteInductions.length} saved induction{incompleteInductions.length !== 1 ? 's' : ''}. Which would you like to resume?
+          </Text>
+
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {incompleteInductions.map(progress => (
+                <TouchableOpacity
+                  key={progress.id}
+                  onPress={() => handleResumeInduction(progress)}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                    {progress.inductions?.induction_name || 'Induction'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                    Last saved: {new Date(progress.updated_at).toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   // STEP 1: INFO - Fill in contractor details
-  if (step === 'info' && isNewContractor !== null) {
+  if (step === 'info' && isNewContractor !== null && isNewContractor !== 'choose-contractor-for-resume' && isNewContractor !== 'resume') {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
