@@ -10246,31 +10246,71 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity style={styles.submitButton} onPress={async () => {
-              // Approve: set status to 'pending_inspection' or 'active' and update permit
-              const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
-              const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
-                (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
-              
-              try {
-                const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-                const approvedDate = new Date().toISOString().split('T')[0];
-                
-                await updatePermit(editData.id, { 
-                  status: newStatus, 
-                  approved_date: approvedDate 
+            (() => {
+              // Check for any blocking questions that have been triggered
+              const blockedQuestions = [];
+              Object.keys(editData.specializedPermits || {}).forEach(permitKey => {
+                const questionnaire = permitQuestionnaires[permitKey] || [];
+                questionnaire.forEach(q => {
+                  if (q.blockingQuestion) {
+                    const answer = editData.specializedPermits[permitKey]?.questionnaire?.[q.id];
+                    if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                      blockedQuestions.push(q.text);
+                    }
+                  }
                 });
-                
-                const freshPermits = await listPermits();
-                setPermits(freshPermits);
-                setCurrentScreen('dashboard');
-                Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
-              } catch (error) {
-                Alert.alert('Error', 'Failed to approve permit: ' + error.message);
-              }
-            }}>
-              <Text style={styles.submitButtonText}>Approve</Text>
-            </TouchableOpacity>
+              });
+
+              const canApprove = blockedQuestions.length === 0;
+
+              return (
+                <>
+                  {!canApprove && (
+                    <View style={{ marginBottom: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#DC2626' }}>⚠️ PERMIT CANNOT BE APPROVED</Text>
+                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 8, marginBottom: 6 }}>The following critical condition(s) must be resolved:</Text>
+                      {blockedQuestions.map((question, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                      ))}
+                    </View>
+                  )}
+                  <TouchableOpacity 
+                    style={[styles.submitButton, { opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#3B82F6' : '#9CA3AF' }]} 
+                    onPress={async () => {
+                      if (!canApprove) {
+                        Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
+                        return;
+                      }
+
+                      // Approve: set status to 'pending_inspection' or 'active' and update permit
+                      const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
+                      const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
+                        (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+                      
+                      try {
+                        const newStatus = isHighRisk ? 'pending_inspection' : 'active';
+                        const approvedDate = new Date().toISOString().split('T')[0];
+                        
+                        await updatePermit(editData.id, { 
+                          status: newStatus, 
+                          approved_date: approvedDate 
+                        });
+                        
+                        const freshPermits = await listPermits();
+                        setPermits(freshPermits);
+                        setCurrentScreen('dashboard');
+                        Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to approve permit: ' + error.message);
+                      }
+                    }}
+                    disabled={!canApprove}
+                  >
+                    <Text style={[styles.submitButtonText, { opacity: canApprove ? 1 : 0.6 }]}>Approve</Text>
+                  </TouchableOpacity>
+                </>
+              );
+            })()
           )}
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
             // Reject: send back to draft or reject pending approval
