@@ -30,6 +30,8 @@ const transformPermit = (dbPermit) => {
     contractor_selected: dbPermit.contractor_selected || false,
     permittedIssuer: dbPermit.permitted_issuer,
     permitted_issuer: dbPermit.permitted_issuer,
+    rejectionComment: dbPermit.rejection_comment,
+    rejection_comment: dbPermit.rejection_comment,
     siteId: dbPermit.site_id,
     site_id: dbPermit.site_id,
     controlsSummary: dbPermit.controls_summary,
