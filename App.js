@@ -10153,6 +10153,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           )}
         </View>
 
+        {/* REJECTION COMMENT FIELD - shown before buttons for approval review */}
+        {!isDraft && (
+          <View style={{ backgroundColor: '#FEF2F2', padding: 16, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#7F1D1D', marginBottom: 8 }}>If Rejecting: Add Feedback (Optional)</Text>
+            <TextInput
+              style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+              placeholder="Enter reason for rejection so the permit requester can address the issues..."
+              value={rejectionComment}
+              onChangeText={setRejectionComment}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+        )}
+
         <View style={styles.submitSection}>
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
@@ -10258,16 +10273,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
-            // Reject: delete draft or reject pending approval
+            // Reject: send back to draft or reject pending approval
             try {
               await updatePermit(editData.id, { 
-                status: 'rejected'
+                status: isDraft ? 'rejected' : 'draft',
+                rejection_comment: !isDraft ? rejectionComment.trim() : undefined
               });
               
               const freshPermits = await listPermits();
               setPermits(freshPermits);
               setCurrentScreen('dashboard');
-              Alert.alert('Permit Rejected', isDraft ? 'Draft permit has been deleted.' : 'Permit has been rejected.');
+              if (isDraft) {
+                Alert.alert('Permit Rejected', 'Draft permit has been deleted.');
+              } else {
+                Alert.alert('Permit Sent Back to Draft', 'Permit has been sent back to draft with feedback for revision.');
+              }
             } catch (error) {
               Alert.alert('Error', 'Failed to reject permit: ' + error.message);
             }
