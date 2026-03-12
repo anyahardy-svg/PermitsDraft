@@ -1176,7 +1176,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             })}
           </View>
 
-          {isAllCompulsoryDone && (
+          {/* Show completion button ONLY when ALL inductions are done (no remaining ones) */}
+          {inductionQueue.filter(ind => !completedInductionIds.includes(ind.id)).length === 0 && (
             <TouchableOpacity
               style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
               onPress={() => onCancel()} 
