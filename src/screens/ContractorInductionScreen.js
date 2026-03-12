@@ -123,6 +123,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     loadCompaniesAndBU();
   }, []);
 
+  // Load sites when business units are selected (for pre-filled returning contractors)
+  useEffect(() => {
+    const loadSitesForBUs = async () => {
+      const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+      if (selectedBUs.length > 0) {
+        try {
+          const sitesData = await getSitesByBusinessUnits(selectedBUs);
+          setSites(Array.isArray(sitesData) ? sitesData : []);
+        } catch (err) {
+          console.error('Failed to load sites:', err);
+        }
+      } else {
+        setSites([]);
+      }
+    };
+    
+    loadSitesForBUs();
+  }, [contractorInfo.selectedBusinessUnitIds]);
+
   const loadCompaniesAndBU = async () => {
     try {
       const [companiesData, buData, contractorsData] = await Promise.all([
