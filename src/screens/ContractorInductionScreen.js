@@ -1132,7 +1132,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <View style={{ gap: 12, marginBottom: 24 }}>
             {inductionQueue
-              .filter(ind => !completedInductionIds.includes(ind.id)) // Only show remaining inductions
               .map(induction => {
               const isCompleted = completedInductionIds.includes(induction.id);
               const isCompulsory = compulsoryInductions.some(ind => ind.id === induction.id);
