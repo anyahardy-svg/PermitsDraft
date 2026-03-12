@@ -1498,26 +1498,36 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const qType = currentModalInduction.question_1_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q1 || (isSingleSelect ? null : []);
-                              console.log('🔍 Q1 Debug:', { 
+                              const correctAnswer = currentModalInduction.question_1_correct_answer;
+                              const options = currentModalInduction.question_1_options;
+                              
+                              console.log('🔍 Q1 Full Debug:', { 
                                 qType, 
                                 isSingleSelect,
-                                hasQuestion1Type: !!currentModalInduction.question_1_type,
-                                selectedAnswersType: Array.isArray(selectedAnswers) ? 'array' : typeof selectedAnswers,
-                                selectedAnswers
+                                selectedAnswers,
+                                correctAnswer,
+                                options,
+                                optionsLen: options?.length,
+                                optionsType: typeof options,
                               });
                               
                               return (
                                 <View style={{ gap: 6 }}>
-                                  {currentModalInduction.question_1_options?.map((option, idx) => {
+                                  {Array.isArray(options) && options.map((option, idx) => {
                                     const isSelected = isSingleSelect 
                                       ? selectedAnswers === idx 
                                       : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
+                                    
+                                    console.log(`   Option ${idx}: "${option}", isSelected=${isSelected}, selectedAnswers=${selectedAnswers}`);
                                     
                                     if (isSingleSelect) {
                                       return (
                                         <TouchableOpacity
                                           key={idx}
-                                          onPress={() => setModalAnswers({ ...modalAnswers, q1: idx })}
+                                          onPress={() => {
+                                            console.log(`   ➡️ User clicked option ${idx}`);
+                                            setModalAnswers({ ...modalAnswers, q1: idx });
+                                          }}
                                           style={{
                                             paddingVertical: 10,
                                             paddingHorizontal: 12,
