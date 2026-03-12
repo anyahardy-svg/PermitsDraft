@@ -15,6 +15,7 @@ import { WebView } from 'react-native-webview';
 
 import {
   getInductionsByBusinessUnit,
+  getInductionsForContractor,
   getContractorInductionProgress,
   startInduction,
   saveInductionAnswers,
@@ -249,18 +250,35 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
       setSelectedContractorId(contractorId);
       
-      // Load their incomplete inductions
-      const progressData = await getContractorInductionProgress(contractorId);
-      const incomplete = progressData.filter(p => p.status === 'in_progress');
+      // Load ALL inductions for their business units (like new contractor flow)
+      let allInductions = [];
+      if (contractorBUs.length > 0) {
+        for (const buId of contractorBUs) {
+          const inductionsForBU = await getInductionsForContractor(contractorId, buId);
+          allInductions = [...allInductions, ...inductionsForBU];
+        }
+      }
       
-      if (incomplete.length === 0) {
-        Alert.alert('No Saved Inductions', `${contractor.name} has no incomplete inductions to resume.`);
+      // Remove duplicates by ID
+      const uniqueInductions = Array.from(new Map(allInductions.map(ind => [ind.id, ind])).values());
+      
+      // Load their progress to see what's completed vs in_progress
+      const progressData = await getContractorInductionProgress(contractorId);
+      const completedIds = progressData
+        .filter(p => p.status === 'completed')
+        .map(p => p.induction_id);
+      
+      if (uniqueInductions.length === 0) {
+        Alert.alert('No Inductions', `No inductions found for ${contractor.name}.`);
         setIsNewContractor(null);
-        setIncompleteInductions([]);
       } else {
-        setIncompleteInductions(incomplete);
-        setIsNewContractor('resume');
-        setShowIncompleteInductionsDropdown(true);
+        // Set up the board just like new contractors
+        setInductionQueue(uniqueInductions);
+        setCompletedInductionIds(completedIds);
+        setModalAnswers({});
+        setStep('inductionBoard');
+        setIsNewContractor(null);
+        setShowIncompleteInductionsDropdown(false);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load contractor');
@@ -270,52 +288,27 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
   };
 
-  const handleResumeInduction = async (progressRecord) => {
+  const handleResumeInduction = async (induction) => {
+    // This now works just like handleOpenInduction for new contractors
+    // The board is already set up from handleResumeContractorSelected
     try {
       setLoading(true);
-      console.log('Resuming induction for contractor:', contractorInfo.id);
-      console.log('Contractor selected BUs:', contractorInfo.selectedBusinessUnitIds);
       
-      // The induction details should already be included in the progress record
-      const resumeInduction = progressRecord.inductions;
-      if (!resumeInduction) {
-        Alert.alert('Error', 'Could not load the induction details');
-        return;
-      }
-
-      // Get all progress records to find completed ones
-      const allProgress = await getContractorInductionProgress(contractorInfo.id);
-      const completedIds = allProgress
-        .filter(p => p.status === 'completed')
-        .map(p => p.induction_id);
+      // Load the progress record to get saved answers
+      const progressData = await getContractorInductionProgress(contractorInfo.id);
+      const progressRecord = progressData.find(p => p.induction_id === induction.id);
+      const savedAnswers = progressRecord?.answers || {};
       
-      console.log('Completed inductions:', completedIds.length);
-
-      // Set up the state from saved progress
-      const savedAnswers = progressRecord.answers || {};
-      setAnswers(savedAnswers);
-      setSelectedInductionId(resumeInduction.id);
-      setCurrentModalInduction(resumeInduction);
-      setModalAnswers(savedAnswers);
-
-      // Don't reload the queue - keep the original selected inductions
-      // Just track which ones are completed against the existing queue
-      setCompletedInductionIds(completedIds);
-
-      // Advance to the board step where the modal will display
-      setStep('inductionBoard');
+      // Start (or resume) the induction in the database if not already started
+      await startInduction(contractorInfo.id, induction.id);
       
-      // Always resume from video first on resume workflow
-      // (Video was already watched, but we restart the flow for consistency)
+      setCurrentModalInduction(induction);
+      setSelectedInductionId(induction.id);
       setModalStep('video');
-      
-      // Open the modal
+      setModalAnswers(savedAnswers);
       setModalVisible(true);
-      setShowIncompleteInductionsDropdown(false);
-      setIsNewContractor(null); // Hide the choice screens
-    } catch (err) {
-      console.error('Error resuming induction:', err);
-      Alert.alert('Error', 'Failed to load induction: ' + err.message);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load induction: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -1055,13 +1048,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     const handleOpenInduction = async (induction) => {
       try {
         setLoading(true);
-        // Start the induction in the database
+        
+        // Load any saved answers for this induction
+        const progressData = await getContractorInductionProgress(contractorInfo.id);
+        const progressRecord = progressData.find(p => p.induction_id === induction.id);
+        const savedAnswers = progressRecord?.answers || {};
+        
+        // Start the induction in the database if not already started
         await startInduction(contractorInfo.id, induction.id);
         
         setCurrentModalInduction(induction);
         setSelectedInductionId(induction.id);
         setModalStep('video');
-        setModalAnswers({});
+        setModalAnswers(savedAnswers);
         setModalVisible(true);
       } catch (error) {
         Alert.alert('Error', 'Failed to start induction: ' + error.message);
