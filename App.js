@@ -1780,7 +1780,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
@@ -4533,7 +4533,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : isCompleted ? 'completed' : 'pending_approval')}>
-          <Text style={styles.backButton}>← Back</Text>
+          <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit ${permit.id}` : isCompleted ? `Completed Permit ${permit.id}` : `Review/Edit Permit ${permit.id}`}</Text>
       </View>
@@ -5190,7 +5190,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={styles.screenContainer}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
         </View>
@@ -5235,7 +5235,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={styles.screenContainer}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit Permit {localEditData.id}</Text>
         </View>
@@ -5607,7 +5607,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
         </View>
@@ -5883,7 +5883,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingPermitIssuer(false); setSelectedPermitIssuer(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingPermitIssuer ? 'Edit Permit Issuer' : 'Manage Permit Issuers'}</Text>
         </View>
@@ -6421,7 +6421,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
@@ -6919,7 +6919,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingSite(false); setSelectedSite(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingSite ? 'Edit Site' : 'Manage Sites'}</Text>
         </View>
@@ -7571,7 +7571,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
         </View>
@@ -8093,7 +8093,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <View style={styles.screenContainer}>
           <View style={styles.header}>
             <TouchableOpacity onPress={handleCancel}>
-              <Text style={styles.backButton}>← Back</Text>
+              <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Edit Visitor Induction - {siteName}</Text>
           </View>
@@ -8152,7 +8152,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={styles.screenContainer}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Visitor Inductions</Text>
         </View>
@@ -8314,7 +8314,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Manage Business Units</Text>
         </View>
@@ -8818,7 +8818,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             setEditingIsolation(false);
             setCurrentIsolation({ id: '', site_id: '', main_lockout_item: '', linked_items: [], key_procedure: '' });
           }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Manage Isolation Register</Text>
         </View>
@@ -9036,7 +9036,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Services Directory</Text>
         </View>
@@ -9271,7 +9271,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen(isDraft ? 'drafts' : 'pending_approval')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{isDraft ? `Review / Edit DRAFT Permit #${permit.permitNumber}` : `Review/Edit Permit #${permit.permitNumber}`}</Text>
         </View>
@@ -10554,7 +10554,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('pending_inspection')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Inspect/Edit Permit #{editData.permitNumber}</Text>
         </View>
@@ -11500,7 +11500,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={styles.screenContainer}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Needs Inspection</Text>
         </View>
@@ -11546,7 +11546,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Active Permits</Text>
         </View>
@@ -11592,7 +11592,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Needs Verification</Text>
         </View>
@@ -11814,7 +11814,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setCurrentScreen('active')}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit/Complete ACTIVE Permit #{editData.permitNumber}{siteName ? ` - ${siteName}` : ''}</Text>
         </View>

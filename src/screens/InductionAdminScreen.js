@@ -223,7 +223,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}><Text style={styles.backButton}>← Back</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onBack}><Text style={styles.backButton}>←</Text></TouchableOpacity>
         <Text style={styles.title}>Manage Inductions</Text>
       </View>
 
@@ -268,7 +268,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       <Modal visible={modalVisible} animationType="slide">
         <View style={{ flex: 1 }}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={styles.backButton}>← Back</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={styles.backButton}>←</Text></TouchableOpacity>
             <Text style={styles.title}>{formData.id ? 'Edit' : 'New'} Induction</Text>
           </View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>

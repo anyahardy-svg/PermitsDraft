@@ -71,7 +71,7 @@ export default function JseaEditorScreen({
       {!isInModal && (
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>JSEA - Job Safety & Environmental Analysis</Text>
         </View>
