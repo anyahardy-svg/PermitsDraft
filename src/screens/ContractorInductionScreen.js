@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+import { supabase } from '../supabaseClient';
 import {
   getInductionsByBusinessUnit,
   getInductionsForContractor,
@@ -250,34 +251,35 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
       setSelectedContractorId(contractorId);
       
-      // Load ALL inductions for their business units (like new contractor flow)
-      let allInductions = [];
-      if (contractorBUs.length > 0) {
-        console.log('🔍 Contractor BUs:', contractorBUs);
-        for (const buId of contractorBUs) {
-          const inductionsForBU = await getInductionsForContractor(contractorId, buId);
-          console.log(`📚 Inductions for BU ${buId}:`, inductionsForBU.length);
-          inductionsForBU.forEach(ind => console.log(`  - ${ind.induction_name}`));
-          allInductions = [...allInductions, ...inductionsForBU];
-        }
-      }
-      
-      // Remove duplicates by ID
-      const uniqueInductions = Array.from(new Map(allInductions.map(ind => [ind.id, ind])).values());
-      console.log('📊 Total unique inductions:', uniqueInductions.length);
-      
       // Load their progress to see what's completed vs in_progress
       const progressData = await getContractorInductionProgress(contractorId);
-      const completedIds = progressData
-        .filter(p => p.status === 'completed')
-        .map(p => p.induction_id);
       
-      if (uniqueInductions.length === 0) {
-        Alert.alert('No Inductions', `No inductions found for ${contractor.name}.`);
+      if (progressData.length === 0) {
+        Alert.alert('No Inductions', `${contractor.name} has no inductions to resume.`);
         setIsNewContractor(null);
       } else {
-        // Set up the board just like new contractors
-        setInductionQueue(uniqueInductions);
+        // Get the unique induction IDs they're assigned to
+        const assignedInductionIds = [...new Set(progressData.map(p => p.induction_id))];
+        console.log('🔍 Contractor assigned inductions:', assignedInductionIds.length);
+        
+        // Load the induction details for each assigned induction
+        const inductionPromises = assignedInductionIds.map(indId => 
+          supabase.from('inductions').select('*').eq('id', indId).single()
+        );
+        const inductionResults = await Promise.all(inductionPromises);
+        const assignedInductions = inductionResults
+          .filter(result => !result.error)
+          .map(result => result.data);
+        
+        console.log('📚 Loaded induction details:', assignedInductions.length);
+        
+        // Track completed inductions
+        const completedIds = progressData
+          .filter(p => p.status === 'completed')
+          .map(p => p.induction_id);
+        
+        // Set up the board with ONLY assigned inductions
+        setInductionQueue(assignedInductions);
         setCompletedInductionIds(completedIds);
         setModalAnswers({});
         setStep('inductionBoard');
