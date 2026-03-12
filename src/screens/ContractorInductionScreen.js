@@ -73,6 +73,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [returningFilterCompanyId, setReturningFilterCompanyId] = useState('');
   const [returningFilterBUId, setReturningFilterBUId] = useState('');
   const [returningFilteredContractors, setReturningFilteredContractors] = useState([]);
+  const [showReturningBUDropdown, setShowReturningBUDropdown] = useState(false);
+  const [showReturningCompanyDropdown, setShowReturningCompanyDropdown] = useState(false);
 
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
@@ -794,69 +796,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           <Text style={styles.title}>Select Contractor</Text>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
-            Filter by Company
-          </Text>
-          <TouchableOpacity
-            style={{
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              borderRadius: 8,
-              paddingVertical: 12,
-              paddingHorizontal: 12,
-              marginBottom: 16,
-              backgroundColor: returningFilterCompanyId ? '#E0E7FF' : '#F9FAFB',
-            }}
-            onPress={() => {
-              // Show company selection
-              if (!showCompanyDropdown) setShowCompanyDropdown(false); // just toggle, we'll add company filter UI above
-            }}
-          >
-            <Text style={{ color: returningFilterCompanyId ? '#3B82F6' : '#6B7280', fontSize: 14 }}>
-              {returningFilterCompanyId 
-                ? companies.find(c => c.id === returningFilterCompanyId)?.name || 'Select Company'
-                : 'All Companies'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={{ marginBottom: 16, maxHeight: 120 }}>
-            {showCompanyDropdown && (
-              <ScrollView style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setReturningFilterCompanyId('');
-                    setShowCompanyDropdown(false);
-                  }}
-                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                >
-                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Companies</Text>
-                </TouchableOpacity>
-                {companies.map(company => (
-                  <TouchableOpacity
-                    key={company.id}
-                    onPress={() => {
-                      setReturningFilterCompanyId(company.id);
-                      setShowCompanyDropdown(false);
-                    }}
-                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                  >
-                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{company.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-            {!showCompanyDropdown && (
-              <TouchableOpacity
-                onPress={() => setShowCompanyDropdown(true)}
-                style={{ paddingVertical: 8 }}
-              >
-                <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500' }}>Change Company Filter</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+        <View style={{ flex: 1, padding: 16 }}>
+          {/* Business Unit Filter */}
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
             Filter by Business Unit
           </Text>
           <TouchableOpacity
@@ -866,33 +808,105 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               borderRadius: 8,
               paddingVertical: 12,
               paddingHorizontal: 12,
-              marginBottom: 16,
+              marginBottom: 4,
               backgroundColor: returningFilterBUId ? '#E0E7FF' : '#F9FAFB',
             }}
+            onPress={() => setShowReturningBUDropdown(!showReturningBUDropdown)}
           >
-            <Text style={{ color: returningFilterBUId ? '#3B82F6' : '#6B7280', fontSize: 14 }}>
+            <Text style={{ color: returningFilterBUId ? '#3B82F6' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
               {returningFilterBUId 
                 ? businessUnits.find(bu => bu.id === returningFilterBUId)?.name || 'Select BU'
                 : 'All Business Units'}
             </Text>
           </TouchableOpacity>
 
+          {showReturningBUDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity
+                  onPress={() => {
+                    setReturningFilterBUId('');
+                    setShowReturningBUDropdown(false);
+                  }}
+                  style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Business Units</Text>
+                </TouchableOpacity>
+                {businessUnits.map(bu => (
+                  <TouchableOpacity
+                    key={bu.id}
+                    onPress={() => {
+                      setReturningFilterBUId(bu.id);
+                      setShowReturningBUDropdown(false);
+                    }}
+                    style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{bu.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Company Filter */}
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>
+            Filter by Company
+          </Text>
           <TouchableOpacity
-            onPress={() => setReturningFilterBUId('')}
-            style={{ marginBottom: 24, paddingVertical: 8 }}
+            style={{
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              marginBottom: 4,
+              backgroundColor: returningFilterCompanyId ? '#E0E7FF' : '#F9FAFB',
+            }}
+            onPress={() => setShowReturningCompanyDropdown(!showReturningCompanyDropdown)}
           >
-            <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500' }}>
-              {returningFilterBUId ? 'Clear BU Filter' : ''}
+            <Text style={{ color: returningFilterCompanyId ? '#3B82F6' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {returningFilterCompanyId 
+                ? companies.find(c => c.id === returningFilterCompanyId)?.name || 'Select Company'
+                : 'All Companies'}
             </Text>
           </TouchableOpacity>
 
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+          {showReturningCompanyDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity
+                  onPress={() => {
+                    setReturningFilterCompanyId('');
+                    setShowReturningCompanyDropdown(false);
+                  }}
+                  style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Companies</Text>
+                </TouchableOpacity>
+                {companies.map(company => (
+                  <TouchableOpacity
+                    key={company.id}
+                    onPress={() => {
+                      setReturningFilterCompanyId(company.id);
+                      setShowReturningCompanyDropdown(false);
+                    }}
+                    style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{company.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Contractors List */}
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 12 }}>
             Contractors ({filteredList.length})
           </Text>
 
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+          <View style={{ flex: 1, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' }}>
             {filteredList.length === 0 ? (
-              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
                 <Text style={{ color: '#9CA3AF', fontSize: 14 }}>No contractors found</Text>
               </View>
             ) : (
@@ -901,10 +915,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   <TouchableOpacity
                     key={contractor.id}
                     onPress={() => handleSelectExistingContractor(contractor.id)}
-                    style={{ paddingVertical: 14, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{contractor.email}</Text>
+                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
                     {contractor.company_id && (
                       <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
                         {companies.find(c => c.id === contractor.company_id)?.name}
@@ -915,7 +929,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               </ScrollView>
             )}
           </View>
-        </ScrollView>
+        </View>
       </View>
     );
   }
