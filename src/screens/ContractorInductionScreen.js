@@ -174,40 +174,16 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         email: contractor.email,
         phone: contractor.phone || '',
         companyId: contractor.company_id,
-        selectedBusinessUnitIds: [],
-        selectedSiteIds: [],
+        selectedBusinessUnitIds: contractor.business_unit_ids || [],
+        selectedSiteIds: contractor.site_ids || [],
       });
       setSelectedContractorId(contractorId);
       setShowContractorDropdown(false);
       
-      // If coming from returning contractor screen, load their inductions to redo
-      if (isNewContractor === 'returning') {
-        // Load their previous business units
-        const contractorBUs = contractor.business_unit_ids || [];
-        if (contractorBUs.length > 0) {
-          setContractorInfo(prev => ({...prev, selectedBusinessUnitIds: contractorBUs}));
-          
-          // Load inductions for these BUs
-          let allInductions = [];
-          for (const buId of contractorBUs) {
-            const inductionsForBU = await getInductionsForContractor(contractorId, buId);
-            allInductions = [...allInductions, ...inductionsForBU];
-          }
-          const uniqueInductions = Array.from(new Map(allInductions.map(ind => [ind.id, ind])).values());
-          
-          // Separate compulsory and optional
-          const mandatory = uniqueInductions.filter(ind => ind.is_compulsory);
-          const optional = uniqueInductions.filter(ind => !ind.is_compulsory);
-          
-          setCompulsoryInductions(mandatory);
-          setOptionalInductions(optional);
-          setSelectedOptionalIds([]);
-          setStep('inductionsList');
-          setIsNewContractor(true); // Treat as new induction selection from here
-        }
-      } else {
-        setIsNewContractor(false);
-      }
+      // Show their info screen so they can review/update details before inductions
+      // For returning contractors, show info screen first
+      setStep('info');
+      setIsNewContractor(false); // Mark as existing contractor
     } catch (err) {
       Alert.alert('Error', 'Failed to load contractor');
     } finally {
@@ -942,13 +918,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           <TouchableOpacity onPress={() => { setIsNewContractor(null); setShowContractorDropdown(false); }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Your Information</Text>
+          <Text style={styles.title}>{isNewContractor ? 'Your Information' : 'Review Information'}</Text>
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {isNewContractor && (
             <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, fontStyle: 'italic' }}>
               Please fill in your details to get started
+            </Text>
+          )}
+          {!isNewContractor && (
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, fontStyle: 'italic' }}>
+              Review and update your information if needed, then select inductions to redo
             </Text>
           )}
 
