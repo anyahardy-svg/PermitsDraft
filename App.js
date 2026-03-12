@@ -13020,7 +13020,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 24,
     marginRight: 15,
   },
   content: {

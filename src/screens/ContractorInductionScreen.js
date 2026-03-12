@@ -163,7 +163,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     return (
       <View style={{ backgroundColor: '#3B82F6', paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <TouchableOpacity onPress={onBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>{backText}</Text>
+          <Text style={{ fontSize: 24, color: 'white', fontWeight: '600' }}>{backText}</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', flex: 1, textAlign: 'center' }}>
           {screenName}

@@ -519,7 +519,7 @@ export default function ContractorAdminScreen({
                 setShowJseaEditor(false);
                 resetJseaForm();
               }}>
-                <Text style={{ fontSize: 16, color: '#3B82F6', fontWeight: '600' }}>←</Text>
+                <Text style={{ fontSize: 24, color: '#3B82F6', fontWeight: '600' }}>←</Text>
               </TouchableOpacity>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12 }}>
                 {editingJseaTemplate ? 'Edit JSEA Template' : 'Create JSEA Template'}
