@@ -1497,7 +1497,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                             {(() => {
                               const qType = currentModalInduction.question_1_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q1 || (isSingleSelect ? null : []);
+                              const selectedAnswers = modalAnswers.q1 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_1_correct_answer;
                               const options = currentModalInduction.question_1_options;
                               
@@ -1611,7 +1611,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                             {(() => {
                               const qType = currentModalInduction.question_2_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q2 || (isSingleSelect ? null : []);
+                              const selectedAnswers = modalAnswers.q2 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_2_correct_answer;
                               const options = currentModalInduction.question_2_options;
                               
@@ -1725,7 +1725,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                             {(() => {
                               const qType = currentModalInduction.question_3_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q3 || (isSingleSelect ? null : []);
+                              const selectedAnswers = modalAnswers.q3 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_3_correct_answer;
                               const options = currentModalInduction.question_3_options;
                               
