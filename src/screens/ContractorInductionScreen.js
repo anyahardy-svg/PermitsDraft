@@ -212,12 +212,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setLoading(false);
     }
   };
-    } catch (err) {
-      Alert.alert('Error', 'Failed to load contractor');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleNewContractor = () => {
     setIsNewContractor(true);
