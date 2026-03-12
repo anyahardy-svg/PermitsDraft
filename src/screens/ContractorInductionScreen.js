@@ -158,6 +158,21 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
   };
 
+  // Helper: Render standardized header with screen context
+  const renderHeader = (screenName, onBack, backText = '←') => {
+    return (
+      <View style={{ backgroundColor: '#3B82F6', paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <TouchableOpacity onPress={onBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>{backText}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', flex: 1, textAlign: 'center' }}>
+          {screenName}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+    );
+  };
+
   const handleAddCompany = async () => {
     if (!newCompanyName.trim()) {
       Alert.alert('Error', 'Please enter a company name');
@@ -622,12 +637,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor === null) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onCancel}>
-            <Text style={styles.backButton}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Contractor Induction</Text>
-        </View>
+        {renderHeader('Contractor Induction', onCancel, '✕')}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, justifyContent: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
@@ -707,12 +717,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor === 'choose-contractor-for-resume') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setIsNewContractor(null)}>
-            <Text style={styles.backButton}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Select Contractor</Text>
-        </View>
+        {renderHeader('Select Contractor - Resume', () => setIsNewContractor(null))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
@@ -751,16 +756,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor === 'resume') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => {
-            setIsNewContractor(null);
-            setIncompleteInductions([]);
-            setShowIncompleteInductionsDropdown(false);
-          }}>
-            <Text style={styles.backButton}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Resume Induction</Text>
-        </View>
+        {renderHeader('Resume Induction', () => {
+          setIsNewContractor(null);
+          setIncompleteInductions([]);
+          setShowIncompleteInductionsDropdown(false);
+        })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
@@ -800,12 +800,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setIsNewContractor(null)}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Select Contractor</Text>
-        </View>
+        {renderHeader('Select Contractor - Redo', () => setIsNewContractor(null))}
 
         <View style={{ flex: 1, padding: 16 }}>
           {/* Business Unit Filter */}
@@ -949,12 +944,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor !== null && isNewContractor !== 'choose-contractor-for-resume' && isNewContractor !== 'resume' && isNewContractor !== 'returning') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setIsNewContractor(null); setShowContractorDropdown(false); }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>{isNewContractor ? 'Your Information' : 'Review Information'}</Text>
-        </View>
+        {renderHeader(isNewContractor ? 'Your Information' : 'Review Information', () => { setIsNewContractor(null); setShowContractorDropdown(false); })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {isNewContractor && (
@@ -1150,12 +1140,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'inductionsList') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('info')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Select Inductions</Text>
-        </View>
+        {renderHeader('Select Inductions', () => setStep('info'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {compulsoryInductions.length > 0 && (
@@ -1356,12 +1341,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('inductionsList')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Inductions</Text>
-        </View>
+        {renderHeader('Inductions', () => setStep('inductionsList'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
@@ -1927,8 +1907,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     if (!isAllCompulsoryDone) {
       return (
         <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>All Required Inductions Must Be Completed</Text>
+          <View style={{ backgroundColor: '#3B82F6', paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', textAlign: 'center' }}>All Required Inductions Must Be Completed</Text>
           </View>
         </View>
       );
@@ -1936,12 +1916,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('inductionBoard')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Sign & Submit</Text>
-        </View>
+        {renderHeader('Sign & Submit', () => setStep('inductionBoard'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
@@ -2077,15 +2052,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setStep('inductionsList'); setCurrentInductionIndex(0); }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>
-            {currentInduction.induction_name}
-            {currentInduction.subsection_name && ` - ${currentInduction.subsection_name}`}
-          </Text>
-        </View>
+        {renderHeader(
+          `${currentInduction.induction_name}${currentInduction.subsection_name ? ` - ${currentInduction.subsection_name}` : ''}`,
+          () => { setStep('inductionsList'); setCurrentInductionIndex(0); }
+        )}
 
         <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
           {embedUrl ? (
@@ -2146,12 +2116,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('video')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Questions</Text>
-        </View>
+        {renderHeader('Questions', () => setStep('video'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {questions.map(q => {
@@ -2267,12 +2232,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'signature') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep(hasQuestions ? 'questions' : 'video')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Confirm</Text>
-        </View>
+        {renderHeader('Confirm', () => setStep(hasQuestions ? 'questions' : 'video'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
