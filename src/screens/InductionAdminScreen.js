@@ -138,14 +138,41 @@ export default function InductionAdminScreen({ onBack, styles }) {
     }
 
     try {
-      if (formData.id) {
-        await updateInduction(formData.id, formData);
+      // Normalize correct answers for multi-select questions
+      const dataToSave = { ...formData };
+      
+      for (let i = 1; i <= 3; i++) {
+        const qType = `question_${i}_type`;
+        const qCorrect = `question_${i}_correct_answer`;
+        
+        // For multi-select questions, ensure correct answer is an array
+        if (dataToSave[qType] === 'multi-select') {
+          if (typeof dataToSave[qCorrect] === 'number') {
+            // Convert single number to array
+            dataToSave[qCorrect] = [dataToSave[qCorrect]];
+          } else if (!Array.isArray(dataToSave[qCorrect])) {
+            // Initialize as empty array if it's something else
+            dataToSave[qCorrect] = [];
+          }
+        } else {
+          // For single-select, ensure it's a number
+          if (Array.isArray(dataToSave[qCorrect])) {
+            // Take first element if it's an array
+            dataToSave[qCorrect] = dataToSave[qCorrect][0] ?? 0;
+          } else if (typeof dataToSave[qCorrect] !== 'number') {
+            dataToSave[qCorrect] = 0;
+          }
+        }
+      }
+      
+      if (dataToSave.id) {
+        await updateInduction(dataToSave.id, dataToSave);
       } else {
-        await createInduction(formData);
+        await createInduction(dataToSave);
       }
       setModalVisible(false);
       loadData();
-      Alert.alert('Success', formData.id ? 'Induction updated' : 'Induction created');
+      Alert.alert('Success', dataToSave.id ? 'Induction updated' : 'Induction created');
     } catch (err) {
       Alert.alert('Error', 'Failed to save induction');
     }
@@ -321,13 +348,39 @@ export default function InductionAdminScreen({ onBack, styles }) {
                         </TouchableOpacity>
                       </View>
                       <Text style={[styles.label, { marginTop: 12 }]}>Answer Options</Text>
-                      {formData[qOptions].map((opt, idx) => (
-                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                          <Text style={{ fontWeight: '600', color: '#6B7280', width: 28 }}>{String.fromCharCode(65 + idx)})</Text>
-                          <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} placeholder={`Option ${idx + 1}`} value={opt} onChangeText={(text) => { const newOpts = [...formData[qOptions]]; newOpts[idx] = text; setFormData({ ...formData, [qOptions]: newOpts }); }} />
-                          <TouchableOpacity onPress={() => setFormData({ ...formData, [qCorrect]: idx })} style={{ paddingHorizontal: 10, paddingVertical: 8, borderRadius: 6, backgroundColor: formData[qCorrect] === idx ? '#10B981' : '#E5E7EB' }}><Text style={{ color: formData[qCorrect] === idx ? 'white' : '#6B7280', fontWeight: '600' }}>✓</Text></TouchableOpacity>
-                        </View>
-                      ))}
+                      {formData[qOptions].map((opt, idx) => {
+                        const isSingleSelect = formData[qType] === 'single-select';
+                        const isCorrect = isSingleSelect 
+                          ? formData[qCorrect] === idx 
+                          : Array.isArray(formData[qCorrect]) && formData[qCorrect].includes(idx);
+                        
+                        const handleToggleCorrect = () => {
+                          if (isSingleSelect) {
+                            // Single-select: can only have one correct answer
+                            setFormData({ ...formData, [qCorrect]: idx });
+                          } else {
+                            // Multi-select: can have multiple correct answers
+                            const currentCorrect = Array.isArray(formData[qCorrect]) ? formData[qCorrect] : [];
+                            if (currentCorrect.includes(idx)) {
+                              // Remove this answer from correct list
+                              setFormData({ ...formData, [qCorrect]: currentCorrect.filter(i => i !== idx) });
+                            } else {
+                              // Add this answer to correct list
+                              setFormData({ ...formData, [qCorrect]: [...currentCorrect, idx] });
+                            }
+                          }
+                        };
+                        
+                        return (
+                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <Text style={{ fontWeight: '600', color: '#6B7280', width: 28 }}>{String.fromCharCode(65 + idx)})</Text>
+                            <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} placeholder={`Option ${idx + 1}`} value={opt} onChangeText={(text) => { const newOpts = [...formData[qOptions]]; newOpts[idx] = text; setFormData({ ...formData, [qOptions]: newOpts }); }} />
+                            <TouchableOpacity onPress={handleToggleCorrect} style={{ paddingHorizontal: 10, paddingVertical: 8, borderRadius: 6, backgroundColor: isCorrect ? '#10B981' : '#E5E7EB' }}>
+                              <Text style={{ color: isCorrect ? 'white' : '#6B7280', fontWeight: '600' }}>✓</Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
                     </>
                   )}
                 </View>
