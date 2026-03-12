@@ -43,12 +43,15 @@ export default function InductionAdminScreen({ onBack, styles }) {
     question_1_text: '',
     question_1_options: ['', '', '', ''],
     question_1_correct_answer: 0,
+    question_1_type: 'single-select',
     question_2_text: '',
     question_2_options: ['', '', '', ''],
     question_2_correct_answer: 0,
+    question_2_type: 'single-select',
     question_3_text: '',
     question_3_options: ['', '', '', ''],
     question_3_correct_answer: 0,
+    question_3_type: 'single-select',
   });
 
   useEffect(() => {
@@ -88,12 +91,15 @@ export default function InductionAdminScreen({ onBack, styles }) {
       question_1_text: '',
       question_1_options: ['', '', '', ''],
       question_1_correct_answer: 0,
+      question_1_type: 'single-select',
       question_2_text: '',
       question_2_options: ['', '', '', ''],
       question_2_correct_answer: 0,
+      question_2_type: 'single-select',
       question_3_text: '',
       question_3_options: ['', '', '', ''],
       question_3_correct_answer: 0,
+      question_3_type: 'single-select',
     });
     setModalVisible(true);
   };
@@ -112,12 +118,15 @@ export default function InductionAdminScreen({ onBack, styles }) {
       question_1_text: induction.question_1_text || '',
       question_1_options: induction.question_1_options || ['', '', '', ''],
       question_1_correct_answer: induction.question_1_correct_answer ?? 0,
+      question_1_type: induction.question_1_type || 'single-select',
       question_2_text: induction.question_2_text || '',
       question_2_options: induction.question_2_options || ['', '', '', ''],
       question_2_correct_answer: induction.question_2_correct_answer ?? 0,
+      question_2_type: induction.question_2_type || 'single-select',
       question_3_text: induction.question_3_text || '',
       question_3_options: induction.question_3_options || ['', '', '', ''],
       question_3_correct_answer: induction.question_3_correct_answer ?? 0,
+      question_3_type: induction.question_3_type || 'single-select',
     });
     setModalVisible(true);
   };
@@ -269,6 +278,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
               const qText = `question_${qNum}_text`;
               const qOptions = `question_${qNum}_options`;
               const qCorrect = `question_${qNum}_correct_answer`;
+              const qType = `question_${qNum}_type`;
               const hasQ = formData[qText]?.trim();
               return (
                 <View key={qNum} style={{ marginTop: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
@@ -277,6 +287,39 @@ export default function InductionAdminScreen({ onBack, styles }) {
                   <TextInput style={[styles.input, { minHeight: 50 }]} placeholder={`Leave blank to skip`} value={formData[qText]} onChangeText={(text) => setFormData({ ...formData, [qText]: text })} multiline />
                   {hasQ && (
                     <>
+                      <Text style={[styles.label, { marginTop: 12 }]}>Answer Type</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                        <TouchableOpacity
+                          onPress={() => setFormData({ ...formData, [qType]: 'single-select' })}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            borderRadius: 6,
+                            backgroundColor: formData[qType] === 'single-select' ? '#3B82F6' : '#E5E7EB',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ color: formData[qType] === 'single-select' ? 'white' : '#374151', fontWeight: '600', fontSize: 13 }}>
+                            ◯ Single Select
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => setFormData({ ...formData, [qType]: 'multi-select' })}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            borderRadius: 6,
+                            backgroundColor: formData[qType] === 'multi-select' ? '#3B82F6' : '#E5E7EB',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ color: formData[qType] === 'multi-select' ? 'white' : '#374151', fontWeight: '600', fontSize: 13 }}>
+                            ☑ Multi Select
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                       <Text style={[styles.label, { marginTop: 12 }]}>Answer Options</Text>
                       {formData[qOptions].map((opt, idx) => (
                         <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>

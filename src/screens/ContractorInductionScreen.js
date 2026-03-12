@@ -1800,9 +1800,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   // STEP 4: QUESTIONS
   if (step === 'questions') {
     const questions = [
-      { num: 1, text: currentInduction.question_1_text, options: currentInduction.question_1_options, correct: currentInduction.question_1_correct_answer },
-      { num: 2, text: currentInduction.question_2_text, options: currentInduction.question_2_options, correct: currentInduction.question_2_correct_answer },
-      { num: 3, text: currentInduction.question_3_text, options: currentInduction.question_3_options, correct: currentInduction.question_3_correct_answer },
+      { num: 1, text: currentInduction.question_1_text, options: currentInduction.question_1_options, correct: currentInduction.question_1_correct_answer, type: currentInduction.question_1_type || 'single-select' },
+      { num: 2, text: currentInduction.question_2_text, options: currentInduction.question_2_options, correct: currentInduction.question_2_correct_answer, type: currentInduction.question_2_type || 'single-select' },
+      { num: 3, text: currentInduction.question_3_text, options: currentInduction.question_3_options, correct: currentInduction.question_3_correct_answer, type: currentInduction.question_3_type || 'single-select' },
     ].filter(q => q.text?.trim());
 
     return (
@@ -1815,32 +1815,106 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          {questions.map(q => (
-            <View key={q.num} style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
-                Q{q.num}: {q.text}
-              </Text>
-              {Array.isArray(q.options) && q.options.map((option, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => setAnswers({ ...answers, [`q${q.num}`]: idx })}
-                  style={{
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                    backgroundColor: answers[`q${q.num}`] === idx ? '#E0E7FF' : '#F9FAFB',
-                    marginBottom: 8,
-                    borderLeftWidth: 3,
-                    borderLeftColor: answers[`q${q.num}`] === idx ? '#3B82F6' : '#E5E7EB',
-                  }}
-                >
-                  <Text style={{ color: '#1F2937', fontWeight: answers[`q${q.num}`] === idx ? '600' : '400' }}>
-                    {String.fromCharCode(65 + idx)}) {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
+          {questions.map(q => {
+            const isSingleSelect = q.type === 'single-select';
+            const selectedAnswers = answers[`q${q.num}`] || (isSingleSelect ? null : []);
+            const isAnswered = isSingleSelect ? selectedAnswers !== null && selectedAnswers !== undefined : Array.isArray(selectedAnswers) && selectedAnswers.length > 0;
+            
+            return (
+              <View key={q.num} style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+                  Q{q.num}: {q.text} {isAnswered && isSingleSelect && <Text style={{ color: '#10B981', fontSize: 12 }}>✓</Text>}
+                </Text>
+                {Array.isArray(q.options) && q.options.map((option, idx) => {
+                  const isSelected = isSingleSelect 
+                    ? selectedAnswers === idx 
+                    : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
+                  
+                  if (isSingleSelect) {
+                    // Single-select: radio button style
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setAnswers({ ...answers, [`q${q.num}`]: idx })}
+                        style={{
+                          paddingVertical: 12,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: isSelected ? '#E0E7FF' : '#F9FAFB',
+                          marginBottom: 8,
+                          borderLeftWidth: 3,
+                          borderLeftColor: isSelected ? '#3B82F6' : '#E5E7EB',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          borderWidth: 2,
+                          borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#3B82F6' : 'white',
+                          marginRight: 12,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>•</Text>}
+                        </View>
+                        <Text style={{ color: '#1F2937', fontWeight: isSelected ? '600' : '400', flex: 1 }}>
+                          {String.fromCharCode(65 + idx)}) {option}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  } else {
+                    // Multi-select: checkbox style
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => {
+                          const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
+                          if (current.includes(idx)) {
+                            setAnswers({ ...answers, [`q${q.num}`]: current.filter(i => i !== idx) });
+                          } else {
+                            current.push(idx);
+                            setAnswers({ ...answers, [`q${q.num}`]: current });
+                          }
+                        }}
+                        style={{
+                          paddingVertical: 12,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: isSelected ? '#DCFCE7' : '#F9FAFB',
+                          marginBottom: 8,
+                          borderLeftWidth: 3,
+                          borderLeftColor: isSelected ? '#10B981' : '#E5E7EB',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          borderWidth: 2,
+                          borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#10B981' : 'white',
+                          marginRight: 12,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                        </View>
+                        <Text style={{ color: '#1F2937', fontWeight: isSelected ? '600' : '400', flex: 1 }}>
+                          {String.fromCharCode(65 + idx)}) {option}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                })}
+              </View>
+            );
+          })}
 
           <TouchableOpacity style={[styles.button, { marginTop: 24 }]} onPress={handleQuestionsComplete}>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Next: Signature</Text>

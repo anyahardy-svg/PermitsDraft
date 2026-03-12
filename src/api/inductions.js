@@ -140,7 +140,7 @@ export async function getCompulsoryInductions(businessUnitId) {
 
 /**
  * Create a new induction
- * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, is_compulsory }
+ * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
  * @returns {Object} Created induction
  */
 export async function createInduction(inductionData) {
@@ -159,12 +159,15 @@ export async function createInduction(inductionData) {
         question_1_text: inductionData.question_1_text || '',
         question_1_options: inductionData.question_1_options || null,
         question_1_correct_answer: inductionData.question_1_correct_answer ?? null,
+        question_1_type: inductionData.question_1_type || 'single-select',
         question_2_text: inductionData.question_2_text || '',
         question_2_options: inductionData.question_2_options || null,
         question_2_correct_answer: inductionData.question_2_correct_answer ?? null,
+        question_2_type: inductionData.question_2_type || 'single-select',
         question_3_text: inductionData.question_3_text || '',
         question_3_options: inductionData.question_3_options || null,
         question_3_correct_answer: inductionData.question_3_correct_answer ?? null,
+        question_3_type: inductionData.question_3_type || 'single-select',
         is_compulsory: inductionData.is_compulsory !== false,
       }])
       .select();
@@ -197,12 +200,15 @@ export async function updateInduction(inductionId, updates) {
       question_1_text: updates.question_1_text || '',
       question_1_options: updates.question_1_options || null,
       question_1_correct_answer: updates.question_1_correct_answer ?? null,
+      question_1_type: updates.question_1_type || 'single-select',
       question_2_text: updates.question_2_text || '',
       question_2_options: updates.question_2_options || null,
       question_2_correct_answer: updates.question_2_correct_answer ?? null,
+      question_2_type: updates.question_2_type || 'single-select',
       question_3_text: updates.question_3_text || '',
       question_3_options: updates.question_3_options || null,
       question_3_correct_answer: updates.question_3_correct_answer ?? null,
+      question_3_type: updates.question_3_type || 'single-select',
       is_compulsory: updates.is_compulsory !== false,
       updated_at: new Date().toISOString(),
     };
