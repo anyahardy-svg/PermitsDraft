@@ -1612,19 +1612,35 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const qType = currentModalInduction.question_2_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q2 || (isSingleSelect ? null : []);
+                              const correctAnswer = currentModalInduction.question_2_correct_answer;
+                              const options = currentModalInduction.question_2_options;
+                              
+                              console.log('🔍 Q2 Full Debug:', { 
+                                qType, 
+                                isSingleSelect,
+                                selectedAnswers,
+                                correctAnswer,
+                                options,
+                                optionsLen: options?.length,
+                              });
                               
                               return (
                                 <View style={{ gap: 6 }}>
-                                  {currentModalInduction.question_2_options?.map((option, idx) => {
+                                  {Array.isArray(options) && options.map((option, idx) => {
                                     const isSelected = isSingleSelect 
                                       ? selectedAnswers === idx 
                                       : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
+                                    
+                                    console.log(`   Q2 Option ${idx}: "${option}", isSelected=${isSelected}`);
                                     
                                     if (isSingleSelect) {
                                       return (
                                         <TouchableOpacity
                                           key={idx}
-                                          onPress={() => setModalAnswers({ ...modalAnswers, q2: idx })}
+                                          onPress={() => {
+                                            console.log(`   ➡️ User clicked Q2 option ${idx}`);
+                                            setModalAnswers({ ...modalAnswers, q2: idx });
+                                          }}
                                           style={{
                                             paddingVertical: 10,
                                             paddingHorizontal: 12,
@@ -1657,6 +1673,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                                         <TouchableOpacity
                                           key={idx}
                                           onPress={() => {
+                                            console.log(`   ➡️ User clicked Q2 option ${idx} (multi-select)`);
                                             const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
                                             if (current.includes(idx)) {
                                               setModalAnswers({ ...modalAnswers, q2: current.filter(i => i !== idx) });
@@ -1709,19 +1726,35 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const qType = currentModalInduction.question_3_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q3 || (isSingleSelect ? null : []);
+                              const correctAnswer = currentModalInduction.question_3_correct_answer;
+                              const options = currentModalInduction.question_3_options;
+                              
+                              console.log('🔍 Q3 Full Debug:', { 
+                                qType, 
+                                isSingleSelect,
+                                selectedAnswers,
+                                correctAnswer,
+                                options,
+                                optionsLen: options?.length,
+                              });
                               
                               return (
                                 <View style={{ gap: 6 }}>
-                                  {currentModalInduction.question_3_options?.map((option, idx) => {
+                                  {Array.isArray(options) && options.map((option, idx) => {
                                     const isSelected = isSingleSelect 
                                       ? selectedAnswers === idx 
                                       : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
+                                    
+                                    console.log(`   Q3 Option ${idx}: "${option}", isSelected=${isSelected}`);
                                     
                                     if (isSingleSelect) {
                                       return (
                                         <TouchableOpacity
                                           key={idx}
-                                          onPress={() => setModalAnswers({ ...modalAnswers, q3: idx })}
+                                          onPress={() => {
+                                            console.log(`   ➡️ User clicked Q3 option ${idx}`);
+                                            setModalAnswers({ ...modalAnswers, q3: idx });
+                                          }}
                                           style={{
                                             paddingVertical: 10,
                                             paddingHorizontal: 12,
@@ -1754,6 +1787,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                                         <TouchableOpacity
                                           key={idx}
                                           onPress={() => {
+                                            console.log(`   ➡️ User clicked Q3 option ${idx} (multi-select)`);
                                             const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
                                             if (current.includes(idx)) {
                                               setModalAnswers({ ...modalAnswers, q3: current.filter(i => i !== idx) });
