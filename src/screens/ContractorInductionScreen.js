@@ -18,6 +18,7 @@ import {
   getInductionsByBusinessUnit,
   getInductionsForContractor,
   getContractorInductionProgress,
+  getInductionProgress,
   startInduction,
   saveInductionAnswers,
   saveInductionProgress,
@@ -1265,15 +1266,37 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       try {
         setLoading(true);
         
-        // Load any saved answers for this induction
-        const progressData = await getContractorInductionProgress(contractorInfo.id);
-        const progressRecord = progressData.find(p => p.induction_id === induction.id);
+        // Load any saved answers for THIS induction only (faster query)
+        const progressRecord = await getInductionProgress(contractorInfo.id, induction.id);
         const savedAnswers = progressRecord?.answers || {};
+        
+        // Normalize the induction data to ensure correct answers match question type
+        const normalizedInduction = { ...induction };
+        for (let i = 1; i <= 3; i++) {
+          const qType = `question_${i}_type`;
+          const qCorrect = `question_${i}_correct_answer`;
+          
+          // For single-select, ensure it's a number
+          if ((normalizedInduction[qType] || 'single-select') === 'single-select') {
+            if (Array.isArray(normalizedInduction[qCorrect])) {
+              normalizedInduction[qCorrect] = normalizedInduction[qCorrect][0] ?? 0;
+            } else if (typeof normalizedInduction[qCorrect] !== 'number') {
+              normalizedInduction[qCorrect] = 0;
+            }
+          } else {
+            // For multi-select, ensure it's an array
+            if (typeof normalizedInduction[qCorrect] === 'number') {
+              normalizedInduction[qCorrect] = [normalizedInduction[qCorrect]];
+            } else if (!Array.isArray(normalizedInduction[qCorrect])) {
+              normalizedInduction[qCorrect] = [];
+            }
+          }
+        }
         
         // Start the induction in the database if not already started
         await startInduction(contractorInfo.id, induction.id);
         
-        setCurrentModalInduction(induction);
+        setCurrentModalInduction(normalizedInduction);
         setSelectedInductionId(induction.id);
         setModalStep('video');
         setModalAnswers(savedAnswers);
