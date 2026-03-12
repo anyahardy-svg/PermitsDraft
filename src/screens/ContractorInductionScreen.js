@@ -381,28 +381,34 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   };
 
   const handleInfoContinue = async () => {
-    console.log('BUTTON CLICKED - handleInfoContinue called');
+    console.log('✅ BUTTON CLICKED - handleInfoContinue called');
+    console.log('📋 Contractor Info:', { name: contractorInfo.name, email: contractorInfo.email, buIds: contractorInfo.selectedBusinessUnitIds, isNew: isNewContractor });
     
     if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
+      console.error('❌ Missing name or email');
       Alert.alert('Error', 'Please enter name and email');
       return;
     }
     if (!contractorInfo.companyId) {
+      console.error('❌ Missing company');
       Alert.alert('Error', 'Please select a company');
       return;
     }
     const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
     if (selectedBUs.length === 0) {
+      console.error('❌ No business units selected');
       Alert.alert('Error', 'Please select at least one business unit');
       return;
     }
 
-    setLoading(true);
     try {
-      console.log('Starting induction load for BUs:', selectedBUs);
+      console.log('🚀 Starting induction load for BUs:', selectedBUs);
+      setLoading(true);
+      
       // If new contractor, create them first
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
+        console.log('📝 Creating new contractor...');
         const selectedSites = contractorInfo.selectedSiteIds || [];
         const newContractor = await createContractor({
           name: contractorInfo.name,
@@ -415,19 +421,22 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         });
         contractorId = newContractor.id;
         setContractorInfo({ ...contractorInfo, id: contractorId });
+        console.log('✅ Contractor created:', contractorId);
+      } else {
+        console.log('♻️ Using existing contractor:', contractorId);
       }
 
       // Get inductions for all selected business units
       let allInductionsData = [];
       for (const buId of selectedBUs) {
         const inductionsForBU = await getInductionsByBusinessUnit(buId);
-        console.log('Got inductions for BU', buId, ':', inductionsForBU?.length || 0);
+        console.log('📚 Got inductions for BU', buId, ':', inductionsForBU?.length || 0);
         if (Array.isArray(inductionsForBU)) {
           allInductionsData = [...allInductionsData, ...inductionsForBU];
         }
       }
 
-      console.log('Total inductions:', allInductionsData.length);
+      console.log('📊 Total inductions loaded:', allInductionsData.length);
 
       // Remove duplicates (in case same induction applies to multiple BUs)
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
@@ -448,7 +457,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         }
       });
 
-      console.log('Compulsory:', compulsory.length, 'Optional:', optional.length);
+      console.log('📋 Separated: Compulsory:', compulsory.length, 'Optional:', optional.length);
 
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
@@ -457,10 +466,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       
       // Check for existing inductions in progress
       const existingProgress = await getContractorInductionProgress(contractorId);
+      console.log('🔍 Existing progress records:', existingProgress?.length || 0);
+      
       if (existingProgress && existingProgress.length > 0) {
         const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
         if (inProgressInductions.length > 0) {
-          console.log('Found', inProgressInductions.length, 'inductions in progress - offering to resume');
+          console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
+          setLoading(false);
+          
           // Show dialog asking if they want to resume
           Alert.alert(
             'Resume Inductions?',
@@ -469,12 +482,14 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               {
                 text: 'Start Over',
                 onPress: () => {
+                  console.log('🔄 User chose to start over');
                   setStep('inductionsList');
                 },
               },
               {
                 text: 'Resume',
                 onPress: () => {
+                  console.log('↩️ User chose to resume');
                   // Load the in-progress inductions and continue
                   const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
                   const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
@@ -489,18 +504,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               },
             ]
           );
-        } else {
-          setStep('inductionsList');
+          return;
         }
-      } else {
-        setStep('inductionsList');
       }
-      console.log('setStep called');
-    } catch (err) {
-      console.error('ERROR in handleInfoContinue:', err);
-      Alert.alert('Error', 'Failed to load inductions: ' + err.message);
-    } finally {
+      
+      console.log('✅ Ready to continue to inductions list');
       setLoading(false);
+      setStep('inductionsList');
+      
+    } catch (err) {
+      console.error('❌ ERROR in handleInfoContinue:', err);
+      setLoading(false);
+      Alert.alert('Error', 'Failed to load inductions: ' + err.message);
     }
   };
 
