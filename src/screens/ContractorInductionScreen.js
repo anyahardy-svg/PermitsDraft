@@ -1475,6 +1475,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const qType = currentModalInduction.question_1_type || 'single-select';
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q1 || (isSingleSelect ? null : []);
+                              console.log('🔍 Q1 Debug:', { 
+                                qType, 
+                                isSingleSelect,
+                                hasQuestion1Type: !!currentModalInduction.question_1_type,
+                                selectedAnswersType: Array.isArray(selectedAnswers) ? 'array' : typeof selectedAnswers,
+                                selectedAnswers
+                              });
+                              const isSingleSelect = qType === 'single-select';
+                              const selectedAnswers = modalAnswers.q1 || (isSingleSelect ? null : []);
                               
                               return (
                                 <View style={{ gap: 6 }}>
