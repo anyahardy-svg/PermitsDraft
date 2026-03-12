@@ -253,14 +253,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Load ALL inductions for their business units (like new contractor flow)
       let allInductions = [];
       if (contractorBUs.length > 0) {
+        console.log('🔍 Contractor BUs:', contractorBUs);
         for (const buId of contractorBUs) {
           const inductionsForBU = await getInductionsForContractor(contractorId, buId);
+          console.log(`📚 Inductions for BU ${buId}:`, inductionsForBU.length);
+          inductionsForBU.forEach(ind => console.log(`  - ${ind.induction_name}`));
           allInductions = [...allInductions, ...inductionsForBU];
         }
       }
       
       // Remove duplicates by ID
       const uniqueInductions = Array.from(new Map(allInductions.map(ind => [ind.id, ind])).values());
+      console.log('📊 Total unique inductions:', uniqueInductions.length);
       
       // Load their progress to see what's completed vs in_progress
       const progressData = await getContractorInductionProgress(contractorId);
