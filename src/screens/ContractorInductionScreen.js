@@ -68,6 +68,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
   const [incompleteInductions, setIncompleteInductions] = useState([]);
   const [showIncompleteInductionsDropdown, setShowIncompleteInductionsDropdown] = useState(false);
+  
+  // Returning Contractor filter state
+  const [returningFilterCompanyId, setReturningFilterCompanyId] = useState('');
+  const [returningFilterBUId, setReturningFilterBUId] = useState('');
+  const [returningFilteredContractors, setReturningFilteredContractors] = useState([]);
 
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
@@ -172,7 +177,41 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
       setSelectedContractorId(contractorId);
       setShowContractorDropdown(false);
-      setIsNewContractor(false);
+      
+      // If coming from returning contractor screen, load their inductions to redo
+      if (isNewContractor === 'returning') {
+        // Load their previous business units
+        const contractorBUs = contractor.business_unit_ids || [];
+        if (contractorBUs.length > 0) {
+          setContractorInfo(prev => ({...prev, selectedBusinessUnitIds: contractorBUs}));
+          
+          // Load inductions for these BUs
+          let allInductions = [];
+          for (const buId of contractorBUs) {
+            const inductionsForBU = await getInductionsForContractor(contractorId, buId);
+            allInductions = [...allInductions, ...inductionsForBU];
+          }
+          const uniqueInductions = Array.from(new Map(allInductions.map(ind => [ind.id, ind])).values());
+          
+          // Separate compulsory and optional
+          const mandatory = uniqueInductions.filter(ind => ind.is_compulsory);
+          const optional = uniqueInductions.filter(ind => !ind.is_compulsory);
+          
+          setCompulsoryInductions(mandatory);
+          setOptionalInductions(optional);
+          setSelectedOptionalIds([]);
+          setStep('inductionsList');
+          setIsNewContractor(true); // Treat as new induction selection from here
+        }
+      } else {
+        setIsNewContractor(false);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to load contractor');
+    } finally {
+      setLoading(false);
+    }
+  };
     } catch (err) {
       Alert.alert('Error', 'Failed to load contractor');
     } finally {
@@ -610,7 +649,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => setShowContractorDropdown(true)}
+            onPress={() => {
+              setIsNewContractor('returning');
+              setReturningFilterCompanyId('');
+              setReturningFilterBUId('');
+              setReturningFilteredContractors(contractors);
+            }}
             style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981', marginBottom: 8 }}>↩️ Returning Contractor</Text>
@@ -739,8 +783,151 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     );
   }
 
+  // RETURNING CONTRACTOR FILTER SCREEN - Select contractor to redo induction
+  if (step === 'info' && isNewContractor === 'returning') {
+    const filteredList = returningFilteredContractors.filter(contractor => {
+      const matchesCompany = !returningFilterCompanyId || contractor.company_id === returningFilterCompanyId;
+      const matchesBU = !returningFilterBUId || (contractor.business_unit_ids && contractor.business_unit_ids.includes(returningFilterBUId));
+      return matchesCompany && matchesBU;
+    });
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setIsNewContractor(null)}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Select Contractor</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+            Filter by Company
+          </Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              marginBottom: 16,
+              backgroundColor: returningFilterCompanyId ? '#E0E7FF' : '#F9FAFB',
+            }}
+            onPress={() => {
+              // Show company selection
+              if (!showCompanyDropdown) setShowCompanyDropdown(false); // just toggle, we'll add company filter UI above
+            }}
+          >
+            <Text style={{ color: returningFilterCompanyId ? '#3B82F6' : '#6B7280', fontSize: 14 }}>
+              {returningFilterCompanyId 
+                ? companies.find(c => c.id === returningFilterCompanyId)?.name || 'Select Company'
+                : 'All Companies'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{ marginBottom: 16, maxHeight: 120 }}>
+            {showCompanyDropdown && (
+              <ScrollView style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setReturningFilterCompanyId('');
+                    setShowCompanyDropdown(false);
+                  }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Companies</Text>
+                </TouchableOpacity>
+                {companies.map(company => (
+                  <TouchableOpacity
+                    key={company.id}
+                    onPress={() => {
+                      setReturningFilterCompanyId(company.id);
+                      setShowCompanyDropdown(false);
+                    }}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{company.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            {!showCompanyDropdown && (
+              <TouchableOpacity
+                onPress={() => setShowCompanyDropdown(true)}
+                style={{ paddingVertical: 8 }}
+              >
+                <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500' }}>Change Company Filter</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+            Filter by Business Unit
+          </Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              marginBottom: 16,
+              backgroundColor: returningFilterBUId ? '#E0E7FF' : '#F9FAFB',
+            }}
+          >
+            <Text style={{ color: returningFilterBUId ? '#3B82F6' : '#6B7280', fontSize: 14 }}>
+              {returningFilterBUId 
+                ? businessUnits.find(bu => bu.id === returningFilterBUId)?.name || 'Select BU'
+                : 'All Business Units'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setReturningFilterBUId('')}
+            style={{ marginBottom: 24, paddingVertical: 8 }}
+          >
+            <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500' }}>
+              {returningFilterBUId ? 'Clear BU Filter' : ''}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+            Contractors ({filteredList.length})
+          </Text>
+
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            {filteredList.length === 0 ? (
+              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                <Text style={{ color: '#9CA3AF', fontSize: 14 }}>No contractors found</Text>
+              </View>
+            ) : (
+              <ScrollView>
+                {filteredList.map(contractor => (
+                  <TouchableOpacity
+                    key={contractor.id}
+                    onPress={() => handleSelectExistingContractor(contractor.id)}
+                    style={{ paddingVertical: 14, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{contractor.email}</Text>
+                    {contractor.company_id && (
+                      <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        {companies.find(c => c.id === contractor.company_id)?.name}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   // STEP 1: INFO - Fill in contractor details
-  if (step === 'info' && isNewContractor !== null && isNewContractor !== 'choose-contractor-for-resume' && isNewContractor !== 'resume') {
+  if (step === 'info' && isNewContractor !== null && isNewContractor !== 'choose-contractor-for-resume' && isNewContractor !== 'resume' && isNewContractor !== 'returning') {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
