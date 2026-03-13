@@ -9562,6 +9562,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
+    const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
+    const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
+    const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
     
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
@@ -9701,12 +9704,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }, []);
 
     const handleSelectRiskLevel = useCallback(() => {
-      console.log('[DEBUG] Opening Risk Matrix modal for draft JSEA');
-      setSelectedLikelihood('');
-      setSelectedSeverity('');
-      setRiskMatrixContext('draft');
-      setShowRiskMatrix(true);
-    }, [setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext, setShowRiskMatrix]);
+      console.log('[DEBUG] Opening local Risk Matrix modal for draft JSEA');
+      setSelectedLikelihoodDraft('');
+      setSelectedSeverityDraft('');
+      setShowRiskMatrixDraft(true);
+    }, []);
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
@@ -11167,6 +11169,184 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Local Risk Matrix Modal for Draft */}
+      <Modal
+        visible={showRiskMatrixDraft}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRiskMatrixDraft(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            padding: 20,
+            maxHeight: '90%'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Risk Assessment Matrix</Text>
+              <TouchableOpacity onPress={() => setShowRiskMatrixDraft(false)}>
+                <Text style={{ fontSize: 24, color: '#9CA3AF' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              {/* Likelihood Selection */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
+                <View style={{ flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { key: 'rare', label: 'RARE', desc: 'Will only occur in exceptional circumstances' },
+                    { key: 'unlikely', label: 'UNLIKELY', desc: 'Could occur' },
+                    { key: 'possible', label: 'POSSIBLE', desc: 'Might occur' },
+                    { key: 'likely', label: 'LIKELY', desc: 'Will probably occur' },
+                    { key: 'almost_certain', label: 'ALMOST CERTAIN', desc: 'Will occur most of the time' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={{
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                        backgroundColor: selectedLikelihoodDraft === item.key ? '#EFF6FF' : 'white',
+                        padding: 12
+                      }}
+                      onPress={() => setSelectedLikelihoodDraft(item.key)}
+                    >
+                      <Text style={{
+                        color: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                        marginBottom: 4
+                      }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{
+                        color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
+                        fontSize: 12,
+                        fontStyle: 'italic'
+                      }}>
+                        {item.desc}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Severity Selection */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
+                <View style={{ flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { key: 'insignificant', label: 'INSIGNIFICANT', desc: 'Report Only Incidents' },
+                    { key: 'minor', label: 'MINOR', desc: 'First Aid' },
+                    { key: 'moderate', label: 'MODERATE', desc: 'MTI, LTI' },
+                    { key: 'major', label: 'MAJOR', desc: 'Serious Injury' },
+                    { key: 'catastrophic', label: 'CATASTROPHIC', desc: 'Fatality' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={{
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor: selectedSeverityDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                        backgroundColor: selectedSeverityDraft === item.key ? '#EFF6FF' : 'white',
+                        padding: 12
+                      }}
+                      onPress={() => setSelectedSeverityDraft(item.key)}
+                    >
+                      <Text style={{
+                        color: selectedSeverityDraft === item.key ? '#3B82F6' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                        marginBottom: 4
+                      }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{
+                        color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
+                        fontSize: 12,
+                        fontStyle: 'italic'
+                      }}>
+                        {item.desc}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Result Display */}
+              {selectedLikelihoodDraft && selectedSeverityDraft && (
+                <View style={{
+                  padding: 16,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 8,
+                  marginBottom: 24
+                }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
+                  <View style={{
+                    backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft)),
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 6,
+                    alignItems: 'center'
+                  }}>
+                    <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
+                      {calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setShowRiskMatrixDraft(false)}
+                >
+                  <Text style={{ color: '#374151', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: selectedLikelihoodDraft && selectedSeverityDraft ? '#3B82F6' : '#D1D5DB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  disabled={!selectedLikelihoodDraft || !selectedSeverityDraft}
+                  onPress={() => {
+                    const riskLevel = calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft);
+                    console.log('[DEBUG] Applying risk level from draft modal:', riskLevel);
+                    
+                    setEditData({
+                      ...editData,
+                      jsea: {
+                        ...editData.jsea,
+                        overallRiskRating: riskLevel
+                      }
+                    });
+                    
+                    setShowRiskMatrixDraft(false);
+                    setSelectedLikelihoodDraft('');
+                    setSelectedSeverityDraft('');
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
