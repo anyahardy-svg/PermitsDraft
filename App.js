@@ -10001,7 +10001,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
-              <Text style={styles.sectionTitle}>JSEA Task Steps</Text>
+              <Text style={styles.sectionTitle}>JSEA</Text>
               <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.jsea && (
@@ -10030,11 +10030,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }))}>
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-            <View style={[styles.sectionContent, { marginTop: 0, paddingTop: expandedSections.jsea ? 12 : 12 }]}>
-              <Text style={[styles.label, { marginTop: 0 }]}>Overall Risk Rating:</Text>
-              <View pointerEvents="box-only">
+                <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
                     styles.addButton,
@@ -10044,7 +10040,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   ]}
                   onPress={() => {
-                    console.log('Risk level button pressed - setting context to draft');
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
                     setRiskMatrixContext('draft');
@@ -10055,10 +10050,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editData.jsea.additionalPrecautions}
+                  onChangeText={text => setEditData({ ...editData, jsea: { ...editData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                  multiline
+                />
               </View>
-              <Text style={styles.label}>Additional Precautions:</Text>
-              <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
-            </View>
+            )}
           </View>
         )}
 
@@ -11117,7 +11118,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
-              <Text style={styles.sectionTitle}>JSEA Task Steps</Text>
+              <Text style={styles.sectionTitle}>JSEA</Text>
               <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.jsea && (
@@ -11128,30 +11129,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <Text style={styles.label}>Risk Level:</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      {['Low', 'Medium', 'High', 'Very High'].map(level => (
-                        <TouchableOpacity
-                          key={level}
-                          style={[
-                            { padding: 10, borderRadius: 6, borderWidth: 1, flex: 0.22 },
-                            step.riskLevel === level
-                              ? { backgroundColor: getRiskColor(level), borderColor: getRiskColor(level) }
-                              : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                          ]}
-                          onPress={() => updateJSEAStep(idx, 'riskLevel', level)}
-                        >
-                          <Text style={{
-                            textAlign: 'center',
-                            color: step.riskLevel === level ? 'white' : '#374151',
-                            fontSize: 12,
-                            fontWeight: '500'
-                          }}>
-                            {level}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
@@ -11169,11 +11147,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }))}>
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-            <View style={[styles.sectionContent, { marginTop: 0, paddingTop: expandedSections.jsea ? 12 : 12 }]}>
-              <Text style={[styles.label, { marginTop: 0 }]}>Overall Risk Rating:</Text>
-              <View pointerEvents="box-only">
+                <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
                     styles.addButton,
@@ -11183,7 +11157,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   ]}
                   onPress={() => {
-                    console.log('Risk level button pressed - setting context to draft');
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
                     setRiskMatrixContext('draft');
@@ -11194,9 +11167,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editData.jsea.additionalPrecautions}
+                  onChangeText={text => setEditData({ ...editData, jsea: { ...editData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                  multiline
+                />
               </View>
-              <Text style={styles.label}>Additional Precautions:</Text>
-              <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
+            )}
+          </View>
+        )}
             </View>
           </View>
         )}
@@ -12411,7 +12393,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
-              <Text style={styles.sectionTitle}>JSEA Task Steps</Text>
+              <Text style={styles.sectionTitle}>JSEA</Text>
               <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.jsea && (
@@ -12422,24 +12404,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
                     <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
                     <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <Text style={styles.label}>Risk Level:</Text>
-                    <View style={styles.riskButtons}>
-                      {['low', 'medium', 'high', 'very_high'].map(risk => (
-                        <TouchableOpacity
-                          key={risk}
-                          style={[
-                            styles.riskButton,
-                            { backgroundColor: step.riskLevel === risk ? getRiskColor(risk) : '#E5E7EB' }
-                          ]}
-                          onPress={() => updateJSEAStep(idx, 'riskLevel', risk)}
-                        >
-                          <Text style={[
-                            styles.riskButtonText,
-                            { color: step.riskLevel === risk ? 'white' : '#374151' }
-                          ]}>{risk.toUpperCase()}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const steps = [...prev.jsea.taskSteps];
@@ -12457,11 +12422,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 }))}>
                   <Text style={styles.addButtonText}>Add Step</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-            <View style={[styles.sectionContent, { marginTop: 0, paddingTop: expandedSections.jsea ? 12 : 12 }]}>
-              <Text style={[styles.label, { marginTop: 0 }]}>Overall Risk Rating:</Text>
-              <View pointerEvents="box-only">
+                <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
                     styles.addButton,
@@ -12481,10 +12442,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editData.jsea.additionalPrecautions}
+                  onChangeText={text => setEditData({ ...editData, jsea: { ...editData.jsea, additionalPrecautions: text } })}
+                  placeholder="Any additional precautions..."
+                  multiline
+                />
               </View>
-              <Text style={styles.label}>Additional Precautions:</Text>
-              <TextInput style={styles.input} value={editData.jsea.additionalPrecautions || ''} onChangeText={text => setEditData(prev => ({ ...prev, jsea: { ...prev.jsea, additionalPrecautions: text } }))} placeholder="Any additional precautions..." />
-            </View>
+            )}
           </View>
         )}
 
