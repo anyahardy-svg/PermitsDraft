@@ -1436,35 +1436,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // --- handleSubmit for advanced form ---
   const handleSubmit = async (status) => {
     console.log('🎯 handleSubmit called with status:', status);
+    
+    console.log('⏱️ Checking description:', { description: formData.description, isEmpty: !formData.description });
     if (!formData.description) {
+      console.log('❌ Description missing, returning early');
       Alert.alert('Missing Info', 'Please fill in the Description field.');
       return;
     }
     
+    console.log('⏱️ Checking site:', { site: formData.site, isEmpty: !formData.site });
     if (!formData.site) {
+      console.log('❌ Site missing, returning early');
       Alert.alert('Missing Info', 'Please select a Site.');
       return;
     }
 
+    console.log('⏱️ Checking startDate:', { startDate: formData.startDate, isEmpty: !formData.startDate });
     if (!formData.startDate) {
+      console.log('❌ StartDate missing, returning early');
       Alert.alert('Missing Info', 'Please select a Start Date.');
       return;
     }
 
+    console.log('⏱️ Checking startTime:', { startTime: formData.startTime, isEmpty: !formData.startTime });
     if (!formData.startTime) {
+      console.log('❌ StartTime missing, returning early');
       Alert.alert('Missing Info', 'Please select a Start Time.');
       return;
     }
 
+    console.log('⏱️ Checking endDate:', { endDate: formData.endDate, isEmpty: !formData.endDate });
     if (!formData.endDate) {
+      console.log('❌ EndDate missing, returning early');
       Alert.alert('Missing Info', 'Please select an End Date.');
       return;
     }
 
+    console.log('⏱️ Checking endTime:', { endTime: formData.endTime, isEmpty: !formData.endTime });
     if (!formData.endTime) {
+      console.log('❌ EndTime missing, returning early');
       Alert.alert('Missing Info', 'Please select an End Time.');
       return;
     }
+    
+    console.log('✅ All basic fields passed validation');
 
     // Check required fields in enabled specialized permits
     console.log('📝 handleSubmit called with status:', status);
