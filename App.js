@@ -9566,14 +9566,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
       try {
         const buIdToUse = buIdToLoad || businessUnitId;
-        if (!buIdToUse) return;
+        if (!buIdToUse) {
+          console.warn('[WARN] No business unit ID available for loading templates');
+          return;
+        }
+        
+        console.log('[DEBUG] Loading JSEA templates for BU:', buIdToUse);
         setLoadingJseaTemplatesDraft(true);
         const response = await getJseaTemplates(buIdToUse);
+        
+        console.log('[DEBUG] API response:', response);
         if (response?.data) {
+          console.log('[DEBUG] Templates received:', response.data.length, 'templates');
+          response.data.forEach((t, idx) => {
+            console.log(`[DEBUG] Template ${idx}:`, {
+              id: t.id,
+              name: t.name,
+              jseaType: typeof t.jsea,
+              jseaLength: Array.isArray(t.jsea) ? t.jsea.length : 'N/A',
+              hasJseaProperty: 'jsea' in t
+            });
+          });
           setJseaTemplatesAvailableDraft(response.data || []);
+        } else {
+          console.warn('[WARN] Response does not contain data field:', response);
         }
       } catch (error) {
-        console.error('Error loading JSEA templates:', error);
+        console.error('[ERROR] Error loading JSEA templates:', error);
+        console.error('[ERROR] Stack:', error.stack);
         Alert.alert('Error', 'Failed to load templates');
       } finally {
         setLoadingJseaTemplatesDraft(false);
@@ -9582,7 +9602,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
     const handleLoadJseaTemplateDraft = (template) => {
       try {
-        if (template?.jsea) {
+        console.log('[DEBUG] handleLoadJseaTemplateDraft called with:', template);
+        
+        if (!template) {
+          console.error('[ERROR] Template is null or undefined');
+          Alert.alert('Error', 'Invalid template');
+          return;
+        }
+        
+        // Check if jsea exists and is an array (even empty arrays should work)
+        if (Array.isArray(template.jsea)) {
+          console.log('[DEBUG] Loading template steps:', template.jsea.length, 'steps');
           setEditData({
             ...editData,
             jsea: {
@@ -9590,11 +9620,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               taskSteps: template.jsea
             }
           });
+          console.log('[DEBUG] Updated editData with new taskSteps');
+        } else {
+          console.warn('[WARN] Template jsea is not an array:', typeof template.jsea, template.jsea);
+          Alert.alert('Error', 'Template does not contain valid steps');
+          return;
         }
+        
         setShowJseaTemplateLoaderDraft(false);
       } catch (error) {
-        console.error('Error loading template:', error);
-        Alert.alert('Error', 'Failed to load template');
+        console.error('[ERROR] Exception in handleLoadJseaTemplateDraft:', error);
+        console.error('[ERROR] Stack:', error.stack);
+        Alert.alert('Error', `Failed to load template: ${error.message}`);
       }
     };
 
