@@ -921,6 +921,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const defaultTime = pad(now.getHours()) + ':' + pad(now.getMinutes());
   const formattedDefaultDate = formatDateNZ(defaultDate);
 
+  // Ref for scrolling to top when validation fails
+  const permitFormScrollRef = useRef(null);
+
   const [formData, setFormData] = useState({
     id: '',
     description: '',
@@ -1292,10 +1295,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const missingFields = [];
     const missingSectionPermits = new Set();
     
+    console.log('📋 Starting validation with:', {
+      specializedPermits: Object.keys(formData.specializedPermits),
+      enabledPermits: Object.keys(formData.specializedPermits).filter(key => formData.specializedPermits[key].required),
+      questionnaireKeys: Object.keys(permitQuestionnaires)
+    });
+    
     Object.keys(formData.specializedPermits).forEach(permitKey => {
       const permit = formData.specializedPermits[permitKey];
-      if (!permit.required) return; // Skip disabled permits
+      if (!permit.required) {
+        console.log(`⏭️  Skipping ${permitKey} - not required`);
+        return;
+      }
       
+      console.log(`✅ Validating ${permitKey}...`);
       const permitQuestions = permitQuestionnaires[permitKey] || [];
       const questionnaire = permit.questionnaire || {};
       
@@ -1338,6 +1351,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           }
           
           if (isEmpty) {
+            console.log(`❌ MISSING in ${permitKey}: ${question.text.substring(0, 50)}... (answer="${answer}", text="${textValue}")`);
+            
             const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
               .split(' ')
               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -1354,6 +1369,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           }
         }
       });
+    });
+    
+    console.log('🎯 Validation complete:', {
+      totalMissing: missingFields.length,
+      missingBySection: Array.from(missingSectionPermits),
+      missingDetails: missingFields.map(f => ({ section: f.section, field: f.field.substring(0, 40) }))
     });
     
     return { missingFields, missingSectionPermits };
@@ -1414,6 +1435,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // --- handleSubmit for advanced form ---
   const handleSubmit = async (status) => {
+    console.log('🎯 handleSubmit called with status:', status);
     if (!formData.description) {
       Alert.alert('Missing Info', 'Please fill in the Description field.');
       return;
@@ -1445,9 +1467,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
 
     // Check required fields in enabled specialized permits
+    console.log('📝 handleSubmit called with status:', status);
     if (status === 'pending_approval') {
+      console.log('🚨 status is pending_approval, running validation...');
       const { missingFields, missingSectionPermits } = validateSpecializedPermits();
+      
+      console.log('🔍 Validation Result:', {
+        hasErrors: missingFields.length > 0,
+        missingFieldsCount: missingFields.length,
+        missingFields: missingFields.map(f => ({ section: f.section, field: f.field })),
+        enabledPermits: Object.keys(formData.specializedPermits).filter(key => formData.specializedPermits[key].required)
+      });
+      
       if (missingFields.length > 0) {
+        console.log('❌ VALIDATION FAILED - Missing fields detected, showing alert...');
+        // Scroll to top
+        if (permitFormScrollRef.current) {
+          permitFormScrollRef.current.scrollTo({ y: 0, animated: true });
+        }
+        
         // Auto-expand the first permit with missing fields
         if (missingSectionPermits.size > 0) {
           const firstMissingPermit = Array.from(missingSectionPermits)[0];
@@ -1458,14 +1496,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
           .join('\n');
         
+        console.log('⚠️ Showing alert with missing fields:', missingList);
+        
         Alert.alert(
           '⚠️  Missing Required Fields',
-          `Please fill in the following required fields before submitting:\n\n${missingList}\n\nThe Specialized Permits section has been expanded to show which section needs attention.`,
-          [{ text: 'OK' }],
-          { cancelable: true }
+          `Please fill in the following ${missingFields.length} required field(s) before submitting:\n\n${missingList}`,
+          [{ text: 'Close', onPress: () => {
+            console.log('User closed alert, scrolling to top...');
+          }}],
+          { cancelable: false }
         );
         return;
       }
+      
+      console.log('✅ VALIDATION PASSED - No missing fields, proceeding with submission...');
     }
     
     try {
@@ -1962,7 +2006,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
-        <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }} ref={permitFormScrollRef}>
           {/* General Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
