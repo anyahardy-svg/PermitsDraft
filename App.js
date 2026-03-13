@@ -9562,7 +9562,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
-    const [showRiskLevelPickerDraft, setShowRiskLevelPickerDraft] = React.useState(false);
     
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
@@ -10223,62 +10222,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
-                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
                       backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
-                      flex: 1,
-                      marginBottom: 8
+                      flex: 1
                     }
                   ]}
-                  onPress={() => {
-                    console.log('[DEBUG] Opening risk level picker');
-                    setShowRiskLevelPickerDraft(!showRiskLevelPickerDraft);
-                  }}
+                  onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
-                
-                {showRiskLevelPickerDraft && (
-                  <View style={{ backgroundColor: '#F3F4F6', borderRadius: 6, padding: 8, marginBottom: 12 }}>
-                    {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((level) => (
-                      <TouchableOpacity
-                        key={level}
-                        style={{
-                          paddingVertical: 8,
-                          paddingHorizontal: 12,
-                          backgroundColor: editData.jsea.overallRiskRating === level ? getRiskColor(level) : 'white',
-                          borderRadius: 4,
-                          marginBottom: 6,
-                          borderWidth: 1,
-                          borderColor: '#E5E7EB'
-                        }}
-                        onPress={() => {
-                          console.log('[DEBUG] Risk level selected:', level);
-                          setEditData({
-                            ...editData,
-                            jsea: {
-                              ...editData.jsea,
-                              overallRiskRating: level
-                            }
-                          });
-                          setShowRiskLevelPickerDraft(false);
-                        }}
-                      >
-                        <Text style={{
-                          color: editData.jsea.overallRiskRating === level ? 'white' : '#374151',
-                          fontWeight: '600',
-                          textAlign: 'center'
-                        }}>
-                          {level}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
                 <Text style={styles.label}>Additional Precautions</Text>
                 <TextInput
                   style={styles.input}
