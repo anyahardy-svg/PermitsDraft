@@ -9582,12 +9582,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
     const handleLoadJseaTemplateDraft = (template) => {
       try {
-        if (template?.steps) {
+        if (template?.jsea) {
           setEditData({
             ...editData,
             jsea: {
               ...editData.jsea,
-              taskSteps: template.steps
+              taskSteps: template.jsea
             }
           });
         }
@@ -10991,7 +10991,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   >
                     <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
                     <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      {template.steps?.length || 0} steps
+                      {template.jsea?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
                 ))}
