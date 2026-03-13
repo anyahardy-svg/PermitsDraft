@@ -1261,6 +1261,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // --- Validation function for specialized permits ---
   const validateSpecializedPermits = () => {
     const missingFields = [];
+    const missingSectionPermits = new Set();
     
     Object.keys(formData.specializedPermits).forEach(permitKey => {
       const permit = formData.specializedPermits[permitKey];
@@ -1288,11 +1289,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         }
         
         if (question.required) {
-          const answer = questionnaire[question.id]?.answer;
+          const answerObj = questionnaire[question.id] || {};
+          const answer = answerObj.answer || '';
+          const textValue = answerObj.text || '';
           
-          // Check if answer is empty
-          const isEmpty = answer === null || answer === undefined || answer === '' || 
-                         (Array.isArray(answer) && answer.length === 0);
+          // Determine if field is empty based on question type
+          let isEmpty = false;
+          
+          if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
+            isEmpty = !answer;
+          } else if (question.type === 'text') {
+            isEmpty = !textValue || !textValue.trim();
+          } else if (question.type === 'yesno_text') {
+            isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
+          } else if (question.type === 'multi_checkbox') {
+            isEmpty = !Array.isArray(answer) || answer.length === 0;
+          } else {
+            isEmpty = !answer && !textValue;
+          }
           
           if (isEmpty) {
             const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
@@ -1302,15 +1316,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             
             missingFields.push({
               section: permitName,
-              field: question.text.substring(0, 60) + (question.text.length > 60 ? '...' : ''),
-              permitKey
+              field: question.text.substring(0, 70) + (question.text.length > 70 ? '...' : ''),
+              permitKey,
+              questionId: question.id
             });
+            
+            missingSectionPermits.add(permitKey);
           }
         }
       });
     });
     
-    return missingFields;
+    return { missingFields, missingSectionPermits };
   };
 
   // --- Helper function to check if a specific permit section has missing required fields ---
@@ -1341,9 +1358,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       }
       
       if (question.required) {
-        const answer = questionnaire[question.id]?.answer;
-        const isEmpty = answer === null || answer === undefined || answer === '' || 
-                       (Array.isArray(answer) && answer.length === 0);
+        const answerObj = questionnaire[question.id] || {};
+        const answer = answerObj.answer || '';
+        const textValue = answerObj.text || '';
+        
+        let isEmpty = false;
+        
+        if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
+          isEmpty = !answer;
+        } else if (question.type === 'text') {
+          isEmpty = !textValue || !textValue.trim();
+        } else if (question.type === 'yesno_text') {
+          isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
+        } else if (question.type === 'multi_checkbox') {
+          isEmpty = !Array.isArray(answer) || answer.length === 0;
+        } else {
+          isEmpty = !answer && !textValue;
+        }
+        
         if (isEmpty) count++;
       }
     });
@@ -1385,16 +1417,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
     // Check required fields in enabled specialized permits
     if (status === 'pending_approval') {
-      const missingFields = validateSpecializedPermits();
+      const { missingFields, missingSectionPermits } = validateSpecializedPermits();
       if (missingFields.length > 0) {
+        // Auto-expand the first permit with missing fields
+        if (missingSectionPermits.size > 0) {
+          const firstMissingPermit = Array.from(missingSectionPermits)[0];
+          setExpandedSections(prev => ({ ...prev, specialized: true }));
+        }
+        
         const missingList = missingFields
           .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
           .join('\n');
         
         Alert.alert(
-          'Missing Required Fields',
-          `Please fill in the following required fields before submitting:\n\n${missingList}`,
-          [{ text: 'OK' }]
+          '⚠️  Missing Required Fields',
+          `Please fill in the following required fields before submitting:\n\n${missingList}\n\nThe Specialized Permits section has been expanded to show which section needs attention.`,
+          [{ text: 'OK' }],
+          { cancelable: true }
         );
         return;
       }
