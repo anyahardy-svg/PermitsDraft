@@ -9562,6 +9562,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
+    const [showRiskLevelPickerDraft, setShowRiskLevelPickerDraft] = React.useState(false);
     
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
@@ -9701,21 +9702,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }, []);
 
     const handleSelectRiskLevel = useCallback(() => {
-      console.log('[DEBUG] handleSelectRiskLevel draft - copying risk from new permit');
-      // Simply copy the risk level from the new permit form to the draft
-      if (formData.jsea?.overallRiskRating) {
-        console.log('[DEBUG] Found risk level in new permit:', formData.jsea.overallRiskRating);
-        setEditData({
-          ...editData,
-          jsea: {
-            ...editData.jsea,
-            overallRiskRating: formData.jsea.overallRiskRating
-          }
-        });
-      } else {
-        console.log('[DEBUG] No risk level set in new permit yet');
-      }
-    }, [editData, formData.jsea?.overallRiskRating]);
+      console.log('[DEBUG] Opening Risk Matrix modal for draft JSEA');
+      setSelectedLikelihood('');
+      setSelectedSeverity('');
+      setRiskMatrixContext('draft');
+      setShowRiskMatrix(true);
+    }, [setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext, setShowRiskMatrix]);
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
