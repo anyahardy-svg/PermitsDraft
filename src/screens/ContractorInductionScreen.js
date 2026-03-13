@@ -2130,6 +2130,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   Q{q.num}: {q.text} {isAnswered && isSingleSelect && <Text style={{ color: '#10B981', fontSize: 12 }}>✓</Text>}
                 </Text>
                 {Array.isArray(q.options) && q.options.map((option, idx) => {
+                  if (!option || !option.trim()) return null;
                   const isSelected = isSingleSelect 
                     ? selectedAnswers === idx 
                     : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
