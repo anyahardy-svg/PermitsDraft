@@ -10908,6 +10908,192 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
       </Modal>
+
+      {/* JSEA Editor Modal for Draft */}
+      <Modal 
+        visible={showJseaEditorDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaEditorDraft(false)}
+      >
+        <JseaEditorScreen
+          initialJsea={editData.jsea.taskSteps}
+          onSave={(steps) => {
+            setEditData({
+              ...editData, 
+              jsea: { 
+                ...editData.jsea, 
+                taskSteps: steps 
+              }
+            });
+            setShowJseaEditorDraft(false);
+          }}
+          onCancel={() => setShowJseaEditorDraft(false)}
+          styles={styles}
+        />
+      </Modal>
+
+      {/* JSEA Template Loader Modal for Draft */}
+      <Modal 
+        visible={showJseaTemplateLoaderDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaTemplateLoaderDraft(false)}
+        transparent
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '80%'
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937'
+              }}>
+                Load JSEA Template
+              </Text>
+              <TouchableOpacity onPress={() => setShowJseaTemplateLoaderDraft(false)}>
+                <Text style={{
+                  fontSize: 24,
+                  color: '#9CA3AF',
+                  fontWeight: 'bold'
+                }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loadingJseaTemplatesDraft ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+              </View>
+            ) : jseaTemplatesAvailableDraft.length > 0 ? (
+              <ScrollView style={{ maxHeight: 300 }}>
+                {jseaTemplatesAvailableDraft.map((template) => (
+                  <TouchableOpacity
+                    key={template.id}
+                    style={{
+                      padding: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB'
+                    }}
+                    onPress={() => handleLoadJseaTemplateDraft(template)}
+                  >
+                    <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                      {template.steps?.length || 0} steps
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
+                No templates available
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* JSEA Template Saver Modal for Draft */}
+      <Modal 
+        visible={showJseaSaveTemplateDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaSaveTemplateDraft(false)}
+        transparent
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937'
+              }}>
+                Save JSEA as Template
+              </Text>
+              <TouchableOpacity onPress={() => setShowJseaSaveTemplateDraft(false)}>
+                <Text style={{
+                  fontSize: 24,
+                  color: '#9CA3AF',
+                  fontWeight: 'bold'
+                }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+                color: '#1F2937'
+              }}
+              placeholder="Template name"
+              value={jseaTemplateNameDraft}
+              onChangeText={setJseaTemplateNameDraft}
+              editable={!loadingJseaTemplatesDraft}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#E5E7EB',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => setShowJseaSaveTemplateDraft(false)}
+              >
+                <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: loadingJseaTemplatesDraft ? '#BFDBFE' : '#3B82F6',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleSaveJseaAsTemplateDraft}
+                disabled={loadingJseaTemplatesDraft}
+              >
+                {loadingJseaTemplatesDraft ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontWeight: '600', color: 'white' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </View>
     );
   };
@@ -13331,102 +13517,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <Text style={{ color: 'white', fontWeight: '600' }}>Open in Browser</Text>
                 </TouchableOpacity>
               </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* JSEA Editor Modal for Draft */}
-      <Modal 
-        visible={showJseaEditorDraft} 
-        animationType="slide"
-        onRequestClose={() => setShowJseaEditorDraft(false)}
-      >
-        <JseaEditorScreen
-          initialJsea={editData.jsea.taskSteps}
-          onSave={(steps) => {
-            setEditData({
-              ...editData, 
-              jsea: { 
-                ...editData.jsea, 
-                taskSteps: steps 
-              }
-            });
-            setShowJseaEditorDraft(false);
-          }}
-          onCancel={() => setShowJseaEditorDraft(false)}
-          styles={styles}
-        />
-      </Modal>
-
-      {/* JSEA Template Loader Modal for Draft */}
-      <Modal 
-        visible={showJseaTemplateLoaderDraft} 
-        animationType="slide"
-        onRequestClose={() => setShowJseaTemplateLoaderDraft(false)}
-        transparent
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'center',
-          padding: 16
-        }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 20,
-            maxHeight: '80%'
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: '700',
-                color: '#1F2937'
-              }}>
-                Load JSEA Template
-              </Text>
-              <TouchableOpacity onPress={() => setShowJseaTemplateLoaderDraft(false)}>
-                <Text style={{
-                  fontSize: 24,
-                  color: '#9CA3AF',
-                  fontWeight: 'bold'
-                }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {loadingJseaTemplatesDraft ? (
-              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                <ActivityIndicator size="large" color="#3B82F6" />
-              </View>
-            ) : jseaTemplatesAvailableDraft.length > 0 ? (
-              <ScrollView style={{ maxHeight: 300 }}>
-                {jseaTemplatesAvailableDraft.map((template) => (
-                  <TouchableOpacity
-                    key={template.id}
-                    style={{
-                      padding: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB'
-                    }}
-                    onPress={() => handleLoadJseaTemplateDraft(template)}
-                  >
-                    <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      {template.steps?.length || 0} steps
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
-                No templates available
-              </Text>
             )}
           </View>
         </View>
