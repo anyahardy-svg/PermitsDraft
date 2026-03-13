@@ -9611,26 +9611,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           return;
         }
         
-        // Check if jsea exists and has taskSteps (jsea is an object with taskSteps array)
-        if (template?.jsea && Array.isArray(template.jsea.taskSteps)) {
-          console.log('[DEBUG] Loading template steps:', template.jsea.taskSteps.length, 'steps');
-          console.log('[DEBUG] Template jsea structure:', template.jsea);
-          setEditData({
-            ...editData,
-            jsea: template.jsea  // Replace entire jsea object
-          });
-          console.log('[DEBUG] Updated editData with new jsea');
+        // Template.jsea might be:
+        // 1. Direct array: template.jsea = [step1, step2]
+        // 2. Object with taskSteps: template.jsea = { taskSteps: [step1, step2], ... }
+        
+        let taskStepsArray = null;
+        
+        if (Array.isArray(template.jsea)) {
+          // template.jsea is directly the array
+          taskStepsArray = template.jsea;
+          console.log('[DEBUG] template.jsea is direct array:', taskStepsArray.length, 'steps');
+        } else if (template.jsea?.taskSteps && Array.isArray(template.jsea.taskSteps)) {
+          // template.jsea is object with taskSteps property
+          taskStepsArray = template.jsea.taskSteps;
+          console.log('[DEBUG] template.jsea.taskSteps is array:', taskStepsArray.length, 'steps');
         } else {
-          console.warn('[WARN] Template jsea.taskSteps is not an array:', {
-            hasJsea: 'jsea' in template,
-            jseaType: typeof template?.jsea,
-            hasTaskSteps: 'taskSteps' in (template?.jsea || {}),
-            taskStepsType: typeof template?.jsea?.taskSteps,
-            template: template
+          console.warn('[WARN] Could not find task steps in template:', {
+            jseaType: typeof template.jsea,
+            isJseaArray: Array.isArray(template.jsea),
+            hasTaskSteps: 'taskSteps' in (template.jsea || {}),
+            jsea: template.jsea
           });
           Alert.alert('Error', 'Template does not contain valid JSEA steps');
           return;
         }
+        
+        // Update editData with the new JSEA
+        setEditData({
+          ...editData,
+          jsea: {
+            ...editData.jsea,
+            taskSteps: taskStepsArray
+          }
+        });
+        console.log('[DEBUG] Updated editData with', taskStepsArray.length, 'task steps');
         
         setShowJseaTemplateLoaderDraft(false);
       } catch (error) {
@@ -11053,7 +11067,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       {template.name}
                     </Text>
                     <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      {template.jsea?.taskSteps?.length || 0} steps
+                      {Array.isArray(template.jsea) ? template.jsea.length : template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
                 ))}
