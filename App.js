@@ -10001,9 +10001,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </View>
             )}
           </View>
-        )}
-
-        {/* JSEA - COLLAPSIBLE */}
+        )}        {/* JSEA - COLLAPSIBLE */}
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
@@ -10012,30 +10010,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
-                {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Step {idx + 1}:</Text>
-                    <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
-                    <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
-                    <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
-                    <TouchableOpacity onPress={() => {
-                      setEditData(prev => {
-                        const steps = [...prev.jsea.taskSteps];
-                        steps.splice(idx, 1);
-                        return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
-                      });
-                    }}>
-                      <Text style={styles.removeButton}>Remove</Text>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => setShowJseaEditor(true)}>
+                      <Text style={styles.addButtonText}>Edit JSEA Table</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
+                      onPress={() => {
+                        setSelectedBuForLoader(businessUnitId || '');
+                        setShowJseaTemplateLoader(true);
+                        loadJseaTemplatesForLoader(businessUnitId);
+                      }}
+                    >
+                      <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                )) : <Text style={styles.detailText}>None</Text>}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({
-                  ...prev,
-                  jsea: { ...prev.jsea, taskSteps: [...(prev.jsea.taskSteps || []), { step: '', hazards: '', controls: '', riskLevel: '' }] }
-                }))}>
-                  <Text style={styles.addButtonText}>Add Step</Text>
-                </TouchableOpacity>
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <TouchableOpacity 
+                      style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
+                      onPress={() => setShowJseaSaveTemplate(true)}
+                    >
+                      <Text style={styles.addButtonText}>Save as Template</Text>
+                    </TouchableOpacity>
+                  )}
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      {editData.jsea.taskSteps.map((step, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
@@ -10069,7 +10079,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */}
+        {/* ISOLATIONS - COLLAPSIBLE */
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
@@ -11118,9 +11128,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </View>
             )}
           </View>
-        )}
-
-        {/* JSEA - COLLAPSIBLE */}
+        )}        {/* JSEA - COLLAPSIBLE */}
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
@@ -11129,30 +11137,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
-                {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Step {idx + 1}:</Text>
-                    <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
-                    <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
-                    <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
-                    <TouchableOpacity onPress={() => {
-                      setEditData(prev => {
-                        const steps = [...prev.jsea.taskSteps];
-                        steps.splice(idx, 1);
-                        return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
-                      });
-                    }}>
-                      <Text style={styles.removeButton}>Remove</Text>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => setShowJseaEditor(true)}>
+                      <Text style={styles.addButtonText}>Edit JSEA Table</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
+                      onPress={() => {
+                        setSelectedBuForLoader(businessUnitId || '');
+                        setShowJseaTemplateLoader(true);
+                        loadJseaTemplatesForLoader(businessUnitId);
+                      }}
+                    >
+                      <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                )) : <Text style={styles.detailText}>None</Text>}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({
-                  ...prev,
-                  jsea: { ...prev.jsea, taskSteps: [...(prev.jsea.taskSteps || []), { step: '', hazards: '', controls: '', riskLevel: '' }] }
-                }))}>
-                  <Text style={styles.addButtonText}>Add Step</Text>
-                </TouchableOpacity>
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <TouchableOpacity 
+                      style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
+                      onPress={() => setShowJseaSaveTemplate(true)}
+                    >
+                      <Text style={styles.addButtonText}>Save as Template</Text>
+                    </TouchableOpacity>
+                  )}
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      {editData.jsea.taskSteps.map((step, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
@@ -11186,7 +11206,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */}
+        {/* ISOLATIONS - COLLAPSIBLE */
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
@@ -12391,9 +12411,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </View>
             )}
           </View>
-        )}
-
-        {/* JSEA - COLLAPSIBLE */}
+        )}        {/* JSEA - COLLAPSIBLE */}
         {editData.jsea && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
@@ -12402,30 +12420,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
-                {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Step {idx + 1}:</Text>
-                    <TextInput style={styles.input} value={step.step} onChangeText={text => updateJSEAStep(idx, 'step', text)} placeholder="Step" />
-                    <TextInput style={styles.input} value={step.hazards} onChangeText={text => updateJSEAStep(idx, 'hazards', text)} placeholder="Hazards" />
-                    <TextInput style={styles.input} value={step.controls} onChangeText={text => updateJSEAStep(idx, 'controls', text)} placeholder="Controls" />
-                    <TextInput style={styles.input} value={step.riskLevel} onChangeText={text => updateJSEAStep(idx, 'riskLevel', text)} placeholder="Risk Level" />
-                    <TouchableOpacity onPress={() => {
-                      setEditData(prev => {
-                        const steps = [...prev.jsea.taskSteps];
-                        steps.splice(idx, 1);
-                        return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
-                      });
-                    }}>
-                      <Text style={styles.removeButton}>Remove</Text>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => setShowJseaEditor(true)}>
+                      <Text style={styles.addButtonText}>Edit JSEA Table</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
+                      onPress={() => {
+                        setSelectedBuForLoader(businessUnitId || '');
+                        setShowJseaTemplateLoader(true);
+                        loadJseaTemplatesForLoader(businessUnitId);
+                      }}
+                    >
+                      <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                )) : <Text style={styles.detailText}>None</Text>}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({
-                  ...prev,
-                  jsea: { ...prev.jsea, taskSteps: [...(prev.jsea.taskSteps || []), { step: '', hazards: '', controls: '', riskLevel: '' }] }
-                }))}>
-                  <Text style={styles.addButtonText}>Add Step</Text>
-                </TouchableOpacity>
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <TouchableOpacity 
+                      style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
+                      onPress={() => setShowJseaSaveTemplate(true)}
+                    >
+                      <Text style={styles.addButtonText}>Save as Template</Text>
+                    </TouchableOpacity>
+                  )}
+                  {editData.jsea.taskSteps.length > 0 && (
+                    <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      {editData.jsea.taskSteps.map((step, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
                   style={[
@@ -12459,7 +12489,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */}
+        {/* ISOLATIONS - COLLAPSIBLE */
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
