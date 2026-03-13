@@ -11023,24 +11023,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
             ) : jseaTemplatesAvailableDraft.length > 0 ? (
-              <ScrollView style={{ maxHeight: 300 }}>
-                {jseaTemplatesAvailableDraft.map((template) => (
+              <FlatList
+                data={jseaTemplatesAvailableDraft}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                renderItem={({ item: template }) => (
                   <TouchableOpacity
-                    key={template.id}
+                    activeOpacity={0.7}
                     style={{
                       padding: 12,
                       borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB'
+                      borderBottomColor: '#E5E7EB',
+                      backgroundColor: 'white'
                     }}
-                    onPress={() => handleLoadJseaTemplateDraft(template)}
+                    onPress={() => {
+                      console.log('[DEBUG] Template button pressed:', template.name);
+                      handleLoadJseaTemplateDraft(template);
+                    }}
                   >
                     <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
                     <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
                       {template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                )}
+                style={{ maxHeight: 300 }}
+              />
             ) : (
               <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
                 No templates available
