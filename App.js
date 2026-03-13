@@ -10079,7 +10079,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */
+        {/* ISOLATIONS - COLLAPSIBLE */}
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
@@ -11206,7 +11206,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */
+        {/* ISOLATIONS - COLLAPSIBLE */}
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
@@ -12489,7 +12489,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         )}
 
-        {/* ISOLATIONS - COLLAPSIBLE */
+        {/* ISOLATIONS - COLLAPSIBLE */}
         {editData.isolations && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('isolations')}>
