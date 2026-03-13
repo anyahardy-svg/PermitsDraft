@@ -4729,7 +4729,107 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
   };
   
+  // Helper function to validate permit approval (used when submitting draft)
+  const validatePermitForApproval = (dataToValidate) => {
+    const allMissingFields = [];
+    
+    // Check basic fields
+    if (!dataToValidate.description) {
+      allMissingFields.push({ section: 'General Details', field: 'Description' });
+    }
+    if (!dataToValidate.site_id && !dataToValidate.site) {
+      allMissingFields.push({ section: 'General Details', field: 'Site' });
+    }
+    if (!dataToValidate.startDate) {
+      allMissingFields.push({ section: 'General Details', field: 'Start Date' });
+    }
+    if (!dataToValidate.startTime) {
+      allMissingFields.push({ section: 'General Details', field: 'Start Time' });
+    }
+    if (!dataToValidate.endDate) {
+      allMissingFields.push({ section: 'General Details', field: 'End Date' });
+    }
+    if (!dataToValidate.endTime) {
+      allMissingFields.push({ section: 'General Details', field: 'End Time' });
+    }
+    
+    // Check specialized permits
+    if (dataToValidate.specializedPermits) {
+      Object.keys(dataToValidate.specializedPermits).forEach(permitKey => {
+        const permit = dataToValidate.specializedPermits[permitKey];
+        if (!permit.required) return;
+        
+        const permitQuestions = permitQuestionnaires[permitKey] || [];
+        const questionnaire = permit.questionnaire || {};
+        
+        permitQuestions.forEach(question => {
+          // Skip conditional questions
+          if (question.dependsOn) {
+            const dependsOnValue = Array.isArray(question.dependsOnValue) 
+              ? question.dependsOnValue 
+              : [question.dependsOnValue];
+            const dependsOnIds = Array.isArray(question.dependsOn) 
+              ? question.dependsOn 
+              : [question.dependsOn];
+            
+            const shouldShow = dependsOnIds.some(depId => {
+              const depAnswer = questionnaire[depId]?.answer;
+              return dependsOnValue.includes(depAnswer);
+            });
+            
+            if (!shouldShow) return;
+          }
+          
+          if (question.required) {
+            const answerObj = questionnaire[question.id] || {};
+            const answer = answerObj.answer || '';
+            const textValue = answerObj.text || '';
+            
+            let isEmpty = false;
+            if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
+              isEmpty = !answer;
+            } else if (question.type === 'text') {
+              isEmpty = !textValue || !textValue.trim();
+            } else if (question.type === 'yesno_text') {
+              isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
+            } else if (question.type === 'multi_checkbox') {
+              isEmpty = !Array.isArray(answer) || answer.length === 0;
+            }
+            
+            if (isEmpty) {
+              const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+              
+              allMissingFields.push({
+                section: permitName,
+                field: question.text.substring(0, 70) + (question.text.length > 70 ? '...' : '')
+              });
+            }
+          }
+        });
+      });
+    }
+    
+    return allMissingFields;
+  };
+  
   const submitDraftForApproval = async () => {
+    // Use shared validation function
+    const allMissingFields = validatePermitForApproval(editData);
+    
+    // If any missing fields, show alert
+    if (allMissingFields.length > 0) {
+      const missingList = allMissingFields
+        .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
+        .join('\n');
+      
+      const message = `Please fill in the following ${allMissingFields.length} required field(s) before submitting:\n\n${missingList}`;
+      window.alert(message);
+      return;
+    }
+    
     try {
       await updatePermit(editData.id, {
         description: editData.description,
@@ -10443,7 +10543,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <Text style={styles.submitButtonText}>Save Draft</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitButton} onPress={async () => {
-                // Submit for Approval
+                // Submit for Approval - validate first
+                const allMissingFields = validatePermitForApproval(editData);
+                if (allMissingFields.length > 0) {
+                  const missingList = allMissingFields
+                    .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
+                    .join('\n');
+                  const message = `Please fill in the following ${allMissingFields.length} required field(s) before submitting:\n\n${missingList}`;
+                  window.alert(message);
+                  return;
+                }
+                
                 try {
                   await updatePermit(editData.id, {
                     description: editData.description,
