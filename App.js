@@ -10228,17 +10228,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     styles.addButton,
                     { 
                       backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
-                      flex: 1
-                    }
-                  ]}
-                  onPress={() => {
-                    console.log('[DEBUG] Risk Level button pressed');
-                <TouchableOpacity
-                  pointerEvents="box-only"
-                  style={[
-                    styles.addButton,
-                    { 
-                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
                       flex: 1,
                       marginBottom: 8
                     }
