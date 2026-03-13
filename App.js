@@ -1854,14 +1854,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     } else if (currentScreen === 'drafts') {
       setRiskMatrixContext('draft');
       setShowRiskMatrix(false);
-    } else if (currentScreen === 'review_permit' && selectedPermit?.status === 'draft') {
+    } else if (currentScreen === 'review_permit') {
       setRiskMatrixContext('draft');
       setShowRiskMatrix(false);
     } else if (currentScreen === 'edit_permit') {
       setRiskMatrixContext('draft');
       setShowRiskMatrix(false);
     }
-  }, [currentScreen, selectedPermit?.status]);
+  }, [currentScreen]);
 
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
