@@ -5322,13 +5322,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   }
                 ]}
                 onPress={() => {
-                  console.log('Risk level button pressed in draft view');
-                  setSelectedLikelihood('');
-                  setSelectedSeverity('');
-                  setRiskMatrixContext('draft');
-                  console.log('About to setShowRiskMatrix(true)');
-                  setShowRiskMatrix(true);
-                  console.log('showRiskMatrix state set to true');
+                  try {
+                    console.log('🔴 Risk level button pressed in draft view');
+                    console.log('Current showRiskMatrix state:', showRiskMatrix);
+                    console.log('Current riskMatrixContext:', riskMatrixContext);
+                    
+                    console.log('Setting selectedLikelihood to empty');
+                    setSelectedLikelihood('');
+                    console.log('Setting selectedSeverity to empty');
+                    setSelectedSeverity('');
+                    console.log('Setting riskMatrixContext to draft');
+                    setRiskMatrixContext('draft');
+                    console.log('🟡 About to call setShowRiskMatrix(true)');
+                    setShowRiskMatrix(true);
+                    console.log('🟢 showRiskMatrix state set to true - modal should appear now');
+                  } catch (err) {
+                    console.log('❌ ERROR in risk level button:', err);
+                  }
                 }}
               >
                 <Text style={{color: 'white', fontWeight: '600'}}>
