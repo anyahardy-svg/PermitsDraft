@@ -10016,8 +10016,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   ]}
                   onPress={() => {
+                    console.log('Risk level button pressed - setting context to draft');
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
+                    setRiskMatrixContext('draft');
                     setShowRiskMatrix(true);
                   }}
                 >
