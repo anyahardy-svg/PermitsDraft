@@ -1437,112 +1437,84 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const handleSubmit = async (status) => {
     console.log('🎯 handleSubmit called with status:', status);
     
-    console.log('⏱️ Checking description:', { description: formData.description, isEmpty: !formData.description });
+    // Collect ALL missing fields (basic + specialized) in one list
+    const allMissingFields = [];
+    
+    // Check basic fields and collect missing ones (don't return early)
+    console.log('⏱️ Checking all basic fields...');
     if (!formData.description) {
-      console.log('❌ Description missing, returning early');
-      Alert.alert('Missing Info', 'Please fill in the Description field.');
-      return;
+      console.log('  ❌ Description missing');
+      allMissingFields.push({ section: 'General Details', field: 'Description' });
     }
-    
-    console.log('⏱️ Checking site:', { site: formData.site, isEmpty: !formData.site });
     if (!formData.site) {
-      console.log('❌ Site missing, returning early');
-      Alert.alert('Missing Info', 'Please select a Site.');
-      return;
+      console.log('  ❌ Site missing');
+      allMissingFields.push({ section: 'General Details', field: 'Site' });
     }
-
-    console.log('⏱️ Checking startDate:', { startDate: formData.startDate, isEmpty: !formData.startDate });
     if (!formData.startDate) {
-      console.log('❌ StartDate missing, returning early');
-      Alert.alert('Missing Info', 'Please select a Start Date.');
-      return;
+      console.log('  ❌ Start Date missing');
+      allMissingFields.push({ section: 'General Details', field: 'Start Date' });
     }
-
-    console.log('⏱️ Checking startTime:', { startTime: formData.startTime, isEmpty: !formData.startTime });
     if (!formData.startTime) {
-      console.log('❌ StartTime missing, returning early');
-      Alert.alert('Missing Info', 'Please select a Start Time.');
-      return;
+      console.log('  ❌ Start Time missing');
+      allMissingFields.push({ section: 'General Details', field: 'Start Time' });
     }
-
-    console.log('⏱️ Checking endDate:', { endDate: formData.endDate, isEmpty: !formData.endDate });
     if (!formData.endDate) {
-      console.log('❌ EndDate missing, returning early');
-      Alert.alert('Missing Info', 'Please select an End Date.');
-      return;
+      console.log('  ❌ End Date missing');
+      allMissingFields.push({ section: 'General Details', field: 'End Date' });
     }
-
-    console.log('⏱️ Checking endTime:', { endTime: formData.endTime, isEmpty: !formData.endTime });
     if (!formData.endTime) {
-      console.log('❌ EndTime missing, returning early');
-      Alert.alert('Missing Info', 'Please select an End Time.');
-      return;
+      console.log('  ❌ End Time missing');
+      allMissingFields.push({ section: 'General Details', field: 'End Time' });
     }
     
-    console.log('✅ All basic fields passed validation');
-
-    // Check required fields in enabled specialized permits
-    console.log('📝 handleSubmit called with status:', status);
+    // Check specialized permits if submitted for approval
     if (status === 'pending_approval') {
-      console.log('🚨 status is pending_approval, running validation...');
-      const { missingFields, missingSectionPermits } = validateSpecializedPermits();
+      console.log('🚨 Status is pending_approval, checking specialized permits...');
+      const { missingFields: missingSpecialized } = validateSpecializedPermits();
+      allMissingFields.push(...missingSpecialized);
+    }
+    
+    // If ANY fields missing, show comprehensive alert and return
+    if (allMissingFields.length > 0) {
+      console.log(`❌ VALIDATION FAILED - ${allMissingFields.length} field(s) missing`);
       
-      console.log('🔍 Validation Result:', {
-        hasErrors: missingFields.length > 0,
-        missingFieldsCount: missingFields.length,
-        missingFields: missingFields.map(f => ({ section: f.section, field: f.field })),
-        enabledPermits: Object.keys(formData.specializedPermits).filter(key => formData.specializedPermits[key].required)
-      });
-      
-      if (missingFields.length > 0) {
-        console.log('❌ VALIDATION FAILED - Missing fields detected, showing alert...');
-        
-        // Scroll to top
-        console.log('📍 Attempting to scroll, ref exists:', !!permitFormScrollRef.current);
-        try {
-          if (permitFormScrollRef.current) {
-            console.log('🔄 Calling scrollTo on ref...');
-            // For React Native web, try scrollTop
-            if (permitFormScrollRef.current.scrollTop !== undefined) {
-              permitFormScrollRef.current.scrollTop = 0;
-              console.log('✅ scrollTop set to 0 (web)');
-            }
-            // For React Native native, try scrollTo
-            if (permitFormScrollRef.current.scrollTo) {
-              permitFormScrollRef.current.scrollTo({ y: 0, animated: true });
-              console.log('✅ scrollTo called (native)');
-            }
-          } else {
-            console.log('❌ permitFormScrollRef.current is null!');
+      // Scroll to top
+      try {
+        if (permitFormScrollRef.current) {
+          if (permitFormScrollRef.current.scrollTop !== undefined) {
+            permitFormScrollRef.current.scrollTop = 0;
+            console.log('✅ Scrolled to top (web)');
           }
-        } catch (err) {
-          console.log('❌ Scroll error:', err.message);
+          if (permitFormScrollRef.current.scrollTo) {
+            permitFormScrollRef.current.scrollTo({ y: 0, animated: true });
+            console.log('✅ Scrolled to top (native)');
+          }
         }
-        
-        // Auto-expand the first permit with missing fields
-        if (missingSectionPermits.size > 0) {
-          const firstMissingPermit = Array.from(missingSectionPermits)[0];
-          setExpandedSections(prev => ({ ...prev, specialized: true }));
-          console.log('📂 Expanded specialized section');
-        }
-        
-        const missingList = missingFields
-          .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
-          .join('\n');
-        
-        console.log('⚠️ Showing alert with missing fields:', missingList);
-        
-        // Use window.alert for web compatibility
-        const message = `Please fill in the following ${missingFields.length} required field(s) before submitting:\n\n${missingList}`;
-        console.log('🔔 Calling window.alert with message');
-        window.alert(message);
-        console.log('✅ window.alert called');
-        
-        return;
+      } catch (err) {
+        console.log('Scroll error:', err.message);
       }
       
-      console.log('✅ VALIDATION PASSED - No missing fields, proceeding with submission...');
+      // Expand specialized section if there are missing specialized fields
+      const hasSpecializedMissing = allMissingFields.some(f => f.section !== 'General Details');
+      if (hasSpecializedMissing) {
+        setExpandedSections(prev => ({ ...prev, specialized: true }));
+        console.log('📂 Expanded specialized section');
+      }
+      
+      // Build message with all missing fields
+      const missingList = allMissingFields
+        .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
+        .join('\n');
+      
+      const message = `Please fill in the following ${allMissingFields.length} required field(s) before submitting:\n\n${missingList}`;
+      console.log('🔔 Showing alert:', message);
+      window.alert(message);
+      
+      return;
     }
+    
+    console.log('✅ All validations passed, proceeding with submission...');
+    
     
     try {
       // Convert site name to site_id
