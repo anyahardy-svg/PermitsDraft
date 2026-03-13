@@ -11179,9 +11179,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             )}
           </View>
         )}
-            </View>
-          </View>
-        )}
+
         {/* ISOLATIONS - COLLAPSIBLE */}
         {editData.isolations && (
           <View style={styles.section}>
