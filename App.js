@@ -1302,7 +1302,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             
             missingFields.push({
               section: permitName,
-              field: question.text.substring(0, 60) + (question.text.length > 60 ? '...' : '')
+              field: question.text.substring(0, 60) + (question.text.length > 60 ? '...' : ''),
+              permitKey
             });
           }
         }
@@ -1310,6 +1311,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     });
     
     return missingFields;
+  };
+
+  // --- Helper function to check if a specific permit section has missing required fields ---
+  const getPermitSectionMissingCount = (permitKey) => {
+    const permit = formData.specializedPermits[permitKey];
+    if (!permit || !permit.required) return 0;
+    
+    const permitQuestions = permitQuestionnaires[permitKey] || [];
+    const questionnaire = permit.questionnaire || {};
+    let count = 0;
+    
+    permitQuestions.forEach(question => {
+      // Skip conditional questions
+      if (question.dependsOn) {
+        const dependsOnValue = Array.isArray(question.dependsOnValue) 
+          ? question.dependsOnValue 
+          : [question.dependsOnValue];
+        const dependsOnIds = Array.isArray(question.dependsOn) 
+          ? question.dependsOn 
+          : [question.dependsOn];
+        
+        const shouldShow = dependsOnIds.some(depId => {
+          const depAnswer = questionnaire[depId]?.answer;
+          return dependsOnValue.includes(depAnswer);
+        });
+        
+        if (!shouldShow) return;
+      }
+      
+      if (question.required) {
+        const answer = questionnaire[question.id]?.answer;
+        const isEmpty = answer === null || answer === undefined || answer === '' || 
+                       (Array.isArray(answer) && answer.length === 0);
+        if (isEmpty) count++;
+      }
+    });
+    
+    return count;
   };
 
   // --- handleSubmit for advanced form ---
@@ -2340,6 +2379,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
                       />
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
+                      {formData.specializedPermits[permit.key].required && getPermitSectionMissingCount(permit.key) > 0 && (
+                        <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                          <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                            {getPermitSectionMissingCount(permit.key)} missing
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
                     {formData.specializedPermits[permit.key].required && (
