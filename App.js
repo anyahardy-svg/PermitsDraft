@@ -2727,12 +2727,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={() => {
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setRiskMatrixContext('new');
-                    setShowRiskMatrix(true);
-                  }}
+                  onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {formData.jsea.overallRiskRating ? formData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
