@@ -981,6 +981,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
   const [showRiskMatrix, setShowRiskMatrix] = useState(false);
+  const [riskMatrixContext, setRiskMatrixContext] = useState('new'); // 'new' or 'draft'
   const [selectedLikelihood, setSelectedLikelihood] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('');
   // --- Handlers for advanced form ---
@@ -1341,7 +1342,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
             isEmpty = !answer;
           } else if (question.type === 'text') {
-            isEmpty = !textValue || !textValue.trim();
+            // For text questions, answer is stored in the 'answer' field
+            isEmpty = !answer || !answer.trim();
           } else if (question.type === 'yesno_text') {
             isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
           } else if (question.type === 'multi_checkbox') {
@@ -2689,6 +2691,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   onPress={() => {
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
+                    setRiskMatrixContext('new');
                     setShowRiskMatrix(true);
                   }}
                 >
@@ -3431,10 +3434,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     disabled={!selectedLikelihood || !selectedSeverity}
                     onPress={() => {
                       const riskLevel = calculateRiskLevel(selectedLikelihood, selectedSeverity);
-                      setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: riskLevel } });
+                      
+                      // Update the correct state based on context
+                      if (riskMatrixContext === 'draft' && editData) {
+                        setEditData({ ...editData, jsea: { ...editData.jsea, overallRiskRating: riskLevel } });
+                      } else {
+                        setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: riskLevel } });
+                      }
+                      
                       setShowRiskMatrix(false);
                       setSelectedLikelihood('');
                       setSelectedSeverity('');
+                      setRiskMatrixContext('new');
                     }}
                   >
                     <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Apply</Text>
@@ -5313,6 +5324,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onPress={() => {
                   setSelectedLikelihood('');
                   setSelectedSeverity('');
+                  setRiskMatrixContext('draft');
                   setShowRiskMatrix(true);
                 }}
               >
