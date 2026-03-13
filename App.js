@@ -1,5 +1,5 @@
 // Permit Management System
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -2663,20 +2663,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Task Steps ({formData.jsea.taskSteps.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => {
-                      console.log('Edit JSEA button pressed');
-                      setShowJseaEditorDraft(true);
-                    }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
-                      onPress={() => {
-                        console.log('Load Template button pressed, setting showJseaTemplateLoaderDraft=true');
-                        setSelectedBuForLoaderDraft(businessUnitId || '');
-                        setShowJseaTemplateLoaderDraft(true);
-                        loadJseaTemplatesForLoaderDraft(businessUnitId);
-                      }}
+                      onPress={handleLoadTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
@@ -2684,10 +2676,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {formData.jsea.taskSteps.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
-                      onPress={() => {
-                      console.log('Save as Template button pressed');
-                      setShowJseaSaveTemplateDraft(true);
-                    }}
+                      onPress={handleSaveTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
@@ -9615,6 +9604,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         setLoadingJseaTemplatesDraft(false);
       }
     };
+
+    // Memoized button handlers to prevent stale closures
+    const handleEditJseaDraft = useCallback(() => {
+      console.log('handleEditJseaDraft callback executing');
+      setShowJseaEditorDraft(true);
+    }, []);
+
+    const handleLoadTemplateDraft = useCallback(() => {
+      console.log('handleLoadTemplateDraft callback executing');
+      setSelectedBuForLoaderDraft(businessUnitId || '');
+      setShowJseaTemplateLoaderDraft(true);
+      loadJseaTemplatesForLoaderDraft(businessUnitId);
+    }, [businessUnitId]);
+
+    const handleSaveTemplateDraft = useCallback(() => {
+      console.log('handleSaveTemplateDraft callback executing');
+      setShowJseaSaveTemplateDraft(true);
+    }, []);
+
+    const handleSelectRiskLevel = useCallback(() => {
+      console.log('handleSelectRiskLevel callback executing');
+      setSelectedLikelihood('');
+      setSelectedSeverity('');
+      setRiskMatrixContext('draft');
+      setShowRiskMatrix(true);
+    }, []);
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
@@ -10096,20 +10111,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => {
-                      console.log('Edit JSEA button pressed');
-                      setShowJseaEditorDraft(true);
-                    }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
-                      onPress={() => {
-                        console.log('Load Template button pressed, setting showJseaTemplateLoaderDraft=true');
-                        setSelectedBuForLoaderDraft(businessUnitId || '');
-                        setShowJseaTemplateLoaderDraft(true);
-                        loadJseaTemplatesForLoaderDraft(businessUnitId);
-                      }}
+                      onPress={handleLoadTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
@@ -10117,10 +10124,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
-                      onPress={() => {
-                      console.log('Save as Template button pressed');
-                      setShowJseaSaveTemplateDraft(true);
-                    }}
+                      onPress={handleSaveTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
@@ -10145,13 +10149,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={() => {
-                    console.log('Risk Level button pressed, setShowRiskMatrix=true');
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setRiskMatrixContext('draft');
-                    setShowRiskMatrix(true);
-                  }}
+                  onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
@@ -11231,20 +11229,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => {
-                      console.log('Edit JSEA button pressed');
-                      setShowJseaEditorDraft(true);
-                    }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
-                      onPress={() => {
-                        console.log('Load Template button pressed, setting showJseaTemplateLoaderDraft=true');
-                        setSelectedBuForLoaderDraft(businessUnitId || '');
-                        setShowJseaTemplateLoaderDraft(true);
-                        loadJseaTemplatesForLoaderDraft(businessUnitId);
-                      }}
+                      onPress={handleLoadTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
@@ -11252,10 +11242,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
-                      onPress={() => {
-                      console.log('Save as Template button pressed');
-                      setShowJseaSaveTemplateDraft(true);
-                    }}
+                      onPress={handleSaveTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
@@ -11280,13 +11267,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={() => {
-                    console.log('Risk Level button pressed, setShowRiskMatrix=true');
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setRiskMatrixContext('draft');
-                    setShowRiskMatrix(true);
-                  }}
+                  onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
@@ -12522,20 +12503,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={() => {
-                      console.log('Edit JSEA button pressed');
-                      setShowJseaEditorDraft(true);
-                    }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
-                      onPress={() => {
-                        console.log('Load Template button pressed, setting showJseaTemplateLoaderDraft=true');
-                        setSelectedBuForLoaderDraft(businessUnitId || '');
-                        setShowJseaTemplateLoaderDraft(true);
-                        loadJseaTemplatesForLoaderDraft(businessUnitId);
-                      }}
+                      onPress={handleLoadTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
@@ -12543,10 +12516,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
-                      onPress={() => {
-                      console.log('Save as Template button pressed');
-                      setShowJseaSaveTemplateDraft(true);
-                    }}
+                      onPress={handleSaveTemplateDraft}
                     >
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
@@ -12571,13 +12541,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={() => {
-                    console.log('Risk Level button pressed, setShowRiskMatrix=true');
-                    setSelectedLikelihood('');
-                    setSelectedSeverity('');
-                    setRiskMatrixContext('draft');
-                    setShowRiskMatrix(true);
-                  }}
+                  onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
