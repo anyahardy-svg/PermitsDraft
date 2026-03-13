@@ -9701,12 +9701,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }, []);
 
     const handleSelectRiskLevel = useCallback(() => {
-      console.log('handleSelectRiskLevel callback executing');
-      setSelectedLikelihood('');
-      setSelectedSeverity('');
-      setRiskMatrixContext('draft');
-      setShowRiskMatrix(true);
-    }, [setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext, setShowRiskMatrix]);
+      console.log('[DEBUG] handleSelectRiskLevel draft - copying risk from new permit');
+      // Simply copy the risk level from the new permit form to the draft
+      if (formData.jsea?.overallRiskRating) {
+        console.log('[DEBUG] Found risk level in new permit:', formData.jsea.overallRiskRating);
+        setEditData({
+          ...editData,
+          jsea: {
+            ...editData.jsea,
+            overallRiskRating: formData.jsea.overallRiskRating
+          }
+        });
+      } else {
+        console.log('[DEBUG] No risk level set in new permit yet');
+      }
+    }, [editData, formData.jsea?.overallRiskRating]);
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
