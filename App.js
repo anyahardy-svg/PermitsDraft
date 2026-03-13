@@ -10222,6 +10222,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -10229,7 +10230,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={handleSelectRiskLevel}
+                  onPress={() => {
+                    console.log('[DEBUG] Risk Level button pressed');
+                    handleSelectRiskLevel();
+                  }}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
@@ -11546,6 +11550,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -11553,7 +11558,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={handleSelectRiskLevel}
+                  onPress={() => {
+                    console.log('[DEBUG] Risk Level button pressed');
+                    handleSelectRiskLevel();
+                  }}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
@@ -12823,6 +12831,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
                 <Text style={styles.label}>Overall Risk Rating</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -12830,7 +12839,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       flex: 1
                     }
                   ]}
-                  onPress={handleSelectRiskLevel}
+                  onPress={() => {
+                    console.log('[DEBUG] Risk Level button pressed');
+                    handleSelectRiskLevel();
+                  }}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
                     {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
