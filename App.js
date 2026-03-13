@@ -184,17 +184,46 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
 function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) {
   const questions = permitQuestionnaires[permitKey] || [];
   const answers = formData.specializedPermits[permitKey]?.questionnaire || {};
+  
+  // Helper to check if a field is empty but required
+  const isEmptyRequired = (question) => {
+    if (!question.required) return false;
+    const answerObj = answers[question.id] || {};
+    const answer = answerObj.answer || '';
+    const textValue = answerObj.text || '';
+    
+    if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
+      return !answer;
+    } else if (question.type === 'text') {
+      return !textValue || !textValue.trim();
+    } else if (question.type === 'yesno_text') {
+      return !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
+    } else if (question.type === 'multi_checkbox') {
+      return !Array.isArray(answer) || answer.length === 0;
+    }
+    return false;
+  };
+  
   return (
     <View style={styles.questionnaireScroll}>
       {questions.map((q) => {
         const answerObj = answers[q.id] || {};
         const answer = answerObj.answer || '';
         const controls = answerObj.controls || '';
+        const isEmpty = isEmptyRequired(q);
+        
         return (
-          <View key={q.id} style={styles.questionContainer}>
-            <Text style={styles.questionText}>
-              {q.text} {q.required && <Text style={styles.required}>*</Text>}
+          <View key={q.id} style={[
+            styles.questionContainer,
+            isEmpty && { backgroundColor: '#FEE2E2', borderRadius: 8, borderWidth: 2, borderColor: '#DC2626', padding: 12 }
+          ]}>
+            <Text style={[
+              styles.questionText,
+              isEmpty && { color: '#7F1D1D' }
+            ]}>
+              {q.text} {q.required && <Text style={isEmpty ? { color: '#DC2626', fontWeight: 'bold' } : styles.required}>*</Text>}
             </Text>
+            {isEmpty && <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
             {q.note && <Text style={styles.noteText}>{q.note}</Text>}
             {/* Render input based on type */}
             {q.type === 'yesno' && (
