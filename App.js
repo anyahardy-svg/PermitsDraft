@@ -10984,18 +10984,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         onRequestClose={() => setShowJseaTemplateLoaderDraft(false)}
         transparent
       >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'center',
-          padding: 16
-        }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 20,
-            maxHeight: '80%'
-          }}>
+        <View 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          pointerEvents="box-none"
+        >
+          <View 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}
+            pointerEvents="auto"
+          >
             <View style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -11023,14 +11029,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
             ) : jseaTemplatesAvailableDraft.length > 0 ? (
-              <FlatList
-                data={jseaTemplatesAvailableDraft}
-                keyExtractor={(item) => item.id}
+              <ScrollView 
+                style={{ maxHeight: 300 }}
                 scrollEnabled={true}
-                nestedScrollEnabled={true}
-                renderItem={({ item: template }) => (
+                pointerEvents="box-none"
+              >
+                {jseaTemplatesAvailableDraft.map((template, idx) => (
                   <TouchableOpacity
-                    activeOpacity={0.7}
+                    key={`template-${template.id}-${idx}`}
+                    activeOpacity={0.6}
                     style={{
                       padding: 12,
                       borderBottomWidth: 1,
@@ -11038,18 +11045,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       backgroundColor: 'white'
                     }}
                     onPress={() => {
-                      console.log('[DEBUG] Template button pressed:', template.name);
+                      console.log('[DEBUG] Tapped template:', template.name);
                       handleLoadJseaTemplateDraft(template);
                     }}
                   >
-                    <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
+                    <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
+                      {template.name}
+                    </Text>
                     <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
                       {template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
-                )}
-                style={{ maxHeight: 300 }}
-              />
+                ))}
+              </ScrollView>
             ) : (
               <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
                 No templates available
