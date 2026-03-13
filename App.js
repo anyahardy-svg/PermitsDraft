@@ -10190,11 +10190,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => (
-                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
-                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
-                        </Text>
-                      ))}
+                      {editData.jsea.taskSteps.map((step, idx) => {
+                        const stepText = step.description || step.step || '';
+                        return (
+                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                            Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
+                          </Text>
+                        );
+                      })}
                     </View>
                   )}
                 </View>
@@ -11494,11 +11497,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => (
-                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
-                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
-                        </Text>
-                      ))}
+                      {editData.jsea.taskSteps.map((step, idx) => {
+                        const stepText = step.description || step.step || '';
+                        return (
+                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                            Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
+                          </Text>
+                        );
+                      })}
                     </View>
                   )}
                 </View>
@@ -12768,11 +12774,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.taskSteps.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => (
-                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
-                          Step {idx + 1}: {step.step.substring(0, 50)}{step.step.length > 50 ? '...' : ''}
-                        </Text>
-                      ))}
+                      {editData.jsea.taskSteps.map((step, idx) => {
+                        const stepText = step.description || step.step || '';
+                        return (
+                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                            Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
+                          </Text>
+                        );
+                      })}
                     </View>
                   )}
                 </View>
