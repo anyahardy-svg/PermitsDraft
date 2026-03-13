@@ -9507,7 +9507,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
 
   // Editable Approval Permit Screen (for Pending Approval)
-  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId }) => {
+  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId, setShowRiskMatrix, setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
@@ -9650,7 +9650,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       setSelectedSeverity('');
       setRiskMatrixContext('draft');
       setShowRiskMatrix(true);
-    }, []);
+    }, [setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext, setShowRiskMatrix]);
     
     // --- Handle image/attachment picking for edit screen ---
     const handlePickImage = async () => {
@@ -13564,6 +13564,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           setShowJseaSaveTemplate={setShowJseaSaveTemplate}
           loadJseaTemplatesForLoader={loadJseaTemplatesForLoader}
           businessUnitId={businessUnitId}
+          setShowRiskMatrix={setShowRiskMatrix}
+          setSelectedLikelihood={setSelectedLikelihood}
+          setSelectedSeverity={setSelectedSeverity}
+          setRiskMatrixContext={setRiskMatrixContext}
         />
       );
     case 'inspect_permit':
