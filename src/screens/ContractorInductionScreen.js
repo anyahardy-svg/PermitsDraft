@@ -1479,7 +1479,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q1 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_1_correct_answer;
-                              const options = currentModalInduction.question_1_options;
+                              const options = currentModalInduction.question_1_options?.filter(opt => opt && opt.trim()) || [];
                               
                               console.log('🔍 Q1 Full Debug:', { 
                                 qType, 
@@ -1593,7 +1593,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q2 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_2_correct_answer;
-                              const options = currentModalInduction.question_2_options;
+                              const options = currentModalInduction.question_2_options?.filter(opt => opt && opt.trim()) || [];
                               
                               console.log('🔍 Q2 Full Debug:', { 
                                 qType, 
@@ -1707,7 +1707,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               const isSingleSelect = qType === 'single-select';
                               const selectedAnswers = modalAnswers.q3 ?? (isSingleSelect ? null : []);
                               const correctAnswer = currentModalInduction.question_3_correct_answer;
-                              const options = currentModalInduction.question_3_options;
+                              const options = currentModalInduction.question_3_options?.filter(opt => opt && opt.trim()) || [];
                               
                               console.log('🔍 Q3 Full Debug:', { 
                                 qType, 
@@ -2109,9 +2109,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   // STEP 4: QUESTIONS
   if (step === 'questions') {
     const questions = [
-      { num: 1, text: currentInduction.question_1_text, options: currentInduction.question_1_options, correct: currentInduction.question_1_correct_answer, type: currentInduction.question_1_type || 'single-select' },
-      { num: 2, text: currentInduction.question_2_text, options: currentInduction.question_2_options, correct: currentInduction.question_2_correct_answer, type: currentInduction.question_2_type || 'single-select' },
-      { num: 3, text: currentInduction.question_3_text, options: currentInduction.question_3_options, correct: currentInduction.question_3_correct_answer, type: currentInduction.question_3_type || 'single-select' },
+      { num: 1, text: currentInduction.question_1_text, options: currentInduction.question_1_options?.filter(opt => opt && opt.trim()), correct: currentInduction.question_1_correct_answer, type: currentInduction.question_1_type || 'single-select' },
+      { num: 2, text: currentInduction.question_2_text, options: currentInduction.question_2_options?.filter(opt => opt && opt.trim()), correct: currentInduction.question_2_correct_answer, type: currentInduction.question_2_type || 'single-select' },
+      { num: 3, text: currentInduction.question_3_text, options: currentInduction.question_3_options?.filter(opt => opt && opt.trim()), correct: currentInduction.question_3_correct_answer, type: currentInduction.question_3_type || 'single-select' },
     ].filter(q => q.text?.trim());
 
     return (
@@ -2130,7 +2130,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   Q{q.num}: {q.text} {isAnswered && isSingleSelect && <Text style={{ color: '#10B981', fontSize: 12 }}>✓</Text>}
                 </Text>
                 {Array.isArray(q.options) && q.options.map((option, idx) => {
-                  if (!option || !option.trim()) return null;
                   const isSelected = isSingleSelect 
                     ? selectedAnswers === idx 
                     : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
