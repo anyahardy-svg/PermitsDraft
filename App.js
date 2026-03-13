@@ -1496,15 +1496,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       
       if (missingFields.length > 0) {
         console.log('❌ VALIDATION FAILED - Missing fields detected, showing alert...');
+        
         // Scroll to top
-        if (permitFormScrollRef.current) {
-          permitFormScrollRef.current.scrollTo({ y: 0, animated: true });
+        console.log('📍 Attempting to scroll, ref exists:', !!permitFormScrollRef.current);
+        try {
+          if (permitFormScrollRef.current) {
+            console.log('🔄 Calling scrollTo on ref...');
+            // For React Native web, try scrollTop
+            if (permitFormScrollRef.current.scrollTop !== undefined) {
+              permitFormScrollRef.current.scrollTop = 0;
+              console.log('✅ scrollTop set to 0 (web)');
+            }
+            // For React Native native, try scrollTo
+            if (permitFormScrollRef.current.scrollTo) {
+              permitFormScrollRef.current.scrollTo({ y: 0, animated: true });
+              console.log('✅ scrollTo called (native)');
+            }
+          } else {
+            console.log('❌ permitFormScrollRef.current is null!');
+          }
+        } catch (err) {
+          console.log('❌ Scroll error:', err.message);
         }
         
         // Auto-expand the first permit with missing fields
         if (missingSectionPermits.size > 0) {
           const firstMissingPermit = Array.from(missingSectionPermits)[0];
           setExpandedSections(prev => ({ ...prev, specialized: true }));
+          console.log('📂 Expanded specialized section');
         }
         
         const missingList = missingFields
@@ -1513,14 +1532,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         
         console.log('⚠️ Showing alert with missing fields:', missingList);
         
-        Alert.alert(
-          '⚠️  Missing Required Fields',
-          `Please fill in the following ${missingFields.length} required field(s) before submitting:\n\n${missingList}`,
-          [{ text: 'Close', onPress: () => {
-            console.log('User closed alert, scrolling to top...');
-          }}],
-          { cancelable: false }
-        );
+        // Use window.alert for web compatibility
+        const message = `Please fill in the following ${missingFields.length} required field(s) before submitting:\n\n${missingList}`;
+        console.log('🔔 Calling window.alert with message');
+        window.alert(message);
+        console.log('✅ window.alert called');
+        
         return;
       }
       
