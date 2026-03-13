@@ -11395,6 +11395,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
     const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
+    
+    // JSEA Editor states for Inspection screen
+    const [showJseaEditorInspection, setShowJseaEditorInspection] = React.useState(false);
+    const [showJseaTemplateLoaderInspection, setShowJseaTemplateLoaderInspection] = React.useState(false);
+    const [showJseaSaveTemplateInspection, setShowJseaSaveTemplateInspection] = React.useState(false);
+    const [jseaTemplateNameInspection, setJseaTemplateNameInspection] = React.useState('');
+    const [jseaTemplatesAvailableInspection, setJseaTemplatesAvailableInspection] = React.useState([]);
+    const [loadingJseaTemplatesInspection, setLoadingJseaTemplatesInspection] = React.useState(false);
+    const [selectedBuForLoaderInspection, setSelectedBuForLoaderInspection] = React.useState('');
+    const [showRiskMatrixInspection, setShowRiskMatrixInspection] = React.useState(false);
+    const [selectedLikelihoodInspection, setSelectedLikelihoodInspection] = React.useState('');
+    const [selectedSeverityInspection, setSelectedSeverityInspection] = React.useState('');
+    
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
         ...prev,
@@ -13792,11 +13805,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         </View>
       </Modal>
 
-      {/* JSEA Template Saver Modal for Draft */}
+      {/* JSEA Template Saver Modal for Inspection */}
       <Modal 
-        visible={showJseaSaveTemplateDraft} 
+        visible={showJseaSaveTemplateInspection} 
         animationType="slide"
-        onRequestClose={() => setShowJseaSaveTemplateDraft(false)}
+        onRequestClose={() => setShowJseaSaveTemplateInspection(false)}
         transparent
       >
         <View style={{
@@ -13823,7 +13836,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               }}>
                 Save JSEA as Template
               </Text>
-              <TouchableOpacity onPress={() => setShowJseaSaveTemplateDraft(false)}>
+              <TouchableOpacity onPress={() => setShowJseaSaveTemplateInspection(false)}>
                 <Text style={{
                   fontSize: 24,
                   color: '#9CA3AF',
@@ -13842,9 +13855,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 color: '#1F2937'
               }}
               placeholder="Template name"
-              value={jseaTemplateNameDraft}
-              onChangeText={setJseaTemplateNameDraft}
-              editable={!loadingJseaTemplatesDraft}
+              value={jseaTemplateNameInspection}
+              onChangeText={setJseaTemplateNameInspection}
+              editable={!loadingJseaTemplatesInspection}
             />
 
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -13856,22 +13869,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   borderRadius: 8,
                   alignItems: 'center'
                 }}
-                onPress={() => setShowJseaSaveTemplateDraft(false)}
+                onPress={() => setShowJseaSaveTemplateInspection(false)}
               >
                 <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: loadingJseaTemplatesDraft ? '#BFDBFE' : '#3B82F6',
+                  backgroundColor: loadingJseaTemplatesInspection ? '#BFDBFE' : '#3B82F6',
                   padding: 12,
                   borderRadius: 8,
                   alignItems: 'center'
                 }}
-                onPress={handleSaveJseaAsTemplateDraft}
-                disabled={loadingJseaTemplatesDraft}
+                onPress={handleSaveJseaAsTemplateInspection}
+                disabled={loadingJseaTemplatesInspection}
               >
-                {loadingJseaTemplatesDraft ? (
+                {loadingJseaTemplatesInspection ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <Text style={{ fontWeight: '600', color: 'white' }}>Save</Text>
