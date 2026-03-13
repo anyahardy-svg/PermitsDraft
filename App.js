@@ -13,7 +13,8 @@ import {
   Modal,
   Dimensions,
   Image,
-  Picker
+  Picker,
+  ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
@@ -9610,20 +9611,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           return;
         }
         
-        // Check if jsea exists and is an array (even empty arrays should work)
-        if (Array.isArray(template.jsea)) {
-          console.log('[DEBUG] Loading template steps:', template.jsea.length, 'steps');
+        // Check if jsea exists and has taskSteps (jsea is an object with taskSteps array)
+        if (template?.jsea && Array.isArray(template.jsea.taskSteps)) {
+          console.log('[DEBUG] Loading template steps:', template.jsea.taskSteps.length, 'steps');
+          console.log('[DEBUG] Template jsea structure:', template.jsea);
           setEditData({
             ...editData,
-            jsea: {
-              ...editData.jsea,
-              taskSteps: template.jsea
-            }
+            jsea: template.jsea  // Replace entire jsea object
           });
-          console.log('[DEBUG] Updated editData with new taskSteps');
+          console.log('[DEBUG] Updated editData with new jsea');
         } else {
-          console.warn('[WARN] Template jsea is not an array:', typeof template.jsea, template.jsea);
-          Alert.alert('Error', 'Template does not contain valid steps');
+          console.warn('[WARN] Template jsea.taskSteps is not an array:', {
+            hasJsea: 'jsea' in template,
+            jseaType: typeof template?.jsea,
+            hasTaskSteps: 'taskSteps' in (template?.jsea || {}),
+            taskStepsType: typeof template?.jsea?.taskSteps,
+            template: template
+          });
+          Alert.alert('Error', 'Template does not contain valid JSEA steps');
           return;
         }
         
@@ -11031,7 +11036,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   >
                     <Text style={{ fontWeight: '600', color: '#1F2937' }}>{template.name}</Text>
                     <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      {template.jsea?.length || 0} steps
+                      {template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
                 ))}
