@@ -5312,7 +5312,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </View>
             )) : <Text style={styles.detailText}>None</Text>}
             <Text style={styles.label}>Overall Risk Rating</Text>
-            {isDraft ? (
+            {isDraft && editData.jsea ? (
               <TouchableOpacity
                 style={[
                   styles.addButton,
@@ -5345,8 +5345,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                 </Text>
               </TouchableOpacity>
+            ) : isDraft ? (
+              <Text style={styles.detailText}>JSEA data not loaded</Text>
             ) : (
-              <Text style={styles.detailText}>{editData.jsea.overallRiskRating}</Text>
+              <Text style={styles.detailText}>{editData.jsea?.overallRiskRating || 'Not specified'}</Text>
             )}
             <Text style={styles.label}>Additional Precautions:</Text>
             {isDraft ? (
