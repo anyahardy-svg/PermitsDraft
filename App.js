@@ -9490,7 +9490,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
 
   // Editable Approval Permit Screen (for Pending Approval)
-  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters }) => {
+  const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
@@ -13280,6 +13280,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           singleHazardTypes={singleHazardTypes}
           getRiskColor={getRiskColor}
           isolationRegisters={isolationRegisters}
+          setShowJseaEditor={setShowJseaEditor}
+          setSelectedBuForLoader={setSelectedBuForLoader}
+          setShowJseaTemplateLoader={setShowJseaTemplateLoader}
+          setShowJseaSaveTemplate={setShowJseaSaveTemplate}
+          loadJseaTemplatesForLoader={loadJseaTemplatesForLoader}
+          businessUnitId={businessUnitId}
         />
       );
     case 'inspect_permit':
