@@ -2101,6 +2101,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
   };
 
+  // NEW PERMIT FORM HANDLERS - for JSEA buttons in new permit form
+  const handleEditJseaDraft = useCallback(() => {
+    console.log('handleEditJseaDraft (new permit) callback executing');
+    setShowJseaEditor(true);
+  }, []);
+
+  const handleLoadTemplateDraft = useCallback(() => {
+    console.log('handleLoadTemplateDraft (new permit) callback executing');
+    setSelectedBuForLoader(businessUnitId || '');
+    setShowJseaTemplateLoader(true);
+    loadJseaTemplatesForLoader(businessUnitId);
+  }, [businessUnitId]);
+
+  const handleSaveTemplateDraft = useCallback(() => {
+    console.log('handleSaveTemplateDraft (new permit) callback executing');
+    setShowJseaSaveTemplate(true);
+  }, []);
+
+  const handleSelectRiskLevel = useCallback(() => {
+    console.log('handleSelectRiskLevel (new permit) callback executing');
+    setSelectedLikelihood('');
+    setSelectedSeverity('');
+    setRiskMatrixContext('new');
+    setShowRiskMatrix(true);
+  }, []);
+
   const renderNewPermitForm = () => {
     // Check if accessing from kiosk subdomain
     const isKioskMode = typeof window !== 'undefined' && window.location.hostname.includes('-kiosk.');
