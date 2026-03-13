@@ -1846,6 +1846,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
   }, [currentScreen, dashboardSelectedSite]);
 
+  // Reset riskMatrixContext when switching between screens
+  useEffect(() => {
+    if (currentScreen === 'new_permit') {
+      setRiskMatrixContext('new');
+      setShowRiskMatrix(false);
+    } else if (currentScreen === 'drafts') {
+      setRiskMatrixContext('draft');
+      setShowRiskMatrix(false);
+    }
+  }, [currentScreen]);
+
   // Permit Issuers state - stores system permit issuers with sites they can work at
   const [permitIssuers, setPermitIssuers] = useState([
     { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
@@ -5314,6 +5325,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             <Text style={styles.label}>Overall Risk Rating</Text>
             {isDraft && editData.jsea ? (
               <TouchableOpacity
+                pointerEvents="box-only"
                 style={[
                   styles.addButton,
                   { 
@@ -10020,6 +10032,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -11155,6 +11168,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -11163,8 +11177,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   ]}
                   onPress={() => {
+                    console.log('Risk level button pressed - setting context to draft');
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
+                    setRiskMatrixContext('draft');
                     setShowRiskMatrix(true);
                   }}
                 >
@@ -12437,6 +12453,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </TouchableOpacity>
                 <Text style={[styles.label, { marginTop: 12 }]}>Overall Risk Rating:</Text>
                 <TouchableOpacity
+                  pointerEvents="box-only"
                   style={[
                     styles.addButton,
                     { 
@@ -12447,6 +12464,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   onPress={() => {
                     setSelectedLikelihood('');
                     setSelectedSeverity('');
+                    setRiskMatrixContext('draft');
                     setShowRiskMatrix(true);
                   }}
                 >
