@@ -1258,6 +1258,60 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     }
   };
 
+  // --- Validation function for specialized permits ---
+  const validateSpecializedPermits = () => {
+    const missingFields = [];
+    
+    Object.keys(formData.specializedPermits).forEach(permitKey => {
+      const permit = formData.specializedPermits[permitKey];
+      if (!permit.required) return; // Skip disabled permits
+      
+      const permitQuestions = permitQuestionnaires[permitKey] || [];
+      const questionnaire = permit.questionnaire || {};
+      
+      permitQuestions.forEach(question => {
+        // Skip conditional questions that shouldn't be shown
+        if (question.dependsOn) {
+          const dependsOnValue = Array.isArray(question.dependsOnValue) 
+            ? question.dependsOnValue 
+            : [question.dependsOnValue];
+          const dependsOnIds = Array.isArray(question.dependsOn) 
+            ? question.dependsOn 
+            : [question.dependsOn];
+          
+          const shouldShow = dependsOnIds.some(depId => {
+            const depAnswer = questionnaire[depId]?.answer;
+            return dependsOnValue.includes(depAnswer);
+          });
+          
+          if (!shouldShow) return;
+        }
+        
+        if (question.required) {
+          const answer = questionnaire[question.id]?.answer;
+          
+          // Check if answer is empty
+          const isEmpty = answer === null || answer === undefined || answer === '' || 
+                         (Array.isArray(answer) && answer.length === 0);
+          
+          if (isEmpty) {
+            const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
+              .split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            
+            missingFields.push({
+              section: permitName,
+              field: question.text.substring(0, 60) + (question.text.length > 60 ? '...' : '')
+            });
+          }
+        }
+      });
+    });
+    
+    return missingFields;
+  };
+
   // --- handleSubmit for advanced form ---
   const handleSubmit = async (status) => {
     if (!formData.description) {
@@ -1288,6 +1342,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     if (!formData.endTime) {
       Alert.alert('Missing Info', 'Please select an End Time.');
       return;
+    }
+
+    // Check required fields in enabled specialized permits
+    if (status === 'pending_approval') {
+      const missingFields = validateSpecializedPermits();
+      if (missingFields.length > 0) {
+        const missingList = missingFields
+          .map((item, idx) => `${idx + 1}. [${item.section}] ${item.field}`)
+          .join('\n');
+        
+        Alert.alert(
+          'Missing Required Fields',
+          `Please fill in the following required fields before submitting:\n\n${missingList}`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
     }
     
     try {
