@@ -2160,6 +2160,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           ref={permitFormScrollRef}
           scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v)}
         >
+          {/* LOCATION - AT TOP */}
+          <View style={{ backgroundColor: '#F9FAFB', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+            <Text style={styles.label}>Location</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.location}
+              onChangeText={text => setFormData({ ...formData, location: text })}
+              placeholder="Work location"
+            />
+          </View>
+
           {/* General Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
@@ -2168,13 +2179,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             </TouchableOpacity>
             {expandedSections.general && (
               <View style={styles.sectionContent}>
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.location}
-                  onChangeText={text => setFormData({ ...formData, location: text })}
-                  placeholder="Work location"
-                />
                 <Text style={styles.label}>Description</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -3052,7 +3056,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               <Text style={styles.expandIcon}>{expandedSections.controlsSummary ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.controlsSummary && (
-              <View style={styles.sectionContent}>
+              <View style={[styles.sectionContent, { backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
                 {(() => {
                   // Check for any blocking questions that have been triggered
                   const triggeredQuestions = [];
@@ -3357,7 +3361,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.addButton} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', company: '' }] })}>
+                <TouchableOpacity style={[styles.addButton, { marginTop: 16 }]} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', company: '' }] })}>
                   <Text style={styles.addButtonText}>Add Worker</Text>
                 </TouchableOpacity>
               </View>
