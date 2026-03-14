@@ -10577,20 +10577,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           // Filter by name AND site
                           if (text.trim().length > 0 && contractors && contractors.length > 0) {
                             const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
-                            console.log('🔍 Isolation filtering:', {
-                              searchText: text,
-                              site: editData.site,
-                              siteId: siteId,
-                              siteNameToIdMap: siteNameToIdMap,
-                              contractorsCount: contractors.length,
-                              firstContractorSiteIds: contractors[0]?.siteIds
-                            });
                             const filtered = contractors.filter(c => {
                               const matchesName = c && c.name && c.name.toLowerCase().includes(text.toLowerCase());
                               const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
                               return matchesName && matchesSite;
                             });
-                            console.log('Filtered count:', filtered.length);
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
