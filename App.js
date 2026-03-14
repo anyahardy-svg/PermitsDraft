@@ -12981,8 +12981,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {(() => {
                   const safetyWatches = [];
                   if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
-                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
-                    const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    const hwSafetyWatchObj = editData.specializedPermits.hotWork.questionnaire?.hw_safety_watch;
+                    const hwSafetyWatch = typeof hwSafetyWatchObj === 'string' ? hwSafetyWatchObj : hwSafetyWatchObj?.text;
+                    const hwSafetyPeriodObj = editData.specializedPermits.hotWork.questionnaire?.hw_safety_period;
+                    const hwSafetyPeriod = typeof hwSafetyPeriodObj === 'string' ? hwSafetyPeriodObj : hwSafetyPeriodObj?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
                         permit: 'Hot Work',
@@ -12992,7 +12994,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   }
                   if (editData.specializedPermits?.confinedSpace?.required && editData.specializedPermits?.confinedSpace?.questionnaire) {
-                    const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    const csSafetyWatchNameObj = editData.specializedPermits.confinedSpace.questionnaire?.safety_watch_name;
+                    const csSafetyWatch = typeof csSafetyWatchNameObj === 'string' ? csSafetyWatchNameObj : csSafetyWatchNameObj?.answer;
                     if (csSafetyWatch) {
                       safetyWatches.push({
                         permit: 'Confined Space',
@@ -14795,8 +14798,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {(() => {
                   const safetyWatches = [];
                   if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
-                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
-                    const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
+                    const hwSafetyWatchObj = editData.specializedPermits.hotWork.questionnaire?.hw_safety_watch;
+                    const hwSafetyWatch = typeof hwSafetyWatchObj === 'string' ? hwSafetyWatchObj : hwSafetyWatchObj?.text;
+                    const hwSafetyPeriodObj = editData.specializedPermits.hotWork.questionnaire?.hw_safety_period;
+                    const hwSafetyPeriod = typeof hwSafetyPeriodObj === 'string' ? hwSafetyPeriodObj : hwSafetyPeriodObj?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
                         permit: 'Hot Work',
@@ -14806,7 +14811,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     }
                   }
                   if (editData.specializedPermits?.confinedSpace?.required && editData.specializedPermits?.confinedSpace?.questionnaire) {
-                    const csSafetyWatch = editData.specializedPermits.confinedSpace.questionnaire.safety_watch_name?.answer;
+                    const csSafetyWatchNameObj = editData.specializedPermits.confinedSpace.questionnaire?.safety_watch_name;
+                    const csSafetyWatch = typeof csSafetyWatchNameObj === 'string' ? csSafetyWatchNameObj : csSafetyWatchNameObj?.answer;
                     if (csSafetyWatch) {
                       safetyWatches.push({
                         permit: 'Confined Space',
