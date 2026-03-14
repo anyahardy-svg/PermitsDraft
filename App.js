@@ -2539,12 +2539,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           </View>
                         );
                       })()}
-                      <TouchableOpacity 
-                        style={[styles.addButton, { backgroundColor: '#0EA5E9', marginTop: 8 }]}
-                        onPress={() => setSelectedNewIsolationId(null)}
-                      >
-                        <Text style={styles.addButtonText}>Clear Selection</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -10732,12 +10726,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           </View>
                         );
                       })()}
-                      <TouchableOpacity 
-                        style={[styles.addButton, { backgroundColor: '#0EA5E9', marginTop: 8 }]}
-                        onPress={() => setSelectedIsolationId(null)}
-                      >
-                        <Text style={styles.addButtonText}>Clear Selection</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -12411,12 +12399,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           </View>
                         );
                       })()}
-                      <TouchableOpacity 
-                        style={[styles.addButton, { backgroundColor: '#0EA5E9', marginTop: 8 }]}
-                        onPress={() => setSelectedIsolationId(null)}
-                      >
-                        <Text style={styles.addButtonText}>Clear Selection</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -13777,12 +13759,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           </View>
                         );
                       })()}
-                      <TouchableOpacity 
-                        style={[styles.addButton, { backgroundColor: '#0EA5E9', marginTop: 8 }]}
-                        onPress={() => setSelectedIsolationId(null)}
-                      >
-                        <Text style={styles.addButtonText}>Clear Selection</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
