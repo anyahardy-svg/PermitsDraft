@@ -981,6 +981,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
   const [selectedCompanyForLoader, setSelectedCompanyForLoader] = useState('');
+  const [showPermitTemplateLoader, setShowPermitTemplateLoader] = useState(false);
+  const [permitTemplatesAvailable, setPermitTemplatesAvailable] = useState([]);
+  const [loadingPermitTemplates, setLoadingPermitTemplates] = useState(false);
+  const [selectedBuForPermitTemplateLoader, setSelectedBuForPermitTemplateLoader] = useState('');
   const [showRiskMatrix, setShowRiskMatrix] = useState(false);
   const [riskMatrixContext, setRiskMatrixContext] = useState('new'); // 'new' or 'draft'
   const [selectedLikelihood, setSelectedLikelihood] = useState('');
@@ -1171,6 +1175,69 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     } finally {
       setLoadingJseaTemplates(false);
     }
+  };
+
+  // --- Load Permit Templates ---
+  const loadPermitTemplatesForLoader = async (buIdToLoad = null) => {
+    try {
+      const buIdToUse = buIdToLoad || businessUnitId;
+      if (!buIdToUse) {
+        console.warn('[WARN] No business unit ID available for loading permit templates');
+        return;
+      }
+
+      console.log('[DEBUG] Loading permit templates for BU:', buIdToUse);
+      setLoadingPermitTemplates(true);
+      const response = await getTemplates(buIdToUse);
+      
+      if (response?.data) {
+        console.log('[DEBUG] Permit templates received:', response.data.length, 'templates');
+        setPermitTemplatesAvailable(response.data);
+      } else {
+        console.warn('[WARN] No templates data in response');
+      }
+    } catch (error) {
+      console.error('[ERROR] Failed to load permit templates:', error);
+      Alert.alert('Error', 'Failed to load templates');
+    } finally {
+      setLoadingPermitTemplates(false);
+    }
+  };
+
+  // Load a permit template into the current form, excluding specified fields
+  const handleLoadPermitTemplate = (template) => {
+    // Load the template data but exclude certain fields
+    const loadedFormData = {
+      ...template,
+      // Clear out excluded fields (general details, isolations, sign-ons)
+      location: '',
+      description: '',
+      site: '',
+      permitIssuer: '',
+      requestedBy: '',
+      contractorCompany: '',
+      manualCompany: '',
+      contractorSelected: false,
+      startDate: defaultDate,
+      startTime: defaultTime,
+      endDate: defaultDate,
+      endTime: defaultTime,
+      isolations: [],
+      signOns: [],
+      attachments: [],
+      // Keep: specialized permits, single hazards, JSEA, completion, etc.
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      // Preserve general fields from form, only update from template for non-excluded fields
+      specializedPermits: template.specialized_permits || prev.specializedPermits,
+      singleHazards: template.single_hazards || prev.singleHazards,
+      jsea: template.jsea || prev.jsea,
+      completion: template.completion || prev.completion,
+    }));
+    setShowPermitTemplateLoader(false);
+    Alert.alert('Success', `Loaded permit template: ${template.template_name}`);
   };
 
   // --- Print Permit Function ---
@@ -2161,6 +2228,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           ref={permitFormScrollRef}
           scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v)}
         >
+          {/* Load Permit Template Section */}
+          <View style={{ padding: 16, backgroundColor: '#F0F9FF', marginBottom: 12, borderRadius: 8, marginHorizontal: 16, marginTop: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 10 }}>Load Previous Permit as Template</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#0284C7', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => {
+                setSelectedBuForPermitTemplateLoader(businessUnitId || '');
+                setShowPermitTemplateLoader(true);
+                loadPermitTemplatesForLoader(businessUnitId);
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>📋 Load Permit Template</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* General Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
@@ -3729,6 +3811,156 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   alignItems: 'center'
                 }}
                 onPress={() => setShowJseaTemplateLoader(false)}
+              >
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Permit Template Loader Modal */}
+        <Modal 
+          visible={showPermitTemplateLoader} 
+          animationType="slide"
+          onRequestClose={() => setShowPermitTemplateLoader(false)}
+          transparent
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Load Permit Template
+                </Text>
+                <TouchableOpacity onPress={() => setShowPermitTemplateLoader(false)}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Business Unit</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedBuForPermitTemplateLoader}
+                    onValueChange={(itemValue) => {
+                      setSelectedBuForPermitTemplateLoader(itemValue);
+                      if (itemValue) {
+                        loadPermitTemplatesForLoader(itemValue);
+                      }
+                    }}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="Select a business unit..." value="" />
+                    {businessUnits.map(bu => (
+                      <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              {loadingPermitTemplates ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
+                </View>
+              ) : permitTemplatesAvailable.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
+                    No permit templates available for this business unit.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
+                  {permitTemplatesAvailable.map((template) => (
+                    <TouchableOpacity
+                      key={template.id}
+                      style={{
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        backgroundColor: '#F9FAFB'
+                      }}
+                      onPress={() => handleLoadPermitTemplate(template)}
+                    >
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        marginBottom: 4
+                      }}>
+                        {template.template_name}
+                      </Text>
+                      {template.location && (
+                        <Text style={{
+                          fontSize: 12,
+                          color: '#6B7280',
+                          marginBottom: 4
+                        }}>
+                          Location: {template.location}
+                        </Text>
+                      )}
+                      {template.description && (
+                        <Text style={{
+                          fontSize: 11,
+                          color: '#6B7280'
+                        }}>
+                          {template.description.substring(0, 60)}{template.description.length > 60 ? '...' : ''}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              <TouchableOpacity
+                style={{
+                  padding: 12,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => setShowPermitTemplateLoader(false)}
               >
                 <Text style={{
                   fontSize: 14,
