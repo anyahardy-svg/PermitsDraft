@@ -10566,9 +10566,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
                       <TextInput 
-                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        style={[styles.input]} 
                         value={isolation.isolatedBy || ''} 
                         onChangeText={text => {
                           const updated = [...editData.isolations];
@@ -10577,11 +10577,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           // Filter by name AND site
                           if (text.trim().length > 0 && contractors && contractors.length > 0) {
                             const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                            console.log('Isolation filtering - editData.site:', editData.site, 'siteId:', siteId, 'siteNameToIdMap:', siteNameToIdMap);
                             const filtered = contractors.filter(c => {
                               const matchesName = c && c.name && c.name.toLowerCase().includes(text.toLowerCase());
                               const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
                               return matchesName && matchesSite;
                             });
+                            console.log('Filtered contractors:', filtered.map(c => ({ name: c.name, siteIds: c.siteIds })));
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
