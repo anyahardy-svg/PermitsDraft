@@ -9685,7 +9685,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       jsea: permit.jsea || initialJSEA,
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns,
-      attachments: permit.attachments || []
+      attachments: permit.attachments || [],
+      site: permit.site_id ? siteIdToNameMap[permit.site_id] : ''
     });
     
     // Date/time picker states
