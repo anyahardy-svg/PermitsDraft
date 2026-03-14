@@ -13209,6 +13209,376 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </View>
         </View>
       </Modal>
+
+      {/* JSEA Editor Modal for Inspection */}
+      <Modal 
+        visible={showJseaEditorDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaEditorDraft(false)}
+      >
+        <JseaEditorScreen
+          initialJsea={editData.jsea.taskSteps}
+          onSave={(steps) => {
+            setEditData({
+              ...editData, 
+              jsea: { 
+                ...editData.jsea, 
+                taskSteps: steps 
+              }
+            });
+            setShowJseaEditorDraft(false);
+          }}
+          onCancel={() => setShowJseaEditorDraft(false)}
+          styles={styles}
+        />
+      </Modal>
+
+      {/* JSEA Template Loader Modal for Inspection */}
+      <Modal 
+        visible={showJseaTemplateLoaderDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaTemplateLoaderDraft(false)}
+        transparent
+      >
+        <View 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          pointerEvents="box-none"
+        >
+          <View 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}
+            pointerEvents="auto"
+          >
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937'
+              }}>
+                Load JSEA Template
+              </Text>
+              <TouchableOpacity onPress={() => setShowJseaTemplateLoaderDraft(false)}>
+                <Text style={{
+                  fontSize: 24,
+                  color: '#9CA3AF',
+                  fontWeight: 'bold'
+                }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loadingJseaTemplatesDraft ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+              </View>
+            ) : jseaTemplatesAvailableDraft.length > 0 ? (
+              <ScrollView 
+                style={{ maxHeight: 300 }}
+                scrollEnabled={true}
+                pointerEvents="box-none"
+              >
+                {jseaTemplatesAvailableDraft.map((template, idx) => (
+                  <TouchableOpacity
+                    key={`template-${template.id}-${idx}`}
+                    activeOpacity={0.6}
+                    style={{
+                      padding: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB',
+                      backgroundColor: 'white'
+                    }}
+                    onPress={() => {
+                      console.log('[DEBUG] Tapped template:', template.name);
+                      handleLoadJseaTemplateDraft(template);
+                    }}
+                  >
+                    <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
+                      {template.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                      {Array.isArray(template.jsea) ? template.jsea.length : template.jsea?.taskSteps?.length || 0} steps
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ textAlign: 'center', color: '#9CA3AF' }}>No templates available</Text>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* JSEA Template Saver Modal for Inspection */}
+      <Modal
+        visible={showJseaSaveTemplateDraft}
+        animationType="slide"
+        onRequestClose={() => setShowJseaSaveTemplateDraft(false)}
+        transparent
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}
+          pointerEvents="box-none"
+        >
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20
+          }}
+            pointerEvents="auto"
+          >
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: '#1F2937',
+              marginBottom: 16
+            }}>
+              Save JSEA as Template
+            </Text>
+            <TextInput
+              placeholder="Template Name"
+              value={jseaTemplateNameDraft}
+              onChangeText={setJseaTemplateNameDraft}
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+                fontSize: 14
+              }}
+            />
+            <View style={{
+              flexDirection: 'row',
+              gap: 12
+            }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: '#E5E7EB',
+                  alignItems: 'center'
+                }}
+                onPress={() => setShowJseaSaveTemplateDraft(false)}
+              >
+                <Text style={{ fontWeight: '600', color: '#374151' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: loadingJseaTemplatesDraft ? '#BFDBFE' : '#3B82F6',
+                  alignItems: 'center'
+                }}
+                onPress={handleSaveJseaAsTemplateDraft}
+                disabled={loadingJseaTemplatesDraft}
+              >
+                {loadingJseaTemplatesDraft ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontWeight: '600', color: 'white' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Local Risk Matrix Modal for Inspection */}
+      <Modal
+        visible={showRiskMatrixDraft}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRiskMatrixDraft(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            padding: 20,
+            maxHeight: '90%'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Risk Assessment Matrix</Text>
+              <TouchableOpacity onPress={() => setShowRiskMatrixDraft(false)}>
+                <Text style={{ fontSize: 24, color: '#9CA3AF' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              {/* Likelihood Selection */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
+                <View style={{ flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { key: 'rare', label: 'RARE', desc: 'Will only occur in exceptional circumstances' },
+                    { key: 'unlikely', label: 'UNLIKELY', desc: 'Could occur' },
+                    { key: 'possible', label: 'POSSIBLE', desc: 'Might occur' },
+                    { key: 'likely', label: 'LIKELY', desc: 'Will probably occur' },
+                    { key: 'almost_certain', label: 'ALMOST CERTAIN', desc: 'Will occur most of the time' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={{
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                        backgroundColor: selectedLikelihoodDraft === item.key ? '#EFF6FF' : 'white',
+                        padding: 12
+                      }}
+                      onPress={() => setSelectedLikelihoodDraft(item.key)}
+                    >
+                      <Text style={{
+                        color: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                        marginBottom: 4
+                      }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{
+                        color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
+                        fontSize: 12,
+                        fontStyle: 'italic'
+                      }}>
+                        {item.desc}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Severity Selection */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
+                <View style={{ flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { key: 'insignificant', label: 'INSIGNIFICANT', desc: 'Report Only Incidents' },
+                    { key: 'minor', label: 'MINOR', desc: 'First Aid' },
+                    { key: 'moderate', label: 'MODERATE', desc: 'MTI, LTI' },
+                    { key: 'major', label: 'MAJOR', desc: 'Serious Injury' },
+                    { key: 'catastrophic', label: 'CATASTROPHIC', desc: 'Fatality' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={{
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor: selectedSeverityDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                        backgroundColor: selectedSeverityDraft === item.key ? '#EFF6FF' : 'white',
+                        padding: 12
+                      }}
+                      onPress={() => setSelectedSeverityDraft(item.key)}
+                    >
+                      <Text style={{
+                        color: selectedSeverityDraft === item.key ? '#3B82F6' : '#374151',
+                        fontWeight: '600',
+                        fontSize: 13,
+                        marginBottom: 4
+                      }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{
+                        color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
+                        fontSize: 12,
+                        fontStyle: 'italic'
+                      }}>
+                        {item.desc}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Result Display */}
+              {selectedLikelihoodDraft && selectedSeverityDraft && (
+                <View style={{
+                  padding: 16,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 8,
+                  marginBottom: 24
+                }}>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
+                  <View style={{
+                    backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft)),
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 6,
+                    alignItems: 'center'
+                  }}>
+                    <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
+                      {calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setShowRiskMatrixDraft(false)}
+                >
+                  <Text style={{ color: '#374151', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: selectedLikelihoodDraft && selectedSeverityDraft ? '#3B82F6' : '#D1D5DB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  disabled={!selectedLikelihoodDraft || !selectedSeverityDraft}
+                  onPress={() => {
+                    const riskLevel = calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft);
+                    console.log('[DEBUG] Applying risk level from inspection modal:', riskLevel);
+                    
+                    setEditData({
+                      ...editData,
+                      jsea: {
+                        ...editData.jsea,
+                        overallRiskRating: riskLevel
+                      }
+                    });
+                    
+                    setShowRiskMatrixDraft(false);
+                    setSelectedLikelihoodDraft('');
+                    setSelectedSeverityDraft('');
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       </View>
     );
   };
