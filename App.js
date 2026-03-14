@@ -2312,7 +2312,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -5087,7 +5087,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}
                     >
                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -5405,6 +5405,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               <View key={idx} style={{ marginBottom: 8, marginLeft: 8, padding: 8, backgroundColor: '#F9FAFB', borderRadius: 6 }}>
                 <Text style={styles.detailText}>Isolation {idx + 1}: {isolation.what}</Text>
                 <Text style={styles.detailText}>Isolated by: {isolation.isolatedBy}</Text>
+                {isolation.isolatedByCompany && <Text style={styles.detailText}>Company: {isolation.isolatedByCompany}</Text>}
                 <Text style={styles.detailText}>Date: {formatDateNZ(isolation.date)}</Text>
               </View>
             ))}
@@ -10074,7 +10075,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -10541,7 +10542,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 activeOpacity={0.7}
                                 onPress={() => {
                                   const updated = [...editData.isolations];
-                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name };
+                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name, isolatedByCompany: contractor.companyName || contractor.company || '' };
                                   setEditData(prev => ({ ...prev, isolations: updated }));
                                   setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false }));
                                   setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: [] }));
@@ -10555,6 +10556,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </View>
                       )}
                     </View>
+                    {isolation.isolatedByCompany && (
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {isolation.isolatedByCompany}</Text>
+                      </View>
+                    )}
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
@@ -10575,7 +10581,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', isolatedByCompany: '', date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
                   <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
