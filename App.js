@@ -16634,8 +16634,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2.22,
   },
   draftButton: {
-    flex: 0.45,
-    padding: 12,
+    flex: 0.22,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 6,
@@ -16647,15 +16647,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submitButton: {
-    flex: 0.45,
-    padding: 12,
+    flex: 0.22,
+    padding: 8,
     backgroundColor: '#2563EB',
     borderRadius: 6,
     alignItems: 'center',
   },
   submitButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
   },
   dateTimeRow: {
