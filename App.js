@@ -10852,7 +10852,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               <Text style={styles.expandIcon}>{expandedSections.signons ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.signons && (
-              <View style={styles.sectionContent}>
+              <View style={[styles.sectionContent, { overflow: 'visible' }]}>
                 {editData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
