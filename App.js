@@ -10576,10 +10576,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setEditData(prev => ({ ...prev, isolations: updated }));
                           // Filter by name AND site
                           if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const siteId = editData.location ? siteNameToIdMap[editData.location] : null;
+                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
                             console.log('🔍 Isolation filtering:', {
                               searchText: text,
-                              location: editData.location,
+                              site: editData.site,
                               siteId: siteId,
                               siteNameToIdMap: siteNameToIdMap,
                               contractorsCount: contractors.length,
@@ -10600,7 +10600,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         }}
                         onFocus={() => {
                           if (isolation.isolatedBy.trim().length > 0 && contractors && contractors.length > 0) {
-                            const siteId = editData.location ? siteNameToIdMap[editData.location] : null;
+                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
                             const filtered = contractors.filter(c => {
                               const matchesName = c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase());
                               const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
@@ -10614,9 +10614,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing person name (contractor or employee)..."
-                        editable={editData.location ? true : false}
+                        editable={editData.site ? true : false}
                       />
-                      {!editData.location && (
+                      {!editData.site && (
                         <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
