@@ -1956,6 +1956,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [showIsolationDropdown, setShowIsolationDropdown] = useState(false);
   const [selectedNewIsolationId, setSelectedNewIsolationId] = useState(null);
   
+  // Isolated By dropdown state for each isolation
+  const [showIsolatedByDropdown, setShowIsolatedByDropdown] = useState({});
+  const [filteredIsolatedByContractors, setFilteredIsolatedByContractors] = useState({});
+  
   // Site mapping for contractors
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
@@ -2574,12 +2578,84 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated by (name)</Text>
-                    <TextInput 
-                      style={styles.input} 
-                      value={isolation.isolatedBy || ''} 
-                      onChangeText={text => updateIsolation(idx, 'isolatedBy', text)} 
-                      placeholder="Name of person who isolated"
-                    />
+                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={isolation.isolatedBy || ''} 
+                        onChangeText={text => {
+                          updateIsolation(idx, 'isolatedBy', text);
+                          // Filter contractors based on input and site
+                          if (text.trim().length > 0 && formData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false }));
+                            setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (isolation.isolatedBy.trim().length > 0 && formData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false })), 200);
+                        }}
+                        placeholder="Start typing person name (contractor or employee)..."
+                        editable={formData.site ? true : false}
+                      />
+                      {!formData.site && (
+                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                      )}
+                      {showIsolatedByDropdown[idx] && filteredIsolatedByContractors[idx] && filteredIsolatedByContractors[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          zIndex: 10,
+                          overflow: 'hidden',
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredIsolatedByContractors[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  updateIsolation(idx, 'isolatedBy', contractor.name);
+                                  setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date</Text>
                     <TextInput 
                       style={styles.input} 
