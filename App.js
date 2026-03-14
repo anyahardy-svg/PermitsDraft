@@ -985,6 +985,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [riskMatrixContext, setRiskMatrixContext] = useState('new'); // 'new' or 'draft'
   const [selectedLikelihood, setSelectedLikelihood] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('');
+  const [showSignOnWorkerDropdown, setShowSignOnWorkerDropdown] = useState({});
+  const [filteredSignOnWorkers, setFilteredSignOnWorkers] = useState({});
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -3029,27 +3031,93 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {formData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
                     <Text style={styles.label}>Worker Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={signOn.name}
-                      onChangeText={text => {
-                        const updated = [...formData.signOns];
-                        updated[idx] = { ...updated[idx], name: text };
-                        setFormData({ ...formData, signOns: updated });
-                      }}
-                      placeholder="Enter worker's name"
-                    />
-                    <Text style={styles.label}>Signature</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={signOn.company || ''}
-                      onChangeText={text => {
-                        const updated = [...formData.signOns];
-                        updated[idx] = { ...updated[idx], signature: text };
-                        setFormData({ ...formData, signOns: updated });
-                      }}
-                      placeholder="Signature (type name or initials)"
-                    />
+                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                      <TextInput
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]}
+                        value={signOn.name}
+                        onChangeText={text => {
+                          const updated = [...formData.signOns];
+                          updated[idx] = { ...updated[idx], name: text };
+                          setFormData({ ...formData, signOns: updated });
+                          // Filter contractors based on input and site
+                          if (text.trim().length > 0 && formData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredSignOnWorkers(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: false }));
+                            setFilteredSignOnWorkers(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (signOn.name.trim().length > 0 && formData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(signOn.name.toLowerCase())
+                            );
+                            setFilteredSignOnWorkers(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: false })), 200);
+                        }}
+                        placeholder="Start typing worker name..."
+                        editable={formData.site ? true : false}
+                      />
+                      {!formData.site && (
+                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                      )}
+                      {showSignOnWorkerDropdown[idx] && filteredSignOnWorkers[idx] && filteredSignOnWorkers[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          zIndex: 10,
+                          overflow: 'hidden',
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredSignOnWorkers[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  const updated = [...formData.signOns];
+                                  updated[idx] = { ...updated[idx], name: contractor.name, company: contractor.companyName || '' };
+                                  setFormData({ ...formData, signOns: updated });
+                                  setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredSignOnWorkers(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                    {signOn.company && (
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity onPress={() => {
                       const updated = [...formData.signOns];
                       updated.splice(idx, 1);
