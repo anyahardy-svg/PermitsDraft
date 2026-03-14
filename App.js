@@ -5897,19 +5897,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               <View style={{ marginTop: 12 }}>
                 <Text style={styles.label}>Sign-On (Other Workers):</Text>
                 {localEditData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Name:</Text>
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8 }}>
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => {
                       const updated = [...localEditData.signOns];
                       updated[idx] = { ...signOn, name: text };
                       handleEditChange('signOns', updated);
                     }} placeholder="Worker Name" />
-                    <Text style={styles.detailText}>Signature:</Text>
-                    <TextInput style={styles.input} value={signOn.company || ''} onChangeText={text => {
-                      const updated = [...localEditData.signOns];
-                      updated[idx] = { ...signOn, signature: text };
-                      handleEditChange('signOns', updated);
-                    }} placeholder="Company" />
+                    {signOn.company && (
+                      <View style={{ marginBottom: 12, marginTop: 8, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
