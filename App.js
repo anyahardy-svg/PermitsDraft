@@ -2150,7 +2150,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           style={styles.screenContainer} 
           contentContainerStyle={{ flexGrow: 1 }} 
           ref={permitFormScrollRef}
-          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v)}
+          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v)}
         >
           {/* General Section */}
           <View style={styles.section}>
@@ -2585,7 +2585,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated by (name)</Text>
-                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={isolation.isolatedBy || ''} 
@@ -2621,7 +2621,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onBlur={() => {
-                          setTimeout(() => setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false })), 200);
+                          setTimeout(() => setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing person name (contractor or employee)..."
                         editable={formData.site ? true : false}
@@ -2639,9 +2639,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10,
-                          overflow: 'hidden',
+                          maxHeight: 250,
+                          zIndex: 1000,
+                          overflow: 'visible',
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredIsolatedByContractors[idx].map(contractor => (
@@ -2651,6 +2651,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 activeOpacity={0.7}
                                 onPress={() => {
                                   updateIsolation(idx, 'isolatedBy', contractor.name);
+                                  updateIsolation(idx, 'isolatedByCompany', contractor.companyName || contractor.company || '');
                                   setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false }));
                                   setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: [] }));
                                 }}
@@ -2663,6 +2664,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         </View>
                       )}
                     </View>
+                    {isolation.isolatedByCompany && (
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {isolation.isolatedByCompany}</Text>
+                      </View>
+                    )}
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date</Text>
                     <TextInput 
                       style={styles.input} 
