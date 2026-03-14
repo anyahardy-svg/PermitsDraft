@@ -2551,7 +2551,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {formData.isolations && formData.isolations.length > 0 ? formData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
+                  <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                     {isolation.source === 'register' ? (
                       <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
@@ -2585,7 +2585,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated by (name)</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={isolation.isolatedBy || ''} 
@@ -2639,9 +2639,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 250,
-                          zIndex: 1000,
+                          maxHeight: 300,
+                          zIndex: 9999,
                           overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredIsolatedByContractors[idx].map(contractor => (
@@ -3040,9 +3045,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {formData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
+                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8, overflow: 'visible' }}>
                     <Text style={styles.label}>Worker Name</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput
                         style={[styles.input, { position: 'relative', zIndex: 1 }]}
                         value={signOn.name}
@@ -3098,9 +3103,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 250,
-                          zIndex: 1000,
+                          maxHeight: 300,
+                          zIndex: 9999,
                           overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkers[idx].map(contractor => (
