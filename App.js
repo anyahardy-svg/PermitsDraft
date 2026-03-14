@@ -10571,11 +10571,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           updated[idx] = { ...updated[idx], isolatedBy: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
                           // Filter contractors based on input and site
-                          if (text.trim().length > 0 && editData.location) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                            );
+                          if (text.trim().length > 0) {
+                            let siteContractors = contractors;
+                            // Only filter by site if location is set and contractors have siteIds
+                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
+                              siteContractors = contractors.filter(contractor => 
+                                contractor.siteIds && 
+                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
+                              );
+                            }
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(text.toLowerCase())
                             );
@@ -10587,11 +10591,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (isolation.isolatedBy.trim().length > 0 && editData.location) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                            );
+                          if (isolation.isolatedBy.trim().length > 0) {
+                            let siteContractors = contractors;
+                            // Only filter by site if location is set and contractors have siteIds
+                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
+                              siteContractors = contractors.filter(contractor => 
+                                contractor.siteIds && 
+                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
+                              );
+                            }
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
                             );
@@ -10606,7 +10614,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         editable={editData.location ? true : false}
                       />
                       {!editData.location && (
-                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
                         <View style={{
@@ -10871,11 +10879,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
                           // Filter contractors based on input and site
-                          if (text.trim().length > 0 && editData.location) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                            );
+                          if (text.trim().length > 0) {
+                            let siteContractors = contractors;
+                            // Only filter by site if location is set and contractors have siteIds
+                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
+                              siteContractors = contractors.filter(contractor => 
+                                contractor.siteIds && 
+                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
+                              );
+                            }
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(text.toLowerCase())
                             );
@@ -10887,11 +10899,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (signOn.name.trim().length > 0 && editData.location) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                            );
+                          if (signOn.name.trim().length > 0) {
+                            let siteContractors = contractors;
+                            // Only filter by site if location is set and contractors have siteIds
+                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
+                              siteContractors = contractors.filter(contractor => 
+                                contractor.siteIds && 
+                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
+                              );
+                            }
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(signOn.name.toLowerCase())
                             );
@@ -10906,7 +10922,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         editable={editData.location ? true : false}
                       />
                       {!editData.location && (
-                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showSignOnWorkerDropdownDraft[idx] && filteredSignOnWorkersDraft[idx] && filteredSignOnWorkersDraft[idx].length > 0 && (
                         <View style={{
