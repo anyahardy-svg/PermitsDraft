@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { getJseaTemplates, saveJseaTemplate } from './src/api/templates';
+import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
@@ -10027,6 +10027,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
     
+    // Permit Template Save states for draft screen
+    const [showPermitSaveTemplateDraft, setShowPermitSaveTemplateDraft] = React.useState(false);
+    const [permitTemplateNameDraft, setPermitTemplateNameDraft] = React.useState('');
+    const [selectedBusForPermitTemplate, setSelectedBusForPermitTemplate] = React.useState([]);
+    const [loadingPermitSaveTemplate, setLoadingPermitSaveTemplate] = React.useState(false);
+    
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
       try {
@@ -10143,6 +10149,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         Alert.alert('Error', 'Failed to save template');
       } finally {
         setLoadingJseaTemplatesDraft(false);
+      }
+    };
+
+    const handleSavePermitAsTemplateDraft = async () => {
+      if (!permitTemplateNameDraft.trim()) {
+        Alert.alert('Warning', 'Please enter a template name');
+        return;
+      }
+
+      try {
+        setLoadingPermitSaveTemplate(true);
+        
+        // Save the current permit as a template
+        // Note: The template is associated with the permit's existing business_unit_id
+        const response = await savePermitAsTemplate(
+          editData.id,
+          permitTemplateNameDraft
+        );
+        
+        if (response?.success || response?.data) {
+          Alert.alert('Success', `Template "${permitTemplateNameDraft}" saved successfully`);
+          setPermitTemplateNameDraft('');
+          setSelectedBusForPermitTemplate([]);
+          setShowPermitSaveTemplateDraft(false);
+        } else {
+          throw new Error(response?.error?.message || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Error saving permit template:', error);
+        Alert.alert('Error', 'Failed to save template: ' + error.message);
+      } finally {
+        setLoadingPermitSaveTemplate(false);
       }
     };
 
@@ -11640,6 +11678,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               }}>
                 <Text style={styles.submitButtonText}>Submit for Approval</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#8B5CF6' }]} onPress={() => {
+                setShowPermitSaveTemplateDraft(true);
+              }}>
+                <Text style={styles.submitButtonText}>Save as Template</Text>
+              </TouchableOpacity>
             </>
           ) : (
             (() => {
@@ -12069,6 +12112,162 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <Text style={{ fontWeight: '600', color: 'white' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Permit Save as Template Modal for Draft */}
+      <Modal 
+        visible={showPermitSaveTemplateDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowPermitSaveTemplateDraft(false)}
+        transparent
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '80%'
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937'
+              }}>
+                Save Permit as Template
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowPermitSaveTemplateDraft(false);
+                setPermitTemplateNameDraft('');
+                setSelectedBusForPermitTemplate([]);
+              }}>
+                <Text style={{
+                  fontSize: 24,
+                  color: '#9CA3AF',
+                  fontWeight: 'bold'
+                }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Template Name *</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 14,
+                  color: '#1F2937'
+                }}
+                placeholder="e.g., Milling Machine Setup"
+                value={permitTemplateNameDraft}
+                onChangeText={setPermitTemplateNameDraft}
+                editable={!loadingPermitSaveTemplate}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Business Units * (select one or more)</Text>
+              <View style={{ gap: 8 }}>
+                {businessUnits.map(bu => {
+                  const isSelected = selectedBusForPermitTemplate.includes(bu.id);
+                  return (
+                    <TouchableOpacity
+                      key={bu.id}
+                      onPress={() => {
+                        setSelectedBusForPermitTemplate(prev =>
+                          prev.includes(bu.id)
+                            ? prev.filter(id => id !== bu.id)
+                            : [...prev, bu.id]
+                        );
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        backgroundColor: isSelected ? '#E9D5FF' : '#F3F4F6',
+                      }}
+                    >
+                      <View style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 3,
+                        borderWidth: 2,
+                        borderColor: '#8B5CF6',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: isSelected ? '#8B5CF6' : 'white',
+                        marginRight: 10
+                      }}>
+                        {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  setShowPermitSaveTemplateDraft(false);
+                  setPermitTemplateNameDraft('');
+                  setSelectedBusForPermitTemplate([]);
+                }}
+              >
+                <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: loadingPermitSaveTemplate ? '#D8BFD8' : '#8B5CF6',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleSavePermitAsTemplateDraft}
+                disabled={loadingPermitSaveTemplate}
+              >
+                {loadingPermitSaveTemplate ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontWeight: '600', color: 'white' }}>Save Template</Text>
                 )}
               </TouchableOpacity>
             </View>
