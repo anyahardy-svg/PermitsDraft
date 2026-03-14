@@ -10022,6 +10022,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
+    const [selectedCompanyForLoaderDraft, setSelectedCompanyForLoaderDraft] = React.useState('');
     const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
@@ -11861,17 +11862,98 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </TouchableOpacity>
             </View>
 
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Business Unit</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedBuForLoaderDraft}
+                  onValueChange={(itemValue) => {
+                    setSelectedBuForLoaderDraft(itemValue);
+                    setSelectedCompanyForLoaderDraft('');
+                    if (itemValue) {
+                      loadJseaTemplatesForLoaderDraft(itemValue);
+                    }
+                  }}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="Select a business unit..." value="" />
+                  {businessUnits.map(bu => (
+                    <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Company (Optional)</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedCompanyForLoaderDraft}
+                  onValueChange={(itemValue) => {
+                    setSelectedCompanyForLoaderDraft(itemValue);
+                  }}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="All companies" value="" />
+                  {selectedBuForLoaderDraft && companies
+                    .filter(company => {
+                      return jseaTemplatesAvailableDraft.some(t => 
+                        t.company_id === company.id && 
+                        (t.business_unit_ids || []).includes(selectedBuForLoaderDraft)
+                      );
+                    })
+                    .map(company => (
+                      <Picker.Item key={company.id} label={company.name} value={company.id} />
+                    ))}
+                </Picker>
+              </View>
+            </View>
+
             {loadingJseaTemplatesDraft ? (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
-            ) : jseaTemplatesAvailableDraft.length > 0 ? (
+            ) : jseaTemplatesAvailableDraft.filter(t => {
+              const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
+              const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
+              return matchesBu && matchesCompany;
+            }).length > 0 ? (
               <ScrollView 
                 style={{ maxHeight: 300 }}
                 scrollEnabled={true}
                 pointerEvents="box-none"
               >
-                {jseaTemplatesAvailableDraft.map((template, idx) => (
+                {jseaTemplatesAvailableDraft
+                  .filter(t => {
+                    const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
+                    const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
+                    return matchesBu && matchesCompany;
+                  })
+                  .map((template, idx) => (
                   <TouchableOpacity
                     key={`template-${template.id}-${idx}`}
                     activeOpacity={0.6}
@@ -12228,6 +12310,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
+    const [selectedCompanyForLoaderDraft, setSelectedCompanyForLoaderDraft] = React.useState('');
     const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
@@ -13655,17 +13738,98 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </TouchableOpacity>
             </View>
 
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Business Unit</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedBuForLoaderDraft}
+                  onValueChange={(itemValue) => {
+                    setSelectedBuForLoaderDraft(itemValue);
+                    setSelectedCompanyForLoaderDraft('');
+                    if (itemValue) {
+                      loadJseaTemplatesForLoaderDraft(itemValue);
+                    }
+                  }}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="Select a business unit..." value="" />
+                  {businessUnits.map(bu => (
+                    <Picker.Item key={bu.id} label={bu.name} value={bu.id} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Company (Optional)</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedCompanyForLoaderDraft}
+                  onValueChange={(itemValue) => {
+                    setSelectedCompanyForLoaderDraft(itemValue);
+                  }}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="All companies" value="" />
+                  {selectedBuForLoaderDraft && companies
+                    .filter(company => {
+                      return jseaTemplatesAvailableDraft.some(t => 
+                        t.company_id === company.id && 
+                        (t.business_unit_ids || []).includes(selectedBuForLoaderDraft)
+                      );
+                    })
+                    .map(company => (
+                      <Picker.Item key={company.id} label={company.name} value={company.id} />
+                    ))}
+                </Picker>
+              </View>
+            </View>
+
             {loadingJseaTemplatesDraft ? (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
-            ) : jseaTemplatesAvailableDraft.length > 0 ? (
+            ) : jseaTemplatesAvailableDraft.filter(t => {
+              const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
+              const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
+              return matchesBu && matchesCompany;
+            }).length > 0 ? (
               <ScrollView 
                 style={{ maxHeight: 300 }}
                 scrollEnabled={true}
                 pointerEvents="box-none"
               >
-                {jseaTemplatesAvailableDraft.map((template, idx) => (
+                {jseaTemplatesAvailableDraft
+                  .filter(t => {
+                    const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
+                    const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
+                    return matchesBu && matchesCompany;
+                  })
+                  .map((template, idx) => (
                   <TouchableOpacity
                     key={`template-${template.id}-${idx}`}
                     activeOpacity={0.6}
