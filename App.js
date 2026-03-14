@@ -10574,11 +10574,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           const updated = [...editData.isolations];
                           updated[idx] = { ...updated[idx], isolatedBy: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
-                          // Simple filtering - just match by name
+                          // Filter by name AND site
                           if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
+                            const siteId = editData.location ? siteNameToIdMap[editData.location] : null;
+                            const filtered = contractors.filter(c => {
+                              const matchesName = c && c.name && c.name.toLowerCase().includes(text.toLowerCase());
+                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
+                              return matchesName && matchesSite;
+                            });
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
@@ -10588,9 +10591,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         }}
                         onFocus={() => {
                           if (isolation.isolatedBy.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
-                            );
+                            const siteId = editData.location ? siteNameToIdMap[editData.location] : null;
+                            const filtered = contractors.filter(c => {
+                              const matchesName = c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase());
+                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
+                              return matchesName && matchesSite;
+                            });
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           }
