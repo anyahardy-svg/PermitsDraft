@@ -11396,18 +11396,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
     const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
     
-    // JSEA Editor states for Inspection screen
-    const [showJseaEditorInspection, setShowJseaEditorInspection] = React.useState(false);
-    const [showJseaTemplateLoaderInspection, setShowJseaTemplateLoaderInspection] = React.useState(false);
-    const [showJseaSaveTemplateInspection, setShowJseaSaveTemplateInspection] = React.useState(false);
-    const [jseaTemplateNameInspection, setJseaTemplateNameInspection] = React.useState('');
-    const [jseaTemplatesAvailableInspection, setJseaTemplatesAvailableInspection] = React.useState([]);
-    const [loadingJseaTemplatesInspection, setLoadingJseaTemplatesInspection] = React.useState(false);
-    const [selectedBuForLoaderInspection, setSelectedBuForLoaderInspection] = React.useState('');
-    const [showRiskMatrixInspection, setShowRiskMatrixInspection] = React.useState(false);
-    const [selectedLikelihoodInspection, setSelectedLikelihoodInspection] = React.useState('');
-    const [selectedSeverityInspection, setSelectedSeverityInspection] = React.useState('');
-    
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
         ...prev,
