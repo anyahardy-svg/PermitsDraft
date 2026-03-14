@@ -10562,7 +10562,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={isolation.isolatedBy || ''} 
@@ -10571,10 +10571,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           updated[idx] = { ...updated[idx], isolatedBy: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
                           // Filter contractors based on input and site
-                          if (text.trim().length > 0 && editData.site) {
+                          if (text.trim().length > 0 && editData.location) {
                             const siteContractors = contractors.filter(contractor => 
                               contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
                             );
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(text.toLowerCase())
@@ -10587,10 +10587,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (isolation.isolatedBy.trim().length > 0 && editData.site) {
+                          if (isolation.isolatedBy.trim().length > 0 && editData.location) {
                             const siteContractors = contractors.filter(contractor => 
                               contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
                             );
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
@@ -10600,12 +10600,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onBlur={() => {
-                          setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 200);
+                          setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing person name (contractor or employee)..."
-                        editable={editData.site ? true : false}
+                        editable={editData.location ? true : false}
                       />
-                      {!editData.site && (
+                      {!editData.location && (
                         <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                       )}
                       {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
@@ -10618,9 +10618,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10,
-                          overflow: 'hidden',
+                          maxHeight: 300,
+                          zIndex: 9999,
+                          overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredIsolatedByContractorsDraft[idx].map(contractor => (
@@ -10857,19 +10862,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8 }}>
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
                           // Filter contractors based on input and site
-                          if (text.trim().length > 0 && editData.site) {
+                          if (text.trim().length > 0 && editData.location) {
                             const siteContractors = contractors.filter(contractor => 
                               contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
                             );
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(text.toLowerCase())
@@ -10882,10 +10887,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (signOn.name.trim().length > 0 && editData.site) {
+                          if (signOn.name.trim().length > 0 && editData.location) {
                             const siteContractors = contractors.filter(contractor => 
                               contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
                             );
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(signOn.name.toLowerCase())
@@ -10895,12 +10900,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onBlur={() => {
-                          setTimeout(() => setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false })), 200);
+                          setTimeout(() => setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing worker name..."
-                        editable={editData.site ? true : false}
+                        editable={editData.location ? true : false}
                       />
-                      {!editData.site && (
+                      {!editData.location && (
                         <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                       )}
                       {showSignOnWorkerDropdownDraft[idx] && filteredSignOnWorkersDraft[idx] && filteredSignOnWorkersDraft[idx].length > 0 && (
@@ -10913,9 +10918,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10,
-                          overflow: 'hidden',
+                          maxHeight: 300,
+                          zIndex: 9999,
+                          overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkersDraft[idx].map(contractor => (
