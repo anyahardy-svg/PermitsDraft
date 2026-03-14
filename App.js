@@ -2989,7 +2989,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   
                   // Hot Work - Safety Watch
                   if (formData.specializedPermits.hotWork?.required) {
-                    const hwSafetyWatch = formData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyWatch = formData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
                     const hwSafetyPeriod = formData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
@@ -3978,7 +3978,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             const safetyWatches = [];
             
             if (item.specializedPermits?.hotWork?.required) {
-              const hwSafetyWatch = item.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+              const hwSafetyWatch = item.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
               const hwSafetyPeriod = item.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
               if (hwSafetyWatch) {
                 safetyWatches.push({
@@ -5416,7 +5416,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               const safetyWatches = [];
               
               if (editData.specializedPermits?.hotWork?.required) {
-                const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
                 const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
                 if (hwSafetyWatch) {
                   safetyWatches.push({
@@ -10331,11 +10331,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                               <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                                 <TextInput 
                                   style={[styles.input]} 
-                                  value={val.questionnaire?.hw_safety_watch?.answer || ''} 
+                                  value={val.questionnaire?.hw_safety_watch?.text || ''} 
                                   onChangeText={text => {
                                     const updated = {
                                       ...val.questionnaire,
-                                      hw_safety_watch: { ...val.questionnaire?.hw_safety_watch, answer: text }
+                                      hw_safety_watch: { ...val.questionnaire?.hw_safety_watch, text: text }
                                     };
                                     handleSpecializedChange(key, 'questionnaire', updated);
                                     // Filter contractors by name AND site
@@ -10354,10 +10354,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                     }
                                   }}
                                   onFocus={() => {
-                                    if ((val.questionnaire?.hw_safety_watch?.answer || '').trim().length > 0 && contractors && contractors.length > 0) {
+                                    if ((val.questionnaire?.hw_safety_watch?.text || '').trim().length > 0 && contractors && contractors.length > 0) {
                                       const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
                                       const filtered = contractors.filter(c => {
-                                        const matchesName = c && c.name && c.name.toLowerCase().includes((val.questionnaire?.hw_safety_watch?.answer || '').toLowerCase());
+                                        const matchesName = c && c.name && c.name.toLowerCase().includes((val.questionnaire?.hw_safety_watch?.text || '').toLowerCase());
                                         const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
                                         return matchesName && matchesSite;
                                       });
@@ -10401,7 +10401,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                           onPress={() => {
                                             const updated = {
                                               ...val.questionnaire,
-                                              hw_safety_watch: { ...val.questionnaire?.hw_safety_watch, answer: contractor.name }
+                                              hw_safety_watch: { ...val.questionnaire?.hw_safety_watch, text: contractor.name }
                                             };
                                             handleSpecializedChange(key, 'questionnaire', updated);
                                             setShowHwSafetyWatchDropdownDraft(prev => ({ ...prev, [key]: false }));
@@ -10426,11 +10426,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                               <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                                 <TextInput 
                                   style={[styles.input]} 
-                                  value={val.questionnaire?.safety_watch_name?.answer || ''} 
+                                  value={val.questionnaire?.safety_watch_name?.text || ''} 
                                   onChangeText={text => {
                                     const updated = {
                                       ...val.questionnaire,
-                                      safety_watch_name: { ...val.questionnaire?.safety_watch_name, answer: text }
+                                      safety_watch_name: { ...val.questionnaire?.safety_watch_name, text: text }
                                     };
                                     handleSpecializedChange(key, 'questionnaire', updated);
                                     // Filter contractors by name AND site
@@ -10449,10 +10449,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                     }
                                   }}
                                   onFocus={() => {
-                                    if ((val.questionnaire?.safety_watch_name?.answer || '').trim().length > 0 && contractors && contractors.length > 0) {
+                                    if ((val.questionnaire?.safety_watch_name?.text || '').trim().length > 0 && contractors && contractors.length > 0) {
                                       const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
                                       const filtered = contractors.filter(c => {
-                                        const matchesName = c && c.name && c.name.toLowerCase().includes((val.questionnaire?.safety_watch_name?.answer || '').toLowerCase());
+                                        const matchesName = c && c.name && c.name.toLowerCase().includes((val.questionnaire?.safety_watch_name?.text || '').toLowerCase());
                                         const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
                                         return matchesName && matchesSite;
                                       });
@@ -10496,7 +10496,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                           onPress={() => {
                                             const updated = {
                                               ...val.questionnaire,
-                                              safety_watch_name: { ...val.questionnaire?.safety_watch_name, answer: contractor.name }
+                                              safety_watch_name: { ...val.questionnaire?.safety_watch_name, text: contractor.name }
                                             };
                                             handleSpecializedChange(key, 'questionnaire', updated);
                                             setShowCsSafetyWatchDropdownDraft(prev => ({ ...prev, [key]: false }));
@@ -11016,7 +11016,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   const safetyWatches = [];
                   
                   if (editData.specializedPermits?.hotWork?.required) {
-                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
                     const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
@@ -12721,7 +12721,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {(() => {
                   const safetyWatches = [];
                   if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
-                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
                     const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
@@ -14144,7 +14144,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {(() => {
                   const safetyWatches = [];
                   if (editData.specializedPermits?.hotWork?.required && editData.specializedPermits?.hotWork?.questionnaire) {
-                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.answer;
+                    const hwSafetyWatch = editData.specializedPermits.hotWork.questionnaire.hw_safety_watch?.text;
                     const hwSafetyPeriod = editData.specializedPermits.hotWork.questionnaire.hw_safety_period?.answer;
                     if (hwSafetyWatch) {
                       safetyWatches.push({
