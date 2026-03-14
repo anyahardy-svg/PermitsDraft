@@ -4059,6 +4059,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     return (
       <View>
         {questions.map((q) => {
+          // Skip safety watch fields - they're handled as custom dropdowns
+          if (['safety_watch_name', 'hw_safety_watch'].includes(q.id)) {
+            return null;
+          }
+          
           const value = answers[q.id]?.answer || '';
           const controlsValue = answers[q.id]?.controls || '';
           
