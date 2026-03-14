@@ -13858,6 +13858,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
+    const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
+    const [filteredIsolatedByContractorsActive, setFilteredIsolatedByContractorsActive] = React.useState({});
+    const [showSignOnWorkerDropdownActive, setShowSignOnWorkerDropdownActive] = React.useState({});
+    const [filteredSignOnWorkersActive, setFilteredSignOnWorkersActive] = React.useState({});
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
     const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
 
