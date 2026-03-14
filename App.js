@@ -12737,9 +12737,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
-                          // Simple filtering - just match by name
-                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (text.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                             );
                             setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
@@ -12750,8 +12753,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (signOn.name && signOn.name.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
                             );
                             setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
@@ -12762,9 +12769,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setTimeout(() => setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing worker name..."
-                        editable={editData.location ? true : false}
+                        editable={editData.site_id ? true : false}
                       />
-                      {!editData.location && (
+                      {!editData.site_id && (
                         <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
@@ -14421,9 +14428,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           const updated = [...editData.isolations];
                           updated[idx] = { ...updated[idx], isolatedBy: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
-                          // Simple filtering - just match by name
-                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (text.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                             );
                             setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
@@ -14434,8 +14444,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (isolation.isolatedBy.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (isolation.isolatedBy && isolation.isolatedBy.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
                             );
                             setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
@@ -14451,21 +14465,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       {showIsolatedByDropdownActive[idx] && filteredIsolatedByContractorsActive[idx] && filteredIsolatedByContractorsActive[idx].length > 0 && (
                         <View style={{
                           position: 'absolute',
-                          top: 50,
+                          top: '100%',
                           left: 0,
                           right: 0,
+                          marginTop: 4,
                           backgroundColor: 'white',
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
-                          zIndex: 9999,
+                          maxHeight: 200,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.15,
                           shadowRadius: 4,
-                          elevation: 5,
+                          elevation: 10,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredIsolatedByContractorsActive[idx].map(contractor => (
@@ -14537,9 +14552,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
-                          // Simple filtering - just match by name
-                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (text.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                             );
                             setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
@@ -14550,8 +14568,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
+                          if (signOn.name && signOn.name.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
                               c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
                             );
                             setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
@@ -14562,29 +14584,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setTimeout(() => setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing worker name..."
-                        editable={editData.location ? true : false}
+                        editable={editData.site_id ? true : false}
                       />
-                      {!editData.location && (
+                      {!editData.site_id && (
                         <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
                         <View style={{
                           position: 'absolute',
-                          top: 55,
+                          top: '100%',
                           left: 0,
                           right: 0,
+                          marginTop: 4,
                           backgroundColor: 'white',
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 300,
-                          zIndex: 9999,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.15,
                           shadowRadius: 4,
-                          elevation: 5,
+                          elevation: 10,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkersActive[idx].map(contractor => (
