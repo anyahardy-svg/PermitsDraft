@@ -9722,6 +9722,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [filteredIsolatedByContractorsDraft, setFilteredIsolatedByContractorsDraft] = React.useState({});
     const [showSignOnWorkerDropdownDraft, setShowSignOnWorkerDropdownDraft] = React.useState({});
     const [filteredSignOnWorkersDraft, setFilteredSignOnWorkersDraft] = React.useState({});
+    const [showSignOnWorkerDropdownActive, setShowSignOnWorkerDropdownActive] = React.useState({});
+    const [filteredSignOnWorkersActive, setFilteredSignOnWorkersActive] = React.useState({});
     
     // JSEA Editor states for draft screen
     const [showJseaEditorDraft, setShowJseaEditorDraft] = React.useState(false);
@@ -10562,7 +10564,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={isolation.isolatedBy || ''} 
@@ -10856,7 +10858,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {editData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={signOn.name || ''} 
