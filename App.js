@@ -9629,6 +9629,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [rejectionComment, setRejectionComment] = React.useState('');
+    const [showIsolatedByDropdownDraft, setShowIsolatedByDropdownDraft] = React.useState({});
+    const [filteredIsolatedByContractorsDraft, setFilteredIsolatedByContractorsDraft] = React.useState({});
     
     // JSEA Editor states for draft screen
     const [showJseaEditorDraft, setShowJseaEditorDraft] = React.useState(false);
@@ -10469,16 +10471,88 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <TextInput 
-                      style={styles.input} 
-                      value={isolation.isolatedBy || ''} 
-                      onChangeText={text => {
-                        const updated = [...editData.isolations];
-                        updated[idx] = { ...updated[idx], isolatedBy: text };
-                        setEditData(prev => ({ ...prev, isolations: updated }));
-                      }} 
-                      placeholder="Name of person who isolated"
-                    />
+                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={isolation.isolatedBy || ''} 
+                        onChangeText={text => {
+                          const updated = [...editData.isolations];
+                          updated[idx] = { ...updated[idx], isolatedBy: text };
+                          setEditData(prev => ({ ...prev, isolations: updated }));
+                          // Filter contractors based on input and site
+                          if (text.trim().length > 0 && editData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false }));
+                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (isolation.isolatedBy.trim().length > 0 && editData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 200);
+                        }}
+                        placeholder="Start typing person name (contractor or employee)..."
+                        editable={editData.site ? true : false}
+                      />
+                      {!editData.site && (
+                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                      )}
+                      {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          zIndex: 10,
+                          overflow: 'hidden',
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredIsolatedByContractorsDraft[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  const updated = [...editData.isolations];
+                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name };
+                                  setEditData(prev => ({ ...prev, isolations: updated }));
+                                  setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
