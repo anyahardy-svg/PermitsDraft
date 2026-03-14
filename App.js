@@ -1385,8 +1385,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   // --- Helper function to check if a specific permit section has missing required fields ---
-  const getPermitSectionMissingCount = (permitKey) => {
-    const permit = formData.specializedPermits[permitKey];
+  const getPermitSectionMissingCount = (permitKey, dataSource = null) => {
+    // Use provided dataSource or fall back to formData
+    const data = dataSource || formData;
+    const permit = data.specializedPermits[permitKey];
     if (!permit || !permit.required) return 0;
     
     const permitQuestions = permitQuestionnaires[permitKey] || [];
@@ -5893,10 +5895,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         })}
                       />
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
-                        {val.required && getPermitSectionMissingCount(key) > 0 && (
+                        {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                           <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
                             <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                              {getPermitSectionMissingCount(key)} missing
+                              {getPermitSectionMissingCount(key, editData)} missing
                             </Text>
                           </View>
                         )}
@@ -10314,10 +10316,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
-                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                          {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
                               <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                                {getPermitSectionMissingCount(key)} missing
+                                {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
                           )}
@@ -12181,10 +12183,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
-                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                          {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
                               <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                                {getPermitSectionMissingCount(key)} missing
+                                {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
                           )}
@@ -13547,10 +13549,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
-                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                          {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
                               <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                                {getPermitSectionMissingCount(key)} missing
+                                {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
                           )}
