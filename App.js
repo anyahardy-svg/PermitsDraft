@@ -11911,7 +11911,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns,
       attachments: permit.attachments || [],
-      site: permit.site || (initialSiteId ? siteIdToNameMap[initialSiteId] : '')
+      site: permit.site || (initialSiteId ? siteIdToNameMap[initialSiteId] : ''),
+      site_id: permit.site_id || initialSiteId || ''
     });
     const [inspector, setInspector] = React.useState('');
     const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
@@ -12232,7 +12233,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 label="Select Site"
                 options={ALL_SITES}
                 selectedValue={editData.site || ''}
-                onValueChange={value => setEditData({ ...editData, site: value })}
+                onValueChange={value => setEditData({ ...editData, site: value, site_id: siteNameToIdMap[value] || '' })}
                 style={styles.input}
               />
               
