@@ -9674,7 +9674,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Editable Approval Permit Screen (for Pending Approval)
   const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId, setShowRiskMatrix, setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext }) => {
-    console.log('📋 EditableApprovalPermitScreen - contractors prop:', contractors?.length || 0, contractors);
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
@@ -10571,18 +10570,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           const updated = [...editData.isolations];
                           updated[idx] = { ...updated[idx], isolatedBy: text };
                           setEditData(prev => ({ ...prev, isolations: updated }));
-                          // Filter contractors based on input and site
-                          if (text.trim().length > 0) {
-                            let siteContractors = contractors;
-                            // Only filter by site if location is set and contractors have siteIds
-                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
-                              siteContractors = contractors.filter(contractor => 
-                                contractor.siteIds && 
-                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                              );
-                            }
-                            const filtered = siteContractors.filter(c => 
-                              c.name.toLowerCase().includes(text.toLowerCase())
+                          // Simple filtering - just match by name
+                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                             );
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
@@ -10592,17 +10583,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (isolation.isolatedBy.trim().length > 0) {
-                            let siteContractors = contractors;
-                            // Only filter by site if location is set and contractors have siteIds
-                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
-                              siteContractors = contractors.filter(contractor => 
-                                contractor.siteIds && 
-                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                              );
-                            }
-                            const filtered = siteContractors.filter(c => 
-                              c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
+                          if (isolation.isolatedBy.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
                             );
                             setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
@@ -10879,26 +10862,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
-                          console.log('Sign-On search text:', text);
-                          console.log('Available contractors:', contractors.length);
-                          console.log('Contractors data:', contractors);
-                          // Filter contractors based on input and site
-                          if (text.trim().length > 0) {
-                            let siteContractors = contractors;
-                            // Only filter by site if location is set and contractors have siteIds
-                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
-                              siteContractors = contractors.filter(contractor => 
-                                contractor.siteIds && 
-                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                              );
-                              console.log('Filtered by location:', editData.location, 'Count:', siteContractors.length);
-                            } else {
-                              console.log('Not filtering by location (location: ' + editData.location + ', has siteIds: ' + contractors.some(c => c.siteIds && c.siteIds.length > 0) + ')');
-                            }
-                            const filtered = siteContractors.filter(c => 
-                              c.name.toLowerCase().includes(text.toLowerCase())
+                          // Simple filtering - just match by name
+                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                             );
-                            console.log('Filtered by name:', filtered.length, 'items');
                             setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
@@ -10907,17 +10875,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onFocus={() => {
-                          if (signOn.name.trim().length > 0) {
-                            let siteContractors = contractors;
-                            // Only filter by site if location is set and contractors have siteIds
-                            if (editData.location && contractors.some(c => c.siteIds && c.siteIds.length > 0)) {
-                              siteContractors = contractors.filter(contractor => 
-                                contractor.siteIds && 
-                                contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
-                              );
-                            }
-                            const filtered = siteContractors.filter(c => 
-                              c.name.toLowerCase().includes(signOn.name.toLowerCase())
+                          if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
                             );
                             setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
@@ -10951,7 +10911,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           shadowRadius: 4,
                           elevation: 5,
                         }} pointerEvents="auto">
-                          {console.log('✅ Showing Sign-On dropdown with', filteredSignOnWorkersDraft[idx]?.length, 'options')}
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkersDraft[idx].map(contractor => (
                               <TouchableOpacity
