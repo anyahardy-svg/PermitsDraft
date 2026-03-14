@@ -10878,6 +10878,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
+                          console.log('Sign-On search text:', text);
+                          console.log('Available contractors:', contractors.length);
+                          console.log('Contractors data:', contractors);
                           // Filter contractors based on input and site
                           if (text.trim().length > 0) {
                             let siteContractors = contractors;
@@ -10887,10 +10890,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 contractor.siteIds && 
                                 contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.location)
                               );
+                              console.log('Filtered by location:', editData.location, 'Count:', siteContractors.length);
+                            } else {
+                              console.log('Not filtering by location (location: ' + editData.location + ', has siteIds: ' + contractors.some(c => c.siteIds && c.siteIds.length > 0) + ')');
                             }
                             const filtered = siteContractors.filter(c => 
                               c.name.toLowerCase().includes(text.toLowerCase())
                             );
+                            console.log('Filtered by name:', filtered.length, 'items');
                             setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
