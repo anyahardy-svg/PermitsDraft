@@ -10310,11 +10310,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       </View>
                       {val.required && (
                         <>
+                          {renderQuestionnaire(
+                            key,
+                            editData,
+                            (permitKey, qid, value, field = 'answer') => {
+                              const updated = {
+                                ...val.questionnaire,
+                                [qid]: { ...val.questionnaire?.[qid], [field]: value }
+                              };
+                              handleSpecializedChange(key, 'questionnaire', updated);
+                            },
+                            permitQuestionnaires,
+                            styles
+                          )}
+
                           {/* HOTWORK SAFETY WATCH DROPDOWN */}
                           {key === 'hotWork' && (
                             <View style={{ marginBottom: 12 }}>
                               <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Who is the safety watch person?</Text>
-                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
+                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                                 <TextInput 
                                   style={[styles.input]} 
                                   value={val.questionnaire?.hw_safety_watch?.answer || ''} 
@@ -10409,7 +10423,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           {key === 'confinedSpace' && (
                             <View style={{ marginBottom: 12 }}>
                               <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Name</Text>
-                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
+                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                                 <TextInput 
                                   style={[styles.input]} 
                                   value={val.questionnaire?.safety_watch_name?.answer || ''} 
@@ -10498,20 +10512,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 )}
                               </View>
                             </View>
-                          )}
-
-                          {renderQuestionnaire(
-                            key,
-                            editData,
-                            (permitKey, qid, value, field = 'answer') => {
-                              const updated = {
-                                ...val.questionnaire,
-                                [qid]: { ...val.questionnaire?.[qid], [field]: value }
-                              };
-                              handleSpecializedChange(key, 'questionnaire', updated);
-                            },
-                            permitQuestionnaires,
-                            styles
                           )}
                         </>
                       )}
