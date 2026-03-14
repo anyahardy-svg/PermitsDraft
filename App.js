@@ -11904,6 +11904,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       contractorCompany: permit.contractor_company || permit.contractorCompany || '',
       manualCompany: permit.manual_company || permit.manualCompany || '',
       contractorSelected: permit.contractor_selected || false,
+      permitIssuer: permit.permitIssuer || permit.permitted_issuer || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jsea: permit.jsea || initialJSEA,
@@ -11955,6 +11956,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     // Sign-on worker dropdown states
     const [showSignOnWorkerDropdownActive, setShowSignOnWorkerDropdownActive] = React.useState({});
     const [filteredSignOnWorkersActive, setFilteredSignOnWorkersActive] = React.useState({});
+    
+    // Isolated by contractor dropdown states
+    const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
+    const [filteredIsolatedByContractorsActive, setFilteredIsolatedByContractorsActive] = React.useState({});
     
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
@@ -12597,16 +12602,91 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     )}
 
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <TextInput 
-                      style={styles.input} 
-                      value={isolation.isolatedBy || ''} 
-                      onChangeText={text => {
-                        const updated = [...editData.isolations];
-                        updated[idx] = { ...updated[idx], isolatedBy: text };
-                        setEditData(prev => ({ ...prev, isolations: updated }));
-                      }} 
-                      placeholder="Name of person who isolated"
-                    />
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={isolation.isolatedBy || ''} 
+                        onChangeText={text => {
+                          const updated = [...editData.isolations];
+                          updated[idx] = { ...updated[idx], isolatedBy: text };
+                          setEditData(prev => ({ ...prev, isolations: updated }));
+                          
+                          // Filter contractors based on input and site
+                          if (text.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
+                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (isolation.isolatedBy && isolation.isolatedBy.trim().length > 0 && editData.site_id) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteId === editData.site_id)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
+                            );
+                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
+                        }}
+                        placeholder="Name of person who isolated"
+                      />
+                      {showIsolatedByDropdownActive[idx] && filteredIsolatedByContractorsActive[idx] && filteredIsolatedByContractorsActive[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: 4,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          zIndex: 10000,
+                          overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 10,
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredIsolatedByContractorsActive[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  const updated = [...editData.isolations];
+                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name };
+                                  setEditData(prev => ({ ...prev, isolations: updated }));
+                                  setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
@@ -12650,7 +12730,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {editData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 - idx }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={signOn.name || ''} 
@@ -12689,21 +12769,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
                         <View style={{
                           position: 'absolute',
-                          top: 55,
+                          top: '100%',
                           left: 0,
+                          marginTop: 4,
                           right: 0,
                           backgroundColor: 'white',
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 300,
-                          zIndex: 9999,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.15,
                           shadowRadius: 4,
-                          elevation: 5,
+                          elevation: 10,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkersActive[idx].map(contractor => (
