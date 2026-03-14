@@ -9674,6 +9674,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Editable Approval Permit Screen (for Pending Approval)
   const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId, setShowRiskMatrix, setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext }) => {
+    console.log('📋 EditableApprovalPermitScreen - contractors prop:', contractors?.length || 0, contractors);
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
@@ -10950,6 +10951,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           shadowRadius: 4,
                           elevation: 5,
                         }} pointerEvents="auto">
+                          {console.log('✅ Showing Sign-On dropdown with', filteredSignOnWorkersDraft[idx]?.length, 'options')}
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkersDraft[idx].map(contractor => (
                               <TouchableOpacity
