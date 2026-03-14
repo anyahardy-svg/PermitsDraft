@@ -10605,10 +10605,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing person name (contractor or employee)..."
-                        editable={editData.site ? true : false}
                       />
                       {!editData.site && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                       )}
                       {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
                         <View style={{
