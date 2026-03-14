@@ -5893,6 +5893,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         })}
                       />
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
+                        {val.required && getPermitSectionMissingCount(key) > 0 && (
+                          <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                              {getPermitSectionMissingCount(key)} missing
+                            </Text>
+                          </View>
+                        )}
                     </View>
                     {/* Show full questionnaire for all specialized permits */}
                     {val.questionnaire && Object.entries(val.questionnaire).map(([qid, qval]) => (
@@ -10307,6 +10314,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
+                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                            <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                                {getPermitSectionMissingCount(key)} missing
+                              </Text>
+                            </View>
+                          )}
                       </View>
                       {val.required && (
                         <>
@@ -12167,6 +12181,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
+                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                            <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                                {getPermitSectionMissingCount(key)} missing
+                              </Text>
+                            </View>
+                          )}
                       </View>
                       {val.required &&
                         renderQuestionnaire(
@@ -13526,6 +13547,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           onValueChange={v => handleSpecializedChange(key, 'required', v)}
                         />
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
+                          {val.required && getPermitSectionMissingCount(key) > 0 && (
+                            <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                                {getPermitSectionMissingCount(key)} missing
+                              </Text>
+                            </View>
+                          )}
                       </View>
                       {val.required &&
                         renderQuestionnaire(
