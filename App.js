@@ -10528,7 +10528,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {editData.isolations && editData.isolations.length > 0 ? editData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, zIndex: 100 - idx }}>
+                  <View key={idx} style={{ marginBottom: 12, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                     {isolation.source === 'register' ? (
                       <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
