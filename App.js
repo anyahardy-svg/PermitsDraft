@@ -1959,8 +1959,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Isolated By dropdown state for each isolation
   const [showIsolatedByDropdown, setShowIsolatedByDropdown] = useState({});
   const [filteredIsolatedByContractors, setFilteredIsolatedByContractors] = useState({});
-  
-  // Site mapping for contractors
+    const [showSignOnDropdown, setShowSignOnDropdown] = useState({});
+    const [filteredSignOnContractors, setFilteredSignOnContractors] = useState({});
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
 
@@ -2649,7 +2649,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -9631,6 +9631,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [rejectionComment, setRejectionComment] = React.useState('');
     const [showIsolatedByDropdownDraft, setShowIsolatedByDropdownDraft] = React.useState({});
     const [filteredIsolatedByContractorsDraft, setFilteredIsolatedByContractorsDraft] = React.useState({});
+    const [showSignOnWorkerDropdownDraft, setShowSignOnWorkerDropdownDraft] = React.useState({});
+    const [filteredSignOnWorkersDraft, setFilteredSignOnWorkersDraft] = React.useState({});
     
     // JSEA Editor states for draft screen
     const [showJseaEditorDraft, setShowJseaEditorDraft] = React.useState(false);
@@ -10546,7 +10548,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -10761,11 +10763,92 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Name:</Text>
-                    <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
-                    <Text style={styles.detailText}>Signature:</Text>
-                    <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8 }}>
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
+                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={signOn.name || ''} 
+                        onChangeText={text => {
+                          handleSignOnChange(idx, 'name', text);
+                          // Filter contractors based on input and site
+                          if (text.trim().length > 0 && editData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false }));
+                            setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (signOn.name.trim().length > 0 && editData.site) {
+                            const siteContractors = contractors.filter(contractor => 
+                              contractor.siteIds && 
+                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === editData.site)
+                            );
+                            const filtered = siteContractors.filter(c => 
+                              c.name.toLowerCase().includes(signOn.name.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false })), 200);
+                        }}
+                        placeholder="Start typing worker name..."
+                        editable={editData.site ? true : false}
+                      />
+                      {!editData.site && (
+                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                      )}
+                      {showSignOnWorkerDropdownDraft[idx] && filteredSignOnWorkersDraft[idx] && filteredSignOnWorkersDraft[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          zIndex: 10,
+                          overflow: 'hidden',
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredSignOnWorkersDraft[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  handleSignOnChange(idx, 'name', contractor.name);
+                                  handleSignOnChange(idx, 'company', contractor.companyName || '');
+                                  setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                    {signOn.company && (
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
@@ -10776,7 +10859,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', signature: '' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', company: '' }] }))}>
                   <Text style={styles.addButtonText}>Add Worker</Text>
                 </TouchableOpacity>
               </View>
