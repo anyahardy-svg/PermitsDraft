@@ -5483,9 +5483,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           <View style={{ marginTop: 12 }}>
             <Text style={styles.label}>Sign-On (Other Workers):</Text>
             {editData.signOns.map((signOn, idx) => (
-              <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
+              <View key={idx} style={{ marginBottom: 12, marginLeft: 8, padding: 8, backgroundColor: '#F9FAFB', borderRadius: 6 }}>
                 <Text style={styles.detailText}>Name: {signOn.name}</Text>
-                <Text style={styles.detailText}>Signature: {signOn.signature}</Text>
+                {signOn.company && <Text style={styles.detailText}>Company: {signOn.company}</Text>}
               </View>
             ))}
           </View>
