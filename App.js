@@ -2734,14 +2734,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
                             <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                               <TextInput 
+                                editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                                 value={formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
                                     ...formData.specializedPermits[permit.key].questionnaire,
-                                    hw_safety_watch: { ...formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch, text: text }
+                                    hw_safety_watch: { ...(formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch || {}), text: text }
                                   };
-                                  handleSpecializedChange(permit.key, 'questionnaire', updated);
+                                  handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                 }}
                                 placeholder="Start typing person name..."
                               />
@@ -2755,14 +2756,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
                             <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                               <TextInput 
+                                editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                                 value={formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
                                     ...formData.specializedPermits[permit.key].questionnaire,
-                                    safety_watch_name: { ...formData.specializedPermits[permit.key].questionnaire?.safety_watch_name, text: text }
+                                    safety_watch_name: { ...(formData.specializedPermits[permit.key].questionnaire?.safety_watch_name || {}), text: text }
                                   };
-                                  handleSpecializedChange(permit.key, 'questionnaire', updated);
+                                  handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                 }}
                                 placeholder="Start typing person name..."
                               />
