@@ -11898,7 +11898,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
-  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, getRiskColor, isolationRegisters }) => {
+  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, businessUnitId, contractors, servicesFromDb }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       contractorCompany: permit.contractor_company || permit.contractorCompany || '',
@@ -11939,6 +11939,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
     const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
     
+    // JSEA Editor states for inspection screen
+    const [showJseaEditorDraft, setShowJseaEditorDraft] = React.useState(false);
+    const [showJseaTemplateLoaderDraft, setShowJseaTemplateLoaderDraft] = React.useState(false);
+    const [showJseaSaveTemplateDraft, setShowJseaSaveTemplateDraft] = React.useState(false);
+    const [jseaTemplateNameDraft, setJseaTemplateNameDraft] = React.useState('');
+    const [jseaTemplatesAvailableDraft, setJseaTemplatesAvailableDraft] = React.useState([]);
+    const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
+    const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
+    const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
+    const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
+    const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
+    
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
         ...prev,
@@ -11971,6 +11983,142 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         return { ...prev, signOns };
       });
     };
+    
+    // --- JSEA Template handlers for inspection screen ---
+    const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
+      try {
+        const buIdToUse = buIdToLoad || businessUnitId;
+        if (!buIdToUse) {
+          console.warn('[WARN] No business unit ID available for loading templates');
+          return;
+        }
+        
+        console.log('[DEBUG] Loading JSEA templates for BU:', buIdToUse);
+        setLoadingJseaTemplatesDraft(true);
+        const response = await getJseaTemplates(buIdToUse);
+        
+        console.log('[DEBUG] API response:', response);
+        if (response?.data) {
+          console.log('[DEBUG] Templates received:', response.data.length, 'templates');
+          response.data.forEach((t, idx) => {
+            console.log(`[DEBUG] Template ${idx}:`, {
+              id: t.id,
+              name: t.name,
+              jseaType: typeof t.jsea,
+              jseaLength: Array.isArray(t.jsea) ? t.jsea.length : 'N/A',
+              hasJseaProperty: 'jsea' in t
+            });
+          });
+          setJseaTemplatesAvailableDraft(response.data || []);
+        } else {
+          console.warn('[WARN] Response does not contain data field:', response);
+        }
+      } catch (error) {
+        console.error('[ERROR] Error loading JSEA templates:', error);
+        console.error('[ERROR] Stack:', error.stack);
+        Alert.alert('Error', 'Failed to load templates');
+      } finally {
+        setLoadingJseaTemplatesDraft(false);
+      }
+    };
+
+    const handleLoadJseaTemplateDraft = (template) => {
+      try {
+        console.log('[DEBUG] handleLoadJseaTemplateDraft called with:', template);
+        
+        if (!template) {
+          console.error('[ERROR] Template is null or undefined');
+          Alert.alert('Error', 'Invalid template');
+          return;
+        }
+        
+        let taskStepsArray = null;
+        
+        if (Array.isArray(template.jsea)) {
+          taskStepsArray = template.jsea;
+          console.log('[DEBUG] template.jsea is direct array:', taskStepsArray.length, 'steps');
+        } else if (template.jsea?.taskSteps && Array.isArray(template.jsea.taskSteps)) {
+          taskStepsArray = template.jsea.taskSteps;
+          console.log('[DEBUG] template.jsea.taskSteps is array:', taskStepsArray.length, 'steps');
+        } else {
+          console.warn('[WARN] Could not find task steps in template:', {
+            jseaType: typeof template.jsea,
+            isJseaArray: Array.isArray(template.jsea),
+            hasTaskSteps: 'taskSteps' in (template.jsea || {}),
+            jsea: template.jsea
+          });
+          Alert.alert('Error', 'Template does not contain valid JSEA steps');
+          return;
+        }
+        
+        setEditData({
+          ...editData,
+          jsea: {
+            ...editData.jsea,
+            taskSteps: taskStepsArray
+          }
+        });
+        console.log('[DEBUG] Updated editData with', taskStepsArray.length, 'task steps');
+        
+        setShowJseaTemplateLoaderDraft(false);
+      } catch (error) {
+        console.error('[ERROR] Exception in handleLoadJseaTemplateDraft:', error);
+        console.error('[ERROR] Stack:', error.stack);
+        Alert.alert('Error', `Failed to load template: ${error.message}`);
+      }
+    };
+
+    const handleSaveJseaAsTemplateDraft = async () => {
+      if (!jseaTemplateNameDraft.trim()) {
+        Alert.alert('Warning', 'Please enter a template name');
+        return;
+      }
+
+      try {
+        setLoadingJseaTemplatesDraft(true);
+        const response = await saveJseaTemplate(
+          jseaTemplateNameDraft,
+          editData.jsea.taskSteps,
+          [businessUnitId],
+          null,
+          []
+        );
+        if (response?.id) {
+          Alert.alert('Success', `Template "${jseaTemplateNameDraft}" saved successfully`);
+          setJseaTemplateNameDraft('');
+          setShowJseaSaveTemplateDraft(false);
+        }
+      } catch (error) {
+        console.error('Error saving template:', error);
+        Alert.alert('Error', 'Failed to save template');
+      } finally {
+        setLoadingJseaTemplatesDraft(false);
+      }
+    };
+
+    const handleEditJseaDraft = useCallback(() => {
+      console.log('handleEditJseaDraft callback executing');
+      setShowJseaEditorDraft(true);
+    }, []);
+
+    const handleLoadTemplateDraft = useCallback(() => {
+      console.log('handleLoadTemplateDraft callback executing');
+      setSelectedBuForLoaderDraft(businessUnitId || '');
+      setShowJseaTemplateLoaderDraft(true);
+      loadJseaTemplatesForLoaderDraft(businessUnitId);
+    }, [businessUnitId]);
+
+    const handleSaveTemplateDraft = useCallback(() => {
+      console.log('handleSaveTemplateDraft callback executing');
+      setShowJseaSaveTemplateDraft(true);
+    }, []);
+
+    const handleSelectRiskLevel = useCallback(() => {
+      console.log('[DEBUG] Opening local Risk Matrix modal for inspection JSEA');
+      setSelectedLikelihoodDraft('');
+      setSelectedSeverityDraft('');
+      setShowRiskMatrixDraft(true);
+    }, []);
     
     // --- Handle image/attachment picking for inspection screen ---
     const handlePickImage = async () => {
@@ -14619,8 +14767,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           users={permitIssuers}
           siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
+          permitQuestionnaires={permitQuestionnaires}
+          specializedPermitTypes={specializedPermitTypes}
+          singleHazardTypes={singleHazardTypes}
           getRiskColor={getRiskColor}
           isolationRegisters={isolationRegisters}
+          businessUnitId={businessUnitId}
+          contractors={contractors}
+          servicesFromDb={services}
         />
       );
     case 'active':
