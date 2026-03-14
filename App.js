@@ -11898,7 +11898,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   // Editable Inspection Permit Screen (for Needs Inspection)
-  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, businessUnitId, contractors, servicesFromDb }) => {
+  const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, businessUnitId, contractors, servicesFromDb, initialSiteId }) => {
     const [editData, setEditData] = React.useState({
       ...permit,
       contractorCompany: permit.contractor_company || permit.contractorCompany || '',
@@ -11909,7 +11909,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       jsea: permit.jsea || initialJSEA,
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns,
-      attachments: permit.attachments || []
+      attachments: permit.attachments || [],
+      site: permit.site || (initialSiteId ? siteIdToNameMap[initialSiteId] : '')
     });
     const [inspector, setInspector] = React.useState('');
     const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
@@ -11950,6 +11951,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
+    
+    // Sign-on worker dropdown states
+    const [showSignOnWorkerDropdownActive, setShowSignOnWorkerDropdownActive] = React.useState({});
+    const [filteredSignOnWorkersActive, setFilteredSignOnWorkersActive] = React.useState({});
     
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
@@ -15145,6 +15150,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           businessUnitId={businessUnitId}
           contractors={contractors}
           servicesFromDb={servicesFromDb}
+          initialSiteId={initialSiteId}
         />
       );
     case 'active':
