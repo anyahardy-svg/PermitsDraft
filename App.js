@@ -2727,6 +2727,48 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       <>
                         {/* Render the new questionnaire with per-question controls */}
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
+                        
+                        {/* HOT WORK SAFETY WATCH CUSTOM FIELD */}
+                        {permit.key === 'hotWork' && (
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                            <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                              <TextInput 
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                                value={formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || ''} 
+                                onChangeText={text => {
+                                  const updated = {
+                                    ...formData.specializedPermits[permit.key].questionnaire,
+                                    hw_safety_watch: { ...formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch, text: text }
+                                  };
+                                  handleSpecializedChange(permit.key, 'questionnaire', updated);
+                                }}
+                                placeholder="Start typing person name..."
+                              />
+                            </View>
+                          </View>
+                        )}
+                        
+                        {/* CONFINED SPACE SAFETY WATCH CUSTOM FIELD */}
+                        {permit.key === 'confinedSpace' && (
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                            <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                              <TextInput 
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                                value={formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || ''} 
+                                onChangeText={text => {
+                                  const updated = {
+                                    ...formData.specializedPermits[permit.key].questionnaire,
+                                    safety_watch_name: { ...formData.specializedPermits[permit.key].questionnaire?.safety_watch_name, text: text }
+                                  };
+                                  handleSpecializedChange(permit.key, 'questionnaire', updated);
+                                }}
+                                placeholder="Start typing person name..."
+                              />
+                            </View>
+                          </View>
+                        )}
                       </>
                     )}
                   </View>
