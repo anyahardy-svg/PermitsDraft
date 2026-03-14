@@ -3042,7 +3042,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <Text style={styles.label}>Signature</Text>
                     <TextInput
                       style={styles.input}
-                      value={signOn.signature}
+                      value={signOn.company || ''}
                       onChangeText={text => {
                         const updated = [...formData.signOns];
                         updated[idx] = { ...updated[idx], signature: text };
@@ -3059,7 +3059,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.addButton} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', signature: '' }] })}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setFormData({ ...formData, signOns: [...formData.signOns, { name: '', company: '' }] })}>
                   <Text style={styles.addButtonText}>Add Worker</Text>
                 </TouchableOpacity>
               </View>
@@ -5905,11 +5905,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       handleEditChange('signOns', updated);
                     }} placeholder="Worker Name" />
                     <Text style={styles.detailText}>Signature:</Text>
-                    <TextInput style={styles.input} value={signOn.signature} onChangeText={text => {
+                    <TextInput style={styles.input} value={signOn.company || ''} onChangeText={text => {
                       const updated = [...localEditData.signOns];
                       updated[idx] = { ...signOn, signature: text };
                       handleEditChange('signOns', updated);
-                    }} placeholder="Signature" />
+                    }} placeholder="Company" />
                   </View>
                 ))}
               </View>
@@ -12193,8 +12193,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
                     <Text style={styles.detailText}>Name:</Text>
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
-                    <Text style={styles.detailText}>Signature:</Text>
-                    <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+                    {signOn.company && (
+                      <View style={{ marginBottom: 12, marginTop: 8, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
@@ -12205,7 +12208,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', signature: '' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', company: '' }] }))}>
                   <Text style={styles.addButtonText}>Add Worker</Text>
                 </TouchableOpacity>
               </View>
@@ -13474,8 +13477,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
                     <Text style={styles.detailText}>Name:</Text>
                     <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
-                    <Text style={styles.detailText}>Signature:</Text>
-                    <TextInput style={styles.input} value={signOn.signature} onChangeText={text => handleSignOnChange(idx, 'signature', text)} placeholder="Signature" />
+                    {signOn.company && (
+                      <View style={{ marginBottom: 12, marginTop: 8, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity onPress={() => {
                       setEditData(prev => {
                         const signOns = prev.signOns.filter((_, i) => i !== idx);
@@ -13486,7 +13492,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', signature: '' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', company: '' }] }))}>
                   <Text style={styles.addButtonText}>Add Worker</Text>
                 </TouchableOpacity>
               </View>
