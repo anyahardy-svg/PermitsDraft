@@ -14774,7 +14774,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           isolationRegisters={isolationRegisters}
           businessUnitId={businessUnitId}
           contractors={contractors}
-          servicesFromDb={services}
+          servicesFromDb={servicesFromDb}
         />
       );
     case 'active':
