@@ -980,6 +980,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedBusForTemplate, setSelectedBusForTemplate] = useState([]);
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
+  const [selectedCompanyForLoader, setSelectedCompanyForLoader] = useState('');
   const [showRiskMatrix, setShowRiskMatrix] = useState(false);
   const [riskMatrixContext, setRiskMatrixContext] = useState('new'); // 'new' or 'draft'
   const [selectedLikelihood, setSelectedLikelihood] = useState('');
@@ -3572,6 +3573,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     selectedValue={selectedBuForLoader}
                     onValueChange={(itemValue) => {
                       setSelectedBuForLoader(itemValue);
+                      setSelectedCompanyForLoader(''); // Reset company filter
                       if (itemValue) {
                         loadJseaTemplatesForLoader(itemValue);
                       }
@@ -3588,11 +3590,55 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
               </View>
 
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Company (Optional)</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedCompanyForLoader}
+                    onValueChange={(itemValue) => {
+                      setSelectedCompanyForLoader(itemValue);
+                    }}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="All companies" value="" />
+                    {selectedBuForLoader && companies
+                      .filter(company => {
+                        // Filter to companies that have templates for the selected BU
+                        return jseaTemplatesAvailable.some(t => 
+                          t.company_id === company.id && 
+                          (t.business_unit_ids || []).includes(selectedBuForLoader)
+                        );
+                      })
+                      .map(company => (
+                        <Picker.Item key={company.id} label={company.name} value={company.id} />
+                      ))}
+                  </Picker>
+                </View>
+              </View>
+
               {loadingJseaTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
                 </View>
-              ) : jseaTemplatesAvailable.length === 0 ? (
+              ) : jseaTemplatesAvailable.filter(t => {
+                // Filter by BU
+                const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoader);
+                // Filter by company if selected
+                const matchesCompany = !selectedCompanyForLoader || t.company_id === selectedCompanyForLoader;
+                return matchesBu && matchesCompany;
+              }).length === 0 ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
                     No templates available for this business unit.
@@ -3600,7 +3646,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {jseaTemplatesAvailable.map((template) => {
+                  {jseaTemplatesAvailable
+                    .filter(t => {
+                      // Filter by BU
+                      const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoader);
+                      // Filter by company if selected
+                      const matchesCompany = !selectedCompanyForLoader || t.company_id === selectedCompanyForLoader;
+                      return matchesBu && matchesCompany;
+                    })
+                    .map((template) => {
                     // Get company name if company_id exists
                     const companyName = template.company_id 
                       ? companies.find(c => c.id === template.company_id)?.name 
