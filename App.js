@@ -10868,17 +10868,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {editData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
                       <TextInput 
-                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        style={[styles.input]} 
                         value={signOn.name || ''} 
                         onChangeText={text => {
                           handleSignOnChange(idx, 'name', text);
-                          // Simple filtering - just match by name
+                          // Filter by name AND site
                           if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
+                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                            console.log('Sign on filtering - editData.site:', editData.site, 'siteId:', siteId);
+                            const filtered = contractors.filter(c => {
+                              const matchesName = c && c.name && c.name.toLowerCase().includes(text.toLowerCase());
+                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
+                              return matchesName && matchesSite;
+                            });
                             setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           } else {
@@ -10888,9 +10892,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         }}
                         onFocus={() => {
                           if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
-                            );
+                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                            const filtered = contractors.filter(c => {
+                              const matchesName = c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase());
+                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
+                              return matchesName && matchesSite;
+                            });
                             setFilteredSignOnWorkersDraft(prev => ({ ...prev, [idx]: filtered }));
                             setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
                           }
@@ -10899,10 +10906,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           setTimeout(() => setShowSignOnWorkerDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing worker name..."
-                        editable={editData.location ? true : false}
                       />
-                      {!editData.location && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                      {!editData.site && (
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                       )}
                       {showSignOnWorkerDropdownDraft[idx] && filteredSignOnWorkersDraft[idx] && filteredSignOnWorkersDraft[idx].length > 0 && (
                         <View style={{
@@ -10915,7 +10921,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 300,
-                          zIndex: 9999,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
