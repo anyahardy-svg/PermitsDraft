@@ -2146,7 +2146,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           </TouchableOpacity>
           <Text style={styles.title}>New Permit{isKioskMode && formData.site ? ` - ${formData.site}` : ''}</Text>
         </View>
-        <ScrollView style={styles.screenContainer} contentContainerStyle={{ flexGrow: 1 }} ref={permitFormScrollRef}>
+        <ScrollView 
+          style={styles.screenContainer} 
+          contentContainerStyle={{ flexGrow: 1 }} 
+          ref={permitFormScrollRef}
+          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v)}
+        >
           {/* General Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('general')}>
@@ -3069,7 +3074,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           }
                         }}
                         onBlur={() => {
-                          setTimeout(() => setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: false })), 200);
+                          setTimeout(() => setShowSignOnWorkerDropdown(prev => ({ ...prev, [idx]: false })), 500);
                         }}
                         placeholder="Start typing worker name..."
                         editable={formData.site ? true : false}
