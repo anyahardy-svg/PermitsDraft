@@ -3313,13 +3313,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 300,
-                          zIndex: 9999,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.15,
                           shadowRadius: 4,
-                          elevation: 5,
+                          elevation: 10,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkers[idx].map(contractor => (
