@@ -12274,11 +12274,86 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Name:</Text>
-                    <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={signOn.name || ''} 
+                        onChangeText={text => {
+                          handleSignOnChange(idx, 'name', text);
+                          // Simple filtering - just match by name
+                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false }));
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
+                        }}
+                        placeholder="Start typing worker name..."
+                        editable={editData.location ? true : false}
+                      />
+                      {!editData.location && (
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                      )}
+                      {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 300,
+                          zIndex: 9999,
+                          overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredSignOnWorkersActive[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  handleSignOnChange(idx, 'name', contractor.name);
+                                  handleSignOnChange(idx, 'company', contractor.companyName || contractor.company || '');
+                                  setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     {signOn.company && (
-                      <View style={{ marginBottom: 12, marginTop: 8, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
                         <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
                       </View>
                     )}
@@ -12293,7 +12368,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 ))}
                 <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', company: '' }] }))}>
-                  <Text style={styles.addButtonText}>Add Worker</Text>
+                  <Text style={styles.addButtonText}>+ Add Worker</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -13558,11 +13633,86 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                    <Text style={styles.detailText}>Name:</Text>
-                    <TextInput style={styles.input} value={signOn.name} onChangeText={text => handleSignOnChange(idx, 'name', text)} placeholder="Worker Name" />
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                      <TextInput 
+                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                        value={signOn.name || ''} 
+                        onChangeText={text => {
+                          handleSignOnChange(idx, 'name', text);
+                          // Simple filtering - just match by name
+                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          } else {
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false }));
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: [] }));
+                          }
+                        }}
+                        onFocus={() => {
+                          if (signOn.name.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c => 
+                              c && c.name && c.name.toLowerCase().includes(signOn.name.toLowerCase())
+                            );
+                            setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: filtered }));
+                            setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
+                        }}
+                        placeholder="Start typing worker name..."
+                        editable={editData.location ? true : false}
+                      />
+                      {!editData.location && (
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                      )}
+                      {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 55,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 300,
+                          zIndex: 9999,
+                          overflow: 'visible',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 5,
+                        }} pointerEvents="auto">
+                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                            {filteredSignOnWorkersActive[idx].map(contractor => (
+                              <TouchableOpacity
+                                key={contractor.id}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  handleSignOnChange(idx, 'name', contractor.name);
+                                  handleSignOnChange(idx, 'company', contractor.companyName || contractor.company || '');
+                                  setShowSignOnWorkerDropdownActive(prev => ({ ...prev, [idx]: false }));
+                                  setFilteredSignOnWorkersActive(prev => ({ ...prev, [idx]: [] }));
+                                }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     {signOn.company && (
-                      <View style={{ marginBottom: 12, marginTop: 8, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
+                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
                         <Text style={[styles.detailText, { color: '#374151' }]}>Company: {signOn.company}</Text>
                       </View>
                     )}
@@ -13577,7 +13727,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 ))}
                 <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, signOns: [...(prev.signOns || []), { name: '', company: '' }] }))}>
-                  <Text style={styles.addButtonText}>Add Worker</Text>
+                  <Text style={styles.addButtonText}>+ Add Worker</Text>
                 </TouchableOpacity>
               </View>
             )}
