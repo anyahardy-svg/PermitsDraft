@@ -3036,7 +3036,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 {formData.signOns.map((signOn, idx) => (
                   <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
                     <Text style={styles.label}>Worker Name</Text>
-                    <View style={{ position: 'relative', marginBottom: 12 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
                       <TextInput
                         style={[styles.input, { position: 'relative', zIndex: 1 }]}
                         value={signOn.name}
@@ -3092,9 +3092,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10,
-                          overflow: 'hidden',
+                          maxHeight: 250,
+                          zIndex: 1000,
+                          overflow: 'visible',
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredSignOnWorkers[idx].map(contractor => (
