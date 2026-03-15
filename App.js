@@ -10369,8 +10369,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         return;
       }
 
+      if (!businessUnitId) {
+        Alert.alert('Error', 'Cannot save template: Business Unit is not set. Please make sure the permit has a valid business unit assigned.');
+        return;
+      }
+
+      if (!editData?.id) {
+        Alert.alert('Error', 'Cannot save template: Permit ID is missing.');
+        return;
+      }
+
       try {
         setLoadingPermitSaveTemplate(true);
+        console.log('[App.js] Saving permit template with:', {
+          permitId: editData.id,
+          templateName: permitTemplateNameDraft,
+          businessUnitId,
+          company: selectedCompanyForPermitTemplateDraft
+        });
         
         // Save the current permit as a template using selected company
         const response = await savePermitAsTemplate(
@@ -10381,6 +10397,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           null // createdBy (optional)
         );
         
+        console.log('[App.js] Save response:', response);
+        
         if (response?.success || response?.data) {
           Alert.alert('Success', `Template "${permitTemplateNameDraft}" saved successfully`);
           setPermitTemplateNameDraft('');
@@ -10388,7 +10406,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           setSelectedCompanyForPermitTemplateDraft('');
           setShowPermitSaveTemplateDraft(false);
         } else {
-          throw new Error(response?.error?.message || 'Unknown error');
+          throw new Error(response?.error || 'Unknown error');
         }
       } catch (error) {
         console.error('Error saving permit template:', error);

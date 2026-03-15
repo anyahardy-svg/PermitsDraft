@@ -20,6 +20,13 @@ import { supabase } from '../supabaseClient';
  */
 export async function savePermitAsTemplate(permitId, templateName, businessUnitId, companyName = null, createdBy = null) {
   try {
+    // Validate required parameters
+    if (!permitId) throw new Error('permitId is required');
+    if (!templateName || !templateName.trim()) throw new Error('templateName is required');
+    if (!businessUnitId) throw new Error('businessUnitId is required - make sure you\'re on a permit with a business unit assigned');
+
+    console.log('[DEBUG] Saving permit template with:', { permitId, templateName, businessUnitId, companyName, createdBy });
+
     // Fetch the permit to extract template data
     const { data: permit, error: permitError } = await supabase
       .from('permits')
@@ -28,27 +35,35 @@ export async function savePermitAsTemplate(permitId, templateName, businessUnitI
       .single();
 
     if (permitError) throw permitError;
+    if (!permit) throw new Error('Permit not found');
 
     // Use provided company name or fall back to permit's contractor company
     const templateCompanyName = companyName || permit.contractor_company || null;
 
     // Create template record with only the reusable permit components
+    const insertData = {
+      template_name: templateName,
+      business_unit_id: businessUnitId,
+      company_name: templateCompanyName,
+      specialized_permits: permit.specialized_permits || {},
+      single_hazards: permit.single_hazards || {},
+      jsea: permit.jsea || {},
+      completion: permit.completion || null,
+      created_by: createdBy
+    };
+
+    console.log('[DEBUG] Insert data:', insertData);
+
     const { data, error } = await supabase
       .from('permit_templates')
-      .insert({
-        template_name: templateName,
-        business_unit_id: businessUnitId,
-        company_name: templateCompanyName,
-        specialized_permits: permit.specialized_permits || {},
-        single_hazards: permit.single_hazards || {},
-        jsea: permit.jsea || {},
-        completion: permit.completion || null,
-        created_by: createdBy
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[ERROR] Database error:', error);
+      throw error;
+    }
 
     return {
       success: true,

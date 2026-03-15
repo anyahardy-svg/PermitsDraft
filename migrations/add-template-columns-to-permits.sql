@@ -31,5 +31,6 @@ CREATE INDEX IF NOT EXISTS idx_permit_templates_created_at ON permit_templates(c
 -- Enable RLS
 ALTER TABLE permit_templates ENABLE ROW LEVEL SECURITY;
 
--- Allow all access (same as other tables)
+-- Drop existing policy if it exists, then recreate (or just create if not exists)
+DROP POLICY IF EXISTS "Allow all access to permit_templates" ON permit_templates;
 CREATE POLICY "Allow all access to permit_templates" ON permit_templates FOR ALL USING (true);
