@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
-import SignatureCanvas from 'react-native-signature-canvas';
+import SignaturePad from 'signature_pad';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
@@ -488,6 +488,62 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
     </Modal>
   );
 };
+
+// Custom Signature Pad Component for Web
+function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height = 250 }) {
+  const canvasRef = React.useRef(null);
+  const signaturePadRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (canvasRef.current && !signaturePadRef.current) {
+      // Get device pixel ratio for better quality
+      const dpr = window.devicePixelRatio || 1;
+      
+      const canvas = canvasRef.current;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      
+      // Scale canvas back to CSS pixels
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      
+      // Scale context to match device pixel ratio
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      
+      // Initialize signature pad
+      signaturePadRef.current = new SignaturePad(canvas, {
+        minWidth: 0.5,
+        maxWidth: 2.5,
+        throttle: 16,
+      });
+
+      // Expose reference for external access
+      if (signatureRef) {
+        signatureRef.current = signaturePadRef.current;
+      }
+    }
+
+    return () => {
+      // Cleanup if needed
+    };
+  }, [width, height, signatureRef]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        border: '2px solid #E5E7EB',
+        borderRadius: '8px',
+        backgroundColor: 'white',
+        cursor: 'crosshair',
+        display: 'block',
+        width: '100%',
+        height: `${height}px`,
+      }}
+    />
+  );
+}
 
 const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
@@ -10430,7 +10486,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         return;
       }
 
-      if (!requesterSignatureDraft) {
+      // Capture signature from canvas before submitting
+      let signatureData = requesterSignatureDraft;
+      if (signatureRefDraft.current && !signatureRefDraft.current.isEmpty()) {
+        signatureData = signatureRefDraft.current.toDataURL('image/png');
+      } else if (!requesterSignatureDraft) {
         Alert.alert('Required', 'Please provide your signature before submitting.');
         return;
       }
@@ -10458,7 +10518,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           isolations: editData.isolations,
           sign_ons: editData.signOns,
           attachments: editData.attachments,
-          requester_signature: requesterSignatureDraft
+          requester_signature: signatureData
         });
         
         const freshPermits = await listPermits();
@@ -12692,21 +12752,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   backgroundColor: '#FAFAFA',
                   overflow: 'hidden'
                 }}>
-                  <SignatureCanvas
-                    ref={signatureRefDraft}
-                    onOK={(signature) => {
-                      setRequesterSignatureDraft(signature);
+                  <WebSignaturePad
+                    signatureRef={signatureRefDraft}
+                    onSignatureChange={() => {
+                      if (signatureRefDraft.current && !signatureRefDraft.current.isEmpty()) {
+                        setRequesterSignatureDraft(signatureRefDraft.current.toDataURL('image/png'));
+                      }
                     }}
-                    onEmpty={() => {
-                      setRequesterSignatureDraft(null);
-                    }}
-                    bgColor="white"
-                    penColor="black"
-                    customStyle={{
-                      width: '100%',
-                      height: 250,
-                      border: 'none'
-                    }}
+                    width={300}
+                    height={250}
                   />
                 </View>
                 {requesterSignatureDraft && (
@@ -12734,7 +12788,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     alignItems: 'center'
                   }}
                   onPress={() => {
-                    signatureRefDraft.current?.clearSignature();
+                    if (signatureRefDraft.current) {
+                      signatureRefDraft.current.clear();
+                    }
                     setRequesterSignatureDraft(null);
                   }}
                 >
