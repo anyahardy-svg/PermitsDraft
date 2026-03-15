@@ -12426,34 +12426,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 fontWeight: '600', 
                 color: '#1F2937', 
                 marginBottom: 8 
-              }}>Contractor Company (Optional)</Text>
-              <View style={{
-                borderWidth: 1,
-                borderColor: '#E5E7EB',
-                borderRadius: 8,
-                backgroundColor: 'white'
-              }}>
-                <Picker
-                  selectedValue={selectedCompanyForPermitTemplateDraft}
-                  onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateDraft(itemValue)}
-                  style={{
-                    color: '#1F2937'
-                  }}
-                >
-                  <Picker.Item label="No specific company" value="" />
-                  {companies.map(company => (
-                    <Picker.Item key={company.id} label={company.name} value={company.name} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ 
-                fontSize: 14, 
-                fontWeight: '600', 
-                color: '#1F2937', 
-                marginBottom: 8 
               }}>Business Units * (select one or more)</Text>
               <View style={{ gap: 8 }}>
                 {businessUnits.map(bu => {
@@ -12494,6 +12466,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     </TouchableOpacity>
                   );
                 })}
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Contractor Company (Optional)</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedCompanyForPermitTemplateDraft}
+                  onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateDraft(itemValue)}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="No specific company" value="" />
+                  {companies.map(company => (
+                    <Picker.Item key={company.id} label={company.name} value={company.name} />
+                  ))}
+                </Picker>
               </View>
             </View>
 
