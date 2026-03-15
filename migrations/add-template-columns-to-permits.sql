@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS permit_templates (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add company_name column if table already exists (for existing tables)
+ALTER TABLE IF EXISTS permit_templates ADD COLUMN IF NOT EXISTS company_name TEXT;
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_permit_templates_business_unit ON permit_templates(business_unit_id);
 CREATE INDEX IF NOT EXISTS idx_permit_templates_name ON permit_templates(template_name);
