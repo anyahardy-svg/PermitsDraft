@@ -491,24 +491,40 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
 // Custom Signature Pad Component using Canvas API
 function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height = 250 }) {
   const canvasRef = React.useRef(null);
+  const containerRef = React.useRef(null);
   const isDrawingRef = React.useRef(false);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas size
-    canvas.width = width;
-    canvas.height = height;
+    // Get the actual container width to make canvas responsive
+    const container = containerRef.current;
+    let actualWidth = width;
+    let actualHeight = height;
+    
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      actualWidth = Math.max(rect.width, 300); // At least 300px
+      actualHeight = Math.max(rect.height, 250); // At least 250px
+    }
+
+    // Set canvas resolution (actual drawing surface)
+    canvas.width = actualWidth;
+    canvas.height = actualHeight;
+
+    // Set canvas display size to match
+    canvas.style.width = `${actualWidth}px`;
+    canvas.style.height = `${actualHeight}px`;
 
     // Get context and set it up for drawing
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, actualWidth, actualHeight);
 
     // Expose functions for external access
     if (signatureRef) {
@@ -517,7 +533,13 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
         ctx: ctx,
         isEmpty: () => {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          return imageData.data.every((x) => x === 0 || x === 255);
+          // Check if all pixels are white (255, 255, 255, 255) or transparent
+          for (let i = 3; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] > 200) { // If any pixel has significant alpha
+              return false;
+            }
+          }
+          return true;
         },
         toDataURL: (type = 'image/png') => canvas.toDataURL(type),
         clear: () => {
@@ -531,8 +553,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
     // Mouse down
     const handleMouseDown = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
       isDrawingRef.current = true;
       ctx.beginPath();
@@ -544,8 +566,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
       if (!isDrawingRef.current) return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
       ctx.lineTo(x, y);
       ctx.stroke();
@@ -565,8 +587,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
 
       isDrawingRef.current = true;
       ctx.beginPath();
@@ -579,8 +601,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
 
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
 
       ctx.lineTo(x, y);
       ctx.stroke();
@@ -615,19 +637,30 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   }, [width, height, onSignatureChange, signatureRef]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={containerRef}
       style={{
-        border: '2px solid #E5E7EB',
-        borderRadius: '8px',
-        backgroundColor: 'white',
-        cursor: 'crosshair',
-        display: 'block',
         width: '100%',
         height: `${height}px`,
-        touchAction: 'none'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          border: '2px solid #E5E7EB',
+          borderRadius: '8px',
+          backgroundColor: 'white',
+          cursor: 'crosshair',
+          display: 'block',
+          touchAction: 'none',
+          maxWidth: '100%',
+          height: '100%'
+        }}
+      />
+    </div>
   );
 }
 
