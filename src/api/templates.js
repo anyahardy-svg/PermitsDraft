@@ -27,10 +27,10 @@ export async function savePermitAsTemplate(permitId, templateName, businessUnitI
 
     console.log('[DEBUG] Saving permit template with:', { permitId, templateName, businessUnitId, companyName, createdBy });
 
-    // Fetch the permit to extract template data
+    // Fetch the permit to extract template data (without 'completion' which may not exist in permits table)
     const { data: permit, error: permitError } = await supabase
       .from('permits')
-      .select('specialized_permits, single_hazards, jsea, completion, contractor_company')
+      .select('specialized_permits, single_hazards, jsea, contractor_company')
       .eq('id', permitId)
       .single();
 
@@ -48,7 +48,6 @@ export async function savePermitAsTemplate(permitId, templateName, businessUnitI
       specialized_permits: permit.specialized_permits || {},
       single_hazards: permit.single_hazards || {},
       jsea: permit.jsea || {},
-      completion: permit.completion || null,
       created_by: createdBy
     };
 
