@@ -10449,6 +10449,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [loadingRequesterSignatureDraft, setLoadingRequesterSignatureDraft] = React.useState(false);
     const signatureRefDraft = React.useRef(null);
     
+    // Issuer Signature states for approval
+    const [showIssuerSignatureApproval, setShowIssuerSignatureApproval] = React.useState(false);
+    const [issuerSignatureApproval, setIssuerSignatureApproval] = React.useState(null);
+    const [agreeToIssuerStatementApproval, setAgreeToIssuerStatementApproval] = React.useState(false);
+    const [loadingIssuerSignatureApproval, setLoadingIssuerSignatureApproval] = React.useState(false);
+    const signatureRefApproval = React.useRef(null);
+    
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
       try {
@@ -10676,6 +10683,55 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         Alert.alert('Error', 'Failed to submit permit: ' + error.message);
       } finally {
         setLoadingRequesterSignatureDraft(false);
+      }
+    };
+
+    const handleApprovePermitWithSignature = async () => {
+      if (!agreeToIssuerStatementApproval) {
+        Alert.alert('Required', 'Please agree to the statement before approving.');
+        return;
+      }
+
+      // Capture signature from canvas before approving
+      let issuerSignatureData = issuerSignatureApproval;
+      if (signatureRefApproval.current && !signatureRefApproval.current.isEmpty()) {
+        issuerSignatureData = signatureRefApproval.current.toDataURL('image/png');
+      } else if (!issuerSignatureApproval) {
+        Alert.alert('Required', 'Please provide your signature before approving.');
+        return;
+      }
+
+      try {
+        setLoadingIssuerSignatureApproval(true);
+
+        // Determine status based on risk level
+        const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
+        const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
+          (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+        
+        const newStatus = isHighRisk ? 'pending_inspection' : 'active';
+        const approvedDate = new Date().toISOString().split('T')[0];
+
+        await updatePermit(editData.id, {
+          status: newStatus,
+          approved_date: approvedDate,
+          issuer_signature: issuerSignatureData
+        });
+
+        const freshPermits = await listPermits();
+        setPermits(freshPermits);
+
+        // Reset signature states
+        setShowIssuerSignatureApproval(false);
+        setIssuerSignatureApproval(null);
+        setAgreeToIssuerStatementApproval(false);
+
+        setCurrentScreen('dashboard');
+        Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to approve permit: ' + error.message);
+      } finally {
+        setLoadingIssuerSignatureApproval(false);
       }
     };
 
@@ -12182,33 +12238,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   )}
                   <TouchableOpacity 
                     style={[styles.submitButton, { opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#3B82F6' : '#9CA3AF' }]} 
-                    onPress={async () => {
+                    onPress={() => {
                       if (!canApprove) {
                         Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
                         return;
                       }
-
-                      // Approve: set status to 'pending_inspection' or 'active' and update permit
-                      const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
-                      const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
-                        (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
-                      
-                      try {
-                        const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-                        const approvedDate = new Date().toISOString().split('T')[0];
-                        
-                        await updatePermit(editData.id, { 
-                          status: newStatus, 
-                          approved_date: approvedDate 
-                        });
-                        
-                        const freshPermits = await listPermits();
-                        setPermits(freshPermits);
-                        setCurrentScreen('dashboard');
-                        Alert.alert('Permit Approved', isHighRisk ? 'Permit has been approved and moved to Needs Inspection.' : 'Permit has been approved and is now Active.');
-                      } catch (error) {
-                        Alert.alert('Error', 'Failed to approve permit: ' + error.message);
-                      }
+                      // Show issuer signature modal instead of directly approving
+                      setShowIssuerSignatureApproval(true);
                     }}
                     disabled={!canApprove}
                   >
@@ -12979,6 +13015,221 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                     <ActivityIndicator size="small" color="white" />
                   ) : (
                     <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Issuer Signature Modal for Approval */}
+      <Modal
+        visible={showIssuerSignatureApproval}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowIssuerSignatureApproval(false);
+          setIssuerSignatureApproval(null);
+          setAgreeToIssuerStatementApproval(false);
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '95%'
+          }}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Permit Issuer Approval
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowIssuerSignatureApproval(false);
+                  setIssuerSignatureApproval(null);
+                  setAgreeToIssuerStatementApproval(false);
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Agreement Statement */}
+              <View style={{
+                backgroundColor: '#F0FDF0',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 20,
+                borderLeftWidth: 4,
+                borderLeftColor: '#10B981'
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#1F2937'
+                }}>
+                  I have reviewed the JSEA and risks as attached to this permit. I confirm that all workers are inducted, and the work can proceed as detailed in this permit.
+                </Text>
+              </View>
+
+              {/* Agreement Checkbox */}
+              <View style={{
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'flex-start'
+              }}>
+                <TouchableOpacity
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: agreeToIssuerStatementApproval ? '#10B981' : '#D1D5DB',
+                    backgroundColor: agreeToIssuerStatementApproval ? '#10B981' : 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    marginTop: 2
+                  }}
+                  onPress={() => setAgreeToIssuerStatementApproval(!agreeToIssuerStatementApproval)}
+                >
+                  {agreeToIssuerStatementApproval && (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: '#374151'
+                }}>
+                  I agree to the above statement
+                </Text>
+              </View>
+
+              {/* Signature Pad */}
+              <View style={{
+                marginBottom: 20
+              }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: 8
+                }}>
+                  Issuer Signature *
+                </Text>
+                <View style={{
+                  borderWidth: 2,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: '#FAFAFA',
+                  overflow: 'hidden'
+                }}>
+                  <WebSignaturePad
+                    signatureRef={signatureRefApproval}
+                    onSignatureChange={() => {
+                      if (signatureRefApproval.current && !signatureRefApproval.current.isEmpty()) {
+                        setIssuerSignatureApproval(signatureRefApproval.current.toDataURL('image/png'));
+                      }
+                    }}
+                    width={300}
+                    height={250}
+                  />
+                </View>
+                {issuerSignatureApproval && (
+                  <Text style={{
+                    fontSize: 12,
+                    color: '#10B981',
+                    marginTop: 8,
+                    fontWeight: '600'
+                  }}>
+                    ✓ Signature captured
+                  </Text>
+                )}
+              </View>
+
+              {/* Clear Signature Button */}
+              {issuerSignatureApproval && (
+                <TouchableOpacity
+                  style={{
+                    padding: 10,
+                    marginBottom: 16,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#DCFCE7',
+                    backgroundColor: '#F0FDF0',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    if (signatureRefApproval.current) {
+                      signatureRefApproval.current.clear();
+                    }
+                    setIssuerSignatureApproval(null);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    color: '#16A34A',
+                    fontWeight: '600'
+                  }}>
+                    Clear Signature
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowIssuerSignatureApproval(false);
+                    setIssuerSignatureApproval(null);
+                    setAgreeToIssuerStatementApproval(false);
+                  }}
+                  disabled={loadingIssuerSignatureApproval}
+                >
+                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: loadingIssuerSignatureApproval ? '#D1D5DB' : '#10B981',
+                    padding: 12,
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={handleApprovePermitWithSignature}
+                  disabled={loadingIssuerSignatureApproval || !agreeToIssuerStatementApproval || !issuerSignatureApproval}
+                >
+                  {loadingIssuerSignatureApproval ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={{ fontWeight: '600', color: 'white' }}>Approve Permit</Text>
                   )}
                 </TouchableOpacity>
               </View>
