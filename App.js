@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
-import SignaturePad from 'signature_pad';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
@@ -489,45 +488,131 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
   );
 };
 
-// Custom Signature Pad Component for Web
+// Custom Signature Pad Component using Canvas API
 function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height = 250 }) {
   const canvasRef = React.useRef(null);
-  const signaturePadRef = React.useRef(null);
+  const isDrawingRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (canvasRef.current && !signaturePadRef.current) {
-      // Get device pixel ratio for better quality
-      const dpr = window.devicePixelRatio || 1;
-      
-      const canvas = canvasRef.current;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      
-      // Scale canvas back to CSS pixels
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      
-      // Scale context to match device pixel ratio
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-      
-      // Initialize signature pad
-      signaturePadRef.current = new SignaturePad(canvas, {
-        minWidth: 0.5,
-        maxWidth: 2.5,
-        throttle: 16,
-      });
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      // Expose reference for external access
-      if (signatureRef) {
-        signatureRef.current = signaturePadRef.current;
-      }
+    // Set canvas size
+    canvas.width = width;
+    canvas.height = height;
+
+    // Get context and set it up for drawing
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+
+    // Expose functions for external access
+    if (signatureRef) {
+      signatureRef.current = {
+        canvas: canvas,
+        ctx: ctx,
+        isEmpty: () => {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          return imageData.data.every((x) => x === 0 || x === 255);
+        },
+        toDataURL: (type = 'image/png') => canvas.toDataURL(type),
+        clear: () => {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        },
+        getContext: () => ctx
+      };
     }
 
-    return () => {
-      // Cleanup if needed
+    // Mouse down
+    const handleMouseDown = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      isDrawingRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
     };
-  }, [width, height, signatureRef]);
+
+    // Mouse move
+    const handleMouseMove = (e) => {
+      if (!isDrawingRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    // Mouse up
+    const handleMouseUp = () => {
+      isDrawingRef.current = false;
+      ctx.closePath();
+      if (onSignatureChange) {
+        onSignatureChange();
+      }
+    };
+
+    // Touch events for mobile
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      isDrawingRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      if (!isDrawingRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      isDrawingRef.current = false;
+      ctx.closePath();
+      if (onSignatureChange) {
+        onSignatureChange();
+      }
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseUp);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [width, height, onSignatureChange, signatureRef]);
 
   return (
     <canvas
@@ -540,6 +625,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
         display: 'block',
         width: '100%',
         height: `${height}px`,
+        touchAction: 'none'
       }}
     />
   );
