@@ -7666,6 +7666,178 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       fileInput.click();
     };
 
+    // Import contractors from CSV with phone number formatting
+    const handleImportContractorsCSV = () => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.csv,.xlsx,.xls';
+      
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const csvText = event.target.result;
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+              Alert.alert('Error', 'File must have header row and at least one data row');
+              return;
+            }
+
+            // Parse header to find column indices
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            const nameIdx = headerValues.findIndex(h => h.includes('name'));
+            const emailIdx = headerValues.findIndex(h => h.includes('email'));
+            const phoneIdx = headerValues.findIndex(h => h.includes('phone'));
+            const companyIdx = headerValues.findIndex(h => h.includes('company'));
+            const siteIdsIdx = headerValues.findIndex(h => h.includes('site'));
+            const servicesIdx = headerValues.findIndex(h => h.includes('service'));
+            const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
+            const inductionExpiryIdx = headerValues.findIndex(h => h.includes('induction'));
+
+            let newCount = 0;
+            let updatedCount = 0;
+            let duplicateCount = 0;
+            const processedNames = new Set();
+
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              
+              // Simple CSV parsing
+              const values = [];
+              current = '';
+              inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim().replace(/^"|"$/g, ''));
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              
+              if (nameIdx >= 0 && values[nameIdx]) {
+                const contractorName = values[nameIdx];
+                const email = emailIdx >= 0 ? values[emailIdx] : '';
+                // Apply formatPhoneNumber to add leading 0 if missing
+                const rawPhone = phoneIdx >= 0 ? values[phoneIdx] : '';
+                const phone = formatPhoneNumber(rawPhone);
+                const companyName = companyIdx >= 0 ? values[companyIdx] : '';
+                const siteIdsStr = siteIdsIdx >= 0 ? values[siteIdsIdx] : '';
+                const servicesStr = servicesIdx >= 0 ? values[servicesIdx] : '';
+                const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] 
+                  ? values[businessUnitIdx].split(';').map(s => s.trim()) 
+                  : [];
+                const inductionExpiry = inductionExpiryIdx >= 0 ? values[inductionExpiryIdx] : '';
+                
+                // Skip if already processed in this CSV
+                if (processedNames.has(contractorName.toLowerCase())) {
+                  duplicateCount++;
+                  continue;
+                }
+                processedNames.add(contractorName.toLowerCase());
+                
+                // Convert business unit names to IDs
+                const businessUnitIds = [];
+                if (businessUnitNames.length > 0) {
+                  for (const buName of businessUnitNames) {
+                    const bu = businessUnits.find(b => b.name.toLowerCase() === buName.toLowerCase());
+                    if (bu) {
+                      businessUnitIds.push(bu.id);
+                    }
+                  }
+                }
+                
+                // Find company by name
+                let companyId = null;
+                if (companyName) {
+                  const foundCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+                  if (foundCompany) {
+                    companyId = foundCompany.id;
+                  }
+                }
+                
+                // Check if contractor already exists
+                const existingContractor = contractors.find(c => c.name.toLowerCase() === contractorName.toLowerCase());
+                
+                const contractorData = {
+                  name: contractorName,
+                  email: email || null,
+                  phone: phone || null,
+                  company_id: companyId,
+                };
+                
+                if (existingContractor) {
+                  // Update existing contractor
+                  await updateContractor(existingContractor.id, contractorData);
+                  updatedCount++;
+                } else {
+                  // Create new contractor
+                  await createContractor(contractorData);
+                  newCount++;
+                }
+              }
+            }
+
+            if (newCount === 0 && updatedCount === 0 && duplicateCount === 0) {
+              Alert.alert('Info', 'No valid contractors found in the CSV file.');
+              return;
+            }
+
+            // Reload contractors from database
+            const freshContractors = await listContractors();
+            setContractors(freshContractors);
+            
+            let message = '';
+            if (newCount > 0) {
+              message += `${newCount} new contractor(s) imported.`;
+            }
+            if (updatedCount > 0) {
+              if (message) message += ' ';
+              message += `${updatedCount} contractor(s) updated.`;
+            }
+            if (duplicateCount > 0) {
+              if (message) message += ' ';
+              message += `${duplicateCount} duplicate(s) in this file.`;
+            }
+            
+            Alert.alert('Import Complete', message);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to parse file: ' + error.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      fileInput.click();
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -16965,6 +17137,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}
+          onImportContractorsCSV={handleImportContractorsCSV}
         />
       );
     case 'services_directory':

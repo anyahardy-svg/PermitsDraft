@@ -23,7 +23,8 @@ export default function ContractorAdminScreen({
   onNavigateBack, 
   businessUnitId, 
   styles,
-  businessUnits = []
+  businessUnits = [],
+  onImportContractorsCSV
 }) {
   const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', or 'inductions'
   const [jseaTemplates, setJseaTemplates] = useState([]);
@@ -593,6 +594,13 @@ export default function ContractorAdminScreen({
             >
               <Text style={styles.cardNumber}>{inductedContractors.length}</Text>
               <Text style={styles.cardLabel}>Inducted Contractors</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onImportContractorsCSV && onImportContractorsCSV()}
+              style={[styles.dashboardCard, { borderLeftColor: '#EC4899', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>📥</Text>
+              <Text style={styles.cardLabel}>Import Contractors</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
