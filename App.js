@@ -10278,6 +10278,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   // Services Directory Screen - View contractors in spreadsheet format
+  // Utility function to format NZ phone numbers with leading 0
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return '';
+    // Remove all non-numeric characters
+    const cleaned = phone.toString().replace(/\D/g, '');
+    // If it doesn't start with 0, add it
+    if (cleaned.length > 0 && !cleaned.startsWith('0')) {
+      return '0' + cleaned;
+    }
+    return cleaned;
+  };
+
   const renderServicesDirectory = () => {
     const contractorsWithService = contractors.filter(c => c.services.includes(selectedService));
 
@@ -10329,6 +10341,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
                   <Text style={[{ width: columns.name, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Name</Text>
                   <Text style={[{ width: columns.email, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Email</Text>
+                  <Text style={[{ width: columns.phone, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Phone</Text>
                   <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
                   <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }]}>Services</Text>
                 </View>
@@ -10346,6 +10359,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   >
                     <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
                     <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
+                    <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone)}</Text>
                     <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.company}</Text>
                     <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }]}>
                       {(contractor.serviceIds || []).length > 0 ? getServiceNames(contractor.serviceIds).join(', ') : 'None'}
