@@ -2381,25 +2381,6 @@ export default function CompanyAccreditationScreen({
     );
   };
 
-  const renderSection20_OLD = () => {
-    // OLD SECTION 20 - ARCHIVE (COMMENTED OUT FOR REFERENCE)
-    // This was the original scoring-based version
-    return (
-      <View key={20}
-                    >
-                      <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
-                    </TouchableOpacity>
-                  ))}
-                  {renderEvidenceToggle(20, 'incidents_breaches', section20.incidents_breaches, 'Incidents & Breaches Evidence')}
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
-
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
