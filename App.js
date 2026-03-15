@@ -493,10 +493,12 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   const canvasRef = React.useRef(null);
   const containerRef = React.useRef(null);
   const isDrawingRef = React.useRef(false);
+  const contextRef = React.useRef(null);
 
+  // Initialize canvas once
   React.useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || contextRef.current) return; // Only init once
 
     // Get the actual container width to make canvas responsive
     const container = containerRef.current;
@@ -505,8 +507,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
     
     if (container) {
       const rect = container.getBoundingClientRect();
-      actualWidth = Math.max(rect.width, 300); // At least 300px
-      actualHeight = Math.max(rect.height, 250); // At least 250px
+      actualWidth = Math.max(rect.width, 300);
+      actualHeight = Math.max(rect.height, 250);
     }
 
     // Set canvas resolution (actual drawing surface)
@@ -526,6 +528,8 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, actualWidth, actualHeight);
 
+    contextRef.current = ctx;
+
     // Expose functions for external access
     if (signatureRef) {
       signatureRef.current = {
@@ -533,9 +537,9 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
         ctx: ctx,
         isEmpty: () => {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          // Check if all pixels are white (255, 255, 255, 255) or transparent
+          // Check if all pixels are white or transparent
           for (let i = 3; i < imageData.data.length; i += 4) {
-            if (imageData.data[i] > 200) { // If any pixel has significant alpha
+            if (imageData.data[i] > 200) {
               return false;
             }
           }
@@ -549,6 +553,14 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
         getContext: () => ctx
       };
     }
+  }, []); // Only run once on mount
+
+  // Setup event listeners
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+
+    const ctx = contextRef.current;
 
     // Mouse down
     const handleMouseDown = (e) => {
@@ -575,6 +587,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
 
     // Mouse up
     const handleMouseUp = () => {
+      if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
       ctx.closePath();
       if (onSignatureChange) {
@@ -610,6 +623,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
 
     const handleTouchEnd = (e) => {
       e.preventDefault();
+      if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
       ctx.closePath();
       if (onSignatureChange) {
@@ -634,7 +648,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [width, height, onSignatureChange, signatureRef]);
+  }, [onSignatureChange]);
 
   return (
     <div
@@ -1167,6 +1181,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [selectedSeverity, setSelectedSeverity] = useState('');
   const [showSignOnWorkerDropdown, setShowSignOnWorkerDropdown] = useState({});
   const [filteredSignOnWorkers, setFilteredSignOnWorkers] = useState({});
+  
+  // New Permit Form - Template save states
+  const [showPermitSaveTemplateNew, setShowPermitSaveTemplateNew] = useState(false);
+  const [permitTemplateNameNew, setPermitTemplateNameNew] = useState('');
+  const [selectedBusForPermitTemplateNew, setSelectedBusForPermitTemplateNew] = useState([]);
+  const [selectedCompanyForPermitTemplateNew, setSelectedCompanyForPermitTemplateNew] = useState('');
+  const [loadingPermitSaveTemplateNew, setLoadingPermitSaveTemplateNew] = useState(false);
+  
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
