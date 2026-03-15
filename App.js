@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
+import SignatureCanvas from 'react-native-signature-canvas';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
@@ -10244,6 +10245,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [selectedCompanyForPermitTemplateDraft, setSelectedCompanyForPermitTemplateDraft] = React.useState('');
     const [loadingPermitSaveTemplate, setLoadingPermitSaveTemplate] = React.useState(false);
     
+    // Requester Signature states for draft screen
+    const [showRequesterSignatureDraft, setShowRequesterSignatureDraft] = React.useState(false);
+    const [requesterSignatureDraft, setRequesterSignatureDraft] = React.useState(null);
+    const [agreeToStatementDraft, setAgreeToStatementDraft] = React.useState(false);
+    const [loadingRequesterSignatureDraft, setLoadingRequesterSignatureDraft] = React.useState(false);
+    const signatureRefDraft = React.useRef(null);
+    
     // --- JSEA Template handlers for draft screen ---
     const loadJseaTemplatesForLoaderDraft = async (buIdToLoad = null) => {
       try {
@@ -10413,6 +10421,60 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         Alert.alert('Error', 'Failed to save template: ' + error.message);
       } finally {
         setLoadingPermitSaveTemplate(false);
+      }
+    };
+
+    const handleSubmitPermitWithSignature = async () => {
+      if (!agreeToStatementDraft) {
+        Alert.alert('Required', 'Please agree to the statement before submitting.');
+        return;
+      }
+
+      if (!requesterSignatureDraft) {
+        Alert.alert('Required', 'Please provide your signature before submitting.');
+        return;
+      }
+
+      try {
+        setLoadingRequesterSignatureDraft(true);
+        
+        await updatePermit(editData.id, {
+          description: editData.description,
+          location: editData.location,
+          requested_by: editData.requestedBy,
+          contractor_company: editData.contractorCompany,
+          manual_company: editData.manualCompany || '',
+          contractor_selected: editData.contractorSelected || false,
+          priority: editData.priority,
+          status: 'pending_approval',
+          start_date: editData.startDate,
+          start_time: editData.startTime,
+          end_date: editData.endDate,
+          end_time: editData.endTime,
+          permitted_issuer: editData.permitIssuer,
+          specialized_permits: editData.specializedPermits,
+          single_hazards: editData.singleHazards,
+          jsea: editData.jsea,
+          isolations: editData.isolations,
+          sign_ons: editData.signOns,
+          attachments: editData.attachments,
+          requester_signature: requesterSignatureDraft
+        });
+        
+        const freshPermits = await listPermits();
+        setPermits(freshPermits);
+        
+        // Reset signature states
+        setShowRequesterSignatureDraft(false);
+        setRequesterSignatureDraft(null);
+        setAgreeToStatementDraft(false);
+        
+        setCurrentScreen('dashboard');
+        Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to submit permit: ' + error.message);
+      } finally {
+        setLoadingRequesterSignatureDraft(false);
       }
     };
 
@@ -11877,36 +11939,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   return;
                 }
                 
-                try {
-                  await updatePermit(editData.id, {
-                    description: editData.description,
-                    location: editData.location,
-                    requested_by: editData.requestedBy,
-                    contractor_company: editData.contractorCompany,
-                    manual_company: editData.manualCompany || '',
-                    contractor_selected: editData.contractorSelected || false,
-                    priority: editData.priority,
-                    status: 'pending_approval',
-                    start_date: editData.startDate,
-                    start_time: editData.startTime,
-                    end_date: editData.endDate,
-                    end_time: editData.endTime,
-                    permitted_issuer: editData.permitIssuer,
-                    specialized_permits: editData.specializedPermits,
-                    single_hazards: editData.singleHazards,
-                    jsea: editData.jsea,
-                    isolations: editData.isolations,
-                    sign_ons: editData.signOns,
-                    attachments: editData.attachments
-                  });
-                  
-                  const freshPermits = await listPermits();
-                  setPermits(freshPermits);
-                  setCurrentScreen('dashboard');
-                  Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to submit permit: ' + error.message);
-                }
+                // Show signature modal instead of submitting directly
+                setShowRequesterSignatureDraft(true);
               }}>
                 <Text style={styles.submitButtonText}>Submit for Approval</Text>
               </TouchableOpacity>
@@ -12533,6 +12567,225 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Requester Signature Modal for Draft */}
+      <Modal
+        visible={showRequesterSignatureDraft}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowRequesterSignatureDraft(false);
+          setRequesterSignatureDraft(null);
+          setAgreeToStatementDraft(false);
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '95%'
+          }}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Requester Signature
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowRequesterSignatureDraft(false);
+                  setRequesterSignatureDraft(null);
+                  setAgreeToStatementDraft(false);
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Agreement Statement */}
+              <View style={{
+                backgroundColor: '#F0F9FF',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 20,
+                borderLeftWidth: 4,
+                borderLeftColor: '#3B82F6'
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#1F2937'
+                }}>
+                  I have assessed the risk as best as I could, and I have read this Permit to Work and understand the nature of the work and safety precautions to be taken. I agree to comply with the conditions detailed within this Permit to Work, the associated procedures and conditions of the JSEA, and accept responsibility as the person directly in charge.
+                </Text>
+              </View>
+
+              {/* Agreement Checkbox */}
+              <View style={{
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'flex-start'
+              }}>
+                <TouchableOpacity
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: agreeToStatementDraft ? '#3B82F6' : '#D1D5DB',
+                    backgroundColor: agreeToStatementDraft ? '#3B82F6' : 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    marginTop: 2
+                  }}
+                  onPress={() => setAgreeToStatementDraft(!agreeToStatementDraft)}
+                >
+                  {agreeToStatementDraft && (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: '#374151'
+                }}>
+                  I agree to the above statement
+                </Text>
+              </View>
+
+              {/* Signature Pad */}
+              <View style={{
+                marginBottom: 20
+              }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: 8
+                }}>
+                  Your Signature *
+                </Text>
+                <View style={{
+                  borderWidth: 2,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: '#FAFAFA',
+                  overflow: 'hidden'
+                }}>
+                  <SignatureCanvas
+                    ref={signatureRefDraft}
+                    onOK={(signature) => {
+                      setRequesterSignatureDraft(signature);
+                    }}
+                    onEmpty={() => {
+                      setRequesterSignatureDraft(null);
+                    }}
+                    bgColor="white"
+                    penColor="black"
+                    customStyle={{
+                      width: '100%',
+                      height: 250,
+                      border: 'none'
+                    }}
+                  />
+                </View>
+                {requesterSignatureDraft && (
+                  <Text style={{
+                    fontSize: 12,
+                    color: '#10B981',
+                    marginTop: 8,
+                    fontWeight: '600'
+                  }}>
+                    ✓ Signature captured
+                  </Text>
+                )}
+              </View>
+
+              {/* Clear Signature Button */}
+              {requesterSignatureDraft && (
+                <TouchableOpacity
+                  style={{
+                    padding: 10,
+                    marginBottom: 16,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#F3E8FF',
+                    backgroundColor: '#FEF5FF',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    signatureRefDraft.current?.clearSignature();
+                    setRequesterSignatureDraft(null);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    color: '#8B5CF6',
+                    fontWeight: '600'
+                  }}>
+                    Clear Signature
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowRequesterSignatureDraft(false);
+                    setRequesterSignatureDraft(null);
+                    setAgreeToStatementDraft(false);
+                  }}
+                  disabled={loadingRequesterSignatureDraft}
+                >
+                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: loadingRequesterSignatureDraft ? '#D8BFD8' : '#3B82F6',
+                    padding: 12,
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={handleSubmitPermitWithSignature}
+                  disabled={loadingRequesterSignatureDraft || !agreeToStatementDraft || !requesterSignatureDraft}
+                >
+                  {loadingRequesterSignatureDraft ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
