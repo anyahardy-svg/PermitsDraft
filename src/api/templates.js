@@ -11,48 +11,47 @@ import { supabase } from '../supabaseClient';
 
 /**
  * Save completed permit as a template
- * @param {UUID} permitId - Original permit ID
+ * @param {UUID} permitId - Original permit ID to extract data from
  * @param {string} templateName - User-friendly name for template
+ * @param {UUID} businessUnitId - Business unit for the template
+ * @param {string} createdBy - User who created the template (optional)
  * @returns {Object} Template record
  */
-export async function savePermitAsTemplate(permitId, templateName) {
+export async function savePermitAsTemplate(permitId, templateName, businessUnitId, createdBy = null) {
   try {
-    // Fetch the permit to copy its data
+    // Fetch the permit to extract template data
     const { data: permit, error: permitError } = await supabase
       .from('permits')
-      .select('*')
+      .select('specialized_permits, single_hazards, jsea, completion')
       .eq('id', permitId)
       .single();
 
     if (permitError) throw permitError;
 
-    // Create/update template record
+    // Create template record with only the reusable permit components
     const { data, error } = await supabase
-      .from('permits')
-      .update({
-        is_template: true,
+      .from('permit_templates')
+      .insert({
         template_name: templateName,
-        updated_at: new Date().toISOString(),
+        business_unit_id: businessUnitId,
+        specialized_permits: permit.specialized_permits || {},
+        single_hazards: permit.single_hazards || {},
+        jsea: permit.jsea || {},
+        completion: permit.completion || null,
+        created_by: createdBy
       })
-      .eq('id', permitId)
       .select()
       .single();
 
     if (error) throw error;
 
-    await logAudit('template_saved', {
-      original_permit_id: permitId,
-      template_name: templateName,
-      business_unit_id: permit.business_unit_id,
-    });
-
     return {
       success: true,
       data,
-      message: `Template "${templateName}" created from permit ${permit.id}`,
+      message: `Template "${templateName}" created successfully`,
     };
   } catch (error) {
-    console.error('Save template error:', error);
+    console.error('Save permit template error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -65,9 +64,8 @@ export async function savePermitAsTemplate(permitId, templateName) {
 export async function getTemplates(businessUnitId) {
   try {
     const { data, error } = await supabase
-      .from('permits')
-      .select('id, template_name, permit_type, location, business_unit_id, created_at, updated_at')
-      .eq('is_template', true)
+      .from('permit_templates')
+      .select('id, template_name, description, specialized_permits, single_hazards, jsea, business_unit_id, created_at, updated_at, created_by')
       .eq('business_unit_id', businessUnitId)
       .order('template_name', { ascending: true });
 
@@ -75,7 +73,7 @@ export async function getTemplates(businessUnitId) {
 
     return { success: true, data };
   } catch (error) {
-    console.error('Get templates error:', error);
+    console.error('Get permit templates error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -87,16 +85,15 @@ export async function getTemplates(businessUnitId) {
 export async function getAllTemplates() {
   try {
     const { data, error } = await supabase
-      .from('permits')
+      .from('permit_templates')
       .select('*')
-      .eq('is_template', true)
       .order('template_name', { ascending: true });
 
     if (error) throw error;
 
     return { success: true, data };
   } catch (error) {
-    console.error('Get all templates error:', error);
+    console.error('Get all permit templates error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -109,17 +106,16 @@ export async function getAllTemplates() {
 export async function getTemplate(templateId) {
   try {
     const { data, error } = await supabase
-      .from('permits')
+      .from('permit_templates')
       .select('*')
       .eq('id', templateId)
-      .eq('is_template', true)
       .single();
 
     if (error) throw error;
 
     return { success: true, data };
   } catch (error) {
-    console.error('Get template error:', error);
+    console.error('Get permit template error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -131,32 +127,24 @@ export async function getTemplate(templateId) {
  */
 export async function deleteTemplate(templateId) {
   try {
-    // Fetch template to get details
+    // Fetch template to get details for audit
     const { data: template } = await supabase
-      .from('permits')
+      .from('permit_templates')
       .select('template_name')
       .eq('id', templateId)
       .single();
 
-    // Delete the template permit
+    // Delete the template
     const { error } = await supabase
-      .from('permits')
-      .update({
-        is_template: false,
-        template_name: null,
-      })
+      .from('permit_templates')
+      .delete()
       .eq('id', templateId);
 
     if (error) throw error;
 
-    await logAudit('template_deleted', {
-      template_id: templateId,
-      template_name: template?.template_name,
-    });
-
-    return { success: true, message: 'Template deleted' };
+    return { success: true, message: 'Template deleted successfully' };
   } catch (error) {
-    console.error('Delete template error:', error);
+    console.error('Delete permit template error:', error);
     return { success: false, error: error.message };
   }
 }

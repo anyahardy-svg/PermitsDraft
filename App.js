@@ -1206,31 +1206,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
 
   // Load a permit template into the current form, excluding specified fields
   const handleLoadPermitTemplate = (template) => {
-    // Load the template data but exclude certain fields
-    const loadedFormData = {
-      ...template,
-      // Clear out excluded fields (general details, isolations, sign-ons)
-      location: '',
-      description: '',
-      site: '',
-      permitIssuer: '',
-      requestedBy: '',
-      contractorCompany: '',
-      manualCompany: '',
-      contractorSelected: false,
-      startDate: defaultDate,
-      startTime: defaultTime,
-      endDate: defaultDate,
-      endTime: defaultTime,
-      isolations: [],
-      signOns: [],
-      attachments: [],
-      // Keep: specialized permits, single hazards, JSEA, completion, etc.
-    };
-
+    // Load template data - only specialized permits, hazards, and JSEA
     setFormData(prev => ({
       ...prev,
-      // Preserve general fields from form, only update from template for non-excluded fields
       specializedPermits: template.specialized_permits || prev.specializedPermits,
       singleHazards: template.single_hazards || prev.singleHazards,
       jsea: template.jsea || prev.jsea,
@@ -10394,10 +10372,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         setLoadingPermitSaveTemplate(true);
         
         // Save the current permit as a template
-        // Note: The template is associated with the permit's existing business_unit_id
         const response = await savePermitAsTemplate(
           editData.id,
-          permitTemplateNameDraft
+          permitTemplateNameDraft,
+          businessUnitId,
+          null // createdBy (optional)
         );
         
         if (response?.success || response?.data) {
@@ -16643,7 +16622,7 @@ const styles = StyleSheet.create({
   },
   draftButtonText: {
     color: '#374151',
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
   },
   submitButton: {
