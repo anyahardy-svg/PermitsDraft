@@ -274,6 +274,7 @@ export const getCompanyAccreditation = async (companyId) => {
         property_damage,
         pending_prosecutions,
         prosecutions_5_years,
+        environmental_notices,
         incidents_breaches_score,
         incidents_breaches_evidence_url,
         safety_objectives_exists,

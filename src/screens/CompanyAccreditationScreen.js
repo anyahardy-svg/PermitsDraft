@@ -198,6 +198,7 @@ export default function CompanyAccreditationScreen({
       property_damage: '', 
       pending_prosecutions: 'no',
       prosecutions_5_years: '',
+      environmental_notices: 'no',
       exists: false, 
       score: 0, 
       evidence: null 
@@ -2147,7 +2148,7 @@ export default function CompanyAccreditationScreen({
   };
 
   const renderSection20 = () => {
-    // Section 20: Incidents & Breaches - Always visible
+    // Section 20: Incidents & Breaches - Always visible (simplified version)
     return (
       <View key={20}>
         <TouchableOpacity
@@ -2181,253 +2182,210 @@ export default function CompanyAccreditationScreen({
 
         {expandedSections[20] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-            {/* Scoring Criteria Table */}
-            <View style={{ marginBottom: 16, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB' }}>
-              <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6' }}>
-                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>1</Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>2</Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>3</Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937', textAlign: 'center' }}>4</Text>
-                </View>
-              </View>
-              
-              <View style={{ flexDirection: 'row', height: 8 }}>
-                <View style={{ flex: 1, backgroundColor: '#FECACA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
-                <View style={{ flex: 1, backgroundColor: '#FED7AA', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
-                <View style={{ flex: 1, backgroundColor: '#BBEF63', borderRightWidth: 1, borderRightColor: '#D1D5DB' }} />
-                <View style={{ flex: 1, backgroundColor: '#22C55E' }} />
-              </View>
-              
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
-                    &gt;1 LTI / Fatality in 5 years; insufficient info provided.
-                  </Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
-                    1 MTI / LTI / Fatality in 5 years; rate not improving.
-                  </Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
-                    Only First Aid incidents; minor improvement only.
-                  </Text>
-                </View>
-                <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8 }}>
-                  <Text style={{ fontSize: 9, color: '#374151', lineHeight: 13 }}>
-                    0 incidents in 5 years; strong near-miss reporting; &gt;20% annual improvement.
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={{ marginBottom: 16 }}>
+            <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', marginBottom: 12 }}>
                 Has your organisation had any of the following accidents/incidents in the past 12 months?
               </Text>
             </View>
 
-            {/* Incident Rows Table */}
-            <View style={{ marginBottom: 16, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB' }}>
-              {/* Header Row */}
-              <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#D1D5DB' }}>
-                <View style={{ flex: 2, paddingVertical: 8, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937' }}>Type</Text>
-                </View>
-                <View style={{ flex: 0.5, paddingVertical: 8, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: '#D1D5DB', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937' }}>1</Text>
-                </View>
-                <View style={{ flex: 0.5, paddingVertical: 8, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: '#D1D5DB', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937' }}>2</Text>
-                </View>
-                <View style={{ flex: 0.5, paddingVertical: 8, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: '#D1D5DB', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937' }}>3</Text>
-                </View>
-                <View style={{ flex: 0.5, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#1F2937' }}>4</Text>
-                </View>
+            {/* Incident Form - Simplified */}
+            <View style={{ gap: 16 }}>
+              {/* Fatalities */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Fatalities, if yes, state how many:</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  placeholder="Number"
+                  keyboardType="numeric"
+                  value={section20.incidents_breaches.fatalities}
+                  onChangeText={(text) => setSection20(prev => ({
+                    ...prev,
+                    incidents_breaches: { ...prev.incidents_breaches, fatalities: text }
+                  }))}
+                />
               </View>
 
-              {/* Fatalities Row */}
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>Fatalities, if yes, state how many:</Text>
-                  <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, marginTop: 4, fontSize: 12 }}
-                    placeholder="Number"
-                    keyboardType="numeric"
-                    value={section20.incidents_breaches.fatalities}
-                    onChangeText={(text) => setSection20(prev => ({
+              {/* Serious Harm */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Serious Harm Incidents, if yes, state how many:</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  placeholder="Number"
+                  keyboardType="numeric"
+                  value={section20.incidents_breaches.serious_harm}
+                  onChangeText={(text) => setSection20(prev => ({
+                    ...prev,
+                    incidents_breaches: { ...prev.incidents_breaches, serious_harm: text }
+                  }))}
+                />
+              </View>
+
+              {/* Lost Time Injuries */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Lost Time Injuries, if yes, state how many:</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  placeholder="Number"
+                  keyboardType="numeric"
+                  value={section20.incidents_breaches.lost_time}
+                  onChangeText={(text) => setSection20(prev => ({
+                    ...prev,
+                    incidents_breaches: { ...prev.incidents_breaches, lost_time: text }
+                  }))}
+                />
+              </View>
+
+              {/* Property Damage */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  placeholder="Number"
+                  keyboardType="numeric"
+                  value={section20.incidents_breaches.property_damage}
+                  onChangeText={(text) => setSection20(prev => ({
+                    ...prev,
+                    incidents_breaches: { ...prev.incidents_breaches, property_damage: text }
+                  }))}
+                />
+              </View>
+
+              {/* Pending Prosecutions */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => setSection20(prev => ({
                       ...prev,
-                      incidents_breaches: { ...prev.incidents_breaches, fatalities: text }
+                      incidents_breaches: { ...prev.incidents_breaches, pending_prosecutions: 'yes' }
                     }))}
-                  />
-                </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`fatalities-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
                   >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
+                    <View style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: section20.incidents_breaches?.pending_prosecutions === 'yes' ? '#0284C7' : '#D1D5DB',
+                      backgroundColor: section20.incidents_breaches?.pending_prosecutions === 'yes' ? '#0284C7' : 'white',
+                      marginRight: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {section20.incidents_breaches?.pending_prosecutions === 'yes' && (
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#1F2937' }}>Yes</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Serious Harm Row */}
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>Serious Harm Incidents, if yes, state how many:</Text>
-                  <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, marginTop: 4, fontSize: 12 }}
-                    placeholder="Number"
-                    keyboardType="numeric"
-                    value={section20.incidents_breaches.serious_harm}
-                    onChangeText={(text) => setSection20(prev => ({
+                  <TouchableOpacity
+                    onPress={() => setSection20(prev => ({
                       ...prev,
-                      incidents_breaches: { ...prev.incidents_breaches, serious_harm: text }
+                      incidents_breaches: { ...prev.incidents_breaches, pending_prosecutions: 'no' }
                     }))}
-                  />
-                </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`serious_harm-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
                   >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
+                    <View style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: section20.incidents_breaches?.pending_prosecutions === 'no' ? '#0284C7' : '#D1D5DB',
+                      backgroundColor: section20.incidents_breaches?.pending_prosecutions === 'no' ? '#0284C7' : 'white',
+                      marginRight: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {section20.incidents_breaches?.pending_prosecutions === 'no' && (
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#1F2937' }}>No</Text>
                   </TouchableOpacity>
-                ))}
+                </View>
               </View>
 
-              {/* Lost Time Injuries Row */}
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>Lost Time Injuries, if yes, state how many:</Text>
-                  <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, marginTop: 4, fontSize: 12 }}
-                    placeholder="Number"
-                    keyboardType="numeric"
-                    value={section20.incidents_breaches.lost_time}
-                    onChangeText={(text) => setSection20(prev => ({
+              {/* Past 5 Years Prosecutions */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  placeholder="Number"
+                  keyboardType="numeric"
+                  value={section20.incidents_breaches.prosecutions_5_years}
+                  onChangeText={(text) => setSection20(prev => ({
+                    ...prev,
+                    incidents_breaches: { ...prev.incidents_breaches, prosecutions_5_years: text }
+                  }))}
+                />
+              </View>
+
+              {/* Environmental Enforcement Notices - adding this question from the image */}
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Had any infringement, abatement or enforcement notices served on it by an environmental regulator or authority?</Text>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => setSection20(prev => ({
                       ...prev,
-                      incidents_breaches: { ...prev.incidents_breaches, lost_time: text }
+                      incidents_breaches: { ...prev.incidents_breaches, environmental_notices: 'yes' }
                     }))}
-                  />
-                </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`lost_time-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
                   >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
+                    <View style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: section20.incidents_breaches?.environmental_notices === 'yes' ? '#0284C7' : '#D1D5DB',
+                      backgroundColor: section20.incidents_breaches?.environmental_notices === 'yes' ? '#0284C7' : 'white',
+                      marginRight: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {section20.incidents_breaches?.environmental_notices === 'yes' && (
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#1F2937' }}>Yes</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Property Damage Row */}
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
-                  <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, marginTop: 4, fontSize: 12 }}
-                    placeholder="Number"
-                    keyboardType="numeric"
-                    value={section20.incidents_breaches.property_damage}
-                    onChangeText={(text) => setSection20(prev => ({
+                  <TouchableOpacity
+                    onPress={() => setSection20(prev => ({
                       ...prev,
-                      incidents_breaches: { ...prev.incidents_breaches, property_damage: text }
+                      incidents_breaches: { ...prev.incidents_breaches, environmental_notices: 'no' }
                     }))}
-                  />
-                </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`property_damage-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
                   >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
+                    <View style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: section20.incidents_breaches?.environmental_notices === 'no' ? '#0284C7' : '#D1D5DB',
+                      backgroundColor: section20.incidents_breaches?.environmental_notices === 'no' ? '#0284C7' : 'white',
+                      marginRight: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {section20.incidents_breaches?.environmental_notices === 'no' && (
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#1F2937' }}>No</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Pending Prosecutions Row */}
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
                 </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`pending-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
-                  >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Past 5 Years Prosecutions Row */}
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ flex: 2, paddingVertical: 12, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#D1D5DB' }}>
-                  <Text style={{ fontSize: 12, color: '#1F2937' }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
-                  <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, marginTop: 4, fontSize: 12 }}
-                    placeholder="Number"
-                    keyboardType="numeric"
-                    value={section20.incidents_breaches.prosecutions_5_years}
-                    onChangeText={(text) => setSection20(prev => ({
-                      ...prev,
-                      incidents_breaches: { ...prev.incidents_breaches, prosecutions_5_years: text }
-                    }))}
-                  />
-                </View>
-                {[1, 2, 3, 4].map(score => (
-                  <TouchableOpacity
-                    key={`prosecutions_5-${score}`}
-                    onPress={() => {}}
-                    style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center', borderRightWidth: score < 4 ? 1 : 0, borderRightColor: '#D1D5DB', paddingHorizontal: 4 }}
-                  >
-                    <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 2 }} />
-                  </TouchableOpacity>
-                ))}
               </View>
             </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
-            {/* Evidence toggle and overall scoring */}
-            <View style={{ marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
-                  Overall Safety Rating
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                  {[1, 2, 3, 4].map(score => (
-                    <TouchableOpacity
-                      key={score}
-                      onPress={() => setSection20(prev => ({
-                        ...prev,
-                        incidents_breaches: { ...prev.incidents_breaches, score, exists: true }
-                      }))}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 6,
-                        backgroundColor: score === 1 ? '#FECACA' : score === 2 ? '#FED7AA' : score === 3 ? '#BBEF63' : '#22C55E',
-                        borderWidth: section20.incidents_breaches?.score === score ? 3 : 1,
-                        borderColor: section20.incidents_breaches?.score === score ? '#1F2937' : '#D1D5DB',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        position: 'relative'
-                      }}
+  const renderSection20_OLD = () => {
+    // OLD SECTION 20 - ARCHIVE (COMMENTED OUT FOR REFERENCE)
+    // This was the original scoring-based version
+    return (
+      <View key={20}
                     >
                       <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
                     </TouchableOpacity>
