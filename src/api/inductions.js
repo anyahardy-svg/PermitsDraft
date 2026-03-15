@@ -524,3 +524,50 @@ export async function getCompletedInductions(contractorId) {
     throw error;
   }
 }
+
+/**
+ * Get all contractors' induction completion data for a company
+ * @param {UUID} companyId 
+ * @returns {Array} Contractors with their induction completion status
+ */
+export async function getContractorInductionsForCompany(companyId) {
+  try {
+    // Get all contractors from the company
+    const { data: contractors, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, first_name, last_name, email')
+      .eq('company_id', companyId)
+      .order('last_name, first_name', { ascending: true });
+
+    if (contractorError) throw contractorError;
+
+    // For each contractor, get their completed inductions
+    const contractorsWithInductions = await Promise.all(
+      (contractors || []).map(async (contractor) => {
+        const { data: inductions, error: inductionError } = await supabase
+          .from('contractor_induction_progress')
+          .select(`
+            induction_id,
+            status,
+            completed_at,
+            inductions(induction_name, subsection_name)
+          `)
+          .eq('contractor_id', contractor.id)
+          .eq('status', 'completed')
+          .order('completed_at', { ascending: false });
+
+        if (inductionError) throw inductionError;
+
+        return {
+          ...contractor,
+          completedInductions: inductions || []
+        };
+      })
+    );
+
+    return contractorsWithInductions || [];
+  } catch (error) {
+    console.error('Error fetching contractor inductions for company:', error);
+    throw error;
+  }
+}

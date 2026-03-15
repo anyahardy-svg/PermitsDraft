@@ -15,6 +15,7 @@ import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTempl
 import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
 import { listCompanies } from '../api/companies';
 import { getSitesByBusinessUnits } from '../api/sites';
+import { getContractorInductionsForCompany } from '../api/inductions';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 
@@ -24,7 +25,7 @@ export default function ContractorAdminScreen({
   styles,
   businessUnits = []
 }) {
-  const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', or 'accreditation'
+  const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', or 'inductions'
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -50,6 +51,10 @@ export default function ContractorAdminScreen({
   const [jseaBusinessUnitSearch, setJseaBusinessUnitSearch] = useState('');
   const [jseaSiteSearch, setJseaSiteSearch] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null); // null, 'company', 'businessunit', or 'site'
+
+  // Inductions states
+  const [inductedContractors, setInductedContractors] = useState([]);
+  const [loadingInductions, setLoadingInductions] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -119,6 +124,24 @@ export default function ContractorAdminScreen({
     }
   };
 
+  // Load inductions for selected company
+  const loadInductions = async () => {
+    if (!selectedCompanyId) {
+      setInductedContractors([]);
+      return;
+    }
+    setLoadingInductions(true);
+    try {
+      const data = await getContractorInductionsForCompany(selectedCompanyId);
+      setInductedContractors(data || []);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load inductions: ' + error.message);
+      setInductedContractors([]);
+    } finally {
+      setLoadingInductions(false);
+    }
+  };
+
   useEffect(() => {
     loadCompanies();
   }, []);
@@ -131,6 +154,12 @@ export default function ContractorAdminScreen({
       loadPermitTemplates();
     }
   }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds]);
+
+  useEffect(() => {
+    if (activeTab === 'inductions') {
+      loadInductions();
+    }
+  }, [activeTab, selectedCompanyId]);
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
@@ -426,6 +455,93 @@ export default function ContractorAdminScreen({
     );
   };
 
+  // Render inductions tab
+  const renderInductions = () => {
+    if (loadingInductions) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      );
+    }
+
+    if (!selectedCompanyId) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
+            Please select a company to view inductions
+          </Text>
+        </View>
+      );
+    }
+
+    if (inductedContractors.length === 0) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
+            No contractors inducted yet
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+          Showing {inductedContractors.length} contractor{inductedContractors.length !== 1 ? 's' : ''}
+        </Text>
+
+        {inductedContractors.map((contractor) => (
+          <View
+            key={contractor.id}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              padding: 12,
+              marginBottom: 12
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+              {contractor.first_name} {contractor.last_name}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+              {contractor.email || 'No email'}
+            </Text>
+
+            {contractor.completedInductions && contractor.completedInductions.length > 0 ? (
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                  Completed Inductions ({contractor.completedInductions.length}):
+                </Text>
+                {contractor.completedInductions.map((induction, idx) => (
+                  <View key={idx} style={{ paddingLeft: 12, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, color: '#1F2937' }}>
+                      • {induction.inductions?.induction_name || 'Unknown'}
+                    </Text>
+                    {induction.inductions?.subsection_name && (
+                      <Text style={{ fontSize: 10, color: '#6B7280', marginLeft: 4 }}>
+                        {induction.inductions.subsection_name}
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
+                      {induction.completed_at ? new Date(induction.completed_at).toLocaleDateString('en-NZ') : 'Date not available'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>
+                No completed inductions
+              </Text>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
@@ -436,7 +552,7 @@ export default function ContractorAdminScreen({
           </TouchableOpacity>
         )}
         <Text style={styles.title}>
-          {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : 'Accreditation') : 'Contractor Admin'}
+          {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inductions' : 'Accreditation') : 'Contractor Admin'}
         </Text>
         {activeTab && (
           <TouchableOpacity onPress={() => setActiveTab(null)}>
@@ -471,11 +587,18 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>📋</Text>
               <Text style={styles.cardLabel}>Accreditation</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('inductions')}
+              style={[styles.dashboardCard, { borderLeftColor: '#F59E0B', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>{inductedContractors.length}</Text>
+              <Text style={styles.cardLabel}>Inducted Contractors</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
         /* Content View - Show selected section */
-        !effectiveBuId && activeTab !== 'accreditation' ? (
+        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
               No business units available. Please contact your administrator.
@@ -490,6 +613,8 @@ export default function ContractorAdminScreen({
               onClose={() => setActiveTab(null)}
             />
           </View>
+        ) : activeTab === 'inductions' ? (
+          renderInductions()
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )
