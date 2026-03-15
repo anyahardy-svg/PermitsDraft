@@ -3909,13 +3909,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       }}>
                         {template.template_name}
                       </Text>
-                      {template.location && (
+                      {template.company_name && (
                         <Text style={{
                           fontSize: 12,
                           color: '#6B7280',
                           marginBottom: 4
                         }}>
-                          Location: {template.location}
+                          Company: {template.company_name}
                         </Text>
                       )}
                       {template.description && (
@@ -10372,10 +10372,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         setLoadingPermitSaveTemplate(true);
         
         // Save the current permit as a template
+        // Extract company name from the permit (contractor_company or manualCompany)
+        const companyName = editData.contractorCompany || editData.manualCompany || null;
+        
         const response = await savePermitAsTemplate(
           editData.id,
           permitTemplateNameDraft,
           businessUnitId,
+          companyName,
           null // createdBy (optional)
         );
         

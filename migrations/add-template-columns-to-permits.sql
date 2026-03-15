@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS permit_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   template_name TEXT NOT NULL,
   business_unit_id UUID NOT NULL REFERENCES business_units(id) ON DELETE CASCADE,
+  company_name TEXT,
   -- Reusable permit components
   specialized_permits JSONB DEFAULT '{}',
   single_hazards JSONB DEFAULT '{}',
@@ -21,6 +22,7 @@ CREATE TABLE IF NOT EXISTS permit_templates (
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_permit_templates_business_unit ON permit_templates(business_unit_id);
 CREATE INDEX IF NOT EXISTS idx_permit_templates_name ON permit_templates(template_name);
+CREATE INDEX IF NOT EXISTS idx_permit_templates_company ON permit_templates(company_name);
 CREATE INDEX IF NOT EXISTS idx_permit_templates_created_at ON permit_templates(created_at DESC);
 
 -- Enable RLS

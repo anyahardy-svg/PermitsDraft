@@ -14,19 +14,23 @@ import { supabase } from '../supabaseClient';
  * @param {UUID} permitId - Original permit ID to extract data from
  * @param {string} templateName - User-friendly name for template
  * @param {UUID} businessUnitId - Business unit for the template
+ * @param {string} companyName - Company name for the template (optional)
  * @param {string} createdBy - User who created the template (optional)
  * @returns {Object} Template record
  */
-export async function savePermitAsTemplate(permitId, templateName, businessUnitId, createdBy = null) {
+export async function savePermitAsTemplate(permitId, templateName, businessUnitId, companyName = null, createdBy = null) {
   try {
     // Fetch the permit to extract template data
     const { data: permit, error: permitError } = await supabase
       .from('permits')
-      .select('specialized_permits, single_hazards, jsea, completion')
+      .select('specialized_permits, single_hazards, jsea, completion, contractor_company')
       .eq('id', permitId)
       .single();
 
     if (permitError) throw permitError;
+
+    // Use provided company name or fall back to permit's contractor company
+    const templateCompanyName = companyName || permit.contractor_company || null;
 
     // Create template record with only the reusable permit components
     const { data, error } = await supabase
@@ -34,6 +38,7 @@ export async function savePermitAsTemplate(permitId, templateName, businessUnitI
       .insert({
         template_name: templateName,
         business_unit_id: businessUnitId,
+        company_name: templateCompanyName,
         specialized_permits: permit.specialized_permits || {},
         single_hazards: permit.single_hazards || {},
         jsea: permit.jsea || {},
@@ -65,7 +70,7 @@ export async function getTemplates(businessUnitId) {
   try {
     const { data, error } = await supabase
       .from('permit_templates')
-      .select('id, template_name, description, specialized_permits, single_hazards, jsea, business_unit_id, created_at, updated_at, created_by')
+      .select('id, template_name, company_name, description, specialized_permits, single_hazards, jsea, business_unit_id, created_at, updated_at, created_by')
       .eq('business_unit_id', businessUnitId)
       .order('template_name', { ascending: true });
 
