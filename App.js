@@ -10241,6 +10241,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
     const [showPermitSaveTemplateDraft, setShowPermitSaveTemplateDraft] = React.useState(false);
     const [permitTemplateNameDraft, setPermitTemplateNameDraft] = React.useState('');
     const [selectedBusForPermitTemplate, setSelectedBusForPermitTemplate] = React.useState([]);
+    const [selectedCompanyForPermitTemplateDraft, setSelectedCompanyForPermitTemplateDraft] = React.useState('');
     const [loadingPermitSaveTemplate, setLoadingPermitSaveTemplate] = React.useState(false);
     
     // --- JSEA Template handlers for draft screen ---
@@ -10371,15 +10372,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       try {
         setLoadingPermitSaveTemplate(true);
         
-        // Save the current permit as a template
-        // Extract company name from the permit (contractor_company or manualCompany)
-        const companyName = editData.contractorCompany || editData.manualCompany || null;
-        
+        // Save the current permit as a template using selected company
         const response = await savePermitAsTemplate(
           editData.id,
           permitTemplateNameDraft,
           businessUnitId,
-          companyName,
+          selectedCompanyForPermitTemplateDraft || null,
           null // createdBy (optional)
         );
         
@@ -10387,6 +10385,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           Alert.alert('Success', `Template "${permitTemplateNameDraft}" saved successfully`);
           setPermitTemplateNameDraft('');
           setSelectedBusForPermitTemplate([]);
+          setSelectedCompanyForPermitTemplateDraft('');
           setShowPermitSaveTemplateDraft(false);
         } else {
           throw new Error(response?.error?.message || 'Unknown error');
@@ -12370,6 +12369,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 setShowPermitSaveTemplateDraft(false);
                 setPermitTemplateNameDraft('');
                 setSelectedBusForPermitTemplate([]);
+                setSelectedCompanyForPermitTemplateDraft('');
               }}>
                 <Text style={{
                   fontSize: 24,
@@ -12400,6 +12400,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                 onChangeText={setPermitTemplateNameDraft}
                 editable={!loadingPermitSaveTemplate}
               />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#1F2937', 
+                marginBottom: 8 
+              }}>Contractor Company (Optional)</Text>
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: 'white'
+              }}>
+                <Picker
+                  selectedValue={selectedCompanyForPermitTemplateDraft}
+                  onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateDraft(itemValue)}
+                  style={{
+                    color: '#1F2937'
+                  }}
+                >
+                  <Picker.Item label="No specific company" value="" />
+                  {companies.map(company => (
+                    <Picker.Item key={company.id} label={company.name} value={company.name} />
+                  ))}
+                </Picker>
+              </View>
             </View>
 
             <View style={{ marginBottom: 16 }}>
@@ -12464,6 +12492,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   setShowPermitSaveTemplateDraft(false);
                   setPermitTemplateNameDraft('');
                   setSelectedBusForPermitTemplate([]);
+                  setSelectedCompanyForPermitTemplateDraft('');
                 }}
               >
                 <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
