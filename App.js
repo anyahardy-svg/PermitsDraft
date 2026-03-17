@@ -2975,7 +2975,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
                 {specializedPermitTypes.map(permit => (
-                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible' }}>
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible', zIndex: permit.key === 'hotWork' || permit.key === 'confinedSpace' ? 50 : 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Switch
                         value={formData.specializedPermits[permit.key].required}
@@ -2995,12 +2995,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                       <>
                         {/* Render the new questionnaire with per-question controls */}
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
-                        
                         {/* HOT WORK SAFETY WATCH CUSTOM FIELD */}
                         {permit.key === 'hotWork' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
-                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }}>
                               <TextInput 
                                 editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
@@ -3063,7 +3062,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   borderColor: '#D1D5DB',
                                   borderRadius: 6,
                                   maxHeight: 200,
-                                  zIndex: 10000,
+                                  zIndex: 99999,
                                   overflow: 'visible',
                                   shadowColor: '#000',
                                   shadowOffset: { width: 0, height: 2 },
@@ -3100,9 +3099,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         
                         {/* CONFINED SPACE SAFETY WATCH CUSTOM FIELD */}
                         {permit.key === 'confinedSpace' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
-                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }}>
                               <TextInput 
                                 editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
@@ -3165,7 +3164,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   borderColor: '#D1D5DB',
                                   borderRadius: 6,
                                   maxHeight: 200,
-                                  zIndex: 10000,
+                                  zIndex: 99999,
                                   overflow: 'visible',
                                   shadowColor: '#000',
                                   shadowOffset: { width: 0, height: 2 },
@@ -17433,6 +17432,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 0,
     overflow: 'visible',
+    zIndex: 1,
   },
   label: {
     fontSize: 14,
