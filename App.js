@@ -1588,8 +1588,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
           if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
             isEmpty = !answer;
           } else if (question.type === 'text') {
-            // For text questions, answer is stored in the 'answer' field
-            isEmpty = !answer || !answer.trim();
+            // For text questions, check both 'answer' and 'text' fields (some custom fields store in 'text')
+            isEmpty = (!answer || !answer.trim()) && (!textValue || !textValue.trim());
           } else if (question.type === 'yesno_text') {
             isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
           } else if (question.type === 'multi_checkbox') {
