@@ -2183,6 +2183,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
   const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
   const [permitIssuerCompanyFilter, setPermitIssuerCompanyFilter] = useState('All');
+  const [permitIssuerBusinessUnitFilter, setPermitIssuerBusinessUnitFilter] = useState('All');
+  const [permitIssuerSiteFilter, setPermitIssuerSiteFilter] = useState('All');
   
   // Import status states
   const [importStatus, setImportStatus] = useState('idle'); // idle, importing, success, error
@@ -7395,10 +7397,73 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               </TouchableOpacity>
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {permitIssuers.length} permit issuers {permitIssuers.length > 0 && `(${permitIssuers.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
+            
+            {/* Filters */}
+            <View style={{ marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8 }}>FILTERS:</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <View style={{ flex: 1, minWidth: 150 }}>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Business Unit</Text>
+                  <View style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden', backgroundColor: 'white' }}>
+                    <Picker
+                      selectedValue={permitIssuerBusinessUnitFilter}
+                      onValueChange={(value) => setPermitIssuerBusinessUnitFilter(value)}
+                      style={{ height: 36, color: '#374151' }}
+                      prompt="Select Business Unit"
+                    >
+                      <Picker.Item label="All Business Units" value="All" />
+                      {businessUnits.map(unit => (
+                        <Picker.Item key={unit.id} label={unit.name} value={unit.id} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+                
+                <View style={{ flex: 1, minWidth: 150 }}>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Site</Text>
+                  <View style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden', backgroundColor: 'white' }}>
+                    <Picker
+                      selectedValue={permitIssuerSiteFilter}
+                      onValueChange={(value) => setPermitIssuerSiteFilter(value)}
+                      style={{ height: 36, color: '#374151' }}
+                      prompt="Select Site"
+                    >
+                      <Picker.Item label="All Sites" value="All" />
+                      {sites && sites.map(site => (
+                        <Picker.Item key={site.id} label={site.name} value={site.name} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+              </View>
+            </View>
+            
             {permitIssuers.length === 0 ? (
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No permit issuers yet. Add one using the form above.</Text>
-            ) : (
-              permitIssuers.map((user, index) => (
+            ) : (() => {
+              // Filter permit issuers based on selected filters
+              const filteredIssuers = permitIssuers.filter(issuer => {
+                // Business Unit filter
+                if (permitIssuerBusinessUnitFilter !== 'All') {
+                  if (!issuer.businessUnitIds || !issuer.businessUnitIds.includes(permitIssuerBusinessUnitFilter)) {
+                    return false;
+                  }
+                }
+                
+                // Site filter
+                if (permitIssuerSiteFilter !== 'All') {
+                  if (!issuer.sites || !issuer.sites.includes(permitIssuerSiteFilter)) {
+                    return false;
+                  }
+                }
+                
+                return true;
+              });
+              
+              return filteredIssuers.length === 0 ? (
+                <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No permit issuers match the selected filters.</Text>
+              ) : (
+                filteredIssuers.map((user, index) => (
                 <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
@@ -7440,7 +7505,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   </View>
                 </View>
               ))
-            )}
+              );
+            })()}
           </View>
         </ScrollView>
       </View>
