@@ -2973,7 +2973,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
                 {specializedPermitTypes.map(permit => (
-                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Switch
                         value={formData.specializedPermits[permit.key].required}
@@ -2996,7 +2996,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         
                         {/* HOT WORK SAFETY WATCH CUSTOM FIELD */}
                         {permit.key === 'hotWork' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
                             <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                               <TextInput 
@@ -3098,7 +3098,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         
                         {/* CONFINED SPACE SAFETY WATCH CUSTOM FIELD */}
                         {permit.key === 'confinedSpace' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
                             <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
                               <TextInput 
@@ -17366,6 +17366,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexGrow: 1,
     minHeight: 0,
+    overflow: 'visible',
   },
   label: {
     fontSize: 14,
