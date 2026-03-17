@@ -7857,6 +7857,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   }
                 }
                 
+                // Parse multiple service IDs (separated by semicolons or commas)
+                const serviceIds = [];
+                if (servicesStr) {
+                  const serviceIdStrings = servicesStr.split(/[;,]/).map(s => s.trim()).filter(s => s);
+                  for (const serviceIdStr of serviceIdStrings) {
+                    // Try to find service by name or use as UUID
+                    const foundService = servicesFromDb && servicesFromDb.find(s => 
+                      s.name.toLowerCase() === serviceIdStr.toLowerCase() || s.id === serviceIdStr
+                    );
+                    if (foundService) {
+                      serviceIds.push(foundService.id);
+                    } else if (serviceIdStr) {
+                      // If not found in database, treat as UUID and add it anyway
+                      serviceIds.push(serviceIdStr);
+                    }
+                  }
+                }
+                
                 // Find company by name
                 let companyId = null;
                 if (companyName) {
@@ -7874,6 +7892,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                   email: email || null,
                   phone: phone || null,
                   company_id: companyId,
+                  service_ids: serviceIds.length > 0 ? serviceIds : []
                 };
                 
                 if (existingContractor) {
