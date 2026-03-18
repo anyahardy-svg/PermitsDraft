@@ -100,6 +100,27 @@ export default function ContractorAdminScreen({
     }
   };
 
+  // Load sites for selected business units in save modal
+  const loadSitesForSelectedBUs = async (buIds = null) => {
+    const idsToUse = buIds || selectedBusinessUnitIds;
+    console.log('📍 Loading sites for selected BUs:', idsToUse);
+    if (idsToUse.length === 0) {
+      setSites([]);
+      return;
+    }
+    setLoadingSites(true);
+    try {
+      const sitesData = await getSitesByBusinessUnits(idsToUse);
+      console.log('📍 Sites loaded:', sitesData?.length || 0);
+      setSites(sitesData || []);
+    } catch (error) {
+      console.error('Failed to load sites:', error);
+      setSites([]);
+    } finally {
+      setLoadingSites(false);
+    }
+  };
+
   // Load sites for selected business units
   const loadSites = async () => {
     if (jseaFilterBusinessUnitIds.length === 0 && !effectiveBuId) return;
@@ -289,6 +310,8 @@ export default function ContractorAdminScreen({
 
   // Handle delete JSEA template
   const handleDeleteJseaTemplate = async (templateId) => {
+    console.log('🔴 DELETE BUTTON PRESSED - templateId:', templateId);
+    window.alert(`🔴 DELETE BUTTON CLICKED for template: ${templateId}`);
     Alert.alert(
       'Delete Template?',
       'This action cannot be undone.',
@@ -832,10 +855,15 @@ export default function ContractorAdminScreen({
                     Alert.alert('Validation', 'Please enter a template name');
                     return;
                   }
-                  // Show the save modal to select company
+                  // Show the save modal to select company and business units
                   console.log('🔓 Opening save modal, loading business units if needed...');
                   if (businessUnits.length === 0 && loadedBusinessUnits.length === 0) {
                     loadBusinessUnits();
+                  }
+                  // Load sites for selected business units
+                  if (selectedBusinessUnitIds.length > 0) {
+                    console.log('📍 Loading sites for selected business units:', selectedBusinessUnitIds);
+                    loadSitesForSelectedBUs();
                   }
                   setShowSaveModal(true);
                 }}
@@ -908,11 +936,17 @@ export default function ContractorAdminScreen({
                           <TouchableOpacity
                             key={bu.id}
                             onPress={() => {
-                              setSelectedBusinessUnitIds(prev =>
-                                prev.includes(bu.id)
-                                  ? prev.filter(id => id !== bu.id)
-                                  : [...prev, bu.id]
-                              );
+                              const newIds = selectedBusinessUnitIds.includes(bu.id)
+                                ? selectedBusinessUnitIds.filter(id => id !== bu.id)
+                                : [...selectedBusinessUnitIds, bu.id];
+                              setSelectedBusinessUnitIds(newIds);
+                              // Reload sites when business units change
+                              console.log('📍 Business units changed, reloading sites...');
+                              if (newIds.length > 0) {
+                                loadSitesForSelectedBUs(newIds);
+                              } else {
+                                setSites([]);
+                              }
                             }}
                             style={{
                               flexDirection: 'row',
@@ -970,6 +1004,58 @@ export default function ContractorAdminScreen({
                       </Text>
                     </TouchableOpacity>
                   </View>
+                </View>
+
+                {/* Sites Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                    Sites (Optional) <Text style={{ fontSize: 11, fontWeight: '400', color: '#6B7280' }}>(select one or more)</Text>
+                  </Text>
+
+                  {loadingSites ? (
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                  ) : (
+                    <View style={{ gap: 10 }}>
+                      {sites && sites.length > 0 ? (
+                        sites.map((site) => (
+                          <TouchableOpacity
+                            key={site.id}
+                            onPress={() => {
+                              setSelectedSiteIds(prev =>
+                                prev.includes(site.id)
+                                  ? prev.filter(id => id !== site.id)
+                                  : [...prev, site.id]
+                              );
+                            }}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingVertical: 8
+                            }}
+                          >
+                            <View style={{
+                              width: 18,
+                              height: 18,
+                              borderWidth: 1.5,
+                              borderColor: selectedSiteIds.includes(site.id) ? '#F97316' : '#D1D5DB',
+                              borderRadius: 3,
+                              marginRight: 10,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: selectedSiteIds.includes(site.id) ? '#F97316' : 'white'
+                            }}>
+                              {selectedSiteIds.includes(site.id) && (
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                              )}
+                            </View>
+                            <Text style={{ fontSize: 14, color: '#1F2937' }}>{site.name}</Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No sites available</Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               </ScrollView>
 
