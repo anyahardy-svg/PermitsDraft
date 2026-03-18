@@ -1949,6 +1949,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
 
+  // Track if we've pushed the initial admin route to history
+  const initialAdminRoutePushedRef = useRef(false);
+
   // Load permits from Supabase on component mount
   useEffect(() => {
     const loadData = async () => {
@@ -2251,6 +2254,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   useEffect(() => {
     if (initialAdminRoute) {
       setCurrentScreen(initialAdminRoute);
+      
+      // If this is the initial admin route load, push it to history
+      if (!initialAdminRoutePushedRef.current && typeof window !== 'undefined') {
+        const routeMap = {
+          'manage_issuers': '/admin/permit-issuers/',
+          'manage_companies': '/admin/companies/',
+          'manage_contractors': '/admin/contractors/',
+          'manage_sites': '/admin/sites/',
+          'services_directory': '/admin/services/',
+          'manage_isolations': '/admin/isolation-register/',
+          'manage_visitor_inductions': '/admin/visitor-inductions/',
+          'manage_inductions': '/admin/inductions/',
+          'manage_business_units': '/admin/business-units/',
+          'admin': '/admin/'
+        };
+        
+        const initialUrl = routeMap[initialAdminRoute];
+        if (initialUrl && window.location.pathname !== initialUrl) {
+          window.history.pushState({}, '', initialUrl);
+        }
+        initialAdminRoutePushedRef.current = true;
+      }
     }
   }, [initialAdminRoute]);
 
