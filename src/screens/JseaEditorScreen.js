@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,21 @@ export default function JseaEditorScreen({
       : [{ id: 1, description: '', hazards: '', controls: '' }]
   );
   const [nextId, setNextId] = useState((initialJsea?.length || 1) + 1);
+  
+  // CRITICAL FIX: Watch for changes to initialJsea prop and update local state
+  useEffect(() => {
+    console.log('🔄 JseaEditorScreen.useEffect - initialJsea changed');
+    console.log('   initialJsea:', initialJsea);
+    console.log('   initialJsea?.length:', initialJsea?.length);
+    if (initialJsea && initialJsea.length > 0) {
+      console.log('   Updating steps state to:', initialJsea);
+      setSteps(initialJsea);
+      setNextId((initialJsea?.length || 1) + 1);
+      console.log('   Steps updated! nextId set to:', (initialJsea?.length || 1) + 1);
+    } else {
+      console.log('   initialJsea is empty, keeping current steps');
+    }
+  }, [initialJsea]);
   
   // Responsive design - switch to cards on mobile
   const windowWidth = Dimensions.get('window').width;
