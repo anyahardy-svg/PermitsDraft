@@ -227,19 +227,6 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
       }
     }
 
-    try {
-      await logAudit('jsea_template_saved', {
-        template_id: data.id,
-        template_name: jseaName,
-        business_unit_ids: businessUnitIds,
-        site_ids: siteIds,
-        company_id: companyId,
-        step_count: jseaSteps.length,
-      });
-    } catch (auditError) {
-      console.warn('Warning: Audit log failed (non-critical):', auditError);
-    }
-
     return { success: true, data, message: `JSEA template "${jseaName}" saved` };
   } catch (error) {
     console.error('Save JSEA template error:', error);
@@ -485,17 +472,6 @@ export async function deleteJseaTemplate(jseaTemplateId) {
 
     console.log('✅ Template record deleted');
 
-    // Log audit (optional, don't fail if this fails)
-    try {
-      await logAudit('jsea_template_deleted', {
-        template_id: jseaTemplateId,
-        template_name: template?.name,
-      });
-      console.log('📝 Audit logged');
-    } catch (auditError) {
-      console.warn('⚠️ Audit logging failed (non-critical):', auditError);
-    }
-
     console.log('✅ Delete successful!');
     return { success: true, message: 'JSEA template deleted' };
   } catch (error) {
@@ -602,14 +578,6 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       jsea_steps_count: transformedData.jsea?.length || 0,
       business_units: transformedData.business_units,
       company_id: transformedData.company_id
-    });
-
-    await logAudit('jsea_template_updated', {
-      template_id: jseaTemplateId,
-      template_name: jseaName,
-      step_count: jseaSteps.length,
-    }).catch(auditError => {
-      console.warn('⚠️ Audit logging failed (non-critical):', auditError);
     });
 
     console.log('✅ Update complete!');
@@ -833,9 +801,17 @@ export async function getMostUsedPermitTypes(businessUnitId, limit = 10) {
 /**
  * Log audit trail
  */
-async function logAudit(action, details) {
+async function logAudit(action, details, permitId = null) {
   try {
+    // Only log if we have a permit_id - audit_logs table requires it
+    if (!permitId) {
+      console.log('⏭️  Skipping audit log (no permit_id):', action);
+      return;
+    }
+    
+    console.log('📝 Logging audit:', action);
     await supabase.from('audit_logs').insert({
+      permit_id: permitId,
       action,
       details,
       timestamp: new Date().toISOString(),
