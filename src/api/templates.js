@@ -182,17 +182,17 @@ export async function deleteTemplate(templateId) {
  */
 export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, companyId = null, siteIds = []) {
   try {
-    // Save JSEA template to templates table with business unit IDs and site IDs in data
+    // Save JSEA template to templates table with business unit IDs and company/site IDs in data
     const { data, error } = await supabase
       .from('templates')
       .insert([{
         name: jseaName,
         template_type: 'jsea',
-        company_id: companyId,
         data: {
           steps: jseaSteps,
           business_unit_ids: businessUnitIds || [],
           site_ids: siteIds || [],
+          company_id: companyId,
         },
       }])
       .select()
