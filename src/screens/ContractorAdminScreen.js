@@ -19,6 +19,7 @@ import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
+import TrainingRecordsScreen from './TrainingRecordsScreen';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack, 
@@ -26,7 +27,7 @@ export default function ContractorAdminScreen({
   styles,
   businessUnits = []
 }) {
-  const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', or 'inductions'
+  const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', 'inductions', or 'training-records'
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -682,7 +683,7 @@ export default function ContractorAdminScreen({
           </TouchableOpacity>
         )}
         <Text style={styles.title}>
-          {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inductions' : 'Accreditation') : 'Contractor Admin'}
+          {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : 'Accreditation') : 'Contractor Admin'}
         </Text>
         {activeTab && (
           <TouchableOpacity onPress={() => setActiveTab(null)}>
@@ -724,6 +725,13 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>{inductedContractors.length}</Text>
               <Text style={styles.cardLabel}>Inducted Contractors</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('training-records')}
+              style={[styles.dashboardCard, { borderLeftColor: '#EC4899', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>🎓</Text>
+              <Text style={styles.cardLabel}>Training Records</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
@@ -745,6 +753,15 @@ export default function ContractorAdminScreen({
           </View>
         ) : activeTab === 'inductions' ? (
           renderInductions()
+        ) : activeTab === 'training-records' ? (
+          <View style={{ flex: 1 }}>
+            <TrainingRecordsScreen
+              contractorId={null}
+              contractorName="Select Contractor"
+              styles={styles}
+              onClose={() => setActiveTab(null)}
+            />
+          </View>
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )

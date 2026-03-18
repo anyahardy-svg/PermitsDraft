@@ -26,12 +26,15 @@ export default function TrainingRecordsScreen({
   contractorName,
   services = [],
   styles,
-  onClose
+  onClose,
+  contractors = []
 }) {
   const [trainingRecords, setTrainingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState(services[0] || '');
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedContractorId, setSelectedContractorId] = useState(contractorId);
+  const [selectedContractorName, setSelectedContractorName] = useState(contractorName);
   const [formData, setFormData] = useState({
     notes: '',
     expiryDate: ''
@@ -39,15 +42,15 @@ export default function TrainingRecordsScreen({
 
   // Load training records on mount or when contractor changes
   useEffect(() => {
-    if (contractorId) {
+    if (selectedContractorId) {
       loadTrainingRecords();
     }
-  }, [contractorId]);
+  }, [selectedContractorId]);
 
   const loadTrainingRecords = async () => {
     setLoading(true);
     try {
-      const response = await getTrainingRecords(contractorId);
+      const response = await getTrainingRecords(selectedContractorId);
       if (response.success) {
         setTrainingRecords(response.data);
       }
@@ -72,7 +75,7 @@ export default function TrainingRecordsScreen({
       setLoading(true);
       try {
         const response = await uploadTrainingRecord(
-          contractorId,
+          selectedContractorId,
           selectedService,
           file,
           formData.expiryDate ? new Date(formData.expiryDate) : null,
@@ -149,7 +152,7 @@ export default function TrainingRecordsScreen({
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Training Records</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{contractorName}</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{selectedContractorName}</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -160,13 +163,38 @@ export default function TrainingRecordsScreen({
         </View>
       </View>
 
+      {/* Contractor Selector - if none selected */}
+      {!selectedContractorId && (
+        <View style={{ backgroundColor: '#FEF3C7', padding: 16, borderBottomWidth: 1, borderBottomColor: '#FCD34D' }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>
+            Select a Contractor
+          </Text>
+          <Text style={{ fontSize: 12, color: '#B45309', marginBottom: 8 }}>
+            Please select a contractor from the inducted contractors list to view and manage their training records.
+          </Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              backgroundColor: '#F59E0B',
+              padding: 10,
+              borderRadius: 6,
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+              ← Back to Select Contractor
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {loading && (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>
       )}
 
-      {!loading && (
+      {!loading && selectedContractorId && (
         <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 16 }}>
           {/* Service Filter */}
           {services.length > 0 && (
