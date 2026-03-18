@@ -222,29 +222,47 @@ export default function ContractorAdminScreen({
     console.log('✅ All validations passed');
 
     try {
-      console.log('💾 Calling saveJseaTemplate API...');
+      console.log('💾 Calling template API...');
       console.log('Parameters:', {
         name: jseaTemplateName,
         steps: currentJseaSteps.length,
         businessUnits: selectedBusinessUnitIds,
         company: selectedCompanyId,
-        sites: selectedSiteIds
+        sites: selectedSiteIds,
+        isEditing: !!editingJseaTemplate
       });
 
-      const response = await saveJseaTemplate(
-        jseaTemplateName,
-        currentJseaSteps,
-        selectedBusinessUnitIds,
-        selectedCompanyId,
-        selectedSiteIds
-      );
+      let response;
+      if (editingJseaTemplate) {
+        // Update existing template
+        console.log('📝 Updating existing template ID:', editingJseaTemplate.id);
+        response = await updateJseaTemplate(
+          editingJseaTemplate.id,
+          jseaTemplateName,
+          currentJseaSteps,
+          selectedBusinessUnitIds,
+          selectedCompanyId,
+          selectedSiteIds
+        );
+      } else {
+        // Create new template
+        console.log('✨ Creating new template');
+        response = await saveJseaTemplate(
+          jseaTemplateName,
+          currentJseaSteps,
+          selectedBusinessUnitIds,
+          selectedCompanyId,
+          selectedSiteIds
+        );
+      }
 
       console.log('📋 API Response received:', response);
 
       if (response.success) {
         console.log('✅ Save successful!');
-        Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusinessUnitIds.length} business unit(s)`);
-        window.alert(`✅ SUCCESS: Template "${jseaTemplateName}" saved!`);
+        const action = editingJseaTemplate ? 'updated' : 'created';
+        Alert.alert('Success', `Template "${jseaTemplateName}" ${action} for ${selectedBusinessUnitIds.length} business unit(s)`);
+        window.alert(`✅ SUCCESS: Template "${jseaTemplateName}" ${action}!`);
         setShowSaveModal(false);
         setShowJseaEditor(false);
         resetJseaForm();
@@ -343,9 +361,14 @@ export default function ContractorAdminScreen({
 
   // Open JSEA editor for editing template
   const handleEditJseaTemplate = (template) => {
+    console.log('📝 Editing template:', template);
     setEditingJseaTemplate(template);
     setJseaTemplateName(template.name);
     setCurrentJseaSteps(template.jsea || []);
+    // Populate business units and company from template
+    setSelectedBusinessUnitIds(template.business_units || []);
+    setSelectedCompanyId(template.company_id || null);
+    setSelectedSiteIds(template.site_ids || []);
     setShowJseaEditor(true);
   };
 

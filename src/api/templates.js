@@ -440,24 +440,16 @@ export async function deleteJseaTemplate(jseaTemplateId) {
  * @param {Array} jseaSteps - Updated steps
  * @returns {Object} Updated template
  */
-export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
+export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, businessUnitIds = [], companyId = null, siteIds = []) {
   try {
-    // Get existing template to preserve business_unit_ids and site_ids
-    const { data: existingTemplate } = await supabase
-      .from('templates')
-      .select('data')
-      .eq('id', jseaTemplateId)
-      .eq('template_type', 'jsea')
-      .single();
-
+    // Update the template
     const { data, error } = await supabase
       .from('templates')
       .update({
         name: jseaName,
+        company_id: companyId,
         data: {
           steps: jseaSteps,
-          business_unit_ids: existingTemplate?.data?.business_unit_ids || [],
-          site_ids: existingTemplate?.data?.site_ids || [],
         },
         updated_at: new Date().toISOString(),
       })
@@ -467,6 +459,29 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       .single();
 
     if (error) throw error;
+
+    // Delete existing business unit associations
+    await supabase
+      .from('template_business_units')
+      .delete()
+      .eq('template_id', jseaTemplateId);
+
+    // Insert new business unit associations if provided
+    if (businessUnitIds && businessUnitIds.length > 0) {
+      const buDataToInsert = businessUnitIds.map(buId => ({
+        template_id: jseaTemplateId,
+        business_unit_id: buId,
+      }));
+
+      const { error: buError } = await supabase
+        .from('template_business_units')
+        .insert(buDataToInsert);
+
+      if (buError) {
+        console.warn('Warning: Failed to update business unit associations:', buError);
+        // Don't throw - let the template update succeed even if BU assignment fails
+      }
+    }
 
     // Get business units this template is assigned to
     const { data: buData } = await supabase
@@ -482,7 +497,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       jsea: data.data?.steps || [],
       company_id: data.company_id,
       business_units: buData?.map(row => row.business_unit_id) || [],
-      site_ids: data.data?.site_ids || [],
+      site_ids: siteIds || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -491,6 +506,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps) {
       template_id: jseaTemplateId,
       template_name: jseaName,
       step_count: jseaSteps.length,
+      business_unit_count: businessUnitIds?.length || 0,
     });
 
     return { success: true, data: transformedData, message: `JSEA template "${jseaName}" updated` };
