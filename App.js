@@ -1949,9 +1949,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
 
-  // Track if we've pushed the initial admin route to history
-  const initialAdminRoutePushedRef = useRef(false);
-
   // Load permits from Supabase on component mount
   useEffect(() => {
     const loadData = async () => {
@@ -2254,28 +2251,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   useEffect(() => {
     if (initialAdminRoute) {
       setCurrentScreen(initialAdminRoute);
-      
-      // If this is the initial admin route load, push it to history
-      if (!initialAdminRoutePushedRef.current && typeof window !== 'undefined') {
-        const routeMap = {
-          'manage_issuers': '/admin/permit-issuers/',
-          'manage_companies': '/admin/companies/',
-          'manage_contractors': '/admin/contractors/',
-          'manage_sites': '/admin/sites/',
-          'services_directory': '/admin/services/',
-          'manage_isolations': '/admin/isolation-register/',
-          'manage_visitor_inductions': '/admin/visitor-inductions/',
-          'manage_inductions': '/admin/inductions/',
-          'manage_business_units': '/admin/business-units/',
-          'admin': '/admin/'
-        };
-        
-        const initialUrl = routeMap[initialAdminRoute];
-        if (initialUrl && window.location.pathname !== initialUrl) {
-          window.history.pushState({}, '', initialUrl);
-        }
-        initialAdminRoutePushedRef.current = true;
-      }
     }
   }, [initialAdminRoute]);
 
@@ -2307,7 +2282,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   useEffect(() => {
     const handlePopState = () => {
       if (typeof window !== 'undefined') {
-        window.location.reload();
+        const pathname = window.location.pathname;
+        
+        // Check for main admin dashboard
+        if (pathname === '/admin' || pathname === '/admin/') {
+          setCurrentScreen('admin');
+          return;
+        }
+        
+        // Check for specific admin routes
+        if (pathname.startsWith('/admin/')) {
+          const route = pathname.slice(7); // Remove '/admin/' prefix
+          const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+          
+          const routeMap = {
+            'permit-issuers': 'manage_issuers',
+            'companies': 'manage_companies',
+            'contractors': 'manage_contractors',
+            'sites': 'manage_sites',
+            'services': 'services_directory',
+            'isolation-register': 'manage_isolations',
+            'visitor-inductions': 'manage_visitor_inductions',
+            'inductions': 'manage_inductions',
+            'business-units': 'manage_business_units'
+          };
+          
+          const screen = routeMap[routeWithoutTrailingSlash];
+          if (screen) {
+            setCurrentScreen(screen);
+            return;
+          }
+        }
+        
+        // Default to dashboard if no admin route matched
+        setCurrentScreen('dashboard');
       }
     };
     
