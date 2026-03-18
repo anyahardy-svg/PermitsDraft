@@ -3057,56 +3057,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text}"</Text>
                               )}
                               {showHwSafetyWatchDropdown && filteredHwSafetyWatchContractors.length > 0 && (
-                                <Modal
-                                  visible={true}
-                                  transparent={true}
-                                  animationType="none"
-                                  onRequestClose={() => setShowHwSafetyWatchDropdown(false)}
-                                >
-                                  <TouchableOpacity 
-                                    style={{ flex: 1 }}
-                                    activeOpacity={1}
-                                    onPress={() => setShowHwSafetyWatchDropdown(false)}
-                                  >
-                                    <View style={{
-                                      backgroundColor: 'white',
-                                      borderWidth: 1,
-                                      borderColor: '#D1D5DB',
-                                      borderRadius: 8,
-                                      maxHeight: 300,
-                                      marginHorizontal: 16,
-                                      marginTop: 100,
-                                      overflow: 'hidden',
-                                      shadowColor: '#000',
-                                      shadowOffset: { width: 0, height: 4 },
-                                      shadowOpacity: 0.15,
-                                      shadowRadius: 8,
-                                      elevation: 10,
-                                    }} pointerEvents="box-none" onPress={(e) => e.stopPropagation()}>
-                                      <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
-                                        {filteredHwSafetyWatchContractors.map(contractor => (
-                                          <TouchableOpacity
-                                            key={contractor.id}
-                                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                                            activeOpacity={0.7}
-                                            onPress={() => {
-                                              const updated = {
-                                                ...formData.specializedPermits[permit.key].questionnaire,
-                                                hw_safety_watch: { ...(formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch || {}), text: contractor.name }
-                                              };
-                                              handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
-                                              setShowHwSafetyWatchDropdown(false);
-                                              setFilteredHwSafetyWatchContractors([]);
-                                            }}
-                                          >
-                                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                            <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
-                                          </TouchableOpacity>
-                                        ))}
-                                      </ScrollView>
-                                    </View>
-                                  </TouchableOpacity>
-                                </Modal>
+                                <View style={{
+                                  backgroundColor: 'white',
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 8,
+                                  marginTop: 4,
+                                  maxHeight: 300,
+                                  overflow: 'hidden',
+                                  shadowColor: '#000',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.15,
+                                  shadowRadius: 4,
+                                  elevation: 5,
+                                  zIndex: 100,
+                                }}>
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                    {filteredHwSafetyWatchContractors.map(contractor => (
+                                      <TouchableOpacity
+                                        key={contractor.id}
+                                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                          const updated = {
+                                            ...formData.specializedPermits[permit.key].questionnaire,
+                                            hw_safety_watch: { ...(formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch || {}), text: contractor.name }
+                                          };
+                                          handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
+                                          setShowHwSafetyWatchDropdown(false);
+                                          setFilteredHwSafetyWatchContractors([]);
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
                               )}
                             </View>
                           </View>
@@ -3174,56 +3161,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text}"</Text>
                               )}
                               {showCsSafetyWatchDropdown && filteredCsSafetyWatchContractors.length > 0 && (
-                                <Modal
-                                  visible={true}
-                                  transparent={true}
-                                  animationType="none"
-                                  onRequestClose={() => setShowCsSafetyWatchDropdown(false)}
-                                >
-                                  <TouchableOpacity 
-                                    style={{ flex: 1 }}
-                                    activeOpacity={1}
-                                    onPress={() => setShowCsSafetyWatchDropdown(false)}
-                                  >
-                                    <View style={{
-                                      backgroundColor: 'white',
-                                      borderWidth: 1,
-                                      borderColor: '#D1D5DB',
-                                      borderRadius: 8,
-                                      maxHeight: 300,
-                                      marginHorizontal: 16,
-                                      marginTop: 100,
-                                      overflow: 'hidden',
-                                      shadowColor: '#000',
-                                      shadowOffset: { width: 0, height: 4 },
-                                      shadowOpacity: 0.15,
-                                      shadowRadius: 8,
-                                      elevation: 10,
-                                    }} pointerEvents="box-none" onPress={(e) => e.stopPropagation()}>
-                                      <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
-                                        {filteredCsSafetyWatchContractors.map(contractor => (
-                                          <TouchableOpacity
-                                            key={contractor.id}
-                                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                                            activeOpacity={0.7}
-                                            onPress={() => {
-                                              const updated = {
-                                                ...formData.specializedPermits[permit.key].questionnaire,
-                                                safety_watch_name: { ...(formData.specializedPermits[permit.key].questionnaire?.safety_watch_name || {}), text: contractor.name }
-                                              };
-                                              handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
-                                              setShowCsSafetyWatchDropdown(false);
-                                              setFilteredCsSafetyWatchContractors([]);
-                                            }}
-                                          >
-                                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                            <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
-                                          </TouchableOpacity>
-                                        ))}
-                                      </ScrollView>
-                                    </View>
-                                  </TouchableOpacity>
-                                </Modal>
+                                <View style={{
+                                  backgroundColor: 'white',
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 8,
+                                  marginTop: 4,
+                                  maxHeight: 300,
+                                  overflow: 'hidden',
+                                  shadowColor: '#000',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.15,
+                                  shadowRadius: 4,
+                                  elevation: 5,
+                                  zIndex: 100,
+                                }}>
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                    {filteredCsSafetyWatchContractors.map(contractor => (
+                                      <TouchableOpacity
+                                        key={contractor.id}
+                                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                          const updated = {
+                                            ...formData.specializedPermits[permit.key].questionnaire,
+                                            safety_watch_name: { ...(formData.specializedPermits[permit.key].questionnaire?.safety_watch_name || {}), text: contractor.name }
+                                          };
+                                          handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
+                                          setShowCsSafetyWatchDropdown(false);
+                                          setFilteredCsSafetyWatchContractors([]);
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
                               )}
                             </View>
                           </View>
