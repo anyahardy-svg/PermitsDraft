@@ -16,6 +16,7 @@ import {
   Picker,
   ActivityIndicator
 } from 'react-native';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { supabase as supabaseClient } from './src/supabaseClient';
@@ -17908,12 +17909,13 @@ const pickerStyles = StyleSheet.create({
 });
 
 // App Router - Detects subdomain and routes to appropriate screen
-const AppRouter = () => {
+const AppRouter = ({ initialRoute }) => {
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
   const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
+  const [forceRoute, setForceRoute] = React.useState(initialRoute || null); // Force to specific route
 
   React.useEffect(() => {
     try {
@@ -17968,7 +17970,7 @@ const AppRouter = () => {
     mainContent = <KioskScreen onViewPermits={(siteId) => {
       setKioskSiteId(siteId);
       setKioskViewingPermits(true);
-    }} />;
+    }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
     mainContent = <PermitManagementApp />;
@@ -18015,4 +18017,28 @@ const AppRouter = () => {
   );
 };
 
-export default AppRouter;
+// App Router - Detects subdomain and routes to appropriate screen
+const App = () => {
+  const location = useLocation();
+  
+  // Check if we're on the sign-in-contractor route
+  if (location.pathname === '/sign-in-contractor') {
+    return <AppRouter initialRoute="contractor-signin" />;
+  }
+  
+  // Default - normal app routing
+  return <AppRouter />;
+};
+
+// Wrap App with BrowserRouter
+const AppWithRouter = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="*" element={<App />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export default AppWithRouter;

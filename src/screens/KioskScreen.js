@@ -40,9 +40,9 @@ const formatNameToTitleCase = (name) => {
     .join(' ');
 };
 
-const KioskScreen = ({ onViewPermits }) => {
+const KioskScreen = ({ onViewPermits, initialRoute }) => {
   // State
-  const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
+  const [currentScreen, setCurrentScreen] = useState(initialRoute || 'welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
