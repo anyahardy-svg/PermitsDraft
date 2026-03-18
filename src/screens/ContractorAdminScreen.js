@@ -178,6 +178,14 @@ export default function ContractorAdminScreen({
     }
 
     try {
+      console.log('💾 Saving JSEA template:', {
+        name: jseaTemplateName,
+        steps: currentJseaSteps.length,
+        businessUnits: selectedBusinessUnitIds,
+        company: selectedCompanyId,
+        sites: selectedSiteIds
+      });
+
       const response = await saveJseaTemplate(
         jseaTemplateName,
         currentJseaSteps,
@@ -185,14 +193,21 @@ export default function ContractorAdminScreen({
         selectedCompanyId,
         selectedSiteIds
       );
+
+      console.log('📋 Save response:', response);
+
       if (response.success) {
         Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusinessUnitIds.length} business unit(s)`);
         setShowSaveModal(false);
         setShowJseaEditor(false);
         resetJseaForm();
         loadJseaTemplates();
+      } else {
+        console.error('❌ Save failed:', response.error);
+        Alert.alert('Error', response.error || 'Failed to save template');
       }
     } catch (error) {
+      console.error('❌ Exception:', error);
       Alert.alert('Error', 'Failed to save template: ' + error.message);
     }
   };

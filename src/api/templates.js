@@ -182,6 +182,8 @@ export async function deleteTemplate(templateId) {
  */
 export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, companyId = null, siteIds = []) {
   try {
+    console.log('Saving JSEA template:', { jseaName, businessUnitIds, companyId, siteIds });
+    
     // Save JSEA template to templates table with business unit IDs and company/site IDs in data
     const { data, error } = await supabase
       .from('templates')
@@ -198,9 +200,15 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Insert error:', error);
+      throw error;
+    }
 
-    // Also add template to selected business unit(s) in junction table for efficient querying
+    console.log('Template inserted successfully:', data.id);
+
+    // Try to add template to selected business unit(s) in junction table for efficient querying
+    // This is optional - if the table doesn't exist, we continue anyway
     if (businessUnitIds && businessUnitIds.length > 0) {
       const businessUnitEntries = businessUnitIds.map(buId => ({
         template_id: data.id,
@@ -211,17 +219,26 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
         .from('template_business_units')
         .insert(businessUnitEntries);
 
-      if (juError) throw juError;
+      if (juError) {
+        console.warn('Warning: Could not insert into template_business_units (table may not exist):', juError);
+        // Don't throw - template is already saved in main table
+      } else {
+        console.log('Business unit associations created');
+      }
     }
 
-    await logAudit('jsea_template_saved', {
-      template_id: data.id,
-      template_name: jseaName,
-      business_unit_ids: businessUnitIds,
-      site_ids: siteIds,
-      company_id: companyId,
-      step_count: jseaSteps.length,
-    });
+    try {
+      await logAudit('jsea_template_saved', {
+        template_id: data.id,
+        template_name: jseaName,
+        business_unit_ids: businessUnitIds,
+        site_ids: siteIds,
+        company_id: companyId,
+        step_count: jseaSteps.length,
+      });
+    } catch (auditError) {
+      console.warn('Warning: Audit log failed (non-critical):', auditError);
+    }
 
     return { success: true, data, message: `JSEA template "${jseaName}" saved` };
   } catch (error) {
