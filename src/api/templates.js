@@ -406,29 +406,66 @@ export async function getJseaTemplate(jseaTemplateId) {
  */
 export async function deleteJseaTemplate(jseaTemplateId) {
   try {
-    const { data: template } = await supabase
+    console.log('🗑️ Starting delete of JSEA template:', jseaTemplateId);
+
+    // First, get the template info for logging
+    const { data: template, error: fetchError } = await supabase
       .from('templates')
       .select('name')
       .eq('id', jseaTemplateId)
       .eq('template_type', 'jsea')
       .single();
 
+    if (fetchError) {
+      console.warn('⚠️ Could not fetch template for logging:', fetchError);
+    } else {
+      console.log('📋 Template found:', template);
+    }
+
+    // Delete from template_business_units junction table first
+    console.log('🔗 Deleting business unit associations...');
+    const { error: buError } = await supabase
+      .from('template_business_units')
+      .delete()
+      .eq('template_id', jseaTemplateId);
+
+    if (buError) {
+      console.warn('⚠️ Warning deleting BU associations:', buError);
+      // Don't throw - continue with template deletion
+    } else {
+      console.log('✅ Business unit associations deleted');
+    }
+
+    // Delete the template
+    console.log('🗑️ Deleting template record...');
     const { error } = await supabase
       .from('templates')
       .delete()
       .eq('id', jseaTemplateId)
       .eq('template_type', 'jsea');
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Delete error:', error);
+      throw error;
+    }
 
-    await logAudit('jsea_template_deleted', {
-      template_id: jseaTemplateId,
-      template_name: template?.name,
-    });
+    console.log('✅ Template record deleted');
 
+    // Log audit (optional, don't fail if this fails)
+    try {
+      await logAudit('jsea_template_deleted', {
+        template_id: jseaTemplateId,
+        template_name: template?.name,
+      });
+      console.log('📝 Audit logged');
+    } catch (auditError) {
+      console.warn('⚠️ Audit logging failed (non-critical):', auditError);
+    }
+
+    console.log('✅ Delete successful!');
     return { success: true, message: 'JSEA template deleted' };
   } catch (error) {
-    console.error('Delete JSEA template error:', error);
+    console.error('❌ Delete JSEA template error:', error);
     return { success: false, error: error.message };
   }
 }

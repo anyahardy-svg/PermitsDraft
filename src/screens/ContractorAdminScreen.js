@@ -298,13 +298,24 @@ export default function ContractorAdminScreen({
           text: 'Delete',
           onPress: async () => {
             try {
+              console.log('🗑️ Deleting JSEA template:', templateId);
               const response = await deleteJseaTemplate(templateId);
+              console.log('📋 Delete response:', response);
+              
               if (response.success) {
+                console.log('✅ Delete successful!');
                 Alert.alert('Success', 'Template deleted');
-                loadJseaTemplates();
+                window.alert('✅ SUCCESS: Template deleted!');
+                await loadJseaTemplates();
+              } else {
+                console.error('❌ Delete failed:', response.error);
+                Alert.alert('Error', response.error || 'Failed to delete template');
+                window.alert(`❌ ERROR: ${response.error || 'Failed to delete template'}`);
               }
             } catch (error) {
+              console.error('❌ Exception:', error);
               Alert.alert('Error', 'Failed to delete template: ' + error.message);
+              window.alert(`❌ EXCEPTION: ${error.message}`);
             }
           },
           style: 'destructive'
