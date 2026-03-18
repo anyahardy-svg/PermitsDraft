@@ -9509,7 +9509,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                           <View style={{ width: columns.actions, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 12 }}>
                             <TouchableOpacity 
                               style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                              onPress={() => { 
+                              onPress={async () => { 
                                 // Convert site IDs back to names for editing
                                 const siteNames = (contractor.siteIds || []).map(siteId => siteIdToNameMap[siteId]).filter(Boolean);
                                 // Convert date from YYYY-MM-DD to DD/MM/YYYY format
@@ -9521,9 +9521,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 const editedContractor = { 
                                   ...contractor, 
                                   siteIds: siteNames,
+                                  services: contractor.serviceIds || contractor.services || [],
                                   company: contractor.companyName || contractor.company,
                                   inductionExpiry: formattedDate
                                 };
+                                
+                                // Load services and sites for the contractor's business units
+                                const businessUnitIds = contractor.businessUnitIds || [];
+                                if (businessUnitIds.length > 0) {
+                                  let allServices = [];
+                                  const sitesList = await getSitesByBusinessUnits(businessUnitIds);
+                                  for (const unitId of businessUnitIds) {
+                                    const services = await listServicesByBusinessUnit(unitId);
+                                    allServices = [...allServices, ...services];
+                                  }
+                                  setServicesForContractors(allServices);
+                                  setSitesForContractors(sitesList);
+                                } else {
+                                  setServicesForContractors([]);
+                                  setSitesForContractors([]);
+                                }
+                                
                                 setSelectedContractor(contractor); 
                                 setEditingContractor(true); 
                                 setCurrentContractor(editedContractor); 
