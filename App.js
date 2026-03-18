@@ -2126,10 +2126,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   ]);
 
   // Contractors state - stores contractor information
-  const [contractors, setContractors] = useState([
-    { id: 'contractor-001', name: 'ABC Contractors', email: 'info@abc-contractors.com', services: ['Hot Work', 'Electrical'], company: 'ABC Contractors Ltd', inductionExpiry: '2025-12-15' },
-    { id: 'contractor-002', name: 'XYZ Services', email: 'contact@xyz-services.com', services: ['Confined Space', 'Working at Height'], company: 'XYZ Services Inc', inductionExpiry: '2026-03-20' }
-  ]);
+  const [contractors, setContractors] = useState([]);
 
   const [newPermitData, setNewPermitData] = useState({
     id: '',
