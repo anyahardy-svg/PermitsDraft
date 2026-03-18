@@ -453,10 +453,21 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
       inductionInitialState = 'resume';
     }
     
+    const handleSelectInductionType = (type) => {
+      if (type === 'new') {
+        setCurrentScreen('inductions-new');
+      } else if (type === 'returning') {
+        setCurrentScreen('inductions-returning');
+      } else if (type === 'resume') {
+        setCurrentScreen('inductions-resume');
+      }
+    };
+    
     return (
       <ContractorInductionScreen
         styles={styles}
         initialRoute={inductionInitialState}
+        onSelectInductionType={handleSelectInductionType}
         onComplete={() => setCurrentScreen('welcome')}
         onCancel={() => setCurrentScreen('welcome')}
       />

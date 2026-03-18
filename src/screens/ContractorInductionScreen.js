@@ -67,7 +67,7 @@ const getYouTubeEmbedUrl = (url) => {
   return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
 };
 
-export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute }) {
+export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, onSelectInductionType }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -677,6 +677,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 businessUnitId: '',
                 selectedSiteIds: [],
               });
+              if (onSelectInductionType) {
+                onSelectInductionType('new');
+              }
             }}
             style={{ backgroundColor: '#E0E7FF', borderRadius: 12, padding: 20, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}
           >
@@ -690,6 +693,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               setReturningFilterCompanyId('');
               setReturningFilterBUId('');
               setReturningFilteredContractors(contractors);
+              if (onSelectInductionType) {
+                onSelectInductionType('returning');
+              }
             }}
             style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
           >
@@ -698,7 +704,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={handleLoadIncompleteInductions}
+            onPress={() => {
+              handleLoadIncompleteInductions();
+              if (onSelectInductionType) {
+                onSelectInductionType('resume');
+              }
+            }}
             style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706', marginBottom: 8 }}>⏸️ Resume Saved Induction</Text>
