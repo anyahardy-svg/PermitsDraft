@@ -8655,26 +8655,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Manage Contractors Screen
   const renderManageContractors = () => {
     // Helper function to look up service names from IDs
-    const getServiceNames = (serviceIds) => {
-      if (!serviceIds || serviceIds.length === 0) return [];
-      
-      return serviceIds.map(serviceId => {
-        // Check if this looks like a UUID (contains hyphens and is 36 chars)
-        if (typeof serviceId === 'string' && serviceId.includes('-') && serviceId.length === 36) {
-          // Try to find in services list
-          const service = servicesForContractors.find(s => s.id === serviceId);
-          if (service) {
-            return service.name;
-          }
-          // If not found in loaded services, we'll try to load them now
-          // For now, return a truncated UUID as fallback
-          return serviceId.substring(0, 8) + '...';
-        }
-        // It's already a text service name (fallback from induction)
-        return serviceId;
-      });
-    };
-
     // Load all services on first render if not already loaded
     if (servicesForContractors.length === 0) {
       listAllServices().then(services => {
@@ -10572,6 +10552,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  // Helper function to convert service IDs to service names
+  const getServiceNames = (serviceIds) => {
+    if (!serviceIds || serviceIds.length === 0) return [];
+    
+    return serviceIds.map(serviceId => {
+      // Check if this looks like a UUID (contains hyphens and is 36 chars)
+      if (typeof serviceId === 'string' && serviceId.includes('-') && serviceId.length === 36) {
+        // Try to find in services list
+        const service = servicesFromDb && servicesFromDb.find(s => s.id === serviceId);
+        if (service) {
+          return service.name;
+        }
+        // If not found in loaded services, return a truncated UUID as fallback
+        return serviceId.substring(0, 8) + '...';
+      }
+      // It's already a text service name (fallback from induction)
+      return serviceId;
+    });
   };
 
   const renderServicesDirectory = () => {
