@@ -162,8 +162,8 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
   // Handle browser back button
   useEffect(() => {
     const handlePopState = () => {
-      // When user clicks back button, navigate to welcome screen
-      setCurrentScreen('welcome');
+      // Reload the page to ensure proper state sync with URL
+      window.location.reload();
     };
     
     window.addEventListener('popstate', handlePopState);
