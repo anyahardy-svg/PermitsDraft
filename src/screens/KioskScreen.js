@@ -122,6 +122,14 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
     initializeKiosk();
   }, []);
 
+  // Handle initialRoute changes from URL path detection
+  useEffect(() => {
+    if (initialRoute && initialRoute !== 'welcome') {
+      setCurrentScreen(initialRoute);
+      console.log('🔗 Route detected from URL:', initialRoute);
+    }
+  }, [initialRoute]);
+
   const loadSignedInPeople = async () => {
     try {
       if (!siteId) return;

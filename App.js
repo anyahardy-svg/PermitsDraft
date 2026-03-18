@@ -17909,12 +17909,24 @@ const pickerStyles = StyleSheet.create({
 
 // App Router - Detects subdomain and routes to appropriate screen
 const AppRouter = ({ initialRoute }) => {
+  // Detect route from pathname synchronously at initialization
+  const getInitialRoute = () => {
+    if (initialRoute) return initialRoute;
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+        return 'contractor-signin';
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
   const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
-  const [forceRoute, setForceRoute] = React.useState(initialRoute || null); // Force to specific route
+  const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
 
   React.useEffect(() => {
     try {
@@ -17922,17 +17934,9 @@ const AppRouter = ({ initialRoute }) => {
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         const fullUrl = window.location.href;
-        const pathname = window.location.pathname;
         
         console.log('🌐 Hostname detected:', hostname);
         console.log('🔗 Full URL:', fullUrl);
-        console.log('📍 Pathname:', pathname);
-        
-        // Check for specific routes in pathname
-        if (pathname === '/sign-in-contractor') {
-          setForceRoute('contractor-signin');
-          console.log('🔗 Route detected: /sign-in-contractor');
-        }
         
         // Check if subdomain contains "-kiosk" OR if test mode is enabled
         const isKioskSubdomain = hostname.includes('-kiosk.');
