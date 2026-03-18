@@ -3011,13 +3011,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   };
                                   handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                   
-                                  // Filter contractors by site
-                                  if (text.trim().length > 0 && formData.site) {
-                                    const siteId = siteNameToIdMap[formData.site];
-                                    const siteContractors = contractors.filter(c => 
-                                      c.siteIds && 
-                                      c.siteIds.some(sid => sid === siteId)
-                                    );
+                                  // Filter contractors by site (if selected) or show all matching contractors
+                                  if (text.trim().length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
                                     const filtered = siteContractors.filter(c => 
                                       c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                                     );
@@ -3029,12 +3032,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   }
                                 }}
                                 onFocus={() => {
-                                  if ((formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || '').trim().length > 0 && formData.site) {
-                                    const siteId = siteNameToIdMap[formData.site];
-                                    const siteContractors = contractors.filter(c => 
-                                      c.siteIds && 
-                                      c.siteIds.some(sid => sid === siteId)
-                                    );
+                                  if ((formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || '').trim().length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
                                     const filtered = siteContractors.filter(c => 
                                       c && c.name && c.name.toLowerCase().includes((formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || '').toLowerCase())
                                     );
@@ -3047,8 +3053,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 }}
                                 placeholder="Start typing person name..."
                               />
-                              {!formData.site && (
-                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering contractors</Text>
+                              {filteredHwSafetyWatchContractors.length === 0 && formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text && (
+                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text}"</Text>
                               )}
                               {showHwSafetyWatchDropdown && filteredHwSafetyWatchContractors.length > 0 && (
                                 <Modal
@@ -3122,13 +3128,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   };
                                   handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                   
-                                  // Filter contractors by site
-                                  if (text.trim().length > 0 && formData.site) {
-                                    const siteId = siteNameToIdMap[formData.site];
-                                    const siteContractors = contractors.filter(c => 
-                                      c.siteIds && 
-                                      c.siteIds.some(sid => sid === siteId)
-                                    );
+                                  // Filter contractors by site (if selected) or show all matching contractors
+                                  if (text.trim().length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
                                     const filtered = siteContractors.filter(c => 
                                       c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
                                     );
@@ -3140,12 +3149,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                   }
                                 }}
                                 onFocus={() => {
-                                  if ((formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || '').trim().length > 0 && formData.site) {
-                                    const siteId = siteNameToIdMap[formData.site];
-                                    const siteContractors = contractors.filter(c => 
-                                      c.siteIds && 
-                                      c.siteIds.some(sid => sid === siteId)
-                                    );
+                                  if ((formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || '').trim().length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
                                     const filtered = siteContractors.filter(c => 
                                       c && c.name && c.name.toLowerCase().includes((formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || '').toLowerCase())
                                     );
@@ -3158,8 +3170,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                                 }}
                                 placeholder="Start typing person name..."
                               />
-                              {!formData.site && (
-                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering contractors</Text>
+                              {filteredCsSafetyWatchContractors.length === 0 && formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text && (
+                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text}"</Text>
                               )}
                               {showCsSafetyWatchDropdown && filteredCsSafetyWatchContractors.length > 0 && (
                                 <Modal
