@@ -298,7 +298,7 @@ export default function ContractorAdminScreen({
 
   // Handle delete JSEA template
   const handleDeleteJseaTemplate = async (templateId) => {
-    console.log('�️ DELETE HANDLER CALLED');
+    console.log('🗑️ DELETE HANDLER CALLED');
     console.log('   templateId param:', templateId);
     console.log('   typeof templateId:', typeof templateId);
     
@@ -308,36 +308,31 @@ export default function ContractorAdminScreen({
       return;
     }
     
-    Alert.alert(
-      'Delete Template?',
-      'This action cannot be undone.',
-      [
-        { text: 'Cancel', onPress: () => { console.log('❌ Delete cancelled'); } },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            try {
-              console.log('🗑️ DELETE CONFIRMED - Calling deleteJseaTemplate with id:', templateId);
-              const response = await deleteJseaTemplate(templateId);
-              console.log('📋 Delete API response:', response);
-              
-              if (response.success) {
-                console.log('✅ Delete successful!');
-                Alert.alert('Success', 'Template deleted');
-                await loadJseaTemplates();
-              } else {
-                console.error('❌ Delete failed:', response.error);
-                Alert.alert('Error', response.error || 'Failed to delete template');
-              }
-            } catch (error) {
-              console.error('❌ Exception during delete:', error);
-              Alert.alert('Error', 'Failed to delete template: ' + error.message);
-            }
-          },
-          style: 'destructive'
-        }
-      ]
-    );
+    // Use window.confirm for web - more reliable than Alert.alert
+    const confirmed = window.confirm('Delete this template? This action cannot be undone.');
+    
+    if (!confirmed) {
+      console.log('❌ Delete cancelled by user');
+      return;
+    }
+    
+    try {
+      console.log('🗑️ DELETE CONFIRMED - Calling deleteJseaTemplate with id:', templateId);
+      const response = await deleteJseaTemplate(templateId);
+      console.log('📋 Delete API response:', response);
+      
+      if (response.success) {
+        console.log('✅ Delete successful!');
+        Alert.alert('Success', 'Template deleted');
+        await loadJseaTemplates();
+      } else {
+        console.error('❌ Delete failed:', response.error);
+        Alert.alert('Error', response.error || 'Failed to delete template');
+      }
+    } catch (error) {
+      console.error('❌ Exception during delete:', error);
+      Alert.alert('Error', 'Failed to delete template: ' + error.message);
+    }
   };
 
   // Handle delete permit template
