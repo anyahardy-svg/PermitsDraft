@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,22 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { listPermits } from '../api/permits';
 import ContractorInductionScreen from './ContractorInductionScreen';
+import KioskWelcome from './kiosk/KioskWelcome';
+import KioskContractorSignIn from './kiosk/KioskContractorSignIn';
+import KioskVisitorInduction from './kiosk/KioskVisitorInduction';
+import KioskVisitorSignIn from './kiosk/KioskVisitorSignIn';
+import KioskSignOut from './kiosk/KioskSignOut';
+import KioskPermits from './kiosk/KioskPermits';
+
+// Create context for sharing data between kiosk screens
+export const KioskContext = createContext({});
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -258,529 +268,41 @@ const KioskScreen = ({ onViewPermits }) => {
     );
   }
 
-  // Welcome Screen
-  if (currentScreen === 'welcome') {
-    return (
-      <View style={{ ...styles.container, position: 'relative' }}>
-        <View style={styles.header}>
-          <Text style={styles.siteName}>{site.name}</Text>
-          <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
-          {testMode && (
-            <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
-              <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
-            </View>
-          )}
-        </View>
-
-        <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => {
-              setCurrentScreen('contractor-signin');
-              setSelectedContractor(null);
-              setContractorSearch('');
-            }}
-          >
-            <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => {
-              setCurrentScreen('visitor-induction');
-              setVisitorInductionConfirmed(false);
-              setVisitorName('');
-              setVisitorCompany('');
-              setVisitorPhone('');
-              setVisitingPerson('');
-            }}
-          >
-            <Text style={styles.largeButtonText}>👥 Sign In Visitor</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.largeButton}
-            onPress={() => {
-              setCurrentScreen('signout');
-              setSelectedPerson(null);
-              loadSignedInPeople();
-            }}
-          >
-            <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Floating Permits button */}
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 30,
-            right: 20,
-            backgroundColor: '#10B981',
-            padding: 16,
-            borderRadius: 50,
-            elevation: 10,
-            zIndex: 1000,
-            width: 70,
-            height: 70,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-          }}
-          onPress={() => {
-            if (onViewPermits) {
-              onViewPermits(siteId);
-            }
-          }}
-        >
-          <Text style={{ fontSize: 32 }}>📋</Text>
-          <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
-        </TouchableOpacity>
-
-        {/* Contractor Induction Button */}
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 30,
-            left: 20,
-            backgroundColor: '#A855F7',
-            width: 70,
-            height: 70,
-            borderRadius: 35,
-            justifyContent: 'center',
-            alignItems: 'center',
-            elevation: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-            zIndex: 1001,
-          }}
-          onPress={() => {
-            console.log('🎓 Induction button pressed');
-            setShowInductionModal(true);
-          }}
-        >
-          <Text style={{ fontSize: 32 }}>🎓</Text>
-          <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Induction</Text>
-        </TouchableOpacity>
-
-        {/* Contractor Induction Modal */}
-        <Modal
-          visible={showInductionModal}
-          animationType="slide"
-          onRequestClose={() => setShowInductionModal(false)}
-        >
-          <ContractorInductionScreen
-            styles={styles}
-            onComplete={() => setShowInductionModal(false)}
-            onCancel={() => setShowInductionModal(false)}
-          />
-        </Modal>
-      </View>
-    );
-  }
-
-  // Contractor Sign-In Screen
-  if (currentScreen === 'contractor-signin') {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign In Contractor</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          <Text style={styles.label}>Search for Contractor:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Type contractor name or email..."
-            value={contractorSearch}
-            onChangeText={handleContractorSearch}
-          />
-
-          {filteredContractors.length > 0 ? (
-            <FlatList
-              data={filteredContractors}
-              scrollEnabled={false}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={[
-                    styles.contractorItem,
-                    selectedContractor?.id === item.id && styles.contractorItemSelected
-                  ]}
-                  onPress={() => setSelectedContractor(item)}
-                >
-                  <Text style={styles.contractorName}>{item.name}</Text>
-                  <Text style={styles.contractorEmail}>{item.email}</Text>
-                  {item.company && <Text style={styles.contractorCompany}>{item.company}</Text>}
-                </TouchableOpacity>
-              )}
-            />
-          ) : (
-            contractorSearch.trim().length > 0 && (
-              <Text style={styles.noResults}>No contractors found</Text>
-            )
-          )}
-
-          {selectedContractor && (
-            <View style={styles.selectedBox}>
-              <Text style={styles.selectedLabel}>Ready to Check In:</Text>
-              <Text style={styles.selectedName}>{selectedContractor.name}</Text>
-              <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
-              <Text style={styles.selectedDateTime}>
-                Date & Time: {new Date().toLocaleString('en-US', { 
-                  year: 'numeric', 
-                  month: 'short', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </Text>
-              <TouchableOpacity 
-                style={styles.submitButton}
-                onPress={handleCheckInContractor}
-              >
-                <Text style={styles.submitButtonText}>✓ Check In</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // Visitor Induction Screen (before sign-in form)
-  if (currentScreen === 'visitor-induction') {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Site Induction</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          <View style={styles.inductionBox}>
-            <Text style={styles.inductionText}>{visitorInductionContent}</Text>
-          </View>
-
-          <View style={styles.checkboxContainer}>
-            <TouchableOpacity
-              style={[styles.checkbox, visitorInductionConfirmed && styles.checkboxChecked]}
-              onPress={() => setVisitorInductionConfirmed(!visitorInductionConfirmed)}
-            >
-              {visitorInductionConfirmed && <Text style={styles.checkboxTick}>✓</Text>}
-            </TouchableOpacity>
-            <Text style={styles.checkboxLabel}>I have read and agree to comply with the above</Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.submitButton, !visitorInductionConfirmed && styles.submitButtonDisabled]}
-            disabled={!visitorInductionConfirmed}
-            onPress={() => setCurrentScreen('visitor-signin')}
-          >
-            <Text style={styles.submitButtonText}>Continue to Sign In</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // Visitor Sign-In Screen
-  if (currentScreen === 'visitor-signin') {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign In Visitor</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          <Text style={styles.label}>Visitor Name *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your name"
-            value={visitorName}
-            onChangeText={setVisitorName}
-          />
-
-          <Text style={styles.label}>Company *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your company"
-            value={visitorCompany}
-            onChangeText={setVisitorCompany}
-          />
-
-          <Text style={styles.label}>Phone Number *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your phone number"
-            value={visitorPhone}
-            onChangeText={setVisitorPhone}
-            keyboardType="phone-pad"
-          />
-
-          <Text style={styles.label}>Visiting Person (optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Who are you visiting?"
-            value={visitingPerson}
-            onChangeText={setVisitingPerson}
-          />
-
-          <TouchableOpacity 
-            style={styles.submitButton}
-            onPress={handleCheckInVisitor}
-          >
-            <Text style={styles.submitButtonText}>✓ Check In</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // Sign-Out Screen
-  if (currentScreen === 'signout') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign Out</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          <Text style={styles.label}>Select Person to Sign Out:</Text>
-          {signedInPeople.length > 0 ? (
-            signedInPeople.map((person) => {
-              // Determine type, company, and phone
-              const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
-              const name = person.contractor_name || person.visitor_name || 'Unknown';
-              const company = person.contractor_company || person.visitor_company || 'N/A';
-              const phone = person.contractor_phone || person.phone_number || 'N/A';
-              return (
-                <TouchableOpacity
-                  key={person.id}
-                  style={[
-                    styles.personItem,
-                    selectedPerson?.id === person.id && styles.personItemSelected
-                  ]}
-                  onPress={() => setSelectedPerson(person)}
-                >
-                  <Text style={styles.personName}>{name}</Text>
-                  <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
-                  <Text style={styles.personDetails}>Type: {type}</Text>
-                  <Text style={styles.personDetails}>Company: {company}</Text>
-                  <Text style={styles.personDetails}>Phone: {phone}</Text>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <Text style={styles.noResults}>No one currently signed in</Text>
-          )}
-
-          {selectedPerson && (
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSignOut}
-            >
-              <Text style={styles.submitButtonText}>✓ Sign Out</Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  // Permits Kiosk View Screen - matches main dashboard
-  if (currentScreen === 'permits-kiosk') {
-    if (permitsLoading) {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.loadingText}>Loading Permits...</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Permits - {site?.name}</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.formContent}>
-          <View style={{ 
-            flexDirection: 'row', 
-            flexWrap: 'wrap', 
-            gap: 12, 
-            marginBottom: 20
-          }}>
-            <TouchableOpacity style={{
-              flex: 1,
-              minWidth: '45%',
-              backgroundColor: 'white',
-              borderRadius: 8,
-              padding: 16,
-              borderLeftWidth: 4,
-              borderLeftColor: '#9CA3AF'
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
-                {permits.filter(p => p.status === 'draft').length}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Drafts</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{
-              flex: 1,
-              minWidth: '45%',
-              backgroundColor: 'white',
-              borderRadius: 8,
-              padding: 16,
-              borderLeftWidth: 4,
-              borderLeftColor: '#2563EB'
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
-                {permits.filter(p => p.status === 'pending_approval').length}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Pending Approval</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{
-              flex: 1,
-              minWidth: '45%',
-              backgroundColor: 'white',
-              borderRadius: 8,
-              padding: 16,
-              borderLeftWidth: 4,
-              borderLeftColor: '#F59E42'
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
-                {permits.filter(p => p.status === 'pending_inspection').length}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Needs Inspection</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{
-              flex: 1,
-              minWidth: '45%',
-              backgroundColor: 'white',
-              borderRadius: 8,
-              padding: 16,
-              borderLeftWidth: 4,
-              borderLeftColor: '#10B981'
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
-                {permits.filter(p => p.status === 'active').length}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Active Permits</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{
-              flex: 1,
-              minWidth: '45%',
-              backgroundColor: 'white',
-              borderRadius: 8,
-              padding: 16,
-              borderLeftWidth: 4,
-              borderLeftColor: '#EC4899'
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1F2937' }}>
-                {permits.filter(p => p.status === 'completed').length}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Completed</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={{
-            backgroundColor: '#2563EB',
-            padding: 16,
-            borderRadius: 8,
-            marginBottom: 12,
-            alignItems: 'center'
-          }}>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Create New Permit</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    );
-  }
-
-  // TODO: Inductions and Permits screens coming in Phase 2
-
   // Return the main component with floating Permits button
   // The permits button floats at the bottom-right and is visible on all screens
+  const kioskContextValue = {
+    site,
+    siteId,
+    businessUnitId,
+    contractors,
+    styles,
+    testMode,
+  };
+
   return (
-    <View style={{ flex: 1, position: 'relative' }}>
-      {/* Main content will be rendered by the screen conditionals above */}
-      {currentScreen === 'welcome' && (
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.siteName}>{site.name}</Text>
-            <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
-            {testMode && (
-              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
-                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
-              </View>
-            )}
-          </View>
-
-          <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
-            <TouchableOpacity 
-              style={styles.largeButton}
-              onPress={() => {
-                setCurrentScreen('contractor-signin');
-                setSelectedContractor(null);
-                setContractorSearch('');
-              }}
-            >
-              <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.largeButton}
-              onPress={() => {
-                setCurrentScreen('visitor-induction');
-                setVisitorInductionConfirmed(false);
-                setVisitorName('');
-                setVisitorCompany('');
-                setVisitorPhone('');
-                setVisitingPerson('');
-              }}
-            >
-              <Text style={styles.largeButtonText}>👥 Sign In Visitor</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.largeButton}
-              onPress={() => {
-                setCurrentScreen('signout');
-                setSelectedPerson(null);
-                loadSignedInPeople();
-              }}
-            >
-              <Text style={styles.largeButtonText}>🚪 Sign Out</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
-      
-      {/* Floating Permits button - visible on all screens except permits-kiosk */}
-      {currentScreen !== 'permits-kiosk' && (
+    <BrowserRouter>
+      <View style={{ flex: 1, position: 'relative' }}>
+        <KioskContext.Provider value={kioskContextValue}>
+          <Routes>
+            {/* Default route - welcome screen */}
+            <Route path="/" element={<KioskWelcome />} />
+            
+            {/* Sign-in routes */}
+            <Route path="/sign-in/contractor" element={<KioskContractorSignIn />} />
+            <Route path="/sign-in/visitor" element={<KioskVisitorInduction />} />
+            
+            {/* Sign-out route */}
+            <Route path="/sign-out" element={<KioskSignOut />} />
+            
+            {/* Permits route */}
+            <Route path="/permits" element={<KioskPermits />} />
+            
+            {/* Catch-all - default to welcome */}
+            <Route path="*" element={<KioskWelcome />} />
+          </Routes>
+        </KioskContext.Provider>
+        
+        {/* Floating Permits button - visible on all screens except permits */}
         <TouchableOpacity
           style={{
             position: 'absolute',
@@ -801,15 +323,15 @@ const KioskScreen = ({ onViewPermits }) => {
             shadowRadius: 5,
           }}
           onPress={() => {
-            setCurrentScreen('permits-kiosk');
-            setPermitsLoading(true);
+            // Navigate to permits using window.history or router
+            window.location.hash = '/permits';
           }}
         >
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
-      )}
-    </View>
+      </View>
+    </BrowserRouter>
   );
 };
 
