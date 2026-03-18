@@ -254,6 +254,8 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
  */
 export async function getJseaTemplates(businessUnitId) {
   try {
+    console.log('📚 GET JSEA TEMPLATES - Starting for BU:', businessUnitId);
+    
     // Get all JSEA templates that either:
     // 1. Have an entry in template_business_units for this BU, OR
     // 2. Have NO entries in template_business_units (available to all BUs)
@@ -263,6 +265,8 @@ export async function getJseaTemplates(businessUnitId) {
       .eq('template_type', 'jsea')
       .order('name', { ascending: true });
 
+    console.log(`  Found ${allTemplates?.length || 0} total JSEA templates`);
+    
     if (listError) throw listError;
 
     // Get templates specifically assigned to this business unit
@@ -289,6 +293,8 @@ export async function getJseaTemplates(businessUnitId) {
       assignedIds.has(template.id) || !templatesWithBUIds.has(template.id)
     );
 
+    console.log(`  Filtered to ${filteredTemplates.length} templates for this BU`);
+
     // Get all business unit associations for the filtered templates
     const templateIds = filteredTemplates.map(t => t.id);
     let allBUAssociations = {};
@@ -310,22 +316,30 @@ export async function getJseaTemplates(businessUnitId) {
     }
 
     // Transform data for easier access
-    const transformedData = filteredTemplates.map(template => ({
-      id: template.id,
-      template_name: template.name,
-      name: template.name,
-      jsea: template.data?.steps || [],
-      company_id: template.company_id,
-      business_units: allBUAssociations[template.id] || [],
-      site_ids: template.data?.site_ids || [],
-      business_unit_id: businessUnitId,
-      created_at: template.created_at,
-      updated_at: template.updated_at,
-    }));
+    const transformedData = filteredTemplates.map(template => {
+      console.log(`  Template: "${template.name}"`);
+      console.log(`    - data field:`, template.data);
+      console.log(`    - steps in data:`, template.data?.steps);
+      console.log(`    - steps count:`, template.data?.steps?.length || 0);
+      
+      return {
+        id: template.id,
+        template_name: template.name,
+        name: template.name,
+        jsea: template.data?.steps || [],
+        company_id: template.company_id,
+        business_units: allBUAssociations[template.id] || [],
+        site_ids: template.data?.site_ids || [],
+        business_unit_id: businessUnitId,
+        created_at: template.created_at,
+        updated_at: template.updated_at,
+      };
+    });
 
+    console.log(`✅ GET complete - returning ${transformedData.length} templates`);
     return { success: true, data: transformedData };
   } catch (error) {
-    console.error('Get JSEA templates error:', error);
+    console.error('❌ Get JSEA templates error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -499,15 +513,31 @@ export async function deleteJseaTemplate(jseaTemplateId) {
  */
 export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, businessUnitIds = [], companyId = null, siteIds = []) {
   try {
+    console.log('🔄 UPDATE JSEA TEMPLATE - Starting');
+    console.log('  Template ID:', jseaTemplateId);
+    console.log('  Template Name:', jseaName);
+    console.log('  Steps to save:', jseaSteps);
+    console.log('  Steps count:', jseaSteps?.length || 0);
+    console.log('  Business Units:', businessUnitIds);
+    console.log('  Company ID:', companyId);
+    
+    // Prepare the data object - match the structure used in saveJseaTemplate
+    const dataToUpdate = {
+      steps: jseaSteps || [],
+      business_unit_ids: businessUnitIds || [],
+      site_ids: siteIds || [],
+      company_id: companyId,
+    };
+    
+    console.log('  Data object to save:', dataToUpdate);
+
     // Update the template
     const { data, error } = await supabase
       .from('templates')
       .update({
         name: jseaName,
         company_id: companyId,
-        data: {
-          steps: jseaSteps,
-        },
+        data: dataToUpdate,
         updated_at: new Date().toISOString(),
       })
       .eq('id', jseaTemplateId)
@@ -515,9 +545,16 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Update error:', error);
+      throw error;
+    }
+
+    console.log('✅ Template updated in DB');
+    console.log('  Returned data field:', data.data);
 
     // Delete existing business unit associations
+    console.log('🔗 Deleting old business unit associations...');
     await supabase
       .from('template_business_units')
       .delete()
@@ -537,6 +574,8 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       if (buError) {
         console.warn('Warning: Failed to update business unit associations:', buError);
         // Don't throw - let the template update succeed even if BU assignment fails
+      } else {
+        console.log('✅ Business unit associations updated');
       }
     }
 
@@ -559,6 +598,12 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       updated_at: data.updated_at,
     };
 
+    console.log('📦 Transformed response:', {
+      jsea_steps_count: transformedData.jsea?.length || 0,
+      business_units: transformedData.business_units,
+      company_id: transformedData.company_id
+    });
+
     await logAudit('jsea_template_updated', {
       template_id: jseaTemplateId,
       template_name: jseaName,
@@ -567,9 +612,10 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       console.warn('⚠️ Audit logging failed (non-critical):', auditError);
     });
 
+    console.log('✅ Update complete!');
     return { success: true, data: transformedData, message: `JSEA template "${jseaName}" updated` };
   } catch (error) {
-    console.error('Update JSEA template error:', error);
+    console.error('❌ Update JSEA template error:', error);
     return { success: false, error: error.message };
   }
 }
