@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,9 @@ export default function ContractorAdminScreen({
   const [jseaFilterBusinessUnitIds, setJseaFilterBusinessUnitIds] = useState([]);
   const [jseaFilterSiteIds, setJseaFilterSiteIds] = useState([]);
   const [sites, setSites] = useState([]);
+  
+  // Ref to access JseaEditorScreen's current steps when buttons are hidden
+  const jseaEditorRef = useRef(null);
   const [loadingSites, setLoadingSites] = useState(false);
   // Filter search state
   const [jseaCompanySearch, setJseaCompanySearch] = useState('');
@@ -814,6 +817,7 @@ export default function ContractorAdminScreen({
 
             {/* JSEA Editor */}
             <JseaEditorScreen
+              ref={jseaEditorRef}
               initialJsea={currentJseaSteps}
               onSave={(steps) => {
                 console.log('✏️ JSEA EDITOR ONSAVE CALLED');
@@ -867,6 +871,14 @@ export default function ContractorAdminScreen({
                 }}
                 onPress={() => {
                   console.log('💾 SAVE TEMPLATE BUTTON PRESSED');
+                  
+                  // Get current steps from the editor (in case hideButtons=true and onSave wasn't called)
+                  if (jseaEditorRef.current) {
+                    const editorSteps = jseaEditorRef.current.getSteps();
+                    console.log('💾 Got steps from editor ref:', editorSteps);
+                    setCurrentJseaSteps(editorSteps);
+                  }
+                  
                   console.log('💾 Current state:', {
                     jseaTemplateName,
                     currentJseaSteps_count: currentJseaSteps?.length || 0,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -14,15 +14,18 @@ import {
  * JseaEditorScreen - Table-based JSEA (Job Safety and Environmental Analysis) editor
  * Allows creating/editing JSEA with multiple steps in a table format
  * Each step has: Description, Hazards, Controls
+ * 
+ * Can be used with or without buttons (hideButtons prop)
+ * If buttons are hidden, use ref to get steps: editorRef.current.getSteps()
  */
-export default function JseaEditorScreen({ 
+const JseaEditorScreen = forwardRef(({ 
   initialJsea = null, 
   onSave, 
   onCancel, 
   styles,
   hideButtons = false,
   isInModal = false
-}) {
+}, ref) => {
   const [steps, setSteps] = useState(
     initialJsea && initialJsea.length > 0 
       ? initialJsea 
@@ -44,6 +47,14 @@ export default function JseaEditorScreen({
       console.log('   initialJsea is empty, keeping current steps');
     }
   }, [initialJsea]);
+  
+  // EXPOSE getSteps method so parent can access current steps when buttons are hidden
+  useImperativeHandle(ref, () => ({
+    getSteps: () => {
+      console.log('📤 getSteps() called from parent, returning:', steps);
+      return steps;
+    }
+  }), [steps]);
   
   // Responsive design - switch to cards on mobile
   const windowWidth = Dimensions.get('window').width;
@@ -303,4 +314,8 @@ export default function JseaEditorScreen({
       </ScrollView>
     </View>
   );
-}
+});
+
+JseaEditorScreen.displayName = 'JseaEditorScreen';
+
+export default JseaEditorScreen;
