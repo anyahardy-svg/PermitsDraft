@@ -119,11 +119,20 @@ export default function ContractorAdminScreen({
     if (!effectiveBuId) return;
     setLoadingJsea(true);
     try {
+      console.log('📚 Loading JSEA templates for BU:', effectiveBuId);
       const response = await getJseaTemplates(effectiveBuId);
+      console.log('📚 getJseaTemplates response:', response);
       if (response.success) {
+        console.log(`✅ Loaded ${response.data?.length || 0} templates:`, response.data);
+        response.data?.forEach((t, i) => {
+          console.log(`  Template ${i+1}: id=${t.id}, name=${t.name}, jsea_steps=${t.jsea?.length || 0}`);
+        });
         setJseaTemplates(response.data || []);
+      } else {
+        console.error('❌ Failed to load templates:', response.error);
       }
     } catch (error) {
+      console.error('❌ Exception loading templates:', error);
       Alert.alert('Error', 'Failed to load JSEA templates: ' + error.message);
     } finally {
       setLoadingJsea(false);
@@ -286,35 +295,40 @@ export default function ContractorAdminScreen({
 
   // Handle delete JSEA template
   const handleDeleteJseaTemplate = async (templateId) => {
-    console.log('🔴 DELETE BUTTON PRESSED - templateId:', templateId);
-    window.alert(`🔴 DELETE BUTTON CLICKED for template: ${templateId}`);
+    console.log('�️ DELETE HANDLER CALLED');
+    console.log('   templateId param:', templateId);
+    console.log('   typeof templateId:', typeof templateId);
+    
+    if (!templateId) {
+      console.error('❌ ERROR: templateId is null/undefined');
+      Alert.alert('Error', 'Cannot delete: template ID not found');
+      return;
+    }
+    
     Alert.alert(
       'Delete Template?',
       'This action cannot be undone.',
       [
-        { text: 'Cancel', onPress: () => {} },
+        { text: 'Cancel', onPress: () => { console.log('❌ Delete cancelled'); } },
         {
           text: 'Delete',
           onPress: async () => {
             try {
-              console.log('🗑️ Deleting JSEA template:', templateId);
+              console.log('🗑️ DELETE CONFIRMED - Calling deleteJseaTemplate with id:', templateId);
               const response = await deleteJseaTemplate(templateId);
-              console.log('📋 Delete response:', response);
+              console.log('📋 Delete API response:', response);
               
               if (response.success) {
                 console.log('✅ Delete successful!');
                 Alert.alert('Success', 'Template deleted');
-                window.alert('✅ SUCCESS: Template deleted!');
                 await loadJseaTemplates();
               } else {
                 console.error('❌ Delete failed:', response.error);
                 Alert.alert('Error', response.error || 'Failed to delete template');
-                window.alert(`❌ ERROR: ${response.error || 'Failed to delete template'}`);
               }
             } catch (error) {
-              console.error('❌ Exception:', error);
+              console.error('❌ Exception during delete:', error);
               Alert.alert('Error', 'Failed to delete template: ' + error.message);
-              window.alert(`❌ EXCEPTION: ${error.message}`);
             }
           },
           style: 'destructive'
@@ -370,18 +384,31 @@ export default function ContractorAdminScreen({
 
   // Open JSEA editor for editing template
   const handleEditJseaTemplate = (template) => {
-    console.log('📝 Editing template:', template);
+    console.log('📝 Editing template - FULL OBJECT:', template);
+    console.log('📝 Template.business_units:', template.business_units);
+    console.log('📝 Template.company_id:', template.company_id);
+    console.log('📝 Template.jsea:', template.jsea);
+    
     setEditingJseaTemplate(template);
     setJseaTemplateName(template.name);
     setCurrentJseaSteps(template.jsea || []);
+    
     // Populate business units and company from template
+    console.log('✅ Setting selectedBusinessUnitIds to:', template.business_units || []);
     setSelectedBusinessUnitIds(template.business_units || []);
+    console.log('✅ Setting selectedCompanyId to:', template.company_id || null);
     setSelectedCompanyId(template.company_id || null);
+    
     setShowJseaEditor(true);
   };
 
   // Render JSEA Templates Tab
   const renderJseaTemplates = () => {
+    console.log(`🎨 Rendering JSEA Templates - ${jseaTemplates.length} templates available`);
+    jseaTemplates.forEach((t, i) => {
+      console.log(`  [${i}] Template: id="${t.id}", name="${t.name}"`);
+    });
+    
     if (loadingJsea) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
