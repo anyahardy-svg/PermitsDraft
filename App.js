@@ -9495,7 +9495,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
                         >
                           <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
                           <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                          <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.phone || '-'}</Text>
+                          <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone) || '-'}</Text>
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
                             {(contractor.serviceIds || []).length > 0 ? getServiceNames(contractor.serviceIds).slice(0, 2).join(', ') + ((contractor.serviceIds || []).length > 2 ? '...' : '') : 'None'}
