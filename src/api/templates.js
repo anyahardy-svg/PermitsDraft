@@ -289,6 +289,26 @@ export async function getJseaTemplates(businessUnitId) {
       assignedIds.has(template.id) || !templatesWithBUIds.has(template.id)
     );
 
+    // Get all business unit associations for the filtered templates
+    const templateIds = filteredTemplates.map(t => t.id);
+    let allBUAssociations = {};
+    if (templateIds.length > 0) {
+      const { data: buAssociations } = await supabase
+        .from('template_business_units')
+        .select('template_id, business_unit_id')
+        .in('template_id', templateIds);
+      
+      // Group by template_id
+      if (buAssociations) {
+        buAssociations.forEach(row => {
+          if (!allBUAssociations[row.template_id]) {
+            allBUAssociations[row.template_id] = [];
+          }
+          allBUAssociations[row.template_id].push(row.business_unit_id);
+        });
+      }
+    }
+
     // Transform data for easier access
     const transformedData = filteredTemplates.map(template => ({
       id: template.id,
@@ -296,7 +316,7 @@ export async function getJseaTemplates(businessUnitId) {
       name: template.name,
       jsea: template.data?.steps || [],
       company_id: template.company_id,
-      business_unit_ids: template.data?.business_unit_ids || [],
+      business_units: allBUAssociations[template.id] || [],
       site_ids: template.data?.site_ids || [],
       business_unit_id: businessUnitId,
       created_at: template.created_at,
@@ -543,7 +563,8 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       template_id: jseaTemplateId,
       template_name: jseaName,
       step_count: jseaSteps.length,
-      business_unit_count: businessUnitIds?.length || 0,
+    }).catch(auditError => {
+      console.warn('⚠️ Audit logging failed (non-critical):', auditError);
     });
 
     return { success: true, data: transformedData, message: `JSEA template "${jseaName}" updated` };

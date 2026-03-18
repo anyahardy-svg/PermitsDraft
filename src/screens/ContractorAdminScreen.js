@@ -830,10 +830,13 @@ export default function ContractorAdminScreen({
                     return;
                   }
                   // Show the save modal to select company and business units
-                  console.log('🔓 Opening save modal, loading business units if needed...');
-                  if (businessUnits.length === 0 && loadedBusinessUnits.length === 0) {
-                    loadBusinessUnits();
-                  }
+                  console.log('🔓 Opening save modal...');
+                  console.log('Current selections:', {
+                    selectedBUs: selectedBusinessUnitIds,
+                    selectedCompany: selectedCompanyId
+                  });
+                  // Always load fresh business units for the modal
+                  loadBusinessUnits();
                   setShowSaveModal(true);
                 }}
               >
