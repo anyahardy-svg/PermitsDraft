@@ -14,6 +14,7 @@ import {
 import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate } from '../api/templates';
 import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
 import { listCompanies } from '../api/companies';
+import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import JseaEditorScreen from './JseaEditorScreen';
@@ -41,6 +42,8 @@ export default function ContractorAdminScreen({
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [loadedBusinessUnits, setLoadedBusinessUnits] = useState([]);
+  const [loadingBusinessUnits, setLoadingBusinessUnits] = useState(false);
   // JSEA filter states
   const [jseaFilterCompanyId, setJseaFilterCompanyId] = useState(null);
   const [jseaFilterBusinessUnitIds, setJseaFilterBusinessUnitIds] = useState([]);
@@ -59,6 +62,25 @@ export default function ContractorAdminScreen({
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
+
+  // Load business units
+  const loadBusinessUnits = async () => {
+    setLoadingBusinessUnits(true);
+    try {
+      console.log('📦 Loading business units for save modal...');
+      const buData = await listBusinessUnits();
+      if (Array.isArray(buData)) {
+        console.log('✅ Business units loaded:', buData.length);
+        setLoadedBusinessUnits(buData);
+      } else {
+        console.warn('⚠️ Business units data not array:', buData);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load business units:', error);
+    } finally {
+      setLoadingBusinessUnits(false);
+    }
+  };
 
   // Load companies
   const loadCompanies = async () => {
@@ -777,6 +799,10 @@ export default function ContractorAdminScreen({
                     return;
                   }
                   // Show the save modal to select company
+                  console.log('🔓 Opening save modal, loading business units if needed...');
+                  if (businessUnits.length === 0 && loadedBusinessUnits.length === 0) {
+                    loadBusinessUnits();
+                  }
                   setShowSaveModal(true);
                 }}
               >
@@ -912,28 +938,32 @@ export default function ContractorAdminScreen({
                   </Text>
 
                   <View style={{ gap: 8 }}>
-                    {businessUnits && businessUnits.length > 0 ? (
-                      businessUnits.map((bu) => (
-                        <TouchableOpacity
-                          key={bu.id}
-                          onPress={() => {
-                            setSelectedBusinessUnitIds(prev =>
-                              prev.includes(bu.id)
-                                ? prev.filter(id => id !== bu.id)
-                                : [...prev, bu.id]
-                            );
-                          }}
-                          style={{
-                            paddingVertical: 12,
-                            paddingHorizontal: 12,
-                            borderRadius: 8,
-                            borderWidth: 2,
-                            borderColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
-                            backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F9FAFB',
-                            flexDirection: 'row',
-                            alignItems: 'center'
-                          }}
-                        >
+                    {loadingBusinessUnits ? (
+                      <ActivityIndicator size="large" color="#3B82F6" />
+                    ) : (
+                      <>
+                        {(businessUnits && businessUnits.length > 0) || loadedBusinessUnits.length > 0 ? (
+                          (businessUnits && businessUnits.length > 0 ? businessUnits : loadedBusinessUnits).map((bu) => (
+                            <TouchableOpacity
+                              key={bu.id}
+                              onPress={() => {
+                                setSelectedBusinessUnitIds(prev =>
+                                  prev.includes(bu.id)
+                                    ? prev.filter(id => id !== bu.id)
+                                    : [...prev, bu.id]
+                                );
+                              }}
+                              style={{
+                                paddingVertical: 12,
+                                paddingHorizontal: 12,
+                                borderRadius: 8,
+                                borderWidth: 2,
+                                borderColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
+                                backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F9FAFB',
+                                flexDirection: 'row',
+                                alignItems: 'center'
+                              }}
+                            >
                           <View style={{
                             width: 20,
                             height: 20,
@@ -951,9 +981,11 @@ export default function ContractorAdminScreen({
                           </View>
                           <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{bu.name}</Text>
                         </TouchableOpacity>
-                      ))
-                    ) : (
-                      <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
+                          ))
+                        ) : (
+                          <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
+                        )}
+                      </>
                     )}
                   </View>
                 </View>
