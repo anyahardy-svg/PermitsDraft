@@ -130,6 +130,46 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
     }
   }, [initialRoute]);
 
+  // Update URL when currentScreen changes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        let newPath = '/';
+        
+        if (currentScreen === 'contractor-signin') {
+          newPath = '/sign-in-contractor/';
+        } else if (currentScreen === 'visitor-induction') {
+          newPath = '/sign-in-visitor/';
+        } else if (currentScreen === 'visitor-signin') {
+          newPath = '/sign-in-visitor/';
+        } else if (currentScreen === 'signout') {
+          newPath = '/sign-out/';
+        } else if (currentScreen === 'permits-kiosk') {
+          newPath = '/permits/';
+        }
+        
+        // Update URL without page reload
+        if (window.location.pathname !== newPath) {
+          window.history.pushState(null, '', newPath);
+          console.log('🔗 URL updated to:', newPath);
+        }
+      }
+    } catch (error) {
+      console.log('URL update (not critical):', error);
+    }
+  }, [currentScreen]);
+
+  // Handle browser back button
+  useEffect(() => {
+    const handlePopState = () => {
+      // When user clicks back button, navigate to welcome screen
+      setCurrentScreen('welcome');
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const loadSignedInPeople = async () => {
     try {
       if (!siteId) return;

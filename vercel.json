@@ -12,6 +12,30 @@
     {
       "source": "/sign-in-contractor/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/sign-in-visitor",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sign-in-visitor/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sign-out",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sign-out/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/permits",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/permits/",
+      "destination": "/index.html"
     }
   ],
   "headers": [
