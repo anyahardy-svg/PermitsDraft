@@ -10575,7 +10575,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   };
 
   const renderServicesDirectory = () => {
-    const contractorsWithService = contractors.filter(c => c.services.includes(selectedService));
+    // Filter contractors by selected service name
+    const contractorsWithService = contractors.filter(c => {
+      const serviceNames = getServiceNames(c.serviceIds || []);
+      return serviceNames.includes(selectedService);
+    });
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
