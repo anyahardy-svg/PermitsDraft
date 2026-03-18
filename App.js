@@ -2267,8 +2267,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
         'manage_business_units': '/admin/business-units/',
-        'dashboard': '/',
-        'admin': '/'
+        'admin': '/admin/',
+        'dashboard': '/'
       };
       
       const newUrl = routeMap[currentScreen] || '/';
@@ -17968,6 +17968,13 @@ const AppRouter = ({ initialRoute }) => {
   const getInitialAdminRoute = () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      
+      // Check for main admin dashboard
+      if (pathname === '/admin' || pathname === '/admin/') {
+        return 'admin';
+      }
+      
+      // Check for specific admin routes
       if (pathname.startsWith('/admin/')) {
         const route = pathname.slice(7); // Remove '/admin/' prefix
         const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;

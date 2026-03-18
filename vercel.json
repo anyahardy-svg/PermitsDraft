@@ -6,6 +6,14 @@
   },
   "rewrites": [
     {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/sign-in-contractor",
       "destination": "/index.html"
     },
