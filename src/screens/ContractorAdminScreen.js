@@ -813,7 +813,7 @@ export default function ContractorAdminScreen({
         </Modal>
       )}
 
-      {/* Save Template Modal - Select Company */}
+      {/* Save Template Modal - Simple version matching permit modal */}
       {showSaveModal && (
         <Modal
           visible={showSaveModal}
@@ -821,15 +821,17 @@ export default function ContractorAdminScreen({
           transparent
           onRequestClose={() => setShowSaveModal(false)}
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
               backgroundColor: 'white',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              padding: 20,
-              maxHeight: '80%'
+              borderRadius: 8,
+              padding: 24,
+              width: '100%',
+              maxWidth: 500,
+              maxHeight: '90%'
             }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Save JSEA Template</Text>
                 <TouchableOpacity onPress={() => setShowSaveModal(false)}>
                   <Text style={{ fontSize: 24, color: '#9CA3AF' }}>✕</Text>
@@ -837,9 +839,81 @@ export default function ContractorAdminScreen({
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Template Name */}
+                {/* Template Name Input */}
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Template Name</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Template Name *</Text>
+                  <TextInput
+                    value={jseaTemplateName}
+                    onChangeText={setJseaTemplateName}
+                    placeholder="e.g., Crane Installation"
+                    placeholderTextColor="#9CA3AF"
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      borderRadius: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      fontSize: 14,
+                      color: '#1F2937'
+                    }}
+                  />
+                </View>
+
+                {/* Business Units Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                    Business Units * <Text style={{ fontSize: 11, fontWeight: '400', color: '#6B7280' }}>(select one or more)</Text>
+                  </Text>
+                  
+                  {loadingBusinessUnits ? (
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                  ) : (
+                    <View style={{ gap: 10 }}>
+                      {(businessUnits && businessUnits.length > 0) || loadedBusinessUnits.length > 0 ? (
+                        (businessUnits && businessUnits.length > 0 ? businessUnits : loadedBusinessUnits).map((bu) => (
+                          <TouchableOpacity
+                            key={bu.id}
+                            onPress={() => {
+                              setSelectedBusinessUnitIds(prev =>
+                                prev.includes(bu.id)
+                                  ? prev.filter(id => id !== bu.id)
+                                  : [...prev, bu.id]
+                              );
+                            }}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingVertical: 8
+                            }}
+                          >
+                            <View style={{
+                              width: 18,
+                              height: 18,
+                              borderWidth: 1.5,
+                              borderColor: selectedBusinessUnitIds.includes(bu.id) ? '#F97316' : '#D1D5DB',
+                              borderRadius: 3,
+                              marginRight: 10,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#F97316' : 'white'
+                            }}>
+                              {selectedBusinessUnitIds.includes(bu.id) && (
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                              )}
+                            </View>
+                            <Text style={{ fontSize: 14, color: '#1F2937' }}>{bu.name}</Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+
+                {/* Company Selection */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Company (Optional)</Text>
                   <View style={{
                     borderWidth: 1,
                     borderColor: '#D1D5DB',
@@ -848,213 +922,30 @@ export default function ContractorAdminScreen({
                     paddingVertical: 10,
                     backgroundColor: '#F9FAFB'
                   }}>
-                    <Text style={{ fontSize: 14, color: '#1F2937' }}>{jseaTemplateName}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        // For now just set to null (All companies)
+                        // In a full implementation, would show a dropdown
+                        setSelectedCompanyId(null);
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, color: '#1F2937' }}>
+                        {selectedCompanyId ? 
+                          companies.find(c => c.id === selectedCompanyId)?.name || 'All companies' 
+                          : 'All companies (leave blank)'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                </View>
-
-                {/* Company Selection */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Contractor Company</Text>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-                    Optional - restrict this template to a specific company
-                  </Text>
-
-                  {loadingCompanies ? (
-                    <ActivityIndicator size="large" color="#3B82F6" />
-                  ) : (
-                    <View style={{ gap: 8 }}>
-                      <TouchableOpacity
-                        onPress={() => setSelectedCompanyId(null)}
-                        style={{
-                          paddingVertical: 12,
-                          paddingHorizontal: 12,
-                          borderRadius: 8,
-                          borderWidth: 2,
-                          borderColor: selectedCompanyId === null ? '#3B82F6' : '#E5E7EB',
-                          backgroundColor: selectedCompanyId === null ? '#E0E7FF' : '#F9FAFB',
-                          flexDirection: 'row',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <View style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          borderWidth: 2,
-                          borderColor: '#3B82F6',
-                          backgroundColor: selectedCompanyId === null ? '#3B82F6' : 'white',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 12
-                        }}>
-                          {selectedCompanyId === null && (
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>✓</Text>
-                          )}
-                        </View>
-                        <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>All Companies</Text>
-                      </TouchableOpacity>
-                      {companies.map((company) => (
-                        <TouchableOpacity
-                          key={company.id}
-                          onPress={() => setSelectedCompanyId(company.id)}
-                          style={{
-                            paddingVertical: 12,
-                            paddingHorizontal: 12,
-                            borderRadius: 8,
-                            borderWidth: 2,
-                            borderColor: selectedCompanyId === company.id ? '#3B82F6' : '#E5E7EB',
-                            backgroundColor: selectedCompanyId === company.id ? '#E0E7FF' : '#F9FAFB',
-                            flexDirection: 'row',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <View style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 10,
-                            borderWidth: 2,
-                            borderColor: '#3B82F6',
-                            backgroundColor: selectedCompanyId === company.id ? '#3B82F6' : 'white',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginRight: 12
-                          }}>
-                            {selectedCompanyId === company.id && (
-                              <Text style={{ color: 'white', fontWeight: 'bold' }}>✓</Text>
-                            )}
-                          </View>
-                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{company.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                {/* Business Unit Selection */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Business Units *</Text>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-                    Select which business units can use this template
-                  </Text>
-
-                  <View style={{ gap: 8 }}>
-                    {loadingBusinessUnits ? (
-                      <ActivityIndicator size="large" color="#3B82F6" />
-                    ) : (
-                      <>
-                        {(businessUnits && businessUnits.length > 0) || loadedBusinessUnits.length > 0 ? (
-                          (businessUnits && businessUnits.length > 0 ? businessUnits : loadedBusinessUnits).map((bu) => (
-                            <TouchableOpacity
-                              key={bu.id}
-                              onPress={() => {
-                                setSelectedBusinessUnitIds(prev =>
-                                  prev.includes(bu.id)
-                                    ? prev.filter(id => id !== bu.id)
-                                    : [...prev, bu.id]
-                                );
-                              }}
-                              style={{
-                                paddingVertical: 12,
-                                paddingHorizontal: 12,
-                                borderRadius: 8,
-                                borderWidth: 2,
-                                borderColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : '#E5E7EB',
-                                backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#E0E7FF' : '#F9FAFB',
-                                flexDirection: 'row',
-                                alignItems: 'center'
-                              }}
-                            >
-                          <View style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            borderWidth: 2,
-                            borderColor: '#3B82F6',
-                            backgroundColor: selectedBusinessUnitIds.includes(bu.id) ? '#3B82F6' : 'white',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginRight: 12
-                          }}>
-                            {selectedBusinessUnitIds.includes(bu.id) && (
-                              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>✓</Text>
-                            )}
-                          </View>
-                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{bu.name}</Text>
-                        </TouchableOpacity>
-                          ))
-                        ) : (
-                          <Text style={{ fontSize: 14, color: '#6B7280' }}>No business units available</Text>
-                        )}
-                      </>
-                    )}
-                  </View>
-                </View>
-
-                {/* Site Selection */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Sites (Optional)</Text>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-                    Restrict this template to specific sites (leave empty to apply to all sites)
-                  </Text>
-
-                  {loadingSites ? (
-                    <ActivityIndicator size="large" color="#3B82F6" />
-                  ) : (
-                    <View style={{ gap: 8 }}>
-                      {sites && sites.length > 0 ? (
-                        sites.map((site) => (
-                          <TouchableOpacity
-                            key={site.id}
-                            onPress={() => {
-                              setSelectedSiteIds(prev =>
-                                prev.includes(site.id)
-                                  ? prev.filter(id => id !== site.id)
-                                  : [...prev, site.id]
-                              );
-                            }}
-                            style={{
-                              paddingVertical: 12,
-                              paddingHorizontal: 12,
-                              borderRadius: 8,
-                              borderWidth: 2,
-                              borderColor: selectedSiteIds.includes(site.id) ? '#3B82F6' : '#E5E7EB',
-                              backgroundColor: selectedSiteIds.includes(site.id) ? '#E0E7FF' : '#F9FAFB',
-                              flexDirection: 'row',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <View style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 4,
-                              borderWidth: 2,
-                              borderColor: '#3B82F6',
-                              backgroundColor: selectedSiteIds.includes(site.id) ? '#3B82F6' : 'white',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginRight: 12
-                            }}>
-                              {selectedSiteIds.includes(site.id) && (
-                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>✓</Text>
-                              )}
-                            </View>
-                            <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{site.name}</Text>
-                          </TouchableOpacity>
-                        ))
-                      ) : (
-                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No sites available for selected business units</Text>
-                      )}
-                    </View>
-                  )}
                 </View>
               </ScrollView>
 
-              {/* Save Button */}
-              <View style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                 <TouchableOpacity
                   style={{
+                    flex: 1,
                     paddingVertical: 12,
-                    backgroundColor: '#E5E7EB',
+                    backgroundColor: '#F3F4F6',
                     borderRadius: 6,
                     alignItems: 'center'
                   }}
@@ -1064,8 +955,9 @@ export default function ContractorAdminScreen({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{
+                    flex: 1,
                     paddingVertical: 12,
-                    backgroundColor: '#10B981',
+                    backgroundColor: '#F97316',
                     borderRadius: 6,
                     alignItems: 'center'
                   }}
