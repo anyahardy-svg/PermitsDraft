@@ -67,7 +67,7 @@ const getYouTubeEmbedUrl = (url) => {
   return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
 };
 
-export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, onSelectInductionType }) {
+export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, onSelectInductionType, onBackToSelection }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -747,7 +747,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor === 'choose-contractor-for-resume') {
     return (
       <View style={styles.container}>
-        {renderHeader('Select Contractor - Resume', () => setIsNewContractor(null))}
+        {renderHeader('Select Contractor - Resume', () => {
+          setIsNewContractor(null);
+          if (onBackToSelection) onBackToSelection();
+        })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
@@ -830,7 +833,10 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
     return (
       <View style={styles.container}>
-        {renderHeader('Select Contractor - Redo', () => setIsNewContractor(null))}
+        {renderHeader('Select Contractor - Redo', () => {
+          setIsNewContractor(null);
+          if (onBackToSelection) onBackToSelection();
+        })}
 
         <View style={{ flex: 1, padding: 16 }}>
           {/* Business Unit Filter */}
@@ -974,7 +980,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor !== null && isNewContractor !== 'choose-contractor-for-resume' && isNewContractor !== 'resume' && isNewContractor !== 'returning') {
     return (
       <View style={styles.container}>
-        {renderHeader(isNewContractor ? 'Your Information' : 'Review Information', () => { setIsNewContractor(null); setShowContractorDropdown(false); })}
+        {renderHeader(isNewContractor ? 'Your Information' : 'Review Information', () => { 
+          setIsNewContractor(null); 
+          setShowContractorDropdown(false);
+          if (onBackToSelection) onBackToSelection();
+        })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {isNewContractor && (
