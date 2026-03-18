@@ -678,7 +678,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -1940,7 +1940,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
   // Single hazards state
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
-  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [currentScreen, setCurrentScreen] = useState(initialAdminRoute || 'dashboard');
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
@@ -2246,6 +2246,49 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       }, 0);
     }
   }, [editingPermitIssuer, editingContractor, editingCompany, editingSite]);
+
+  // Handle initialAdminRoute changes
+  useEffect(() => {
+    if (initialAdminRoute) {
+      setCurrentScreen(initialAdminRoute);
+    }
+  }, [initialAdminRoute]);
+
+  // Update URL when currentScreen changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const routeMap = {
+        'manage_issuers': '/admin/permit-issuers/',
+        'manage_companies': '/admin/companies/',
+        'manage_contractors': '/admin/contractors/',
+        'manage_sites': '/admin/sites/',
+        'services_directory': '/admin/services/',
+        'manage_isolations': '/admin/isolation-register/',
+        'manage_visitor_inductions': '/admin/visitor-inductions/',
+        'manage_inductions': '/admin/inductions/',
+        'manage_business_units': '/admin/business-units/',
+        'dashboard': '/',
+        'admin': '/'
+      };
+      
+      const newUrl = routeMap[currentScreen] || '/';
+      if (window.location.pathname !== newUrl) {
+        window.history.pushState({}, '', newUrl);
+      }
+    }
+  }, [currentScreen]);
+
+  // Listen to browser back button
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Responsive column widths based on screen size
   const screenWidth = Dimensions.get('window').width;
@@ -17921,12 +17964,40 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  // Detect admin route from pathname
+  const getInitialAdminRoute = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/admin/')) {
+        const route = pathname.slice(7); // Remove '/admin/' prefix
+        const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+        
+        // Map URL routes to internal screen names
+        const routeMap = {
+          'permit-issuers': 'manage_issuers',
+          'companies': 'manage_companies',
+          'contractors': 'manage_contractors',
+          'sites': 'manage_sites',
+          'services': 'services_directory',
+          'isolation-register': 'manage_isolations',
+          'visitor-inductions': 'manage_visitor_inductions',
+          'inductions': 'manage_inductions',
+          'business-units': 'manage_business_units'
+        };
+        
+        return routeMap[routeWithoutTrailingSlash] || null;
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
   const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
+  const [initialAdminRoute, setInitialAdminRoute] = React.useState(getInitialAdminRoute()); // Force to specific admin route
 
   React.useEffect(() => {
     try {
@@ -17984,7 +18055,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle

@@ -36,6 +36,78 @@
     {
       "source": "/permits/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/admin/permit-issuers",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/permit-issuers/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/companies",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/companies/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/contractors",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/contractors/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/sites",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/sites/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/services",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/services/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/isolation-register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/isolation-register/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/visitor-inductions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/visitor-inductions/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/inductions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/inductions/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/business-units",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/business-units/",
+      "destination": "/index.html"
     }
   ],
   "headers": [
