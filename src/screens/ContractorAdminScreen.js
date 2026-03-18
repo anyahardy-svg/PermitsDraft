@@ -38,7 +38,6 @@ export default function ContractorAdminScreen({
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [selectedBusinessUnitIds, setSelectedBusinessUnitIds] = useState([]);
-  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
@@ -97,27 +96,6 @@ export default function ContractorAdminScreen({
       console.error('Failed to load companies:', error);
     } finally {
       setLoadingCompanies(false);
-    }
-  };
-
-  // Load sites for selected business units in save modal
-  const loadSitesForSelectedBUs = async (buIds = null) => {
-    const idsToUse = buIds || selectedBusinessUnitIds;
-    console.log('📍 Loading sites for selected BUs:', idsToUse);
-    if (idsToUse.length === 0) {
-      setSites([]);
-      return;
-    }
-    setLoadingSites(true);
-    try {
-      const sitesData = await getSitesByBusinessUnits(idsToUse);
-      console.log('📍 Sites loaded:', sitesData?.length || 0);
-      setSites(sitesData || []);
-    } catch (error) {
-      console.error('Failed to load sites:', error);
-      setSites([]);
-    } finally {
-      setLoadingSites(false);
     }
   };
 
@@ -249,7 +227,6 @@ export default function ContractorAdminScreen({
         steps: currentJseaSteps.length,
         businessUnits: selectedBusinessUnitIds,
         company: selectedCompanyId,
-        sites: selectedSiteIds,
         isEditing: !!editingJseaTemplate
       });
 
@@ -263,7 +240,7 @@ export default function ContractorAdminScreen({
           currentJseaSteps,
           selectedBusinessUnitIds,
           selectedCompanyId,
-          selectedSiteIds
+          [] // No sites enabled for JSEA templates
         );
       } else {
         // Create new template
@@ -273,7 +250,7 @@ export default function ContractorAdminScreen({
           currentJseaSteps,
           selectedBusinessUnitIds,
           selectedCompanyId,
-          selectedSiteIds
+          [] // No sites enabled for JSEA templates
         );
       }
 
@@ -380,7 +357,6 @@ export default function ContractorAdminScreen({
     setEditingJseaTemplate(null);
     setSelectedBusinessUnitIds([]);
     setSelectedCompanyId(null);
-    setSelectedSiteIds([]);
     setOpenDropdown(null);
     setJseaCompanySearch('');
     setJseaBusinessUnitSearch('');
@@ -402,7 +378,6 @@ export default function ContractorAdminScreen({
     // Populate business units and company from template
     setSelectedBusinessUnitIds(template.business_units || []);
     setSelectedCompanyId(template.company_id || null);
-    setSelectedSiteIds(template.site_ids || []);
     setShowJseaEditor(true);
   };
 
@@ -860,11 +835,6 @@ export default function ContractorAdminScreen({
                   if (businessUnits.length === 0 && loadedBusinessUnits.length === 0) {
                     loadBusinessUnits();
                   }
-                  // Load sites for selected business units
-                  if (selectedBusinessUnitIds.length > 0) {
-                    console.log('📍 Loading sites for selected business units:', selectedBusinessUnitIds);
-                    loadSitesForSelectedBUs();
-                  }
                   setShowSaveModal(true);
                 }}
               >
@@ -940,13 +910,6 @@ export default function ContractorAdminScreen({
                                 ? selectedBusinessUnitIds.filter(id => id !== bu.id)
                                 : [...selectedBusinessUnitIds, bu.id];
                               setSelectedBusinessUnitIds(newIds);
-                              // Reload sites when business units change
-                              console.log('📍 Business units changed, reloading sites...');
-                              if (newIds.length > 0) {
-                                loadSitesForSelectedBUs(newIds);
-                              } else {
-                                setSites([]);
-                              }
                             }}
                             style={{
                               flexDirection: 'row',
@@ -981,51 +944,50 @@ export default function ContractorAdminScreen({
 
                 {/* Company Selection */}
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Company (Optional)</Text>
-                  <View style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 6,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    backgroundColor: '#F9FAFB'
-                  }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        // For now just set to null (All companies)
-                        // In a full implementation, would show a dropdown
-                        setSelectedCompanyId(null);
-                      }}
-                    >
-                      <Text style={{ fontSize: 14, color: '#1F2937' }}>
-                        {selectedCompanyId ? 
-                          companies.find(c => c.id === selectedCompanyId)?.name || 'All companies' 
-                          : 'All companies (leave blank)'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Sites Selection */}
-                <View style={{ marginBottom: 20 }}>
                   <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
-                    Sites (Optional) <Text style={{ fontSize: 11, fontWeight: '400', color: '#6B7280' }}>(select one or more)</Text>
+                    Company (Optional) <Text style={{ fontSize: 11, fontWeight: '400', color: '#6B7280' }}>(select one)</Text>
                   </Text>
 
-                  {loadingSites ? (
+                  {loadingCompanies ? (
                     <ActivityIndicator size="large" color="#3B82F6" />
                   ) : (
                     <View style={{ gap: 10 }}>
-                      {sites && sites.length > 0 ? (
-                        sites.map((site) => (
+                      {/* All Companies option */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedCompanyId(null);
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 8
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderWidth: 1.5,
+                          borderColor: selectedCompanyId === null ? '#F97316' : '#D1D5DB',
+                          borderRadius: 3,
+                          marginRight: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: selectedCompanyId === null ? '#F97316' : 'white'
+                        }}>
+                          {selectedCompanyId === null && (
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 14, color: '#1F2937' }}>All companies (leave blank)</Text>
+                      </TouchableOpacity>
+
+                      {/* Individual companies */}
+                      {companies && companies.length > 0 ? (
+                        companies.map((company) => (
                           <TouchableOpacity
-                            key={site.id}
+                            key={company.id}
                             onPress={() => {
-                              setSelectedSiteIds(prev =>
-                                prev.includes(site.id)
-                                  ? prev.filter(id => id !== site.id)
-                                  : [...prev, site.id]
-                              );
+                              setSelectedCompanyId(selectedCompanyId === company.id ? null : company.id);
                             }}
                             style={{
                               flexDirection: 'row',
@@ -1037,22 +999,22 @@ export default function ContractorAdminScreen({
                               width: 18,
                               height: 18,
                               borderWidth: 1.5,
-                              borderColor: selectedSiteIds.includes(site.id) ? '#F97316' : '#D1D5DB',
+                              borderColor: selectedCompanyId === company.id ? '#F97316' : '#D1D5DB',
                               borderRadius: 3,
                               marginRight: 10,
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: selectedSiteIds.includes(site.id) ? '#F97316' : 'white'
+                              backgroundColor: selectedCompanyId === company.id ? '#F97316' : 'white'
                             }}>
-                              {selectedSiteIds.includes(site.id) && (
+                              {selectedCompanyId === company.id && (
                                 <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
                               )}
                             </View>
-                            <Text style={{ fontSize: 14, color: '#1F2937' }}>{site.name}</Text>
+                            <Text style={{ fontSize: 14, color: '#1F2937' }}>{company.name}</Text>
                           </TouchableOpacity>
                         ))
                       ) : (
-                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No sites available</Text>
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>No companies available</Text>
                       )}
                     </View>
                   )}
