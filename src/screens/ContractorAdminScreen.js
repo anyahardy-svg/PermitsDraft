@@ -164,21 +164,44 @@ export default function ContractorAdminScreen({
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
+    console.log('🔴 SAVE CLICKED - Starting handleSaveJseaTemplate');
+    console.log('State values:', {
+      jseaTemplateName,
+      currentJseaSteps_length: currentJseaSteps.length,
+      selectedBusinessUnitIds,
+      selectedCompanyId,
+      selectedSiteIds
+    });
+
+    // Check validation 1
     if (!jseaTemplateName.trim()) {
+      console.warn('❌ Validation 1 failed: no template name');
       Alert.alert('Validation', 'Please enter a template name');
-      return;
-    }
-    if (currentJseaSteps.length === 0) {
-      Alert.alert('Validation', 'Please add at least one step');
-      return;
-    }
-    if (selectedBusinessUnitIds.length === 0) {
-      Alert.alert('Validation', 'Please select at least one business unit');
+      window.alert('⚠️ VALIDATION: Please enter a template name');
       return;
     }
 
+    // Check validation 2
+    if (currentJseaSteps.length === 0) {
+      console.warn('❌ Validation 2 failed: no JSEA steps');
+      Alert.alert('Validation', 'Please add at least one step');
+      window.alert('⚠️ VALIDATION: Please add at least one step');
+      return;
+    }
+
+    // Check validation 3
+    if (selectedBusinessUnitIds.length === 0) {
+      console.warn('❌ Validation 3 failed: no business units selected');
+      Alert.alert('Validation', 'Please select at least one business unit');
+      window.alert('⚠️ VALIDATION: Please select at least one business unit');
+      return;
+    }
+
+    console.log('✅ All validations passed');
+
     try {
-      console.log('💾 Saving JSEA template:', {
+      console.log('💾 Calling saveJseaTemplate API...');
+      console.log('Parameters:', {
         name: jseaTemplateName,
         steps: currentJseaSteps.length,
         businessUnits: selectedBusinessUnitIds,
@@ -194,10 +217,12 @@ export default function ContractorAdminScreen({
         selectedSiteIds
       );
 
-      console.log('📋 Save response:', response);
+      console.log('📋 API Response received:', response);
 
       if (response.success) {
+        console.log('✅ Save successful!');
         Alert.alert('Success', `Template "${jseaTemplateName}" saved for ${selectedBusinessUnitIds.length} business unit(s)`);
+        window.alert(`✅ SUCCESS: Template "${jseaTemplateName}" saved!`);
         setShowSaveModal(false);
         setShowJseaEditor(false);
         resetJseaForm();
@@ -205,10 +230,13 @@ export default function ContractorAdminScreen({
       } else {
         console.error('❌ Save failed:', response.error);
         Alert.alert('Error', response.error || 'Failed to save template');
+        window.alert(`❌ ERROR: ${response.error || 'Failed to save template'}`);
       }
     } catch (error) {
-      console.error('❌ Exception:', error);
+      console.error('❌ Exception caught:', error);
+      console.error('Stack:', error.stack);
       Alert.alert('Error', 'Failed to save template: ' + error.message);
+      window.alert(`❌ EXCEPTION: ${error.message}`);
     }
   };
 
