@@ -190,8 +190,7 @@ export default function ContractorAdminScreen({
       jseaTemplateName,
       currentJseaSteps_length: currentJseaSteps.length,
       selectedBusinessUnitIds,
-      selectedCompanyId,
-      selectedSiteIds
+      selectedCompanyId
     });
 
     // Check validation 1
