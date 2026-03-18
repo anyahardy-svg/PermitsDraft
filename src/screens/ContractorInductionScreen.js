@@ -35,6 +35,16 @@ import { listServicesByBusinessUnit } from '../api/services';
  * Flow: Info → Inductions List → Video → Questions → Signature → Complete
  */
 
+// Helper function to format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
+const formatNameToTitleCase = (name) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 // Helper function to extract YouTube video ID and create embed URL
 const getYouTubeEmbedUrl = (url) => {
   if (!url) return null;
@@ -426,8 +436,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       if (isNewContractor && !contractorId) {
         console.log('📝 Creating new contractor...');
         const selectedSites = contractorInfo.selectedSiteIds || [];
+        const formattedName = formatNameToTitleCase(contractorInfo.name);
         const newContractor = await createContractor({
-          name: contractorInfo.name,
+          name: formattedName,
           email: contractorInfo.email,
           phone: contractorInfo.phone,
           company_id: contractorInfo.companyId,
@@ -436,7 +447,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           service_ids: [],
         });
         contractorId = newContractor.id;
-        setContractorInfo({ ...contractorInfo, id: contractorId });
+        setContractorInfo({ ...contractorInfo, id: contractorId, name: formattedName });
         console.log('✅ Contractor created:', contractorId);
       } else {
         console.log('♻️ Using existing contractor:', contractorId);

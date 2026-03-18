@@ -7812,7 +7812,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
               values.push(current.trim().replace(/^"|"$/g, ''));
               
               if (nameIdx >= 0 && values[nameIdx]) {
-                const contractorName = values[nameIdx];
+                const contractorName = formatNameToTitleCase(values[nameIdx]);
                 const email = emailIdx >= 0 ? values[emailIdx] : '';
                 // Apply formatPhoneNumber to add leading 0 if missing
                 const rawPhone = phoneIdx >= 0 ? values[phoneIdx] : '';
@@ -8761,7 +8761,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
         }
 
         const contractorPayload = {
-          name: currentContractor.name,
+          name: formatNameToTitleCase(currentContractor.name),
           email: currentContractor.email,
           phone: currentContractor.phone,
           service_ids: currentContractor.serviceIds || [],
@@ -10566,6 +10566,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk }) => {
       return '0' + cleaned;
     }
     return cleaned;
+  };
+
+  const formatNameToTitleCase = (name) => {
+    if (!name) return '';
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const renderServicesDirectory = () => {

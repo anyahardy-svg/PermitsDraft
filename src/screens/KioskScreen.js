@@ -20,6 +20,16 @@ import { getVisitorInduction } from '../api/visitorInductions';
 import { listPermits } from '../api/permits';
 import ContractorInductionScreen from './ContractorInductionScreen';
 
+// Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
+const formatNameToTitleCase = (name) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const KioskScreen = ({ onViewPermits }) => {
   // State
   const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
@@ -194,10 +204,11 @@ const KioskScreen = ({ onViewPermits }) => {
     }
     
     try {
-      const result = await checkInVisitor(visitorName, visitorCompany, siteId, businessUnitId, visitorPhone);
+      const formattedName = formatNameToTitleCase(visitorName);
+      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone);
       
       if (result.success) {
-        Alert.alert('Success', `${visitorName} signed in successfully`);
+        Alert.alert('Success', `${formattedName} signed in successfully`);
         // Clear all visitor form state
         setVisitorName('');
         setVisitorCompany('');
