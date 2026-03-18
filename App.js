@@ -17993,6 +17993,18 @@ const AppRouter = ({ initialRoute }) => {
       if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
         return 'contractor-signin';
       }
+      if (pathname === '/inductions' || pathname === '/inductions/') {
+        return 'inductions';
+      }
+      if (pathname === '/inductions/new' || pathname === '/inductions/new/') {
+        return 'inductions-new';
+      }
+      if (pathname === '/inductions/returning' || pathname === '/inductions/returning/') {
+        return 'inductions-returning';
+      }
+      if (pathname === '/inductions/resume' || pathname === '/inductions/resume/') {
+        return 'inductions-resume';
+      }
     }
     return null;
   };

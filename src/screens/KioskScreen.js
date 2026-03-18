@@ -32,7 +32,7 @@ const formatNameToTitleCase = (name) => {
 
 const KioskScreen = ({ onViewPermits, initialRoute }) => {
   // State
-  const [currentScreen, setCurrentScreen] = useState(initialRoute || 'welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk
+  const [currentScreen, setCurrentScreen] = useState(initialRoute || 'welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk, inductions, inductions-new, inductions-returning, inductions-resume
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
@@ -63,6 +63,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
   
   // For contractor induction
   const [showInductionModal, setShowInductionModal] = useState(false);
+  const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
 
   // Initialize - detect site from subdomain
   useEffect(() => {
@@ -146,6 +147,14 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           newPath = '/sign-out/';
         } else if (currentScreen === 'permits-kiosk') {
           newPath = '/permits/';
+        } else if (currentScreen === 'inductions') {
+          newPath = '/inductions/';
+        } else if (currentScreen === 'inductions-new') {
+          newPath = '/inductions/new/';
+        } else if (currentScreen === 'inductions-returning') {
+          newPath = '/inductions/returning/';
+        } else if (currentScreen === 'inductions-resume') {
+          newPath = '/inductions/resume/';
         }
         
         // Update URL without page reload
@@ -409,7 +418,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           }}
           onPress={() => {
             console.log('🎓 Induction button pressed');
-            setShowInductionModal(true);
+            setCurrentScreen('inductions');
           }}
         >
           <Text style={{ fontSize: 32 }}>🎓</Text>
@@ -429,6 +438,28 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           />
         </Modal>
       </View>
+    );
+  }
+
+  // Inductions Screen (fullscreen for URL routing)
+  if (currentScreen === 'inductions' || currentScreen === 'inductions-new' || currentScreen === 'inductions-returning' || currentScreen === 'inductions-resume') {
+    // Map screen to initial state for ContractorInductionScreen
+    let inductionInitialState = null;
+    if (currentScreen === 'inductions-new') {
+      inductionInitialState = 'new'; // true
+    } else if (currentScreen === 'inductions-returning') {
+      inductionInitialState = 'returning'; // false
+    } else if (currentScreen === 'inductions-resume') {
+      inductionInitialState = 'resume';
+    }
+    
+    return (
+      <ContractorInductionScreen
+        styles={styles}
+        initialRoute={inductionInitialState}
+        onComplete={() => setCurrentScreen('welcome')}
+        onCancel={() => setCurrentScreen('welcome')}
+      />
     );
   }
 

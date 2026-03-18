@@ -46,6 +46,38 @@
       "destination": "/index.html"
     },
     {
+      "source": "/inductions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/new",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/new/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/returning",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/returning/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/resume",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inductions/resume/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/permit-issuers",
       "destination": "/index.html"
     },

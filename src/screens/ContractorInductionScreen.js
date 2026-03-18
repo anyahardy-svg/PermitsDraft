@@ -67,13 +67,21 @@ const getYouTubeEmbedUrl = (url) => {
   return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
 };
 
-export default function ContractorInductionScreen({ onComplete, onCancel, styles }) {
+export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Step 0: Select existing or new contractor
-  const [isNewContractor, setIsNewContractor] = useState(null); // null = choosing, true = new, false = existing, 'resume' = resuming saved
+  // initialRoute can be 'new', 'returning', 'resume', or null
+  const getInitialIsNewContractor = () => {
+    if (initialRoute === 'new') return true;
+    if (initialRoute === 'returning') return false;
+    if (initialRoute === 'resume') return 'resume';
+    return null; // User chooses
+  };
+  
+  const [isNewContractor, setIsNewContractor] = useState(getInitialIsNewContractor()); // null = choosing, true = new, false = existing, 'resume' = resuming saved
   const [contractors, setContractors] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState('');
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
