@@ -384,14 +384,22 @@ export default function ContractorAdminScreen({
 
   // Open JSEA editor for editing template
   const handleEditJseaTemplate = (template) => {
-    console.log('📝 Editing template - FULL OBJECT:', template);
+    console.log('📝 EDIT BUTTON CLICKED');
+    console.log('📝 Template object:', template);
+    console.log('📝 Template.name:', template.name);
+    console.log('📝 Template.jsea (steps array):', template.jsea);
+    console.log('📝 Template.jsea?.length:', template.jsea?.length || 0);
     console.log('📝 Template.business_units:', template.business_units);
     console.log('📝 Template.company_id:', template.company_id);
-    console.log('📝 Template.jsea:', template.jsea);
     
     setEditingJseaTemplate(template);
     setJseaTemplateName(template.name);
-    setCurrentJseaSteps(template.jsea || []);
+    
+    // IMPORTANT: Log the value being set
+    const stepsToSet = template.jsea || [];
+    console.log('📝 About to setCurrentJseaSteps to:', stepsToSet);
+    console.log('📝 This is:', stepsToSet.length, 'steps');
+    setCurrentJseaSteps(stepsToSet);
     
     // Populate business units and company from template
     console.log('✅ Setting selectedBusinessUnitIds to:', template.business_units || []);
@@ -399,6 +407,7 @@ export default function ContractorAdminScreen({
     console.log('✅ Setting selectedCompanyId to:', template.company_id || null);
     setSelectedCompanyId(template.company_id || null);
     
+    console.log('✅ Opening JSEA editor, calling setShowJseaEditor(true)');
     setShowJseaEditor(true);
   };
 
@@ -807,9 +816,14 @@ export default function ContractorAdminScreen({
             <JseaEditorScreen
               initialJsea={currentJseaSteps}
               onSave={(steps) => {
+                console.log('✏️ JSEA EDITOR ONSAVE CALLED');
+                console.log('✏️ Steps received from editor:', steps);
+                console.log('✏️ Step count:', steps?.length || 0);
                 setCurrentJseaSteps(steps);
+                console.log('✏️ currentJseaSteps state updated');
               }}
               onCancel={() => {
+                console.log('❌ JSEA EDITOR CANCELLED');
                 setShowJseaEditor(false);
                 resetJseaForm();
               }}
@@ -852,6 +866,16 @@ export default function ContractorAdminScreen({
                   alignItems: 'center'
                 }}
                 onPress={() => {
+                  console.log('💾 SAVE TEMPLATE BUTTON PRESSED');
+                  console.log('💾 Current state:', {
+                    jseaTemplateName,
+                    currentJseaSteps_count: currentJseaSteps?.length || 0,
+                    currentJseaSteps: currentJseaSteps,
+                    selectedBusinessUnitIds,
+                    selectedCompanyId,
+                    editingJseaTemplate_id: editingJseaTemplate?.id
+                  });
+                  
                   if (!jseaTemplateName.trim()) {
                     Alert.alert('Validation', 'Please enter a template name');
                     return;
