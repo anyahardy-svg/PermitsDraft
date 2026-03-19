@@ -41,6 +41,7 @@ export default function TrainingRecordsScreen({
   const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [selectedServiceName, setSelectedServiceName] = useState('');
   const [trainingName, setTrainingName] = useState('');
+  const [bucket, setBucket] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -90,10 +91,28 @@ export default function TrainingRecordsScreen({
     setSelectedServiceId(null);
     setSelectedServiceName('');
     setTrainingName('');
+    setBucket('');
     setExpiryDate('');
     setSelectedFile(null);
     setShowContractorDropdown(false);
     setShowServiceDropdown(false);
+  };
+
+  const formatDateNZ = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const parseNZDate = (dateString) => {
+    if (!dateString) return '';
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return dateString;
+    const [day, month, year] = parts;
+    return `${year}-${month}-${day}`;
   };
 
   const handleSelectFile = () => {
@@ -125,6 +144,10 @@ export default function TrainingRecordsScreen({
       Alert.alert('Validation', 'Please enter a training name');
       return;
     }
+    if (!bucket.trim()) {
+      Alert.alert('Validation', 'Please enter a bucket');
+      return;
+    }
     if (!selectedFile) {
       Alert.alert('Validation', 'Please attach a file');
       return;
@@ -136,8 +159,8 @@ export default function TrainingRecordsScreen({
         selectedContractorId,
         trainingName,
         selectedFile,
-        expiryDate ? new Date(expiryDate) : null,
-        selectedServiceId // Store service_id in notes field for now
+        expiryDate ? new Date(parseNZDate(expiryDate)) : null,
+        `${bucket}|${selectedServiceId}` // Store bucket and service_id in notes
       );
 
       if (response.success) {
@@ -227,11 +250,12 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1000,
+                  minWidth: 1100,
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 140, paddingRight: 8 }}>Training Name</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Bucket</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
@@ -249,7 +273,7 @@ export default function TrainingRecordsScreen({
                     borderBottomColor: '#E5E7EB',
                     paddingVertical: 10,
                     paddingHorizontal: 8,
-                    minWidth: 1000,
+                    minWidth: 1100,
                   }}
                 >
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -259,7 +283,10 @@ export default function TrainingRecordsScreen({
                     {record.training_type}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
-                    {record.expiry_date ? new Date(record.expiry_date).toLocaleDateString('en-NZ') : 'N/A'}
+                    {record.notes ? record.notes.split('|')[0] : 'N/A'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
+                    {formatDateNZ(record.expiry_date)}
                   </Text>
                   <TouchableOpacity
                     style={{ width: 100, paddingRight: 8 }}
@@ -425,6 +452,25 @@ export default function TrainingRecordsScreen({
               />
             </View>
 
+            {/* Bucket */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Bucket *</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                }}
+                placeholder="e.g., General Safety, Hot Work, Confined Space"
+                value={bucket}
+                onChangeText={setBucket}
+              />
+            </View>
+
             {/* Expiry Date */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Expiry Date</Text>
@@ -438,7 +484,7 @@ export default function TrainingRecordsScreen({
                   fontSize: 14,
                   color: '#1F2937',
                 }}
-                placeholder="YYYY-MM-DD"
+                placeholder="dd/mm/yyyy"
                 value={expiryDate}
                 onChangeText={setExpiryDate}
               />
