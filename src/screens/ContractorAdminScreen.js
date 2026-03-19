@@ -749,6 +749,7 @@ export default function ContractorAdminScreen({
               isAdmin={false}
               styles={styles}
               onClose={() => setActiveTab(null)}
+              onNavigateToTrainingRecords={() => setActiveTab('training-records')}
             />
           </View>
         ) : activeTab === 'inductions' ? (

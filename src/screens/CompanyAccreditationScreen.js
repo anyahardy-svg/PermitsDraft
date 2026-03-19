@@ -29,12 +29,14 @@ import { listBusinessUnits } from '../api/business_units';
  * @param {boolean} isAdmin - Whether user is admin (sees all companies)
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
+ * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
  */
 export default function CompanyAccreditationScreen({ 
   companyId, 
   isAdmin = false, 
   styles,
-  onClose 
+  onClose,
+  onNavigateToTrainingRecords
 }) {
   const scrollViewRef = useRef(null);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -2974,23 +2976,44 @@ export default function CompanyAccreditationScreen({
 
         {/* Completed Badge - Show if submitted */}
         {accreditationStatus === 'completed' && (
-          <View style={{
-            backgroundColor: '#D1FAE5',
-            borderWidth: 1,
-            borderColor: '#10B981',
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            borderRadius: 6,
-            marginTop: 8
-          }}>
-            <Text style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: '#065F46',
-              textAlign: 'center'
+          <View style={{ gap: 12, marginTop: 8 }}>
+            <View style={{
+              backgroundColor: '#D1FAE5',
+              borderWidth: 1,
+              borderColor: '#10B981',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 6
             }}>
-              ✓ This accreditation is complete
-            </Text>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#065F46',
+                textAlign: 'center'
+              }}>
+                ✓ This accreditation is complete
+              </Text>
+            </View>
+            {onNavigateToTrainingRecords && (
+              <TouchableOpacity
+                onPress={onNavigateToTrainingRecords}
+                style={{
+                  backgroundColor: '#EC4899',
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 6,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: 'white'
+                }}>
+                  📚 Then add training records →
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
