@@ -11,8 +11,8 @@ import {
   TextInput,
   ActivityIndicator
 } from 'react-native';
-import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany } from '../api/templates';
-import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
+import { supabase } from '../supabaseClient';
+import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany, savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate, getPermitTemplatesByCompany } from '../api/templates';
 import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
@@ -32,6 +32,7 @@ export default function ContractorAdminScreen({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInContractor, setLoggedInContractor] = useState(null);
   const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
+  const [loggedInCompanyName, setLoggedInCompanyName] = useState(null);
   
   const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', 'inductions', or 'training-records'
   const [jseaTemplates, setJseaTemplates] = useState([]);
@@ -72,16 +73,32 @@ export default function ContractorAdminScreen({
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
 
   // Handle successful login
-  const handleLoginSuccess = (contractorInfo) => {
+  const handleLoginSuccess = async (contractorInfo) => {
     console.log('✅ Contractor logged in:', contractorInfo);
     console.log('   - contractorId:', contractorInfo.contractorId);
     console.log('   - contractorName:', contractorInfo.contractorName);
     console.log('   - companyId:', contractorInfo.companyId);
+    
     setLoggedInContractor(contractorInfo.contractorName);
     setLoggedInCompanyId(contractorInfo.companyId);
     setIsLoggedIn(true);
-    // Auto-set company to filter data
     setSelectedCompanyId(contractorInfo.companyId);
+    
+    // Fetch company name for filtering templates
+    try {
+      const { data: company, error } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', contractorInfo.companyId)
+        .single();
+      
+      if (!error && company) {
+        setLoggedInCompanyName(company.name);
+        console.log('✅ Company name fetched:', company.name);
+      }
+    } catch (error) {
+      console.error('Error fetching company name:', error);
+    }
   };
 
   // Handle logout
@@ -89,6 +106,7 @@ export default function ContractorAdminScreen({
     setIsLoggedIn(false);
     setLoggedInContractor(null);
     setLoggedInCompanyId(null);
+    setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
   };
@@ -186,14 +204,34 @@ export default function ContractorAdminScreen({
 
   // Load Permit templates
   const loadPermitTemplates = async () => {
-    if (!effectiveBuId) return;
     setLoadingPermits(true);
     try {
-      const response = await getPermitTemplates(effectiveBuId);
+      let response;
+      if (isLoggedIn && loggedInCompanyName) {
+        // Contractor logged in - filter by their company only
+        console.log('📋 [CONTRACTOR] Loading permit templates for company:', loggedInCompanyName);
+        response = await getPermitTemplatesByCompany(loggedInCompanyName);
+        console.log('📋 [CONTRACTOR] getPermitTemplatesByCompany response:', response);
+      } else {
+        // Admin view - filter by business unit
+        if (!effectiveBuId) {
+          console.log('📋 [ADMIN] No BU ID available, skipping load');
+          setLoadingPermits(false);
+          return;
+        }
+        console.log('📋 [ADMIN] Loading permit templates for BU:', effectiveBuId);
+        response = await getPermitTemplates(effectiveBuId);
+        console.log('📋 [ADMIN] getPermitTemplates response:', response);
+      }
+      
       if (response.success) {
+        console.log(`✅ Loaded ${response.data?.length || 0} permit templates`);
         setPermitTemplates(response.data || []);
+      } else {
+        console.error('❌ Failed to load templates:', response.error);
       }
     } catch (error) {
+      console.error('❌ Exception loading templates:', error);
       Alert.alert('Error', 'Failed to load permit templates: ' + error.message);
     } finally {
       setLoadingPermits(false);
@@ -231,7 +269,7 @@ export default function ContractorAdminScreen({
     } else {
       loadPermitTemplates();
     }
-  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds, isLoggedIn, loggedInCompanyId]);
+  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds, isLoggedIn, loggedInCompanyId, loggedInCompanyName]);
 
   useEffect(() => {
     if (activeTab === 'inductions') {

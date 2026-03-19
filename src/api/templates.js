@@ -118,6 +118,32 @@ export async function getAllTemplates() {
 }
 
 /**
+ * Get permit templates filtered by company name
+ * @param {String} companyName - The company name to filter by
+ * @returns {Object} Success status and templates array
+ */
+export async function getPermitTemplatesByCompany(companyName) {
+  try {
+    if (!companyName) {
+      return { success: true, data: [] };
+    }
+
+    const { data, error } = await supabase
+      .from('permit_templates')
+      .select('id, template_name, company_name, description, specialized_permits, single_hazards, jsea, business_unit_id, created_at, updated_at, created_by')
+      .eq('company_name', companyName)
+      .order('template_name', { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Get permit templates by company error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get specific template by ID
  * @param {UUID} templateId
  * @returns {Object} Template details
@@ -835,6 +861,7 @@ export default {
   savePermitAsTemplate,
   getTemplates,
   getAllTemplates,
+  getPermitTemplatesByCompany,
   getTemplate,
   deleteTemplate,
   createPermitFromTemplate,
