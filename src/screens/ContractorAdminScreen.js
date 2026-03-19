@@ -11,7 +11,7 @@ import {
   TextInput,
   ActivityIndicator
 } from 'react-native';
-import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate } from '../api/templates';
+import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany } from '../api/templates';
 import { savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate } from '../api/permits';
 import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
@@ -144,11 +144,23 @@ export default function ContractorAdminScreen({
 
   // Load JSEA templates
   const loadJseaTemplates = async () => {
-    if (!effectiveBuId) return;
     setLoadingJsea(true);
     try {
-      console.log('📚 Loading JSEA templates for BU:', effectiveBuId);
-      const response = await getJseaTemplates(effectiveBuId);
+      let response;
+      if (isLoggedIn && loggedInCompanyId) {
+        // Contractor logged in - filter by their company only
+        console.log('📚 Loading JSEA templates for company:', loggedInCompanyId);
+        response = await getJseaTemplatesByCompany(loggedInCompanyId);
+      } else {
+        // Admin view - filter by business unit
+        if (!effectiveBuId) {
+          setLoadingJsea(false);
+          return;
+        }
+        console.log('📚 Loading JSEA templates for BU:', effectiveBuId);
+        response = await getJseaTemplates(effectiveBuId);
+      }
+      
       console.log('📚 getJseaTemplates response:', response);
       if (response.success) {
         console.log(`✅ Loaded ${response.data?.length || 0} templates:`, response.data);
@@ -212,7 +224,7 @@ export default function ContractorAdminScreen({
     } else {
       loadPermitTemplates();
     }
-  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds]);
+  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds, isLoggedIn, loggedInCompanyId]);
 
   useEffect(() => {
     if (activeTab === 'inductions') {
