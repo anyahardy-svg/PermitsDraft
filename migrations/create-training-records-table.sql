@@ -24,7 +24,7 @@ CREATE TABLE training_records (
 
 -- Index for efficient queries
 CREATE INDEX idx_training_records_contractor_id ON training_records(contractor_id);
-CREATE INDEX idx_training_records_service_name ON training_records(service_name);
+CREATE INDEX idx_training_records_training_type ON training_records(training_type);
 CREATE INDEX idx_training_records_status ON training_records(status);
 
 -- RLS Policies (optional - adjust based on your security needs)
