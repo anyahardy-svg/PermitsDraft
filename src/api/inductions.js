@@ -532,6 +532,20 @@ export async function getCompletedInductions(contractorId) {
  */
 export async function getContractorInductionsForCompany(companyId) {
   try {
+    // Get all services to map service_ids to names
+    const { data: allServices, error: servicesError } = await supabase
+      .from('services')
+      .select('id, name');
+    
+    if (servicesError) throw servicesError;
+    
+    const serviceMap = {};
+    if (allServices) {
+      allServices.forEach(service => {
+        serviceMap[service.id] = service.name;
+      });
+    }
+
     // Get all contractors from the company
     const { data: contractors, error: contractorError } = await supabase
       .from('contractors')
@@ -558,8 +572,14 @@ export async function getContractorInductionsForCompany(companyId) {
 
         if (inductionError) throw inductionError;
 
+        // Map service_ids to service names
+        const serviceNames = contractor.service_ids
+          ? contractor.service_ids.map(id => serviceMap[id] || 'Unknown').filter(Boolean)
+          : [];
+
         return {
           ...contractor,
+          service_names: serviceNames,
           completedInductions: inductions || []
         };
       })

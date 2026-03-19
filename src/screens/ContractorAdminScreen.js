@@ -708,7 +708,7 @@ export default function ContractorAdminScreen({
                 {contractor.email || 'N/A'}
               </Text>
               <Text style={{ fontSize: 11, color: '#1F2937', width: 200, paddingRight: 8 }}>
-                {contractor.service_ids && contractor.service_ids.length > 0 ? contractor.service_ids.join(', ') : 'None'}
+                {contractor.service_names && contractor.service_names.length > 0 ? contractor.service_names.join(', ') : 'None'}
               </Text>
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
