@@ -338,41 +338,51 @@ export async function getJseaTemplates(businessUnitId) {
  */
 export async function getJseaTemplatesByCompany(companyId) {
   try {
-    const { data, error } = await supabase
+    console.log('📚 GET JSEA TEMPLATES BY COMPANY - Starting for company:', companyId);
+    
+    // Get all JSEA templates
+    const { data: allTemplates, error: listError } = await supabase
       .from('templates')
-      .select('id, name, data, company_id, created_at, updated_at')
+      .select('id, name, data')
       .eq('template_type', 'jsea')
-      .eq('company_id', companyId)
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (listError) throw listError;
+    console.log(`  Found ${allTemplates?.length || 0} total JSEA templates`);
 
-    // Get business units for each template
-    const templatesWithBU = await Promise.all(
-      data.map(async (template) => {
-        const { data: buData } = await supabase
-          .from('template_business_units')
-          .select('business_unit_id')
-          .eq('template_id', template.id);
-        
-        return {
-          id: template.id,
-          template_name: template.name,
-          name: template.name,
-          jsea: template.data?.steps || [],
-          company_id: template.company_id,
-          business_unit_ids: template.data?.business_unit_ids || [],
-          site_ids: template.data?.site_ids || [],
-          business_units: buData?.map(row => row.business_unit_id) || [],
-          created_at: template.created_at,
-          updated_at: template.updated_at,
-        };
-      })
-    );
+    // Filter templates where data.company_id matches the contractor's company
+    // Include templates with no company_id (available to all)
+    const filteredTemplates = allTemplates.filter(template => {
+      const templateCompanyId = template.data?.company_id;
+      // Include if: company matches OR no company_id set (available to all)
+      return templateCompanyId === companyId || !templateCompanyId;
+    });
 
-    return { success: true, data: templatesWithBU };
+    console.log(`  Filtered to ${filteredTemplates.length} templates for company ${companyId}`);
+
+    // Transform data for easier access
+    const transformedData = filteredTemplates.map(template => {
+      console.log(`  Template: "${template.name}"`);
+      console.log(`    - company_id in data:`, template.data?.company_id);
+      console.log(`    - steps count:`, template.data?.steps?.length || 0);
+      
+      return {
+        id: template.id,
+        template_name: template.name,
+        name: template.name,
+        jsea: template.data?.steps || [],
+        company_id: template.data?.company_id,
+        business_units: template.data?.business_unit_ids || [],
+        site_ids: template.data?.site_ids || [],
+        created_at: template.created_at,
+        updated_at: template.updated_at,
+      };
+    });
+
+    console.log(`✅ GET COMPLETE - returning ${transformedData.length} templates`);
+    return { success: true, data: transformedData };
   } catch (error) {
-    console.error('Get JSEA templates by company error:', error);
+    console.error('❌ Get JSEA templates by company error:', error);
     return { success: false, error: error.message };
   }
 }

@@ -74,6 +74,9 @@ export default function ContractorAdminScreen({
   // Handle successful login
   const handleLoginSuccess = (contractorInfo) => {
     console.log('✅ Contractor logged in:', contractorInfo);
+    console.log('   - contractorId:', contractorInfo.contractorId);
+    console.log('   - contractorName:', contractorInfo.contractorName);
+    console.log('   - companyId:', contractorInfo.companyId);
     setLoggedInContractor(contractorInfo.contractorName);
     setLoggedInCompanyId(contractorInfo.companyId);
     setIsLoggedIn(true);
@@ -149,19 +152,21 @@ export default function ContractorAdminScreen({
       let response;
       if (isLoggedIn && loggedInCompanyId) {
         // Contractor logged in - filter by their company only
-        console.log('📚 Loading JSEA templates for company:', loggedInCompanyId);
+        console.log('📚 [CONTRACTOR] Loading JSEA templates for company:', loggedInCompanyId);
         response = await getJseaTemplatesByCompany(loggedInCompanyId);
+        console.log('📚 [CONTRACTOR] getJseaTemplatesByCompany response:', response);
       } else {
         // Admin view - filter by business unit
         if (!effectiveBuId) {
+          console.log('📚 [ADMIN] No BU ID available, skipping load');
           setLoadingJsea(false);
           return;
         }
-        console.log('📚 Loading JSEA templates for BU:', effectiveBuId);
+        console.log('📚 [ADMIN] Loading JSEA templates for BU:', effectiveBuId);
         response = await getJseaTemplates(effectiveBuId);
+        console.log('📚 [ADMIN] getJseaTemplates response:', response);
       }
       
-      console.log('📚 getJseaTemplates response:', response);
       if (response.success) {
         console.log(`✅ Loaded ${response.data?.length || 0} templates:`, response.data);
         response.data?.forEach((t, i) => {
