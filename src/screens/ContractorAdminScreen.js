@@ -12,7 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { supabase } from '../supabaseClient';
-import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany, savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate, getPermitTemplatesByCompany } from '../api/templates';
+import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany, savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate, getPermitTemplatesByCompany, updatePermitTemplate } from '../api/templates';
 import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
@@ -68,6 +68,13 @@ export default function ContractorAdminScreen({
   // Inductions states
   const [inductedContractors, setInductedContractors] = useState([]);
   const [loadingInductions, setLoadingInductions] = useState(false);
+
+  // Permit template editing states
+  const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
+  const [showPermitTemplateEditor, setShowPermitTemplateEditor] = useState(false);
+  const [editedTemplateName, setEditedTemplateName] = useState('');
+  const [editedTemplateDescription, setEditedTemplateDescription] = useState('');
+  const [savingPermitTemplate, setSavingPermitTemplate] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -450,6 +457,43 @@ export default function ContractorAdminScreen({
     );
   };
 
+  // Open permit template editor
+  const handleEditPermitTemplate = (template) => {
+    setEditingPermitTemplate(template);
+    setEditedTemplateName(template.template_name || '');
+    setEditedTemplateDescription(template.description || '');
+    setShowPermitTemplateEditor(true);
+  };
+
+  // Save updated permit template
+  const handleSavePermitTemplate = async () => {
+    if (!editedTemplateName.trim()) {
+      Alert.alert('Validation', 'Please enter a template name');
+      return;
+    }
+
+    setSavingPermitTemplate(true);
+    try {
+      const response = await updatePermitTemplate(
+        editingPermitTemplate.id,
+        editedTemplateName,
+        editedTemplateDescription
+      );
+
+      if (response.success) {
+        Alert.alert('Success', 'Template updated successfully');
+        setShowPermitTemplateEditor(false);
+        loadPermitTemplates();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to save template');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save template: ' + error.message);
+    } finally {
+      setSavingPermitTemplate(false);
+    }
+  };
+
   // Reset JSEA form
   const resetJseaForm = () => {
     setJseaTemplateName('');
@@ -641,32 +685,53 @@ export default function ContractorAdminScreen({
                 marginBottom: 12
               }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
-                    {template.description || 'Untitled'}
+                    {template.template_name || 'Untitled'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
-                    Type: {template.type || 'General'}
-                  </Text>
+                  {template.description && (
+                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                      {template.description}
+                    </Text>
+                  )}
+                  {template.company_name && (
+                    <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>
+                      Company: {template.company_name}
+                    </Text>
+                  )}
                   {template.created_at && (
                     <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
                       Created: {new Date(template.created_at).toLocaleDateString()}
                     </Text>
                   )}
                 </View>
-                <TouchableOpacity 
-                  style={{
-                    backgroundColor: '#EF4444',
-                    padding: 8,
-                    borderRadius: 6,
-                    minWidth: 50,
-                    alignItems: 'center'
-                  }}
-                  onPress={() => handleDeletePermitTemplate(template.id)}
-                >
-                  <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'column', gap: 6 }}>
+                  <TouchableOpacity 
+                    style={{
+                      backgroundColor: '#3B82F6',
+                      padding: 8,
+                      borderRadius: 6,
+                      minWidth: 50,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => handleEditPermitTemplate(template)}
+                  >
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{
+                      backgroundColor: '#EF4444',
+                      padding: 8,
+                      borderRadius: 6,
+                      minWidth: 50,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => handleDeletePermitTemplate(template.id)}
+                  >
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
@@ -1242,6 +1307,121 @@ export default function ContractorAdminScreen({
                   onPress={handleSaveJseaTemplate}
                 >
                   <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Save Template</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Permit Template Editor Modal */}
+      {showPermitTemplateEditor && editingPermitTemplate && (
+        <Modal
+          visible={showPermitTemplateEditor}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowPermitTemplateEditor(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 16 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, gap: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Edit Template</Text>
+                <TouchableOpacity onPress={() => setShowPermitTemplateEditor(false)}>
+                  <Text style={{ fontSize: 24, color: '#9CA3AF', fontWeight: 'bold' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Template Name Field */}
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
+                  Template Name *
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: editedTemplateName ? '#3B82F6' : '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937'
+                  }}
+                  placeholder="Enter template name"
+                  placeholderTextColor="#A3A3A3"
+                  value={editedTemplateName}
+                  onChangeText={setEditedTemplateName}
+                  editable={!savingPermitTemplate}
+                />
+              </View>
+
+              {/* Description Field */}
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
+                  Description (Optional)
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    minHeight: 80
+                  }}
+                  placeholder="Enter description"
+                  placeholderTextColor="#A3A3A3"
+                  value={editedTemplateDescription}
+                  onChangeText={setEditedTemplateDescription}
+                  multiline
+                  editable={!savingPermitTemplate}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Template Info */}
+              <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#F3F4F6', borderRadius: 8, gap: 4 }}>
+                <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  Company: <Text style={{ fontWeight: '600' }}>{editingPermitTemplate.company_name || 'No company specified'}</Text>
+                </Text>
+                <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  Created: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.created_at).toLocaleDateString()}</Text>
+                </Text>
+                <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  Last Updated: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.updated_at).toLocaleDateString()}</Text>
+                </Text>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setShowPermitTemplateEditor(false)}
+                  disabled={savingPermitTemplate}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: editedTemplateName ? '#3B82F6' : '#D1D5DB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={handleSavePermitTemplate}
+                  disabled={!editedTemplateName || savingPermitTemplate}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                    {savingPermitTemplate ? 'Saving...' : 'Save Changes'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

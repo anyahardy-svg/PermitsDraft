@@ -194,6 +194,39 @@ export async function deleteTemplate(templateId) {
   }
 }
 
+/**
+ * Update a permit template's name and description
+ * @param {UUID} templateId - Template ID
+ * @param {String} templateName - New template name
+ * @param {String} description - New template description (optional)
+ * @returns {Object} Success status and updated template
+ */
+export async function updatePermitTemplate(templateId, templateName, description = null) {
+  try {
+    const updateData = {
+      template_name: templateName,
+      updated_at: new Date().toISOString()
+    };
+
+    if (description !== null) {
+      updateData.description = description;
+    }
+
+    const { data, error } = await supabase
+      .from('permit_templates')
+      .update(updateData)
+      .eq('id', templateId)
+      .select();
+
+    if (error) throw error;
+
+    return { success: true, data: data[0] };
+  } catch (error) {
+    console.error('Update permit template error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // ============================================================================
 // JSEA TEMPLATES
 // ============================================================================
@@ -864,6 +897,7 @@ export default {
   getPermitTemplatesByCompany,
   getTemplate,
   deleteTemplate,
+  updatePermitTemplate,
   createPermitFromTemplate,
   getTemplatesByType,
   getRecentTemplates,
