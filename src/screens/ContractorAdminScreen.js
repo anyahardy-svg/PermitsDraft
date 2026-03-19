@@ -635,7 +635,7 @@ export default function ContractorAdminScreen({
     );
   };
 
-  // Render inductions tab
+  // Render inductions tab in table format
   const renderInductions = () => {
     if (loadingInductions) {
       return (
@@ -666,58 +666,69 @@ export default function ContractorAdminScreen({
     }
 
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-        <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
-          Showing {inductedContractors.length} contractor{inductedContractors.length !== 1 ? 's' : ''}
-        </Text>
-
-        {inductedContractors.map((contractor) => (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }} horizontal>
+        <View>
+          {/* Table Header */}
           <View
-            key={contractor.id}
             style={{
-              backgroundColor: 'white',
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              padding: 12,
-              marginBottom: 12
+              flexDirection: 'row',
+              backgroundColor: '#F3F4F6',
+              borderBottomWidth: 2,
+              borderBottomColor: '#D1D5DB',
+              paddingVertical: 10,
+              paddingHorizontal: 8,
+              minWidth: 1200
             }}
           >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
-              {contractor.name}
-            </Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
-              {contractor.email || 'No email'}
-            </Text>
-
-            {contractor.completedInductions && contractor.completedInductions.length > 0 ? (
-              <View>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  Completed Inductions ({contractor.completedInductions.length}):
-                </Text>
-                {contractor.completedInductions.map((induction, idx) => (
-                  <View key={idx} style={{ paddingLeft: 12, marginBottom: 6 }}>
-                    <Text style={{ fontSize: 11, color: '#1F2937' }}>
-                      • {induction.inductions?.induction_name || 'Unknown'}
-                    </Text>
-                    {induction.inductions?.subsection_name && (
-                      <Text style={{ fontSize: 10, color: '#6B7280', marginLeft: 4 }}>
-                        {induction.inductions.subsection_name}
-                      </Text>
-                    )}
-                    <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
-                      {induction.completed_at ? new Date(induction.completed_at).toLocaleDateString('en-NZ') : 'Date not available'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>
-                No completed inductions
-              </Text>
-            )}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Services</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inductions</Text>
           </View>
-        ))}
+
+          {/* Table Rows */}
+          {inductedContractors.map((contractor, idx) => (
+            <View
+              key={contractor.id}
+              style={{
+                flexDirection: 'row',
+                backgroundColor: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                borderBottomWidth: 1,
+                borderBottomColor: '#E5E7EB',
+                paddingVertical: 10,
+                paddingHorizontal: 8,
+                minWidth: 1200
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
+                {contractor.name}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6B7280', width: 180, paddingRight: 8 }}>
+                {contractor.email || 'N/A'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#1F2937', width: 200, paddingRight: 8 }}>
+                {contractor.services && contractor.services.length > 0 ? contractor.services.join(', ') : 'None'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
+                {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
+              </Text>
+              <View style={{ width: 200, paddingRight: 8 }}>
+                {contractor.completedInductions && contractor.completedInductions.length > 0 ? (
+                  <View>
+                    {contractor.completedInductions.map((induction, jdx) => (
+                      <Text key={jdx} style={{ fontSize: 10, color: '#1F2937', marginBottom: 2 }}>
+                        • {induction.inductions?.induction_name || 'Unknown'}
+                      </Text>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>No inductions</Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     );
   };
