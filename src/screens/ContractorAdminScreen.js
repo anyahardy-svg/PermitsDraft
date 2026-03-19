@@ -20,6 +20,7 @@ import { getContractorInductionsForCompany } from '../api/inductions';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
+import ContractorAuthScreen from './ContractorAuthScreen';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack, 
@@ -27,6 +28,11 @@ export default function ContractorAdminScreen({
   styles,
   businessUnits = []
 }) {
+  // Authentication state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInContractor, setLoggedInContractor] = useState(null);
+  const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
+  
   const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', 'inductions', or 'training-records'
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
@@ -64,6 +70,25 @@ export default function ContractorAdminScreen({
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
+
+  // Handle successful login
+  const handleLoginSuccess = (contractorInfo) => {
+    console.log('✅ Contractor logged in:', contractorInfo);
+    setLoggedInContractor(contractorInfo.contractorName);
+    setLoggedInCompanyId(contractorInfo.companyId);
+    setIsLoggedIn(true);
+    // Auto-set company to filter data
+    setSelectedCompanyId(contractorInfo.companyId);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoggedInContractor(null);
+    setLoggedInCompanyId(null);
+    setSelectedCompanyId(null);
+    setActiveTab(null);
+  };
 
   // Load business units
   const loadBusinessUnits = async () => {
@@ -673,24 +698,44 @@ export default function ContractorAdminScreen({
     );
   };
 
+  // Show authentication screen if not logged in
+  if (!isLoggedIn) {
+    return (
+      <ContractorAuthScreen
+        onLoginSuccess={handleLoginSuccess}
+        styles={styles}
+      />
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
       <View style={styles.header}>
-        {!activeTab && (
-          <TouchableOpacity onPress={onNavigateBack}>
-            <Text style={styles.backButton}>←</Text>
-          </TouchableOpacity>
+        {!activeTab ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <TouchableOpacity onPress={onNavigateBack}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={styles.title}>Contractor Admin</Text>
+              <Text style={{ fontSize: 12, color: '#D1D5DB' }}>{loggedInContractor}</Text>
+            </View>
+            <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 8 }}>
+              <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <View />
+            <Text style={styles.title}>
+              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : 'Accreditation'}
+            </Text>
+            <TouchableOpacity onPress={() => setActiveTab(null)}>
+              <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
         )}
-        <Text style={styles.title}>
-          {activeTab ? (activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : 'Accreditation') : 'Contractor Admin'}
-        </Text>
-        {activeTab && (
-          <TouchableOpacity onPress={() => setActiveTab(null)}>
-            <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
-          </TouchableOpacity>
-        )}
-        {!activeTab && <View style={{ width: 30 }} />}
       </View>
 
       {/* Dashboard View - Show cards when no tab selected */}
