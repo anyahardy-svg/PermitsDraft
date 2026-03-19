@@ -1,6 +1,7 @@
 /**
  * Training Records Screen
- * Allows contractors to upload and view training/certification records by service
+ * Allows contractors to upload and view training/certification records
+ * Training types are free text (e.g., "OSHA Certification", "First Aid")
  */
 
 import React, { useState, useEffect } from 'react';
@@ -31,11 +32,11 @@ export default function TrainingRecordsScreen({
 }) {
   const [trainingRecords, setTrainingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedService, setSelectedService] = useState(services[0] || '');
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedContractorId, setSelectedContractorId] = useState(contractorId);
   const [selectedContractorName, setSelectedContractorName] = useState(contractorName);
   const [formData, setFormData] = useState({
+    trainingType: '',
     notes: '',
     expiryDate: ''
   });
@@ -63,6 +64,11 @@ export default function TrainingRecordsScreen({
   };
 
   const handleFileSelect = async () => {
+    if (!formData.trainingType.trim()) {
+      Alert.alert('Validation', 'Please enter a training type');
+      return;
+    }
+
     // Web file input - use browser's file picker
     const input = document.createElement('input');
     input.type = 'file';
@@ -76,15 +82,15 @@ export default function TrainingRecordsScreen({
       try {
         const response = await uploadTrainingRecord(
           selectedContractorId,
-          selectedService,
+          formData.trainingType,
           file,
           formData.expiryDate ? new Date(formData.expiryDate) : null,
           formData.notes
         );
 
         if (response.success) {
-          Alert.alert('Success', `Training record uploaded for ${selectedService}`);
-          setFormData({ notes: '', expiryDate: '' });
+          Alert.alert('Success', `Training record uploaded for ${formData.trainingType}`);
+          setFormData({ trainingType: '', notes: '', expiryDate: '' });
           setShowUploadForm(false);
           await loadTrainingRecords();
         } else {
@@ -141,9 +147,8 @@ export default function TrainingRecordsScreen({
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
-  const filteredRecords = selectedService
-    ? trainingRecords.filter(r => r.service_name === selectedService)
-    : trainingRecords;
+  // Show all records (no filtering by type - user will see all their training records)
+  const filteredRecords = trainingRecords;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -196,40 +201,6 @@ export default function TrainingRecordsScreen({
 
       {!loading && selectedContractorId && (
         <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 16 }}>
-          {/* Service Filter */}
-          {services.length > 0 && (
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Filter by Service
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                {services.map((service) => (
-                  <TouchableOpacity
-                    key={service}
-                    onPress={() => setSelectedService(service)}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 16,
-                      backgroundColor: selectedService === service ? '#3B82F6' : '#E5E7EB',
-                      marginRight: 8
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: selectedService === service ? 'white' : '#374151',
-                        fontSize: 12,
-                        fontWeight: '500'
-                      }}
-                    >
-                      {service}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
           {/* Upload Button */}
           <TouchableOpacity
             onPress={() => setShowUploadForm(!showUploadForm)}
@@ -254,39 +225,25 @@ export default function TrainingRecordsScreen({
               borderWidth: 1,
               borderColor: '#E5E7EB'
             }}>
-              {services.length > 0 && (
-                <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
-                    Service *
-                  </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {services.map((service) => (
-                      <TouchableOpacity
-                        key={service}
-                        onPress={() => setSelectedService(service)}
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 6,
-                          backgroundColor: selectedService === service ? '#3B82F6' : '#F3F4F6',
-                          marginRight: 8,
-                          marginBottom: 8
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: selectedService === service ? 'white' : '#374151',
-                            fontSize: 12,
-                            fontWeight: '500'
-                          }}
-                        >
-                          {service}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Training Type *
+                </Text>
+                <TextInput
+                  placeholder="e.g., OSHA Certification, First Aid, Safety Training"
+                  value={formData.trainingType}
+                  onChangeText={(text) => setFormData({ ...formData, trainingType: text })}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937'
+                  }}
+                />
+              </View>
 
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
@@ -332,14 +289,14 @@ export default function TrainingRecordsScreen({
 
               <TouchableOpacity
                 onPress={handleFileSelect}
-                disabled={loading || !selectedService}
+                disabled={loading || !formData.trainingType.trim()}
                 style={{
                   backgroundColor: '#10B981',
                   padding: 12,
                   borderRadius: 6,
                   alignItems: 'center',
                   marginBottom: 8,
-                  opacity: !selectedService || loading ? 0.5 : 1
+                  opacity: !formData.trainingType.trim() || loading ? 0.5 : 1
                 }}
               >
                 <Text style={{ color: 'white', fontWeight: '600' }}>
@@ -365,10 +322,7 @@ export default function TrainingRecordsScreen({
           {filteredRecords.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 40 }}>
               <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center' }}>
-                {selectedService
-                  ? `No training records for ${selectedService}`
-                  : 'No training records uploaded yet'
-                }
+                No training records uploaded yet
               </Text>
             </View>
           ) : (
@@ -388,7 +342,7 @@ export default function TrainingRecordsScreen({
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
-                          {record.service_name}
+                          {record.training_type}
                         </Text>
                         <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                           📄 {record.file_name}
