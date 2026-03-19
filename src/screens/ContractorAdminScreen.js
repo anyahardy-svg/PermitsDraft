@@ -666,28 +666,31 @@ export default function ContractorAdminScreen({
     }
 
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }} horizontal>
-        <View>
-          {/* Table Header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              backgroundColor: '#F3F4F6',
-              borderBottomWidth: 2,
-              borderBottomColor: '#D1D5DB',
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              minWidth: 1200
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Services</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inductions</Text>
-          </View>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+          {/* Table Wrapper with horizontal scroll for wide table */}
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <View style={{ padding: 16 }}>
+              {/* Table Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: '#F3F4F6',
+                  borderBottomWidth: 2,
+                  borderBottomColor: '#D1D5DB',
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  minWidth: 1200
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Services</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inductions</Text>
+              </View>
 
-          {/* Table Rows */}
+              {/* Table Rows */}
           {inductedContractors.map((contractor, idx) => (
             <View
               key={contractor.id}
@@ -728,8 +731,10 @@ export default function ContractorAdminScreen({
               </View>
             </View>
           ))}
-        </View>
-      </ScrollView>
+            </View>
+          </ScrollView>
+        </ScrollView>
+      </View>
     );
   };
 
