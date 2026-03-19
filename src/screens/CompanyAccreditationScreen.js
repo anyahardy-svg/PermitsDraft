@@ -16,7 +16,6 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
 import { listCompanies } from '../api/companies';
-import { listContractors } from '../api/contractors';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 
@@ -258,24 +257,6 @@ export default function CompanyAccreditationScreen({
     3: 'Formal systems in place; consistent application; structured communication',
     4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
   };
-
-  // Load contractors on mount
-  useEffect(() => {
-    const loadAllContractors = async () => {
-      try {
-        const data = await listContractors();
-        setContractors(data || []);
-        // Auto-select first contractor if none selected
-        if (data && data.length > 0 && !selectedContractor) {
-          setSelectedContractor(data[0]);
-          setCurrentCompanyId(data[0].company_id);
-        }
-      } catch (error) {
-        console.error('Failed to load contractors:', error);
-      }
-    };
-    loadAllContractors();
-  }, []);
 
   // Load company data
   useEffect(() => {
@@ -1536,7 +1517,7 @@ export default function CompanyAccreditationScreen({
 
   // Auto-save when data changes (debounced)
   useEffect(() => {
-    if (!currentCompanyId || !selectedContractor) return;
+    if (!currentCompanyId) return;
     
     const timer = setTimeout(() => {
       autoSave();
