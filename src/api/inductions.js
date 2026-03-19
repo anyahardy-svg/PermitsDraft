@@ -535,9 +535,9 @@ export async function getContractorInductionsForCompany(companyId) {
     // Get all contractors from the company
     const { data: contractors, error: contractorError } = await supabase
       .from('contractors')
-      .select('id, first_name, last_name, email')
+      .select('id, name, email')
       .eq('company_id', companyId)
-      .order('last_name, first_name', { ascending: true });
+      .order('name', { ascending: true });
 
     if (contractorError) throw contractorError;
 

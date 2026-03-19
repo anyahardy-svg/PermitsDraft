@@ -684,7 +684,7 @@ export default function ContractorAdminScreen({
             }}
           >
             <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
-              {contractor.first_name} {contractor.last_name}
+              {contractor.name}
             </Text>
             <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
               {contractor.email || 'No email'}
