@@ -443,11 +443,16 @@ export default function ContractorAdminScreen({
           onPress: async () => {
             try {
               const response = await deletePermitTemplate(templateId);
-              if (response.success) {
-                Alert.alert('Success', 'Template deleted');
+              if (response.success || response.message) {
+                Alert.alert('Success', response.message || 'Template deleted successfully');
                 loadPermitTemplates();
+              } else if (response.error) {
+                Alert.alert('Error', response.error);
+              } else {
+                Alert.alert('Error', 'Failed to delete template');
               }
             } catch (error) {
+              console.error('Delete error:', error);
               Alert.alert('Error', 'Failed to delete template: ' + error.message);
             }
           },
@@ -661,8 +666,8 @@ export default function ContractorAdminScreen({
     return (
       <ScrollView style={styles.section}>
         <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 16 }}>
-          <Text style={{ fontSize: 12, color: '#92400E' }}>
-            💡 Permit templates are saved from the permit form after filling in details. Click "Save as Template" in the permit editing screen.
+          <Text style={{ fontSize: 13, color: '#92400E' }}>
+            💡 Permit templates are saved from the permit form after fillin in details. To make changes to a template, load the template into the permit screen, make the changes and resave, before deleting the old permit template
           </Text>
         </View>
 
@@ -687,21 +692,21 @@ export default function ContractorAdminScreen({
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>
                     {template.template_name || 'Untitled'}
                   </Text>
                   {template.description && (
-                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
                       {template.description}
                     </Text>
                   )}
                   {template.company_name && (
-                    <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
                       Company: {template.company_name}
                     </Text>
                   )}
                   {template.created_at && (
-                    <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
                       Created: {new Date(template.created_at).toLocaleDateString()}
                     </Text>
                   )}
