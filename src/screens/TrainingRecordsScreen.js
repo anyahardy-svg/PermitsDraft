@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import {
   uploadTrainingRecord,
-  getTrainingRecords,
+  getTrainingRecordsByCompany,
   deleteTrainingRecord,
 } from '../api/trainingRecords';
 import { getContractorInductionsForCompany } from '../api/inductions';
@@ -41,7 +41,6 @@ export default function TrainingRecordsScreen({
   const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [selectedServiceName, setSelectedServiceName] = useState('');
   const [trainingName, setTrainingName] = useState('');
-  const [bucket, setBucket] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -68,15 +67,13 @@ export default function TrainingRecordsScreen({
       setAllServices(services || []);
 
       // Load all training records for the company
-      if (contractors && contractors.length > 0) {
-        const allRecords = [];
-        for (const contractor of contractors) {
-          const response = await getTrainingRecords(contractor.id);
-          if (response.success && response.data) {
-            allRecords.push(...response.data.map(r => ({ ...r, contractor_name: contractor.name })));
-          }
-        }
-        setTrainingRecords(allRecords);
+      const response = await getTrainingRecordsByCompany(loggedInCompanyId);
+      if (response.success && response.data) {
+        const recordsWithContractorNames = response.data.map(record => ({
+          ...record,
+          contractor_name: record.contractor?.name || 'Unknown'
+        }));
+        setTrainingRecords(recordsWithContractorNames);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -91,7 +88,6 @@ export default function TrainingRecordsScreen({
     setSelectedServiceId(null);
     setSelectedServiceName('');
     setTrainingName('');
-    setBucket('');
     setExpiryDate('');
     setSelectedFile(null);
     setShowContractorDropdown(false);
@@ -144,10 +140,6 @@ export default function TrainingRecordsScreen({
       Alert.alert('Validation', 'Please enter a training name');
       return;
     }
-    if (!bucket.trim()) {
-      Alert.alert('Validation', 'Please enter a bucket');
-      return;
-    }
     if (!selectedFile) {
       Alert.alert('Validation', 'Please attach a file');
       return;
@@ -160,7 +152,7 @@ export default function TrainingRecordsScreen({
         trainingName,
         selectedFile,
         expiryDate ? new Date(parseNZDate(expiryDate)) : null,
-        `${bucket}|${selectedServiceId}` // Store bucket and service_id in notes
+        selectedServiceId // Store service_id in notes
       );
 
       if (response.success) {
@@ -250,12 +242,11 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1100,
+                  minWidth: 1000,
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 140, paddingRight: 8 }}>Training Name</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Bucket</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Training Name</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
@@ -273,17 +264,14 @@ export default function TrainingRecordsScreen({
                     borderBottomColor: '#E5E7EB',
                     paddingVertical: 10,
                     paddingHorizontal: 8,
-                    minWidth: 1100,
+                    minWidth: 1000,
                   }}
                 >
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
                     {record.contractor_name}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#1F2937', width: 140, paddingRight: 8 }}>
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 180, paddingRight: 8 }}>
                     {record.training_type}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
-                    {record.notes ? record.notes.split('|')[0] : 'N/A'}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                     {formatDateNZ(record.expiry_date)}
@@ -449,25 +437,6 @@ export default function TrainingRecordsScreen({
                 placeholder="e.g., OSHA Certification, First Aid"
                 value={trainingName}
                 onChangeText={setTrainingName}
-              />
-            </View>
-
-            {/* Bucket */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Bucket *</Text>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 6,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: '#1F2937',
-                }}
-                placeholder="e.g., General Safety, Hot Work, Confined Space"
-                value={bucket}
-                onChangeText={setBucket}
               />
             </View>
 

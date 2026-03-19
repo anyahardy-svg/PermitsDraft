@@ -136,6 +136,34 @@ export async function getTrainingRecords(contractorId) {
 }
 
 /**
+ * Get all training records for a company (across all contractors)
+ * @param {UUID} companyId - Company ID
+ * @returns {Object} Training records with contractor names
+ */
+export async function getTrainingRecordsByCompany(companyId) {
+  try {
+    console.log('📋 Fetching training records for company:', companyId);
+
+    const { data, error } = await supabase
+      .from('training_records')
+      .select(`
+        *,
+        contractor:contractors(id, name, company_id)
+      `)
+      .eq('contractor.company_id', companyId)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) throw error;
+
+    console.log(`✅ Fetched ${data.length} training records for company`);
+    return { success: true, data };
+  } catch (error) {
+    console.error('❌ Get company training records error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Delete a training record
  * @param {UUID} recordId - Training record ID
  * @param {string} fileUrl - File URL for deletion from storage
