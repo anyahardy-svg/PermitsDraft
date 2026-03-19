@@ -3822,6 +3822,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
             <TouchableOpacity style={styles.draftButton} onPress={() => handleSubmit('draft')}>
               <Text style={styles.draftButtonText}>Save Draft</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.submitButton, { backgroundColor: '#F59E0B' }]} 
+              onPress={() => setShowPermitSaveTemplateNew(true)}
+            >
+              <Text style={styles.submitButtonText}>Save as Template</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.submitButton} onPress={() => handleSubmit('pending_approval')}>
               <Text style={styles.submitButtonText}>Submit for Approval</Text>
             </TouchableOpacity>
@@ -4593,6 +4599,272 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     color: 'white'
                   }}>
                     {loadingJseaTemplates ? 'Saving...' : 'Save Template'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Permit Save as Template Modal for New Permit */}
+        <Modal 
+          visible={showPermitSaveTemplateNew} 
+          animationType="slide"
+          onRequestClose={() => setShowPermitSaveTemplateNew(false)}
+          transparent
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            padding: 16
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              maxHeight: '80%'
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Save Permit as Template
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowPermitSaveTemplateNew(false);
+                  setPermitTemplateNameNew('');
+                  setSelectedBusForPermitTemplateNew([]);
+                  setSelectedCompanyForPermitTemplateNew('');
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Template Name *</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 14,
+                    color: '#1F2937'
+                  }}
+                  placeholder="e.g., Milling Machine Setup"
+                  value={permitTemplateNameNew}
+                  onChangeText={setPermitTemplateNameNew}
+                  editable={!loadingPermitSaveTemplateNew}
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Business Units * (select one or more)</Text>
+                <View style={{ gap: 8 }}>
+                  {businessUnits.map(bu => {
+                    const isSelected = selectedBusForPermitTemplateNew.includes(bu.id);
+                    return (
+                      <TouchableOpacity
+                        key={bu.id}
+                        onPress={() => {
+                          setSelectedBusForPermitTemplateNew(prev =>
+                            prev.includes(bu.id)
+                              ? prev.filter(id => id !== bu.id)
+                              : [...prev, bu.id]
+                          );
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: isSelected ? '#E9D5FF' : '#F3F4F6',
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 3,
+                          borderWidth: 2,
+                          borderColor: '#8B5CF6',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isSelected ? '#8B5CF6' : 'white',
+                          marginRight: 10
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  color: '#1F2937', 
+                  marginBottom: 8 
+                }}>Contractor Company (Optional)</Text>
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: 'white'
+                }}>
+                  <Picker
+                    selectedValue={selectedCompanyForPermitTemplateNew}
+                    onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateNew(itemValue)}
+                    style={{
+                      color: '#1F2937'
+                    }}
+                  >
+                    <Picker.Item label="No specific company" value="" />
+                    {companies.map(company => (
+                      <Picker.Item key={company.id} label={company.name} value={company.name} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowPermitSaveTemplateNew(false);
+                    setPermitTemplateNameNew('');
+                    setSelectedBusForPermitTemplateNew([]);
+                    setSelectedCompanyForPermitTemplateNew('');
+                  }}
+                  disabled={loadingPermitSaveTemplateNew}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: permitTemplateNameNew && selectedBusForPermitTemplateNew.length > 0 ? '#8B5CF6' : '#D1D5DB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={async () => {
+                    if (!permitTemplateNameNew.trim() || selectedBusForPermitTemplateNew.length === 0) {
+                      Alert.alert('Validation', 'Please enter a name and select at least one business unit');
+                      return;
+                    }
+
+                    setLoadingPermitSaveTemplateNew(true);
+                    try {
+                      // Get or create permit ID
+                      let permitId = formData.id;
+                      
+                      if (!permitId) {
+                        // Permit not yet saved - save it as draft first
+                        const result = await handleSubmit('draft');
+                        if (!result || !result.id) {
+                          // If result doesn't have ID, check formData after draft save
+                          await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for state update
+                          permitId = formData.id;
+                        } else {
+                          permitId = result.id;
+                        }
+                        
+                        if (!permitId) {
+                          throw new Error('Failed to save permit as draft');
+                        }
+                      }
+
+                      // Save permit as template for each selected business unit
+                      let successCount = 0;
+                      let failedBUs = [];
+                      
+                      for (const buId of selectedBusForPermitTemplateNew) {
+                        try {
+                          const response = await savePermitAsTemplate(
+                            permitId,
+                            permitTemplateNameNew,
+                            buId,
+                            selectedCompanyForPermitTemplateNew
+                          );
+                          
+                          if (response?.success || response?.data) {
+                            successCount++;
+                          } else {
+                            const buName = businessUnits.find(b => b.id === buId)?.name || buId;
+                            failedBUs.push(buName);
+                          }
+                        } catch (buError) {
+                          const buName = businessUnits.find(b => b.id === buId)?.name || buId;
+                          failedBUs.push(buName);
+                        }
+                      }
+                      
+                      if (successCount > 0) {
+                        let message = `Template "${permitTemplateNameNew}" saved successfully!\n\nPermit was saved as draft.`;
+                        if (failedBUs.length > 0) {
+                          message += `\n\nFailed for: ${failedBUs.join(', ')}`;
+                        }
+                        Alert.alert('Success', message);
+                        setShowPermitSaveTemplateNew(false);
+                        setPermitTemplateNameNew('');
+                        setSelectedBusForPermitTemplateNew([]);
+                        setSelectedCompanyForPermitTemplateNew('');
+                      } else {
+                        throw new Error(`Failed to save template for any business unit${failedBUs.length > 0 ? ': ' + failedBUs.join(', ') : ''}`);
+                      }
+                    } catch (error) {
+                      console.error('Error saving permit template:', error);
+                      Alert.alert('Error', error.message || 'Failed to save template');
+                    } finally {
+                      setLoadingPermitSaveTemplateNew(false);
+                    }
+                  }}
+                  disabled={loadingPermitSaveTemplateNew || !permitTemplateNameNew || selectedBusForPermitTemplateNew.length === 0}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: loadingPermitSaveTemplateNew ? '#9CA3AF' : permitTemplateNameNew && selectedBusForPermitTemplateNew.length > 0 ? 'white' : '#9CA3AF'
+                  }}>
+                    {loadingPermitSaveTemplateNew ? 'Saving...' : 'Save Template'}
                   </Text>
                 </TouchableOpacity>
               </View>
