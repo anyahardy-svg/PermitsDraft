@@ -807,7 +807,7 @@ export default function ContractorAdminScreen({
         ) : activeTab === 'accreditation' ? (
           <View style={{ flex: 1 }}>
             <CompanyAccreditationScreen
-              companyId={null}
+              companyId={loggedInCompanyId}
               isAdmin={false}
               styles={styles}
               onClose={() => setActiveTab(null)}

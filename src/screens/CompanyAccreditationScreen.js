@@ -22,11 +22,10 @@ import { listBusinessUnits } from '../api/business_units';
 
 /**
  * CompanyAccreditationScreen
- * Allows contractors to view/edit their own accreditation
- * Allows admins to view/edit all contractors' accreditations
+ * Contractor accreditation form with auto-filtered company data
  * 
- * @param {UUID} companyId - Current user's company ID (for contractors)
- * @param {boolean} isAdmin - Whether user is admin (sees all companies)
+ * @param {UUID} companyId - Company ID to load (required when logged in)
+ * @param {boolean} isAdmin - Whether user is admin (sees all companies) - not used when companyId provided
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
  * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
@@ -41,12 +40,9 @@ export default function CompanyAccreditationScreen({
   const scrollViewRef = useRef(null);
   const [scrollOffset, setScrollOffset] = useState(0);
 
+  // If companyId is provided (logged-in contractor), use it directly
   const [currentCompanyId, setCurrentCompanyId] = useState(companyId);
   const [company, setCompany] = useState(null);
-  const [companies, setCompanies] = useState([]); // For admin dropdown
-  const [contractors, setContractors] = useState([]); // List of all contractors for selection
-  const [selectedContractor, setSelectedContractor] = useState(null); // Currently selected contractor
-  const [showContractorPicker, setShowContractorPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
@@ -2402,71 +2398,9 @@ export default function CompanyAccreditationScreen({
         onScroll={(event) => setScrollOffset(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-        {/* Contractor Selection */}
-        <View style={{ marginBottom: 20, paddingHorizontal: 16, paddingTop: 16 }}>
-          <Text style={styles.label}>Select Contractor:</Text>
-          <TouchableOpacity
-            style={[styles.input, { paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
-            onPress={() => setShowContractorPicker(true)}
-          >
-            <Text style={{ color: selectedContractor ? '#1F2937' : '#9CA3AF' }}>
-              {selectedContractor?.name || 'Select a contractor...'}
-            </Text>
-            <Text style={{ fontSize: 16 }}>▼</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Contractor Picker Modal */}
-        <Modal
-          visible={showContractorPicker}
-          animationType="slide"
-          onRequestClose={() => setShowContractorPicker(false)}
-        >
-          <View style={[styles.container, { paddingTop: 50 }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-              <Text style={[styles.title, { margin: 0 }]}>Select Contractor</Text>
-              <TouchableOpacity onPress={() => setShowContractorPicker(false)}>
-                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={contractors}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                  onPress={() => {
-                    setSelectedContractor(item);
-                    // Set contractor details immediately
-                    setCompanyDetails(prev => ({
-                      ...prev,
-                      contractorName: item.name || '',
-                      contractorEmail: item.email || ''
-                    }));
-                    setCurrentCompanyId(item.company_id);
-                    // loadCompanyData will be called by the useEffect watching currentCompanyId
-                    setShowContractorPicker(false);
-                  }}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937' }}>
-                    {item.name}
-                  </Text>
-                  {item.company && (
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                      {item.company}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </Modal>
-
         {/* Company Information Section */}
-        {selectedContractor && (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
             
             <View style={{ marginBottom: 16 }}>
               <Text style={styles.label}>Company Name</Text>
@@ -2544,7 +2478,6 @@ export default function CompanyAccreditationScreen({
               <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Please verify or update the above information as needed</Text>
             </View>
           </View>
-        )}
 
         {/* Section Navigation */}
         {/* Collapsible Sections */}
