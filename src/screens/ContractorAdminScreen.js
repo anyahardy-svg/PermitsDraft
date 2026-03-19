@@ -220,6 +220,8 @@ export default function ContractorAdminScreen({
 
   useEffect(() => {
     loadCompanies();
+    // Load JSEA templates on mount for dashboard count
+    loadJseaTemplates();
   }, []);
 
   useEffect(() => {
@@ -767,7 +769,9 @@ export default function ContractorAdminScreen({
           </View>
         ) : (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <View />
+            <TouchableOpacity onPress={onNavigateBack}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
             <Text style={styles.title}>
               {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : 'Accreditation'}
             </Text>
