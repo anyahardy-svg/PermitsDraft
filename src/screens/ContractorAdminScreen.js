@@ -842,8 +842,7 @@ export default function ContractorAdminScreen({
         ) : activeTab === 'training-records' ? (
           <View style={{ flex: 1 }}>
             <TrainingRecordsScreen
-              contractorId={null}
-              contractorName="Select Contractor"
+              loggedInCompanyId={loggedInCompanyId}
               styles={styles}
               onClose={() => setActiveTab(null)}
             />

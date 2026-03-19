@@ -1,7 +1,6 @@
 /**
  * Training Records Screen
- * Allows contractors to upload and view training/certification records
- * Training types are free text (e.g., "OSHA Certification", "First Aid")
+ * Displays a table of training records and allows adding new records
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,97 +12,147 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  StyleSheet,
+  Modal,
+  FlatList,
 } from 'react-native';
 import {
   uploadTrainingRecord,
   getTrainingRecords,
   deleteTrainingRecord,
-  updateTrainingRecordStatus
 } from '../api/trainingRecords';
+import { getContractorInductionsForCompany } from '../api/inductions';
+import { listAllServices } from '../api/services';
 
 export default function TrainingRecordsScreen({
-  contractorId,
-  contractorName,
-  services = [],
+  loggedInCompanyId,
   styles,
   onClose,
-  contractors = []
 }) {
+  // Table state
   const [trainingRecords, setTrainingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const [selectedContractorId, setSelectedContractorId] = useState(contractorId);
-  const [selectedContractorName, setSelectedContractorName] = useState(contractorName);
-  const [formData, setFormData] = useState({
-    trainingType: '',
-    notes: '',
-    expiryDate: ''
-  });
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  // Load training records on mount or when contractor changes
+  // Form state
+  const [inductedContractors, setInductedContractors] = useState([]);
+  const [allServices, setAllServices] = useState([]);
+  const [selectedContractorId, setSelectedContractorId] = useState(null);
+  const [selectedContractorName, setSelectedContractorName] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [selectedServiceName, setSelectedServiceName] = useState('');
+  const [trainingName, setTrainingName] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Dropdown visibility
+  const [showContractorDropdown, setShowContractorDropdown] = useState(false);
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+
+  // Load data on mount
   useEffect(() => {
-    if (selectedContractorId) {
-      loadTrainingRecords();
+    if (loggedInCompanyId) {
+      loadAllData();
     }
-  }, [selectedContractorId]);
+  }, [loggedInCompanyId]);
 
-  const loadTrainingRecords = async () => {
+  const loadAllData = async () => {
     setLoading(true);
     try {
-      const response = await getTrainingRecords(selectedContractorId);
-      if (response.success) {
-        setTrainingRecords(response.data);
+      // Load inducted contractors
+      const contractors = await getContractorInductionsForCompany(loggedInCompanyId);
+      setInductedContractors(contractors || []);
+
+      // Load services
+      const services = await listAllServices();
+      setAllServices(services || []);
+
+      // Load all training records for the company
+      if (contractors && contractors.length > 0) {
+        const allRecords = [];
+        for (const contractor of contractors) {
+          const response = await getTrainingRecords(contractor.id);
+          if (response.success && response.data) {
+            allRecords.push(...response.data.map(r => ({ ...r, contractor_name: contractor.name })));
+          }
+        }
+        setTrainingRecords(allRecords);
       }
     } catch (error) {
-      console.error('Error loading training records:', error);
-      Alert.alert('Error', 'Failed to load training records');
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileSelect = async () => {
-    if (!formData.trainingType.trim()) {
-      Alert.alert('Validation', 'Please enter a training type');
-      return;
-    }
+  const resetForm = () => {
+    setSelectedContractorId(null);
+    setSelectedContractorName('');
+    setSelectedServiceId(null);
+    setSelectedServiceName('');
+    setTrainingName('');
+    setExpiryDate('');
+    setSelectedFile(null);
+    setShowContractorDropdown(false);
+    setShowServiceDropdown(false);
+  };
 
-    // Web file input - use browser's file picker
+  const handleSelectFile = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/pdf, image/*, .doc, .docx, .xls, .xlsx';
-    
-    input.onchange = async (e) => {
+    input.accept = 'application/pdf, image/*';
+
+    input.onchange = (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-
-      setLoading(true);
-      try {
-        const response = await uploadTrainingRecord(
-          selectedContractorId,
-          formData.trainingType,
-          file,
-          formData.expiryDate ? new Date(formData.expiryDate) : null,
-          formData.notes
-        );
-
-        if (response.success) {
-          Alert.alert('Success', `Training record uploaded for ${formData.trainingType}`);
-          setFormData({ trainingType: '', notes: '', expiryDate: '' });
-          setShowUploadForm(false);
-          await loadTrainingRecords();
-        } else {
-          Alert.alert('Error', response.error);
-        }
-      } catch (error) {
-        Alert.alert('Error', error.message);
-      } finally {
-        setLoading(false);
+      if (file) {
+        setSelectedFile(file);
       }
     };
 
     input.click();
+  };
+
+  const handleAddTrainingRecord = async () => {
+    // Validate form
+    if (!selectedContractorId) {
+      Alert.alert('Validation', 'Please select a contractor');
+      return;
+    }
+    if (!selectedServiceId) {
+      Alert.alert('Validation', 'Please select a service');
+      return;
+    }
+    if (!trainingName.trim()) {
+      Alert.alert('Validation', 'Please enter a training name');
+      return;
+    }
+    if (!selectedFile) {
+      Alert.alert('Validation', 'Please attach a file');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await uploadTrainingRecord(
+        selectedContractorId,
+        trainingName,
+        selectedFile,
+        expiryDate ? new Date(expiryDate) : null,
+        selectedServiceId // Store service_id in notes field for now
+      );
+
+      if (response.success) {
+        Alert.alert('Success', `Training record added for ${selectedContractorName}`);
+        resetForm();
+        setShowAddForm(false);
+        await loadAllData();
+      } else {
+        Alert.alert('Error', response.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteRecord = async (recordId, fileName) => {
@@ -118,7 +167,7 @@ export default function TrainingRecordsScreen({
 
       if (response.success) {
         Alert.alert('Success', 'Training record deleted');
-        await loadTrainingRecords();
+        await loadAllData();
       } else {
         Alert.alert('Error', response.error);
       }
@@ -129,36 +178,23 @@ export default function TrainingRecordsScreen({
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved':
-        return '#10B981';
-      case 'rejected':
-        return '#EF4444';
-      case 'expired':
-        return '#F59E0B';
-      case 'pending':
-      default:
-        return '#6B7280';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  // Show all records (no filtering by type - user will see all their training records)
-  const filteredRecords = trainingRecords;
-
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
-      <View style={{ backgroundColor: 'white', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Training Records</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{selectedContractorName}</Text>
-          </View>
+      <View style={{ backgroundColor: 'white', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Training Records</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity
+            onPress={() => setShowAddForm(true)}
+            style={{
+              backgroundColor: '#3B82F6',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>+ Add Record</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={onClose}
             style={{ padding: 8 }}
@@ -168,255 +204,308 @@ export default function TrainingRecordsScreen({
         </View>
       </View>
 
-      {/* Contractor Selector - if none selected */}
-      {!selectedContractorId && (
-        <View style={{ backgroundColor: '#FEF3C7', padding: 16, borderBottomWidth: 1, borderBottomColor: '#FCD34D' }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>
-            Select a Contractor
-          </Text>
-          <Text style={{ fontSize: 12, color: '#B45309', marginBottom: 8 }}>
-            Please select a contractor from the inducted contractors list to view and manage their training records.
-          </Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={{
-              backgroundColor: '#F59E0B',
-              padding: 10,
-              borderRadius: 6,
-              alignItems: 'center'
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
-              ← Back to Select Contractor
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {loading && (
+      {loading && !showAddForm ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>
-      )}
-
-      {!loading && selectedContractorId && (
-        <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 16 }}>
-          {/* Upload Button */}
-          <TouchableOpacity
-            onPress={() => setShowUploadForm(!showUploadForm)}
-            style={{
-              backgroundColor: '#3B82F6',
-              padding: 12,
-              borderRadius: 8,
-              alignItems: 'center',
-              marginBottom: 16
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600' }}>+ Upload Training Record</Text>
-          </TouchableOpacity>
-
-          {/* Upload Form */}
-          {showUploadForm && (
-            <View style={{
-              backgroundColor: 'white',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 16,
-              borderWidth: 1,
-              borderColor: '#E5E7EB'
-            }}>
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
-                  Training Type *
-                </Text>
-                <TextInput
-                  placeholder="e.g., OSHA Certification, First Aid, Safety Training"
-                  value={formData.trainingType}
-                  onChangeText={(text) => setFormData({ ...formData, trainingType: text })}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 6,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: '#1F2937'
-                  }}
-                />
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
-                  Expiry Date (optional)
-                </Text>
-                <TextInput
-                  placeholder="YYYY-MM-DD"
-                  value={formData.expiryDate}
-                  onChangeText={(text) => setFormData({ ...formData, expiryDate: text })}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 6,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: '#1F2937'
-                  }}
-                />
-              </View>
-
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
-                  Notes (optional)
-                </Text>
-                <TextInput
-                  placeholder="Add any notes about this record..."
-                  value={formData.notes}
-                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                  multiline
-                  numberOfLines={3}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 6,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: '#1F2937'
-                  }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleFileSelect}
-                disabled={loading || !formData.trainingType.trim()}
+      ) : trainingRecords.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
+            No training records yet. Click "Add Record" to get started.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <View style={{ padding: 16 }}>
+              {/* Table Header */}
+              <View
                 style={{
-                  backgroundColor: '#10B981',
-                  padding: 12,
-                  borderRadius: 6,
-                  alignItems: 'center',
-                  marginBottom: 8,
-                  opacity: !formData.trainingType.trim() || loading ? 0.5 : 1
+                  flexDirection: 'row',
+                  backgroundColor: '#F3F4F6',
+                  borderBottomWidth: 2,
+                  borderBottomColor: '#D1D5DB',
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  minWidth: 1000,
                 }}
               >
-                <Text style={{ color: 'white', fontWeight: '600' }}>
-                  {loading ? 'Uploading...' : '📁 Select File'}
-                </Text>
-              </TouchableOpacity>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 140, paddingRight: 8 }}>Training Name</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Action</Text>
+              </View>
 
-              <TouchableOpacity
-                onPress={() => setShowUploadForm(false)}
-                style={{
-                  backgroundColor: '#E5E7EB',
-                  padding: 12,
-                  borderRadius: 6,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ color: '#374151', fontWeight: '600' }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Training Records List */}
-          {filteredRecords.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center' }}>
-                No training records uploaded yet
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 12 }}>
-              {filteredRecords.map((record) => (
+              {/* Table Rows */}
+              {trainingRecords.map((record, idx) => (
                 <View
                   key={record.id}
                   style={{
-                    backgroundColor: 'white',
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    borderRadius: 8,
-                    padding: 12
+                    flexDirection: 'row',
+                    backgroundColor: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E7EB',
+                    paddingVertical: 10,
+                    paddingHorizontal: 8,
+                    minWidth: 1000,
                   }}
                 >
-                  <View style={{ marginBottom: 8 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
-                          {record.training_type}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                          📄 {record.file_name}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          backgroundColor: getStatusColor(record.status),
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 4,
-                          marginLeft: 8
-                        }}
-                      >
-                        <Text style={{ color: 'white', fontSize: 10, fontWeight: '600' }}>
-                          {getStatusLabel(record.status)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={{ gap: 4, marginBottom: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
-                    <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                      Size: {(record.file_size / 1024).toFixed(2)} KB
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
+                    {record.contractor_name}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 140, paddingRight: 8 }}>
+                    {record.training_type}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
+                    {record.expiry_date ? new Date(record.expiry_date).toLocaleDateString('en-NZ') : 'N/A'}
+                  </Text>
+                  <TouchableOpacity
+                    style={{ width: 100, paddingRight: 8 }}
+                    onPress={() => window.open(record.file_url, '_blank')}
+                  >
+                    <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>
+                      {record.file_name?.split('/').pop()}
                     </Text>
-                    <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                      Uploaded: {new Date(record.uploaded_at).toLocaleDateString()}
-                    </Text>
-                    {record.expiry_date && (
-                      <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                        Expires: {new Date(record.expiry_date).toLocaleDateString()}
-                      </Text>
-                    )}
-                    {record.notes && (
-                      <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic' }}>
-                        Note: {record.notes}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {record.file_url && (
-                      <TouchableOpacity
-                        onPress={() => window.open(record.file_url, '_blank')}
-                        style={{
-                          flex: 1,
-                          backgroundColor: '#3B82F6',
-                          padding: 8,
-                          borderRadius: 6,
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>View</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => handleDeleteRecord(record.id, record.file_name)}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#EF4444',
-                        padding: 8,
-                        borderRadius: 6,
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 11, color: '#1F2937', width: 80, paddingRight: 8 }}>
+                    {record.status?.charAt(0).toUpperCase() + record.status?.slice(1) || 'Pending'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteRecord(record.id, record.file_name)}
+                    style={{ width: 80, paddingRight: 8 }}
+                  >
+                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
-          )}
+          </ScrollView>
         </ScrollView>
       )}
+
+      {/* Add Training Record Modal */}
+      <Modal
+        visible={showAddForm}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowAddForm(false);
+          resetForm();
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          {/* Modal Header */}
+          <View style={{ backgroundColor: 'white', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingTop: 20 }}>
+            <TouchableOpacity onPress={() => {
+              setShowAddForm(false);
+              resetForm();
+            }}>
+              <Text style={{ fontSize: 24, color: '#3B82F6', fontWeight: '600' }}>←</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12 }}>Add Training Record</Text>
+          </View>
+
+          {/* Form */}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            {/* Contractor Selector */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Contractor *</Text>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'white',
+                }}
+                onPress={() => setShowContractorDropdown(!showContractorDropdown)}
+              >
+                <Text style={{ fontSize: 14, color: selectedContractorId ? '#1F2937' : '#9CA3AF' }}>
+                  {selectedContractorName || 'Select a contractor'}
+                </Text>
+              </TouchableOpacity>
+
+              {showContractorDropdown && (
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  marginTop: 4,
+                  backgroundColor: 'white',
+                  maxHeight: 200,
+                }}>
+                  <FlatList
+                    data={inductedContractors}
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                        onPress={() => {
+                          setSelectedContractorId(item.id);
+                          setSelectedContractorName(item.name);
+                          setShowContractorDropdown(false);
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, color: '#1F2937' }}>{item.name}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Service Selector */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Service *</Text>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'white',
+                }}
+                onPress={() => setShowServiceDropdown(!showServiceDropdown)}
+              >
+                <Text style={{ fontSize: 14, color: selectedServiceId ? '#1F2937' : '#9CA3AF' }}>
+                  {selectedServiceName || 'Select a service'}
+                </Text>
+              </TouchableOpacity>
+
+              {showServiceDropdown && (
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  marginTop: 4,
+                  backgroundColor: 'white',
+                  maxHeight: 200,
+                }}>
+                  <FlatList
+                    data={allServices}
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                        onPress={() => {
+                          setSelectedServiceId(item.id);
+                          setSelectedServiceName(item.name);
+                          setShowServiceDropdown(false);
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, color: '#1F2937' }}>{item.name}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Training Name */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Training Name *</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                }}
+                placeholder="e.g., OSHA Certification, First Aid"
+                value={trainingName}
+                onChangeText={setTrainingName}
+              />
+            </View>
+
+            {/* Expiry Date */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Expiry Date</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                }}
+                placeholder="YYYY-MM-DD"
+                value={expiryDate}
+                onChangeText={setExpiryDate}
+              />
+            </View>
+
+            {/* File Attachment */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Attachment (PDF or Image) *</Text>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 2,
+                  borderColor: selectedFile ? '#10B981' : '#D1D5DB',
+                  borderStyle: 'dashed',
+                  borderRadius: 6,
+                  paddingVertical: 20,
+                  paddingHorizontal: 12,
+                  alignItems: 'center',
+                  backgroundColor: selectedFile ? '#F0FDF4' : 'white',
+                }}
+                onPress={handleSelectFile}
+              >
+                <Text style={{ fontSize: 12, color: selectedFile ? '#10B981' : '#6B7280', marginBottom: 4 }}>
+                  {selectedFile ? '✓ ' + selectedFile.name : '📎 Tap to attach file'}
+                </Text>
+                <Text style={{ fontSize: 11, color: '#9CA3AF' }}>PDF and image files only</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Buttons */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddForm(false);
+                  resetForm();
+                }}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  paddingVertical: 12,
+                  borderRadius: 6,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddTrainingRecord}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  backgroundColor: loading ? '#D1D5DB' : '#3B82F6',
+                  paddingVertical: 12,
+                  borderRadius: 6,
+                  alignItems: 'center',
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>Add Record</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
