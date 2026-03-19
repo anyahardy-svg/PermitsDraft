@@ -237,6 +237,13 @@ export default function ContractorAdminScreen({
     }
   }, [activeTab, selectedCompanyId]);
 
+  // Auto-load inductions when contractor logs in (for dashboard count)
+  useEffect(() => {
+    if (isLoggedIn && loggedInCompanyId) {
+      loadInductions();
+    }
+  }, [isLoggedIn, loggedInCompanyId]);
+
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
     console.log('🔴 SAVE CLICKED - Starting handleSaveJseaTemplate');
