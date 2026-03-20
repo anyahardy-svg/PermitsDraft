@@ -26,15 +26,15 @@ export default function ContractorAdminScreen({
   onNavigateBack, 
   businessUnitId, 
   styles,
-  businessUnits = []
+  businessUnits = [],
+  activeTab = null,
+  setActiveTab = () => {}
 }) {
   // Authentication state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInContractor, setLoggedInContractor] = useState(null);
   const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
   const [loggedInCompanyName, setLoggedInCompanyName] = useState(null);
-  
-  const [activeTab, setActiveTab] = useState(null); // null shows dashboard, 'jsea', 'permits', 'accreditation', 'inductions', or 'training-records'
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -442,17 +442,23 @@ export default function ContractorAdminScreen({
           text: 'Delete',
           onPress: async () => {
             try {
+              console.log('🗑️ [DELETE] Starting delete for template:', templateId);
               const response = await deletePermitTemplate(templateId);
-              if (response.success || response.message) {
+              console.log('🗑️ [DELETE] Response received:', response);
+              
+              if (response.success) {
+                console.log('✅ [DELETE] Success! Reloading templates...');
                 Alert.alert('Success', response.message || 'Template deleted successfully');
-                loadPermitTemplates();
+                await loadPermitTemplates();
               } else if (response.error) {
+                console.log('❌ [DELETE] Error from API:', response.error);
                 Alert.alert('Error', response.error);
               } else {
+                console.log('❌ [DELETE] Unknown response structure:', response);
                 Alert.alert('Error', 'Failed to delete template');
               }
             } catch (error) {
-              console.error('Delete error:', error);
+              console.error('❌ [DELETE] Exception:', error);
               Alert.alert('Error', 'Failed to delete template: ' + error.message);
             }
           },
@@ -732,7 +738,10 @@ export default function ContractorAdminScreen({
                       minWidth: 50,
                       alignItems: 'center'
                     }}
-                    onPress={() => handleDeletePermitTemplate(template.id)}
+                    onPress={() => {
+                      console.log('🔴 DELETE BUTTON PRESSED for template:', template.id);
+                      handleDeletePermitTemplate(template.id);
+                    }}
                   >
                     <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
                   </TouchableOpacity>

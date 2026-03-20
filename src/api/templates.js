@@ -172,6 +172,8 @@ export async function getTemplate(templateId) {
  */
 export async function deleteTemplate(templateId) {
   try {
+    console.log('🗑️ Attempting to delete permit template:', templateId);
+    
     // Fetch template to get details for audit
     const { data: template } = await supabase
       .from('permit_templates')
@@ -179,17 +181,26 @@ export async function deleteTemplate(templateId) {
       .eq('id', templateId)
       .single();
 
+    console.log('📋 Found template to delete:', template);
+
     // Delete the template
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('permit_templates')
       .delete()
       .eq('id', templateId);
 
-    if (error) throw error;
+    console.log('❌ Delete response error:', error);
+    console.log('📊 Delete response data:', data);
 
+    if (error) {
+      console.error('❌ Delete error details:', error);
+      throw error;
+    }
+
+    console.log('✅ Template deleted successfully');
     return { success: true, message: 'Template deleted successfully' };
   } catch (error) {
-    console.error('Delete permit template error:', error);
+    console.error('❌ Delete permit template error:', error);
     return { success: false, error: error.message };
   }
 }

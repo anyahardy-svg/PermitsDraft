@@ -1941,6 +1941,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState(initialAdminRoute || 'dashboard');
+  const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
@@ -2268,21 +2269,61 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         'manage_inductions': '/admin/inductions/',
         'manage_business_units': '/admin/business-units/',
         'admin': '/admin/',
+        'contractor_admin': '/contractor-admin/',
         'dashboard': '/'
       };
       
-      const newUrl = routeMap[currentScreen] || '/';
+      let newUrl = routeMap[currentScreen] || '/';
+      
+      // Add contractor admin tab to URL
+      if (currentScreen === 'contractor_admin' && contractorAdminTab) {
+        const tabMap = {
+          'jsea': '/contractor-admin/jsea-templates/',
+          'permits': '/contractor-admin/permit-templates/',
+          'accreditation': '/contractor-admin/accreditation/',
+          'inductions': '/contractor-admin/inductions/',
+          'training-records': '/contractor-admin/training-records/'
+        };
+        newUrl = tabMap[contractorAdminTab] || '/contractor-admin/';
+      }
+      
       if (window.location.pathname !== newUrl) {
         window.history.pushState({}, '', newUrl);
       }
     }
-  }, [currentScreen]);
+  }, [currentScreen, contractorAdminTab]);
 
   // Listen to browser back button
   useEffect(() => {
     const handlePopState = () => {
       if (typeof window !== 'undefined') {
         const pathname = window.location.pathname;
+        
+        // Check for contractor admin routes
+        if (pathname.startsWith('/contractor-admin')) {
+          setCurrentScreen('contractor_admin');
+          const route = pathname.slice(17); // Remove '/contractor-admin' prefix
+          const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+          
+          const tabMap = {
+            '/jsea-templates': 'jsea',
+            'jsea-templates': 'jsea',
+            '/permit-templates': 'permits',
+            'permit-templates': 'permits',
+            '/accreditation': 'accreditation',
+            'accreditation': 'accreditation',
+            '/inductions': 'inductions',
+            'inductions': 'inductions',
+            '/training-records': 'training-records',
+            'training-records': 'training-records',
+            '': null,
+            '/': null
+          };
+          
+          const tab = tabMap[routeWithoutTrailingSlash] || null;
+          setContractorAdminTab(tab);
+          return;
+        }
         
         // Check for main admin dashboard
         if (pathname === '/admin' || pathname === '/admin/') {
@@ -2314,7 +2355,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
           }
         }
         
-        // Default to dashboard if no admin route matched
+        // Default to dashboard if no route matched
         setCurrentScreen('dashboard');
       }
     };
@@ -17597,11 +17638,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     case 'contractor_admin':
       return (
         <ContractorAdminScreen
-          onNavigateBack={() => setCurrentScreen('admin')}
+          onNavigateBack={() => setCurrentScreen('dashboard')}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}
           onImportContractorsCSV={handleImportContractorsCSV}
+          activeTab={contractorAdminTab}
+          setActiveTab={setContractorAdminTab}
         />
       );
     case 'services_directory':
