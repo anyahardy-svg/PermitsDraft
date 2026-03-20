@@ -35,6 +35,7 @@ export default function ContractorAdminScreen({
   const [loggedInContractor, setLoggedInContractor] = useState(null);
   const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
   const [loggedInCompanyName, setLoggedInCompanyName] = useState(null);
+  const [previousTab, setPreviousTab] = useState(null);
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -120,6 +121,26 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
+    setPreviousTab(null);
+  };
+
+  // Track tab history for back button
+  useEffect(() => {
+    if (activeTab !== null) {
+      setPreviousTab(activeTab);
+    }
+  }, [activeTab]);
+
+  // Handle back button - go to previous tab or exit Contractor Admin
+  const handleContractorAdminBack = () => {
+    if (previousTab !== null) {
+      // Go back to previous tab
+      setActiveTab(previousTab);
+      setPreviousTab(null);
+    } else {
+      // Exit Contractor Admin
+      onNavigateBack();
+    }
   };
 
   // Load business units
@@ -884,7 +905,7 @@ export default function ContractorAdminScreen({
       <View style={styles.header}>
         {!activeTab ? (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <TouchableOpacity onPress={onNavigateBack}>
+            <TouchableOpacity onPress={handleContractorAdminBack}>
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <View style={{ alignItems: 'center', flex: 1 }}>
@@ -897,7 +918,7 @@ export default function ContractorAdminScreen({
           </View>
         ) : (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <TouchableOpacity onPress={onNavigateBack}>
+            <TouchableOpacity onPress={handleContractorAdminBack}>
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>
