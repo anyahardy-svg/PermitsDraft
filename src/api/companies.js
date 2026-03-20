@@ -191,26 +191,12 @@ export const upsertCompany = async (companyData) => {
 };
 
 // Get company accreditation data
+// NOTE: Use getCompanyAccreditation from accreditations.js instead
+// This is kept for backwards compatibility but delegates to accreditations
 export const getCompanyAccreditation = async (companyId) => {
   try {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('id, name, accreditation_submission_data, accreditation_status, accreditation_approved_by, accreditation_approved_at, accreditation_last_updated, accreditation_expiry_date')
-      .eq('id', companyId)
-      .single();
-
-    if (error) throw error;
-
-    return {
-      id: data.id,
-      name: data.name,
-      submissionData: data.accreditation_submission_data || {},
-      status: data.accreditation_status || 'not_submitted',
-      approvedBy: data.accreditation_approved_by,
-      approvedAt: data.accreditation_approved_at,
-      lastUpdated: data.accreditation_last_updated,
-      expiryDate: data.accreditation_expiry_date
-    };
+    const { getCompanyAccreditation: getAccred } = await import('./accreditations.js');
+    return await getAccred(companyId);
   } catch (error) {
     console.error('Error fetching company accreditation:', error.message);
     return null;

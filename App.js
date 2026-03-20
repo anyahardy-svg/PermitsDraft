@@ -23,7 +23,8 @@ import { createPermit, listPermits, updatePermit, deletePermit } from './src/api
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
-import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, getCompanyAccreditation, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
+import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
+import { getCompanyAccreditation } from './src/api/accreditations';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
@@ -8720,61 +8721,84 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                         paddingVertical: 8,
                         borderRadius: 6,
                         marginBottom: 12,
-                        backgroundColor: companyAccreditationData.status === 'approved' ? '#D1FAE5' : companyAccreditationData.status === 'rejected' ? '#FEE2E2' : companyAccreditationData.status === 'pending' ? '#FEF3C7' : '#F3F4F6'
+                        backgroundColor: companyAccreditationData.accreditation_status === 'approved' ? '#D1FAE5' : companyAccreditationData.accreditation_status === 'rejected' ? '#FEE2E2' : companyAccreditationData.accreditation_status === 'pending' ? '#FEF3C7' : '#F3F4F6'
                       }}>
                         <Text style={{
                           fontSize: 12,
                           fontWeight: '600',
-                          color: companyAccreditationData.status === 'approved' ? '#065F46' : companyAccreditationData.status === 'rejected' ? '#7F1D1D' : companyAccreditationData.status === 'pending' ? '#92400E' : '#6B7280'
+                          color: companyAccreditationData.accreditation_status === 'approved' ? '#065F46' : companyAccreditationData.accreditation_status === 'rejected' ? '#7F1D1D' : companyAccreditationData.accreditation_status === 'pending' ? '#92400E' : '#6B7280'
                         }}>
-                          Status: {companyAccreditationData.status === 'approved' ? '✓ Approved' : companyAccreditationData.status === 'rejected' ? '✕ Rejected' : companyAccreditationData.status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
+                          Status: {companyAccreditationData.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData.accreditation_status === 'rejected' ? '✕ Rejected' : companyAccreditationData.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
                         </Text>
                       </View>
 
-                      {/* Accreditation Details */}
-                      {companyAccreditationData.submissionData && Object.keys(companyAccreditationData.submissionData).length > 0 ? (
-                        <View>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Submitted Data</Text>
-                          {Object.entries(companyAccreditationData.submissionData).map(([key, value]) => (
-                            <View key={key} style={{ marginBottom: 12 }}>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>
-                                {key.replace(/_/g, ' ').toUpperCase()}
-                              </Text>
-                              <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value) || '(empty)'}
-                              </Text>
-                            </View>
-                          ))}
+                      {/* Accreditation Summary */}
+                      <View style={{ marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Accreditation Summary</Text>
+                        
+                        {/* Certifications */}
+                        <View style={{ marginBottom: 12 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Certifications</Text>
+                          {companyAccreditationData.aep_accredited && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ AEP Accredited {companyAccreditationData.aep_certificate_expiry ? `(expires ${new Date(companyAccreditationData.aep_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.iso_45001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 45001 {companyAccreditationData.iso_45001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_45001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.iso_9001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 9001 {companyAccreditationData.iso_9001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_9001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.iso_14001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 14001 {companyAccreditationData.iso_14001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_14001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.totika_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Totika Prequalified {companyAccreditationData.totika_certificate_expiry ? `(expires ${new Date(companyAccreditationData.totika_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.she_prequal_qualified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ SHE Prequal {companyAccreditationData.she_prequal_certificate_expiry ? `(expires ${new Date(companyAccreditationData.she_prequal_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.impac_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ IMPAC {companyAccreditationData.impac_certificate_expiry ? `(expires ${new Date(companyAccreditationData.impac_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.sitewise_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ SiteWise {companyAccreditationData.sitewise_certificate_expiry ? `(expires ${new Date(companyAccreditationData.sitewise_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          {companyAccreditationData.rapid_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ RAPID {companyAccreditationData.rapid_certificate_expiry ? `(expires ${new Date(companyAccreditationData.rapid_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
+                          
+                          {!companyAccreditationData.aep_accredited && !companyAccreditationData.iso_45001_certified && !companyAccreditationData.iso_9001_certified && !companyAccreditationData.iso_14001_certified && !companyAccreditationData.totika_prequalified && !companyAccreditationData.she_prequal_qualified && !companyAccreditationData.impac_prequalified && !companyAccreditationData.sitewise_prequalified && !companyAccreditationData.rapid_prequalified && (
+                            <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>No certifications recorded</Text>
+                          )}
                         </View>
-                      ) : (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 16 }}>
-                          No accreditation data submitted yet
-                        </Text>
-                      )}
+
+                        {/* Policies */}
+                        <View style={{ marginBottom: 12 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Policies</Text>
+                          {companyAccreditationData.health_safety_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Health & Safety Policy</Text>}
+                          {companyAccreditationData.environmental_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Environmental Policy</Text>}
+                          {companyAccreditationData.drug_alcohol_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Drug & Alcohol Policy</Text>}
+                          {companyAccreditationData.quality_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Quality Policy</Text>}
+                          
+                          {!companyAccreditationData.health_safety_policy_exists && !companyAccreditationData.environmental_policy_exists && !companyAccreditationData.drug_alcohol_policy_exists && !companyAccreditationData.quality_policy_exists && (
+                            <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>No policies recorded</Text>
+                          )}
+                        </View>
+
+                        {/* Services */}
+                        {companyAccreditationData.approved_services && companyAccreditationData.approved_services.length > 0 && (
+                          <View>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Approved Services</Text>
+                            <Text style={{ fontSize: 11, color: '#6B7280' }}>{companyAccreditationData.approved_services.join(', ')}</Text>
+                          </View>
+                        )}
+                      </View>
 
                       {/* Timestamps */}
-                      <View style={{ marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        {companyAccreditationData.createdAt && (
+                      <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        {companyAccreditationData.created_at && (
                           <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                            Created: {new Date(companyAccreditationData.createdAt).toLocaleDateString()}
+                            Created: {new Date(companyAccreditationData.created_at).toLocaleDateString()}
                           </Text>
                         )}
                         
-                        {companyAccreditationData.updatedAt && (
+                        {companyAccreditationData.updated_at && (
                           <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                            Updated: {new Date(companyAccreditationData.updatedAt).toLocaleDateString()}
+                            Updated: {new Date(companyAccreditationData.updated_at).toLocaleDateString()}
                           </Text>
                         )}
 
-                        {companyAccreditationData.approvedAt && (
-                          <Text style={{ fontSize: 11, color: '#065F46', fontWeight: '600' }}>
-                            Approved: {new Date(companyAccreditationData.approvedAt).toLocaleDateString()}
+                        {companyAccreditationData.accreditation_last_updated && (
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
+                            Last Accreditation Update: {new Date(companyAccreditationData.accreditation_last_updated).toLocaleDateString()}
                           </Text>
                         )}
 
-                        {companyAccreditationData.rejectedAt && (
+                        {companyAccreditationData.accreditation_expiry_date && (
                           <Text style={{ fontSize: 11, color: '#7F1D1D', fontWeight: '600' }}>
-                            Rejected: {new Date(companyAccreditationData.rejectedAt).toLocaleDateString()}
+                            Accreditation Expires: {new Date(companyAccreditationData.accreditation_expiry_date).toLocaleDateString()}
                           </Text>
                         )}
                       </View>
@@ -8787,7 +8811,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 </ScrollView>
 
                 {/* Action Buttons */}
-                {companyAccreditationData && companyAccreditationData.status !== 'approved' && (
+                {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && (
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
                       style={{
