@@ -2161,6 +2161,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
+  const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
+  const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -8747,14 +8749,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                       alignItems: 'center'
                     }}
                     onPress={() => {
-                      Alert.alert('Reject Accreditation?', 'Are you sure you want to reject this accreditation?', [
-                        { text: 'Cancel' },
-                        {
-                          text: 'Reject',
-                          onPress: () => handleRejectCompanyAccreditation('Rejected by admin'),
-                          style: 'destructive'
-                        }
-                      ]);
+                      setRejectionFeedback('');
+                      setShowRejectionFeedbackModal(true);
                     }}
                     disabled={approvingAccreditation}
                   >
@@ -8779,6 +8775,95 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+          </Modal>
+        )}
+
+        {/* Rejection Feedback Modal */}
+        {showRejectionFeedbackModal && (
+          <Modal
+            visible={showRejectionFeedbackModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowRejectionFeedbackModal(false)}
+          >
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 20
+            }}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 12,
+                padding: 20,
+                minWidth: 300,
+                maxWidth: 500,
+                maxHeight: '80%'
+              }}>
+                <Text style={{fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12}}>
+                  Rejection Feedback
+                </Text>
+                <Text style={{fontSize: 13, color: '#6B7280', marginBottom: 16}}>
+                  Provide feedback to explain why you're rejecting this accreditation. This will be visible to the company.
+                </Text>
+
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    padding: 12,
+                    marginBottom: 16,
+                    fontSize: 13,
+                    color: '#1F2937',
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                    fontFamily: 'Courier'
+                  }}
+                  placeholder="Enter feedback here... (e.g., Missing certifications, Incomplete documentation, etc.)"
+                  placeholderTextColor="#9CA3AF"
+                  value={rejectionFeedback}
+                  onChangeText={setRejectionFeedback}
+                  multiline
+                  editable={!approvingAccreditation}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#E5E7EB',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => setShowRejectionFeedbackModal(false)}
+                    disabled={approvingAccreditation}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#EF4444',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      setShowRejectionFeedbackModal(false);
+                      handleRejectCompanyAccreditation(rejectionFeedback || 'Accreditation rejected by admin');
+                    }}
+                    disabled={approvingAccreditation}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingAccreditation ? 'Processing...' : 'Confirm Rejection'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </Modal>
         )}
