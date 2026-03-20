@@ -237,3 +237,206 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Calculate and get the overall training records status for a company
+ * Status is calculated based on individual training records:
+ * - 'none': No training records exist
+ * - 'added': Records uploaded but not yet all approved
+ * - 'approved': All training records are approved
+ * - 'needs_review': New records added after previous approval
+ * @param {UUID} companyId - Company ID
+ * @returns {Object} Status and related metadata
+ */
+export async function getCompanyTrainingRecordsStatus(companyId) {
+  try {
+    console.log('📊 Getting training records status for company:', companyId);
+
+    // Get all training records for the company
+    const recordsResult = await getTrainingRecordsByCompany(companyId);
+    if (!recordsResult.success) {
+      throw new Error(recordsResult.error);
+    }
+
+    // Get company data to check current status timestamps
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('training_records_status, training_records_approved_at, training_records_submitted_at')
+      .eq('id', companyId)
+      .single();
+
+    if (companyError) throw companyError;
+
+    const records = recordsResult.data || [];
+
+    // If no records, status is 'none'
+    if (records.length === 0) {
+      return {
+        success: true,
+        status: 'none',
+        recordCount: 0,
+        approvedCount: 0,
+        pendingCount: 0
+      };
+    }
+
+    // Count approved and pending records
+    const approvedCount = records.filter(r => r.status === 'approved').length;
+    const pendingCount = records.filter(r => r.status === 'pending').length;
+
+    let status = 'added'; // Default: has records but not all approved
+
+    // If all records are approved
+    if (pendingCount === 0 && approvedCount > 0) {
+      status = 'approved';
+    }
+    // If previously approved but new records added (needs review again)
+    else if (company?.training_records_approved_at && company?.training_records_last_modified_at) {
+      const approvedDate = new Date(company.training_records_approved_at);
+      const modifiedDate = new Date(company.training_records_last_modified_at);
+      if (modifiedDate > approvedDate) {
+        status = 'needs_review';
+      }
+    }
+
+    console.log(`✅ Training records status: ${status} (${approvedCount}/${records.length} approved)`);
+    return {
+      success: true,
+      status,
+      recordCount: records.length,
+      approvedCount,
+      pendingCount,
+      submittedAt: company?.training_records_submitted_at,
+      approvedAt: company?.training_records_approved_at
+    };
+  } catch (error) {
+    console.error('❌ Get training records status error:', error);
+    return { success: false, error: error.message, status: 'none' };
+  }
+}
+
+/**
+ * Approve all pending training records for a company at once
+ * Updates both individual records and company-level status
+ * @param {UUID} companyId - Company ID
+ * @param {string} approvedByName - Name of person approving
+ * @param {string} businessUnitName - Business unit name (optional)
+ * @returns {Object} Approval result
+ */
+export async function approveAllCompanyTrainingRecords(companyId, approvedByName, businessUnitName = '') {
+  try {
+    console.log('✅ Approving all training records for company:', companyId);
+
+    // Get all pending training records for the company
+    const recordsResult = await getTrainingRecordsByCompany(companyId);
+    if (!recordsResult.success) {
+      throw new Error(recordsResult.error);
+    }
+
+    const records = recordsResult.data || [];
+    const pendingRecords = records.filter(r => r.status === 'pending');
+
+    if (pendingRecords.length === 0) {
+      console.log('ℹ️ No pending records to approve');
+      return { success: true, message: 'No pending records to approve', approvedCount: 0 };
+    }
+
+    // Approve each pending record
+    const approvalPromises = pendingRecords.map(record =>
+      supabase
+        .from('training_records')
+        .update({
+          status: 'approved',
+          approved_by_name: approvedByName,
+          approved_by_business_unit: businessUnitName,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', record.id)
+    );
+
+    const results = await Promise.all(approvalPromises);
+
+    // Check if all updates were successful
+    const errors = results.filter(r => r.error);
+    if (errors.length > 0) {
+      throw new Error(`Failed to approve ${errors.length} records`);
+    }
+
+    // Update company-level status
+    const { error: companyError } = await supabase
+      .from('companies')
+      .update({
+        training_records_status: 'approved',
+        training_records_approved_at: new Date().toISOString(),
+        training_records_approved_by: approvedByName
+      })
+      .eq('id', companyId);
+
+    if (companyError) throw companyError;
+
+    console.log(`✅ Approved ${pendingRecords.length} training records for company`);
+    return {
+      success: true,
+      message: `Approved ${pendingRecords.length} training records`,
+      approvedCount: pendingRecords.length
+    };
+  } catch (error) {
+    console.error('❌ Approve all training records error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update the company-level training records status
+ * Called whenever records are added or deleted
+ * Recalculates status based on current records
+ * @param {UUID} companyId - Company ID
+ * @returns {Object} Update result
+ */
+export async function updateCompanyTrainingRecordsStatus(companyId) {
+  try {
+    console.log('🔄 Updating training records status for company:', companyId);
+
+    // Get current status
+    const statusResult = await getCompanyTrainingRecordsStatus(companyId);
+    if (!statusResult.success) {
+      throw new Error(statusResult.error);
+    }
+
+    const { status, recordCount, pendingCount } = statusResult;
+
+    // Set submitted timestamp if records just added (none → added)
+    let updateData = { training_records_status: status };
+
+    if (recordCount > 0 && status === 'added') {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('training_records_submitted_at')
+        .eq('id', companyId)
+        .single();
+
+      if (!company?.training_records_submitted_at) {
+        updateData.training_records_submitted_at = new Date().toISOString();
+      }
+    }
+
+    // Mark when records were last modified (if not approved)
+    if (pendingCount > 0) {
+      updateData.training_records_last_modified_at = new Date().toISOString();
+    }
+
+    // Update company record
+    const { error } = await supabase
+      .from('companies')
+      .update(updateData)
+      .eq('id', companyId);
+
+    if (error) throw error;
+
+    console.log(`✅ Training records status updated: ${status}`);
+    return { success: true, status };
+  } catch (error) {
+    console.error('❌ Update training records status error:', error);
+    return { success: false, error: error.message };
+  }
+}
