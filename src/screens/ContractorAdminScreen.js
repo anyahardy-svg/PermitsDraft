@@ -433,39 +433,52 @@ export default function ContractorAdminScreen({
 
   // Handle delete permit template
   const handleDeletePermitTemplate = async (templateId) => {
-    Alert.alert(
-      'Delete Template?',
-      'This action cannot be undone.',
-      [
-        { text: 'Cancel', onPress: () => {} },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            try {
-              console.log('🗑️ [DELETE] Starting delete for template:', templateId);
-              const response = await deletePermitTemplate(templateId);
-              console.log('🗑️ [DELETE] Response received:', response);
-              
-              if (response.success) {
-                console.log('✅ [DELETE] Success! Reloading templates...');
-                Alert.alert('Success', response.message || 'Template deleted successfully');
-                await loadPermitTemplates();
-              } else if (response.error) {
-                console.log('❌ [DELETE] Error from API:', response.error);
-                Alert.alert('Error', response.error);
-              } else {
-                console.log('❌ [DELETE] Unknown response structure:', response);
-                Alert.alert('Error', 'Failed to delete template');
-              }
-            } catch (error) {
-              console.error('❌ [DELETE] Exception:', error);
-              Alert.alert('Error', 'Failed to delete template: ' + error.message);
-            }
+    console.log('🗑️ [HANDLER START] Delete handler called for:', templateId);
+    try {
+      console.log('🗑️ [BEFORE ALERT] About to show alert...');
+      Alert.alert(
+        'Delete Template?',
+        'This action cannot be undone.',
+        [
+          { 
+            text: 'Cancel', 
+            onPress: () => {
+              console.log('🗑️ [CANCEL] Delete cancelled');
+            } 
           },
-          style: 'destructive'
-        }
-      ]
-    );
+          {
+            text: 'Delete',
+            onPress: async () => {
+              try {
+                console.log('🗑️ [DELETE CONFIRMED] Starting delete for template:', templateId);
+                const response = await deletePermitTemplate(templateId);
+                console.log('🗑️ [DELETE] Response received:', response);
+                
+                if (response.success) {
+                  console.log('✅ [DELETE] Success! Reloading templates...');
+                  Alert.alert('Success', response.message || 'Template deleted successfully');
+                  await loadPermitTemplates();
+                } else if (response.error) {
+                  console.log('❌ [DELETE] Error from API:', response.error);
+                  Alert.alert('Error', response.error);
+                } else {
+                  console.log('❌ [DELETE] Unknown response structure:', response);
+                  Alert.alert('Error', 'Failed to delete template');
+                }
+              } catch (error) {
+                console.error('❌ [DELETE] Exception:', error);
+                Alert.alert('Error', 'Failed to delete template: ' + error.message);
+              }
+            },
+            style: 'destructive'
+          }
+        ]
+      );
+      console.log('🗑️ [AFTER ALERT] Alert shown');
+    } catch (error) {
+      console.error('❌ [HANDLER ERROR] Exception in handler:', error);
+      Alert.alert('Error', 'Error showing delete dialog: ' + error.message);
+    }
   };
 
   // Open permit template editor
