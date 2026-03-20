@@ -8680,194 +8680,102 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
           </View>
         </ScrollView>
 
-        {/* Accreditation Modal */}
+        {/* Accreditation Modal - Full Screen Overlay */}
         {showAccreditationModal && selectedCompanyForAccreditation && (
           <Modal
             visible={showAccreditationModal}
-            transparent
-            animationType="fade"
+            transparent={false}
+            animationType="slide"
             onRequestClose={() => setShowAccreditationModal(false)}
           >
-            <View style={{
-              flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 20
-            }}>
+            <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+              {/* Header */}
               <View style={{
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 20,
-                minWidth: 300,
-                maxWidth: 500,
-                maxHeight: '80%'
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottomWidth: 1,
+                borderBottomColor: '#2563EB'
               }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <Text style={{fontSize: 18, fontWeight: '700', color: '#1F2937'}}>
-                    {selectedCompanyForAccreditation.name} - Accreditation
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', marginBottom: 4 }}>
+                    {selectedCompanyForAccreditation.name}
                   </Text>
-                  <TouchableOpacity onPress={() => setShowAccreditationModal(false)}>
-                    <Text style={{ fontSize: 24, color: '#6B7280', fontWeight: '600' }}>✕</Text>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 12, color: '#DBEAFE' }}>
+                    Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'rejected' ? '✕ Rejected' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
+                  </Text>
                 </View>
-
-                <ScrollView style={{ flex: 1, marginBottom: 16 }}>
-                  {companyAccreditationData ? (
-                    <View>
-                      {/* Status Badge */}
-                      <View style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderRadius: 6,
-                        marginBottom: 12,
-                        backgroundColor: companyAccreditationData.accreditation_status === 'approved' ? '#D1FAE5' : companyAccreditationData.accreditation_status === 'rejected' ? '#FEE2E2' : companyAccreditationData.accreditation_status === 'pending' ? '#FEF3C7' : '#F3F4F6'
-                      }}>
-                        <Text style={{
-                          fontSize: 12,
-                          fontWeight: '600',
-                          color: companyAccreditationData.accreditation_status === 'approved' ? '#065F46' : companyAccreditationData.accreditation_status === 'rejected' ? '#7F1D1D' : companyAccreditationData.accreditation_status === 'pending' ? '#92400E' : '#6B7280'
-                        }}>
-                          Status: {companyAccreditationData.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData.accreditation_status === 'rejected' ? '✕ Rejected' : companyAccreditationData.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
-                        </Text>
-                      </View>
-
-                      {/* Accreditation Summary */}
-                      <View style={{ marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Accreditation Summary</Text>
-                        
-                        {/* Certifications */}
-                        <View style={{ marginBottom: 12 }}>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Certifications</Text>
-                          {companyAccreditationData.aep_accredited && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ AEP Accredited {companyAccreditationData.aep_certificate_expiry ? `(expires ${new Date(companyAccreditationData.aep_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.iso_45001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 45001 {companyAccreditationData.iso_45001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_45001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.iso_9001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 9001 {companyAccreditationData.iso_9001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_9001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.iso_14001_certified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ ISO 14001 {companyAccreditationData.iso_14001_certificate_expiry ? `(expires ${new Date(companyAccreditationData.iso_14001_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.totika_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Totika Prequalified {companyAccreditationData.totika_certificate_expiry ? `(expires ${new Date(companyAccreditationData.totika_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.she_prequal_qualified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ SHE Prequal {companyAccreditationData.she_prequal_certificate_expiry ? `(expires ${new Date(companyAccreditationData.she_prequal_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.impac_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ IMPAC {companyAccreditationData.impac_certificate_expiry ? `(expires ${new Date(companyAccreditationData.impac_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.sitewise_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ SiteWise {companyAccreditationData.sitewise_certificate_expiry ? `(expires ${new Date(companyAccreditationData.sitewise_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          {companyAccreditationData.rapid_prequalified && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ RAPID {companyAccreditationData.rapid_certificate_expiry ? `(expires ${new Date(companyAccreditationData.rapid_certificate_expiry).toLocaleDateString()})` : ''}</Text>}
-                          
-                          {!companyAccreditationData.aep_accredited && !companyAccreditationData.iso_45001_certified && !companyAccreditationData.iso_9001_certified && !companyAccreditationData.iso_14001_certified && !companyAccreditationData.totika_prequalified && !companyAccreditationData.she_prequal_qualified && !companyAccreditationData.impac_prequalified && !companyAccreditationData.sitewise_prequalified && !companyAccreditationData.rapid_prequalified && (
-                            <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>No certifications recorded</Text>
-                          )}
-                        </View>
-
-                        {/* Policies */}
-                        <View style={{ marginBottom: 12 }}>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Policies</Text>
-                          {companyAccreditationData.health_safety_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Health & Safety Policy</Text>}
-                          {companyAccreditationData.environmental_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Environmental Policy</Text>}
-                          {companyAccreditationData.drug_alcohol_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Drug & Alcohol Policy</Text>}
-                          {companyAccreditationData.quality_policy_exists && <Text style={{ fontSize: 11, color: '#6B7280' }}>✓ Quality Policy</Text>}
-                          
-                          {!companyAccreditationData.health_safety_policy_exists && !companyAccreditationData.environmental_policy_exists && !companyAccreditationData.drug_alcohol_policy_exists && !companyAccreditationData.quality_policy_exists && (
-                            <Text style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>No policies recorded</Text>
-                          )}
-                        </View>
-
-                        {/* Services */}
-                        {companyAccreditationData.approved_services && companyAccreditationData.approved_services.length > 0 && (
-                          <View>
-                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Approved Services</Text>
-                            <Text style={{ fontSize: 11, color: '#6B7280' }}>{companyAccreditationData.approved_services.join(', ')}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Timestamps */}
-                      <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        {companyAccreditationData.created_at && (
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                            Created: {new Date(companyAccreditationData.created_at).toLocaleDateString()}
-                          </Text>
-                        )}
-                        
-                        {companyAccreditationData.updated_at && (
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                            Updated: {new Date(companyAccreditationData.updated_at).toLocaleDateString()}
-                          </Text>
-                        )}
-
-                        {companyAccreditationData.accreditation_last_updated && (
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                            Last Accreditation Update: {new Date(companyAccreditationData.accreditation_last_updated).toLocaleDateString()}
-                          </Text>
-                        )}
-
-                        {companyAccreditationData.accreditation_expiry_date && (
-                          <Text style={{ fontSize: 11, color: '#7F1D1D', fontWeight: '600' }}>
-                            Accreditation Expires: {new Date(companyAccreditationData.accreditation_expiry_date).toLocaleDateString()}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  ) : (
-                    <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
-                      Loading accreditation data...
-                    </Text>
-                  )}
-                </ScrollView>
-
-                {/* Action Buttons */}
-                {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        backgroundColor: '#EF4444',
-                        borderRadius: 8,
-                        alignItems: 'center'
-                      }}
-                      onPress={() => {
-                        Alert.alert('Reject Accreditation?', 'Are you sure you want to reject this accreditation?', [
-                          { text: 'Cancel' },
-                          {
-                            text: 'Reject',
-                            onPress: () => handleRejectCompanyAccreditation('Rejected by admin'),
-                            style: 'destructive'
-                          }
-                        ]);
-                      }}
-                      disabled={approvingAccreditation}
-                    >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                        {approvingAccreditation ? 'Processing...' : 'Reject'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        backgroundColor: '#10B981',
-                        borderRadius: 8,
-                        alignItems: 'center'
-                      }}
-                      onPress={handleApproveCompanyAccreditation}
-                      disabled={approvingAccreditation}
-                    >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                        {approvingAccreditation ? 'Processing...' : 'Approve'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={{
-                    marginTop: 12,
-                    paddingVertical: 12,
-                    backgroundColor: '#E5E7EB',
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={() => setShowAccreditationModal(false)}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Close</Text>
+                <TouchableOpacity onPress={() => setShowAccreditationModal(false)} style={{ padding: 8 }}>
+                  <Text style={{ fontSize: 24, color: 'white', fontWeight: '600' }}>✕</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Full Accreditation Screen */}
+              <CompanyAccreditationScreen 
+                companyId={selectedCompanyForAccreditation.id}
+                styles={styles}
+                onClose={() => setShowAccreditationModal(false)}
+              />
+
+              {/* Admin Action Buttons - Floating */}
+              {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && (
+                <View style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderTopWidth: 1,
+                  borderTopColor: '#E5E7EB',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  flexDirection: 'row',
+                  gap: 10
+                }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#EF4444',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      Alert.alert('Reject Accreditation?', 'Are you sure you want to reject this accreditation?', [
+                        { text: 'Cancel' },
+                        {
+                          text: 'Reject',
+                          onPress: () => handleRejectCompanyAccreditation('Rejected by admin'),
+                          style: 'destructive'
+                        }
+                      ]);
+                    }}
+                    disabled={approvingAccreditation}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingAccreditation ? 'Processing...' : 'Reject'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#10B981',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={handleApproveCompanyAccreditation}
+                    disabled={approvingAccreditation}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingAccreditation ? 'Processing...' : 'Approve'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </Modal>
         )}
