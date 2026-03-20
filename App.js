@@ -8713,12 +8713,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 </TouchableOpacity>
               </View>
 
-              {/* Full Accreditation Screen */}
-              <CompanyAccreditationScreen 
-                companyId={selectedCompanyForAccreditation.id}
-                styles={styles}
-                onClose={() => setShowAccreditationModal(false)}
-              />
+              {/* Full Accreditation Screen with padding for buttons */}
+              <View style={{ flex: 1, paddingBottom: companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' ? 80 : 0 }}>
+                <CompanyAccreditationScreen 
+                  companyId={selectedCompanyForAccreditation.id}
+                  styles={styles}
+                  onClose={() => setShowAccreditationModal(false)}
+                />
+              </View>
 
               {/* Admin Action Buttons - Floating */}
               {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && (
@@ -8732,6 +8734,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                   borderTopColor: '#E5E7EB',
                   paddingHorizontal: 16,
                   paddingVertical: 12,
+                  paddingBottom: 16,
                   flexDirection: 'row',
                   gap: 10
                 }}>
