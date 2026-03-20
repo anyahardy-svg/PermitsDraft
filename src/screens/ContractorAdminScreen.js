@@ -69,12 +69,9 @@ export default function ContractorAdminScreen({
   const [inductedContractors, setInductedContractors] = useState([]);
   const [loadingInductions, setLoadingInductions] = useState(false);
 
-  // Permit template editing states
-  const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
-  const [showPermitTemplateEditor, setShowPermitTemplateEditor] = useState(false);
-  const [editedTemplateName, setEditedTemplateName] = useState('');
-  const [editedTemplateDescription, setEditedTemplateDescription] = useState('');
-  const [savingPermitTemplate, setSavingPermitTemplate] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -432,53 +429,47 @@ export default function ContractorAdminScreen({
   };
 
   // Handle delete permit template
-  const handleDeletePermitTemplate = async (templateId) => {
-    console.log('🗑️ [HANDLER START] Delete handler called for:', templateId);
+  const handleDeletePermitTemplate = (templateId) => {
+    console.log('🗑️ [DELETE] Opening confirmation modal for:', templateId);
+    setDeletingTemplateId(templateId);
+    setDeleteConfirmModal(true);
+  };
+
+  const confirmDeletePermitTemplate = async () => {
+    if (!deletingTemplateId) return;
+    
+    console.log('🗑️ [DELETE CONFIRMED] Deleting template:', deletingTemplateId);
+    setIsDeleting(true);
+    
     try {
-      console.log('🗑️ [BEFORE ALERT] About to show alert...');
-      Alert.alert(
-        'Delete Template?',
-        'This action cannot be undone.',
-        [
-          { 
-            text: 'Cancel', 
-            onPress: () => {
-              console.log('🗑️ [CANCEL] Delete cancelled');
-            } 
-          },
-          {
-            text: 'Delete',
-            onPress: async () => {
-              try {
-                console.log('🗑️ [DELETE CONFIRMED] Starting delete for template:', templateId);
-                const response = await deletePermitTemplate(templateId);
-                console.log('🗑️ [DELETE] Response received:', response);
-                
-                if (response.success) {
-                  console.log('✅ [DELETE] Success! Reloading templates...');
-                  Alert.alert('Success', response.message || 'Template deleted successfully');
-                  await loadPermitTemplates();
-                } else if (response.error) {
-                  console.log('❌ [DELETE] Error from API:', response.error);
-                  Alert.alert('Error', response.error);
-                } else {
-                  console.log('❌ [DELETE] Unknown response structure:', response);
-                  Alert.alert('Error', 'Failed to delete template');
-                }
-              } catch (error) {
-                console.error('❌ [DELETE] Exception:', error);
-                Alert.alert('Error', 'Failed to delete template: ' + error.message);
-              }
-            },
-            style: 'destructive'
-          }
-        ]
-      );
-      console.log('🗑️ [AFTER ALERT] Alert shown');
+      const response = await deletePermitTemplate(deletingTemplateId);
+      console.log('🗑️ [DELETE] Response received:', response);
+      
+      if (response.success) {
+        console.log('✅ [DELETE] Success! Reloading templates...');
+        Alert.alert('Success', response.message || 'Template deleted successfully');
+        setDeleteConfirmModal(false);
+        setDeletingTemplateId(null);
+        await loadPermitTemplates();
+      } else if (response.error) {
+        console.log('❌ [DELETE] Error from API:', response.error);
+        Alert.alert('Error', response.error);
+      } else {
+        console.log('❌ [DELETE] Unknown response structure:', response);
+        Alert.alert('Error', 'Failed to delete template');
+      }
     } catch (error) {
-      console.error('❌ [HANDLER ERROR] Exception in handler:', error);
-      Alert.alert('Error', 'Error showing delete dialog: ' + error.message);
+      console.error('❌ [DELETE] Exception:', error);
+      Alert.alert('Error', 'Failed to delete template: ' + error.message);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDeletePermitTemplate = () => {
+    console.log('🗑️ [DELETE] Cancel clicked');
+    setDeleteConfirmModal(false);
+    setDeletingTemplateId(null);
   };
 
   // Open permit template editor
@@ -1448,6 +1439,82 @@ export default function ContractorAdminScreen({
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
                     {savingPermitTemplate ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal && (
+        <Modal
+          visible={deleteConfirmModal}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelDeletePermitTemplate}
+        >
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              minWidth: 300,
+              maxWidth: 400
+            }}>
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '700', 
+                color: '#1F2937',
+                marginBottom: 12
+              }}>
+                Delete Template?
+              </Text>
+              <Text style={{ 
+                fontSize: 14, 
+                color: '#6B7280',
+                marginBottom: 20,
+                lineHeight: 20
+              }}>
+                This action cannot be undone. The template will be permanently deleted.
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={cancelDeletePermitTemplate}
+                  disabled={isDeleting}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#EF4444',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={confirmDeletePermitTemplate}
+                  disabled={isDeleting}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                    {isDeleting ? 'Deleting...' : 'Delete'}
                   </Text>
                 </TouchableOpacity>
               </View>
