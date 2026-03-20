@@ -31,6 +31,7 @@ import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSi
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
+import { getCompanyTrainingRecordsStatus, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -2028,6 +2029,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
+        // Load training records statuses for all companies
+        const statuses = {};
+        for (const company of companiesData) {
+          const statusResult = await getCompanyTrainingRecordsStatus(company.id);
+          if (statusResult.success) {
+            statuses[company.id] = statusResult.status;
+          }
+        }
+        setTrainingRecordsStatuses(statuses);
+        
         // Load services from database
         const servicesData = await listAllServices();
         setServicesFromDb(servicesData);
@@ -2166,6 +2177,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
+  const [trainingRecordsStatuses, setTrainingRecordsStatuses] = useState({}); // Stores status for each company ID
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -8116,6 +8128,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     }
   };
 
+  
+  // Helper: Refresh training records status for a company
+  const refreshTrainingRecordsStatus = async (companyId) => {
+    try {
+      const statusResult = await getCompanyTrainingRecordsStatus(companyId);
+      if (statusResult.success) {
+        setTrainingRecordsStatuses(prev => ({
+          ...prev,
+          [companyId]: statusResult.status
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Error refreshing training records status:', error);
+    }
+  };
+
   // Handle approving company accreditation
   const handleApproveCompanyAccreditation = async () => {
     if (!selectedCompanyForAccreditation) return;
@@ -8189,12 +8217,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
+          
+          // Refresh training records status
+          await refreshTrainingRecordsStatus(currentCompany.id);
+          
           setEditingCompany(false);
           Alert.alert('Company Updated', 'Company has been updated successfully.');
         } else {
           const newCompany = await createCompany({ name: currentCompany.name });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
+          
+          // Add training records status for new company
+          await refreshTrainingRecordsStatus(newCompany.id);
+          
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
         setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '' });
@@ -8213,6 +8249,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
             console.log('✅ Company deleted successfully');
             const freshCompanies = await listCompanies();
             setCompanies(freshCompanies);
+            
+            // Refresh training records statuses
+            const statuses = {};
+            for (const company of freshCompanies) {
+              const statusResult = await getCompanyTrainingRecordsStatus(company.id);
+              if (statusResult.success) {
+                statuses[company.id] = statusResult.status;
+              }
+            }
+            setTrainingRecordsStatuses(statuses);
+            
             setEditingCompany(false);
             setSelectedCompany(null);
             window.alert('Success: Company has been deleted.');
@@ -8663,20 +8710,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                               onPress={() => {
                                 setSelectedCompanyForTrainingRecords(company);
                                 setShowTrainingRecordsModal(true);
+                                refreshTrainingRecordsStatus(company.id);
                               }}
                             >
                               <View style={{
                                 paddingHorizontal: 8,
                                 paddingVertical: 4,
                                 borderRadius: 4,
-                                backgroundColor: '#E9D5FF'
+                                backgroundColor: 
+                                  trainingRecordsStatuses[company.id] === 'approved' ? '#D1FAE5' :
+                                  trainingRecordsStatuses[company.id] === 'needs_review' ? '#FEE2E2' :
+                                  trainingRecordsStatuses[company.id] === 'added' ? '#FEF3C7' :
+                                  '#F3F4F6'
                               }}>
                                 <Text style={{
                                   fontSize: 10,
                                   fontWeight: '600',
-                                  color: '#5B21B6'
+                                  color:
+                                    trainingRecordsStatuses[company.id] === 'approved' ? '#065F46' :
+                                    trainingRecordsStatuses[company.id] === 'needs_review' ? '#7F1D1D' :
+                                    trainingRecordsStatuses[company.id] === 'added' ? '#92400E' :
+                                    '#6B7280'
                                 }}>
-                                  View Records
+                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'needs_review' ? '⚠ Needs Review' : trainingRecordsStatuses[company.id] === 'added' ? '📝 Added' : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
