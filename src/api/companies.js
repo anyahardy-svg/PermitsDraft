@@ -189,3 +189,91 @@ export const upsertCompany = async (companyData) => {
     throw error;
   }
 };
+
+// Get company accreditation data
+export const getCompanyAccreditation = async (companyId) => {
+  try {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('id, name, accreditation_submission_data, accreditation_status, accreditation_approved_by, accreditation_approved_at, accreditation_last_updated, accreditation_expiry_date')
+      .eq('id', companyId)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.name,
+      submissionData: data.accreditation_submission_data || {},
+      status: data.accreditation_status || 'not_submitted',
+      approvedBy: data.accreditation_approved_by,
+      approvedAt: data.accreditation_approved_at,
+      lastUpdated: data.accreditation_last_updated,
+      expiryDate: data.accreditation_expiry_date
+    };
+  } catch (error) {
+    console.error('Error fetching company accreditation:', error.message);
+    return null;
+  }
+};
+
+// Approve company accreditation
+export const approveCompanyAccreditation = async (companyId, approvedBy) => {
+  try {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('companies')
+      .update({
+        accreditation_status: 'approved',
+        accreditation_approved_by: approvedBy,
+        accreditation_approved_at: now
+      })
+      .eq('id', companyId)
+      .select();
+
+    if (error) throw error;
+
+    const company = data[0];
+    return {
+      id: company.id,
+      name: company.name,
+      status: company.accreditation_status,
+      approvedBy: company.accreditation_approved_by,
+      approvedAt: company.accreditation_approved_at
+    };
+  } catch (error) {
+    console.error('Error approving company accreditation:', error.message);
+    throw error;
+  }
+};
+
+// Reject company accreditation
+export const rejectCompanyAccreditation = async (companyId, reason) => {
+  try {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('companies')
+      .update({
+        accreditation_status: 'rejected',
+        accreditation_rejection_reason: reason,
+        accreditation_approved_at: now
+      })
+      .eq('id', companyId)
+      .select();
+
+    if (error) throw error;
+
+    const company = data[0];
+    return {
+      id: company.id,
+      name: company.name,
+      status: company.accreditation_status,
+      rejectionReason: company.accreditation_rejection_reason
+    };
+  } catch (error) {
+    console.error('Error rejecting company accreditation:', error.message);
+    throw error;
+  }
+};

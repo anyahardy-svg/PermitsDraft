@@ -23,7 +23,7 @@ import { createPermit, listPermits, updatePermit, deletePermit } from './src/api
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
-import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany } from './src/api/companies';
+import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, getCompanyAccreditation, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
@@ -2156,6 +2156,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
+  const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
+  const [showAccreditationModal, setShowAccreditationModal] = useState(false);
+  const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
+  const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -8093,6 +8097,69 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     fileInput.click();
   };
 
+  // Handle viewing company accreditation
+  const handleViewCompanyAccreditation = async (company) => {
+    try {
+      console.log('🔍 Loading accreditation for:', company.name);
+      const accredData = await getCompanyAccreditation(company.id);
+      setSelectedCompanyForAccreditation(company);
+      setCompanyAccreditationData(accredData);
+      setShowAccreditationModal(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load accreditation: ' + error.message);
+    }
+  };
+
+  // Handle approving company accreditation
+  const handleApproveCompanyAccreditation = async () => {
+    if (!selectedCompanyForAccreditation) return;
+    
+    setApprovingAccreditation(true);
+    try {
+      console.log('✅ Approving accreditation for:', selectedCompanyForAccreditation.name);
+      const result = await approveCompanyAccreditation(selectedCompanyForAccreditation.id, 'admin');
+      
+      Alert.alert('Success', 'Accreditation approved successfully');
+      
+      // Refresh the accreditation data
+      const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
+      setCompanyAccreditationData(updatedAccred);
+      
+      // Refresh companies list
+      const updatedCompanies = await listCompanies();
+      setCompanies(updatedCompanies);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to approve accreditation: ' + error.message);
+    } finally {
+      setApprovingAccreditation(false);
+    }
+  };
+
+  // Handle rejecting company accreditation
+  const handleRejectCompanyAccreditation = async (reason) => {
+    if (!selectedCompanyForAccreditation) return;
+    
+    setApprovingAccreditation(true);
+    try {
+      console.log('❌ Rejecting accreditation for:', selectedCompanyForAccreditation.name);
+      const result = await rejectCompanyAccreditation(selectedCompanyForAccreditation.id, reason || '');
+      
+      Alert.alert('Success', 'Accreditation rejected');
+      
+      // Refresh the accreditation data
+      const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
+      setCompanyAccreditationData(updatedAccred);
+      
+      // Refresh companies list
+      const updatedCompanies = await listCompanies();
+      setCompanies(updatedCompanies);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reject accreditation: ' + error.message);
+    } finally {
+      setApprovingAccreditation(false);
+    }
+  };
+
   // Manage Companies Screen
   const renderManageCompanies = () => {
     const handleAddCompany = async () => {
@@ -8538,6 +8605,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                       </View>
 
@@ -8564,6 +8632,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                             <Text style={{ width: 300, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               {companyBUs}
                             </Text>
+                            <TouchableOpacity 
+                              style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
+                              onPress={() => handleViewCompanyAccreditation(company)}
+                            >
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 4,
+                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'rejected' ? '#FEE2E2' : '#FEF3C7',
+                              }}>
+                                <Text style={{
+                                  fontSize: 10,
+                                  fontWeight: '600',
+                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'rejected' ? '#7F1D1D' : '#92400E'
+                                }}>
+                                  {!company.accreditation_status || company.accreditation_status === 'not_submitted' ? '○ None' : company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : '✕ Rejected'}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
                             <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
@@ -8591,6 +8678,160 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
             )}
           </View>
         </ScrollView>
+
+        {/* Accreditation Modal */}
+        {showAccreditationModal && selectedCompanyForAccreditation && (
+          <Modal
+            visible={showAccreditationModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowAccreditationModal(false)}
+          >
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 20
+            }}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 12,
+                padding: 20,
+                minWidth: 300,
+                maxWidth: 500,
+                maxHeight: '80%'
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <Text style={{fontSize: 18, fontWeight: '700', color: '#1F2937'}}>
+                    {selectedCompanyForAccreditation.name} - Accreditation
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowAccreditationModal(false)}>
+                    <Text style={{ fontSize: 24, color: '#6B7280', fontWeight: '600' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={{ flex: 1, marginBottom: 16 }}>
+                  {companyAccreditationData ? (
+                    <View>
+                      {/* Status Badge */}
+                      <View style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 6,
+                        marginBottom: 12,
+                        backgroundColor: companyAccreditationData.status === 'approved' ? '#D1FAE5' : companyAccreditationData.status === 'rejected' ? '#FEE2E2' : '#FEF3C7'
+                      }}>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: companyAccreditationData.status === 'approved' ? '#065F46' : companyAccreditationData.status === 'rejected' ? '#7F1D1D' : '#92400E'
+                        }}>
+                          Status: {companyAccreditationData.status === 'approved' ? 'Approved' : companyAccreditationData.status === 'rejected' ? 'Rejected' : 'Pending'}
+                        </Text>
+                      </View>
+
+                      {/* Accreditation Details */}
+                      {companyAccreditationData.submissionData && Object.keys(companyAccreditationData.submissionData).length > 0 ? (
+                        <View>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Submitted Data</Text>
+                          {Object.entries(companyAccreditationData.submissionData).map(([key, value]) => (
+                            <View key={key} style={{ marginBottom: 12 }}>
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>
+                                {key.replace(/_/g, ' ').toUpperCase()}
+                              </Text>
+                              <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>
+                          No accreditation data submitted yet
+                        </Text>
+                      )}
+
+                      {companyAccreditationData.lastUpdated && (
+                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12 }}>
+                          Last Updated: {new Date(companyAccreditationData.lastUpdated).toLocaleDateString()}
+                        </Text>
+                      )}
+
+                      {companyAccreditationData.approvedAt && (
+                        <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                          Approved: {new Date(companyAccreditationData.approvedAt).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
+                      Loading accreditation data...
+                    </Text>
+                  )}
+                </ScrollView>
+
+                {/* Action Buttons */}
+                {companyAccreditationData && companyAccreditationData.status !== 'approved' && (
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        backgroundColor: '#EF4444',
+                        borderRadius: 8,
+                        alignItems: 'center'
+                      }}
+                      onPress={() => {
+                        Alert.alert('Reject Accreditation?', 'Are you sure you want to reject this accreditation?', [
+                          { text: 'Cancel' },
+                          {
+                            text: 'Reject',
+                            onPress: () => handleRejectCompanyAccreditation('Rejected by admin'),
+                            style: 'destructive'
+                          }
+                        ]);
+                      }}
+                      disabled={approvingAccreditation}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                        {approvingAccreditation ? 'Processing...' : 'Reject'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        backgroundColor: '#10B981',
+                        borderRadius: 8,
+                        alignItems: 'center'
+                      }}
+                      onPress={handleApproveCompanyAccreditation}
+                      disabled={approvingAccreditation}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                        {approvingAccreditation ? 'Processing...' : 'Approve'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setShowAccreditationModal(false)}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     );
   };
@@ -9465,8 +9706,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
               fontSize: 13,
               fontWeight: '500',
               textAlign: 'center'
-            }}>
-              {importStatus === 'importing' && '⏳ ' }
+            }}>00000000000000000000000000000
+ 0             {importStatus === 'importing' && '⏳ ' }
               {importStatus === 'success' && '✓ ' }
               {importStatus === 'error' && '✕ ' }
               {importMessage}
