@@ -2164,7 +2164,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
   const [rejectionFeedback, setRejectionFeedback] = useState('');
-  const [companiesActiveTab, setCompaniesActiveTab] = useState('companies'); // 'companies' or 'training-records'
+  const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
@@ -8388,62 +8388,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); setCompaniesActiveTab('companies'); }}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{companiesActiveTab === 'companies' ? (editingCompany ? 'Edit Company' : 'Manage Companies') : 'Training Records'}</Text>
-        </View>
-
-        {/* Companies Tab Switcher */}
-        <View style={{
-          flexDirection: 'row',
-          backgroundColor: 'white',
-          borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
-          paddingHorizontal: 16
-        }}>
-          <TouchableOpacity
-            style={{
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              borderBottomWidth: 3,
-              borderBottomColor: companiesActiveTab === 'companies' ? '#3B82F6' : 'transparent'
-            }}
-            onPress={() => {
-              setCompaniesActiveTab('companies');
-              setEditingCompany(false);
-              setSelectedCompany(null);
-              setSelectedCompanyForTrainingRecords(null);
-            }}
-          >
-            <Text style={{
-              fontSize: 14,
-              fontWeight: companiesActiveTab === 'companies' ? '700' : '500',
-              color: companiesActiveTab === 'companies' ? '#3B82F6' : '#6B7280'
-            }}>Companies</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              borderBottomWidth: 3,
-              borderBottomColor: companiesActiveTab === 'training-records' ? '#3B82F6' : 'transparent'
-            }}
-            onPress={() => {
-              setCompaniesActiveTab('training-records');
-              setSelectedCompanyForTrainingRecords(selectedCompany?.id || null);
-            }}
-          >
-            <Text style={{
-              fontSize: 14,
-              fontWeight: companiesActiveTab === 'training-records' ? '700' : '500',
-              color: companiesActiveTab === 'training-records' ? '#3B82F6' : '#6B7280'
-            }}>Training Records</Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
         </View>
         
-        {companiesActiveTab === 'companies' ? (
-          <>
         {/* Import Status Message - COMPANIES (MANAGE COMPANIES SCREEN) */}
         {importStatus !== 'idle' && (
           <View style={{
@@ -8720,11 +8670,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#8B5CF6', borderRadius: 4 }}
                                 onPress={() => {
-                                  setSelectedCompanyForTrainingRecords(company.id);
-                                  setCompaniesActiveTab('training-records');
+                                  setSelectedCompanyForTrainingRecords(company);
+                                  setShowTrainingRecordsModal(true);
                                 }}
                               >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Train</Text>
+                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>View</Text>
                               </TouchableOpacity>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
@@ -8929,13 +8879,48 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
             </View>
           </Modal>
         )}
-          </>
-        ) : (
-          <TrainingRecordsScreen
-            loggedInCompanyId={selectedCompanyForTrainingRecords}
-            styles={styles}
-            onClose={() => setCompaniesActiveTab('companies')}
-          />
+
+        {/* Training Records Modal */}
+        {showTrainingRecordsModal && selectedCompanyForTrainingRecords && (
+          <Modal
+            visible={showTrainingRecordsModal}
+            transparent={false}
+            animationType="slide"
+            onRequestClose={() => setShowTrainingRecordsModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+              {/* Header */}
+              <View style={{
+                backgroundColor: '#8B5CF6',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottomWidth: 1,
+                borderBottomColor: '#7C3AED'
+              }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', marginBottom: 4 }}>
+                    {selectedCompanyForTrainingRecords.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#E9D5FF' }}>
+                    Training Records
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowTrainingRecordsModal(false)} style={{ padding: 8 }}>
+                  <Text style={{ fontSize: 24, color: 'white', fontWeight: '600' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Training Records Screen */}
+              <TrainingRecordsScreen
+                loggedInCompanyId={selectedCompanyForTrainingRecords.id}
+                styles={styles}
+                onClose={() => setShowTrainingRecordsModal(false)}
+              />
+            </View>
+          </Modal>
         )}
       </View>
     );
