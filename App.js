@@ -2178,6 +2178,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
   const [trainingRecordsStatuses, setTrainingRecordsStatuses] = useState({}); // Stores status for each company ID
+  const [approvingTrainingRecords, setApprovingTrainingRecords] = useState(false);
+  const [showTrainingRecordsFeedbackModal, setShowTrainingRecordsFeedbackModal] = useState(false);
+  const [trainingRecordsFeedback, setTrainingRecordsFeedback] = useState('');
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -8144,6 +8147,75 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     }
   };
 
+  // Handle approving all company training records
+  const handleApproveAllTrainingRecords = async () => {
+    if (!selectedCompanyForTrainingRecords) return;
+    
+    setApprovingTrainingRecords(true);
+    try {
+      console.log('✅ Approving all training records for:', selectedCompanyForTrainingRecords.name);
+      const result = await approveAllCompanyTrainingRecords(selectedCompanyForTrainingRecords.id, 'admin');
+      
+      if (result.success) {
+        Alert.alert('Success', result.message || 'Training records approved successfully');
+        
+        // Refresh the status
+        await refreshTrainingRecordsStatus(selectedCompanyForTrainingRecords.id);
+        
+        // Refresh companies list
+        const updatedCompanies = await listCompanies();
+        setCompanies(updatedCompanies);
+      } else {
+        Alert.alert('Info', result.message || 'No pending records to approve');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to approve training records: ' + error.message);
+    } finally {
+      setApprovingTrainingRecords(false);
+    }
+  };
+
+  // Handle requesting changes on training records
+  const handleRequestTrainingRecordsChanges = async (feedback) => {
+    if (!selectedCompanyForTrainingRecords) return;
+    
+    setApprovingTrainingRecords(true);
+    try {
+      console.log('🔄 Requesting changes on training records for:', selectedCompanyForTrainingRecords.name);
+      
+      // Mark records as needing review
+      const { data: records, error: fetchError } = await supabaseClient
+        .from('training_records')
+        .select('id, contractor:contractors(id, company_id)')
+        .eq('contractor.company_id', selectedCompanyForTrainingRecords.id)
+        .eq('status', 'approved');
+
+      // Update company status to needs_review
+      const { error: updateError } = await supabaseClient
+        .from('companies')
+        .update({
+          training_records_status: 'needs_review',
+          training_records_last_modified_at: new Date().toISOString()
+        })
+        .eq('id', selectedCompanyForTrainingRecords.id);
+
+      if (updateError) throw updateError;
+
+      Alert.alert('Success', 'Company marked for training records review. Feedback noted.');
+      
+      // Refresh the status
+      await refreshTrainingRecordsStatus(selectedCompanyForTrainingRecords.id);
+      
+      // Refresh companies list
+      const updatedCompanies = await listCompanies();
+      setCompanies(updatedCompanies);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to request changes: ' + error.message);
+    } finally {
+      setApprovingTrainingRecords(false);
+    }
+  };
+
   // Handle approving company accreditation
   const handleApproveCompanyAccreditation = async () => {
     if (!selectedCompanyForAccreditation) return;
@@ -8975,7 +9047,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     {selectedCompanyForTrainingRecords.name}
                   </Text>
                   <Text style={{ fontSize: 12, color: '#E9D5FF' }}>
-                    Training Records
+                    Training Records - {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? '📝 Pending Review' : '○ None'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowTrainingRecordsModal(false)} style={{ padding: 8 }}>
@@ -8983,12 +9055,155 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 </TouchableOpacity>
               </View>
 
-              {/* Training Records Screen */}
-              <TrainingRecordsScreen
-                loggedInCompanyId={selectedCompanyForTrainingRecords.id}
-                styles={styles}
-                onClose={() => setShowTrainingRecordsModal(false)}
-              />
+              {/* Full Training Records Screen with padding for buttons */}
+              <View style={{ flex: 1, paddingBottom: trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' ? 80 : 0 }}>
+                <TrainingRecordsScreen
+                  loggedInCompanyId={selectedCompanyForTrainingRecords.id}
+                  styles={styles}
+                  onClose={() => setShowTrainingRecordsModal(false)}
+                />
+              </View>
+
+              {/* Admin Action Buttons - Floating */}
+              {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' && (
+                <View style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderTopWidth: 1,
+                  borderTopColor: '#E5E7EB',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  paddingBottom: 16,
+                  flexDirection: 'row',
+                  gap: 10
+                }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#F59E0B',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      setTrainingRecordsFeedback('');
+                      setShowTrainingRecordsFeedbackModal(true);
+                    }}
+                    disabled={approvingTrainingRecords}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingTrainingRecords ? 'Processing...' : 'Request Changes'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#10B981',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={handleApproveAllTrainingRecords}
+                    disabled={approvingTrainingRecords}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingTrainingRecords ? 'Processing...' : 'Approve All'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </Modal>
+        )}
+
+        {/* Training Records Feedback Modal */}
+        {showTrainingRecordsFeedbackModal && (
+          <Modal
+            visible={showTrainingRecordsFeedbackModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowTrainingRecordsFeedbackModal(false)}
+          >
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 20
+            }}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 12,
+                padding: 20,
+                minWidth: 300,
+                maxWidth: 500,
+                maxHeight: '80%'
+              }}>
+                <Text style={{fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12}}>
+                  Request Training Records Review
+                </Text>
+                <Text style={{fontSize: 13, color: '#6B7280', marginBottom: 16}}>
+                  Provide feedback on what needs to be updated or reviewed.
+                </Text>
+
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    padding: 12,
+                    marginBottom: 16,
+                    fontSize: 13,
+                    color: '#1F2937',
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                    fontFamily: 'Courier'
+                  }}
+                  placeholder="Enter review notes here... (e.g., Missing certifications, Expired documents, etc.)"
+                  placeholderTextColor="#9CA3AF"
+                  value={trainingRecordsFeedback}
+                  onChangeText={setTrainingRecordsFeedback}
+                  multiline
+                  editable={!approvingTrainingRecords}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#E5E7EB',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => setShowTrainingRecordsFeedbackModal(false)}
+                    disabled={approvingTrainingRecords}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      backgroundColor: '#F59E0B',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      setShowTrainingRecordsFeedbackModal(false);
+                      handleRequestTrainingRecordsChanges(trainingRecordsFeedback || 'Training records need review');
+                    }}
+                    disabled={approvingTrainingRecords}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingTrainingRecords ? 'Processing...' : 'Send for Review'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </Modal>
         )}
