@@ -35,7 +35,6 @@ export default function ContractorAdminScreen({
   const [loggedInContractor, setLoggedInContractor] = useState(null);
   const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
   const [loggedInCompanyName, setLoggedInCompanyName] = useState(null);
-  const [previousTab, setPreviousTab] = useState(null);
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -73,6 +72,7 @@ export default function ContractorAdminScreen({
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [logoutConfirmModal, setLogoutConfirmModal] = useState(false);
 
   // Permit template editing states
   const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
@@ -121,26 +121,31 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
-    setPreviousTab(null);
   };
 
-  // Track tab history for back button
-  useEffect(() => {
-    if (activeTab !== null) {
-      setPreviousTab(activeTab);
-    }
-  }, [activeTab]);
-
-  // Handle back button - go to previous tab or exit Contractor Admin
+  // Handle back button - go to dashboard or exit with logout warning
   const handleContractorAdminBack = () => {
-    if (previousTab !== null) {
-      // Go back to previous tab
-      setActiveTab(previousTab);
-      setPreviousTab(null);
+    if (activeTab !== null) {
+      // From a tab - go back to dashboard
+      console.log('← [BACK] Navigating to Contractor Admin dashboard');
+      setActiveTab(null);
     } else {
-      // Exit Contractor Admin
-      onNavigateBack();
+      // From dashboard - show logout confirmation
+      console.log('← [BACK] From dashboard - showing logout warning');
+      setLogoutConfirmModal(true);
     }
+  };
+
+  const confirmLogout = () => {
+    console.log('← [BACK] Confirmed logout, exiting Contractor Admin...');
+    setLogoutConfirmModal(false);
+    handleLogout();
+    onNavigateBack();
+  };
+
+  const cancelLogout = () => {
+    console.log('← [BACK] Logout cancelled');
+    setLogoutConfirmModal(false);
   };
 
   // Load business units
@@ -1543,6 +1548,80 @@ export default function ContractorAdminScreen({
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
                     {isDeleting ? 'Deleting...' : 'Delete'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {logoutConfirmModal && (
+        <Modal
+          visible={logoutConfirmModal}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelLogout}
+        >
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 20,
+              minWidth: 300,
+              maxWidth: 400
+            }}>
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '700', 
+                color: '#1F2937',
+                marginBottom: 12
+              }}>
+                Exit Contractor Admin?
+              </Text>
+              <Text style={{ 
+                fontSize: 14, 
+                color: '#6B7280',
+                marginBottom: 20,
+                lineHeight: 20
+              }}>
+                You will be logged out. Are you sure you want to exit?
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={cancelLogout}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: '#EF4444',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={confirmLogout}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                    Log Out
                   </Text>
                 </TouchableOpacity>
               </View>
