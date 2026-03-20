@@ -73,6 +73,13 @@ export default function ContractorAdminScreen({
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Permit template editing states
+  const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
+  const [showPermitTemplateEditor, setShowPermitTemplateEditor] = useState(false);
+  const [editedTemplateName, setEditedTemplateName] = useState('');
+  const [editedTemplateDescription, setEditedTemplateDescription] = useState('');
+  const [savingPermitTemplate, setSavingPermitTemplate] = useState(false);
+
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
 
