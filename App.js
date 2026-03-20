@@ -8612,7 +8612,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
-                        <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
+                        <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
+                        <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                       </View>
 
                       {/* Table Rows */}
@@ -8657,7 +8658,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                                 </Text>
                               </View>
                             </TouchableOpacity>
-                            <View style={{ width: 140, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
+                            <TouchableOpacity
+                              style={{ width: 150, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
+                              onPress={() => {
+                                setSelectedCompanyForTrainingRecords(company);
+                                setShowTrainingRecordsModal(true);
+                              }}
+                            >
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 4,
+                                backgroundColor: '#E9D5FF'
+                              }}>
+                                <Text style={{
+                                  fontSize: 10,
+                                  fontWeight: '600',
+                                  color: '#5B21B6'
+                                }}>
+                                  View Records
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                            <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
                                 onPress={() => {
@@ -8666,15 +8689,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                                 }}
                               >
                                 <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity 
-                                style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#8B5CF6', borderRadius: 4 }}
-                                onPress={() => {
-                                  setSelectedCompanyForTrainingRecords(company);
-                                  setShowTrainingRecordsModal(true);
-                                }}
-                              >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>View</Text>
                               </TouchableOpacity>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
