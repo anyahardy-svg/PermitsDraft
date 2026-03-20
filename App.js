@@ -8720,14 +8720,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                         paddingVertical: 8,
                         borderRadius: 6,
                         marginBottom: 12,
-                        backgroundColor: companyAccreditationData.status === 'approved' ? '#D1FAE5' : companyAccreditationData.status === 'rejected' ? '#FEE2E2' : '#FEF3C7'
+                        backgroundColor: companyAccreditationData.status === 'approved' ? '#D1FAE5' : companyAccreditationData.status === 'rejected' ? '#FEE2E2' : companyAccreditationData.status === 'pending' ? '#FEF3C7' : '#F3F4F6'
                       }}>
                         <Text style={{
                           fontSize: 12,
                           fontWeight: '600',
-                          color: companyAccreditationData.status === 'approved' ? '#065F46' : companyAccreditationData.status === 'rejected' ? '#7F1D1D' : '#92400E'
+                          color: companyAccreditationData.status === 'approved' ? '#065F46' : companyAccreditationData.status === 'rejected' ? '#7F1D1D' : companyAccreditationData.status === 'pending' ? '#92400E' : '#6B7280'
                         }}>
-                          Status: {companyAccreditationData.status === 'approved' ? 'Approved' : companyAccreditationData.status === 'rejected' ? 'Rejected' : 'Pending'}
+                          Status: {companyAccreditationData.status === 'approved' ? '✓ Approved' : companyAccreditationData.status === 'rejected' ? '✕ Rejected' : companyAccreditationData.status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
                         </Text>
                       </View>
 
@@ -8741,28 +8741,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                                 {key.replace(/_/g, ' ').toUpperCase()}
                               </Text>
                               <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value) || '(empty)'}
                               </Text>
                             </View>
                           ))}
                         </View>
                       ) : (
-                        <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 16 }}>
                           No accreditation data submitted yet
                         </Text>
                       )}
 
-                      {companyAccreditationData.lastUpdated && (
-                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12 }}>
-                          Last Updated: {new Date(companyAccreditationData.lastUpdated).toLocaleDateString()}
-                        </Text>
-                      )}
+                      {/* Timestamps */}
+                      <View style={{ marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        {companyAccreditationData.createdAt && (
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
+                            Created: {new Date(companyAccreditationData.createdAt).toLocaleDateString()}
+                          </Text>
+                        )}
+                        
+                        {companyAccreditationData.updatedAt && (
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
+                            Updated: {new Date(companyAccreditationData.updatedAt).toLocaleDateString()}
+                          </Text>
+                        )}
 
-                      {companyAccreditationData.approvedAt && (
-                        <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
-                          Approved: {new Date(companyAccreditationData.approvedAt).toLocaleDateString()}
-                        </Text>
-                      )}
+                        {companyAccreditationData.approvedAt && (
+                          <Text style={{ fontSize: 11, color: '#065F46', fontWeight: '600' }}>
+                            Approved: {new Date(companyAccreditationData.approvedAt).toLocaleDateString()}
+                          </Text>
+                        )}
+
+                        {companyAccreditationData.rejectedAt && (
+                          <Text style={{ fontSize: 11, color: '#7F1D1D', fontWeight: '600' }}>
+                            Rejected: {new Date(companyAccreditationData.rejectedAt).toLocaleDateString()}
+                          </Text>
+                        )}
+                      </View>
                     </View>
                   ) : (
                     <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
