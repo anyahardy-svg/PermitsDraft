@@ -148,6 +148,54 @@
     {
       "source": "/admin/business-units/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/jsea-templates",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/jsea-templates/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/permit-templates",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/permit-templates/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/accreditation",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/accreditation/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/inductions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/inductions/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/training-records",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/training-records/",
+      "destination": "/index.html"
     }
   ],
   "headers": [
