@@ -150,13 +150,15 @@ export async function getTrainingRecordsByCompany(companyId) {
         *,
         contractor:contractors(id, name, company_id)
       `)
-      .eq('contractor.company_id', companyId)
       .order('uploaded_at', { ascending: false });
 
     if (error) throw error;
 
-    console.log(`✅ Fetched ${data.length} training records for company`);
-    return { success: true, data };
+    // Filter by company ID client-side (nested filter not supported in Supabase)
+    const filteredData = data.filter(record => record.contractor?.company_id === companyId);
+
+    console.log(`✅ Fetched ${filteredData.length} training records for company`);
+    return { success: true, data: filteredData };
   } catch (error) {
     console.error('❌ Get company training records error:', error);
     return { success: false, error: error.message };
