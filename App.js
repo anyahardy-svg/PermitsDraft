@@ -8147,7 +8147,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
       console.log('❌ Rejecting accreditation for:', selectedCompanyForAccreditation.name);
       const result = await rejectCompanyAccreditation(selectedCompanyForAccreditation.id, reason || '');
       
-      Alert.alert('Success', 'Accreditation rejected');
+      Alert.alert('Success', 'Accreditation marked as needing revision');
       
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
@@ -8643,14 +8643,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                                 paddingHorizontal: 8,
                                 paddingVertical: 4,
                                 borderRadius: 4,
-                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'rejected' ? '#FEE2E2' : '#FEF3C7',
+                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : '#FEF3C7',
                               }}>
                                 <Text style={{
                                   fontSize: 10,
                                   fontWeight: '600',
-                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'rejected' ? '#7F1D1D' : '#92400E'
+                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : '#92400E'
                                 }}>
-                                  {!company.accreditation_status || company.accreditation_status === 'not_submitted' ? '○ None' : company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : '✕ Rejected'}
+                                  {!company.accreditation_status || company.accreditation_status === 'not_submitted' ? '○ None' : company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : '⚠ Needs Revision'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -8707,7 +8707,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     {selectedCompanyForAccreditation.name}
                   </Text>
                   <Text style={{ fontSize: 12, color: '#DBEAFE' }}>
-                    Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'rejected' ? '✕ Rejected' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
+                    Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowAccreditationModal(false)} style={{ padding: 8 }}>
@@ -8725,7 +8725,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
               </View>
 
               {/* Admin Action Buttons - Floating */}
-              {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && (
+              {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && companyAccreditationData.accreditation_status !== 'needs_revision' && (
                 <View style={{
                   position: 'absolute',
                   bottom: 0,
@@ -8744,7 +8744,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     style={{
                       flex: 1,
                       paddingVertical: 12,
-                      backgroundColor: '#EF4444',
+                      backgroundColor: '#F59E0B',
                       borderRadius: 8,
                       alignItems: 'center'
                     }}
@@ -8755,7 +8755,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     disabled={approvingAccreditation}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      {approvingAccreditation ? 'Processing...' : 'Reject'}
+                      {approvingAccreditation ? 'Processing...' : 'Request Changes'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -8779,7 +8779,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
           </Modal>
         )}
 
-        {/* Rejection Feedback Modal */}
+        {/* Revision Feedback Modal */}
         {showRejectionFeedbackModal && (
           <Modal
             visible={showRejectionFeedbackModal}
@@ -8803,10 +8803,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 maxHeight: '80%'
               }}>
                 <Text style={{fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12}}>
-                  Rejection Feedback
+                  Revision Feedback
                 </Text>
                 <Text style={{fontSize: 13, color: '#6B7280', marginBottom: 16}}>
-                  Provide feedback to explain why you're rejecting this accreditation. This will be visible to the company.
+                  Provide feedback on what needs to be revised. This will be visible to the company.
                 </Text>
 
                 <TextInput
@@ -8822,7 +8822,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     textAlignVertical: 'top',
                     fontFamily: 'Courier'
                   }}
-                  placeholder="Enter feedback here... (e.g., Missing certifications, Incomplete documentation, etc.)"
+                  placeholder="Enter revision notes here... (e.g., Missing certifications, Incomplete documentation, etc.)"
                   placeholderTextColor="#9CA3AF"
                   value={rejectionFeedback}
                   onChangeText={setRejectionFeedback}
@@ -8854,12 +8854,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     }}
                     onPress={() => {
                       setShowRejectionFeedbackModal(false);
-                      handleRejectCompanyAccreditation(rejectionFeedback || 'Accreditation rejected by admin');
+                      handleRejectCompanyAccreditation(rejectionFeedback || 'Changes requested by admin');
                     }}
                     disabled={approvingAccreditation}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      {approvingAccreditation ? 'Processing...' : 'Confirm Rejection'}
+                      {approvingAccreditation ? 'Processing...' : 'Send for Revision'}
                     </Text>
                   </TouchableOpacity>
                 </View>
