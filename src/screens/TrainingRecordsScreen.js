@@ -19,6 +19,7 @@ import {
   uploadTrainingRecord,
   getTrainingRecordsByCompany,
   deleteTrainingRecord,
+  updateCompanyTrainingRecordsStatus,
 } from '../api/trainingRecords';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { listAllServices } from '../api/services';
@@ -27,6 +28,7 @@ export default function TrainingRecordsScreen({
   loggedInCompanyId,
   styles,
   onClose,
+  onStatusChanged,  // Callback when training records status changes
 }) {
   // Table state
   const [trainingRecords, setTrainingRecords] = useState([]);
@@ -160,6 +162,14 @@ export default function TrainingRecordsScreen({
         resetForm();
         setShowAddForm(false);
         await loadAllData();
+        
+        // Update company training records status
+        await updateCompanyTrainingRecordsStatus(loggedInCompanyId);
+        
+        // Notify parent component of status change
+        if (onStatusChanged) {
+          onStatusChanged(loggedInCompanyId);
+        }
       } else {
         Alert.alert('Error', response.error);
       }
@@ -183,6 +193,14 @@ export default function TrainingRecordsScreen({
       if (response.success) {
         Alert.alert('Success', 'Training record deleted');
         await loadAllData();
+        
+        // Update company training records status
+        await updateCompanyTrainingRecordsStatus(loggedInCompanyId);
+        
+        // Notify parent component of status change
+        if (onStatusChanged) {
+          onStatusChanged(loggedInCompanyId);
+        }
       } else {
         Alert.alert('Error', response.error);
       }

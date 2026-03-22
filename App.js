@@ -9061,6 +9061,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                   loggedInCompanyId={selectedCompanyForTrainingRecords.id}
                   styles={styles}
                   onClose={() => setShowTrainingRecordsModal(false)}
+                  onStatusChanged={refreshTrainingRecordsStatus}
                 />
               </View>
 
