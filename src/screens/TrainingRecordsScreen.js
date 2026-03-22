@@ -20,6 +20,7 @@ import {
   getTrainingRecordsByCompany,
   deleteTrainingRecord,
   updateTrainingRecord,
+  approveTrainingRecord,
   updateCompanyTrainingRecordsStatus,
 } from '../api/trainingRecords';
 import { getContractorInductionsForCompany } from '../api/inductions';
@@ -35,6 +36,7 @@ export default function TrainingRecordsScreen({
   const [trainingRecords, setTrainingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [approvingRecordId, setApprovingRecordId] = useState(null); // Track which record is being approved
 
   // Update form state
   const [editingRecordId, setEditingRecordId] = useState(null);
@@ -272,6 +274,36 @@ export default function TrainingRecordsScreen({
     }
   };
 
+  const handleApproveRecord = async (recordId) => {
+    setApprovingRecordId(recordId);
+    try {
+      const response = await approveTrainingRecord(
+        recordId,
+        'Admin',  // Could be personalized later
+        ''
+      );
+
+      if (response.success) {
+        Alert.alert('Success', 'Training record approved');
+        await loadAllData();
+        
+        // Update company training records status
+        await updateCompanyTrainingRecordsStatus(loggedInCompanyId);
+        
+        // Notify parent component of status change
+        if (onStatusChanged) {
+          onStatusChanged(loggedInCompanyId);
+        }
+      } else {
+        Alert.alert('Error', response.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setApprovingRecordId(null);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
@@ -321,7 +353,7 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1100,
+                  minWidth: 1200,
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
@@ -329,7 +361,7 @@ export default function TrainingRecordsScreen({
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 160, paddingRight: 8 }}>Actions</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 240, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -343,7 +375,7 @@ export default function TrainingRecordsScreen({
                     borderBottomColor: '#E5E7EB',
                     paddingVertical: 10,
                     paddingHorizontal: 8,
-                    minWidth: 1100,
+                    minWidth: 1200,
                   }}
                 >
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -366,7 +398,18 @@ export default function TrainingRecordsScreen({
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 80, paddingRight: 8 }}>
                     {record.status?.charAt(0).toUpperCase() + record.status?.slice(1) || 'Pending'}
                   </Text>
-                  <View style={{ width: 160, paddingRight: 8, flexDirection: 'row', gap: 8 }}>
+                  <View style={{ width: 240, paddingRight: 8, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {record.status === 'pending' && (
+                      <TouchableOpacity
+                        onPress={() => handleApproveRecord(record.id)}
+                        disabled={approvingRecordId === record.id}
+                        style={{ paddingVertical: 4, paddingHorizontal: 8, backgroundColor: approvingRecordId === record.id ? '#D1D5DB' : '#10B981', borderRadius: 4 }}
+                      >
+                        <Text style={{ fontSize: 10, color: 'white', fontWeight: '600' }}>
+                          {approvingRecordId === record.id ? '...' : '✓ Approve'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                       onPress={() => {
                         setEditingRecordId(record.id);

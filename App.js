@@ -18256,6 +18256,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
       return (
         <ContractorAdminScreen
           onNavigateBack={() => setCurrentScreen('dashboard')}
+          onReturnToKiosk={() => setCurrentScreen('kiosk')}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}

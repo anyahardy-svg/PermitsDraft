@@ -23,7 +23,8 @@ import TrainingRecordsScreen from './TrainingRecordsScreen';
 import ContractorAuthScreen from './ContractorAuthScreen';
 
 export default function ContractorAdminScreen({ 
-  onNavigateBack, 
+  onNavigateBack,
+  onReturnToKiosk,
   businessUnitId, 
   styles,
   businessUnits = [],
@@ -73,6 +74,7 @@ export default function ContractorAdminScreen({
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [logoutConfirmModal, setLogoutConfirmModal] = useState(false);
+  const [logoutDestination, setLogoutDestination] = useState(null); // 'kiosk' or 'dashboard'
 
   // Permit template editing states
   const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
@@ -136,11 +138,16 @@ export default function ContractorAdminScreen({
     }
   };
 
-  const confirmLogout = () => {
-    console.log('← [BACK] Confirmed logout, exiting Contractor Admin...');
+  const confirmLogout = (destination) => {
+    console.log('← [BACK] Confirmed logout, returning to:', destination);
     setLogoutConfirmModal(false);
     handleLogout();
-    onNavigateBack();
+    
+    if (destination === 'kiosk' && onReturnToKiosk) {
+      onReturnToKiosk();
+    } else {
+      onNavigateBack();
+    }
   };
 
   const cancelLogout = () => {
@@ -1595,10 +1602,9 @@ export default function ContractorAdminScreen({
                 You will be logged out. Are you sure you want to exit?
               </Text>
 
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: 'column', gap: 10 }}>
                 <TouchableOpacity
                   style={{
-                    flex: 1,
                     paddingVertical: 12,
                     backgroundColor: '#E5E7EB',
                     borderRadius: 8,
@@ -1610,18 +1616,32 @@ export default function ContractorAdminScreen({
                     Cancel
                   </Text>
                 </TouchableOpacity>
+                {onReturnToKiosk && (
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: 12,
+                      backgroundColor: '#3B82F6',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => confirmLogout('kiosk')}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      Back to Kiosk
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={{
-                    flex: 1,
                     paddingVertical: 12,
                     backgroundColor: '#EF4444',
                     borderRadius: 8,
                     alignItems: 'center'
                   }}
-                  onPress={confirmLogout}
+                  onPress={() => confirmLogout('dashboard')}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                    Log Out
+                    Back to Admin
                   </Text>
                 </TouchableOpacity>
               </View>
