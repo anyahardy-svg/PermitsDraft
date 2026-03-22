@@ -19,6 +19,7 @@ import {
   uploadTrainingRecord,
   getTrainingRecordsByCompany,
   deleteTrainingRecord,
+  updateTrainingRecord,
   updateCompanyTrainingRecordsStatus,
 } from '../api/trainingRecords';
 import { getContractorInductionsForCompany } from '../api/inductions';
@@ -34,6 +35,11 @@ export default function TrainingRecordsScreen({
   const [trainingRecords, setTrainingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Update form state
+  const [editingRecordId, setEditingRecordId] = useState(null);
+  const [updateSelectedFile, setUpdateSelectedFile] = useState(null);
+  const [updateExpiryDate, setUpdateExpiryDate] = useState('');
 
   // Form state
   const [inductedContractors, setInductedContractors] = useState([]);
@@ -211,6 +217,61 @@ export default function TrainingRecordsScreen({
     }
   };
 
+  const handleSelectUpdateFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf, image/*';
+
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setUpdateSelectedFile(file);
+      }
+    };
+
+    input.click();
+  };
+
+  const handleUpdateRecord = async () => {
+    // Validate: at least one field must be updated
+    if (!updateSelectedFile && !updateExpiryDate.trim()) {
+      Alert.alert('Validation', 'Please select a new file or update the expiry date');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const expiryDateParam = updateExpiryDate ? new Date(parseNZDate(updateExpiryDate)) : null;
+      const response = await updateTrainingRecord(
+        editingRecordId,
+        updateSelectedFile,
+        expiryDateParam
+      );
+
+      if (response.success) {
+        Alert.alert('Success', 'Training record updated');
+        setEditingRecordId(null);
+        setUpdateSelectedFile(null);
+        setUpdateExpiryDate('');
+        await loadAllData();
+        
+        // Update company training records status
+        await updateCompanyTrainingRecordsStatus(loggedInCompanyId);
+        
+        // Notify parent component of status change
+        if (onStatusChanged) {
+          onStatusChanged(loggedInCompanyId);
+        }
+      } else {
+        Alert.alert('Error', response.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header */}
@@ -260,7 +321,7 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1000,
+                  minWidth: 1100,
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
@@ -268,7 +329,7 @@ export default function TrainingRecordsScreen({
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Action</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 160, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -282,7 +343,7 @@ export default function TrainingRecordsScreen({
                     borderBottomColor: '#E5E7EB',
                     paddingVertical: 10,
                     paddingHorizontal: 8,
-                    minWidth: 1000,
+                    minWidth: 1100,
                   }}
                 >
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -305,12 +366,24 @@ export default function TrainingRecordsScreen({
                   <Text style={{ fontSize: 11, color: '#1F2937', width: 80, paddingRight: 8 }}>
                     {record.status?.charAt(0).toUpperCase() + record.status?.slice(1) || 'Pending'}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteRecord(record.id, record.file_name)}
-                    style={{ width: 80, paddingRight: 8 }}
-                  >
-                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
-                  </TouchableOpacity>
+                  <View style={{ width: 160, paddingRight: 8, flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditingRecordId(record.id);
+                        setUpdateSelectedFile(null);
+                        setUpdateExpiryDate('');
+                      }}
+                      style={{ paddingVertical: 4, paddingHorizontal: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}
+                    >
+                      <Text style={{ fontSize: 10, color: '#6366F1', fontWeight: '600' }}>Update</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteRecord(record.id, record.file_name)}
+                      style={{ paddingVertical: 4, paddingHorizontal: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}
+                    >
+                      <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </View>
@@ -533,6 +606,118 @@ export default function TrainingRecordsScreen({
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>Add Record</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Update Training Record Modal */}
+      <Modal
+        visible={editingRecordId !== null}
+        animationType="slide"
+        onRequestClose={() => {
+          setEditingRecordId(null);
+          setUpdateSelectedFile(null);
+          setUpdateExpiryDate('');
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          {/* Modal Header */}
+          <View style={{ backgroundColor: 'white', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingTop: 20 }}>
+            <TouchableOpacity onPress={() => {
+              setEditingRecordId(null);
+              setUpdateSelectedFile(null);
+              setUpdateExpiryDate('');
+            }}>
+              <Text style={{ fontSize: 24, color: '#6366F1', fontWeight: '600' }}>←</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12 }}>Update Training Record</Text>
+          </View>
+
+          {/* Form */}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+              Upload a new certificate to replace the expired one. The record status will be reset to pending and require re-approval.
+            </Text>
+
+            {/* New Expiry Date */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>New Expiry Date (Optional)</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                }}
+                placeholder="dd/mm/yyyy"
+                value={updateExpiryDate}
+                onChangeText={setUpdateExpiryDate}
+              />
+            </View>
+
+            {/* New File Attachment */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>New Certificate (Optional)</Text>
+              <TouchableOpacity
+                style={{
+                  borderWidth: 2,
+                  borderColor: updateSelectedFile ? '#10B981' : '#D1D5DB',
+                  borderStyle: 'dashed',
+                  borderRadius: 6,
+                  paddingVertical: 20,
+                  paddingHorizontal: 12,
+                  alignItems: 'center',
+                  backgroundColor: updateSelectedFile ? '#F0FDF4' : 'white',
+                }}
+                onPress={handleSelectUpdateFile}
+              >
+                <Text style={{ fontSize: 12, color: updateSelectedFile ? '#10B981' : '#6B7280', marginBottom: 4 }}>
+                  {updateSelectedFile ? '✓ ' + updateSelectedFile.name : '📎 Tap to attach new file'}
+                </Text>
+                <Text style={{ fontSize: 11, color: '#9CA3AF' }}>PDF and image files only</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Buttons */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingRecordId(null);
+                  setUpdateSelectedFile(null);
+                  setUpdateExpiryDate('');
+                }}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  paddingVertical: 12,
+                  borderRadius: 6,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleUpdateRecord}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  backgroundColor: loading ? '#D1D5DB' : '#6366F1',
+                  paddingVertical: 12,
+                  borderRadius: 6,
+                  alignItems: 'center',
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>Update Record</Text>
                 )}
               </TouchableOpacity>
             </View>

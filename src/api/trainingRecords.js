@@ -241,12 +241,8 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
 }
 
 /**
- * Calculate and get the overall training records status for a company
- * Status is calculated based on individual training records:
- * - 'none': No training records exist
- * - 'added': Records uploaded but not yet all approved
- * - 'approved': All training records are approved
- * - 'needs_review': New records added after previous approval
+ * Get the training records status for a company
+ * Reads status from company table (which is updated by updateCompanyTrainingRecordsStatus)
  * @param {UUID} companyId - Company ID
  * @returns {Object} Status and related metadata
  */
@@ -254,62 +250,24 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
   try {
     console.log('📊 Getting training records status for company:', companyId);
 
-    // Get all training records for the company
-    const recordsResult = await getTrainingRecordsByCompany(companyId);
-    if (!recordsResult.success) {
-      throw new Error(recordsResult.error);
-    }
-
-    // Get company data to check current status timestamps
+    // Get company data with status fields
     const { data: company, error: companyError } = await supabase
       .from('companies')
-      .select('training_records_status, training_records_approved_at, training_records_submitted_at')
+      .select('training_records_status, training_records_submitted_at, training_records_approved_at, training_records_approved_by')
       .eq('id', companyId)
       .single();
 
     if (companyError) throw companyError;
 
-    const records = recordsResult.data || [];
+    const status = company?.training_records_status || 'none';
 
-    // If no records, status is 'none'
-    if (records.length === 0) {
-      return {
-        success: true,
-        status: 'none',
-        recordCount: 0,
-        approvedCount: 0,
-        pendingCount: 0
-      };
-    }
-
-    // Count approved and pending records
-    const approvedCount = records.filter(r => r.status === 'approved').length;
-    const pendingCount = records.filter(r => r.status === 'pending').length;
-
-    let status = 'added'; // Default: has records but not all approved
-
-    // If all records are approved
-    if (pendingCount === 0 && approvedCount > 0) {
-      status = 'approved';
-    }
-    // If previously approved but new records added (needs review again)
-    else if (company?.training_records_approved_at && company?.training_records_last_modified_at) {
-      const approvedDate = new Date(company.training_records_approved_at);
-      const modifiedDate = new Date(company.training_records_last_modified_at);
-      if (modifiedDate > approvedDate) {
-        status = 'needs_review';
-      }
-    }
-
-    console.log(`✅ Training records status: ${status} (${approvedCount}/${records.length} approved)`);
+    console.log(`✅ Training records status: ${status}`);
     return {
       success: true,
       status,
-      recordCount: records.length,
-      approvedCount,
-      pendingCount,
       submittedAt: company?.training_records_submitted_at,
-      approvedAt: company?.training_records_approved_at
+      approvedAt: company?.training_records_approved_at,
+      approvedBy: company?.training_records_approved_by
     };
   } catch (error) {
     console.error('❌ Get training records status error:', error);
@@ -384,6 +342,121 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
     };
   } catch (error) {
     console.error('❌ Approve all training records error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update an existing training record with new file and/or expiry date
+ * Deletes old file and uploads new one
+ * @param {UUID} recordId - Training record ID
+ * @param {File} file - New file to upload (optional)
+ * @param {Date} expiryDate - New expiry date (optional)
+ * @returns {Object} Update result
+ */
+export async function updateTrainingRecord(recordId, file = null, expiryDate = null) {
+  try {
+    console.log('🔄 Updating training record:', recordId);
+
+    // Get current record to get contractor ID and old file URL
+    const { data: record, error: fetchError } = await supabase
+      .from('training_records')
+      .select('*')
+      .eq('id', recordId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    let updateData = {};
+    let newFileUrl = record.file_url;
+    let newFileName = record.file_name;
+    let newFileSize = record.file_size;
+    let newFileType = record.file_type;
+
+    // If new file provided, upload it
+    if (file) {
+      console.log('📤 Uploading new file for training record');
+
+      // Validate file type
+      if (!isValidFileType(file)) {
+        throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
+      }
+
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        throw new Error('File size exceeds 5MB limit');
+      }
+
+      // Generate unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${record.contractor_id}/${Date.now()}.${fileExt}`;
+
+      // Upload new file to storage
+      console.log('📁 Uploading to storage:', fileName);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('training-records')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL for new file
+      const { data: { publicUrl } } = supabase.storage
+        .from('training-records')
+        .getPublicUrl(fileName);
+
+      // Delete old file from storage if exists
+      if (record.file_url) {
+        try {
+          const oldFilePath = record.file_url.split('/training-records/')[1];
+          if (oldFilePath) {
+            console.log('🗑️ Deleting old file from storage:', oldFilePath);
+            await supabase.storage
+              .from('training-records')
+              .remove([oldFilePath]);
+          }
+        } catch (storageError) {
+          console.warn('⚠️ Warning deleting old file from storage:', storageError);
+          // Continue even if old file deletion fails
+        }
+      }
+
+      // Update file fields
+      updateData.file_url = publicUrl;
+      updateData.file_name = file.name;
+      updateData.file_size = file.size;
+      updateData.file_type = file.type || 'application/pdf';
+
+      // Reset status to pending since new file uploaded
+      updateData.status = 'pending';
+      updateData.approved_at = null;
+      updateData.approved_by_name = null;
+      updateData.approved_by_business_unit = null;
+    }
+
+    // Update expiry date if provided
+    if (expiryDate) {
+      updateData.expiry_date = expiryDate;
+    }
+
+    // Update record in database
+    console.log('💾 Updating training record in database');
+    const { data: updatedRecord, error: updateError } = await supabase
+      .from('training_records')
+      .update(updateData)
+      .eq('id', recordId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    console.log('✅ Training record updated:', recordId);
+    return { success: true, data: updatedRecord, message: 'Training record updated' };
+  } catch (error) {
+    console.error('❌ Update training record error:', error);
     return { success: false, error: error.message };
   }
 }
