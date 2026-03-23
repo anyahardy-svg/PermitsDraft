@@ -2029,8 +2029,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
-        // Initialize empty training records statuses - will be loaded on demand
+        // Initialize empty training records statuses
         setTrainingRecordsStatuses({});
+        
+        // Load training records statuses in background (non-blocking)
+        // This runs asynchronously after UI renders
+        setTimeout(() => {
+          (async () => {
+            try {
+              const statusPromises = companiesData.map(company =>
+                updateCompanyTrainingRecordsStatus(company.id)
+                  .then(result => ({
+                    companyId: company.id,
+                    status: result.success ? result.status : 'none'
+                  }))
+                  .catch(() => ({
+                    companyId: company.id,
+                    status: 'none'
+                  }))
+              );
+              
+              const statusResults = await Promise.all(statusPromises);
+              
+              // Update all statuses at once
+              const statuses = {};
+              statusResults.forEach(({ companyId, status }) => {
+                statuses[companyId] = status;
+              });
+              setTrainingRecordsStatuses(statuses);
+              console.log('✅ All training records statuses loaded');
+            } catch (error) {
+              console.error('❌ Error loading training records statuses:', error);
+            }
+          })();
+        }, 500); // Small delay to ensure UI is rendered first
         
         // Load services from database
         const servicesData = await listAllServices();
