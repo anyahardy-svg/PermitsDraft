@@ -98,6 +98,15 @@ export default function ContractorAdminScreen({
     setIsLoggedIn(true);
     setSelectedCompanyId(contractorInfo.companyId);
     
+    // Update URL to include contractor info for persistence
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const tabPart = activeTab ? `${activeTab}/` : '';
+      const newUrl = `/contractor-admin/${tabPart}?contractorId=${contractorInfo.contractorId}&companyId=${contractorInfo.companyId}`;
+      console.log('🔗 Updating URL to:', newUrl);
+      window.history.replaceState({}, '', newUrl);
+    }
+    
     // Fetch company name for filtering templates
     try {
       const { data: company, error } = await supabase
@@ -123,7 +132,77 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
+    
+    // Clear contractor info from URL
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/contractor-admin/');
+      console.log('🔗 Cleared contractor info from URL');
+    }
   };
+
+  // Restore login from URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isLoggedIn) {
+      const params = new URLSearchParams(window.location.search);
+      const contractorId = params.get('contractorId');
+      const companyId = params.get('companyId');
+      
+      if (contractorId && companyId) {
+        console.log('🔍 Restoring contractor login from URL:', { contractorId, companyId });
+        // We have contractor info in URL but need contractor name
+        // For now, we'll set the logged in state with what we have
+        setLoggedInCompanyId(companyId);
+        setSelectedCompanyId(companyId);
+        
+        // Fetch contractor name and company name
+        const restoreLogin = async () => {
+          try {
+            // Get contractor name
+            const { data: contractor, error: contractorError } = await supabase
+              .from('contractors')
+              .select('name')
+              .eq('id', contractorId)
+              .single();
+            
+            if (!contractorError && contractor) {
+              setLoggedInContractor(contractor.name);
+              console.log('✅ Restored contractor name:', contractor.name);
+            }
+            
+            // Get company name
+            const { data: company, error: companyError } = await supabase
+              .from('companies')
+              .select('name')
+              .eq('id', companyId)
+              .single();
+            
+            if (!companyError && company) {
+              setLoggedInCompanyName(company.name);
+              console.log('✅ Restored company name:', company.name);
+            }
+            
+            setIsLoggedIn(true);
+            console.log('✅ Login restored from URL');
+          } catch (error) {
+            console.error('Error restoring login:', error);
+          }
+        };
+        
+        restoreLogin();
+      }
+    }
+  }, []); // Only run on mount
+
+  // Update URL when activeTab or login state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isLoggedIn && loggedInCompanyId) {
+      const tabPart = activeTab ? `${activeTab}/` : '';
+      const newUrl = `/contractor-admin/${tabPart}?contractorId=&companyId=${loggedInCompanyId}`;
+      if (window.location.pathname !== `/contractor-admin/${tabPart}`) {
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [activeTab, isLoggedIn, loggedInCompanyId]);
 
   // Handle back button - go to dashboard or exit with logout warning
   const handleContractorAdminBack = () => {
