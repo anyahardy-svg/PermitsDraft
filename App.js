@@ -2032,7 +2032,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         // Load training records statuses for all companies
         const statuses = {};
         for (const company of companiesData) {
-          const statusResult = await getCompanyTrainingRecordsStatus(company.id);
+          const statusResult = await updateCompanyTrainingRecordsStatus(company.id);
           if (statusResult.success) {
             statuses[company.id] = statusResult.status;
           }
@@ -8135,11 +8135,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   // Helper: Refresh training records status for a company
   const refreshTrainingRecordsStatus = async (companyId) => {
     try {
-      const statusResult = await getCompanyTrainingRecordsStatus(companyId);
-      if (statusResult.success) {
+      // Call updateCompanyTrainingRecordsStatus to recalculate and save the status
+      const updateResult = await updateCompanyTrainingRecordsStatus(companyId);
+      if (updateResult.success) {
+        // Update the UI state with the calculated status
         setTrainingRecordsStatuses(prev => ({
           ...prev,
-          [companyId]: statusResult.status
+          [companyId]: updateResult.status
         }));
       }
     } catch (error) {
