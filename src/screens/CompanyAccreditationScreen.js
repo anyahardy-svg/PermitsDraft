@@ -1534,6 +1534,9 @@ export default function CompanyAccreditationScreen({
         title: 'Accident, Incident & Investigation Management',
         state: section4,
         setState: setSection4,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'accident_reporting', question: 'An accident/incident reporting and recording system?' },
           { key: 'accident_investigation', question: 'An accident/investigation process?' }
@@ -1550,6 +1553,9 @@ export default function CompanyAccreditationScreen({
         title: 'Health Hazard Management',
         state: section5,
         setState: setSection5,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'health_hazard_plan', question: 'A Health Hazard Management Plan?' },
           { key: 'exposure_monitoring', question: 'A plan to conduct exposure monitoring?', hasFrequency: true },
@@ -1569,6 +1575,9 @@ export default function CompanyAccreditationScreen({
         title: 'Induction & Training',
         state: section6,
         setState: setSection6,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'induction_programme', question: 'An induction programme?' },
           { key: 'induction_records_process', question: 'A documented induction records management process?' },
@@ -1587,6 +1596,9 @@ export default function CompanyAccreditationScreen({
         title: 'Hazard Identification & Management',
         state: section7,
         setState: setSection7,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'hazard_identification_process', question: 'A process to identify, report and control hazards in the workplace?' },
           { key: 'jha_jsea_system', question: 'A Job Hazard Analysis (JHA), Job Safety & Environmental Analysis (JSEA) system or equivalent?' },
@@ -1605,7 +1617,8 @@ export default function CompanyAccreditationScreen({
         state: section8,
         setState: setSection8,
         isConditional: true,
-        conditionalKey: 'ppe_compliance',
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?', type: 'yes_no' },
           { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
@@ -1625,7 +1638,8 @@ export default function CompanyAccreditationScreen({
         state: section9,
         setState: setSection9,
         isConditional: true,
-        conditionalKey: 'plant_equipment_onsite',
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?', type: 'yes_no' },
           { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
@@ -1645,7 +1659,8 @@ export default function CompanyAccreditationScreen({
         state: section10,
         setState: setSection10,
         isConditional: true,
-        conditionalKey: 'electrical_equipment_onsite',
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'electrical_equipment_onsite', question: 'Will you be bringing any electrical equipment on site?', type: 'yes_no' },
           { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
@@ -1666,7 +1681,8 @@ export default function CompanyAccreditationScreen({
         state: section11,
         setState: setSection11,
         isConditional: true,
-        conditionalKey: 'emergency_first_aid',
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?', type: 'scoring' },
           { key: 'emergency_first_aid', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
@@ -1683,6 +1699,9 @@ export default function CompanyAccreditationScreen({
         title: 'Site Specific Safety Plans',
         state: section12,
         setState: setSection12,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'site_safety_plans', question: 'Does your organisation have site-specific safety plans for all work undertaken at our locations?' },
           { key: 'site_induction_process', question: 'Do you have a documented site induction process for staff and contractors working at our locations?' }
@@ -1699,6 +1718,9 @@ export default function CompanyAccreditationScreen({
         title: 'Contractor Management',
         state: section13,
         setState: setSection13,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'contractor_induction', question: 'Do you ensure all contractors working on your behalf receive appropriate induction and training before starting work?' },
           { key: 'contractor_compliance', question: 'Do you monitor and ensure contractors comply with your health and safety requirements?' }
@@ -1715,6 +1737,9 @@ export default function CompanyAccreditationScreen({
         title: 'Health & Wellbeing',
         state: section14,
         setState: setSection14,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'health_wellbeing_program', question: 'Does your organisation have a health and wellbeing program for workers?' },
           { key: 'fatigue_management', question: 'Do you have procedures for managing worker fatigue and ensuring adequate rest periods?' }
@@ -1731,6 +1756,9 @@ export default function CompanyAccreditationScreen({
         title: 'Competency & Qualifications',
         state: section15,
         setState: setSection15,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'competency_framework', question: 'Does your organisation have a documented competency framework for all roles?' },
           { key: 'training_records', question: 'Do you maintain comprehensive training and competency records for all workers?' }
@@ -1747,6 +1775,9 @@ export default function CompanyAccreditationScreen({
         title: 'Communication & Reporting',
         state: section16,
         setState: setSection16,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'safety_communication', question: 'Does your organisation have consistent and effective safety communication systems with workers?' },
           { key: 'near_miss_reporting', question: 'Do you have a system for reporting and investigating near-miss incidents?' }
@@ -1763,6 +1794,9 @@ export default function CompanyAccreditationScreen({
         title: 'Performance & Review',
         state: section17,
         setState: setSection17,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'performance_monitoring', question: 'Does your organisation regularly monitor safety performance and key performance indicators?' },
           { key: 'regular_audits', question: 'Do you conduct regular safety audits and inspections of your operations?' }
@@ -1779,6 +1813,9 @@ export default function CompanyAccreditationScreen({
         title: 'Injury Management',
         state: section18,
         setState: setSection18,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'injury_management', question: 'Do you have an injury management procedure and system in place?' },
           { key: 'early_intervention', question: 'Do you have an Early Intervention programme for Pain and Discomfort in place?' }
@@ -1795,6 +1832,9 @@ export default function CompanyAccreditationScreen({
         title: 'Continuous Improvement',
         state: section19,
         setState: setSection19,
+        isConditional: true,
+        conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
+        conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'safety_objectives', question: 'Does your organisation have documented safety objectives and targets?' },
           { key: 'management_review', question: 'Does management regularly review and update health and safety policies and procedures?' }
@@ -1878,10 +1918,19 @@ export default function CompanyAccreditationScreen({
       if (section.alwaysShow) return null;
       
       // Handle conditional sections based on accreditation systems
-      if (section.isConditional && section.conditionalKey) {
-        const isSystemChecked = accreditedSystems[section.conditionalKey]?.checked || false;
-        const shouldShow = section.conditionalShowWhen ? isSystemChecked : !isSystemChecked;
-        if (!shouldShow) return null;
+      if (section.isConditional) {
+        // Handle sections with multiple conditional keys (4-19)
+        if (section.conditionalKeys && section.conditionalKeys.length > 0) {
+          const anySystemChecked = section.conditionalKeys.some(key => accreditedSystems[key]?.checked || false);
+          const shouldShow = section.conditionalShowWhen ? anySystemChecked : !anySystemChecked;
+          if (!shouldShow) return null;
+        } 
+        // Handle sections with single conditional key (21, 22)
+        else if (section.conditionalKey) {
+          const isSystemChecked = accreditedSystems[section.conditionalKey]?.checked || false;
+          const shouldShow = section.conditionalShowWhen ? isSystemChecked : !isSystemChecked;
+          if (!shouldShow) return null;
+        }
       }
       
       return (

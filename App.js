@@ -2034,11 +2034,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         
         // Load training records statuses in background (non-blocking)
         // This runs asynchronously after UI renders
+        // NOTE: Just READ the statuses from populated counters, don't recalculate
         setTimeout(() => {
           (async () => {
             try {
               const statusPromises = companiesData.map(company =>
-                updateCompanyTrainingRecordsStatus(company.id)
+                getCompanyTrainingRecordsStatus(company.id)
                   .then(result => ({
                     companyId: company.id,
                     status: result.success ? result.status : 'none'
@@ -2487,13 +2488,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     'Other'
   ];
 
-  // Check if permit needs daily verification (>5 minutes since last verification - FOR TESTING ONLY)
+  // Check if permit needs daily verification (>24 hours since last verification)
   const needsVerification = (permit) => {
     if (!permit.last_verified_at) return true; // Never verified
     const lastVerified = new Date(permit.last_verified_at);
     const now = new Date();
     const minutesSinceVerification = (now - lastVerified) / (1000 * 60);
-    return minutesSinceVerification > 5; // 5 minutes for testing, change to 1440 (24 hours) for production
+    return minutesSinceVerification > 1440; // 1440 minutes = 24 hours
   };
 
   // Handle permit verification - update last_verified_at and verified_by
@@ -8158,15 +8159,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
 
   
   // Helper: Refresh training records status for a company
+  // Just reads the current counter values from database (counters are updated by API functions)
   const refreshTrainingRecordsStatus = async (companyId) => {
     try {
-      // Call updateCompanyTrainingRecordsStatus to recalculate and save the status
-      const updateResult = await updateCompanyTrainingRecordsStatus(companyId);
-      if (updateResult.success) {
-        // Update the UI state with the calculated status
+      // Call getCompanyTrainingRecordsStatus to read the current status from counters
+      const result = await getCompanyTrainingRecordsStatus(companyId);
+      if (result.success) {
+        // Update the UI state with the current status
         setTrainingRecordsStatuses(prev => ({
           ...prev,
-          [companyId]: updateResult.status
+          [companyId]: result.status
         }));
       }
     } catch (error) {
@@ -15975,7 +15977,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 ⚠️ Daily Verification Required
               </Text>
               <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
-                This permit has not been verified in the last 5 minutes. Verify it's still safe to proceed with inspection.
+                This permit has not been verified in the last 24 hours. Verify it's still safe to proceed with inspection.
               </Text>
               {permit.last_verified_at && (
                 <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
