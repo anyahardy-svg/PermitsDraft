@@ -681,7 +681,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -2200,6 +2200,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
+  const [selectedCompanyAccreditationId, setSelectedCompanyAccreditationId] = useState(null);
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
@@ -2306,6 +2307,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
     }
   }, [initialAdminRoute]);
 
+  // Handle initialCompanyAccreditationId - open accreditation modal for company
+  useEffect(() => {
+    const openAccreditationFromUrl = async () => {
+      if (initialCompanyAccreditationId && companies.length > 0) {
+        const company = companies.find(c => c.id === initialCompanyAccreditationId);
+        if (company) {
+          try {
+            console.log('🔍 Loading accreditation for:', company.name);
+            const accredData = await getCompanyAccreditation(company.id);
+            setSelectedCompanyForAccreditation(company);
+            setCompanyAccreditationData(accredData);
+            setSelectedCompanyAccreditationId(company.id);
+            setShowAccreditationModal(true);
+          } catch (error) {
+            console.error('Error loading accreditation:', error);
+          }
+        }
+      }
+    };
+    
+    openAccreditationFromUrl();
+  }, [initialCompanyAccreditationId, companies]);
+
   // Update URL when currentScreen changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -2338,11 +2362,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         newUrl = tabMap[contractorAdminTab] || '/contractor-admin/';
       }
       
+      // Add company accreditation to URL if showing modal
+      if (currentScreen === 'manage_companies' && showAccreditationModal && selectedCompanyAccreditationId) {
+        newUrl = `/admin/companies/${selectedCompanyAccreditationId}/accreditation/`;
+      }
+      
       if (window.location.pathname !== newUrl) {
         window.history.pushState({}, '', newUrl);
       }
     }
-  }, [currentScreen, contractorAdminTab]);
+  }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId]);
 
   // Listen to browser back button
   useEffect(() => {
@@ -2385,6 +2414,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         // Check for specific admin routes
         if (pathname.startsWith('/admin/')) {
           const route = pathname.slice(7); // Remove '/admin/' prefix
+          
+          // Check for company accreditation route
+          if (route.startsWith('companies/')) {
+            const parts = route.split('/');
+            if (parts.length >= 3 && parts[2] === 'accreditation') {
+              const companyId = parts[1];
+              setCurrentScreen('manage_companies');
+              setSelectedCompanyAccreditationId(companyId);
+              setShowAccreditationModal(true);
+              return;
+            }
+          }
+          
           const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
           
           const routeMap = {
@@ -8151,6 +8193,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
       const accredData = await getCompanyAccreditation(company.id);
       setSelectedCompanyForAccreditation(company);
       setCompanyAccreditationData(accredData);
+      setSelectedCompanyAccreditationId(company.id);
       setShowAccreditationModal(true);
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation: ' + error.message);
@@ -8871,7 +8914,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
             visible={showAccreditationModal}
             transparent={false}
             animationType="slide"
-            onRequestClose={() => setShowAccreditationModal(false)}
+            onRequestClose={() => {
+              setShowAccreditationModal(false);
+              setSelectedCompanyAccreditationId(null);
+            }}
           >
             <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
               {/* Header */}
@@ -8893,7 +8939,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                     Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowAccreditationModal(false)} style={{ padding: 8 }}>
+                <TouchableOpacity onPress={() => {
+                  setShowAccreditationModal(false);
+                  setSelectedCompanyAccreditationId(null);
+                }} style={{ padding: 8 }}>
                   <Text style={{ fontSize: 24, color: 'white', fontWeight: '600' }}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -8903,7 +8952,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
                 <CompanyAccreditationScreen 
                   companyId={selectedCompanyForAccreditation.id}
                   styles={styles}
-                  onClose={() => setShowAccreditationModal(false)}
+                  onClose={() => {
+                    setShowAccreditationModal(false);
+                    setSelectedCompanyAccreditationId(null);
+                  }}
                 />
               </View>
 
@@ -18984,6 +19036,17 @@ const AppRouter = ({ initialRoute }) => {
       // Check for specific admin routes
       if (pathname.startsWith('/admin/')) {
         const route = pathname.slice(7); // Remove '/admin/' prefix
+        
+        // Check for company accreditation route first (before stripping trailing slash)
+        if (route.startsWith('companies/')) {
+          const parts = route.split('/')
+            .filter(p => p); // Remove empty strings
+          if (parts.length >= 3 && parts[0] === 'companies' && parts[2] === 'accreditation') {
+            // Return manage_companies as the route; the company ID will be in window.location.pathname
+            return 'manage_companies';
+          }
+        }
+        
         const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
         
         // Map URL routes to internal screen names
@@ -19005,6 +19068,21 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  // Extract company accreditation ID from URL if present
+  const getInitialCompanyAccreditationId = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/admin/companies/')) {
+        const parts = pathname.slice(7).split('/')
+          .filter(p => p); // Remove empty strings
+        if (parts.length >= 3 && parts[0] === 'companies' && parts[2] === 'accreditation') {
+          return parts[1];
+        }
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
@@ -19012,6 +19090,7 @@ const AppRouter = ({ initialRoute }) => {
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
   const [initialAdminRoute, setInitialAdminRoute] = React.useState(getInitialAdminRoute()); // Force to specific admin route
+  const [initialCompanyAccreditationId, setInitialCompanyAccreditationId] = React.useState(getInitialCompanyAccreditationId()); // Company ID for accreditation modal
 
   React.useEffect(() => {
     try {
@@ -19069,7 +19148,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
