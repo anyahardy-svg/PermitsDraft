@@ -19150,21 +19150,31 @@ const AppRouter = ({ initialRoute }) => {
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         const fullUrl = window.location.href;
+        const pathname = window.location.pathname;
         
         console.log('🌐 Hostname detected:', hostname);
         console.log('🔗 Full URL:', fullUrl);
         
-        // Check if subdomain contains "-kiosk" OR if test mode is enabled
-        const isKioskSubdomain = hostname.includes('-kiosk.');
+        // If URL contains admin or contractor-admin routes, always use permit management mode
+        const hasAdminRoute = pathname.includes('/admin/') || pathname.includes('/contractor-admin/');
+        console.log('📋 Has admin route:', hasAdminRoute);
         
-        // Check for ?mode=kiosk parameter in URL
-        const testMode = fullUrl.includes('mode=kiosk');
-        
-        const isKioskMode = isKioskSubdomain || testMode;
-        
-        console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}`);
-        
-        setIsKiosk(isKioskMode);
+        if (hasAdminRoute) {
+          console.log('🎯 Admin route detected - using PERMIT MODE');
+          setIsKiosk(false);
+        } else {
+          // Check if subdomain contains "-kiosk" OR if test mode is enabled
+          const isKioskSubdomain = hostname.includes('-kiosk.');
+          
+          // Check for ?mode=kiosk parameter in URL
+          const testMode = fullUrl.includes('mode=kiosk');
+          
+          const isKioskMode = isKioskSubdomain || testMode;
+          
+          console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}`);
+          
+          setIsKiosk(isKioskMode);
+        }
       }
     } catch (error) {
       console.log('Environment detection (not critical):', error);
