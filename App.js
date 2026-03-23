@@ -2303,6 +2303,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handle initialAdminRoute changes
   useEffect(() => {
     if (initialAdminRoute) {
+      console.log('📺 Setting currentScreen to:', initialAdminRoute);
       setCurrentScreen(initialAdminRoute);
     }
   }, [initialAdminRoute]);
@@ -2333,7 +2334,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handle initialContractorAdminTab - restore contractor admin tab on page load
   useEffect(() => {
     if (initialContractorAdminTab !== undefined && initialContractorAdminTab !== null) {
+      console.log('🎛️ Setting contractorAdminTab to:', initialContractorAdminTab);
       setContractorAdminTab(initialContractorAdminTab);
+    } else {
+      console.log('ℹ️ Skipping contractorAdminTab - value is:', initialContractorAdminTab);
     }
   }, [initialContractorAdminTab]);
 
@@ -19034,9 +19038,11 @@ const AppRouter = ({ initialRoute }) => {
   const getInitialAdminRoute = () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      console.log('🔍 getInitialAdminRoute reading pathname:', pathname);
       
       // Check for contractor admin routes first
       if (pathname.startsWith('/contractor-admin')) {
+        console.log('✅ Detected contractor admin route');
         return 'contractor_admin';
       }
       
@@ -19084,9 +19090,11 @@ const AppRouter = ({ initialRoute }) => {
   const getInitialContractorAdminTab = () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      console.log('🔍 getInitialContractorAdminTab reading pathname:', pathname);
       if (pathname.startsWith('/contractor-admin')) {
         const route = pathname.slice(17); // Remove '/contractor-admin' prefix
         const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+        console.log('📍 Route after slice:', route, 'Without slash:', routeWithoutTrailingSlash);
         
         const tabMap = {
           '/jsea-templates': 'jsea',
@@ -19130,9 +19138,11 @@ const AppRouter = ({ initialRoute }) => {
   const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
-  const [initialAdminRoute, setInitialAdminRoute] = React.useState(getInitialAdminRoute()); // Force to specific admin route
-  const [initialCompanyAccreditationId, setInitialCompanyAccreditationId] = React.useState(getInitialCompanyAccreditationId()); // Company ID for accreditation modal
-  const [initialContractorAdminTab, setInitialContractorAdminTab] = React.useState(getInitialContractorAdminTab()); // Contractor admin tab
+  const initialAdminRoute = getInitialAdminRoute();
+  const initialCompanyAccreditationId = getInitialCompanyAccreditationId();
+  const initialContractorAdminTab = getInitialContractorAdminTab();
+  
+  console.log('🎯 Initial routes detected:', { initialAdminRoute, initialContractorAdminTab, initialCompanyAccreditationId });
 
   React.useEffect(() => {
     try {
