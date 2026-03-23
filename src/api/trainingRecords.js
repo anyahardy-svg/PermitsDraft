@@ -17,6 +17,40 @@ const ALLOWED_FILE_TYPES = [
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
 /**
+ * Update company training records counters
+ * Called whenever a record is added, deleted, or approved
+ * @param {UUID} companyId - Company ID
+ * @returns {Object} Update result
+ */
+async function updateCompanyTrainingRecordsCounters(companyId) {
+  try {
+    // Get all training records for the company
+    const recordsResult = await getTrainingRecordsByCompany(companyId);
+    const records = recordsResult.data || [];
+
+    const total = records.length;
+    const approved = records.filter(r => r.status === 'approved').length;
+
+    // Update counters in company table
+    const { error } = await supabase
+      .from('companies')
+      .update({
+        training_records_total: total,
+        training_records_approved: approved
+      })
+      .eq('id', companyId);
+
+    if (error) throw error;
+
+    console.log(`✅ Updated counters for company: total=${total}, approved=${approved}`);
+    return { success: true, total, approved };
+  } catch (error) {
+    console.error('❌ Error updating counters:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Validate file type
  * @param {File} file - File to validate
  * @returns {boolean} Valid or not
@@ -103,6 +137,18 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
     }
 
     console.log('✅ Training record created:', record.id);
+    
+    // Update company counters
+    const { data: contractor } = await supabase
+      .from('contractors')
+      .select('company_id')
+      .eq('id', contractorId)
+      .single();
+    
+    if (contractor?.company_id) {
+      await updateCompanyTrainingRecordsCounters(contractor.company_id);
+    }
+    
     return { success: true, data: record, message: `Training record uploaded for ${trainingType}` };
   } catch (error) {
     console.error('❌ Upload training record error:', error);
@@ -175,6 +221,13 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
   try {
     console.log('🗑️ Deleting training record:', recordId);
 
+    // Get the record to find contractor ID before deleting
+    const { data: record } = await supabase
+      .from('training_records')
+      .select('contractor_id')
+      .eq('id', recordId)
+      .single();
+
     // Extract file path from URL and delete from storage
     if (fileUrl) {
       try {
@@ -200,6 +253,20 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
     if (error) throw error;
 
     console.log('✅ Training record deleted');
+    
+    // Update company counters
+    if (record?.contractor_id) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('company_id')
+        .eq('id', record.contractor_id)
+        .single();
+      
+      if (contractor?.company_id) {
+        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      }
+    }
+    
     return { success: true, message: 'Training record deleted' };
   } catch (error) {
     console.error('❌ Delete training record error:', error);
@@ -218,6 +285,13 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
   try {
     console.log('✅ Approving training record:', recordId);
 
+    // Get the record to find contractor ID
+    const { data: recordData } = await supabase
+      .from('training_records')
+      .select('contractor_id')
+      .eq('id', recordId)
+      .single();
+
     const { data, error } = await supabase
       .from('training_records')
       .update({
@@ -233,6 +307,20 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
     if (error) throw error;
 
     console.log('✅ Training record approved');
+    
+    // Update company counters
+    if (recordData?.contractor_id) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('company_id')
+        .eq('id', recordData.contractor_id)
+        .single();
+      
+      if (contractor?.company_id) {
+        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      }
+    }
+    
     return { success: true, data };
   } catch (error) {
     console.error('❌ Approve training record error:', error);
@@ -242,7 +330,8 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
 
 /**
  * Get the training records status for a company
- * Reads status from company table (which is updated by updateCompanyTrainingRecordsStatus)
+ * Reads from counters in company table and calculates status
+ * Much faster than fetching and filtering all records!
  * @param {UUID} companyId - Company ID
  * @returns {Object} Status and related metadata
  */
@@ -250,24 +339,35 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
   try {
     console.log('📊 Getting training records status for company:', companyId);
 
-    // Get company data with status fields
+    // Get company data with counter fields
     const { data: company, error: companyError } = await supabase
       .from('companies')
-      .select('training_records_status, training_records_submitted_at, training_records_approved_at, training_records_approved_by')
+      .select('training_records_total, training_records_approved')
       .eq('id', companyId)
       .single();
 
     if (companyError) throw companyError;
 
-    const status = company?.training_records_status || 'none';
+    const total = company?.training_records_total || 0;
+    const approved = company?.training_records_approved || 0;
 
-    console.log(`✅ Training records status: ${status}`);
+    // Calculate status from counters
+    let status = 'none';
+    if (total > 0) {
+      if (approved === total) {
+        status = 'approved';
+      } else {
+        status = 'added';
+      }
+    }
+
+    console.log(`✅ Training records status: ${status} (${approved}/${total} approved)`);
     return {
       success: true,
       status,
-      submittedAt: company?.training_records_submitted_at,
-      approvedAt: company?.training_records_approved_at,
-      approvedBy: company?.training_records_approved_by
+      total,
+      approved,
+      pending: total - approved
     };
   } catch (error) {
     console.error('❌ Get training records status error:', error);
@@ -454,6 +554,20 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
     if (updateError) throw updateError;
 
     console.log('✅ Training record updated:', recordId);
+    
+    // Update company counters (status might have changed)
+    if (record?.contractor_id) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('company_id')
+        .eq('id', record.contractor_id)
+        .single();
+      
+      if (contractor?.company_id) {
+        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      }
+    }
+    
     return { success: true, data: updatedRecord, message: 'Training record updated' };
   } catch (error) {
     console.error('❌ Update training record error:', error);
@@ -472,71 +586,22 @@ export async function updateCompanyTrainingRecordsStatus(companyId) {
   try {
     console.log('🔄 Updating training records status for company:', companyId);
 
-    // Get all training records for the company to calculate status
-    const recordsResult = await getTrainingRecordsByCompany(companyId);
-    if (!recordsResult.success) {
-      throw new Error(recordsResult.error);
+    // Update counters (this recalculates from actual records)
+    const counterResult = await updateCompanyTrainingRecordsCounters(companyId);
+    if (!counterResult.success) {
+      throw new Error(counterResult.error);
     }
 
-    const records = recordsResult.data || [];
+    const { total, approved } = counterResult;
 
-    // Calculate status based on actual records
-    let status = 'none'; // Default: no records
-
-    if (records.length > 0) {
-      const approvedCount = records.filter(r => r.status === 'approved').length;
-      const pendingCount = records.filter(r => r.status === 'pending').length;
-
-      // If all records are approved
-      if (pendingCount === 0 && approvedCount > 0) {
-        status = 'approved';
-      } else {
-        // Has records but not all approved
-        status = 'added';
-      }
+    // Calculate status from counters
+    let status = 'none';
+    if (total > 0) {
+      status = approved === total ? 'approved' : 'added';
     }
 
-    console.log(`📊 Calculated status from ${records.length} records: ${status}`);
-
-    // Build update data
-    let updateData = { training_records_status: status };
-
-    // Set submitted timestamp if records just added (none → added)
-    if (records.length > 0 && status === 'added') {
-      const { data: company } = await supabase
-        .from('companies')
-        .select('training_records_submitted_at')
-        .eq('id', companyId)
-        .single();
-
-      if (!company?.training_records_submitted_at) {
-        updateData.training_records_submitted_at = new Date().toISOString();
-      }
-    }
-
-    // Mark when records were last modified (if not all approved)
-    const pendingCount = records.filter(r => r.status === 'pending').length;
-    if (pendingCount > 0) {
-      updateData.training_records_last_modified_at = new Date().toISOString();
-    }
-
-    // Clear submitted/approved dates if no records
-    if (records.length === 0) {
-      updateData.training_records_submitted_at = null;
-      updateData.training_records_approved_at = null;
-      updateData.training_records_approved_by = null;
-    }
-
-    // Update company record
-    const { error } = await supabase
-      .from('companies')
-      .update(updateData)
-      .eq('id', companyId);
-
-    if (error) throw error;
-
-    console.log(`✅ Training records status updated: ${status}`);
-    return { success: true, status };
+    console.log(`✅ Training records status updated: ${status} (${approved}/${total})`);
+    return { success: true, status, total, approved, pending: total - approved };
   } catch (error) {
     console.error('❌ Update training records status error:', error);
     return { success: false, error: error.message };
