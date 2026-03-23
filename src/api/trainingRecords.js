@@ -464,7 +464,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
 /**
  * Update the company-level training records status
  * Called whenever records are added or deleted
- * Recalculates status based on current records
+ * Calculates status based on actual training records, then saves to database
  * @param {UUID} companyId - Company ID
  * @returns {Object} Update result
  */
@@ -472,18 +472,37 @@ export async function updateCompanyTrainingRecordsStatus(companyId) {
   try {
     console.log('🔄 Updating training records status for company:', companyId);
 
-    // Get current status
-    const statusResult = await getCompanyTrainingRecordsStatus(companyId);
-    if (!statusResult.success) {
-      throw new Error(statusResult.error);
+    // Get all training records for the company to calculate status
+    const recordsResult = await getTrainingRecordsByCompany(companyId);
+    if (!recordsResult.success) {
+      throw new Error(recordsResult.error);
     }
 
-    const { status, recordCount, pendingCount } = statusResult;
+    const records = recordsResult.data || [];
 
-    // Set submitted timestamp if records just added (none → added)
+    // Calculate status based on actual records
+    let status = 'none'; // Default: no records
+
+    if (records.length > 0) {
+      const approvedCount = records.filter(r => r.status === 'approved').length;
+      const pendingCount = records.filter(r => r.status === 'pending').length;
+
+      // If all records are approved
+      if (pendingCount === 0 && approvedCount > 0) {
+        status = 'approved';
+      } else {
+        // Has records but not all approved
+        status = 'added';
+      }
+    }
+
+    console.log(`📊 Calculated status from ${records.length} records: ${status}`);
+
+    // Build update data
     let updateData = { training_records_status: status };
 
-    if (recordCount > 0 && status === 'added') {
+    // Set submitted timestamp if records just added (none → added)
+    if (records.length > 0 && status === 'added') {
       const { data: company } = await supabase
         .from('companies')
         .select('training_records_submitted_at')
@@ -495,9 +514,17 @@ export async function updateCompanyTrainingRecordsStatus(companyId) {
       }
     }
 
-    // Mark when records were last modified (if not approved)
+    // Mark when records were last modified (if not all approved)
+    const pendingCount = records.filter(r => r.status === 'pending').length;
     if (pendingCount > 0) {
       updateData.training_records_last_modified_at = new Date().toISOString();
+    }
+
+    // Clear submitted/approved dates if no records
+    if (records.length === 0) {
+      updateData.training_records_submitted_at = null;
+      updateData.training_records_approved_at = null;
+      updateData.training_records_approved_by = null;
     }
 
     // Update company record
