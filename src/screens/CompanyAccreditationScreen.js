@@ -2219,10 +2219,10 @@ export default function CompanyAccreditationScreen({
             {/* Incident Form - Simplified */}
             <View style={{ gap: 16 }}>
               {/* Fatalities */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Fatalities, if yes, state how many:</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Fatalities, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.fatalities}
@@ -2234,10 +2234,10 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Serious Harm */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Serious Harm Incidents, if yes, state how many:</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Serious Harm Incidents, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.serious_harm}
@@ -2249,10 +2249,10 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Lost Time Injuries */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Lost Time Injuries, if yes, state how many:</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Lost Time Injuries, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.lost_time}
@@ -2264,10 +2264,10 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Property Damage */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.property_damage}
@@ -2279,9 +2279,9 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Pending Prosecutions */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
-                <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
                       ...prev,
@@ -2296,7 +2296,7 @@ export default function CompanyAccreditationScreen({
                       borderWidth: 2,
                       borderColor: section20.incidents_breaches?.pending_prosecutions === 'yes' ? '#0284C7' : '#D1D5DB',
                       backgroundColor: section20.incidents_breaches?.pending_prosecutions === 'yes' ? '#0284C7' : 'white',
-                      marginRight: 8,
+                      marginRight: 4,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
@@ -2320,7 +2320,7 @@ export default function CompanyAccreditationScreen({
                       borderWidth: 2,
                       borderColor: section20.incidents_breaches?.pending_prosecutions === 'no' ? '#0284C7' : '#D1D5DB',
                       backgroundColor: section20.incidents_breaches?.pending_prosecutions === 'no' ? '#0284C7' : 'white',
-                      marginRight: 8,
+                      marginRight: 4,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
@@ -2334,10 +2334,10 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Past 5 Years Prosecutions */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.prosecutions_5_years}
@@ -2349,9 +2349,9 @@ export default function CompanyAccreditationScreen({
               </View>
 
               {/* Environmental Enforcement Notices - adding this question from the image */}
-              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Had any infringement, abatement or enforcement notices served on it by an environmental regulator or authority?</Text>
-                <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Had any infringement, abatement or enforcement notices served on it by an environmental regulator or authority?</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
                       ...prev,
@@ -2366,7 +2366,7 @@ export default function CompanyAccreditationScreen({
                       borderWidth: 2,
                       borderColor: section20.incidents_breaches?.environmental_notices === 'yes' ? '#0284C7' : '#D1D5DB',
                       backgroundColor: section20.incidents_breaches?.environmental_notices === 'yes' ? '#0284C7' : 'white',
-                      marginRight: 8,
+                      marginRight: 4,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
@@ -2390,7 +2390,7 @@ export default function CompanyAccreditationScreen({
                       borderWidth: 2,
                       borderColor: section20.incidents_breaches?.environmental_notices === 'no' ? '#0284C7' : '#D1D5DB',
                       backgroundColor: section20.incidents_breaches?.environmental_notices === 'no' ? '#0284C7' : 'white',
-                      marginRight: 8,
+                      marginRight: 4,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
