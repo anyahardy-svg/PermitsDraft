@@ -2029,15 +2029,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute }
         const companiesData = await listCompanies();
         setCompanies(companiesData);
         
-        // Load training records statuses for all companies
-        const statuses = {};
-        for (const company of companiesData) {
-          const statusResult = await updateCompanyTrainingRecordsStatus(company.id);
-          if (statusResult.success) {
-            statuses[company.id] = statusResult.status;
-          }
-        }
-        setTrainingRecordsStatuses(statuses);
+        // Initialize empty training records statuses - will be loaded on demand
+        setTrainingRecordsStatuses({});
         
         // Load services from database
         const servicesData = await listAllServices();

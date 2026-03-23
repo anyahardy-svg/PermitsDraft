@@ -6,7 +6,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { useNavigate } from 'react-router-dom';
+
 import { KioskContext } from '../KioskScreen';
 
 const KioskWelcome = () => {

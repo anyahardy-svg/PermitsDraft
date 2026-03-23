@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigate } from 'react-router-dom';
 import { KioskContext } from '../KioskScreen';
 import { getVisitorInduction } from '../../api/visitorInductions';
 

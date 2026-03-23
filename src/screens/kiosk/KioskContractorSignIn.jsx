@@ -10,7 +10,6 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useNavigate } from 'react-router-dom';
 import { KioskContext } from '../KioskScreen';
 import { checkInContractor } from '../../api/signIns';
 
