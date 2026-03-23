@@ -2875,8 +2875,8 @@ export default function CompanyAccreditationScreen({
             </>
           )}
 
-              {/* Sections 4-19 (Dynamic Rendering) */}
-              {!Object.values(accreditedSystems).some(sys => sys.checked) && renderSections__719()}
+              {/* Sections 1-19 (Dynamic Rendering - hide sections 4-19 when safety accreditations are checked) */}
+              {renderSections__719()}
               
               {/* Section 20: Always Show */}
               {renderSection20()}
