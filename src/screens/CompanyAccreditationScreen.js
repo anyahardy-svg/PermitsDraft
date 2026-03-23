@@ -46,7 +46,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, '2.5': false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -1530,7 +1530,7 @@ export default function CompanyAccreditationScreen({
   const renderSections__719 = () => {
     const sections = [
       {
-        number: 4,
+        number: 5,
         title: 'Accident, Incident & Investigation Management',
         state: section4,
         setState: setSection4,
@@ -1549,7 +1549,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 5,
+        number: 6,
         title: 'Health Hazard Management',
         state: section5,
         setState: setSection5,
@@ -1571,7 +1571,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 6,
+        number: 7,
         title: 'Induction & Training',
         state: section6,
         setState: setSection6,
@@ -1592,7 +1592,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 7,
+        number: 8,
         title: 'Hazard Identification & Management',
         state: section7,
         setState: setSection7,
@@ -1612,7 +1612,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 8,
+        number: 9,
         title: 'Personal Protective Equipment (PPE)',
         state: section8,
         setState: setSection8,
@@ -1633,7 +1633,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 9,
+        number: 10,
         title: 'Plant & Equipment',
         state: section9,
         setState: setSection9,
@@ -1654,7 +1654,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 10,
+        number: 11,
         title: 'Electrical Equipment',
         state: section10,
         setState: setSection10,
@@ -1676,7 +1676,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 11,
+        number: 12,
         title: 'Emergency Preparedness & Response',
         state: section11,
         setState: setSection11,
@@ -1695,7 +1695,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 12,
+        number: 13,
         title: 'Site Specific Safety Plans',
         state: section12,
         setState: setSection12,
@@ -1714,7 +1714,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 13,
+        number: 14,
         title: 'Contractor Management',
         state: section13,
         setState: setSection13,
@@ -1733,7 +1733,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 14,
+        number: 15,
         title: 'Health & Wellbeing',
         state: section14,
         setState: setSection14,
@@ -1752,7 +1752,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 15,
+        number: 16,
         title: 'Competency & Qualifications',
         state: section15,
         setState: setSection15,
@@ -1771,7 +1771,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 16,
+        number: 17,
         title: 'Communication & Reporting',
         state: section16,
         setState: setSection16,
@@ -1790,7 +1790,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 17,
+        number: 18,
         title: 'Performance & Review',
         state: section17,
         setState: setSection17,
@@ -1809,7 +1809,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 18,
+        number: 19,
         title: 'Injury Management',
         state: section18,
         setState: setSection18,
@@ -1828,7 +1828,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 19,
+        number: 20,
         title: 'Continuous Improvement',
         state: section19,
         setState: setSection19,
@@ -1847,7 +1847,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       {
-        number: 20,
+        number: 23,
         title: 'Incidents & Breaches',
         state: section20,
         setState: setSection20,
@@ -2176,11 +2176,11 @@ export default function CompanyAccreditationScreen({
   };
 
   const renderSection20 = () => {
-    // Section 20: Incidents & Breaches - Always visible (simplified version)
+    // Section 23: Incidents & Breaches - Always visible (simplified version)
     return (
-      <View key={20}>
+      <View key={23}>
         <TouchableOpacity
-          onPress={() => setExpandedSections(prev => ({ ...prev, 20: !prev[20] }))}
+          onPress={() => setExpandedSections(prev => ({ ...prev, 23: !prev[23] }))}
           style={{
             backgroundColor: '#F0F9FF',
             borderWidth: 2,
@@ -2201,14 +2201,14 @@ export default function CompanyAccreditationScreen({
           }}
         >
           <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-            Section 20: Incidents & Breaches
+            Section 23: Incidents & Breaches
           </Text>
           <Text style={{ fontSize: 18, color: '#0284C7' }}>
-            {expandedSections[20] ? '▼' : '▶'}
+            {expandedSections[23] ? '▼' : '▶'}
           </Text>
         </TouchableOpacity>
 
-        {expandedSections[20] && (
+        {expandedSections[23] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
             <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', marginBottom: 12 }}>
@@ -2640,14 +2640,14 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-              Section 2.5: Accreditation Systems
+              Section 3: Accreditation Systems
             </Text>
             <Text style={{ fontSize: 18, color: '#0284C7' }}>
-              {expandedSections['2.5'] ? '▼' : '▶'}
+              {expandedSections[3] ? '▼' : '▶'}
             </Text>
           </TouchableOpacity>
 
-          {expandedSections['2.5'] && (
+          {expandedSections[3] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
               <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
                 Accreditation Systems
