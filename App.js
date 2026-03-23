@@ -681,7 +681,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialContractorAdminTab }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -2329,6 +2329,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     openAccreditationFromUrl();
   }, [initialCompanyAccreditationId, companies]);
+
+  // Handle initialContractorAdminTab - restore contractor admin tab on page load
+  useEffect(() => {
+    if (initialContractorAdminTab !== undefined && initialContractorAdminTab !== null) {
+      setContractorAdminTab(initialContractorAdminTab);
+    }
+  }, [initialContractorAdminTab]);
 
   // Update URL when currentScreen changes
   useEffect(() => {
@@ -19028,6 +19035,11 @@ const AppRouter = ({ initialRoute }) => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
       
+      // Check for contractor admin routes first
+      if (pathname.startsWith('/contractor-admin')) {
+        return 'contractor_admin';
+      }
+      
       // Check for main admin dashboard
       if (pathname === '/admin' || pathname === '/admin/') {
         return 'admin';
@@ -19068,6 +19080,35 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  // Extract contractor admin tab from URL if present
+  const getInitialContractorAdminTab = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/contractor-admin')) {
+        const route = pathname.slice(17); // Remove '/contractor-admin' prefix
+        const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+        
+        const tabMap = {
+          '/jsea-templates': 'jsea',
+          'jsea-templates': 'jsea',
+          '/permit-templates': 'permits',
+          'permit-templates': 'permits',
+          '/accreditation': 'accreditation',
+          'accreditation': 'accreditation',
+          '/inductions': 'inductions',
+          'inductions': 'inductions',
+          '/training-records': 'training-records',
+          'training-records': 'training-records',
+          '': null,
+          '/': null
+        };
+        
+        return tabMap[routeWithoutTrailingSlash] || null;
+      }
+    }
+    return null;
+  };
+
   // Extract company accreditation ID from URL if present
   const getInitialCompanyAccreditationId = () => {
     if (typeof window !== 'undefined') {
@@ -19091,6 +19132,7 @@ const AppRouter = ({ initialRoute }) => {
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
   const [initialAdminRoute, setInitialAdminRoute] = React.useState(getInitialAdminRoute()); // Force to specific admin route
   const [initialCompanyAccreditationId, setInitialCompanyAccreditationId] = React.useState(getInitialCompanyAccreditationId()); // Company ID for accreditation modal
+  const [initialContractorAdminTab, setInitialContractorAdminTab] = React.useState(getInitialContractorAdminTab()); // Contractor admin tab
 
   React.useEffect(() => {
     try {
@@ -19148,7 +19190,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialContractorAdminTab={initialContractorAdminTab} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
