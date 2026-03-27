@@ -9901,7 +9901,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+                                         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = async (event) => {
@@ -18711,11 +18711,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
     marginBottom: 16,
+    justifyContent: 'center',
   },
   addButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    flexWrap: 'wrap',
+    textAlign: 'center',
   },
   jseaStep: {
     backgroundColor: '#F9FAFB',

@@ -1116,14 +1116,14 @@ export default function CompanyAccreditationScreen({
                     style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
                     onPress={() => handleDeleteFn()}
                   >
-                    <Text style={{ color: 'white' }}>🗑 Delete {documentType}</Text>
+                    <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>🗑 Delete {documentType}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
                   style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
                   onPress={() => handleUploadFn()}
                 >
-                  <Text style={{ color: 'white' }}>📄 Replace {documentType}</Text>
+                  <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Replace {documentType}</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -1137,7 +1137,7 @@ export default function CompanyAccreditationScreen({
                   style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
                   onPress={() => handleUploadFn()}
                 >
-                  <Text style={{ color: 'white' }}>📄 Upload {documentType}</Text>
+                  <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Upload {documentType}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -2618,9 +2618,9 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 2.5: Accreditation Systems */}
+          {/* SECTION 3: Accreditation Systems */}
           <TouchableOpacity
-            onPress={() => toggleSection('2.5')}
+            onPress={() => toggleSection(3)}
             style={{
               backgroundColor: '#F0F9FF',
               borderWidth: 2,
@@ -2710,11 +2710,11 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 3: Policies - Only show if NO accreditation systems selected */}
+          {/* SECTION 4: Policies - Only show if NO accreditation systems selected */}
           {!Object.values(accreditedSystems).some(sys => sys.checked) && (
             <>
               <TouchableOpacity
-                onPress={() => toggleSection(3)}
+                onPress={() => toggleSection(4)}
                 style={{
                   backgroundColor: '#F0F9FF',
                   borderWidth: 2,
@@ -2734,14 +2734,14 @@ export default function CompanyAccreditationScreen({
                 }}
               >
                 <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-                  Section 3: Policies
+                  Section 4: Policies
                 </Text>
                 <Text style={{ fontSize: 18, color: '#0284C7' }}>
-                  {expandedSections[3] ? '▼' : '▶'}
+                  {expandedSections[4] ? '▼' : '▶'}
                 </Text>
               </TouchableOpacity>
 
-              {expandedSections[3] && (
+              {expandedSections[4] && (
                 <View style={{ paddingHorizontal: 0, paddingBottom:  20, marginBottom: 12 }}>
                   <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>
                     Does your organisation have the following policies?
@@ -2875,7 +2875,7 @@ export default function CompanyAccreditationScreen({
             </>
           )}
 
-              {/* Sections 1-19 (Dynamic Rendering - hide sections 4-19 when safety accreditations are checked) */}
+              {/* Sections 5-19 (Dynamic Rendering - hide sections 5-19 when safety accreditations are checked) */}
               {renderSections__719()}
               
               {/* Section 20: Always Show */}
