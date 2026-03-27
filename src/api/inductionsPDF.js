@@ -24,8 +24,9 @@ export async function uploadInductionPDF(inductionId, file) {
       return { success: false, error: 'No file provided' };
     }
 
-    // Validate file type
-    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+    // Validate file type (file.type may be undefined on some platforms)
+    const isPdf = (file.type && file.type.includes('pdf')) || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
       return { success: false, error: 'Only PDF files are allowed' };
     }
 
@@ -104,8 +105,9 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       return { success: false, error: 'No file provided' };
     }
 
-    // Validate file type
-    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+    // Validate file type (file.type may be undefined on some platforms)
+    const isPdf = (file.type && file.type.includes('pdf')) || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
       return { success: false, error: 'Only PDF files are allowed' };
     }
 
