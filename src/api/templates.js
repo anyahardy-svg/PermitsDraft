@@ -385,7 +385,7 @@ export async function getJseaTemplates(businessUnitId) {
         name: template.name,
         jsea: template.data?.steps || [],
         company_id: template.company_id,
-        business_units: allBUAssociations[template.id] || [],
+        business_unit_ids: allBUAssociations[template.id] || [],
         site_ids: template.data?.site_ids || [],
         business_unit_id: businessUnitId,
         created_at: template.created_at,
@@ -442,7 +442,7 @@ export async function getJseaTemplatesByCompany(companyId) {
         name: template.name,
         jsea: template.data?.steps || [],
         company_id: template.data?.company_id,
-        business_units: template.data?.business_unit_ids || [],
+        business_unit_ids: template.data?.business_unit_ids || [],
         site_ids: template.data?.site_ids || [],
         created_at: template.created_at,
         updated_at: template.updated_at,
@@ -486,9 +486,8 @@ export async function getJseaTemplate(jseaTemplateId) {
       name: data.name,
       jsea: data.data?.steps || [],
       company_id: data.company_id,
-      business_unit_ids: data.data?.business_unit_ids || [],
+      business_unit_ids: buData?.map(row => row.business_unit_id) || [],
       site_ids: data.data?.site_ids || [],
-      business_units: buData?.map(row => row.business_unit_id) || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -648,7 +647,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
       name: data.name,
       jsea: data.data?.steps || [],
       company_id: data.company_id,
-      business_units: buData?.map(row => row.business_unit_id) || [],
+      business_unit_ids: buData?.map(row => row.business_unit_id) || [],
       site_ids: siteIds || [],
       created_at: data.created_at,
       updated_at: data.updated_at,
@@ -656,7 +655,7 @@ export async function updateJseaTemplate(jseaTemplateId, jseaName, jseaSteps, bu
 
     console.log('📦 Transformed response:', {
       jsea_steps_count: transformedData.jsea?.length || 0,
-      business_units: transformedData.business_units,
+      business_unit_ids: transformedData.business_unit_ids,
       company_id: transformedData.company_id
     });
 
