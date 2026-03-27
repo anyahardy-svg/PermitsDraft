@@ -48,16 +48,18 @@ export async function uploadInductionPDF(inductionId, file) {
       uri: file.uri ? '(exists)' : '(missing)' 
     });
 
-    if (file.uri && !file.mimeType) {
+    // Always convert if we have a URI (expo-document-picker format)
+    if (file.uri) {
       // Fetch the actual file content from the URI and convert to File object
       const response = await fetch(file.uri);
       const blob = await response.blob();
       console.log(`📦 Blob created:`, { type: blob.type, size: blob.size });
-      // Create a File object from the blob with proper type
-      fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+      // Use mimeType if available (expo), otherwise use type or default to application/pdf
+      const fileType = file.mimeType || file.type || 'application/pdf';
+      fileToUpload = new File([blob], file.name, { type: fileType });
       console.log(`📄 File object created:`, { type: fileToUpload.type, size: fileToUpload.size });
     } else {
-      console.log(`⏭️ Using file as-is (already has mimeType or no uri)`);
+      console.log(`⏭️ Using file as-is (no uri, likely web File object)`);
     }
 
     // Generate unique filename
@@ -153,16 +155,18 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       uri: file.uri ? '(exists)' : '(missing)' 
     });
 
-    if (file.uri && !file.mimeType) {
+    // Always convert if we have a URI (expo-document-picker format)
+    if (file.uri) {
       // Fetch the actual file content from the URI and convert to File object
       const response = await fetch(file.uri);
       const blob = await response.blob();
       console.log(`📦 Blob created:`, { type: blob.type, size: blob.size });
-      // Create a File object from the blob with proper type
-      fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+      // Use mimeType if available (expo), otherwise use type or default to application/pdf
+      const fileType = file.mimeType || file.type || 'application/pdf';
+      fileToUpload = new File([blob], file.name, { type: fileType });
       console.log(`📄 File object created:`, { type: fileToUpload.type, size: fileToUpload.size });
     } else {
-      console.log(`⏭️ Using file as-is (already has mimeType or no uri)`);
+      console.log(`⏭️ Using file as-is (no uri, likely web File object)`);
     }
 
     // Generate unique filename
