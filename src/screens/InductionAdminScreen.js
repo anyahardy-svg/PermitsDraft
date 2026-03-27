@@ -10,12 +10,19 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { WebView } from 'react-native-webview';
 import {
   getAllInductions,
   createInduction,
   updateInduction,
   deleteInduction,
 } from '../api/inductions';
+import {
+  uploadInductionPDF,
+  deleteInductionPDF,
+  getPDFViewerUrl,
+} from '../api/inductionsPDF';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
 
@@ -30,6 +37,13 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [filterByBU, setFilterByBU] = useState(null);
   
+  // PDF handling state
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [uploadingPDF, setUploadingPDF] = useState(false);
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState('');
+  
   const [formData, setFormData] = useState({
     id: '',
     induction_name: '',
@@ -39,6 +53,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
     site_id: '',
     video_url: '',
     video_duration: '',
+    pdf_file_name: '',
+    pdf_file_url: '',
     is_compulsory: true,
     question_1_text: '',
     question_1_options: ['', '', '', ''],
@@ -74,6 +90,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
       Alert.alert('Error', 'Failed to load inductions');
     } finally {
       setLoading(false);
+      setPdfFile(null);
+      setPdfFileName('');
+      setShowPDFViewer(false);
     }
   };
 
@@ -87,6 +106,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       site_id: '',
       video_url: '',
       video_duration: '',
+      pdf_file_name: '',
+      pdf_file_url: '',
       is_compulsory: true,
       question_1_text: '',
       question_1_options: ['', '', '', ''],
@@ -101,6 +122,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       question_3_correct_answer: 0,
       question_3_type: 'single-select',
     });
+    setPdfFile(null);
+    setPdfFileName('');
     setModalVisible(true);
   };
 
@@ -114,6 +137,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       site_id: induction.site_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
+      pdf_file_name: induction.pdf_file_name || '',
+      pdf_file_url: induction.pdf_file_url || '',
       is_compulsory: induction.is_compulsory !== false,
       question_1_text: induction.question_1_text || '',
       question_1_options: induction.question_1_options || ['', '', '', ''],
@@ -128,6 +153,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       question_3_correct_answer: induction.question_3_correct_answer ?? 0,
       question_3_type: induction.question_3_type || 'single-select',
     });
+    setPdfFile(null);
+    setPdfFileName('');
     setModalVisible(true);
   };
 
@@ -205,6 +232,91 @@ export default function InductionAdminScreen({ onBack, styles }) {
     );
   };
 
+  const handlePickPDF = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        // Check file size (max 10MB)
+        if (file.size && file.size > 10 * 1024 * 1024) {
+          Alert.alert('Error', 'PDF file must be smaller than 10MB');
+          return;
+        }
+        setPdfFile(file);
+        setPdfFileName(file.name);
+      }
+    } catch (err) {
+      console.error('Error picking PDF:', err);
+      Alert.alert('Error', 'Failed to pick PDF file');
+    }
+  };
+
+  const handleUploadPDF = async () => {
+    if (!pdfFile || !formData.id) {
+      Alert.alert('Error', 'Please save the induction first before uploading PDF');
+      return;
+    }
+
+    try {
+      setUploadingPDF(true);
+      const { success, data, message } = await uploadInductionPDF(formData.id, pdfFile);
+      
+      if (success) {
+        // Update formData with PDF filename
+        setFormData({ ...formData, pdf_file_name: data.pdf_file_name });
+        setPdfFile(null);
+        setPdfFileName('');
+        await loadData(); // Refresh to show PDF indicator
+        Alert.alert('Success', 'PDF uploaded successfully');
+      } else {
+        Alert.alert('Error', message || 'Failed to upload PDF');
+      }
+    } catch (err) {
+      console.error('PDF upload error:', err);
+      Alert.alert('Error', 'Failed to upload PDF: ' + err.message);
+    } finally {
+      setUploadingPDF(false);
+    }
+  };
+
+  const handleDeletePDF = async () => {
+    if (!formData.id) return;
+    
+    Alert.alert('Delete PDF', 'Remove this PDF?', [
+      { text: 'Cancel' },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          try {
+            const { success, message } = await deleteInductionPDF(formData.id);
+            if (success) {
+              setFormData({ ...formData, pdf_file_name: '', pdf_file_url: '' });
+              await loadData();
+              Alert.alert('Success', 'PDF deleted');
+            } else {
+              Alert.alert('Error', message || 'Failed to delete PDF');
+            }
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete PDF');
+          }
+        },
+        style: 'destructive'
+      }
+    ]);
+  };
+
+  const handleViewPDF = () => {
+    if (formData.pdf_file_url) {
+      const viewerUrl = getPDFViewerUrl(formData.pdf_file_url);
+      setPdfViewerUrl(viewerUrl);
+      setShowPDFViewer(true);
+    }
+  };
+
   const toggleBusinessUnit = (buId) => {
     const updatedIds = formData.business_unit_ids.includes(buId)
       ? formData.business_unit_ids.filter(id => id !== buId)
@@ -256,6 +368,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
               </View>
               <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Applies to: {ind.business_unit_ids?.length > 0 ? businessUnits.filter(bu => ind.business_unit_ids.includes(bu.id)).map(bu => bu.name).join(', ') : 'None'}</Text>
               {ind.video_url && <Text style={{ fontSize: 11, color: '#0EA5E9', marginTop: 8 }}>📹 {ind.video_duration ? `${ind.video_duration} min` : 'Video'}</Text>}
+              {ind.pdf_file_name && <Text style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>📑 {ind.pdf_file_name}</Text>}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 <TouchableOpacity onPress={() => handleEditInduction(ind)} style={{ flex: 1, backgroundColor: '#E0E7FF', padding: 10, borderRadius: 6, alignItems: 'center' }}><Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 13 }}>Edit</Text></TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDeleteInduction(ind)} style={{ flex: 1, backgroundColor: '#FEE2E2', padding: 10, borderRadius: 6, alignItems: 'center' }}><Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 13 }}>Delete</Text></TouchableOpacity>
@@ -300,6 +413,47 @@ export default function InductionAdminScreen({ onBack, styles }) {
             
             <Text style={[styles.label, { marginTop: 12 }]}>Duration (minutes)</Text>
             <TextInput style={styles.input} placeholder="5" keyboardType="number-pad" value={formData.video_duration} onChangeText={(text) => setFormData({ ...formData, video_duration: text })} />
+
+            <Text style={[styles.label, { marginTop: 16, marginBottom: 8 }]}>PDF Presentation (Alternative to Video)</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <TouchableOpacity 
+                onPress={handlePickPDF} 
+                disabled={uploadingPDF || !formData.id}
+                style={{ flex: 1, marginRight: 8 }}
+              >
+                <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#D1D5DB', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
+                    {pdfFileName ? '📄 ' + pdfFileName.substring(0, 20) : uploadingPDF ? 'Uploading...' : 'Choose PDF'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              {pdfFile && (
+                <TouchableOpacity 
+                  onPress={handleUploadPDF} 
+                  disabled={uploadingPDF}
+                  style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#10B981', borderRadius: 6 }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>Upload</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {formData.pdf_file_name && (
+              <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#DBEAFE', borderRadius: 6, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1' }}>📑 {formData.pdf_file_name}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={handleViewPDF} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#0369A1', borderRadius: 4 }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>View</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleDeletePDF} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#EF4444', borderRadius: 4 }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {[1, 2, 3].map(qNum => {
               const qText = `question_${qNum}_text`;
@@ -396,6 +550,30 @@ export default function InductionAdminScreen({ onBack, styles }) {
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{formData.id ? 'Update' : 'Create'} Induction</Text>
             </TouchableOpacity>
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* PDF Viewer Modal */}
+      <Modal visible={showPDFViewer} animationType="slide">
+        <View style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setShowPDFViewer(false)}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>View PDF</Text>
+          </View>
+          {pdfViewerUrl ? (
+            <WebView 
+              source={{ uri: pdfViewerUrl }} 
+              style={{ flex: 1 }}
+              startInLoadingState
+              renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" />}
+            />
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: '#666' }}>Loading PDF...</Text>
+            </View>
+          )}
         </View>
       </Modal>
     </View>
