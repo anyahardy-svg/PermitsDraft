@@ -1521,7 +1521,7 @@ export default function CompanyAccreditationScreen({
     
     const timer = setTimeout(() => {
       autoSave();
-    }, 10000); // Auto-save after 10 seconds of inactivity
+    }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
   }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, currentCompanyId]);
