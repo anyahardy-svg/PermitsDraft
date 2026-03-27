@@ -8,13 +8,13 @@ import { supabase } from '../supabaseClient';
 /**
  * Get visitor induction content for a site
  * @param {UUID} siteId - Site ID
- * @returns {Object} Induction content
+ * @returns {Object} Induction content and PDF URL
  */
 export async function getVisitorInduction(siteId) {
   try {
     const { data, error } = await supabase
       .from('visitor_inductions')
-      .select('id, content')
+      .select('id, content, pdf_file_url, pdf_file_name')
       .eq('site_id', siteId)
       .single();
 
@@ -28,6 +28,8 @@ export async function getVisitorInduction(siteId) {
       data: data || {
         id: null,
         content: 'Welcome to our site. Please comply with all safety procedures.',
+        pdf_file_url: null,
+        pdf_file_name: null,
       },
     };
   } catch (error) {

@@ -12,11 +12,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
+import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
 import ContractorInductionScreen from './ContractorInductionScreen';
 
@@ -51,6 +54,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
   const [visitorPhone, setVisitorPhone] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
+  const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
   const [visitorInductionConfirmed, setVisitorInductionConfirmed] = useState(false);
   
   // For signout list
@@ -104,6 +108,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           const inductionResult = await getVisitorInduction(matchingSite.id);
           if (inductionResult.success) {
             setVisitorInductionContent(inductionResult.data.content);
+            setVisitorInductionPdfUrl(inductionResult.data.pdf_file_url || '');
           }
           
           // Load current signins
@@ -563,9 +568,31 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
-          <View style={styles.inductionBox}>
-            <Text style={styles.inductionText}>{visitorInductionContent}</Text>
-          </View>
+          {visitorInductionPdfUrl ? (
+            // Display PDF if available
+            <View style={{ ...styles.inductionBox, height: 600, marginBottom: 20 }}>
+              <WebView 
+                source={{ uri: getPDFViewerUrl(visitorInductionPdfUrl) }}
+                style={{ flex: 1 }}
+                startInLoadingState
+                renderLoading={() => (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#6B7280' }}>Loading PDF...</Text>
+                  </View>
+                )}
+              />
+            </View>
+          ) : visitorInductionContent ? (
+            // Display text content if no PDF
+            <View style={styles.inductionBox}>
+              <Text style={styles.inductionText}>{visitorInductionContent}</Text>
+            </View>
+          ) : (
+            // Default message if neither
+            <View style={styles.inductionBox}>
+              <Text style={styles.inductionText}>Welcome to our site. Please comply with all safety procedures.</Text>
+            </View>
+          )}
 
           <View style={styles.checkboxContainer}>
             <TouchableOpacity
