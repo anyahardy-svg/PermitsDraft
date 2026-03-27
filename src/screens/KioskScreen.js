@@ -571,16 +571,24 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           {visitorInductionPdfUrl ? (
             // Display PDF if available
             <View style={{ ...styles.inductionBox, height: 600, marginBottom: 20 }}>
-              <WebView 
-                source={{ uri: getPDFViewerUrl(visitorInductionPdfUrl) }}
-                style={{ flex: 1 }}
-                startInLoadingState
-                renderLoading={() => (
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: '#6B7280' }}>Loading PDF...</Text>
-                  </View>
-                )}
-              />
+              {Platform.OS === 'web' ? (
+                <iframe 
+                  src={getPDFViewerUrl(visitorInductionPdfUrl)}
+                  style={{ flex: 1, width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+                  title="Site Induction PDF"
+                />
+              ) : (
+                <WebView 
+                  source={{ uri: getPDFViewerUrl(visitorInductionPdfUrl) }}
+                  style={{ flex: 1 }}
+                  startInLoadingState
+                  renderLoading={() => (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ color: '#6B7280' }}>Loading PDF...</Text>
+                    </View>
+                  )}
+                />
+              )}
             </View>
           ) : visitorInductionContent ? (
             // Display text content if no PDF

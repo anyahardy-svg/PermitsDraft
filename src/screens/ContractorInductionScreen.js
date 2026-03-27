@@ -1482,12 +1482,26 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                             <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
                               📑 PDF Presentation
                             </Text>
-                            <WebView
-                              source={{ uri: getPDFViewerUrl(currentModalInduction.pdf_file_url) }}
-                              style={{ height: 400, marginBottom: 16, borderRadius: 8 }}
-                              startInLoadingState
-                              renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" color="#3B82F6" />}
-                            />
+                            {Platform.OS === 'web' ? (
+                              <iframe
+                                src={getPDFViewerUrl(currentModalInduction.pdf_file_url)}
+                                style={{
+                                  width: '100%',
+                                  height: 400,
+                                  border: 'none',
+                                  borderRadius: 8,
+                                  marginBottom: 16,
+                                }}
+                                title="PDF Presentation"
+                              />
+                            ) : (
+                              <WebView
+                                source={{ uri: getPDFViewerUrl(currentModalInduction.pdf_file_url) }}
+                                style={{ height: 400, marginBottom: 16, borderRadius: 8 }}
+                                startInLoadingState
+                                renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" color="#3B82F6" />}
+                              />
+                            )}
                           </>
                         ) : currentModalInduction.video_url ? (
                           <>

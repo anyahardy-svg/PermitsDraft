@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { WebView } from 'react-native-webview';
@@ -563,12 +564,25 @@ export default function InductionAdminScreen({ onBack, styles }) {
             <Text style={styles.title}>View PDF</Text>
           </View>
           {pdfViewerUrl ? (
-            <WebView 
-              source={{ uri: pdfViewerUrl }} 
-              style={{ flex: 1 }}
-              startInLoadingState
-              renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" />}
-            />
+            Platform.OS === 'web' ? (
+              <iframe
+                src={pdfViewerUrl}
+                style={{
+                  flex: 1,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                title="PDF Viewer"
+              />
+            ) : (
+              <WebView 
+                source={{ uri: pdfViewerUrl }} 
+                style={{ flex: 1 }}
+                startInLoadingState
+                renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" />}
+              />
+            )
           ) : (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Text style={{ fontSize: 14, color: '#666' }}>Loading PDF...</Text>
