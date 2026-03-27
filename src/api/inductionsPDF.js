@@ -38,6 +38,20 @@ export async function uploadInductionPDF(inductionId, file) {
       };
     }
 
+    // Convert file to blob with proper type
+    let fileBlob;
+    if (file instanceof Blob) {
+      // Create a new Blob with explicit PDF type to ensure correct Content-Type
+      fileBlob = new Blob([file], { type: 'application/pdf' });
+    } else if (file.uri) {
+      // Handle expo-document-picker file objects
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      fileBlob = new Blob([blob], { type: 'application/pdf' });
+    } else {
+      return { success: false, error: 'Invalid file format' };
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `induction-${inductionId}-${timestamp}.pdf`;
@@ -48,7 +62,7 @@ export async function uploadInductionPDF(inductionId, file) {
     const { data, error: uploadError } = await supabase
       .storage
       .from(PDF_BUCKET)
-      .upload(fileName, file, {
+      .upload(fileName, fileBlob, {
         cacheControl: '3600',
         contentType: 'application/pdf',
         upsert: false
@@ -120,11 +134,31 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       };
     }
 
+    // Convert file to blob with proper type
+    let fileBlob;
+    if (file instanceof Blob) {
+      // Create a new Blob with explicit PDF type to ensure correct Content-Type
+      fileBlob = new Blob([file], { type: 'application/pdf' });
+    } else if (file.uri) {
+      // Handle expo-document-picker file objects
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      fileBlob = new Blob([blob], { type: 'application/pdf' });
+    } else {
+      return { success: false, error: 'Invalid file format' };
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileName = `visitor-induction-${siteId}-${timestamp}.pdf`;
+
+    console.log(`📁 Uploading visitor induction PDF: ${file.name} -> ${fileName}`);
+
     // Upload to Supabase Storage
     const { data, error: uploadError } = await supabase
       .storage
       .from(PDF_BUCKET)
-      .upload(fileName, file, {
+      .upload(fileName, fileBlob, {
         cacheControl: '3600',
         contentType: 'application/pdf',
         upsert: false
