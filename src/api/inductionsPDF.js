@@ -40,19 +40,32 @@ export async function uploadInductionPDF(inductionId, file) {
 
     // Convert file URI to File object - handle expo-document-picker files with uri property
     let fileToUpload = file;
+    console.log(`📋 Original file object:`, { 
+      name: file.name, 
+      size: file.size, 
+      type: file.type, 
+      mimeType: file.mimeType, 
+      uri: file.uri ? '(exists)' : '(missing)' 
+    });
+
     if (file.uri && !file.mimeType) {
       // Fetch the actual file content from the URI and convert to File object
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log(`📦 Blob created:`, { type: blob.type, size: blob.size });
       // Create a File object from the blob with proper type
       fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+      console.log(`📄 File object created:`, { type: fileToUpload.type, size: fileToUpload.size });
+    } else {
+      console.log(`⏭️ Using file as-is (already has mimeType or no uri)`);
     }
 
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `induction-${inductionId}-${timestamp}.pdf`;
 
-    console.log(`📁 Uploading induction PDF: ${file.name} -> ${fileName}`);
+    console.log(`📁 Uploading induction PDF: ${file.name} -> ${fileName} (bucket: ${PDF_BUCKET})`);
+    console.log(`📤 Upload payload:`, { fileType: fileToUpload.type, fileSize: fileToUpload.size });
 
     // Upload to Supabase Storage
     const { data, error: uploadError } = await supabase
@@ -60,7 +73,8 @@ export async function uploadInductionPDF(inductionId, file) {
       .from(PDF_BUCKET)
       .upload(fileName, fileToUpload, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: 'application/pdf'
       });
 
     if (uploadError) {
@@ -131,17 +145,32 @@ export async function uploadVisitorInductionPDF(siteId, file) {
 
     // Convert file URI to File object - handle expo-document-picker files with uri property
     let fileToUpload = file;
+    console.log(`📋 Original file object:`, { 
+      name: file.name, 
+      size: file.size, 
+      type: file.type, 
+      mimeType: file.mimeType, 
+      uri: file.uri ? '(exists)' : '(missing)' 
+    });
+
     if (file.uri && !file.mimeType) {
       // Fetch the actual file content from the URI and convert to File object
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log(`📦 Blob created:`, { type: blob.type, size: blob.size });
       // Create a File object from the blob with proper type
       fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+      console.log(`📄 File object created:`, { type: fileToUpload.type, size: fileToUpload.size });
+    } else {
+      console.log(`⏭️ Using file as-is (already has mimeType or no uri)`);
     }
 
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `visitor-induction-${siteId}-${timestamp}.pdf`;
+
+    console.log(`📁 Uploading visitor induction PDF: ${file.name} -> ${fileName} (bucket: ${PDF_BUCKET})`);
+    console.log(`📤 Upload payload:`, { fileType: fileToUpload.type, fileSize: fileToUpload.size });
 
     // Upload to Supabase Storage
     const { data, error: uploadError } = await supabase
@@ -149,7 +178,8 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       .from(PDF_BUCKET)
       .upload(fileName, fileToUpload, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: 'application/pdf'
       });
 
     if (uploadError) {
