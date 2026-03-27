@@ -24,6 +24,7 @@ import {
   saveInductionProgress,
   completeInduction,
 } from '../api/inductions';
+import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
@@ -1464,31 +1465,48 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
                     {modalStep === 'video' && (
                       <View>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
-                          Video
-                        </Text>
-                        {currentModalInduction.video_url && Platform.OS === 'web' ? (
-                          <iframe
-                            src={getYouTubeEmbedUrl(currentModalInduction.video_url)}
-                            style={{
-                              width: '100%',
-                              height: 250,
-                              borderRadius: 8,
-                              border: 'none',
-                              marginBottom: 16,
-                            }}
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          />
+                        {/* Show PDF if available, otherwise show video */}
+                        {currentModalInduction.pdf_file_url ? (
+                          <>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+                              📑 PDF Presentation
+                            </Text>
+                            <WebView
+                              source={{ uri: getPDFViewerUrl(currentModalInduction.pdf_file_url) }}
+                              style={{ height: 400, marginBottom: 16, borderRadius: 8 }}
+                              startInLoadingState
+                              renderLoading={() => <ActivityIndicator style={{ flex: 1 }} size="large" color="#3B82F6" />}
+                            />
+                          </>
                         ) : currentModalInduction.video_url ? (
-                          <WebView
-                            source={{ uri: getYouTubeEmbedUrl(currentModalInduction.video_url) }}
-                            style={{ height: 250, marginBottom: 16, borderRadius: 8 }}
-                            allowsFullscreenVideo
-                          />
+                          <>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+                              📹 Video
+                            </Text>
+                            {Platform.OS === 'web' ? (
+                              <iframe
+                                src={getYouTubeEmbedUrl(currentModalInduction.video_url)}
+                                style={{
+                                  width: '100%',
+                                  height: 250,
+                                  borderRadius: 8,
+                                  border: 'none',
+                                  marginBottom: 16,
+                                }}
+                                allowFullScreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              />
+                            ) : (
+                              <WebView
+                                source={{ uri: getYouTubeEmbedUrl(currentModalInduction.video_url) }}
+                                style={{ height: 250, marginBottom: 16, borderRadius: 8 }}
+                                allowsFullscreenVideo
+                              />
+                            )}
+                          </>
                         ) : (
                           <View style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-                            <Text style={{ color: '#6B7280', textAlign: 'center' }}>No video for this induction</Text>
+                            <Text style={{ color: '#6B7280', textAlign: 'center' }}>No PDF or video content for this induction</Text>
                           </View>
                         )}
 
