@@ -38,6 +38,16 @@ export async function uploadInductionPDF(inductionId, file) {
       };
     }
 
+    // Convert file URI to File object - handle expo-document-picker files with uri property
+    let fileToUpload = file;
+    if (file.uri && !file.mimeType) {
+      // Fetch the actual file content from the URI and convert to File object
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      // Create a File object from the blob with proper type
+      fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `induction-${inductionId}-${timestamp}.pdf`;
@@ -48,7 +58,7 @@ export async function uploadInductionPDF(inductionId, file) {
     const { data, error: uploadError } = await supabase
       .storage
       .from(PDF_BUCKET)
-      .upload(fileName, file, {
+      .upload(fileName, fileToUpload, {
         cacheControl: '3600',
         upsert: false
       });
@@ -119,6 +129,16 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       };
     }
 
+    // Convert file URI to File object - handle expo-document-picker files with uri property
+    let fileToUpload = file;
+    if (file.uri && !file.mimeType) {
+      // Fetch the actual file content from the URI and convert to File object
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      // Create a File object from the blob with proper type
+      fileToUpload = new File([blob], file.name, { type: 'application/pdf' });
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `visitor-induction-${siteId}-${timestamp}.pdf`;
@@ -127,7 +147,7 @@ export async function uploadVisitorInductionPDF(siteId, file) {
     const { data, error: uploadError } = await supabase
       .storage
       .from(PDF_BUCKET)
-      .upload(fileName, file, {
+      .upload(fileName, fileToUpload, {
         cacheControl: '3600',
         upsert: false
       });
