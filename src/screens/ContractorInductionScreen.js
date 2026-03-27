@@ -508,6 +508,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
         if (inProgressInductions.length > 0) {
           console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
+          console.log('📋 In-progress induction IDs:', inProgressInductions.map(p => p.induction_id));
+          console.log('📚 Available inductions to resume from:', uniqueInductions.map(ind => ({ id: ind.id, name: ind.induction_name })));
           setLoading(false);
           
           // Show dialog asking if they want to resume
@@ -529,6 +531,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   // Load the in-progress inductions and continue
                   const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
                   const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
+                  console.log('🎯 Resume queue size:', resumeQueue.length);
+                  console.log('🎯 Resume queue inductions:', resumeQueue.map(ind => ({ id: ind.id, name: ind.induction_name })));
+                  
+                  if (resumeQueue.length === 0) {
+                    Alert.alert('Error', 'Could not find inductions to resume. Please start over.');
+                    setStep('inductionsList');
+                    return;
+                  }
+                  
                   setCompletedInductionIds(
                     existingProgress
                       .filter(p => p.status === 'completed')
