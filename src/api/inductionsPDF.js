@@ -48,7 +48,7 @@ export async function uploadInductionPDF(inductionId, file) {
     const { data, error: uploadError } = await supabase
       .storage
       .from(PDF_BUCKET)
-      .upload(fileName, fileBlob, {
+      .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
@@ -122,8 +122,6 @@ export async function uploadVisitorInductionPDF(siteId, file) {
     // Generate unique filename
     const timestamp = Date.now();
     const fileName = `visitor-induction-${siteId}-${timestamp}.pdf`;
-
-    console.log(`📁 Uploading visitor induction PDF: ${file.name} -> ${fileName}`);
 
     // Upload to Supabase Storage
     const { data, error: uploadError } = await supabase
