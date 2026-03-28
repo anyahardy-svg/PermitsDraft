@@ -175,6 +175,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
       // Normalize correct answers for multi-select questions
       const dataToSave = { ...formData };
       
+      // DEBUG: Log what we're about to send
+      console.log('📝 FormData service_ids before save:', formData.service_ids);
+      console.log('📝 Services available:', services.map(s => ({ id: s.id, name: s.name })));
+      console.log('📝 DataToSave service_ids:', dataToSave.service_ids);
+      
       for (let i = 1; i <= 3; i++) {
         const qType = `question_${i}_type`;
         const qCorrect = `question_${i}_correct_answer`;
@@ -208,6 +213,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       loadData();
       Alert.alert('Success', dataToSave.id ? 'Induction updated' : 'Induction created');
     } catch (err) {
+      console.error('❌ Full error object:', err);
       Alert.alert('Error', 'Failed to save induction');
     }
   };
