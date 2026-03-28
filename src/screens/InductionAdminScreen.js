@@ -349,6 +349,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
   const isServiceSelected = (serviceId) => formData.service_id === serviceId;
   const getSelectedBUIds = () => Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
+  const isBUSelected = (buId) => Array.isArray(formData.business_unit_ids) && formData.business_unit_ids.includes(buId);
 
   const filteredInductions = filterByBU
     ? inductions.filter(ind => Array.isArray(ind.business_unit_ids) && ind.business_unit_ids.includes(filterByBU))
