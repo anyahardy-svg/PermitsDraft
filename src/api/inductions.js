@@ -164,7 +164,7 @@ export async function getCompulsoryInductions(businessUnitId) {
 
 /**
  * Create a new induction
- * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
+ * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
  * @returns {Object} Created induction
  */
 export async function createInduction(inductionData) {
@@ -177,7 +177,7 @@ export async function createInduction(inductionData) {
         subsection_name: inductionData.subsection_name || '',
         business_unit_ids: inductionData.business_unit_ids || [],
         site_id: inductionData.site_id || null,
-        service_id: inductionData.service_id || null,
+        service_ids: Array.isArray(inductionData.service_ids) ? inductionData.service_ids : [],
         video_url: inductionData.video_url || '',
         video_duration: inductionData.video_duration ? parseInt(inductionData.video_duration) : 0,
         question_1_text: inductionData.question_1_text || '',
@@ -218,7 +218,7 @@ export async function updateInduction(inductionId, updates) {
       subsection_name: updates.subsection_name || '',
       business_unit_ids: updates.business_unit_ids || [],
       site_id: updates.site_id || null,
-      service_id: updates.service_id || null,
+      service_ids: Array.isArray(updates.service_ids) ? updates.service_ids : [],
       video_url: updates.video_url || '',
       video_duration: updates.video_duration ? parseInt(updates.video_duration) : 0,
       question_1_text: updates.question_1_text || '',
@@ -536,7 +536,7 @@ export async function getCompletedInductions(contractorId) {
   try {
     const { data, error } = await supabase
       .from('contractor_induction_progress')
-      .select('induction_id, completed_at, inductions(service_id)')
+      .select('induction_id, completed_at, inductions(service_ids)')
       .eq('contractor_id', contractorId)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false });
