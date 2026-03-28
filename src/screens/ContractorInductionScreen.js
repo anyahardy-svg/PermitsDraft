@@ -235,6 +235,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         companyId: contractor.company_id,
         selectedBusinessUnitIds: contractor.business_unit_ids || [],
         selectedSiteIds: contractor.site_ids || [],
+        service_ids: contractor.service_ids || [],
       });
       setSelectedContractorId(contractorId);
       setShowContractorDropdown(false);
@@ -318,6 +319,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         companyId: contractor.company_id,
         selectedBusinessUnitIds: contractorBUs,
         selectedSiteIds: contractorSites,
+        service_ids: contractor.service_ids || [],
       });
       setSelectedContractorId(contractorId);
       
