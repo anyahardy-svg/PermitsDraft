@@ -138,6 +138,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   // Step 5: Signature
   const [signatureText, setSignatureText] = useState('');
 
+  // Resume dialog state
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [pendingResumeChoice, setPendingResumeChoice] = useState(null); // Will be set when resume dialog needs to appear
+  const [resumeInductionData, setResumeInductionData] = useState(null); // Data to use when they choose resume
+
   // Load initial data
   useEffect(() => {
     loadCompaniesAndBU();
@@ -514,45 +519,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           console.log('📚 Available inductions to resume from:', uniqueInductions.map(ind => ({ id: ind.id, name: ind.induction_name })));
           setLoading(false);
           
-          // Show dialog asking if they want to resume
-          Alert.alert(
-            'Resume Inductions?',
-            `You have ${inProgressInductions.length} induction(s) in progress. Do you want to resume where you left off?`,
-            [
-              {
-                text: 'Start Over',
-                onPress: () => {
-                  console.log('🔄 User chose to start over');
-                  setStep('inductionsList');
-                },
-              },
-              {
-                text: 'Resume',
-                onPress: () => {
-                  console.log('↩️ User chose to resume');
-                  // Load the in-progress inductions and continue
-                  const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
-                  const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
-                  console.log('🎯 Resume queue size:', resumeQueue.length);
-                  console.log('🎯 Resume queue inductions:', resumeQueue.map(ind => ({ id: ind.id, name: ind.induction_name })));
-                  
-                  if (resumeQueue.length === 0) {
-                    Alert.alert('Error', 'Could not find inductions to resume. Please start over.');
-                    setStep('inductionsList');
-                    return;
-                  }
-                  
-                  setCompletedInductionIds(
-                    existingProgress
-                      .filter(p => p.status === 'completed')
-                      .map(p => p.induction_id)
-                  );
-                  setInductionQueue(resumeQueue);
-                  setStep('inductionBoard');
-                },
-              },
-            ]
-          );
+          // Store data for resume choice and show modal dialog
+          const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
+          const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
+          const completedIds = existingProgress
+            .filter(p => p.status === 'completed')
+            .map(p => p.induction_id);
+          
+          setResumeInductionData({
+            resumeQueue,
+            completedIds,
+            inProgressCount: inProgressInductions.length
+          });
+          setShowResumeDialog(true);
           return;
         }
       }
@@ -753,6 +732,112 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </View>
           )}
         </ScrollView>
+
+        {/* Resume Dialog Modal */}
+        <Modal
+          visible={showResumeDialog}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowResumeDialog(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 16,
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: 12,
+              }}>
+                Resume Inductions?
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: '#6B7280',
+                marginBottom: 24,
+                lineHeight: 20,
+              }}>
+                You have {resumeInductionData ? resumeInductionData.inProgressCount || 0 : 0} induction(s) in progress. Do you want to resume where you left off?
+              </Text>
+
+              <View style={{ gap: 12, flexDirection: 'row' }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#F3F4F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    console.log('💾 User chose: Start Over');
+                    setShowResumeDialog(false);
+                    // Reset induction progress to start fresh
+                    setCompletedInductionIds([]);
+                    setSelectedOptionalIds([]);
+                    setStep('inductionsList');
+                  }}
+                >
+                  <Text style={{
+                    color: '#374151',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}>
+                    Start Over
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#3B82F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    console.log('💾 User chose: Resume');
+                    setShowResumeDialog(false);
+                    if (resumeInductionData && resumeInductionData.completedIds) {
+                      setCompletedInductionIds(resumeInductionData.completedIds);
+                    }
+                    if (resumeInductionData && resumeInductionData.resumeQueue) {
+                      setInductionQueue(resumeInductionData.resumeQueue);
+                    }
+                    setStep('inductionBoard');
+                  }}
+                >
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}>
+                    Resume
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
