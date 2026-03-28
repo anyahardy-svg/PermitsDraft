@@ -33,6 +33,21 @@ const formatNameToTitleCase = (name) => {
     .join(' ');
 };
 
+// Helper function to convert structured lines to HTML
+const linesToHtml = (lines) => {
+  return lines.map(line => {
+    if (!line.text) return '';
+    switch (line.type) {
+      case 'h1': return `<h1>${line.text}</h1>`;
+      case 'h2': return `<h2>${line.text}</h2>`;
+      case 'h3': return `<h3>${line.text}</h3>`;
+      case 'bold': return `<p><b>${line.text}</b></p>`;
+      case 'list': return `<ul><li>${line.text}</li></ul>`;
+      default: return `<p>${line.text}</p>`;
+    }
+  }).join('');
+};
+
 const KioskScreen = ({ onViewPermits, initialRoute }) => {
   // State
   const [currentScreen, setCurrentScreen] = useState(initialRoute || 'welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk, inductions, inductions-new, inductions-returning, inductions-resume
@@ -107,7 +122,18 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
           // Load visitor induction content
           const inductionResult = await getVisitorInduction(matchingSite.id);
           if (inductionResult.success) {
-            setVisitorInductionContent(inductionResult.data.content);
+            let contentToDisplay = inductionResult.data.content;
+            // Try to parse as JSON structured format
+            try {
+              const parsed = JSON.parse(contentToDisplay);
+              if (Array.isArray(parsed) && parsed[0]?.text !== undefined) {
+                // Convert to HTML
+                contentToDisplay = linesToHtml(parsed);
+              }
+            } catch (e) {
+              // Not JSON, display as-is (plain text will be rendered as HTML)
+            }
+            setVisitorInductionContent(contentToDisplay);
             setVisitorInductionPdfUrl(inductionResult.data.pdf_file_url || '');
           }
           

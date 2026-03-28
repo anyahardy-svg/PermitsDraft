@@ -2213,7 +2213,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
   const [siteSearchText, setSiteSearchText] = useState('');
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
-  const [visitorInductionContent, setVisitorInductionContent] = useState('');
+  const [visitorInductionContent, setVisitorInductionContent] = useState([]); // Array of { text, type }
   const [editingVisitorInduction, setEditingVisitorInduction] = useState(null); // Site ID of the induction being edited
   const [visitorInductionFilterBusinessUnit, setVisitorInductionFilterBusinessUnit] = useState('');
   const [isolationRegisters, setIsolationRegisters] = useState([]);
@@ -10644,13 +10644,46 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     );
   };
 
+  // Helper function to convert structured lines to HTML
+  const linesToHtml = (lines) => {
+    return lines.map(line => {
+      if (!line.text) return '';
+      switch (line.type) {
+        case 'h1': return `<h1>${line.text}</h1>`;
+        case 'h2': return `<h2>${line.text}</h2>`;
+        case 'h3': return `<h3>${line.text}</h3>`;
+        case 'bold': return `<p><b>${line.text}</b></p>`;
+        case 'list': return `<ul><li>${line.text}</li></ul>`;
+        default: return `<p>${line.text}</p>`;
+      }
+    }).join('');
+  };
+
+  // Helper function to get display text for line type
+  const getLineTypeLabel = (type) => {
+    const labels = { h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3', bold: 'Bold', list: 'List Item', normal: 'Normal' };
+    return labels[type] || 'Normal';
+  };
+
   // Manage Visitor Inductions Screen
   const renderManageVisitorInductions = () => {
     const handleLoadInduction = async (siteId) => {
       try {
         const result = await getVisitorInduction(siteId);
         if (result.success) {
-          setVisitorInductionContent(result.data.content);
+          // Try to parse as structured format, otherwise treat as plain text
+          try {
+            const parsed = JSON.parse(result.data.content);
+            if (Array.isArray(parsed) && parsed[0]?.text !== undefined) {
+              setVisitorInductionContent(parsed);
+            } else {
+              // Fallback: convert plain text to structured format
+              setVisitorInductionContent([{ text: result.data.content, type: 'normal' }]);
+            }
+          } catch (e) {
+            // Not JSON, treat as plain text
+            setVisitorInductionContent([{ text: result.data.content, type: 'normal' }]);
+          }
           setEditingVisitorInduction(siteId);
         }
       } catch (error) {
@@ -10659,22 +10692,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleSaveInduction = async () => {
-      if (!editingVisitorInduction || !visitorInductionContent.trim()) {
-        Alert.alert('Error', 'Please select a site and enter induction content');
+      if (!editingVisitorInduction || !visitorInductionContent || visitorInductionContent.length === 0) {
+        Alert.alert('Error', 'Please select a site and add at least one line of content');
+        return;
+      }
+
+      // Check if any line has text
+      if (!visitorInductionContent.some(line => line.text?.trim())) {
+        Alert.alert('Error', 'Please add at least one line of content');
         return;
       }
 
       try {
+        // Convert to HTML for display, but save structured format as JSON
+        const htmlContent = linesToHtml(visitorInductionContent);
+        const jsonContent = JSON.stringify(visitorInductionContent);
+        
+        // Save as JSON (we'll display as HTML)
         const result = await updateVisitorInduction(
           editingVisitorInduction,
-          visitorInductionContent,
+          jsonContent,
           null // userId - could be enhanced with auth
         );
 
         if (result.success) {
           Alert.alert('Success', 'Visitor induction has been updated');
           setEditingVisitorInduction(null);
-          setVisitorInductionContent('');
+          setVisitorInductionContent([]);
         } else {
           Alert.alert('Error', result.error || 'Failed to update induction');
         }
@@ -10685,7 +10729,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
     const handleCancel = () => {
       setEditingVisitorInduction(null);
-      setVisitorInductionContent('');
+      setVisitorInductionContent([]);
     };
 
     if (editingVisitorInduction) {
@@ -10699,92 +10743,141 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             <Text style={styles.title}>Edit Visitor Induction - {siteName}</Text>
           </View>
-          <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>Induction Content</Text>
-            
-            {/* Formatting Toolbar */}
-            <View style={{ backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 8, marginBottom: 12 }}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {[
-                  { label: 'B', format: 'bold', title: 'Bold' },
-                  { label: 'I', format: 'italic', title: 'Italic' },
-                  { label: 'U', format: 'underline', title: 'Underline' },
-                  { label: 'H1', format: 'h1', title: 'Heading 1' },
-                  { label: 'H2', format: 'h2', title: 'Heading 2' },
-                  { label: 'H3', format: 'h3', title: 'Heading 3' },
-                  { label: '• List', format: 'ul', title: 'Bullet List' },
-                ].map(btn => (
-                  <TouchableOpacity
-                    key={btn.format}
-                    onPress={() => {
-                      const insertFormatting = (before, after = '') => {
-                        setVisitorInductionContent(
-                          visitorInductionContent + (visitorInductionContent.endsWith('\n') ? '' : '\n') + before + 'text' + after
-                        );
-                      };
-                      
-                      if (btn.format === 'bold') insertFormatting('<b>', '</b>');
-                      else if (btn.format === 'italic') insertFormatting('<i>', '</i>');
-                      else if (btn.format === 'underline') insertFormatting('<u>', '</u>');
-                      else if (btn.format === 'h1') insertFormatting('<h1>', '</h1>');
-                      else if (btn.format === 'h2') insertFormatting('<h2>', '</h2>');
-                      else if (btn.format === 'h3') insertFormatting('<h3>', '</h3>');
-                      else if (btn.format === 'ul') insertFormatting('<ul><li>', '</li></ul>');
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            {/* Left side: Editor */}
+            <ScrollView style={{ flex: 1, borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 12, color: '#1F2937' }}>Content Lines</Text>
+              
+              {visitorInductionContent.map((line, idx) => (
+                <View key={idx} style={{ marginBottom: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                    {/* Type Dropdown */}
+                    <TouchableOpacity
+                      style={{ flex: 0.5, backgroundColor: '#F3F4F6', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center', borderWidth: 1, borderColor: '#D1D5DB' }}
+                      onPress={() => {
+                        Alert.alert('Select Format', '', [
+                          { text: 'Normal', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'normal'; setVisitorInductionContent(newLines); } },
+                          { text: 'Heading 1', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'h1'; setVisitorInductionContent(newLines); } },
+                          { text: 'Heading 2', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'h2'; setVisitorInductionContent(newLines); } },
+                          { text: 'Heading 3', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'h3'; setVisitorInductionContent(newLines); } },
+                          { text: 'Bold', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'bold'; setVisitorInductionContent(newLines); } },
+                          { text: 'List Item', onPress: () => { const newLines = [...visitorInductionContent]; newLines[idx].type = 'list'; setVisitorInductionContent(newLines); } },
+                          { text: 'Cancel', onPress: () => {} },
+                        ]);
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>{getLineTypeLabel(line.type)}</Text>
+                    </TouchableOpacity>
+                    
+                    {/* Delete Button */}
+                    <TouchableOpacity
+                      style={{ flex: 0.2, backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' }}
+                      onPress={() => {
+                        const newLines = visitorInductionContent.filter((_, i) => i !== idx);
+                        setVisitorInductionContent(newLines);
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>Del</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Text Input */}
+                  <TextInput
+                    style={{
+                      backgroundColor: '#FAFAFA',
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 6,
+                      padding: 10,
+                      fontSize: 13,
+                      minHeight: 50,
+                      textAlignVertical: 'top'
                     }}
-                    style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'white', borderRadius: 4, borderWidth: 1, borderColor: '#9CA3AF' }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>{btn.label}</Text>
-                  </TouchableOpacity>
-                ))}
+                    multiline
+                    placeholder="Enter text for this line..."
+                    value={line.text}
+                    onChangeText={(text) => {
+                      const newLines = [...visitorInductionContent];
+                      newLines[idx].text = text;
+                      setVisitorInductionContent(newLines);
+                    }}
+                  />
+                </View>
+              ))}
+              
+              {/* Add Line Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#E0E7FF',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginBottom: 16
+                }}
+                onPress={() => {
+                  setVisitorInductionContent([...visitorInductionContent, { text: '', type: 'normal' }]);
+                }}
+              >
+                <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 14 }}>+ Add Line</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Right side: Live Preview */}
+            <ScrollView style={{ flex: 0.8, backgroundColor: '#F9FAFB', padding: 16, borderLeftWidth: 1, borderLeftColor: '#E5E7EB' }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 12, color: '#1F2937' }}>Live Preview</Text>
+              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', padding: 16 }}>
+                {visitorInductionContent.length === 0 ? (
+                  <Text style={{ color: '#9CA3AF', fontStyle: 'italic' }}>Add content lines to see preview...</Text>
+                ) : (
+                  visitorInductionContent.map((line, idx) => {
+                    if (!line.text) return null;
+                    switch (line.type) {
+                      case 'h1':
+                        return <Text key={idx} style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 12, color: '#111827' }}>{line.text}</Text>;
+                      case 'h2':
+                        return <Text key={idx} style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#111827' }}>{line.text}</Text>;
+                      case 'h3':
+                        return <Text key={idx} style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: '#111827' }}>{line.text}</Text>;
+                      case 'bold':
+                        return <Text key={idx} style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>{line.text}</Text>;
+                      case 'list':
+                        return <Text key={idx} style={{ fontSize: 14, marginBottom: 6, marginLeft: 16 }}>• {line.text}</Text>;
+                      default:
+                        return <Text key={idx} style={{ fontSize: 14, marginBottom: 8, lineHeight: 20 }}>{line.text}</Text>;
+                    }
+                  })
+                )}
               </View>
-              <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Click buttons to insert formatting tags (edit the 'text' placeholder with your content)</Text>
-            </View>
+            </ScrollView>
+          </View>
 
-            <TextInput
+          <View style={{ flexDirection: 'row', gap: 12, padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+            <TouchableOpacity
               style={{
-                backgroundColor: 'white',
-                borderWidth: 1,
-                borderColor: '#D1D5DB',
-                borderRadius: 8,
+                flex: 1,
+                backgroundColor: '#10B981',
                 padding: 12,
-                fontSize: 14,
-                minHeight: 400,
-                textAlignVertical: 'top',
-                fontFamily: 'monospace'
+                borderRadius: 8,
+                alignItems: 'center'
               }}
-              multiline
-              placeholder="Enter the visitor induction text that will be displayed at the kiosk... Use formatting buttons above to add bold, italics, headings, etc."
-              value={visitorInductionContent}
-              onChangeText={setVisitorInductionContent}
-            />
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: '#10B981',
-                  padding: 12,
-                  borderRadius: 8,
-                  alignItems: 'center'
-                }}
-                onPress={handleSaveInduction}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>✓ Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: '#EF4444',
-                  padding: 12,
-                  borderRadius: 8,
-                  alignItems: 'center'
-                }}
-                onPress={handleCancel}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              onPress={handleSaveInduction}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>✓ Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#EF4444',
+                padding: 12,
+                borderRadius: 8,
+                alignItems: 'center'
+              }}
+              onPress={handleCancel}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
