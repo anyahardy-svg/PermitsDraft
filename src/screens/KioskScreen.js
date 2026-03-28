@@ -594,16 +594,16 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
             // Display text/HTML content if no PDF
             <View style={styles.inductionBox}>
               {visitorInductionContent.includes('<') && visitorInductionContent.includes('>') ? (
-                // Render as HTML using WebView
-                <WebView
-                  source={{ 
-                    html: `
+                // Render as HTML with platform-specific component
+                Platform.OS === 'web' ? (
+                  <iframe
+                    srcDoc={`
                       <!DOCTYPE html>
                       <html>
                       <head>
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                         <style>
-                          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #1F2937; }
+                          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #1F2937; margin: 0; }
                           h1 { font-size: 28px; font-weight: bold; margin: 16px 0 8px 0; color: #111827; }
                           h2 { font-size: 24px; font-weight: bold; margin: 14px 0 6px 0; color: #111827; }
                           h3 { font-size: 20px; font-weight: bold; margin: 12px 0 4px 0; color: #111827; }
@@ -619,18 +619,55 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
                         ${visitorInductionContent}
                       </body>
                       </html>
-                    `
-                  }}
-                  scrollEnabled={true}
-                  style={{ flex: 1, minHeight: 300 }}
-                  javaScriptEnabled={false}
-                  startInLoadingState
-                  renderLoading={() => (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ color: '#6B7280' }}>Loading content...</Text>
-                    </View>
-                  )}
-                />
+                    `}
+                    style={{
+                      flex: 1,
+                      width: '100%',
+                      minHeight: 300,
+                      border: 'none',
+                      borderRadius: 8,
+                    }}
+                    title="Visitor Induction"
+                  />
+                ) : (
+                  // Native mobile: use WebView
+                  <WebView
+                    source={{ 
+                      html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #1F2937; }
+                            h1 { font-size: 28px; font-weight: bold; margin: 16px 0 8px 0; color: #111827; }
+                            h2 { font-size: 24px; font-weight: bold; margin: 14px 0 6px 0; color: #111827; }
+                            h3 { font-size: 20px; font-weight: bold; margin: 12px 0 4px 0; color: #111827; }
+                            b, strong { font-weight: bold; color: #111827; }
+                            i, em { font-style: italic; }
+                            u { text-decoration: underline; }
+                            ul, ol { margin: 12px 0; padding-left: 20px; }
+                            li { margin: 6px 0; }
+                            p { margin: 8px 0; }
+                          </style>
+                        </head>
+                        <body>
+                          ${visitorInductionContent}
+                        </body>
+                        </html>
+                      `
+                    }}
+                    scrollEnabled={true}
+                    style={{ flex: 1, minHeight: 300 }}
+                    javaScriptEnabled={false}
+                    startInLoadingState
+                    renderLoading={() => (
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ color: '#6B7280' }}>Loading content...</Text>
+                      </View>
+                    )}
+                  />
+                )
               ) : (
                 // Render as plain text if no HTML tags
                 <Text style={styles.inductionText}>{visitorInductionContent}</Text>
