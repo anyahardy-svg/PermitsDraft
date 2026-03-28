@@ -2216,7 +2216,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [visitorInductionContent, setVisitorInductionContent] = useState([]); // Array of { text, type }
   const [editingVisitorInduction, setEditingVisitorInduction] = useState(null); // Site ID of the induction being edited
   const [visitorInductionFilterBusinessUnit, setVisitorInductionFilterBusinessUnit] = useState('');
-  const [editingLineFormatIdx, setEditingLineFormatIdx] = useState(null); // Index of line with format menu open
   const [isolationRegisters, setIsolationRegisters] = useState([]);
   const [selectedIsolation, setSelectedIsolation] = useState(null);
   const [editingIsolation, setEditingIsolation] = useState(false);
@@ -10751,68 +10750,53 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               
               {visitorInductionContent.map((line, idx) => (
                 <View key={idx} style={{ marginBottom: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                    {/* Type Dropdown Button */}
-                    <TouchableOpacity
-                      style={{ flex: 0.5, backgroundColor: '#F3F4F6', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center', borderWidth: 1, borderColor: editingLineFormatIdx === idx ? '#3B82F6' : '#D1D5DB' }}
-                      onPress={() => {
-                        setEditingLineFormatIdx(editingLineFormatIdx === idx ? null : idx);
-                      }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>{getLineTypeLabel(line.type)}</Text>
-                    </TouchableOpacity>
+                  {/* Format Buttons - Always visible, single tap to change */}
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Normal', type: 'normal' },
+                      { label: 'H1', type: 'h1' },
+                      { label: 'H2', type: 'h2' },
+                      { label: 'H3', type: 'h3' },
+                      { label: 'Bold', type: 'bold' },
+                      { label: 'List', type: 'list' },
+                    ].map(option => (
+                      <TouchableOpacity
+                        key={option.type}
+                        onPress={() => {
+                          const newLines = [...visitorInductionContent];
+                          newLines[idx].type = option.type;
+                          setVisitorInductionContent(newLines);
+                        }}
+                        style={{
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          borderRadius: 4,
+                          backgroundColor: line.type === option.type ? '#3B82F6' : '#E5E7EB',
+                          borderWidth: line.type === option.type ? 2 : 1,
+                          borderColor: line.type === option.type ? '#1E40AF' : '#D1D5DB',
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: line.type === option.type ? '700' : '500',
+                          color: line.type === option.type ? 'white' : '#374151',
+                        }}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                     
                     {/* Delete Button */}
                     <TouchableOpacity
-                      style={{ flex: 0.2, backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' }}
+                      style={{ marginLeft: 'auto', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4, backgroundColor: '#FEE2E2' }}
                       onPress={() => {
                         const newLines = visitorInductionContent.filter((_, i) => i !== idx);
                         setVisitorInductionContent(newLines);
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>Del</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#DC2626' }}>Delete</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {/* Format Menu - Shows when format button is pressed */}
-                  {editingLineFormatIdx === idx && (
-                    <View style={{ marginBottom: 8, backgroundColor: '#F9FAFB', borderRadius: 6, borderWidth: 1, borderColor: '#E5E7EB', padding: 8, gap: 4 }}>
-                      {[
-                        { label: 'Normal', type: 'normal' },
-                        { label: 'Heading 1', type: 'h1' },
-                        { label: 'Heading 2', type: 'h2' },
-                        { label: 'Heading 3', type: 'h3' },
-                        { label: 'Bold', type: 'bold' },
-                        { label: 'List Item', type: 'list' },
-                      ].map(option => (
-                        <TouchableOpacity
-                          key={option.type}
-                          onPress={() => {
-                            const newLines = [...visitorInductionContent];
-                            newLines[idx].type = option.type;
-                            setVisitorInductionContent(newLines);
-                            setEditingLineFormatIdx(null);
-                          }}
-                          style={{
-                            paddingVertical: 8,
-                            paddingHorizontal: 10,
-                            borderRadius: 4,
-                            backgroundColor: line.type === option.type ? '#E0E7FF' : 'white',
-                            borderWidth: 1,
-                            borderColor: line.type === option.type ? '#3B82F6' : '#E5E7EB',
-                          }}
-                        >
-                          <Text style={{
-                            fontSize: 12,
-                            fontWeight: line.type === option.type ? '600' : '400',
-                            color: line.type === option.type ? '#3B82F6' : '#374151',
-                          }}>
-                            {option.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
 
                   {/* Text Input */}
                   <TextInput
