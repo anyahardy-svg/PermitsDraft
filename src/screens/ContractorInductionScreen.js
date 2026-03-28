@@ -503,14 +503,22 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
 
       // Apply service-triggered compulsory rules: if contractor has a service that forces this induction to be compulsory, move it
-      optional.forEach((ind, idx) => {
-        if (ind.force_compulsory_with_service_id && contractorServiceIds.includes(ind.force_compulsory_with_service_id)) {
-          // Remove from optional and add to compulsory
-          optional.splice(idx, 1);
-          compulsory.push(ind);
+      const serviceTriggeredCompulsory = optional.filter(ind => 
+        ind.force_compulsory_with_service_id && contractorServiceIds.includes(ind.force_compulsory_with_service_id)
+      );
+      
+      if (serviceTriggeredCompulsory.length > 0) {
+        serviceTriggeredCompulsory.forEach(ind => {
           console.log(`🔗 Service-triggered compulsory: "${ind.induction_name}" is now compulsory due to contractor's service selection`);
-        }
-      });
+        });
+        compulsory.push(...serviceTriggeredCompulsory);
+        
+        // Remove these from optional
+        const serviceTriggeredIds = new Set(serviceTriggeredCompulsory.map(ind => ind.id));
+        const remainingOptional = optional.filter(ind => !serviceTriggeredIds.has(ind.id));
+        optional.length = 0;
+        optional.push(...remainingOptional);
+      }
 
       console.log('📋 Separated: Compulsory:', compulsory.length, 'Optional:', optional.length);
 
