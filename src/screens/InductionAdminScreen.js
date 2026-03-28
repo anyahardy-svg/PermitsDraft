@@ -53,6 +53,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
     description: '',
     subsection_name: '',
     business_unit_ids: [],
+    service_id: '',
+    force_compulsory_with_service_id: '',
     site_id: '',
     video_url: '',
     video_duration: '',
@@ -108,7 +110,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: '',
       subsection_name: '',
       business_unit_ids: [],
-      service_ids: [],
+      service_id: '',
+      force_compulsory_with_service_id: '',
       site_id: '',
       video_url: '',
       video_duration: '',
@@ -140,7 +143,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: induction.description || '',
       subsection_name: induction.subsection_name || '',
       business_unit_ids: induction.business_unit_ids || [],
-      service_ids: induction.service_ids || [],
+      service_id: induction.service_id || '',
+      force_compulsory_with_service_id: induction.force_compulsory_with_service_id || '',
       site_id: induction.site_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
@@ -176,9 +180,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
       const dataToSave = { ...formData };
       
       // DEBUG: Log what we're about to send
-      console.log('📝 FormData service_ids before save:', formData.service_ids);
+      console.log('📝 FormData service_id before save:', formData.service_id);
       console.log('📝 Services available:', services.map(s => ({ id: s.id, name: s.name })));
-      console.log('📝 DataToSave service_ids:', dataToSave.service_ids);
+      console.log('📝 DataToSave service_id:', dataToSave.service_id);
       
       for (let i = 1; i <= 3; i++) {
         const qType = `question_${i}_type`;
@@ -339,16 +343,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const toggleService = (serviceId) => {
-    const currentIds = Array.isArray(formData.service_ids) ? formData.service_ids : [];
-    const updatedIds = currentIds.includes(serviceId)
-      ? currentIds.filter(id => id !== serviceId)
-      : [...currentIds, serviceId];
-    setFormData({ ...formData, service_ids: updatedIds });
+    // Single-select: only one service per induction
+    setFormData({ ...formData, service_id: formData.service_id === serviceId ? '' : serviceId });
   };
 
-  // Helper functions for safe array checks
-  const isBUSelected = (buId) => Array.isArray(formData.business_unit_ids) && formData.business_unit_ids.includes(buId);
-  const isServiceSelected = (serviceId) => Array.isArray(formData.service_ids) && formData.service_ids.includes(serviceId);
+  const isServiceSelected = (serviceId) => formData.service_id === serviceId;
   const getSelectedBUIds = () => Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
 
   const filteredInductions = filterByBU
@@ -394,7 +393,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 {ind.is_compulsory && <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', backgroundColor: '#DC2626', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>REQUIRED</Text>}
               </View>
               <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Applies to: {ind.business_unit_ids?.length > 0 ? businessUnits.filter(bu => ind.business_unit_ids.includes(bu.id)).map(bu => bu.name).join(', ') : 'None'}</Text>
-              {ind.service_ids?.length > 0 && <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Services: {services.filter(s => ind.service_ids.includes(s.id)).map(s => s.name).join(', ')}</Text>}
+              {ind.service_id && <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Service: {services.find(s => s.id === ind.service_id)?.name}</Text>}
               {ind.video_url && <Text style={{ fontSize: 11, color: '#0EA5E9', marginTop: 8 }}>📹 {ind.video_duration ? `${ind.video_duration} min` : 'Video'}</Text>}
               {ind.pdf_file_name && <Text style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>📑 {ind.pdf_file_name}</Text>}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
@@ -444,6 +443,13 @@ export default function InductionAdminScreen({ onBack, styles }) {
             ) : (
               <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' }}>No services available</Text>
             )}
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Service Selected (optional)</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>Select a service that, if assigned to a contractor, will make this induction compulsory</Text>
+            <TouchableOpacity onPress={() => setFormData({ ...formData, force_compulsory_with_service_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.force_compulsory_with_service_id === '' ? '#F3E8FF' : '#F3F4F6', marginBottom: 8 }}><Text style={{ color: formData.force_compulsory_with_service_id === '' ? '#7C3AED' : '#6B7280', fontWeight: '600' }}>None (optional induction)</Text></TouchableOpacity>
+            {services.map(service => (
+              <TouchableOpacity key={`force_${service.id}`} onPress={() => setFormData({ ...formData, force_compulsory_with_service_id: formData.force_compulsory_with_service_id === service.id ? '' : service.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.force_compulsory_with_service_id === service.id ? '#FEE2E2' : '#F3F4F6', marginBottom: 6 }}><Text style={{ color: formData.force_compulsory_with_service_id === service.id ? '#DC2626' : '#6B7280' }}>{service.name}</Text></TouchableOpacity>
+            ))}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>
