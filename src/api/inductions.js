@@ -55,16 +55,40 @@ export async function getAllInductions() {
  * @param {UUID} businessUnitId
  * @returns {Array} Inductions for the business unit
  */
-export async function getInductionsByBusinessUnit(businessUnitId) {
+export async function getInductionsByBusinessUnit(businessUnitId, contractorServiceIds = []) {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('inductions')
       .select('*')
-      .overlaps('business_unit_ids', [businessUnitId])
-      .order('induction_name, subsection_name', { ascending: true });
+      .overlaps('business_unit_ids', [businessUnitId]);
+
+    // If contractor has services, filter to inductions that apply to those services
+    if (contractorServiceIds && contractorServiceIds.length > 0) {
+      // Induction applies if:
+      // 1. It has no service_ids (applies to all) OR
+      // 2. It has service_ids that overlap with contractor's services
+      // Note: We fetch all and filter in JS because Supabase doesn't support complex OR conditions easily
+    }
+
+    const { data, error } = await query.order('induction_name, subsection_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    
+    // Filter by services in JavaScript (easier than complex SQL OR conditions)
+    const filtered = data?.filter(induction => {
+      // If induction has no service_ids, it applies to everyone
+      if (!induction.service_ids || induction.service_ids.length === 0) {
+        return true;
+      }
+      // If induction requires specific services, contractor must have at least one
+      if (contractorServiceIds && contractorServiceIds.length > 0) {
+        return induction.service_ids.some(serviceId => contractorServiceIds.includes(serviceId));
+      }
+      // Contractor has no services and induction requires services = don't show
+      return false;
+    }) || [];
+
+    return filtered;
   } catch (error) {
     console.error('Error fetching inductions for business unit:', error);
     throw error;

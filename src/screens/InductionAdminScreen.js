@@ -26,6 +26,7 @@ import {
 } from '../api/inductionsPDF';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
+import { listAllServices } from '../api/services';
 
 /**
  * InductionAdminScreen - Manage inductions (single table, simple form)
@@ -34,6 +35,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [inductions, setInductions] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [filterByBU, setFilterByBU] = useState(null);
@@ -78,14 +80,16 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [inductionsData, buData, sitesData] = await Promise.all([
+      const [inductionsData, buData, sitesData, servicesData] = await Promise.all([
         getAllInductions(),
         listBusinessUnits(),
         listSites(),
+        listAllServices(),
       ]);
       setInductions(Array.isArray(inductionsData) ? inductionsData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setSites(Array.isArray(sitesData) ? sitesData : []);
+      setServices(Array.isArray(servicesData) ? servicesData : []);
     } catch (err) {
       console.error('Error loading data:', err);
       Alert.alert('Error', 'Failed to load inductions');
@@ -104,6 +108,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: '',
       subsection_name: '',
       business_unit_ids: [],
+      service_ids: [],
       site_id: '',
       video_url: '',
       video_duration: '',
@@ -135,6 +140,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: induction.description || '',
       subsection_name: induction.subsection_name || '',
       business_unit_ids: induction.business_unit_ids || [],
+      service_ids: induction.service_ids || [],
       site_id: induction.site_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
@@ -325,6 +331,13 @@ export default function InductionAdminScreen({ onBack, styles }) {
     setFormData({ ...formData, business_unit_ids: updatedIds });
   };
 
+  const toggleService = (serviceId) => {
+    const updatedIds = formData.service_ids.includes(serviceId)
+      ? formData.service_ids.filter(id => id !== serviceId)
+      : [...formData.service_ids, serviceId];
+    setFormData({ ...formData, service_ids: updatedIds });
+  };
+
   const filteredInductions = filterByBU
     ? inductions.filter(ind => Array.isArray(ind.business_unit_ids) && ind.business_unit_ids.includes(filterByBU))
     : inductions;
@@ -368,6 +381,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 {ind.is_compulsory && <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', backgroundColor: '#DC2626', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>REQUIRED</Text>}
               </View>
               <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Applies to: {ind.business_unit_ids?.length > 0 ? businessUnits.filter(bu => ind.business_unit_ids.includes(bu.id)).map(bu => bu.name).join(', ') : 'None'}</Text>
+              {ind.service_ids?.length > 0 && <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Services: {services.filter(s => ind.service_ids.includes(s.id)).map(s => s.name).join(', ')}</Text>}
               {ind.video_url && <Text style={{ fontSize: 11, color: '#0EA5E9', marginTop: 8 }}>📹 {ind.video_duration ? `${ind.video_duration} min` : 'Video'}</Text>}
               {ind.pdf_file_name && <Text style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>📑 {ind.pdf_file_name}</Text>}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
@@ -402,6 +416,21 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 <Text style={{ fontSize: 14, fontWeight: formData.business_unit_ids.includes(bu.id) ? '600' : '400' }}>{bu.name}</Text>
               </TouchableOpacity>
             ))}
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Services (optional)</Text>
+            {services.length > 0 ? (
+              services.map(service => (
+                <TouchableOpacity key={service.id} onPress={() => toggleService(service.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: formData.service_ids.includes(service.id) ? '#DBEAFE' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#0EA5E9', alignItems: 'center', justifyContent: 'center', backgroundColor: formData.service_ids.includes(service.id) ? '#0EA5E9' : 'white', marginRight: 10 }}>{formData.service_ids.includes(service.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: formData.service_ids.includes(service.id) ? '600' : '400' }}>{service.name}</Text>
+                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Linked to {businessUnits.find(bu => bu.id === service.business_unit_id)?.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' }}>No services available</Text>
+            )}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>

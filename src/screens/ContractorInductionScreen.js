@@ -464,9 +464,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
       // Get inductions for all selected business units
       let allInductionsData = [];
+      const contractorServiceIds = contractorInfo.service_ids || [];
+      
       for (const buId of selectedBUs) {
-        const inductionsForBU = await getInductionsByBusinessUnit(buId);
-        console.log('📚 Got inductions for BU', buId, ':', inductionsForBU?.length || 0);
+        const inductionsForBU = await getInductionsByBusinessUnit(buId, contractorServiceIds);
+        console.log('📚 Got inductions for BU', buId, 'with services:', contractorServiceIds, ':', inductionsForBU?.length || 0);
         if (Array.isArray(inductionsForBU)) {
           allInductionsData = [...allInductionsData, ...inductionsForBU];
         }

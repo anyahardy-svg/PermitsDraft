@@ -10701,6 +10701,45 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
           <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
             <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#1F2937' }}>Induction Content</Text>
+            
+            {/* Formatting Toolbar */}
+            <View style={{ backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 8, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {[
+                  { label: 'B', format: 'bold', title: 'Bold' },
+                  { label: 'I', format: 'italic', title: 'Italic' },
+                  { label: 'U', format: 'underline', title: 'Underline' },
+                  { label: 'H1', format: 'h1', title: 'Heading 1' },
+                  { label: 'H2', format: 'h2', title: 'Heading 2' },
+                  { label: 'H3', format: 'h3', title: 'Heading 3' },
+                  { label: '• List', format: 'ul', title: 'Bullet List' },
+                ].map(btn => (
+                  <TouchableOpacity
+                    key={btn.format}
+                    onPress={() => {
+                      const insertFormatting = (before, after = '') => {
+                        setVisitorInductionContent(
+                          visitorInductionContent + (visitorInductionContent.endsWith('\n') ? '' : '\n') + before + 'text' + after
+                        );
+                      };
+                      
+                      if (btn.format === 'bold') insertFormatting('<b>', '</b>');
+                      else if (btn.format === 'italic') insertFormatting('<i>', '</i>');
+                      else if (btn.format === 'underline') insertFormatting('<u>', '</u>');
+                      else if (btn.format === 'h1') insertFormatting('<h1>', '</h1>');
+                      else if (btn.format === 'h2') insertFormatting('<h2>', '</h2>');
+                      else if (btn.format === 'h3') insertFormatting('<h3>', '</h3>');
+                      else if (btn.format === 'ul') insertFormatting('<ul><li>', '</li></ul>');
+                    }}
+                    style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'white', borderRadius: 4, borderWidth: 1, borderColor: '#9CA3AF' }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>{btn.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Click buttons to insert formatting tags (edit the 'text' placeholder with your content)</Text>
+            </View>
+
             <TextInput
               style={{
                 backgroundColor: 'white',
@@ -10714,7 +10753,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 fontFamily: 'monospace'
               }}
               multiline
-              placeholder="Enter the visitor induction text that will be displayed at the kiosk..."
+              placeholder="Enter the visitor induction text that will be displayed at the kiosk... Use formatting buttons above to add bold, italics, headings, etc."
               value={visitorInductionContent}
               onChangeText={setVisitorInductionContent}
             />
