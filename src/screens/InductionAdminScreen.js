@@ -325,18 +325,25 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const toggleBusinessUnit = (buId) => {
-    const updatedIds = formData.business_unit_ids.includes(buId)
-      ? formData.business_unit_ids.filter(id => id !== buId)
-      : [...formData.business_unit_ids, buId];
+    const currentIds = Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
+    const updatedIds = currentIds.includes(buId)
+      ? currentIds.filter(id => id !== buId)
+      : [...currentIds, buId];
     setFormData({ ...formData, business_unit_ids: updatedIds });
   };
 
   const toggleService = (serviceId) => {
-    const updatedIds = formData.service_ids.includes(serviceId)
-      ? formData.service_ids.filter(id => id !== serviceId)
-      : [...formData.service_ids, serviceId];
+    const currentIds = Array.isArray(formData.service_ids) ? formData.service_ids : [];
+    const updatedIds = currentIds.includes(serviceId)
+      ? currentIds.filter(id => id !== serviceId)
+      : [...currentIds, serviceId];
     setFormData({ ...formData, service_ids: updatedIds });
   };
+
+  // Helper functions for safe array checks
+  const isBUSelected = (buId) => Array.isArray(formData.business_unit_ids) && formData.business_unit_ids.includes(buId);
+  const isServiceSelected = (serviceId) => Array.isArray(formData.service_ids) && formData.service_ids.includes(serviceId);
+  const getSelectedBUIds = () => Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
 
   const filteredInductions = filterByBU
     ? inductions.filter(ind => Array.isArray(ind.business_unit_ids) && ind.business_unit_ids.includes(filterByBU))
@@ -411,19 +418,19 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
             <Text style={[styles.label, { marginTop: 20 }]}>Business Units * (select one or more)</Text>
             {businessUnits.map(bu => (
-              <TouchableOpacity key={bu.id} onPress={() => toggleBusinessUnit(bu.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: formData.business_unit_ids.includes(bu.id) ? '#E0E7FF' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
-                <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: formData.business_unit_ids.includes(bu.id) ? '#3B82F6' : 'white', marginRight: 10 }}>{formData.business_unit_ids.includes(bu.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
-                <Text style={{ fontSize: 14, fontWeight: formData.business_unit_ids.includes(bu.id) ? '600' : '400' }}>{bu.name}</Text>
+              <TouchableOpacity key={bu.id} onPress={() => toggleBusinessUnit(bu.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: isBUSelected(bu.id) ? '#E0E7FF' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
+                <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: isBUSelected(bu.id) ? '#3B82F6' : 'white', marginRight: 10 }}>{isBUSelected(bu.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
+                <Text style={{ fontSize: 14, fontWeight: isBUSelected(bu.id) ? '600' : '400' }}>{bu.name}</Text>
               </TouchableOpacity>
             ))}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Services (optional)</Text>
             {services.length > 0 ? (
               services.map(service => (
-                <TouchableOpacity key={service.id} onPress={() => toggleService(service.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: formData.service_ids.includes(service.id) ? '#DBEAFE' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
-                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#0EA5E9', alignItems: 'center', justifyContent: 'center', backgroundColor: formData.service_ids.includes(service.id) ? '#0EA5E9' : 'white', marginRight: 10 }}>{formData.service_ids.includes(service.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
+                <TouchableOpacity key={service.id} onPress={() => toggleService(service.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: isServiceSelected(service.id) ? '#DBEAFE' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#0EA5E9', alignItems: 'center', justifyContent: 'center', backgroundColor: isServiceSelected(service.id) ? '#0EA5E9' : 'white', marginRight: 10 }}>{isServiceSelected(service.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: formData.service_ids.includes(service.id) ? '600' : '400' }}>{service.name}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: isServiceSelected(service.id) ? '600' : '400' }}>{service.name}</Text>
                     <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Linked to {businessUnits.find(bu => bu.id === service.business_unit_id)?.name}</Text>
                   </View>
                 </TouchableOpacity>
@@ -434,7 +441,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>
-            {sites.filter(site => formData.business_unit_ids.includes(site.business_unit_id)).map(site => (
+            {sites.filter(site => getSelectedBUIds().includes(site.business_unit_id)).map(site => (
               <TouchableOpacity key={site.id} onPress={() => setFormData({ ...formData, site_id: site.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === site.id ? '#10B981' : '#E5E7EB', marginBottom: 6 }}><Text style={{ color: formData.site_id === site.id ? 'white' : '#374151' }}>{site.name}</Text></TouchableOpacity>
             ))}
 
