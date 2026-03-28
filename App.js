@@ -18937,14 +18937,16 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 0.22,
-    padding: 8,
+    padding: 14,
+    minHeight: 48,
     backgroundColor: '#2563EB',
     borderRadius: 6,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonText: {
     color: 'white',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
   },
   dateTimeRow: {
