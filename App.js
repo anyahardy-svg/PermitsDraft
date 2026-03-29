@@ -1103,7 +1103,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
-  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
+  const initialJSEA = { id: '', title: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
   const initialIsolations = [];
   // Initial sign-ons: empty array
   const initialSignOns = [];
@@ -1414,12 +1414,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Load a template into the current form
   const handleLoadJseaTemplate = (template) => {
-    setFormData(prev => ({
+    console.log('✅ Loading JSEA template:', template.name);
+    // Load template into the current JSEA being edited
+    setCurrentJseaData(prev => ({
       ...prev,
-      jsea: {
-        ...prev.jsea,
-        taskSteps: template.jsea || []
-      }
+      taskSteps: template.jsea || template.taskSteps || []
     }));
     setShowJseaTemplateLoader(false);
     Alert.alert('Success', `Loaded template: ${template.name}`);
@@ -2668,20 +2667,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // NEW PERMIT FORM HANDLERS - for JSEA buttons in new permit form
   const handleEditJseaDraft = useCallback(() => {
     console.log('handleEditJseaDraft (new permit) callback executing');
+    // Initialize currentJseaData if needed
+    if (!currentJseaData || !currentJseaData.taskSteps) {
+      setCurrentJseaData(initialJSEA);
+    }
     setShowJseaEditor(true);
-  }, []);
+  }, [currentJseaData, initialJSEA]);
 
   const handleLoadTemplateDraft = useCallback(() => {
     console.log('handleLoadTemplateDraft (new permit) callback executing');
+    // Initialize currentJseaData if needed
+    if (!currentJseaData || !currentJseaData.taskSteps) {
+      setCurrentJseaData(initialJSEA);
+    }
     setSelectedBuForLoader(businessUnitId || '');
     setShowJseaTemplateLoader(true);
     loadJseaTemplatesForLoader(businessUnitId);
-  }, [businessUnitId]);
+  }, [businessUnitId, currentJseaData, initialJSEA]);
 
   const handleSaveTemplateDraft = useCallback(() => {
     console.log('handleSaveTemplateDraft (new permit) callback executing');
+    // Only allow saving if we have task steps
+    if (!currentJseaData?.taskSteps || currentJseaData.taskSteps.length === 0) {
+      Alert.alert('Error', 'Please add at least one task step before saving as template');
+      return;
+    }
     setShowJseaSaveTemplate(true);
-  }, []);
+  }, [currentJseaData]);
 
   const handleSelectRiskLevel = useCallback(() => {
     console.log('handleSelectRiskLevel (new permit) callback executing');
@@ -4133,10 +4145,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <JseaEditorScreen
             initialJsea={currentJseaData?.taskSteps || []}
             onSave={(steps) => {
+              console.log('✅ JseaEditorScreen onSave called with steps:', steps);
               setCurrentJseaData({
                 ...currentJseaData,
                 taskSteps: steps
               });
+              // Close modal after saving to prevent infinite loops
+              setShowJseaEditor(false);
             }}
             onCancel={closeJseaEditor}
             styles={styles}
@@ -6195,7 +6210,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
-  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  const initialJSEA = { id: '', title: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
   const initialIsolations = [];
   const initialSignOns = [];
   const [editData, setEditData] = React.useState({
