@@ -3630,10 +3630,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
 
                 {/* When editing a JSEA, show the editor controls */}
-                {currentJseaIndex !== null && currentJseaData && (
+                {currentJseaData && (
                   <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                     <Text style={[styles.label, { marginBottom: 12, fontWeight: '700', color: '#374151' }]}>
-                      Editing JSEA: {currentJseaData.title || 'Untitled'}
+                      {currentJseaIndex === null ? 'Creating New JSEA' : 'Editing JSEA'}: {currentJseaData.title || 'Untitled'}
                     </Text>
                     
                     <View style={{ marginBottom: 16 }}>
