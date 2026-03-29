@@ -4196,14 +4196,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onRequestClose={closeJseaEditor}
         >
           <JseaEditorScreen
-            initialJsea={currentJseaData.taskSteps}
+            initialJsea={currentJseaData?.taskSteps || []}
             onSave={(steps) => {
-              setCurrentJseaData({
-                ...currentJseaData,
-                taskSteps: steps
-              });
-              // Moment after save, trigger saveJseaToArray
-              setTimeout(() => saveJseaToArray(), 100);
+              if (currentJseaData) {
+                setCurrentJseaData({
+                  ...currentJseaData,
+                  taskSteps: steps
+                });
+                // Moment after save, trigger saveJseaToArray
+                setTimeout(() => saveJseaToArray(), 100);
+              }
             }}
             onCancel={closeJseaEditor}
             styles={styles}
