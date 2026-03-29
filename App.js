@@ -1284,27 +1284,101 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return matrix[likelihood]?.[severity] || 'low';
   };
 
+  // ========== Multi-JSEA Management Functions ==========
+  
+  /**
+   * Open JSEA editor for new JSEA (index = null) or existing JSEA (index = number)
+   */
+  const openJseaEditor = (index = null) => {
+    if (index === null) {
+      // New JSEA - generate ID and set title prompt
+      setCurrentJseaIndex(null);
+      setCurrentJseaData({ 
+        id: 'jsea_' + Date.now(), 
+        title: '', 
+        taskSteps: [], 
+        overallRiskRating: '', 
+        additionalPrecautions: '' 
+      });
+    } else {
+      // Edit existing JSEA
+      setCurrentJseaIndex(index);
+      setCurrentJseaData({ ...formData.jseas[index] });
+    }
+    setShowJseaEditor(true);
+  };
+
+  /**
+   * Save current JSEA data back to the jseas array
+   */
+  const saveJseaToArray = () => {
+    if (!currentJseaData.title.trim()) {
+      Alert.alert('Error', 'Please enter a JSEA title');
+      return;
+    }
+
+    const updatedJseas = [...formData.jseas];
+    if (currentJseaIndex === null) {
+      // Add new JSEA
+      updatedJseas.push(currentJseaData);
+    } else {
+      // Update existing JSEA
+      updatedJseas[currentJseaIndex] = currentJseaData;
+    }
+    setFormData({ ...formData, jseas: updatedJseas });
+    setShowJseaEditor(false);
+    setCurrentJseaIndex(null);
+    setCurrentJseaData(initialJSEA);
+  };
+
+  /**
+   * Delete a JSEA from the array
+   */
+  const deleteJsea = (index) => {
+    Alert.alert(
+      'Delete JSEA',
+      `Delete "${formData.jseas[index].title}"?`,
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: () => {
+            const updatedJseas = formData.jseas.filter((_, idx) => idx !== index);
+            setFormData({ ...formData, jseas: updatedJseas });
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
+
+  /**
+   * Close JSEA editor without saving
+   */
+  const closeJseaEditor = () => {
+    setShowJseaEditor(false);
+    setCurrentJseaIndex(null);
+    setCurrentJseaData(initialJSEA);
+  };
+
   const addJSEAStep = () => {
-    setFormData(prev => ({
+    setCurrentJseaData(prev => ({
       ...prev,
-      jsea: {
-        ...prev.jsea,
-        taskSteps: [...prev.jsea.taskSteps, { step: '', hazards: '', controls: '', riskLevel: '' }]
-      }
+      taskSteps: [...prev.taskSteps, { step: '', hazards: '', controls: '', riskLevel: '' }]
     }));
   };
   const updateJSEAStep = (idx, field, value) => {
-    setFormData(prev => {
-      const steps = [...prev.jsea.taskSteps];
+    setCurrentJseaData(prev => {
+      const steps = [...prev.taskSteps];
       steps[idx] = { ...steps[idx], [field]: value };
-      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+      return { ...prev, taskSteps: steps };
     });
   };
   const removeJSEAStep = (idx) => {
-    setFormData(prev => {
-      const steps = [...prev.jsea.taskSteps];
+    setCurrentJseaData(prev => {
+      const steps = [...prev.taskSteps];
       steps.splice(idx, 1);
-      return { ...prev, jsea: { ...prev.jsea, taskSteps: steps } };
+      return { ...prev, taskSteps: steps };
     });
   };
 
