@@ -223,6 +223,8 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const handleDeleteInduction = (induction) => {
+    console.log('🗑️ Delete requested for induction:', { id: induction.id, name: induction.induction_name });
+    
     Alert.alert(
       'Delete Induction',
       `Delete "${induction.induction_name}"?`,
@@ -232,15 +234,20 @@ export default function InductionAdminScreen({ onBack, styles }) {
           text: 'Delete',
           onPress: async () => {
             try {
+              console.log('🗑️ Starting delete process for ID:', induction.id);
               setLoading(true);
-              await deleteInduction(induction.id);
+              const result = await deleteInduction(induction.id);
+              console.log('🗑️ Delete API returned:', result);
               await loadData();
               setLoading(false);
+              console.log('✅ Delete successful and data reloaded');
               Alert.alert('Success', 'Induction deleted');
             } catch (err) {
-              console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete induction: ' + err.message);
+              console.error('❌ Delete error:', err);
+              console.error('❌ Error message:', err.message);
+              console.error('❌ Full error:', JSON.stringify(err));
               setLoading(false);
+              Alert.alert('Error', 'Failed to delete induction: ' + err.message);
             }
           },
           style: 'destructive'

@@ -259,14 +259,24 @@ export async function updateInduction(inductionId, updates) {
  */
 export async function deleteInduction(inductionId) {
   try {
-    const { error } = await supabase
+    console.log('🗑️ API: Starting delete for induction ID:', inductionId);
+    const { error, data } = await supabase
       .from('inductions')
       .delete()
-      .eq('id', inductionId);
+      .eq('id', inductionId)
+      .select();
 
-    if (error) throw error;
+    console.log('🗑️ API: Delete response - Error:', error, 'Data:', data);
+    
+    if (error) {
+      console.error('🗑️ API: Supabase error during delete:', error);
+      throw error;
+    }
+    
+    console.log('🗑️ API: Delete successful');
+    return data;
   } catch (error) {
-    console.error('Error deleting induction:', error);
+    console.error('❌ API: Error deleting induction:', error);
     throw error;
   }
 }
