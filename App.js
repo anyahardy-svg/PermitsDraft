@@ -1165,8 +1165,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [previewAttachment, setPreviewAttachment] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [showJseaEditor, setShowJseaEditor] = useState(false);
-  const [currentJseaIndex, setCurrentJseaIndex] = useState(null); // Index of JSEA being edited
-  const [currentJseaData, setCurrentJseaData] = useState(null); // Current JSEA data in editor - null when not editing
+  const [currentJseaIndex, setCurrentJseaIndex] = useState(0); // Always editing index 0 (first JSEA) by default
+  const [currentJseaData, setCurrentJseaData] = useState(initialJSEA); // Current JSEA data in editor
   const [showJseaTemplateLoader, setShowJseaTemplateLoader] = useState(false);
   const [showJseaSaveTemplate, setShowJseaSaveTemplate] = useState(false);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
@@ -1287,12 +1287,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // ========== Multi-JSEA Management Functions ==========
   
   /**
-   * Open JSEA editor for new JSEA (index = null) or existing JSEA (index = number)
+   * Open JSEA editor for specific JSEA index in the array
    */
-  const openJseaEditor = (index = null) => {
-    if (index === null) {
-      // New JSEA - generate ID and set title prompt
-      setCurrentJseaIndex(null);
+  const openJseaEditor = (index = 0) => {
+    if (index < formData.jseas.length) {
+      // Edit existing JSEA
+      setCurrentJseaIndex(index);
+      setCurrentJseaData({ ...formData.jseas[index] });
+    } else {
+      // Create new JSEA at this index
+      setCurrentJseaIndex(index);
       setCurrentJseaData({ 
         id: 'jsea_' + Date.now(), 
         title: '', 
@@ -1300,16 +1304,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         overallRiskRating: '', 
         additionalPrecautions: '' 
       });
-    } else {
-      // Edit existing JSEA
-      setCurrentJseaIndex(index);
-      setCurrentJseaData({ ...formData.jseas[index] });
     }
     setShowJseaEditor(true);
   };
 
   /**
-   * Save current JSEA data back to the jseas array
+   * Save current JSEA data - updates first JSEA in array (simple single-editor mode)
    */
   const saveJseaToArray = () => {
     if (!currentJseaData.title.trim()) {
@@ -1317,18 +1317,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return;
     }
 
+    // Always save to jseas[0] (current editor slot)
     const updatedJseas = [...formData.jseas];
-    if (currentJseaIndex === null) {
-      // Add new JSEA
-      updatedJseas.push(currentJseaData);
-    } else {
-      // Update existing JSEA
-      updatedJseas[currentJseaIndex] = currentJseaData;
-    }
+    updatedJseas[currentJseaIndex] = { ...currentJseaData };
     setFormData({ ...formData, jseas: updatedJseas });
-    setShowJseaEditor(false);
-    setCurrentJseaIndex(null);
-    setCurrentJseaData(null);
   };
 
   /**
@@ -1357,8 +1349,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
    */
   const closeJseaEditor = () => {
     setShowJseaEditor(false);
-    setCurrentJseaIndex(null);
-    setCurrentJseaData(null);
+    // Reset to first JSEA or blank
+    setCurrentJseaIndex(0);
+    if (formData.jseas.length > 0) {
+      setCurrentJseaData({ ...formData.jseas[0] });
+    } else {
+      setCurrentJseaData(initialJSEA);
+    }
   };
 
   const addJSEAStep = () => {
@@ -3541,187 +3538,105 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           {/* JSEA Section */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('jsea')}>
-              <Text style={styles.sectionTitle}>JSEA ({formData.jseas?.length || 0})</Text>
+              <Text style={styles.sectionTitle}>JSEA</Text>
               <Text style={styles.expandIcon}>{expandedSections.jsea ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
-                {/* JSEAs List */}
                 <View style={{ marginBottom: 16 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Text style={styles.label}>Added JSEAs</Text>
+                  <Text style={styles.label}>Task Steps ({currentJseaData?.taskSteps?.length || 0})</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
+                      <Text style={styles.addButtonText}>Edit JSEA Table</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.addButton, { paddingVertical: 8, paddingHorizontal: 12 }]}
-                      onPress={() => openJseaEditor(null)}
+                      style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
+                      onPress={handleLoadTemplateDraft}
                     >
-                      <Text style={styles.addButtonText}>+ Add JSEA</Text>
+                      <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                  
-                  {(!formData.jseas || formData.jseas.length === 0) ? (
-                    <View style={{ padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                      <Text style={{ color: '#6B7280', textAlign: 'center' }}>No JSEAs added yet</Text>
-                    </View>
-                  ) : (
-                    <View style={{ gap: 10 }}>
-                      {formData.jseas.map((jsea, idx) => (
-                        <View key={jsea.id || idx} style={{ padding: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6 }}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: '#374151' }}>
-                              {jsea.title || `JSEA ${idx + 1}`}
-                            </Text>
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                              <TouchableOpacity 
-                                style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                                onPress={() => openJseaEditor(idx)}
-                              >
-                                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity 
-                                style={{ padding: 8, backgroundColor: '#EF4444', borderRadius: 4 }}
-                                onPress={() => deleteJsea(idx)}
-                              >
-                                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                          
-                          <View style={{ gap: 8 }}>
-                            <View>
-                              <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '500', marginBottom: 4 }}>Task Steps ({jsea.taskSteps?.length || 0})</Text>
-                              {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
-                                <View style={{ paddingLeft: 8 }}>
-                                  {jsea.taskSteps.slice(0, 3).map((step, stepIdx) => (
-                                    <Text key={stepIdx} style={{ fontSize: 10, color: '#4B5563', marginBottom: 2 }}>
-                                      • {step.description.substring(0, 40)}{step.description.length > 40 ? '...' : ''}
-                                    </Text>
-                                  ))}
-                                  {jsea.taskSteps.length > 3 && (
-                                    <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>
-                                      +{jsea.taskSteps.length - 3} more steps
-                                    </Text>
-                                  )}
-                                </View>
-                              ) : (
-                                <Text style={{ fontSize: 10, color: '#9CA3AF' }}>No task steps</Text>
-                              )}
-                            </View>
-                            
-                            <View>
-                              <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '500', marginBottom: 4 }}>Risk Rating</Text>
-                              <View style={{
-                                display: 'flex',
-                                backgroundColor: jsea.overallRiskRating ? getRiskColor(jsea.overallRiskRating) : '#D1D5DB',
-                                paddingHorizontal: 8,
-                                paddingVertical: 4,
-                                borderRadius: 4,
-                                alignSelf: 'flex-start'
-                              }}>
-                                <Text style={{ color: 'white', fontWeight: '600', fontSize: 10 }}>
-                                  {jsea.overallRiskRating?.toUpperCase() || 'NOT SET'}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-                        </View>
+                  {currentJseaData?.taskSteps && currentJseaData.taskSteps.length > 0 && (
+                    <TouchableOpacity 
+                      style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
+                      onPress={handleSaveTemplateDraft}
+                    >
+                      <Text style={styles.addButtonText}>Save as Template</Text>
+                    </TouchableOpacity>
+                  )}
+                  {currentJseaData?.taskSteps && currentJseaData.taskSteps.length > 0 && (
+                    <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      {currentJseaData.taskSteps.map((step, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          Step {idx + 1}: {step.description.substring(0, 50)}{step.description.length > 50 ? '...' : ''}
+                        </Text>
                       ))}
                     </View>
                   )}
                 </View>
+                <Text style={styles.label}>Overall Risk Rating</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.addButton,
+                    { 
+                      backgroundColor: currentJseaData?.overallRiskRating ? getRiskColor(currentJseaData.overallRiskRating) : '#3B82F6',
+                      flex: 1
+                    }
+                  ]}
+                  onPress={handleSelectRiskLevel}
+                >
+                  <Text style={{color: 'white', fontWeight: '600'}}>
+                    {currentJseaData?.overallRiskRating ? currentJseaData.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.label}>Additional Precautions</Text>
+                <TextInput
+                  style={styles.input}
+                  value={currentJseaData?.additionalPrecautions || ''}
+                  onChangeText={text => setCurrentJseaData({ ...currentJseaData, additionalPrecautions: text })}
+                  placeholder="Any additional precautions..."
+                  multiline
+                />
+                {/* Save JSEA Button */}
+                <TouchableOpacity 
+                  style={[styles.addButton, { marginTop: 16, backgroundColor: '#10B981' }]}
+                  onPress={saveJseaToArray}
+                >
+                  <Text style={styles.addButtonText}>Save JSEA</Text>
+                </TouchableOpacity>
 
-                {/* When editing a JSEA, show the editor controls */}
-                {currentJseaData !== null && (
+                {/* Saved JSEAs List */}
+                {formData.jseas && formData.jseas.length > 0 && (
                   <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                    <Text style={[styles.label, { marginBottom: 12, fontWeight: '700', color: '#374151' }]}>
-                      {currentJseaIndex === null ? 'Creating New JSEA' : 'Editing JSEA'}: {currentJseaData.title || 'Untitled'}
-                    </Text>
-                    
-                    <View style={{ marginBottom: 16 }}>
-                      <Text style={styles.label}>JSEA Title</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={currentJseaData.title || ''}
-                        onChangeText={text => setCurrentJseaData({ ...currentJseaData, title: text })}
-                        placeholder="e.g., Screen Replacement, Ladder Work..."
-                      />
-                    </View>
-
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>Task Steps ({currentJseaData.taskSteps?.length || 0})</Text>
-                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                        <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
-                          <Text style={styles.addButtonText}>Edit Task Steps</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]} 
-                          onPress={handleLoadTemplateDraft}
-                        >
-                          <Text style={styles.addButtonText}>Load Template</Text>
-                        </TouchableOpacity>
-                      </View>
-                      {currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0 && (
-                        <TouchableOpacity 
-                          style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
-                          onPress={handleSaveTemplateDraft}
-                        >
-                          <Text style={styles.addButtonText}>Save as Template</Text>
-                        </TouchableOpacity>
-                      )}
-                      {currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0 && (
-                        <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                          <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                          {currentJseaData.taskSteps.map((step, idx) => (
-                            <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
-                              Step {idx + 1}: {step.description.substring(0, 50)}{step.description.length > 50 ? '...' : ''}
-                            </Text>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>Overall Risk Rating</Text>
-                      <TouchableOpacity
-                        style={[
-                          styles.addButton,
-                          { 
-                            backgroundColor: currentJseaData.overallRiskRating ? getRiskColor(currentJseaData.overallRiskRating) : '#3B82F6',
-                            flex: 1
-                          }
-                        ]}
-                        onPress={handleSelectRiskLevel}
-                      >
-                        <Text style={{color: 'white', fontWeight: '600'}}>
-                          {currentJseaData.overallRiskRating ? currentJseaData.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                    <Text style={styles.label}>Saved JSEAs ({formData.jseas.length})</Text>
+                    {formData.jseas.map((jsea, idx) => (
+                      <View key={jsea.id || idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: currentJseaIndex === idx ? '#DBEAFE' : '#F9FAFB', borderRadius: 6, marginBottom: 8, borderLeftWidth: currentJseaIndex === idx ? 4 : 0, borderLeftColor: '#3B82F6' }}>
+                        <Text style={{ flex: 1, fontSize: 14, fontWeight: currentJseaIndex === idx ? '700' : '500', color: '#374151' }}>
+                          {idx + 1}. {jsea.title || 'JSEA'}
                         </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>Additional Precautions</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={currentJseaData.additionalPrecautions || ''}
-                        onChangeText={text => setCurrentJseaData({ ...currentJseaData, additionalPrecautions: text })}
-                        placeholder="Any additional precautions..."
-                        multiline
-                      />
-                    </View>
-
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity 
-                        style={[styles.addButton, { flex: 1, backgroundColor: '#10B981' }]}
-                        onPress={saveJseaToArray}
-                      >
-                        <Text style={styles.addButtonText}>Save JSEA</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
-                        onPress={closeJseaEditor}
-                      >
-                        <Text style={styles.addButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                    </View>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity 
+                            style={{ padding: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
+                            onPress={() => openJseaEditor(idx)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={{ padding: 6, backgroundColor: '#EF4444', borderRadius: 4 }}
+                            onPress={() => deleteJsea(idx)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 11 }}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                    <TouchableOpacity 
+                      style={[styles.addButton, { marginTop: 12, backgroundColor: '#10B981' }]}
+                      onPress={() => openJseaEditor(formData.jseas.length)}
+                    >
+                      <Text style={styles.addButtonText}>+ Add Another JSEA</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -4198,14 +4113,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <JseaEditorScreen
             initialJsea={currentJseaData?.taskSteps || []}
             onSave={(steps) => {
-              if (currentJseaData) {
-                setCurrentJseaData({
-                  ...currentJseaData,
-                  taskSteps: steps
-                });
-                // Moment after save, trigger saveJseaToArray
-                setTimeout(() => saveJseaToArray(), 100);
-              }
+              setCurrentJseaData({
+                ...currentJseaData,
+                taskSteps: steps
+              });
             }}
             onCancel={closeJseaEditor}
             styles={styles}
