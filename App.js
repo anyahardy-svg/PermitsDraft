@@ -1309,18 +1309,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   /**
-   * Save current JSEA data - updates first JSEA in array (simple single-editor mode)
+   * Save current JSEA data and prepare for next one
    */
   const saveJseaToArray = () => {
     if (!currentJseaData.title.trim()) {
       Alert.alert('Error', 'Please enter a JSEA title');
       return;
     }
+    if (!currentJseaData.taskSteps || currentJseaData.taskSteps.length === 0) {
+      Alert.alert('Error', 'Please add at least one task step');
+      return;
+    }
 
-    // Always save to jseas[0] (current editor slot)
+    // Save to array (either update existing or add new)
     const updatedJseas = [...formData.jseas];
     updatedJseas[currentJseaIndex] = { ...currentJseaData };
     setFormData({ ...formData, jseas: updatedJseas });
+    
+    // Now prepare for next JSEA
+    const nextIndex = currentJseaIndex + 1;
+    setCurrentJseaIndex(nextIndex);
+    setCurrentJseaData(initialJSEA);
+    
+    Alert.alert('Success', `JSEA "${currentJseaData.title}" saved! Ready for the next one.`);
   };
 
   /**
@@ -3543,6 +3554,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.label}>JSEA Title</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={currentJseaData?.title || ''}
+                    onChangeText={text => setCurrentJseaData({ ...currentJseaData, title: text })}
+                    placeholder="e.g., Screen Replacement, Ladder Work, etc."
+                  />
+                </View>
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Task Steps ({currentJseaData?.taskSteps?.length || 0})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
