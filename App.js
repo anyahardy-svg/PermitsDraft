@@ -4059,21 +4059,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <Modal 
           visible={showJseaEditor} 
           animationType="slide"
-          onRequestClose={() => setShowJseaEditor(false)}
+          onRequestClose={closeJseaEditor}
         >
           <JseaEditorScreen
-            initialJsea={formData.jsea.taskSteps}
+            initialJsea={currentJseaData.taskSteps}
             onSave={(steps) => {
-              setFormData({
-                ...formData, 
-                jsea: { 
-                  ...formData.jsea, 
-                  taskSteps: steps 
-                }
+              setCurrentJseaData({
+                ...currentJseaData,
+                taskSteps: steps
               });
-              setShowJseaEditor(false);
+              // Moment after save, trigger saveJseaToArray
+              setTimeout(() => saveJseaToArray(), 100);
             }}
-            onCancel={() => setShowJseaEditor(false)}
+            onCancel={closeJseaEditor}
             styles={styles}
           />
         </Modal>
