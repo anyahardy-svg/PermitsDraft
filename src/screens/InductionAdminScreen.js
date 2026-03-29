@@ -40,6 +40,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [filterByBU, setFilterByBU] = useState(null);
   
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [inductionToDelete, setInductionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   // PDF handling state
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState('');
@@ -224,36 +229,31 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
   const handleDeleteInduction = (induction) => {
     console.log('🗑️ Delete requested for induction:', { id: induction.id, name: induction.induction_name });
+    setInductionToDelete(induction);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteInduction = async () => {
+    if (!inductionToDelete) return;
     
-    Alert.alert(
-      'Delete Induction',
-      `Delete "${induction.induction_name}"?`,
-      [
-        { text: 'Cancel' },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Starting delete process for ID:', induction.id);
-              setLoading(true);
-              const result = await deleteInduction(induction.id);
-              console.log('🗑️ Delete API returned:', result);
-              await loadData();
-              setLoading(false);
-              console.log('✅ Delete successful and data reloaded');
-              Alert.alert('Success', 'Induction deleted');
-            } catch (err) {
-              console.error('❌ Delete error:', err);
-              console.error('❌ Error message:', err.message);
-              console.error('❌ Full error:', JSON.stringify(err));
-              setLoading(false);
-              Alert.alert('Error', 'Failed to delete induction: ' + err.message);
-            }
-          },
-          style: 'destructive'
-        },
-      ]
-    );
+    try {
+      console.log('🗑️ Starting delete process for ID:', inductionToDelete.id);
+      setIsDeleting(true);
+      const result = await deleteInduction(inductionToDelete.id);
+      console.log('🗑️ Delete API returned:', result);
+      await loadData();
+      console.log('✅ Delete successful and data reloaded');
+      setShowDeleteConfirm(false);
+      setInductionToDelete(null);
+      Alert.alert('Success', 'Induction deleted');
+    } catch (err) {
+      console.error('❌ Delete error:', err);
+      console.error('❌ Error message:', err.message);
+      console.error('❌ Full error:', JSON.stringify(err));
+      Alert.alert('Error', 'Failed to delete induction: ' + err.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handlePickPDF = async () => {
@@ -644,6 +644,41 @@ export default function InductionAdminScreen({ onBack, styles }) {
               <Text style={{ fontSize: 14, color: '#666' }}>Loading PDF...</Text>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 400 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Delete Induction?</Text>
+            <Text style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>
+              Are you sure you want to delete "{inductionToDelete?.induction_name}"? This cannot be undone.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, backgroundColor: '#E5E7EB', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#374151', fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmDeleteInduction}
+                disabled={isDeleting}
+                style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, backgroundColor: '#DC2626', alignItems: 'center' }}
+              >
+                <Text style={{ color: 'white', fontWeight: '600' }}>
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
