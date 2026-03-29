@@ -1166,7 +1166,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [showJseaEditor, setShowJseaEditor] = useState(false);
   const [currentJseaIndex, setCurrentJseaIndex] = useState(null); // Index of JSEA being edited
-  const [currentJseaData, setCurrentJseaData] = useState(initialJSEA); // Current JSEA data in editor
+  const [currentJseaData, setCurrentJseaData] = useState(null); // Current JSEA data in editor - null when not editing
   const [showJseaTemplateLoader, setShowJseaTemplateLoader] = useState(false);
   const [showJseaSaveTemplate, setShowJseaSaveTemplate] = useState(false);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
@@ -1328,7 +1328,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setFormData({ ...formData, jseas: updatedJseas });
     setShowJseaEditor(false);
     setCurrentJseaIndex(null);
-    setCurrentJseaData(initialJSEA);
+    setCurrentJseaData(null);
   };
 
   /**
@@ -1358,7 +1358,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const closeJseaEditor = () => {
     setShowJseaEditor(false);
     setCurrentJseaIndex(null);
-    setCurrentJseaData(initialJSEA);
+    setCurrentJseaData(null);
   };
 
   const addJSEAStep = () => {
@@ -3630,7 +3630,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
 
                 {/* When editing a JSEA, show the editor controls */}
-                {currentJseaData && (
+                {currentJseaData !== null && (
                   <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                     <Text style={[styles.label, { marginBottom: 12, fontWeight: '700', color: '#374151' }]}>
                       {currentJseaIndex === null ? 'Creating New JSEA' : 'Editing JSEA'}: {currentJseaData.title || 'Untitled'}
