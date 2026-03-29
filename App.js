@@ -1103,7 +1103,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
-  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  const initialJSEA = { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
   const initialIsolations = [];
   // Initial sign-ons: empty array
   const initialSignOns = [];
@@ -1135,7 +1135,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     endTime: defaultTime,
     specializedPermits: initialSpecializedPermits,
     singleHazards: initialSingleHazards,
-    jsea: initialJSEA,
+    jseas: [], // Array of JSEA objects: { id, title, taskSteps, overallRiskRating, additionalPrecautions }
     isolations: initialIsolations,
     signOns: initialSignOns,
     completion: { finalToolCount: '', completionNotes: '' },
@@ -1165,6 +1165,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [previewAttachment, setPreviewAttachment] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [showJseaEditor, setShowJseaEditor] = useState(false);
+  const [currentJseaIndex, setCurrentJseaIndex] = useState(null); // Index of JSEA being edited
+  const [currentJseaData, setCurrentJseaData] = useState(initialJSEA); // Current JSEA data in editor
   const [showJseaTemplateLoader, setShowJseaTemplateLoader] = useState(false);
   const [showJseaSaveTemplate, setShowJseaSaveTemplate] = useState(false);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
