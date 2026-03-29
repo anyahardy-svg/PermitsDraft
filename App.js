@@ -1423,7 +1423,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       Alert.alert('Error', 'Please enter a template name');
       return;
     }
-    if (formData.jsea.taskSteps.length === 0) {
+    if (!currentJseaData || currentJseaData.taskSteps.length === 0) {
       Alert.alert('Error', 'Please add at least one step before saving as template');
       return;
     }
@@ -1436,7 +1436,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       const response = await saveJseaTemplate(
         jseaTemplateName,
-        formData.jsea.taskSteps,
+        currentJseaData.taskSteps,
         selectedBusForTemplate,
         selectedCompanyForTemplate || null
       );
@@ -1953,7 +1953,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: formData.jsea,
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jseas: formData.jseas || [], // Save all JSEAs
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: [] // Will be populated after upload
@@ -3834,41 +3835,51 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   );
                 })()}
                 {/* JSEA Task Steps */}
-                {formData.jsea.taskSteps && formData.jsea.taskSteps.length > 0 && (
-                  <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA - Task Steps</Text>
-                    {formData.jsea.taskSteps.map((step, idx) => (
-                      <View key={idx} style={{ marginBottom: 12, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                        <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.step}</Text>
-                        {step.hazards && (
-                          <View style={{ marginBottom: 4 }}>
-                            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Hazards:</Text>
-                            <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.hazards}</Text>
+                {formData.jseas && formData.jseas.length > 0 && (
+                  <View>
+                    {formData.jseas.map((jsea, jseaIdx) => (
+                      <View key={jsea.id || jseaIdx} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
+                        {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
+                          <View style={{ marginBottom: 8 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#6B7280', marginBottom: 6 }}>Task Steps:</Text>
+                            {jsea.taskSteps.map((step, idx) => (
+                              <View key={idx} style={{ marginBottom: 10, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                                <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.step}</Text>
+                                {step.hazards && (
+                                  <View style={{ marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Hazards:</Text>
+                                    <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.hazards}</Text>
+                                  </View>
+                                )}
+                                {step.controls && (
+                                  <View style={{ marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Controls:</Text>
+                                    <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.controls}</Text>
+                                  </View>
+                                )}
+                                {step.riskLevel && (
+                                  <View>
+                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Risk Level:</Text>
+                                    <Text style={{ fontSize: 12, color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', marginLeft: 8 }}>{step.riskLevel}</Text>
+                                  </View>
+                                )}
+                              </View>
+                            ))}
                           </View>
+                        ) : (
+                          <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>No task steps added</Text>
                         )}
-                        {step.controls && (
-                          <View style={{ marginBottom: 4 }}>
-                            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Controls:</Text>
-                            <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.controls}</Text>
-                          </View>
-                        )}
-                        {step.riskLevel && (
-                          <View>
-                            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Risk Level:</Text>
-                            <Text style={{ fontSize: 12, color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', marginLeft: 8 }}>{step.riskLevel}</Text>
+                        {jsea.additionalPrecautions && (
+                          <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Additional Precautions:</Text>
+                            <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
+                              <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{jsea.additionalPrecautions}</Text>
+                            </View>
                           </View>
                         )}
                       </View>
                     ))}
-                  </View>
-                )}
-                {/* JSEA Additional Precautions */}
-                {formData.jsea.additionalPrecautions && (
-                  <View style={{ marginBottom: 16, paddingBottom: 12 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA - Additional Precautions</Text>
-                    <View style={{ paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                      <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{formData.jsea.additionalPrecautions}</Text>
-                    </View>
                   </View>
                 )}
                 {/* Safety Watches & Firewatch */}
@@ -4732,13 +4743,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     onPress={() => {
                       const riskLevel = calculateRiskLevel(selectedLikelihood, selectedSeverity);
                       
-                      // Update the correct state based on context
-                      if (riskMatrixContext === 'draft' && editData) {
-                        setEditData({ ...editData, jsea: { ...editData.jsea, overallRiskRating: riskLevel } });
-                      } else {
-                        setFormData({ ...formData, jsea: { ...formData.jsea, overallRiskRating: riskLevel } });
+                      // Update the currentJseaData being edited
+                      if (currentJseaData) {
+                        setCurrentJseaData({ ...currentJseaData, overallRiskRating: riskLevel });
                       }
-                      
                       setShowRiskMatrix(false);
                       setSelectedLikelihood('');
                       setSelectedSeverity('');
@@ -6264,7 +6272,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     contractorSelected: permit.contractor_selected || false,
     specializedPermits: permit.specializedPermits || initialSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
-    jsea: permit.jsea || initialJSEA,
+    jseas: permit.jseas || [],
     isolations: permit.isolations || initialIsolations,
     signOns: permit.signOns || initialSignOns,
     attachments: permit.attachments || []
@@ -6381,7 +6389,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jsea: editData.jsea,
+        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jseas: editData.jseas || [], // Save all JSEAs
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
@@ -6428,7 +6437,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jsea: editData.jsea,
+        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jseas: editData.jseas || [], // Save all JSEAs
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
@@ -6682,7 +6692,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
 
         {/* CONTROLS SUMMARY - Show all controls in one place */}
-        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps) && (
+        {(editData.specializedPermits || editData.singleHazards || (editData.jseas && editData.jseas.length > 0)) && (
           <View style={{ marginTop: 20, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
             <Text style={[styles.label, { marginBottom: 8, color: '#D97706' }]}>CONTROLS SUMMARY</Text>
             
@@ -6765,16 +6775,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             })()}
 
             {/* JSEA Task Steps Controls */}
-            {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
+            {editData.jseas && editData.jseas.length > 0 && editData.jseas.some(jsea => jsea.taskSteps && jsea.taskSteps.some(step => step.controls)) && (
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                {editData.jsea.taskSteps.map((step, idx) => 
-                  step.controls ? (
-                    <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                      <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.step}</Text>
-                      <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
+                {editData.jseas.map((jsea, jseaIdx) =>
+                  jsea.taskSteps && jsea.taskSteps.some(step => step.controls) && (
+                    <View key={jseaIdx} style={{ marginBottom: 8 }}>
+                      {editData.jseas.length > 1 && (
+                        <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11, fontWeight: '700', marginBottom: 4 }]}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
+                      )}
+                      {jsea.taskSteps.map((step, idx) => 
+                        step.controls ? (
+                          <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.step}</Text>
+                            <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
+                          </View>
+                        ) : null
+                      )}
                     </View>
-                  ) : null
+                  )
                 )}
               </View>
             )}
@@ -12118,7 +12137,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       contractorSelected: permit.contractor_selected || false,
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
-      jsea: permit.jsea || initialJSEA,
+      jseas: permit.jseas || [],
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns,
       attachments: permit.attachments || [],
@@ -13612,16 +13631,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
+                {editData.jseas && editData.jseas.length > 0 && editData.jseas.some(jsea => jsea.taskSteps && jsea.taskSteps.some(step => step.controls)) && (
                   <View>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                    {editData.jsea.taskSteps.map((step, idx) => 
-                      step.controls ? (
-                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
-                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
+                    {editData.jseas.map((jsea, jseaIdx) =>
+                      jsea.taskSteps && jsea.taskSteps.some(step => step.controls) && (
+                        <View key={jseaIdx} style={{ marginBottom: 8 }}>
+                          {editData.jseas.length > 1 && (
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11, fontWeight: '700', marginBottom: 4 }]}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
+                          )}
+                          {jsea.taskSteps.map((step, idx) => 
+                            step.controls ? (
+                              <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
+                              </View>
+                            ) : null
+                          )}
                         </View>
-                      ) : null
+                      )
                     )}
                   </View>
                 )}
@@ -15175,7 +15203,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       permitIssuer: permit.permitIssuer || permit.permitted_issuer || '',
       specializedPermits: permit.specializedPermits || initialSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
-      jsea: permit.jsea || initialJSEA,
+      jseas: permit.jseas || [],
       isolations: permit.isolations || initialIsolations,
       signOns: permit.signOns || initialSignOns,
       attachments: permit.attachments || [],
@@ -17182,7 +17210,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       contractorSelected: latestPermit.contractor_selected || false,
       specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
-      jsea: latestPermit.jsea || initialJSEA,
+      jseas: latestPermit.jseas || [],
       isolations: latestPermit.isolations || initialIsolations,
       signOns: latestPermit.signOns || initialSignOns,
       attachments: latestPermit.attachments || []
