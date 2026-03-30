@@ -2062,13 +2062,6 @@ export default function CompanyAccreditationScreen({
           3: 'Formal systems in place; consistent application; structured communication',
           4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
         }
-      },
-      {
-        number: 24,
-        title: 'Insurance Documents',
-        isInsuranceSection: true,
-        state: section24,
-        setState: setSection24
       }
     ];
 
