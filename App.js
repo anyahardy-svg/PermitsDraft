@@ -7048,11 +7048,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
-            // Approve: set status to 'pending_inspection' and update permit
-            const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
-            const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
-              (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+            // Approve: set status to 'pending_inspection' based on new rules
+            const determineNeedsInspection = () => {
+              // High/Very High risk level always requires inspection
+              if (['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.())) {
+                return true;
+              }
+              
+              const sp = editData.specializedPermits || {};
+              
+              // Hot Work - needs inspection ONLY if NOT in approved hot work area
+              if (sp.hotWork?.required && sp.hotWork?.questionnaire?.workshop_alternative?.answer === 'no') {
+                return true;
+              }
+              
+              // These specialized permits ALWAYS require inspection if enabled
+              if (sp.confinedSpace?.required) return true;
+              if (sp.electrical?.required) return true;
+              if (sp.excavation?.required) return true;
+              if (sp.blasting?.required) return true;
+              if (sp.lifting?.required) return true;
+              
+              // Plant Servicing, Stripping, Surveying - no inspection needed
+              return false;
+            };
             
+            const isHighRisk = determineNeedsInspection();
             const newStatus = isHighRisk ? 'pending_inspection' : 'active';
             const approvedDate = new Date().toISOString().split('T')[0];
             
@@ -12452,11 +12473,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       try {
         setLoadingIssuerSignatureApproval(true);
 
-        // Determine status based on risk level
-        const highRiskSpecials = ['hotWork', 'confinedSpace', 'workingAtHeight', 'electrical', 'lifting', 'blasting'];
-        const isHighRisk = ['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.()) ||
-          (editData.specializedPermits && Object.keys(editData.specializedPermits).some(key => highRiskSpecials.includes(key) && editData.specializedPermits[key]?.required));
+        // Determine status based on new inspection rules
+        const determineNeedsInspection = () => {
+          // High/Very High risk level always requires inspection
+          if (['high', 'very_high'].includes(editData.jsea?.overallRiskRating?.toLowerCase?.())) {
+            return true;
+          }
+          
+          const sp = editData.specializedPermits || {};
+          
+          // Hot Work - needs inspection ONLY if NOT in approved hot work area
+          if (sp.hotWork?.required && sp.hotWork?.questionnaire?.workshop_alternative?.answer === 'no') {
+            return true;
+          }
+          
+          // These specialized permits ALWAYS require inspection if enabled
+          if (sp.confinedSpace?.required) return true;
+          if (sp.electrical?.required) return true;
+          if (sp.excavation?.required) return true;
+          if (sp.blasting?.required) return true;
+          if (sp.lifting?.required) return true;
+          
+          // Plant Servicing, Stripping, Surveying - no inspection needed
+          return false;
+        };
         
+        const isHighRisk = determineNeedsInspection();
         const newStatus = isHighRisk ? 'pending_inspection' : 'active';
         const approvedDate = new Date().toISOString().split('T')[0];
 
