@@ -1047,6 +1047,110 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*']
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const file = result.assets[0];
+      if (!file) return;
+
+      // Convert the file URI to a blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      
+      // Create a File object from the blob
+      const fileObject = new File([blob], file.name, { type: file.mimeType });
+
+      // Upload to Supabase Storage (accreditations bucket, same as other docs)
+      setLoading(true);
+      const uploadResult = await uploadAccreditationCertificate(
+        currentCompanyId,
+        `insurance_${insuranceType}`,
+        fileObject
+      );
+
+      if (uploadResult.success) {
+        // Update state with the new URL and timestamp
+        const insuranceKey = insuranceType === 'pli' ? 'public_liability_insurance' : 'motor_vehicle_insurance';
+        setSection24(prev => ({
+          ...prev,
+          [insuranceKey]: {
+            ...prev[insuranceKey],
+            url: uploadResult.url,
+            uploaded_at: new Date().toISOString(),
+            has_document: true
+          }
+        }));
+        // Restore scroll position after state update
+        setTimeout(() => {
+          if (scrollOffset > 0) {
+            scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
+          }
+        }, 100);
+        Alert.alert('Success', `${insuranceLabel} certificate uploaded successfully`);
+      } else {
+        Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteInsuranceDocument = async (insuranceType, insuranceLabel) => {
+    const insuranceKey = insuranceType === 'pli' ? 'public_liability_insurance' : 'motor_vehicle_insurance';
+    
+    Alert.alert(
+      'Delete Document',
+      `Are you sure you want to delete the ${insuranceLabel} certificate?`,
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const documentUrl = section24[insuranceKey]?.url;
+              
+              if (!documentUrl) {
+                Alert.alert('Error', 'No document URL found');
+                return;
+              }
+
+              const result = await deleteAccreditationCertificate(documentUrl);
+
+              if (result.success) {
+                // Clear from state
+                setSection24(prev => ({
+                  ...prev,
+                  [insuranceKey]: {
+                    ...prev[insuranceKey],
+                    url: null,
+                    has_document: false
+                  }
+                }));
+                Alert.alert('Success', `${insuranceLabel} certificate deleted`);
+              } else {
+                Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Handle evidence upload for sections 4 & 5
   const handleUploadEvidence = async (section, itemKey, itemLabel) => {
     try {
@@ -2553,7 +2657,7 @@ export default function CompanyAccreditationScreen({
                     alignItems: 'center',
                     backgroundColor: section24.public_liability_insurance.has_document ? '#F0FDF4' : '#F9FAFB'
                   }}
-                  onPress={() => Alert.alert('Upload', 'Document upload functionality coming soon')}
+                  onPress={() => handleUploadInsuranceDocument('pli', 'Public Liability Insurance')}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
                     {section24.public_liability_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
@@ -2562,6 +2666,16 @@ export default function CompanyAccreditationScreen({
                     PDF or image file
                   </Text>
                 </TouchableOpacity>
+                {section24.public_liability_insurance.has_document && (
+                  <TouchableOpacity
+                    style={{ marginTop: 8, paddingVertical: 6 }}
+                    onPress={() => handleDeleteInsuranceDocument('pli', 'Public Liability Insurance')}
+                  >
+                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                      🗑️ Remove Document
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -2620,7 +2734,7 @@ export default function CompanyAccreditationScreen({
                     alignItems: 'center',
                     backgroundColor: section24.motor_vehicle_insurance.has_document ? '#F0FDF4' : '#F9FAFB'
                   }}
-                  onPress={() => Alert.alert('Upload', 'Document upload functionality coming soon')}
+                  onPress={() => handleUploadInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
                     {section24.motor_vehicle_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
@@ -2629,6 +2743,16 @@ export default function CompanyAccreditationScreen({
                     PDF or image file (optional)
                   </Text>
                 </TouchableOpacity>
+                {section24.motor_vehicle_insurance.has_document && (
+                  <TouchableOpacity
+                    style={{ marginTop: 8, paddingVertical: 6 }}
+                    onPress={() => handleDeleteInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
+                  >
+                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                      🗑️ Remove Document
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
