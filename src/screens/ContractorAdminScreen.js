@@ -17,6 +17,7 @@ import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
+import { logout } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -128,7 +129,6 @@ export default function ContractorAdminScreen({
   const handleLogout = async () => {
     try {
       // Call Supabase logout API
-      const { logout } = await import('../api/contractorAuth');
       const logoutResult = await logout();
       
       if (logoutResult.success) {

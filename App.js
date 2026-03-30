@@ -2473,12 +2473,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const { success, contractor } = await getCurrentUser();
         
         if (!success || !contractor) {
-          console.log('❌ No logged-in contractor found - showing login screen');
+          console.log('❌ No logged-in contractor found - forcing login screen');
           // Force to contractor auth screen if not logged in
-          setCurrentScreen('contractorAuth');
+          setTimeout(() => setCurrentScreen('contractorAuth'), 0);
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
-          // Stay on current screen or dashboard
+          // Redirect to contractor admin
+          setTimeout(() => setCurrentScreen('contractor_admin'), 0);
         }
       } else {
         console.log('ℹ️ Not contractor hub domain - normal permit app');
@@ -18872,7 +18873,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'contractor_admin':
       return (
         <ContractorAdminScreen
-          onNavigateBack={() => setCurrentScreen('dashboard')}
+          onNavigateBack={() => {
+            // For contractor hub, go back to login; for others, go to dashboard
+            const isContractorHub = typeof window !== 'undefined' && 
+              (window.location.hostname === 'contractorhq.co.nz' || 
+               window.location.hostname === 'www.contractorhq.co.nz' ||
+               window.location.hostname === 'localhost:3000');
+            setCurrentScreen(isContractorHub ? 'contractorAuth' : 'dashboard');
+          }}
           onReturnToKiosk={() => setCurrentScreen('kiosk')}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
