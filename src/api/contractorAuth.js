@@ -137,6 +137,55 @@ export async function getCurrentUser() {
 }
 
 /**
+ * Send password reset/setup email to contractor
+ * Checks if email exists in contractors table, then sends reset link
+ * @param {string} email - Contractor email
+ * @returns {Object} { success: boolean, message: string, error: string }
+ */
+export async function sendPasswordResetEmail(email) {
+  try {
+    // First check if this email exists in the contractors table
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, email, name')
+      .eq('email', email)
+      .single();
+
+    if (contractorError || !contractorData) {
+      return { 
+        success: false, 
+        error: 'Email not found in our system. Please contact your administrator.' 
+      };
+    }
+
+    // Now send the password reset email via Supabase Auth
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback` 
+        : 'https://contractorhq.co.nz/auth/callback'
+    });
+
+    if (resetError) {
+      return { 
+        success: false, 
+        error: resetError.message || 'Failed to send password reset email' 
+      };
+    }
+
+    return { 
+      success: true, 
+      message: `Password setup link has been sent to ${email}. Check your inbox and follow the link to set your password.`
+    };
+  } catch (error) {
+    console.error('Password reset email error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'An error occurred' 
+    };
+  }
+}
+
+/**
  * Get all contractors for contractor name selection (legacy - kept for compatibility)
  */
 export async function getAllContractors() {

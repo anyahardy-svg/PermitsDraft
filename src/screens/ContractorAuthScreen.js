@@ -16,6 +16,7 @@ import {
 import {
   loginWithEmailPassword,
   getCurrentUser,
+  sendPasswordResetEmail,
 } from '../api/contractorAuth';
 
 export default function ContractorAuthScreen({ 
@@ -27,6 +28,9 @@ export default function ContractorAuthScreen({
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  const [setupEmail, setSetupEmail] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -97,6 +101,163 @@ export default function ContractorAuthScreen({
       setLoading(false);
     }
   };
+
+  const handleSendPasswordReset = async () => {
+    if (!setupEmail.trim()) {
+      Alert.alert('Validation', 'Please enter your email address');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(setupEmail)) {
+      Alert.alert('Validation', 'Please enter a valid email address');
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const response = await sendPasswordResetEmail(setupEmail);
+
+      if (response.success) {
+        Alert.alert('Check Your Email', response.message);
+        setSetupEmail('');
+        setShowPasswordSetup(false);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to send password reset email');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  if (showPasswordSetup) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+        {/* Header */}
+        <View style={{ 
+          backgroundColor: '#1F2937',
+          paddingVertical: 50, 
+          paddingHorizontal: 16,
+          paddingTop: 80
+        }}>
+          <TouchableOpacity 
+            onPress={() => setShowPasswordSetup(false)}
+            style={{ marginBottom: 16 }}
+          >
+            <Text style={{ color: '#9CA3AF', fontSize: 18, fontWeight: '600' }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 28, 
+            fontWeight: '800',
+          }}>
+            Set Up Password
+          </Text>
+          <Text style={{ 
+            color: '#9CA3AF', 
+            fontSize: 14, 
+            marginTop: 8
+          }}>
+            Enter your email to receive setup instructions
+          </Text>
+        </View>
+
+        {/* Setup Form */}
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingTop: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3
+            }}>
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 8 
+                }}>
+                  Email Address
+                </Text>
+                <TextInput
+                  placeholder="name@company.com"
+                  value={setupEmail}
+                  onChangeText={setSetupEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!setupLoading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleSendPasswordReset}
+                disabled={setupLoading}
+                style={{
+                  backgroundColor: setupLoading ? '#9CA3AF' : '#3B82F6',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
+                {setupLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={{ 
+                    color: 'white', 
+                    fontWeight: '700', 
+                    fontSize: 16 
+                  }}>
+                    Send Setup Link
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={{
+                backgroundColor: '#F0F9FF',
+                borderRadius: 8,
+                padding: 12,
+                borderLeftWidth: 3,
+                borderLeftColor: '#3B82F6',
+                marginTop: 16
+              }}>
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: '#1E40AF',
+                  lineHeight: 18,
+                  fontWeight: '500'
+                }}>
+                  We'll send you an email with a link to set up your password. Once you set it, you can log in with your email and password.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
@@ -302,13 +463,35 @@ export default function ContractorAuthScreen({
               <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
             </View>
 
+            {/* Setup Password Link */}
+            <TouchableOpacity
+              onPress={() => setShowPasswordSetup(true)}
+              style={{
+                backgroundColor: '#F3F4F6',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#E5E7EB'
+              }}
+            >
+              <Text style={{ 
+                color: '#3B82F6', 
+                fontWeight: '600', 
+                fontSize: 15 
+              }}>
+                Set Up Your Password
+              </Text>
+            </TouchableOpacity>
+
             {/* Contact Support */}
             <View style={{
               backgroundColor: '#F0F9FF',
               borderRadius: 8,
               padding: 12,
               borderLeftWidth: 3,
-              borderLeftColor: '#3B82F6'
+              borderLeftColor: '#3B82F6',
+              marginTop: 16
             }}>
               <Text style={{ 
                 fontSize: 12, 
@@ -316,7 +499,7 @@ export default function ContractorAuthScreen({
                 lineHeight: 18,
                 fontWeight: '500'
               }}>
-                Don't have access? Contact your administrator for login credentials.
+                Don't have a password yet? Use "Set Up Your Password" above to get started.
               </Text>
             </View>
           </View>
