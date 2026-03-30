@@ -1408,14 +1408,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
-  // Load a template into the current form
+  // Load a template into the current form - APPEND steps to existing ones
   const handleLoadJseaTemplate = (template) => {
     console.log('✅ Loading JSEA template:', template.name);
-    // Load template into the current JSEA being edited
-    setCurrentJseaData(prev => ({
-      ...prev,
-      taskSteps: template.jsea || template.taskSteps || []
-    }));
+    const templateSteps = template.jsea || template.taskSteps || [];
+    
+    setCurrentJseaData(prev => {
+      if (!prev.taskSteps || prev.taskSteps.length === 0) {
+        // No existing steps - just add the template steps
+        return {
+          ...prev,
+          taskSteps: templateSteps.map((step, idx) => ({
+            ...step,
+            id: idx + 1
+          }))
+        };
+      } else {
+        // Existing steps - APPEND the template steps with new IDs
+        const maxId = Math.max(...prev.taskSteps.map(s => s.id || 0), 0);
+        const newSteps = templateSteps.map((step, idx) => ({
+          ...step,
+          id: maxId + idx + 1
+        }));
+        return {
+          ...prev,
+          taskSteps: [...prev.taskSteps, ...newSteps]
+        };
+      }
+    });
     setShowJseaTemplateLoader(false);
     Alert.alert('Success', `Loaded template: ${template.name}`);
   };
@@ -12240,15 +12260,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           return;
         }
         
-        // Update editData with the new JSEA
+        // Update editData with the new JSEA - APPEND to existing steps
+        const existingSteps = editData.jsea?.taskSteps || [];
+        const maxId = Math.max(...existingSteps.map(s => s.id || 0), 0);
+        const newSteps = taskStepsArray.map((step, idx) => ({
+          ...step,
+          id: maxId + idx + 1
+        }));
+        
         setEditData({
           ...editData,
           jsea: {
             ...editData.jsea,
-            taskSteps: taskStepsArray
+            taskSteps: [...existingSteps, ...newSteps]
           }
         });
-        console.log('[DEBUG] Updated editData with', taskStepsArray.length, 'task steps');
+        console.log('[DEBUG] Updated editData - appended', taskStepsArray.length, 'task steps to existing', existingSteps.length);
         
         setShowJseaTemplateLoaderDraft(false);
       } catch (error) {
@@ -15305,14 +15332,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           return;
         }
         
+        // Update editData with the new JSEA - APPEND to existing steps
+        const existingSteps = editData.jsea?.taskSteps || [];
+        const maxId = Math.max(...existingSteps.map(s => s.id || 0), 0);
+        const newSteps = taskStepsArray.map((step, idx) => ({
+          ...step,
+          id: maxId + idx + 1
+        }));
+        
         setEditData({
           ...editData,
           jsea: {
             ...editData.jsea,
-            taskSteps: taskStepsArray
+            taskSteps: [...existingSteps, ...newSteps]
           }
         });
-        console.log('[DEBUG] Updated editData with', taskStepsArray.length, 'task steps');
+        console.log('[DEBUG] Updated editData - appended', taskStepsArray.length, 'task steps to existing', existingSteps.length);
         
         setShowJseaTemplateLoaderDraft(false);
       } catch (error) {
