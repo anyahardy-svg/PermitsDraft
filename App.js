@@ -37,6 +37,7 @@ import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
 import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
+import AuthCallbackScreen from './src/screens/AuthCallbackScreen';
 import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 
@@ -2487,6 +2488,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
     
     detectContractorHub();
+  }, []);
+
+  // Handle password reset callback (/auth/callback)
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const pathname = window.location.pathname;
+      console.log('🔗 Current path:', pathname);
+      
+      // Check if we're on the auth callback route
+      if (pathname === '/auth/callback') {
+        console.log('✅ Auth callback detected - showing password setup screen');
+        // Set screen to show password setup
+        setCurrentScreen('authCallback');
+      }
+    };
+    
+    handleAuthCallback();
   }, []);
 
   // Update URL when currentScreen changes
@@ -18866,6 +18886,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('✅ Contractor logged in:', contractorName);
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
+          }}
+          styles={styles}
+        />
+      );
+    case 'authCallback':
+      return (
+        <AuthCallbackScreen
+          onPasswordSet={() => {
+            // Password has been set - redirect to login
+            console.log('✅ Password set successfully - redirecting to login');
+            setCurrentScreen('contractorAuth');
+            // Also clear the URL to remove the callback hash
+            if (typeof window !== 'undefined') {
+              window.history.replaceState({}, document.title, '/');
+            }
           }}
           styles={styles}
         />
