@@ -17234,6 +17234,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
     const [previewModalVisible, setPreviewModalVisible] = React.useState(false);
 
+    // JSEA Template Loading States
+    const [showJseaTemplateLoaderActive, setShowJseaTemplateLoaderActive] = React.useState(false);
+    const [selectedBuForLoaderActive, setSelectedBuForLoaderActive] = React.useState('');
+    const [selectedCompanyForLoaderActive, setSelectedCompanyForLoaderActive] = React.useState('');
+    const [jseaTemplatesAvailableActive, setJseaTemplatesAvailableActive] = React.useState([]);
+    const [loadingJseaTemplatesActive, setLoadingJseaTemplatesActive] = React.useState(false);
+
     // Sync local state with latest permit when it changes
     React.useEffect(() => {
       setEditData({ ...latestPermit });
@@ -17277,6 +17284,68 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         signOns[idx] = { ...signOns[idx], [field]: value };
         return { ...prev, signOns };
       });
+    };
+
+    // Load JSEA templates for Active Permit
+    const loadJseaTemplatesForLoaderActive = async (buIdToLoad = null) => {
+      const buIdToUse = buIdToLoad || selectedBuForLoaderActive;
+      if (!buIdToUse) {
+        Alert.alert('Error', 'Please select a business unit');
+        return;
+      }
+      setLoadingJseaTemplatesActive(true);
+      try {
+        const response = await getJseaTemplates(buIdToUse);
+        if (response?.data) {
+          setJseaTemplatesAvailableActive(response.data || []);
+        } else {
+          Alert.alert('Error', response.message || 'Failed to load templates');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load templates: ' + error.message);
+      } finally {
+        setLoadingJseaTemplatesActive(false);
+      }
+    };
+
+    // Handle loading JSEA template - APPEND to existing steps
+    const handleLoadJseaTemplateActive = (template) => {
+      try {
+        if (!template) {
+          Alert.alert('Error', 'Invalid template');
+          return;
+        }
+        
+        let taskStepsArray = null;
+        if (Array.isArray(template.jsea)) {
+          taskStepsArray = template.jsea;
+        } else if (template.jsea?.taskSteps && Array.isArray(template.jsea.taskSteps)) {
+          taskStepsArray = template.jsea.taskSteps;
+        } else {
+          Alert.alert('Error', 'Template does not contain valid JSEA steps');
+          return;
+        }
+        
+        // Update editData with the new JSEA - APPEND to existing steps
+        const existingSteps = editData.jsea?.taskSteps || [];
+        const maxId = Math.max(...existingSteps.map(s => s.id || 0), 0);
+        const newSteps = taskStepsArray.map((step, idx) => ({
+          ...step,
+          id: maxId + idx + 1
+        }));
+        
+        setEditData({
+          ...editData,
+          jsea: {
+            ...editData.jsea,
+            taskSteps: [...existingSteps, ...newSteps]
+          }
+        });
+        setShowJseaTemplateLoaderActive(false);
+        Alert.alert('Success', `Loaded template: ${template.name}`);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load template: ' + error.message);
+      }
     };
 
     // --- Handle image/attachment picking for active permit screen ---
