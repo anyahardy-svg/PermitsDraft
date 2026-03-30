@@ -36,6 +36,7 @@ import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
+import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
 import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 
@@ -2450,6 +2451,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('ℹ️ Skipping contractorAdminTab - value is:', initialContractorAdminTab);
     }
   }, [initialContractorAdminTab]);
+
+  // Detect contractor hub domain and handle authentication
+  useEffect(() => {
+    const detectContractorHub = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const hostname = window.location.hostname;
+      console.log('🔍 Checking domain:', hostname);
+      
+      // Check if this is the contractor hub domain
+      const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
+      
+      if (isContractorHub) {
+        console.log('✅ Contractor Hub domain detected');
+        
+        // Import getCurrentUser function
+        const { getCurrentUser } = await import('./src/api/contractorAuth');
+        
+        // Check if user is already logged in
+        const { success, contractor } = await getCurrentUser();
+        
+        if (!success || !contractor) {
+          console.log('❌ No logged-in contractor found - showing login screen');
+          // Force to contractor auth screen if not logged in
+          setCurrentScreen('contractorAuth');
+        } else {
+          console.log('✅ Contractor already logged in:', contractor.name);
+          // Stay on current screen or dashboard
+        }
+      } else {
+        console.log('ℹ️ Not contractor hub domain - normal permit app');
+      }
+    };
+    
+    detectContractorHub();
+  }, []);
 
   // Update URL when currentScreen changes
   useEffect(() => {
@@ -18817,6 +18854,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return (
         <InductionAdminScreen
           onBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
+      );
+    case 'contractorAuth':
+      return (
+        <ContractorAuthScreen
+          onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
+            // Contractor logged in successfully
+            console.log('✅ Contractor logged in:', contractorName);
+            // Navigate to contractor admin screen
+            setCurrentScreen('contractor_admin');
+          }}
           styles={styles}
         />
       );
