@@ -1103,7 +1103,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
-  const initialJSEA = { id: '', title: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
+  const initialJSEA = { id: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
   const initialIsolations = [];
   // Initial sign-ons: empty array
   const initialSignOns = [];
@@ -1312,10 +1312,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
    * Save current JSEA data and prepare for next one
    */
   const saveJseaToArray = () => {
-    if (!currentJseaData.title.trim()) {
-      Alert.alert('Error', 'Please enter a JSEA title');
-      return;
-    }
     if (!currentJseaData.taskSteps || currentJseaData.taskSteps.length === 0) {
       Alert.alert('Error', 'Please add at least one task step');
       return;
@@ -1331,7 +1327,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setCurrentJseaIndex(nextIndex);
     setCurrentJseaData(initialJSEA);
     
-    Alert.alert('Success', `JSEA "${currentJseaData.title}" saved! Ready for the next one.`);
+    Alert.alert('Success', `JSEA #${currentJseaIndex + 1} saved! Add steps to create another.`);
   };
 
   /**
@@ -1340,7 +1336,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const deleteJsea = (index) => {
     Alert.alert(
       'Delete JSEA',
-      `Delete "${formData.jseas[index].title}"?`,
+      `Delete JSEA #${index + 1}?`,
       [
         { text: 'Cancel' },
         {
@@ -3569,12 +3565,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Saved JSEAs List - Show First */}
                 {formData.jseas && formData.jseas.length > 0 && (
                   <View style={{ marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <Text style={[styles.label, { marginBottom: 12, fontSize: 15, fontWeight: '700' }]}>Saved JSEAs ({formData.jseas.length})</Text>
+                    <Text style={[styles.label, { marginBottom: 12, fontSize: 15, fontWeight: '700' }]}>Added JSEAs ({formData.jseas.length})</Text>
                     {formData.jseas.map((jsea, idx) => (
                       <View key={jsea.id || idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: currentJseaIndex === idx ? '#DBEAFE' : '#F9FAFB', borderRadius: 6, marginBottom: 8, borderLeftWidth: currentJseaIndex === idx ? 4 : 0, borderLeftColor: '#3B82F6' }}>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 14, fontWeight: currentJseaIndex === idx ? '700' : '500', color: '#374151' }}>
-                            {idx + 1}. {jsea.title || 'JSEA'}
+                            JSEA #{idx + 1}
                           </Text>
                           {jsea.taskSteps?.length > 0 && (
                             <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
@@ -3598,37 +3594,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </View>
                       </View>
                     ))}
-                    
-                    {/* Add New JSEA Button */}
-                    <TouchableOpacity 
-                      style={[styles.addButton, { marginTop: 12, backgroundColor: '#8B5CF6' }]}
-                      onPress={() => {
-                        // Start editing a new JSEA (at next index)
-                        const nextIndex = formData.jseas.length;
-                        setCurrentJseaIndex(nextIndex);
-                        setCurrentJseaData(initialJSEA);
-                      }}
-                    >
-                      <Text style={styles.addButtonText}>+ Add Another JSEA</Text>
-                    </TouchableOpacity>
                   </View>
                 )}
 
                 {/* JSEA Editing Form */}
                 <View style={{ backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-                  <Text style={[styles.label, { fontSize: 14, fontWeight: '700', marginBottom: 12, color: '#1F2937' }]}>
-                    {formData.jseas.length > 0 ? `JSEA #${currentJseaIndex + 1}` : 'Create First JSEA'}
-                  </Text>
+                  {formData.jseas.length > 0 && (
+                    <Text style={[styles.label, { fontSize: 14, fontWeight: '700', marginBottom: 12, color: '#1F2937' }]}>
+                      JSEA #{currentJseaIndex + 1} - Edit Steps
+                    </Text>
+                  )}
 
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={styles.label}>JSEA Title</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={currentJseaData?.title || ''}
-                      onChangeText={text => setCurrentJseaData({ ...currentJseaData, title: text })}
-                      placeholder="e.g., Screen Replacement, Ladder Work, etc."
-                    />
-                  </View>
                   <View style={{ marginBottom: 16 }}>
                     <Text style={styles.label}>Task Steps ({currentJseaData?.taskSteps?.length || 0})</Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
@@ -6232,7 +6208,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
-  const initialJSEA = { id: '', title: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
+  const initialJSEA = { id: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
   const initialIsolations = [];
   const initialSignOns = [];
   const [editData, setEditData] = React.useState({
