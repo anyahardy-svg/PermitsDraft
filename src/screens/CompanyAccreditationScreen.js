@@ -46,7 +46,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -223,6 +223,22 @@ export default function CompanyAccreditationScreen({
     waste_management_policy: { exists: false, score: 0, evidence: null },
     environmental_improvement_targets: { exists: false, score: 0, evidence: null },
     environmental_training_programme: { exists: false, score: 0, evidence: null }
+  });
+
+  // Section 24 state (Insurance Documents)
+  const [section24, setSection24] = useState({
+    public_liability_insurance: {
+      expiry_date: '',
+      url: null,
+      uploaded_at: null,
+      has_document: false
+    },
+    motor_vehicle_insurance: {
+      expiry_date: '',
+      url: null,
+      uploaded_at: null,
+      has_document: false
+    }
   });
 
   // Company information state (for verification/updates)
@@ -684,6 +700,22 @@ export default function CompanyAccreditationScreen({
           exists: data.environmental_training_programme_exists || false,
           score: data.environmental_training_programme_score || 0,
           evidence: data.environmental_training_programme_evidence_url || null
+        }
+      });
+
+      // Load section 24 (Insurance Documents)
+      setSection24({
+        public_liability_insurance: {
+          expiry_date: data.public_liability_insurance_expiry || '',
+          url: data.public_liability_insurance_url || null,
+          uploaded_at: data.public_liability_insurance_uploaded_at || null,
+          has_document: !!data.public_liability_insurance_url
+        },
+        motor_vehicle_insurance: {
+          expiry_date: data.motor_vehicle_insurance_expiry || '',
+          url: data.motor_vehicle_insurance_url || null,
+          uploaded_at: data.motor_vehicle_insurance_uploaded_at || null,
+          has_document: !!data.motor_vehicle_insurance_url
         }
       });
 
@@ -1390,6 +1422,22 @@ export default function CompanyAccreditationScreen({
       }
     });
 
+    // Add Section 24 data (Insurance Documents)
+    if (section24.public_liability_insurance.expiry_date) {
+      updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
+    }
+    if (section24.public_liability_insurance.url) {
+      updateData.public_liability_insurance_url = section24.public_liability_insurance.url;
+      updateData.public_liability_insurance_uploaded_at = section24.public_liability_insurance.uploaded_at;
+    }
+    if (section24.motor_vehicle_insurance.expiry_date) {
+      updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
+    }
+    if (section24.motor_vehicle_insurance.url) {
+      updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url;
+      updateData.motor_vehicle_insurance_uploaded_at = section24.motor_vehicle_insurance.uploaded_at;
+    }
+
     // Add Section 15 data (Competency & Qualifications)
     Object.entries(section15).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
@@ -1524,7 +1572,7 @@ export default function CompanyAccreditationScreen({
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, currentCompanyId]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -1910,6 +1958,13 @@ export default function CompanyAccreditationScreen({
           3: 'Formal systems in place; consistent application; structured communication',
           4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
         }
+      },
+      {
+        number: 24,
+        title: 'Insurance Documents',
+        isInsuranceSection: true,
+        state: section24,
+        setState: setSection24
       }
     ];
 
@@ -2880,6 +2935,9 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 20: Always Show */}
               {renderSection20()}
+              
+              {/* Section 24: Insurance Documents */}
+              {renderInsuranceSection()}
         </View>
       </ScrollView>
 
