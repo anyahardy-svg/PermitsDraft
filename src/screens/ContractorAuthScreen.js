@@ -99,186 +99,237 @@ export default function ContractorAuthScreen({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      {/* Header */}
-      <View style={styles.header || { 
-        backgroundColor: '#2563EB', 
-        paddingVertical: 40, 
+    <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+      {/* Header with gradient effect */}
+      <View style={{ 
+        backgroundColor: '#1F2937',
+        paddingVertical: 50, 
         paddingHorizontal: 16,
-        paddingTop: 60
+        paddingTop: 80
       }}>
-        <Text style={{ 
-          color: 'white', 
-          fontSize: 28, 
-          fontWeight: '700',
-          textAlign: 'center'
+        {/* Logo/Icon Area */}
+        <View style={{ 
+          alignItems: 'center',
+          marginBottom: 24
         }}>
-          Contractor Hub
-        </Text>
-        <Text style={{ 
-          color: '#DBEAFE', 
-          fontSize: 14, 
-          marginTop: 8,
-          textAlign: 'center'
-        }}>
-          Sign in to manage your permits and admin
-        </Text>
+          <View style={{
+            width: 60,
+            height: 60,
+            backgroundColor: '#3B82F6',
+            borderRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 16
+          }}>
+            <Text style={{ fontSize: 32 }}>🏢</Text>
+          </View>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 32, 
+            fontWeight: '800',
+            textAlign: 'center'
+          }}>
+            Contractor Hub
+          </Text>
+          <Text style={{ 
+            color: '#9CA3AF', 
+            fontSize: 15, 
+            marginTop: 8,
+            textAlign: 'center'
+          }}>
+            Manage permits and administration
+          </Text>
+        </View>
       </View>
 
-      {/* Login Form */}
+      {/* Login Form Container */}
       <ScrollView 
-        style={{ flex: 1, padding: 20 }} 
-        contentContainerStyle={{ justifyContent: 'center', paddingBottom: 40 }}
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingTop: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ gap: 16 }}>
-          {/* Email Input */}
-          <View>
-            <Text style={{ 
-              fontSize: 14, 
-              fontWeight: '600', 
-              color: '#1F2937', 
-              marginBottom: 8 
+        <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+          {/* Form Card */}
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: '#1F2937',
+              marginBottom: 24
             }}>
-              Email Address
+              Sign In
             </Text>
-            <TextInput
-              placeholder="your.email@company.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-              placeholderTextColor="#9CA3AF"
-              style={{
-                borderWidth: 1,
-                borderColor: '#D1D5DB',
-                borderRadius: 8,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                fontSize: 15,
-                color: '#1F2937',
-                backgroundColor: 'white'
-              }}
-            />
-          </View>
 
-          {/* Password Input */}
-          <View>
-            <Text style={{ 
-              fontSize: 14, 
-              fontWeight: '600', 
-              color: '#1F2937', 
-              marginBottom: 8 
-            }}>
-              Password
-            </Text>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#D1D5DB',
-              borderRadius: 8,
-              paddingHorizontal: 14,
-              backgroundColor: 'white'
-            }}>
+            {/* Email Input */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ 
+                fontSize: 13, 
+                fontWeight: '600', 
+                color: '#374151', 
+                marginBottom: 8 
+              }}>
+                Email Address
+              </Text>
               <TextInput
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                placeholder="name@company.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 editable={!loading}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#D1D5DB"
                 style={{
-                  flex: 1,
-                  paddingVertical: 12,
+                  borderWidth: 1.5,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
                   fontSize: 15,
-                  color: '#1F2937'
+                  color: '#1F2937',
+                  backgroundColor: '#F9FAFB'
                 }}
               />
-              <TouchableOpacity 
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                <Text style={{ fontSize: 18, color: '#6B7280' }}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
-              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Remember Me */}
-          <TouchableOpacity 
-            onPress={() => setRememberMe(!rememberMe)}
-            disabled={loading}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-          >
-            <View style={{
-              width: 18,
-              height: 18,
-              borderWidth: 1,
-              borderColor: '#D1D5DB',
-              borderRadius: 4,
-              backgroundColor: rememberMe ? '#2563EB' : 'white',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              {rememberMe && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
-            </View>
-            <Text style={{ fontSize: 14, color: '#4B5563' }}>Remember me</Text>
-          </TouchableOpacity>
-
-          {/* Login Button */}
-          <TouchableOpacity
-            onPress={handleLogin}
-            disabled={loading}
-            style={{
-              backgroundColor: loading ? '#9CA3AF' : '#2563EB',
-              paddingVertical: 14,
-              borderRadius: 8,
-              alignItems: 'center',
-              marginTop: 8
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
+            {/* Password Input */}
+            <View style={{ marginBottom: 16 }}>
               <Text style={{ 
-                color: 'white', 
-                fontWeight: '700', 
-                fontSize: 16 
+                fontSize: 13, 
+                fontWeight: '600', 
+                color: '#374151', 
+                marginBottom: 8 
               }}>
-                Sign In
+                Password
               </Text>
-            )}
-          </TouchableOpacity>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1.5,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                paddingHorizontal: 14,
+                backgroundColor: '#F9FAFB'
+              }}>
+                <TextInput
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    flex: 1,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937'
+                  }}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  style={{ padding: 8 }}
+                >
+                  <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Help Text */}
-          <View style={{ 
-            backgroundColor: '#EFF6FF', 
-            borderLeftWidth: 4,
-            borderLeftColor: '#3B82F6',
-            padding: 12,
-            borderRadius: 6,
-            marginTop: 8
-          }}>
-            <Text style={{ 
-              fontSize: 13, 
-              color: '#1E40AF',
-              lineHeight: 18
+            {/* Remember Me */}
+            <TouchableOpacity 
+              onPress={() => setRememberMe(!rememberMe)}
+              disabled={loading}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 }}
+            >
+              <View style={{
+                width: 20,
+                height: 20,
+                borderWidth: 1.5,
+                borderColor: '#D1D5DB',
+                borderRadius: 5,
+                backgroundColor: rememberMe ? '#3B82F6' : 'white',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                {rememberMe && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+              </View>
+              <Text style={{ fontSize: 14, color: '#4B5563', fontWeight: '500' }}>Remember me</Text>
+            </TouchableOpacity>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={loading}
+              style={{
+                backgroundColor: loading ? '#9CA3AF' : '#3B82F6',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 12
+              }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={{ 
+                  color: 'white', 
+                  fontWeight: '700', 
+                  fontSize: 16 
+                }}>
+                  Sign In
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center',
+              marginVertical: 16
             }}>
-              💡 Use your contractor company email and the password provided by your administrator.
-            </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
+              <Text style={{ marginHorizontal: 12, color: '#9CA3AF', fontSize: 13 }}>or</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
+            </View>
+
+            {/* Contact Support */}
+            <View style={{
+              backgroundColor: '#F0F9FF',
+              borderRadius: 8,
+              padding: 12,
+              borderLeftWidth: 3,
+              borderLeftColor: '#3B82F6'
+            }}>
+              <Text style={{ 
+                fontSize: 12, 
+                color: '#1E40AF',
+                lineHeight: 18,
+                fontWeight: '500'
+              }}>
+                Don't have access? Contact your administrator for login credentials.
+              </Text>
+            </View>
           </View>
 
           {/* Footer */}
           <Text style={{ 
-            fontSize: 12, 
-            color: '#6B7280', 
+            fontSize: 11, 
+            color: '#9CA3AF', 
             textAlign: 'center',
-            marginTop: 16
+            marginTop: 24,
+            fontWeight: '500'
           }}>
-            Version 1.0
+            © 2026 Contractor Hub. All rights reserved.
           </Text>
         </View>
       </ScrollView>

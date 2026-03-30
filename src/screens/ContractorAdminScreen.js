@@ -125,7 +125,22 @@ export default function ContractorAdminScreen({
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call Supabase logout API
+      const { logout } = await import('../api/contractorAuth');
+      const logoutResult = await logout();
+      
+      if (logoutResult.success) {
+        console.log('✅ Logged out from Supabase successfully');
+      } else {
+        console.warn('⚠️ Logout warning:', logoutResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Error calling logout:', error);
+    }
+    
+    // Clear local state
     setIsLoggedIn(false);
     setLoggedInContractor(null);
     setLoggedInCompanyId(null);
