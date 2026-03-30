@@ -2464,6 +2464,179 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const renderInsuranceSection = () => {
+    return (
+      <View key={24}>
+        <TouchableOpacity
+          onPress={() => setExpandedSections(prev => ({ ...prev, 24: !prev[24] }))}
+          style={{
+            backgroundColor: '#F0F9FF',
+            borderWidth: 2,
+            borderColor: '#0284C7',
+            borderRadius: 8,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            marginBottom: 12,
+            marginTop: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+            Section 24: Insurance Documents
+          </Text>
+          <Text style={{ fontSize: 18, color: '#0284C7' }}>
+            {expandedSections[24] ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {expandedSections[24] && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+            {/* Public Liability Insurance (Compulsory) */}
+            <View style={{ marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                  Public Liability Insurance
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#DC2626', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                  COMPULSORY
+                </Text>
+              </View>
+
+              {/* Expiry Date */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Expiry Date (dd/mm/yyyy)
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: section24.public_liability_insurance.expiry_date ? '#10B981' : '#E5E7EB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                  placeholder="dd/mm/yyyy (e.g., 25/12/2026)"
+                  value={section24.public_liability_insurance.expiry_date}
+                  onChangeText={(text) => setSection24(prev => ({
+                    ...prev,
+                    public_liability_insurance: {
+                      ...prev.public_liability_insurance,
+                      expiry_date: text
+                    }
+                  }))}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Document Upload */}
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Insurance Certificate
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 2,
+                    borderColor: section24.public_liability_insurance.has_document ? '#10B981' : '#D1D5DB',
+                    borderStyle: 'dashed',
+                    borderRadius: 6,
+                    padding: 16,
+                    alignItems: 'center',
+                    backgroundColor: section24.public_liability_insurance.has_document ? '#F0FDF4' : '#F9FAFB'
+                  }}
+                  onPress={() => Alert.alert('Upload', 'Document upload functionality coming soon')}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                    {section24.public_liability_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                    PDF or image file
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Motor Vehicle Insurance (Optional) */}
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                  Motor Vehicle Insurance
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                  OPTIONAL
+                </Text>
+              </View>
+
+              {/* Expiry Date */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Expiry Date (dd/mm/yyyy)
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: section24.motor_vehicle_insurance.expiry_date ? '#10B981' : '#E5E7EB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                  placeholder="dd/mm/yyyy (optional)"
+                  value={section24.motor_vehicle_insurance.expiry_date}
+                  onChangeText={(text) => setSection24(prev => ({
+                    ...prev,
+                    motor_vehicle_insurance: {
+                      ...prev.motor_vehicle_insurance,
+                      expiry_date: text
+                    }
+                  }))}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Document Upload */}
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Insurance Certificate
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 2,
+                    borderColor: section24.motor_vehicle_insurance.has_document ? '#10B981' : '#D1D5DB',
+                    borderStyle: 'dashed',
+                    borderRadius: 6,
+                    padding: 16,
+                    alignItems: 'center',
+                    backgroundColor: section24.motor_vehicle_insurance.has_document ? '#F0FDF4' : '#F9FAFB'
+                  }}
+                  onPress={() => Alert.alert('Upload', 'Document upload functionality coming soon')}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                    {section24.motor_vehicle_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                    PDF or image file (optional)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -2935,6 +3108,9 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 20: Always Show */}
               {renderSection20()}
+              
+              {/* Section 24: Insurance Documents */}
+              {renderInsuranceSection()}
               
               {/* Section 24: Insurance Documents */}
               {renderInsuranceSection()}
