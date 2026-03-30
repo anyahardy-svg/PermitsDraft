@@ -1,12 +1,143 @@
 /**
  * Contractor Authentication API
- * Handles PIN-based login, PIN setup, and PIN reset for contractors
+ * Handles email/password login for contractors
  */
 
 import { supabase } from '../supabaseClient';
 
 /**
- * Get all contractors for contractor name selection
+ * Login with email and password
+ * @param {string} email - Contractor email
+ * @param {string} password - Contractor password
+ * @returns {Object} { success: boolean, data: { user, contractor_id, contractor_name, company_id }, error: string }
+ */
+export async function loginWithEmailPassword(email, password) {
+  try {
+    // Sign in with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      return { success: false, error: authError.message };
+    }
+
+    if (!authData.user) {
+      return { success: false, error: 'Login failed' };
+    }
+
+    // Get contractor info from contractors table using the user's email
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, name, company_id, email')
+      .eq('email', email)
+      .single();
+
+    if (contractorError) {
+      // User exists in auth but not in contractors table
+      console.error('Contractor record not found:', contractorError);
+      return { 
+        success: false, 
+        error: 'Your contractor account is not set up. Please contact your administrator.' 
+      };
+    }
+
+    return { 
+      success: true, 
+      data: {
+        user: authData.user,
+        contractorId: contractorData.id,
+        contractorName: contractorData.name,
+        companyId: contractorData.company_id,
+        email: contractorData.email
+      }
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Create a new contractor account (signup)
+ * @param {string} email - Contractor email
+ * @param {string} password - Contractor password
+ * @returns {Object} { success: boolean, data: user, error: string }
+ */
+export async function signupContractor(email, password) {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data.user };
+  } catch (error) {
+    console.error('Signup error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Logout current user
+ */
+export async function logout() {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Logout error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Check if user is already logged in
+ */
+export async function getCurrentUser() {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      return { success: false, user: null };
+    }
+
+    // Get contractor info
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, name, company_id, email')
+      .eq('email', user.email)
+      .single();
+
+    if (contractorError) {
+      return { success: false, user: null };
+    }
+
+    return {
+      success: true,
+      user,
+      contractor: {
+        id: contractorData.id,
+        name: contractorData.name,
+        company_id: contractorData.company_id,
+        email: contractorData.email
+      }
+    };
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return { success: false, user: null };
+  }
+}
+
+/**
+ * Get all contractors for contractor name selection (legacy - kept for compatibility)
  */
 export async function getAllContractors() {
   try {

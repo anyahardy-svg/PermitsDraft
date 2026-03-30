@@ -1,7 +1,6 @@
 /**
  * Contractor Authentication Screen
- * PIN-based login for Contractor Admin
- * Handles login, PIN setup, and PIN reset
+ * Email/password login for Contractor Admin
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,435 +12,276 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  FlatList,
 } from 'react-native';
 import {
-  getAllContractors,
-  verifyContractorPin,
-  setContractorPin
+  loginWithEmailPassword,
+  getCurrentUser,
 } from '../api/contractorAuth';
 
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
   styles 
 }) {
-  const [step, setStep] = useState('selectContractor'); // 'selectContractor', 'enterPin', 'setupPin'
-  const [contractors, setContractors] = useState([]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedContractor, setSelectedContractor] = useState(null);
-  const [pin, setPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [searchText, setSearchText] = useState('');
-  const [showForgotPin, setShowForgotPin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // Load contractors on mount
+  // Check if user is already logged in on mount
   useEffect(() => {
-    loadContractors();
+    checkExistingSession();
   }, []);
 
-  const loadContractors = async () => {
-    setLoading(true);
-    try {
-      const response = await getAllContractors();
-      if (response.success) {
-        setContractors(response.data);
-      } else {
-        Alert.alert('Error', 'Failed to load contractors');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
+  const checkExistingSession = async () => {
+    const { success, contractor } = await getCurrentUser();
+    if (success && contractor) {
+      // User already logged in, skip to dashboard
+      onLoginSuccess({
+        contractorId: contractor.id,
+        contractorName: contractor.name,
+        companyId: contractor.company_id,
+        email: contractor.email
+      });
     }
   };
 
-  const handleSelectContractor = (contractor) => {
-    setSelectedContractor(contractor);
-    setPin('');
-    setNewPin('');
-    setConfirmPin('');
-    setSearchText('');
-    setShowForgotPin(false);
-    setStep('enterPin');
+  const validateForm = () => {
+    if (!email.trim()) {
+      Alert.alert('Validation', 'Please enter your email address');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Validation', 'Please enter a valid email address');
+      return false;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Validation', 'Please enter your password');
+      return false;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Validation', 'Password must be at least 6 characters');
+      return false;
+    }
+
+    return true;
   };
 
-  const handleVerifyPin = async () => {
-    if (!pin.trim()) {
-      Alert.alert('Validation', 'Please enter your PIN');
-      return;
-    }
+  const handleLogin = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      const response = await verifyContractorPin(selectedContractor.id, pin);
+      const response = await loginWithEmailPassword(email, password);
 
       if (response.success) {
         // Login successful
         onLoginSuccess({
-          contractorId: response.data.id,
-          contractorName: response.data.name,
-          companyId: response.data.company_id
+          contractorId: response.data.contractorId,
+          contractorName: response.data.contractorName,
+          companyId: response.data.companyId,
+          email: response.data.email
         });
-      } else if (response.needsSetup) {
-        // No PIN set yet, move to setup
-        setStep('setupPin');
       } else {
-        Alert.alert('Invalid PIN', response.error);
-        setPin('');
+        Alert.alert('Login Failed', response.error || 'Unable to log in. Please check your credentials.');
+        setPassword('');
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      setPassword('');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSetupPin = async () => {
-    if (!newPin.trim() || !confirmPin.trim()) {
-      Alert.alert('Validation', 'Please enter and confirm your PIN');
-      return;
-    }
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      {/* Header */}
+      <View style={styles.header || { 
+        backgroundColor: '#2563EB', 
+        paddingVertical: 40, 
+        paddingHorizontal: 16,
+        paddingTop: 60
+      }}>
+        <Text style={{ 
+          color: 'white', 
+          fontSize: 28, 
+          fontWeight: '700',
+          textAlign: 'center'
+        }}>
+          Contractor Hub
+        </Text>
+        <Text style={{ 
+          color: '#DBEAFE', 
+          fontSize: 14, 
+          marginTop: 8,
+          textAlign: 'center'
+        }}>
+          Sign in to manage your permits and admin
+        </Text>
+      </View>
 
-    if (newPin !== confirmPin) {
-      Alert.alert('Validation', 'PINs do not match');
-      return;
-    }
+      {/* Login Form */}
+      <ScrollView 
+        style={{ flex: 1, padding: 20 }} 
+        contentContainerStyle={{ justifyContent: 'center', paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ gap: 16 }}>
+          {/* Email Input */}
+          <View>
+            <Text style={{ 
+              fontSize: 14, 
+              fontWeight: '600', 
+              color: '#1F2937', 
+              marginBottom: 8 
+            }}>
+              Email Address
+            </Text>
+            <TextInput
+              placeholder="your.email@company.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+              placeholderTextColor="#9CA3AF"
+              style={{
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+                borderRadius: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                fontSize: 15,
+                color: '#1F2937',
+                backgroundColor: 'white'
+              }}
+            />
+          </View>
 
-    if (!/^\d{6}$/.test(newPin)) {
-      Alert.alert('Validation', 'PIN must be exactly 6 digits');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await setContractorPin(selectedContractor.id, newPin);
-      if (response.success) {
-        Alert.alert('Success', 'PIN set successfully! Now logging in...');
-        // Auto-login after PIN setup
-        onLoginSuccess({
-          contractorId: selectedContractor.id,
-          contractorName: selectedContractor.name,
-          companyId: selectedContractor.company_id
-        });
-      } else {
-        Alert.alert('Error', response.error);
-      }
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredContractors = contractors.filter(c =>
-    c.name.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  // Step 1: Select Contractor
-  if (step === 'selectContractor') {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.header || { backgroundColor: '#1F2937', paddingVertical: 20, paddingHorizontal: 16 }}>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '700' }}>
-            Contractor Admin
-          </Text>
-          <Text style={{ color: '#D1D5DB', fontSize: 12, marginTop: 4 }}>
-            Select your contractor account
-          </Text>
-        </View>
-
-        <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 16 }}>
-          <TextInput
-            placeholder="Search contractors..."
-            value={searchText}
-            onChangeText={setSearchText}
-            style={{
+          {/* Password Input */}
+          <View>
+            <Text style={{ 
+              fontSize: 14, 
+              fontWeight: '600', 
+              color: '#1F2937', 
+              marginBottom: 8 
+            }}>
+              Password
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
               borderWidth: 1,
               borderColor: '#D1D5DB',
               borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              fontSize: 14,
-              marginBottom: 16,
-              color: '#1F2937'
-            }}
-          />
+              paddingHorizontal: 14,
+              backgroundColor: 'white'
+            }}>
+              <TextInput
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+                placeholderTextColor="#9CA3AF"
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  fontSize: 15,
+                  color: '#1F2937'
+                }}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                <Text style={{ fontSize: 18, color: '#6B7280' }}>
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          {loading ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#3B82F6" />
+          {/* Remember Me */}
+          <TouchableOpacity 
+            onPress={() => setRememberMe(!rememberMe)}
+            disabled={loading}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          >
+            <View style={{
+              width: 18,
+              height: 18,
+              borderWidth: 1,
+              borderColor: '#D1D5DB',
+              borderRadius: 4,
+              backgroundColor: rememberMe ? '#2563EB' : 'white',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              {rememberMe && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
             </View>
-          ) : filteredContractors.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
-                {searchText ? 'No contractors found' : 'No contractors available'}
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 8 }}>
-              {filteredContractors.map((contractor) => (
-                <TouchableOpacity
-                  key={contractor.id}
-                  onPress={() => handleSelectContractor(contractor)}
-                  style={{
-                    backgroundColor: 'white',
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    borderRadius: 8,
-                    padding: 14,
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
-                      {contractor.name}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 18, color: '#9CA3AF' }}>→</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  // Step 2: Enter PIN or Setup PIN
-  if (step === 'enterPin' || step === 'setupPin') {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.header || { backgroundColor: '#1F2937', paddingVertical: 20, paddingHorizontal: 16 }}>
-          <TouchableOpacity onPress={() => setStep('selectContractor')}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>←</Text>
+            <Text style={{ fontSize: 14, color: '#4B5563' }}>Remember me</Text>
           </TouchableOpacity>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '700', marginTop: 12 }}>
-            {selectedContractor?.name}
-          </Text>
-          <Text style={{ color: '#D1D5DB', fontSize: 12, marginTop: 4 }}>
-            {step === 'setupPin' ? 'Set up your PIN' : 'Enter your PIN'}
+
+          {/* Login Button */}
+          <TouchableOpacity
+            onPress={handleLogin}
+            disabled={loading}
+            style={{
+              backgroundColor: loading ? '#9CA3AF' : '#2563EB',
+              paddingVertical: 14,
+              borderRadius: 8,
+              alignItems: 'center',
+              marginTop: 8
+            }}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Text style={{ 
+                color: 'white', 
+                fontWeight: '700', 
+                fontSize: 16 
+              }}>
+                Sign In
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Help Text */}
+          <View style={{ 
+            backgroundColor: '#EFF6FF', 
+            borderLeftWidth: 4,
+            borderLeftColor: '#3B82F6',
+            padding: 12,
+            borderRadius: 6,
+            marginTop: 8
+          }}>
+            <Text style={{ 
+              fontSize: 13, 
+              color: '#1E40AF',
+              lineHeight: 18
+            }}>
+              💡 Use your contractor company email and the password provided by your administrator.
+            </Text>
+          </View>
+
+          {/* Footer */}
+          <Text style={{ 
+            fontSize: 12, 
+            color: '#6B7280', 
+            textAlign: 'center',
+            marginTop: 16
+          }}>
+            Version 1.0
           </Text>
         </View>
-
-        <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ justifyContent: 'center' }}>
-          {step === 'enterPin' && !showForgotPin ? (
-            <View style={{ gap: 16 }}>
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  PIN (6 digits)
-                </Text>
-                <TextInput
-                  placeholder="000000"
-                  value={pin}
-                  onChangeText={setPin}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  secureTextEntry
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                    color: '#1F2937',
-                    textAlign: 'center'
-                  }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleVerifyPin}
-                disabled={loading}
-                style={{
-                  backgroundColor: '#3B82F6',
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  opacity: loading ? 0.6 : 1
-                }}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-                  {loading ? 'Verifying...' : 'Login'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setShowForgotPin(true)}
-                style={{ paddingVertical: 8 }}
-              >
-                <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center', fontWeight: '500' }}>
-                  Forgot PIN?
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : step === 'enterPin' && showForgotPin ? (
-            // Reset PIN flow
-            <View style={{ gap: 16 }}>
-              <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
-                Enter a new PIN to reset your forgotten PIN
-              </Text>
-
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  New PIN (6 digits)
-                </Text>
-                <TextInput
-                  placeholder="000000"
-                  value={newPin}
-                  onChangeText={setNewPin}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  secureTextEntry
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                    color: '#1F2937',
-                    textAlign: 'center'
-                  }}
-                />
-              </View>
-
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  Confirm PIN
-                </Text>
-                <TextInput
-                  placeholder="000000"
-                  value={confirmPin}
-                  onChangeText={setConfirmPin}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  secureTextEntry
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                    color: '#1F2937',
-                    textAlign: 'center'
-                  }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSetupPin}
-                disabled={loading}
-                style={{
-                  backgroundColor: '#10B981',
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  opacity: loading ? 0.6 : 1
-                }}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-                  {loading ? 'Setting PIN...' : 'Reset PIN'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  setShowForgotPin(false);
-                  setPin('');
-                  setNewPin('');
-                  setConfirmPin('');
-                }}
-                style={{ paddingVertical: 8 }}
-              >
-                <Text style={{ color: '#6B7280', fontSize: 14, textAlign: 'center' }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            // Setup PIN for first time
-            <View style={{ gap: 16 }}>
-              <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
-                Set up your PIN to access Contractor Admin
-              </Text>
-
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  New PIN (6 digits)
-                </Text>
-                <TextInput
-                  placeholder="000000"
-                  value={newPin}
-                  onChangeText={setNewPin}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  secureTextEntry
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                    color: '#1F2937',
-                    textAlign: 'center'
-                  }}
-                />
-              </View>
-
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  Confirm PIN
-                </Text>
-                <TextInput
-                  placeholder="000000"
-                  value={confirmPin}
-                  onChangeText={setConfirmPin}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  secureTextEntry
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                    color: '#1F2937',
-                    textAlign: 'center'
-                  }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSetupPin}
-                disabled={loading}
-                style={{
-                  backgroundColor: '#10B981',
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  opacity: loading ? 0.6 : 1
-                }}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-                  {loading ? 'Setting up...' : 'Set PIN & Login'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
+      </ScrollView>
+    </View>
+  );
 }
