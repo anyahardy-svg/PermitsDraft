@@ -153,14 +153,14 @@ export default function ContractorAuthScreen({
             fontSize: 28, 
             fontWeight: '800',
           }}>
-            Set Up Password
+            Reset Password
           </Text>
           <Text style={{ 
             color: '#9CA3AF', 
             fontSize: 14, 
             marginTop: 8
           }}>
-            Enter your email to receive setup instructions
+            Enter your email to receive a password reset link
           </Text>
         </View>
 
@@ -230,7 +230,7 @@ export default function ContractorAuthScreen({
                     fontWeight: '700', 
                     fontSize: 16 
                   }}>
-                    Send Setup Link
+                    Send Reset Link
                   </Text>
                 )}
               </TouchableOpacity>
@@ -249,7 +249,7 @@ export default function ContractorAuthScreen({
                   lineHeight: 18,
                   fontWeight: '500'
                 }}>
-                  We'll send you an email with a link to set up your password. Once you set it, you can log in with your email and password.
+                  We'll send you a secure link via email. Click it to set or reset your password, then log in with your new credentials.
                 </Text>
               </View>
             </View>
@@ -363,14 +363,24 @@ export default function ContractorAuthScreen({
 
             {/* Password Input */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ 
-                fontSize: 13, 
-                fontWeight: '600', 
-                color: '#374151', 
-                marginBottom: 8 
-              }}>
-                Password
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151'
+                }}>
+                  Password
+                </Text>
+                <TouchableOpacity onPress={() => setShowPasswordSetup(true)}>
+                  <Text style={{ 
+                    fontSize: 12, 
+                    color: '#3B82F6',
+                    fontWeight: '500'
+                  }}>
+                    Forgot?
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -463,7 +473,7 @@ export default function ContractorAuthScreen({
               <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
             </View>
 
-            {/* Setup Password Link */}
+            {/* Setup/Reset Password Link */}
             <TouchableOpacity
               onPress={() => setShowPasswordSetup(true)}
               style={{
@@ -480,7 +490,7 @@ export default function ContractorAuthScreen({
                 fontWeight: '600', 
                 fontSize: 15 
               }}>
-                Set Up Your Password
+                Need a Password? Get Reset Link
               </Text>
             </TouchableOpacity>
 
@@ -499,7 +509,7 @@ export default function ContractorAuthScreen({
                 lineHeight: 18,
                 fontWeight: '500'
               }}>
-                Don't have a password yet? Use "Set Up Your Password" above to get started.
+                💡 If you don't have a password yet or forgot yours, click "Forgot?" next to the password field or the button below to request a reset link.
               </Text>
             </View>
           </View>
