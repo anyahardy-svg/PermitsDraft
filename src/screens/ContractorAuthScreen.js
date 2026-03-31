@@ -37,6 +37,11 @@ export default function ContractorAuthScreen({
     checkExistingSession();
   }, []);
 
+  // Log when showPasswordSetup changes
+  useEffect(() => {
+    console.log('showPasswordSetup changed to:', showPasswordSetup);
+  }, [showPasswordSetup]);
+
   const checkExistingSession = async () => {
     const { success, contractor } = await getCurrentUser();
     if (success && contractor) {
@@ -103,6 +108,7 @@ export default function ContractorAuthScreen({
   };
 
   const handleSendPasswordReset = async () => {
+    console.log('handleSendPasswordReset called with email:', setupEmail);
     if (!setupEmail.trim()) {
       Alert.alert('Validation', 'Please enter your email address');
       return;
@@ -116,16 +122,21 @@ export default function ContractorAuthScreen({
 
     setSetupLoading(true);
     try {
+      console.log('Calling sendPasswordResetEmail');
       const response = await sendPasswordResetEmail(setupEmail);
+      console.log('sendPasswordResetEmail response:', response);
 
       if (response.success) {
+        console.log('Password reset success');
         Alert.alert('Check Your Email', response.message);
         setSetupEmail('');
         setShowPasswordSetup(false);
       } else {
+        console.log('Password reset error:', response.error);
         Alert.alert('Error', response.error || 'Failed to send password reset email');
       }
     } catch (error) {
+      console.log('Password reset exception:', error.message);
       Alert.alert('Error', error.message || 'An unexpected error occurred');
     } finally {
       setSetupLoading(false);
@@ -475,7 +486,10 @@ export default function ContractorAuthScreen({
 
             {/* Setup/Reset Password Link */}
             <TouchableOpacity
-              onPress={() => setShowPasswordSetup(true)}
+              onPress={() => {
+                console.log('Toggling showPasswordSetup');
+                setShowPasswordSetup(true);
+              }}
               style={{
                 backgroundColor: '#F3F4F6',
                 paddingVertical: 12,

@@ -145,18 +145,24 @@ export async function getCurrentUser() {
 export async function sendPasswordResetEmail(email) {
   try {
     // First check if this email exists in the contractors table
+    console.log('Checking for contractor email:', email);
     const { data: contractorData, error: contractorError } = await supabase
       .from('contractors')
       .select('id, email, name')
       .eq('email', email)
       .single();
 
+    console.log('Contractor lookup result:', { contractorData, contractorError });
+
     if (contractorError || !contractorData) {
+      console.log('Email not found - returning error');
       return { 
         success: false, 
         error: 'Email not found in our system. Please contact your administrator.' 
       };
     }
+
+    console.log('Contractor found, sending reset email');
 
     // Now send the password reset email via Supabase Auth
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
