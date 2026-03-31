@@ -46,6 +46,29 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
       console.log('🔗 Hash:', urlHash);
       console.log('🔍 Search:', urlSearch);
 
+      // Parse error parameters from hash
+      const hashParams = new URLSearchParams(urlHash.substring(1));
+      const errorCode = hashParams.get('error_code');
+      const errorDescription = hashParams.get('error_description');
+      
+      console.log('🔴 Error from URL:', { errorCode, errorDescription });
+
+      if (errorCode === 'otp_expired') {
+        console.error('❌ Token has expired - user took too long to click link or token TTL is too short');
+        setError('Your password reset link has expired. Password reset links are only valid for 24 hours. Please request a new link by clicking "Forgot Password" on the login screen.');
+        setTokenValid(false);
+        setIsVerifying(false);
+        return;
+      }
+
+      if (errorCode && errorCode !== 'otp_expired') {
+        console.error(`❌ Supabase error: ${errorCode} - ${errorDescription}`);
+        setError(`Password reset failed: ${decodeURIComponent(errorDescription || errorCode)}. Please request a new link.`);
+        setTokenValid(false);
+        setIsVerifying(false);
+        return;
+      }
+
       // Wait longer for Supabase to process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -63,7 +86,7 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
         setTokenValid(true);
         setError(null);
       } else {
-        console.error('❌ No session - checking if we need to handle token manually');
+        console.error('❌ No session - token may not have been properly processed');
         setError('Password reset link is invalid or has expired. Please request a new link.');
         setTokenValid(false);
       }
