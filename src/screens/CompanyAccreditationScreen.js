@@ -46,7 +46,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false, 25: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -238,6 +238,30 @@ export default function CompanyAccreditationScreen({
       url: null,
       uploaded_at: null,
       has_document: false
+    }
+  });
+
+  // Section 25 state (Contact Information)
+  const [section25, setSection25] = useState({
+    health_safety_manager: {
+      name: '',
+      email: '',
+      phone: ''
+    },
+    environmental_manager: {
+      name: '',
+      email: '',
+      phone: ''
+    },
+    quality_manager: {
+      name: '',
+      email: '',
+      phone: ''
+    },
+    occupational_hygienist: {
+      name: '',
+      email: '',
+      phone: ''
     }
   });
 
@@ -716,6 +740,30 @@ export default function CompanyAccreditationScreen({
           url: data.motor_vehicle_insurance_url || null,
           uploaded_at: data.motor_vehicle_insurance_uploaded_at || null,
           has_document: !!data.motor_vehicle_insurance_url
+        }
+      });
+
+      // Load section 25 (Contact Information)
+      setSection25({
+        health_safety_manager: {
+          name: data.health_safety_manager_name || '',
+          email: data.health_safety_manager_email || '',
+          phone: data.health_safety_manager_phone || ''
+        },
+        environmental_manager: {
+          name: data.environmental_manager_name || '',
+          email: data.environmental_manager_email || '',
+          phone: data.environmental_manager_phone || ''
+        },
+        quality_manager: {
+          name: data.quality_manager_name || '',
+          email: data.quality_manager_email || '',
+          phone: data.quality_manager_phone || ''
+        },
+        occupational_hygienist: {
+          name: data.occupational_hygienist_name || '',
+          email: data.occupational_hygienist_email || '',
+          phone: data.occupational_hygienist_phone || ''
         }
       });
 
@@ -1542,6 +1590,44 @@ export default function CompanyAccreditationScreen({
       updateData.motor_vehicle_insurance_uploaded_at = section24.motor_vehicle_insurance.uploaded_at;
     }
 
+    // Add Section 25 data (Contact Information)
+    if (section25.health_safety_manager.name) {
+      updateData.health_safety_manager_name = section25.health_safety_manager.name;
+    }
+    if (section25.health_safety_manager.email) {
+      updateData.health_safety_manager_email = section25.health_safety_manager.email;
+    }
+    if (section25.health_safety_manager.phone) {
+      updateData.health_safety_manager_phone = section25.health_safety_manager.phone;
+    }
+    if (section25.environmental_manager.name) {
+      updateData.environmental_manager_name = section25.environmental_manager.name;
+    }
+    if (section25.environmental_manager.email) {
+      updateData.environmental_manager_email = section25.environmental_manager.email;
+    }
+    if (section25.environmental_manager.phone) {
+      updateData.environmental_manager_phone = section25.environmental_manager.phone;
+    }
+    if (section25.quality_manager.name) {
+      updateData.quality_manager_name = section25.quality_manager.name;
+    }
+    if (section25.quality_manager.email) {
+      updateData.quality_manager_email = section25.quality_manager.email;
+    }
+    if (section25.quality_manager.phone) {
+      updateData.quality_manager_phone = section25.quality_manager.phone;
+    }
+    if (section25.occupational_hygienist.name) {
+      updateData.occupational_hygienist_name = section25.occupational_hygienist.name;
+    }
+    if (section25.occupational_hygienist.email) {
+      updateData.occupational_hygienist_email = section25.occupational_hygienist.email;
+    }
+    if (section25.occupational_hygienist.phone) {
+      updateData.occupational_hygienist_phone = section25.occupational_hygienist.phone;
+    }
+
     // Add Section 15 data (Competency & Qualifications)
     Object.entries(section15).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
@@ -1676,7 +1762,7 @@ export default function CompanyAccreditationScreen({
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, currentCompanyId]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -2754,6 +2840,135 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const renderContactInfoSection = () => {
+    const renderContactFields = (role, roleKey) => (
+      <View style={{ marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+          {role}
+        </Text>
+
+        {/* Name */}
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+            Full Name
+          </Text>
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: section25[roleKey].name ? '#10B981' : '#E5E7EB',
+              borderRadius: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              fontSize: 14,
+              color: '#1F2937',
+              backgroundColor: '#F9FAFB'
+            }}
+            placeholder="Enter full name"
+            value={section25[roleKey].name}
+            onChangeText={(text) => setSection25(prev => ({
+              ...prev,
+              [roleKey]: { ...prev[roleKey], name: text }
+            }))}
+          />
+        </View>
+
+        {/* Email */}
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+            Email Address
+          </Text>
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: section25[roleKey].email ? '#10B981' : '#E5E7EB',
+              borderRadius: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              fontSize: 14,
+              color: '#1F2937',
+              backgroundColor: '#F9FAFB'
+            }}
+            placeholder="Enter email address"
+            keyboardType="email-address"
+            value={section25[roleKey].email}
+            onChangeText={(text) => setSection25(prev => ({
+              ...prev,
+              [roleKey]: { ...prev[roleKey], email: text }
+            }))}
+          />
+        </View>
+
+        {/* Phone */}
+        <View>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+            Telephone Number
+          </Text>
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: section25[roleKey].phone ? '#10B981' : '#E5E7EB',
+              borderRadius: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              fontSize: 14,
+              color: '#1F2937',
+              backgroundColor: '#F9FAFB'
+            }}
+            placeholder="Enter phone number"
+            keyboardType="phone-pad"
+            value={section25[roleKey].phone}
+            onChangeText={(text) => setSection25(prev => ({
+              ...prev,
+              [roleKey]: { ...prev[roleKey], phone: text }
+            }))}
+          />
+        </View>
+      </View>
+    );
+
+    return (
+      <View key={25}>
+        <TouchableOpacity
+          onPress={() => setExpandedSections(prev => ({ ...prev, 25: !prev[25] }))}
+          style={{
+            backgroundColor: '#F0F9FF',
+            borderWidth: 2,
+            borderColor: '#0284C7',
+            borderRadius: 8,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            marginBottom: 12,
+            marginTop: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+            Section 25: Contact Information
+          </Text>
+          <Text style={{ fontSize: 18, color: '#0284C7' }}>
+            {expandedSections[25] ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {expandedSections[25] && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+            {renderContactFields('Health and Safety Manager', 'health_safety_manager')}
+            {renderContactFields('Environmental Manager', 'environmental_manager')}
+            {renderContactFields('Quality Manager', 'quality_manager')}
+            {renderContactFields('Occupational Hygienist', 'occupational_hygienist')}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -3228,6 +3443,9 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 24: Insurance Documents */}
               {renderInsuranceSection()}
+              
+              {/* Section 25: Contact Information */}
+              {renderContactInfoSection()}
         </View>
       </ScrollView>
 
