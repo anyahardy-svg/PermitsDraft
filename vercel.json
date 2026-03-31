@@ -196,6 +196,14 @@
     {
       "source": "/contractor-admin/training-records/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth/callback/",
+      "destination": "/index.html"
     }
   ],
   "headers": [
