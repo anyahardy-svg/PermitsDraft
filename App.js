@@ -2458,8 +2458,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const detectContractorHub = async () => {
       if (typeof window === 'undefined') return;
       
+      const pathname = window.location.pathname;
       const hostname = window.location.hostname;
       console.log('🔍 Checking domain:', hostname);
+      
+      // If we're on the auth callback route, don't override it
+      if (pathname === '/auth/callback') {
+        console.log('✅ Auth callback path detected - skipping auth check');
+        return;
+      }
       
       // Check if this is the contractor hub domain
       const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
