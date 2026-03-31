@@ -3228,9 +3228,6 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 24: Insurance Documents */}
               {renderInsuranceSection()}
-              
-              {/* Section 24: Insurance Documents */}
-              {renderInsuranceSection()}
         </View>
       </ScrollView>
 
