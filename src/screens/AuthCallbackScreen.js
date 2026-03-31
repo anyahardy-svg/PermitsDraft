@@ -31,29 +31,44 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
     try {
       console.log('🔍 Verifying password reset token...');
       
-      // Wait a moment for Supabase to process the recovery token automatically
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (typeof window === 'undefined') {
+        setError('Window error');
+        setIsVerifying(false);
+        return;
+      }
+
+      // Log the actual URL
+      const fullUrl = window.location.href;
+      const urlHash = window.location.hash;
+      const urlSearch = window.location.search;
       
-      // Check if Supabase automatically created a session from the recovery token
+      console.log('📍 Full URL:', fullUrl);
+      console.log('🔗 Hash:', urlHash);
+      console.log('🔍 Search:', urlSearch);
+
+      // Wait longer for Supabase to process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Try to get session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('📊 Session after recovery token:', { 
+      console.log('📊 Session check:', { 
         hasSession: !!session, 
         userEmail: session?.user?.email,
         error: sessionError?.message 
       });
 
-      if (!session || !session.user) {
-        console.error('❌ No session established from recovery token');
-        setError('Password reset link is invalid or has expired. Please request a new link.');
-        setTokenValid(false);
-      } else {
-        console.log('✅ Recovery token validated - session established');
+      if (session?.user) {
+        console.log('✅ Session established');
         setTokenValid(true);
         setError(null);
+      } else {
+        console.error('❌ No session - checking if we need to handle token manually');
+        setError('Password reset link is invalid or has expired. Please request a new link.');
+        setTokenValid(false);
       }
     } catch (err) {
-      console.error('❌ Token verification exception:', err.message);
+      console.error('❌ Exception:', err.message);
       setError(`Error: ${err.message}`);
       setTokenValid(false);
     } finally {
