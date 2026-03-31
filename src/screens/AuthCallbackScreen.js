@@ -31,66 +31,26 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
     try {
       console.log('🔍 Verifying password reset token...');
       
-      if (typeof window === 'undefined') {
-        setError('Window object not available');
-        setTokenValid(false);
-        setIsVerifying(false);
-        return;
-      }
-
-      const fullUrl = window.location.href;
-      const urlHash = window.location.hash;
+      // Wait a moment for Supabase to process the recovery token automatically
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      console.log('📍 Current URL:', fullUrl);
-      console.log('🔗 URL Hash:', urlHash);
-
-      // Extract the token from the URL hash
-      // Supabase sends: #type=recovery&token=xxxxx
-      if (!urlHash) {
-        console.error('❌ No URL hash found - token missing');
-        setError('Password reset link is incomplete. Please request a new link.');
-        setTokenValid(false);
-        setIsVerifying(false);
-        return;
-      }
-
-      // Parse the hash to get token
-      const hashParams = new URLSearchParams(urlHash.substring(1)); // Remove the '#'
-      const token = hashParams.get('token');
-      const type = hashParams.get('type');
-
-      console.log('🎯 Parsed token type:', type);
-      console.log('🔑 Token present:', !!token);
-
-      if (!token || type !== 'recovery') {
-        console.error('❌ Invalid token or type');
-        setError('Password reset link is invalid. Please request a new link.');
-        setTokenValid(false);
-        setIsVerifying(false);
-        return;
-      }
-
-      // Verify the OTP token with Supabase
-      console.log('🔐 Verifying OTP token with Supabase...');
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        token: token,
-        type: 'recovery'
+      // Check if Supabase automatically created a session from the recovery token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log('📊 Session after recovery token:', { 
+        hasSession: !!session, 
+        userEmail: session?.user?.email,
+        error: sessionError?.message 
       });
 
-      console.log('✅ OTP verification result:', { success: !!data?.user, error: verifyError?.message });
-
-      if (verifyError) {
-        console.error('❌ OTP verification failed:', verifyError.message);
-        setError(`Token verification failed: ${verifyError.message}`);
+      if (!session || !session.user) {
+        console.error('❌ No session established from recovery token');
+        setError('Password reset link is invalid or has expired. Please request a new link.');
         setTokenValid(false);
-      } else if (data?.user) {
-        console.log('✅ Token verified successfully - user can now set password');
+      } else {
+        console.log('✅ Recovery token validated - session established');
         setTokenValid(true);
         setError(null);
-      } else {
-        console.error('❌ No user data returned');
-        setError('Failed to verify token. Please try again.');
-        setTokenValid(false);
       }
     } catch (err) {
       console.error('❌ Token verification exception:', err.message);
