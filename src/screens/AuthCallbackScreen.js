@@ -29,17 +29,47 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
 
   const verifyToken = async () => {
     try {
-      // Check if we have a valid session from the password reset token
+      console.log('🔍 Verifying password reset token...');
+      
+      // Get the full URL to extract the recovery token
+      if (typeof window === 'undefined') {
+        setError('Window object not available');
+        setTokenValid(false);
+        setIsVerifying(false);
+        return;
+      }
+
+      const fullUrl = window.location.href;
+      console.log('📍 Current URL:', fullUrl);
+
+      // Extract token from URL hash or query params
+      const urlHash = window.location.hash;
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      console.log('🔗 URL Hash:', urlHash);
+      console.log('🔍 URL Params:', urlParams.toString());
+
+      // Supabase automatically creates a session if a recovery token is present
+      // Just verify if we have a valid session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      console.log('📊 Session check result:', { session: !!session, error: sessionError });
+
+      if (sessionError) {
+        console.error('❌ Session error:', sessionError.message);
+        setError('Password reset link is invalid or has expired. Please request a new link.');
+        setTokenValid(false);
+      } else if (!session) {
+        console.error('❌ No session found');
         setError('Password reset link is invalid or has expired. Please request a new link.');
         setTokenValid(false);
       } else {
+        console.log('✅ Valid session established');
         setTokenValid(true);
         setError(null);
       }
     } catch (err) {
+      console.error('❌ Token verification exception:', err);
       setError('Failed to verify password reset link. Please try again.');
       setTokenValid(false);
     } finally {
