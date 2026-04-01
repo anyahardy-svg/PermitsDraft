@@ -290,9 +290,11 @@ export default function ContractorAuthScreen({
         setOtpError(null);
         
         // Trigger login success to redirect to dashboard
+        // Note: Contractor record must exist in the database for this to work
+        // Admin should pre-create the contractor record before user signs up
         if (onLoginSuccess && signUpData.user) {
           onLoginSuccess({
-            contractorId: setupEmail, // Will need to get from contractors table
+            contractorId: setupEmail, // Will be resolved from contractors table
             contractorName: setupEmail,
             companyId: null,
             email: setupEmail
