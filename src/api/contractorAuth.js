@@ -137,8 +137,8 @@ export async function getCurrentUser() {
 }
 
 /**
- * Send password reset/setup email to contractor
- * Checks if email exists in contractors table, then sends reset link
+ * Send password reset/setup email to contractor using OTP (One-Time Password)
+ * OTP prevents token consumption by email security scanners
  * @param {string} email - Contractor email
  * @returns {Object} { success: boolean, message: string, error: string }
  */
@@ -162,31 +162,84 @@ export async function sendPasswordResetEmail(email) {
       };
     }
 
-    console.log('Contractor found, sending reset email');
+    console.log('Contractor found, sending OTP reset email');
 
-    // Now send the password reset email via Supabase Auth
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback` 
-        : 'https://contractorhq.co.nz/auth/callback'
+    // Send password reset OTP via Supabase Auth
+    // This sends a one-time password code instead of a magic link
+    // OTP is not consumed by email security scanners since it requires manual entry
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        // Don't automatically create a session; just send the OTP
+        shouldCreateUser: false,
+        // Custom messaging in email if supported
+        emailRedirectTo: typeof window !== 'undefined' 
+          ? `${window.location.origin}/auth/callback` 
+          : 'https://contractorhq.co.nz/auth/callback'
+      }
     });
 
-    if (resetError) {
+    if (otpError) {
+      console.error('OTP send error:', otpError);
       return { 
         success: false, 
-        error: resetError.message || 'Failed to send password reset email' 
+        error: otpError.message || 'Failed to send password reset code' 
       };
     }
 
     return { 
       success: true, 
-      message: `Password setup link has been sent to ${email}. Check your inbox and follow the link to set your password.`
+      message: `Password reset code has been sent to ${email}. Check your inbox for a 6-digit code and enter it in the form below.`
     };
   } catch (error) {
     console.error('Password reset email error:', error);
     return { 
       success: false, 
       error: error.message || 'An error occurred' 
+    };
+  }
+}
+
+/**
+ * Verify OTP code and authenticate user for password reset
+ * @param {string} email - Contractor email
+ * @param {string} token - OTP code from email
+ * @returns {Object} { success: boolean, error: string }
+ */
+export async function verifyPasswordResetOtp(email, token) {
+  try {
+    console.log('Verifying OTP for email:', email);
+    
+    // Verify the OTP token for recovery (password reset)
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email,
+      token: token.replace(/\s/g, ''), // Remove spaces
+      type: 'recovery'
+    });
+
+    if (error) {
+      console.error('OTP verification error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Invalid or expired code'
+      };
+    }
+
+    if (!data.session) {
+      console.error('No session created after OTP verification');
+      return { 
+        success: false, 
+        error: 'Authentication failed. Please try again.'
+      };
+    }
+
+    console.log('✅ OTP verified successfully, session established');
+    return { success: true };
+  } catch (error) {
+    console.error('OTP verification exception:', error);
+    return { 
+      success: false, 
+      error: error.message || 'An error occurred'
     };
   }
 }

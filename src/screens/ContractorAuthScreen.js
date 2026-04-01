@@ -13,10 +13,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { supabase } from '../supabaseClient';
 import {
   loginWithEmailPassword,
   getCurrentUser,
   sendPasswordResetEmail,
+  verifyPasswordResetOtp,
 } from '../api/contractorAuth';
 
 export default function ContractorAuthScreen({ 
@@ -33,6 +35,15 @@ export default function ContractorAuthScreen({
   const [showPasswordSetup, setShowPasswordSetup] = useState(showPasswordReset || false);
   const [setupEmail, setSetupEmail] = useState('');
   const [setupLoading, setSetupLoading] = useState(false);
+  
+  // OTP flow states
+  const [passwordResetStage, setPasswordResetStage] = useState('email'); // 'email', 'otp', 'password'
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Sync showPasswordReset prop with local state
   useEffect(() => {
@@ -130,23 +141,121 @@ export default function ContractorAuthScreen({
     }
 
     setSetupLoading(true);
+    setOtpError(null);
     try {
       console.log('Calling sendPasswordResetEmail');
       const response = await sendPasswordResetEmail(setupEmail);
       console.log('sendPasswordResetEmail response:', response);
 
       if (response.success) {
-        console.log('Password reset success');
+        console.log('Password reset OTP sent - moving to OTP entry stage');
+        setPasswordResetStage('otp');
+        setOtpCode('');
         Alert.alert('Check Your Email', response.message);
-        setSetupEmail('');
-        setShowPasswordSetup(false);
       } else {
         console.log('Password reset error:', response.error);
+        setOtpError(response.error);
         Alert.alert('Error', response.error || 'Failed to send password reset email');
       }
     } catch (error) {
       console.log('Password reset exception:', error.message);
+      setOtpError(error.message);
       Alert.alert('Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    console.log('handleVerifyOtp called with email:', setupEmail);
+    if (!otpCode.trim()) {
+      setOtpError('Please enter the code from your email');
+      return;
+    }
+
+    if (otpCode.replace(/\s/g, '').length < 6) {
+      setOtpError('Code must be at least 6 characters');
+      return;
+    }
+
+    setSetupLoading(true);
+    setOtpError(null);
+    try {
+      console.log('Verifying OTP for email:', setupEmail);
+      const response = await verifyPasswordResetOtp(setupEmail, otpCode);
+
+      if (response.success) {
+        console.log('OTP verified successfully - moving to password set stage');
+        setPasswordResetStage('password');
+        setOtpCode('');
+      } else {
+        console.log('OTP verification error:', response.error);
+        setOtpError(response.error);
+        Alert.alert('Invalid Code', response.error || 'The code you entered is invalid or has expired');
+      }
+    } catch (error) {
+      console.log('OTP verification exception:', error.message);
+      setOtpError(error.message);
+      Alert.alert('Error', error.message || 'An error occurred');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!newPassword.trim()) {
+      Alert.alert('Validation', 'Please enter a password');
+      return;
+    }
+
+    if (!confirmPassword.trim()) {
+      Alert.alert('Validation', 'Please confirm your password');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Validation', 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Validation', 'Passwords do not match');
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      console.log('Setting new password for:', setupEmail);
+      
+      // Update password for the authenticated user (OTP verified session)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        setOtpError(error.message);
+        Alert.alert('Error', error.message);
+      } else {
+        console.log('Password set successfully');
+        Alert.alert('Success', 'Your password has been set. You can now log in with your email and password.');
+        
+        // Reset all states
+        setShowPasswordSetup(false);
+        setPasswordResetStage('email');
+        setSetupEmail('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtpCode('');
+        setOtpError(null);
+        
+        if (setShowPasswordReset) {
+          setShowPasswordReset(false);
+        }
+      }
+    } catch (error) {
+      console.error('Password set error:', error);
+      setOtpError(error.message);
+      Alert.alert('Error', error.message || 'Failed to set password');
     } finally {
       setSetupLoading(false);
     }
@@ -165,6 +274,7 @@ export default function ContractorAuthScreen({
           <TouchableOpacity 
             onPress={() => {
               setShowPasswordSetup(false);
+              setPasswordResetStage('email');
               if (setShowPasswordReset) {
                 setShowPasswordReset(false);
               }
@@ -178,14 +288,18 @@ export default function ContractorAuthScreen({
             fontSize: 28, 
             fontWeight: '800',
           }}>
-            Reset Password
+            {passwordResetStage === 'email' && 'Reset Password'}
+            {passwordResetStage === 'otp' && 'Enter Code'}
+            {passwordResetStage === 'password' && 'Set New Password'}
           </Text>
           <Text style={{ 
             color: '#9CA3AF', 
             fontSize: 14, 
             marginTop: 8
           }}>
-            Enter your email to receive a password reset link
+            {passwordResetStage === 'email' && 'Enter your email to receive a password reset code'}
+            {passwordResetStage === 'otp' && 'Enter the 6-digit code we sent to your email'}
+            {passwordResetStage === 'password' && 'Create a strong password for your account'}
           </Text>
         </View>
 
@@ -206,77 +320,314 @@ export default function ContractorAuthScreen({
               shadowRadius: 8,
               elevation: 3
             }}>
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ 
-                  fontSize: 13, 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: 8 
-                }}>
-                  Email Address
-                </Text>
-                <TextInput
-                  placeholder="name@company.com"
-                  value={setupEmail}
-                  onChangeText={setSetupEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!setupLoading}
-                  placeholderTextColor="#D1D5DB"
-                  style={{
-                    borderWidth: 1.5,
-                    borderColor: '#E5E7EB',
-                    borderRadius: 8,
-                    paddingHorizontal: 14,
-                    paddingVertical: 11,
-                    fontSize: 15,
-                    color: '#1F2937',
-                    backgroundColor: '#F9FAFB'
-                  }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSendPasswordReset}
-                disabled={setupLoading}
-                style={{
-                  backgroundColor: setupLoading ? '#9CA3AF' : '#3B82F6',
-                  paddingVertical: 12,
+              {otpError && (
+                <View style={{
+                  backgroundColor: '#FEF2F2',
                   borderRadius: 8,
-                  alignItems: 'center',
-                  marginBottom: 12
-                }}
-              >
-                {setupLoading ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <Text style={{ 
-                    color: 'white', 
-                    fontWeight: '700', 
-                    fontSize: 16 
-                  }}>
-                    Send Reset Link
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <View style={{
-                backgroundColor: '#F0F9FF',
-                borderRadius: 8,
-                padding: 12,
-                borderLeftWidth: 3,
-                borderLeftColor: '#3B82F6',
-                marginTop: 16
-              }}>
-                <Text style={{ 
-                  fontSize: 12, 
-                  color: '#1E40AF',
-                  lineHeight: 18,
-                  fontWeight: '500'
+                  padding: 12,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#DC2626',
+                  marginBottom: 16
                 }}>
-                  We'll send you a secure link via email. Click it to set or reset your password, then log in with your new credentials.
-                </Text>
-              </View>
+                  <Text style={{ 
+                    fontSize: 12, 
+                    color: '#991B1B',
+                    fontWeight: '500'
+                  }}>
+                    {otpError}
+                  </Text>
+                </View>
+              )}
+
+              {/* Stage 1: Email Input */}
+              {passwordResetStage === 'email' && (
+                <>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{ 
+                      fontSize: 13, 
+                      fontWeight: '600', 
+                      color: '#374151', 
+                      marginBottom: 8 
+                    }}>
+                      Email Address
+                    </Text>
+                    <TextInput
+                      placeholder="name@company.com"
+                      value={setupEmail}
+                      onChangeText={setSetupEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      editable={!setupLoading}
+                      placeholderTextColor="#D1D5DB"
+                      style={{
+                        borderWidth: 1.5,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        paddingHorizontal: 14,
+                        paddingVertical: 11,
+                        fontSize: 15,
+                        color: '#1F2937',
+                        backgroundColor: '#F9FAFB'
+                      }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleSendPasswordReset}
+                    disabled={setupLoading}
+                    style={{
+                      backgroundColor: setupLoading ? '#9CA3AF' : '#3B82F6',
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      marginBottom: 12
+                    }}
+                  >
+                    {setupLoading ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text style={{ 
+                        color: 'white', 
+                        fontWeight: '700', 
+                        fontSize: 16 
+                      }}>
+                        Send Reset Code
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={{
+                    backgroundColor: '#F0F9FF',
+                    borderRadius: 8,
+                    padding: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#3B82F6',
+                    marginTop: 16
+                  }}>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: '#1E40AF',
+                      lineHeight: 18,
+                      fontWeight: '500'
+                    }}>
+                      We'll send you a 6-digit code via email. This code is safer than magic links as email security tools can't automatically use it.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* Stage 2: OTP Input */}
+              {passwordResetStage === 'otp' && (
+                <>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{ 
+                      fontSize: 13, 
+                      fontWeight: '600', 
+                      color: '#374151', 
+                      marginBottom: 8 
+                    }}>
+                      Verification Code
+                    </Text>
+                    <TextInput
+                      placeholder="000000"
+                      value={otpCode}
+                      onChangeText={setOtpCode}
+                      keyboardType="number-pad"
+                      editable={!setupLoading}
+                      placeholderTextColor="#D1D5DB"
+                      maxLength={10}
+                      style={{
+                        borderWidth: 1.5,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        paddingHorizontal: 14,
+                        paddingVertical: 11,
+                        fontSize: 18,
+                        color: '#1F2937',
+                        backgroundColor: '#F9FAFB',
+                        letterSpacing: 2,
+                        textAlign: 'center',
+                        fontWeight: '600'
+                      }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleVerifyOtp}
+                    disabled={setupLoading}
+                    style={{
+                      backgroundColor: setupLoading ? '#9CA3AF' : '#3B82F6',
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      marginBottom: 12
+                    }}
+                  >
+                    {setupLoading ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text style={{ 
+                        color: 'white', 
+                        fontWeight: '700', 
+                        fontSize: 16 
+                      }}>
+                        Verify Code
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={{
+                    backgroundColor: '#F0F9FF',
+                    borderRadius: 8,
+                    padding: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#3B82F6',
+                    marginTop: 16
+                  }}>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: '#1E40AF',
+                      lineHeight: 18,
+                      fontWeight: '500'
+                    }}>
+                      Check your email for the 6-digit code. It may take a minute to arrive.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* Stage 3: Password Input */}
+              {passwordResetStage === 'password' && (
+                <>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ 
+                      fontSize: 13, 
+                      fontWeight: '600', 
+                      color: '#374151', 
+                      marginBottom: 8 
+                    }}>
+                      New Password
+                    </Text>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1.5,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 8,
+                      paddingRight: 10,
+                      backgroundColor: '#F9FAFB'
+                    }}>
+                      <TextInput
+                        placeholder="Enter new password"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry={!showNewPassword}
+                        editable={!setupLoading}
+                        placeholderTextColor="#D1D5DB"
+                        style={{
+                          flex: 1,
+                          paddingHorizontal: 14,
+                          paddingVertical: 11,
+                          fontSize: 15,
+                          color: '#1F2937'
+                        }}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        <Text style={{ fontSize: 18 }}>
+                          {showNewPassword ? '👁️' : '👁️‍🗨️'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ 
+                      fontSize: 13, 
+                      fontWeight: '600', 
+                      color: '#374151', 
+                      marginBottom: 8 
+                    }}>
+                      Confirm Password
+                    </Text>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1.5,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 8,
+                      paddingRight: 10,
+                      backgroundColor: '#F9FAFB'
+                    }}>
+                      <TextInput
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showConfirmPassword}
+                        editable={!setupLoading}
+                        placeholderTextColor="#D1D5DB"
+                        style={{
+                          flex: 1,
+                          paddingHorizontal: 14,
+                          paddingVertical: 11,
+                          fontSize: 15,
+                          color: '#1F2937'
+                        }}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        <Text style={{ fontSize: 18 }}>
+                          {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleSetPassword}
+                    disabled={setupLoading}
+                    style={{
+                      backgroundColor: setupLoading ? '#9CA3AF' : '#10B981',
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      marginBottom: 12
+                    }}
+                  >
+                    {setupLoading ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text style={{ 
+                        color: 'white', 
+                        fontWeight: '700', 
+                        fontSize: 16 
+                      }}>
+                        Set Password
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={{
+                    backgroundColor: '#F0FDF4',
+                    borderRadius: 8,
+                    padding: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#10B981',
+                    marginTop: 16
+                  }}>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: '#166534',
+                      lineHeight: 18,
+                      fontWeight: '500'
+                    }}>
+                      Password must be at least 6 characters. Use a mix of letters, numbers, and symbols for security.
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </ScrollView>
