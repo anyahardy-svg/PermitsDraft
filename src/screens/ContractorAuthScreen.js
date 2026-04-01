@@ -128,6 +128,12 @@ export default function ContractorAuthScreen({
   };
 
   const handleLogin = async () => {
+    // Prevent multiple concurrent requests
+    if (loading) {
+      console.log('⏳ Request already in progress, ignoring duplicate click');
+      return;
+    }
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -155,6 +161,12 @@ export default function ContractorAuthScreen({
   };
 
   const handleSendPasswordReset = async () => {
+    // Prevent multiple concurrent requests
+    if (setupLoading) {
+      console.log('⏳ Request already in progress, ignoring duplicate click');
+      return;
+    }
+
     console.log('handleSendPasswordReset called with email:', setupEmail, 'flow:', passwordFlowType);
     if (!setupEmail.trim()) {
       Alert.alert('Validation', 'Please enter your email address');
@@ -200,6 +212,12 @@ export default function ContractorAuthScreen({
   };
 
   const handleVerifyOtp = async () => {
+    // Prevent multiple concurrent requests
+    if (setupLoading) {
+      console.log('⏳ Request already in progress, ignoring duplicate click');
+      return;
+    }
+
     console.log('handleVerifyOtp called with email:', setupEmail);
     if (!otpCode.trim()) {
       setOtpError('Please enter the code from your email');
@@ -236,6 +254,12 @@ export default function ContractorAuthScreen({
   };
 
   const handleSetPassword = async () => {
+    // Prevent multiple concurrent requests
+    if (setupLoading) {
+      console.log('⏳ Request already in progress, ignoring duplicate click');
+      return;
+    }
+
     if (!newPassword.trim()) {
       Alert.alert('Validation', 'Please enter a password');
       return;
@@ -271,8 +295,25 @@ export default function ContractorAuthScreen({
 
         if (signUpError) {
           console.error('❌ Signup error:', signUpError);
-          Alert.alert('Error', signUpError.message || 'Failed to create account');
-          setSetupLoading(false);
+          
+          // Handle specific rate limit error
+          if (signUpError.message && signUpError.message.includes('50 seconds')) {
+            Alert.alert(
+              '⏳ Too Many Attempts',
+              'For security reasons, please wait 50 seconds before trying again. This prevents unauthorized account creation attempts.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    setSetupLoading(false);
+                  }
+                }
+              ]
+            );
+          } else {
+            Alert.alert('Error', signUpError.message || 'Failed to create account');
+            setSetupLoading(false);
+          }
           return;
         }
 
@@ -714,12 +755,14 @@ export default function ContractorAuthScreen({
                   <TouchableOpacity
                     onPress={handleSetPassword}
                     disabled={setupLoading}
+                    activeOpacity={setupLoading ? 1 : 0.7}
                     style={{
                       backgroundColor: setupLoading ? '#9CA3AF' : '#10B981',
                       paddingVertical: 12,
                       borderRadius: 8,
                       alignItems: 'center',
-                      marginBottom: 12
+                      marginBottom: 12,
+                      opacity: setupLoading ? 0.7 : 1
                     }}
                   >
                     {setupLoading ? (
