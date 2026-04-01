@@ -38,6 +38,7 @@ export default function ContractorAuthScreen({
   
   // OTP flow states
   const [passwordResetStage, setPasswordResetStage] = useState('email'); // 'email', 'otp', 'password'
+  const [passwordFlowType, setPasswordFlowType] = useState('reset'); // 'reset' (OTP) or 'newUser' (no OTP)
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -55,6 +56,29 @@ export default function ContractorAuthScreen({
   // Check if user is already logged in on mount
   useEffect(() => {
     checkExistingSession();
+  }, []);
+
+  // Check if this is an invitation link (has recovery token in URL)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const token = hashParams.get('token');
+      const type = hashParams.get('type');
+      
+      // If this is a recovery/invitation link, skip to password stage
+      if (token && type === 'recovery') {
+        console.log('✅ Invitation link detected - showing password set form');
+        setPasswordFlowType('newUser'); // This is a new user invitation
+        setPasswordResetStage('password'); // Skip OTP, go straight to password
+        setShowPasswordSetup(true);
+        // Extract email from hash if available
+        const email = hashParams.get('email');
+        if (email) {
+          setSetupEmail(email);
+        }
+      }
+    }
   }, []);
 
   // Log when showPasswordSetup changes
@@ -242,6 +266,7 @@ export default function ContractorAuthScreen({
         // Reset all states
         setShowPasswordSetup(false);
         setPasswordResetStage('email');
+        setPasswordFlowType('reset');
         setSetupEmail('');
         setNewPassword('');
         setConfirmPassword('');
@@ -275,6 +300,12 @@ export default function ContractorAuthScreen({
             onPress={() => {
               setShowPasswordSetup(false);
               setPasswordResetStage('email');
+              setPasswordFlowType('reset');
+              setSetupEmail('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setOtpCode('');
+              setOtpError(null);
               if (setShowPasswordReset) {
                 setShowPasswordReset(false);
               }
@@ -288,18 +319,38 @@ export default function ContractorAuthScreen({
             fontSize: 28, 
             fontWeight: '800',
           }}>
-            {passwordResetStage === 'email' && 'Reset Password'}
-            {passwordResetStage === 'otp' && 'Enter Code'}
-            {passwordResetStage === 'password' && 'Set New Password'}
+            {passwordFlowType === 'newUser' ? (
+              <>
+                {passwordResetStage === 'email' && '🎉 Welcome to Contractor Hub!'}
+                {passwordResetStage === 'otp' && 'Verify Your Email'}
+                {passwordResetStage === 'password' && '🔐 Create Your Password'}
+              </>
+            ) : (
+              <>
+                {passwordResetStage === 'email' && 'Reset Password'}
+                {passwordResetStage === 'otp' && 'Enter Code'}
+                {passwordResetStage === 'password' && 'Create New Password'}
+              </>
+            )}
           </Text>
           <Text style={{ 
             color: '#9CA3AF', 
             fontSize: 14, 
             marginTop: 8
           }}>
-            {passwordResetStage === 'email' && 'Enter your email to receive a password reset code'}
-            {passwordResetStage === 'otp' && 'Enter the 6-digit code we sent to your email'}
-            {passwordResetStage === 'password' && 'Create a strong password for your account'}
+            {passwordFlowType === 'newUser' ? (
+              <>
+                {passwordResetStage === 'email' && 'Enter your email to get started'}
+                {passwordResetStage === 'otp' && 'Enter the 6-digit code sent to your email'}
+                {passwordResetStage === 'password' && 'Create a strong password for your account'}
+              </>
+            ) : (
+              <>
+                {passwordResetStage === 'email' && 'Enter your email to receive a password reset code'}
+                {passwordResetStage === 'otp' && 'Enter the 6-digit code we sent to your email'}
+                {passwordResetStage === 'password' && 'Create a strong password for your account'}
+              </>
+            )}
           </Text>
         </View>
 
@@ -416,7 +467,7 @@ export default function ContractorAuthScreen({
                 </>
               )}
 
-              {/* Stage 2: OTP Input */}
+              {/* Stage 2: OTP Input - for both Reset and New User flows */}
               {passwordResetStage === 'otp' && (
                 <>
                   <View style={{ marginBottom: 20 }}>
@@ -845,31 +896,62 @@ export default function ContractorAuthScreen({
               marginVertical: 16
             }}>
               <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
-              <Text style={{ marginHorizontal: 12, color: '#9CA3AF', fontSize: 13 }}>or</Text>
+              <Text style={{ marginHorizontal: 12, color: '#9CA3AF', fontSize: 13 }}>other options</Text>
               <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
             </View>
 
-            {/* Setup/Reset Password Link */}
+            {/* Forgot Password Button */}
             <TouchableOpacity
               onPress={() => {
-                console.log('Toggling showPasswordSetup');
+                console.log('👉 Forgot Password flow selected');
+                setPasswordFlowType('reset');
+                setPasswordResetStage('email');
                 setShowPasswordSetup(true);
+                setSetupEmail('');
               }}
               style={{
-                backgroundColor: '#F3F4F6',
+                backgroundColor: '#FEF3C7',
                 paddingVertical: 12,
                 borderRadius: 8,
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: '#E5E7EB'
+                borderColor: '#FCD34D',
+                marginBottom: 12
               }}
             >
               <Text style={{ 
-                color: '#3B82F6', 
+                color: '#92400E', 
                 fontWeight: '600', 
                 fontSize: 15 
               }}>
-                Need a Password? Get Reset Link
+                🔐 Forgot Password? Reset via Code
+              </Text>
+            </TouchableOpacity>
+
+            {/* New User Button */}
+            <TouchableOpacity
+              onPress={() => {
+                console.log('🆕 New User flow selected');
+                setPasswordFlowType('newUser');
+                setPasswordResetStage('email'); // Start at email, then OTP, then password
+                setShowPasswordSetup(true);
+                setSetupEmail('');
+              }}
+              style={{
+                backgroundColor: '#DBEAFE',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#93C5FD'
+              }}
+            >
+              <Text style={{ 
+                color: '#1E40AF', 
+                fontWeight: '600', 
+                fontSize: 15 
+              }}>
+                🎉 New Contractor? Set Password
               </Text>
             </TouchableOpacity>
 
@@ -888,7 +970,10 @@ export default function ContractorAuthScreen({
                 lineHeight: 18,
                 fontWeight: '500'
               }}>
-                💡 If you don't have a password yet or forgot yours, click "Forgot?" next to the password field or the button below to request a reset link.
+                💡 <Text style={{ fontWeight: '700' }}>Three ways to access your account:</Text>{'\n'}
+                • <Text style={{ fontWeight: '600' }}>Sign In</Text> - if you know your password{'\n'}
+                • <Text style={{ fontWeight: '600' }}>Forgot Password</Text> - get an OTP code to reset{'\n'}
+                • <Text style={{ fontWeight: '600' }}>New Contractor</Text> - if this is your first time logging in
               </Text>
             </View>
           </View>
