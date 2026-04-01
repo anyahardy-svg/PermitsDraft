@@ -167,11 +167,12 @@ export async function sendPasswordResetEmail(email) {
     // Send password reset OTP via Supabase Auth
     // This sends a one-time password code instead of a magic link
     // OTP is not consumed by email security scanners since it requires manual entry
+    // shouldCreateUser: true allows creating new auth users for contractors who don't have accounts yet
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
-        // Don't automatically create a session; just send the OTP
-        shouldCreateUser: false,
+        // Allow creating new auth user if they don't have one yet
+        shouldCreateUser: true,
         // Custom messaging in email if supported
         emailRedirectTo: typeof window !== 'undefined' 
           ? `${window.location.origin}/auth/callback` 
