@@ -162,29 +162,23 @@ export async function sendPasswordResetEmail(email) {
       };
     }
 
-    console.log('Contractor found, sending OTP reset email');
+    console.log('Contractor found, sending password reset email');
 
-    // Send password reset OTP via Supabase Auth
-    // This sends a one-time password code instead of a magic link
-    // OTP is not consumed by email security scanners since it requires manual entry
-    // shouldCreateUser: true allows creating new auth users for contractors who don't have accounts yet
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        // Allow creating new auth user if they don't have one yet
-        shouldCreateUser: true,
-        // Custom messaging in email if supported
-        emailRedirectTo: typeof window !== 'undefined' 
-          ? `${window.location.origin}/auth/callback` 
-          : 'https://contractorhq.co.nz/auth/callback'
-      }
+    // Use resetPasswordForEmail which works for:
+    // - Existing users who need to reset password
+    // - New users who need to set password initially
+    // The actual token will be sent in the email (we updated the email template to show {{ .Token }})
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback` 
+        : 'https://contractorhq.co.nz/auth/callback'
     });
 
-    if (otpError) {
-      console.error('OTP send error:', otpError);
+    if (resetError) {
+      console.error('Password reset send error:', resetError);
       return { 
         success: false, 
-        error: otpError.message || 'Failed to send password reset code' 
+        error: resetError.message || 'Failed to send password reset code' 
       };
     }
 
