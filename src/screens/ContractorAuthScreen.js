@@ -317,10 +317,18 @@ export default function ContractorAuthScreen({
           return;
         }
 
+        // Success! Account created
         console.log('✅ Account created successfully');
+        console.log('📋 signUpData.user:', signUpData.user);
+        console.log('📋 Email verified?', signUpData.user?.user_metadata?.email_verified);
+        
         // Check if email confirmation is required
-        if (signUpData.user && signUpData.user.user_metadata?.email_verified === false) {
+        const emailNeedsConfirmation = signUpData.user && signUpData.user.user_metadata?.email_verified === false;
+        
+        if (emailNeedsConfirmation) {
           // Email confirmation required
+          console.log('📧 Email confirmation required - showing alert');
+          setSetupLoading(false); // Reset loading before showing alert
           Alert.alert(
             'Confirm Your Email',
             `We've sent a confirmation email to ${setupEmail}. Please check your email and click the confirmation link before signing in.`,
@@ -328,7 +336,7 @@ export default function ContractorAuthScreen({
               {
                 text: 'OK',
                 onPress: () => {
-                  // Go back to login screen
+                  console.log('✅ User dismissed confirmation alert - resetting state');
                   setShowPasswordSetup(false);
                   setPasswordResetStage('email');
                   setPasswordFlowType('reset');
@@ -343,30 +351,46 @@ export default function ContractorAuthScreen({
           );
         } else {
           // No email confirmation required, user can login immediately
-          Alert.alert('Success', 'Your account has been created! You can now sign in.');
-          
-          // Reset and go back to login
-          setShowPasswordSetup(false);
-          setPasswordResetStage('email');
-          setPasswordFlowType('reset');
-          setSetupEmail('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setOtpCode('');
-          setOtpError(null);
-          
-          // Trigger login success to redirect to dashboard
-          // Note: Contractor record must exist in the database for this to work
-          // Admin should pre-create the contractor record before user signs up
-          if (onLoginSuccess && signUpData.user) {
-            onLoginSuccess({
-              contractorId: setupEmail, // Will be resolved from contractors table
-              contractorName: setupEmail,
-              companyId: null,
-              email: setupEmail
-            });
-          }
+          console.log('✅ No email confirmation required - showing success alert');
+          setSetupLoading(false); // Reset loading before showing alert
+          Alert.alert(
+            'Success',
+            'Your account has been created! You can now sign in.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  console.log('✅ User dismissed success alert - resetting state and calling onLoginSuccess');
+                  // Reset and go back to login
+                  setShowPasswordSetup(false);
+                  setPasswordResetStage('email');
+                  setPasswordFlowType('reset');
+                  setSetupEmail('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setOtpCode('');
+                  setOtpError(null);
+                  
+                  // Trigger login success to redirect to dashboard
+                  // Note: Contractor record must exist in the database for this to work
+                  // Admin should pre-create the contractor record before user signs up
+                  if (onLoginSuccess && signUpData.user) {
+                    console.log('📞 Calling onLoginSuccess with email:', setupEmail);
+                    onLoginSuccess({
+                      contractorId: setupEmail, // Will be resolved from contractors table
+                      contractorName: setupEmail,
+                      companyId: null,
+                      email: setupEmail
+                    });
+                  } else {
+                    console.error('❌ onLoginSuccess not available or no user:', {onLoginSuccess: !!onLoginSuccess, user: !!signUpData.user});
+                  }
+                }
+              }
+            ]
+          );
         }
+        return; // Exit early, don't run the finally block's setSetupLoading(false)
       } else {
         // PASSWORD RESET: Update password for existing user
         const { error } = await supabase.auth.updateUser({
