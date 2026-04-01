@@ -81,10 +81,15 @@ export default function ContractorAuthScreen({
     }
   }, []);
 
-  // Log when showPasswordSetup changes
+  // Log when passwordFlowType changes
   useEffect(() => {
-    console.log('showPasswordSetup changed to:', showPasswordSetup);
-  }, [showPasswordSetup]);
+    console.log('🔄 passwordFlowType changed to:', passwordFlowType);
+  }, [passwordFlowType]);
+
+  // Log when stage changes
+  useEffect(() => {
+    console.log('🔄 passwordResetStage changed to:', passwordResetStage);
+  }, [passwordResetStage]);
 
   const checkExistingSession = async () => {
     const { success, contractor } = await getCurrentUser();
@@ -908,6 +913,10 @@ export default function ContractorAuthScreen({
                 setPasswordResetStage('email');
                 setShowPasswordSetup(true);
                 setSetupEmail('');
+                setOtpCode('');
+                setOtpError(null);
+                setNewPassword('');
+                setConfirmPassword('');
               }}
               style={{
                 backgroundColor: '#FEF3C7',
@@ -933,9 +942,13 @@ export default function ContractorAuthScreen({
               onPress={() => {
                 console.log('🆕 New User flow selected');
                 setPasswordFlowType('newUser');
-                setPasswordResetStage('email'); // Start at email, then OTP, then password
+                setPasswordResetStage('email');
                 setShowPasswordSetup(true);
                 setSetupEmail('');
+                setOtpCode('');
+                setOtpError(null);
+                setNewPassword('');
+                setConfirmPassword('');
               }}
               style={{
                 backgroundColor: '#DBEAFE',
