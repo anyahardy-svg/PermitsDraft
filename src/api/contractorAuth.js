@@ -137,37 +137,32 @@ export async function getCurrentUser() {
 }
 
 /**
- * Send password reset/setup email to contractor
- * Checks if email exists in contractors table, then sends reset link
+ * Invite contractor as new user (Admin action)
+ * Creates auth user and sends invitation email
  * @param {string} email - Contractor email
  * @returns {Object} { success: boolean, message: string, error: string }
  */
-export async function sendPasswordResetEmail(email) {
+export async function inviteContractor(email) {
   try {
     // First check if this email exists in the contractors table
-    console.log('Checking for contractor email:', email);
+    console.log('🔐 Inviting contractor:', email);
     const { data: contractorData, error: contractorError } = await supabase
       .from('contractors')
       .select('id, email, name')
       .eq('email', email)
       .single();
 
-    console.log('Contractor lookup result:', { contractorData, contractorError });
-
     if (contractorError || !contractorData) {
-      console.log('Email not found - returning error');
       return { 
         success: false, 
-        error: 'Email not found in our system. Please contact your administrator.' 
+        error: 'Email not found in contractor list. Please add them first.' 
       };
     }
 
-    console.log('Contractor found, sending password reset email');
+    console.log('✅ Contractor found in table:', contractorData.name);
 
-    // Call Edge Function that uses Admin API to invite the user
-    // This creates the auth user and sends password recovery email
-    console.log('📧 Calling invite-contractor Edge Function for:', email);
-    
+    // Try to call Edge Function to invite user (creates auth user)
+    console.log('📧 Calling Edge Function to invite user...');
     const inviteResponse = await supabase.functions.invoke('invite-contractor', {
       body: {
         email: email,
@@ -175,40 +170,96 @@ export async function sendPasswordResetEmail(email) {
           ? `${window.location.origin}/auth/callback` 
           : 'https://contractorhq.co.nz/auth/callback'
       }
-    });
-
-    console.log('Edge Function response:', inviteResponse);
+    }).catch(err => ({ error: err, data: null }));
 
     if (inviteResponse.error) {
       console.error('❌ Edge Function error:', inviteResponse.error);
-      return { 
-        success: false, 
-        error: inviteResponse.error.message || 'Failed to send password reset code' 
+      return {
+        success: false,
+        error: 'Unable to send invitation. Please try again or contact support.'
       };
     }
 
     if (!inviteResponse.data?.success) {
-      console.error('❌ Invite failed:', inviteResponse.data?.error);
+      console.error('❌ Invitation failed:', inviteResponse.data?.error);
       return {
         success: false,
-        error: inviteResponse.data?.error || 'Failed to send password reset code'
+        error: inviteResponse.data?.error ||  'Failed to send invitation'
       };
     }
 
-    console.log('✅ Password reset email sent successfully');
+    console.log('✅ Contractor invited successfully');
     return { 
       success: true, 
-      message: `Password reset code has been sent to ${email}. Check your inbox for a 6-digit code and enter it in the form below.`
+      message: `Invitation email sent to ${email}. They will receive a link to set their password.`
     };
   } catch (error) {
-    console.error('❌ Password reset email exception:', error);
-    console.error('   Error message:', error.message);
-    console.error('   Error stack:', error.stack);
+    console.error('❌ Invitation error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'An error occurred while sending invitation'
+    };
+  }
+}
+
+/**
+ * Send password reset CODE to existing contractor (Self-service)
+ * User will receive OTP code via email, not a magic link
+ * @param {string} email - Contractor email
+ * @returns {Object} { success: boolean, message: string, error: string }
+ */
+export async function sendPasswordResetCode(email) {
+  try {
+    console.log('🔑 Sending password reset code to:', email);
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, email, name')
+      .eq('email', email)
+      .single();
+
+    if (contractorError || !contractorData) {
+      return { 
+        success: false, 
+        error: 'Email not found in our system. Please contact your administrator.' 
+      };
+    }
+
+    // For password reset, use resetPasswordForEmail which sends recovery token
+    // This will send it as a 6-digit code (per email template)
+    console.log('📧 Sending recovery code via resetPasswordForEmail');
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback` 
+        : 'https://contractorhq.co.nz/auth/callback'
+    });
+
+    if (resetError) {
+      console.error('❌ Reset email error:', resetError);
+      return { 
+        success: false, 
+        error: resetError.message || 'Failed to send password reset code' 
+      };
+    }
+
+    console.log('✅ Password reset code sent successfully');
+    return { 
+      success: true, 
+      message: `Password reset code has been sent to ${email}. Check your inbox for a 6-digit code and enter it below.`
+    };
+  } catch (error) {
+    console.error('❌ Password reset error:', error);
     return { 
       success: false, 
       error: error.message || 'An error occurred' 
     };
   }
+}
+
+/**
+ * Legacy function - now sendPasswordResetCode instead
+ */
+export async function sendPasswordResetEmail(email) {
+  return sendPasswordResetCode(email);
 }
 
 /**
