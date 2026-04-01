@@ -67,14 +67,15 @@ export default function ContractorAuthScreen({
       const token = hashParams.get('token');
       const type = hashParams.get('type');
       
-      console.log('🔍 URL hash:', { token: token ? '✓' : '✗', type });
+      console.log('🔍 URL hash detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', type });
       
-      // If this is a recovery/invitation link, show password setup
+      // If this is a recovery/invitation link, show password setup immediately
       if (token && type === 'recovery') {
         console.log('✅ Recovery link detected - showing password form');
         setPasswordFlowType('newUser'); 
         setPasswordResetStage('password'); 
         setShowPasswordSetup(true);
+        window.history.replaceState(null, '', window.location.pathname); // Clean up URL
       }
     }
   }, []);
@@ -359,7 +360,7 @@ export default function ContractorAuthScreen({
             {passwordFlowType === 'newUser' ? (
               <>
                 {passwordResetStage === 'email' && 'Enter your email to create your account'}
-                {passwordResetStage === 'password' && 'Create a strong password for your account'}
+                {passwordResetStage === 'password' && '✅ Link verified! Now set your password'}
               </>
             ) : (
               <>
