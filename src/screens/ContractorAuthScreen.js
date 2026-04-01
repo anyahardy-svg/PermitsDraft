@@ -59,6 +59,26 @@ export default function ContractorAuthScreen({
     checkExistingSession();
   }, []);
 
+  // Check if this is a recovery link from Supabase (when user clicks email link)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const token = hashParams.get('token');
+      const type = hashParams.get('type');
+      
+      console.log('🔍 URL hash:', { token: token ? '✓' : '✗', type });
+      
+      // If this is a recovery/invitation link, show password setup
+      if (token && type === 'recovery') {
+        console.log('✅ Recovery link detected - showing password form');
+        setPasswordFlowType('newUser'); 
+        setPasswordResetStage('password'); 
+        setShowPasswordSetup(true);
+      }
+    }
+  }, []);
+
   // Log when passwordFlowType changes
   useEffect(() => {
     console.log('🔄 passwordFlowType changed to:', passwordFlowType);
@@ -151,28 +171,37 @@ export default function ContractorAuthScreen({
     setOtpError(null);
     try {
       if (passwordFlowType === 'newUser') {
-        // NEW USER: Just go straight to password form
-        console.log('🆕 New user - going straight to password form');
-        setPasswordResetStage('password');
+        // NEW USER: Send invitation email
+        console.log('🆕 Sending new contractor invitation...');
+        const inviteResult = await inviteContractor(setupEmail);
+        
+        if (!inviteResult.success) {
+          Alert.alert('Error', inviteResult.error || 'Failed to send invitation');
+          setSetupLoading(false);
+          return;
+        }
+
+        console.log('✅ Invitation sent - show check email screen');
+        setPasswordResetStage('checkEmail');
+        Alert.alert('Check Your Email', 'We\'ve sent a setup link. Click it to create your password.');
       } else {
-        // PASSWORD RESET: Send OTP code via email
-        console.log('🔐 Password reset flow - calling sendPasswordResetEmail');
+        // PASSWORD RESET: Send OTP code
+        console.log('🔐 Password reset flow - sending OTP');
         const response = await sendPasswordResetEmail(setupEmail);
-        console.log('sendPasswordResetEmail response:', response);
 
         if (response.success) {
-          console.log('Password reset OTP sent - moving to OTP entry stage');
+          console.log('✅ OTP sent - moving to OTP entry stage');
           setPasswordResetStage('otp');
           setOtpCode('');
           Alert.alert('Check Your Email', response.message);
         } else {
-          console.log('Password reset error:', response.error);
+          console.log('❌ Error sending password reset:', response.error);
           setOtpError(response.error);
-          Alert.alert('Error', response.error || 'Failed to send password reset email');
+          Alert.alert('Error', response.error || 'Failed to send reset code');
         }
       }
     } catch (error) {
-      console.log('Password reset exception:', error.message);
+      console.log('Exception:', error.message);
       setOtpError(error.message);
       Alert.alert('Error', error.message || 'An unexpected error occurred');
     } finally {
@@ -239,42 +268,21 @@ export default function ContractorAuthScreen({
 
     setSetupLoading(true);
     try {
-      if (passwordFlowType === 'newUser') {
-        // NEW USER: First create auth user via inviteContractor, then sign them in
-        console.log('🆕 Creating new contractor account...');
-        const inviteResult = await inviteContractor(setupEmail);
-        
-        if (!inviteResult.success) {
-          Alert.alert('Error', inviteResult.error || 'Failed to create account');
-          setSetupLoading(false);
-          return;
-        }
+      console.log('✅ Setting new password');
+      
+      // Update password for the authenticated user (recovery link creates session)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
 
-        console.log('✅ Contractor created, now setting password...');
-        
-        // Sign them in with temp password flow to establish session
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: setupEmail,
-          password: newPassword
-        });
-
-        if (signInError) {
-          // Try to update password if sign-in fails (user might not have password set yet)
-          const { error: updateError } = await supabase.auth.updateUser({
-            password: newPassword
-          });
-
-          if (updateError) {
-            Alert.alert('Error', updateError.message);
-            setSetupLoading(false);
-            return;
-          }
-        }
-
+      if (error) {
+        setOtpError(error.message);
+        Alert.alert('Error', error.message);
+      } else {
         console.log('✅ Password set successfully');
-        Alert.alert('Success', 'Your account has been created! You can now log in.');
+        Alert.alert('Success', 'Your password has been set. You can now log in.');
         
-        // Reset and go back to login
+        // Reset all states
         setShowPasswordSetup(false);
         setPasswordResetStage('email');
         setPasswordFlowType('reset');
@@ -283,29 +291,6 @@ export default function ContractorAuthScreen({
         setConfirmPassword('');
         setOtpCode('');
         setOtpError(null);
-      } else {
-        // PASSWORD RESET: Just update password for existing user
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword
-        });
-
-        if (error) {
-          setOtpError(error.message);
-          Alert.alert('Error', error.message);
-        } else {
-          console.log('✅ Password set successfully');
-          Alert.alert('Success', 'Your password has been set. You can now log in.');
-          
-          // Reset all states
-          setShowPasswordSetup(false);
-          setPasswordResetStage('email');
-          setPasswordFlowType('reset');
-          setSetupEmail('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setOtpCode('');
-          setOtpError(null);
-        }
         
         if (setShowPasswordReset) {
           setShowPasswordReset(false);

@@ -167,8 +167,8 @@ export async function inviteContractor(email) {
       body: {
         email: email,
         redirectTo: typeof window !== 'undefined' 
-          ? `${window.location.origin}/auth/callback` 
-          : 'https://contractorhq.co.nz/auth/callback'
+          ? window.location.origin
+          : 'https://contractorhq.co.nz'
       }
     }).catch(err => ({ error: err, data: null }));
 
