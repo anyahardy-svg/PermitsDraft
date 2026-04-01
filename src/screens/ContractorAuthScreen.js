@@ -458,7 +458,7 @@ export default function ContractorAuthScreen({
             {passwordFlowType === 'newUser' ? (
               <>
                 {passwordResetStage === 'email' && 'Enter your email to create your account'}
-                {passwordResetStage === 'password' && '✅ Link verified! Now set your password'}
+                {passwordResetStage === 'password' && 'Now create your password'}
               </>
             ) : (
               <>
