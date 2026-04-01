@@ -164,22 +164,34 @@ export async function sendPasswordResetEmail(email) {
 
     console.log('Contractor found, sending password reset email');
 
-    // Use resetPasswordForEmail which sends recovery token
-    // The actual token will be sent in the email (we updated the email template to show {{ .Token }})
-    console.log('📧 Calling resetPasswordForEmail for:', email);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback` 
-        : 'https://contractorhq.co.nz/auth/callback'
+    // Call Edge Function that uses Admin API to invite the user
+    // This creates the auth user and sends password recovery email
+    console.log('📧 Calling invite-contractor Edge Function for:', email);
+    
+    const inviteResponse = await supabase.functions.invoke('invite-contractor', {
+      body: {
+        email: email,
+        redirectTo: typeof window !== 'undefined' 
+          ? `${window.location.origin}/auth/callback` 
+          : 'https://contractorhq.co.nz/auth/callback'
+      }
     });
 
-    if (resetError) {
-      console.error('❌ resetPasswordForEmail error:', resetError);
-      console.error('   Error code:', resetError.code);
-      console.error('   Error status:', resetError.status);
+    console.log('Edge Function response:', inviteResponse);
+
+    if (inviteResponse.error) {
+      console.error('❌ Edge Function error:', inviteResponse.error);
       return { 
         success: false, 
-        error: resetError.message || 'Failed to send password reset code' 
+        error: inviteResponse.error.message || 'Failed to send password reset code' 
+      };
+    }
+
+    if (!inviteResponse.data?.success) {
+      console.error('❌ Invite failed:', inviteResponse.data?.error);
+      return {
+        success: false,
+        error: inviteResponse.data?.error || 'Failed to send password reset code'
       };
     }
 
