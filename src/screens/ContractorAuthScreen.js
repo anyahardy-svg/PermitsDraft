@@ -305,6 +305,7 @@ export default function ContractorAuthScreen({
           setConfirmPassword('');
           setOtpCode('');
           setOtpError(null);
+        }
         
         if (setShowPasswordReset) {
           setShowPasswordReset(false);
