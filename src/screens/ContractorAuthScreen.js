@@ -277,28 +277,54 @@ export default function ContractorAuthScreen({
         }
 
         console.log('✅ Account created successfully');
-        Alert.alert('Success', 'Your account has been created! You are now logged in.');
-        
-        // Reset and go back to login
-        setShowPasswordSetup(false);
-        setPasswordResetStage('email');
-        setPasswordFlowType('reset');
-        setSetupEmail('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setOtpCode('');
-        setOtpError(null);
-        
-        // Trigger login success to redirect to dashboard
-        // Note: Contractor record must exist in the database for this to work
-        // Admin should pre-create the contractor record before user signs up
-        if (onLoginSuccess && signUpData.user) {
-          onLoginSuccess({
-            contractorId: setupEmail, // Will be resolved from contractors table
-            contractorName: setupEmail,
-            companyId: null,
-            email: setupEmail
-          });
+        // Check if email confirmation is required
+        if (signUpData.user && signUpData.user.user_metadata?.email_verified === false) {
+          // Email confirmation required
+          Alert.alert(
+            'Confirm Your Email',
+            `We've sent a confirmation email to ${setupEmail}. Please check your email and click the confirmation link before signing in.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Go back to login screen
+                  setShowPasswordSetup(false);
+                  setPasswordResetStage('email');
+                  setPasswordFlowType('reset');
+                  setSetupEmail('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setOtpCode('');
+                  setOtpError(null);
+                }
+              }
+            ]
+          );
+        } else {
+          // No email confirmation required, user can login immediately
+          Alert.alert('Success', 'Your account has been created! You can now sign in.');
+          
+          // Reset and go back to login
+          setShowPasswordSetup(false);
+          setPasswordResetStage('email');
+          setPasswordFlowType('reset');
+          setSetupEmail('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setOtpCode('');
+          setOtpError(null);
+          
+          // Trigger login success to redirect to dashboard
+          // Note: Contractor record must exist in the database for this to work
+          // Admin should pre-create the contractor record before user signs up
+          if (onLoginSuccess && signUpData.user) {
+            onLoginSuccess({
+              contractorId: setupEmail, // Will be resolved from contractors table
+              contractorName: setupEmail,
+              companyId: null,
+              email: setupEmail
+            });
+          }
         }
       } else {
         // PASSWORD RESET: Update password for existing user
@@ -590,7 +616,7 @@ export default function ContractorAuthScreen({
                       lineHeight: 18,
                       fontWeight: '500'
                     }}>
-                      Check your email for the 6-digit code. It may take a minute to arrive.
+                      📧 Check your email for a 6-digit code (looks like 123456). Ignore any links in the email - just enter the code here.
                     </Text>
                   </View>
                 </>

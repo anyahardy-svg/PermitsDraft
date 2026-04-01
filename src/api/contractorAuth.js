@@ -204,7 +204,7 @@ export async function inviteContractor(email) {
 
 /**
  * Send password reset CODE to existing contractor (Self-service)
- * User will receive OTP code via email, not a magic link
+ * User will receive OTP code via email
  * @param {string} email - Contractor email
  * @returns {Object} { success: boolean, message: string, error: string }
  */
@@ -224,9 +224,8 @@ export async function sendPasswordResetCode(email) {
       };
     }
 
-    // For password reset, use resetPasswordForEmail which sends recovery token
-    // This will send it as a 6-digit code (per email template)
-    console.log('📧 Sending recovery code via resetPasswordForEmail');
+    // Send password reset code via Supabase (sends 6-digit OTP)
+    console.log('📧 Sending password reset code via Supabase');
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/callback` 
@@ -244,7 +243,7 @@ export async function sendPasswordResetCode(email) {
     console.log('✅ Password reset code sent successfully');
     return { 
       success: true, 
-      message: `Password reset code has been sent to ${email}. Check your inbox for a 6-digit code and enter it below.`
+      message: `Password reset code has been sent to ${email}. Check your email for a 6-digit code.`
     };
   } catch (error) {
     console.error('❌ Password reset error:', error);
