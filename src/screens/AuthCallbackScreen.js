@@ -50,11 +50,23 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
       const hashParams = new URLSearchParams(urlHash.substring(1));
       const errorCode = hashParams.get('error_code');
       const errorDescription = hashParams.get('error_description');
+      const tokenType = hashParams.get('type');
+      const token = hashParams.get('token');
       
-      console.log('🔴 Error from URL:', { errorCode, errorDescription });
+      console.log('🔴 URL Parameters:', { 
+        errorCode, 
+        errorDescription, 
+        tokenType,
+        tokenPresent: !!token
+      });
 
       if (errorCode === 'otp_expired') {
-        console.error('❌ Token has expired - user took too long to click link or token TTL is too short');
+        console.error('❌ Token has expired - LESS THAN A MINUTE means token is being invalidated immediately');
+        console.error('   Possible causes:', [
+          '1. Token is single-use and being consumed on page load',
+          '2. Token TTL is less than 60 seconds at Supabase server',
+          '3. Token is invalid from the start in the email'
+        ].join('\n   '));
         setError('Your password reset link has expired. Password reset links are only valid for 24 hours. Please request a new link by clicking "Forgot Password" on the login screen.');
         setTokenValid(false);
         setIsVerifying(false);
@@ -69,29 +81,45 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
         return;
       }
 
-      // Wait longer for Supabase to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check localStorage for session info
+      console.log('💾 Checking localStorage for session...');
+      const localSession = localStorage.getItem('supabase.auth.token');
+      console.log('   Token in localStorage:', !!localSession ? 'YES' : 'NO');
+      
+      // Check sessionStorage
+      const sessionToken = sessionStorage.getItem('supabase.auth.token');
+      console.log('   Token in sessionStorage:', !!sessionToken ? 'YES' : 'NO');
+
+      // Wait longer for Supabase to process the token
+      console.log('⏳ Waiting 2 seconds for Supabase to process token...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Try to get session
+      console.log('🔐 Calling supabase.auth.getSession()...');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('📊 Session check:', { 
+      console.log('📊 Session check result:', { 
         hasSession: !!session, 
         userEmail: session?.user?.email,
-        error: sessionError?.message 
+        sessionError: sessionError?.message || 'none'
       });
 
+      if (sessionError) {
+        console.error('   Session error:', sessionError);
+      }
+
       if (session?.user) {
-        console.log('✅ Session established');
+        console.log('✅ Session established successfully');
         setTokenValid(true);
         setError(null);
       } else {
-        console.error('❌ No session - token may not have been properly processed');
+        console.error('❌ No session established - token may have been consumed without authentication');
         setError('Password reset link is invalid or has expired. Please request a new link.');
         setTokenValid(false);
       }
     } catch (err) {
-      console.error('❌ Exception:', err.message);
+      console.error('❌ Exception during token verification:', err.message);
+      console.error('   Stack:', err.stack);
       setError(`Error: ${err.message}`);
       setTokenValid(false);
     } finally {
