@@ -19,7 +19,6 @@ import {
   getCurrentUser,
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
-  inviteContractor,
 } from '../api/contractorAuth';
 
 export default function ContractorAuthScreen({ 
