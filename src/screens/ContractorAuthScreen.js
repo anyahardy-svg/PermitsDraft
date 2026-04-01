@@ -59,21 +59,21 @@ export default function ContractorAuthScreen({
     checkExistingSession();
   }, []);
 
-  // Check if this is an invitation link (has recovery code in URL)
+  // Check if this is a recovery link from Supabase (invitation or password reset)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       const hashParams = new URLSearchParams(hash.substring(1));
-      const code = hashParams.get('code');
+      const token = hashParams.get('token');
       const type = hashParams.get('type');
       
-      console.log('🔍 Checking URL hash:', { hash, code, type });
+      console.log('🔍 URL hash detected:', { hash: hash.substring(0, 50), token: token ? '✓' : '✗', type });
       
-      // If this is a recovery/invitation link, skip to password stage
-      if (code && type === 'recovery') {
-        console.log('✅ Invitation link detected - code:', code);
-        setPasswordFlowType('newUser'); // This is a new user invitation
-        setPasswordResetStage('password'); // Skip OTP, go straight to password
+      // If Supabase sent us a recovery link, show password setup
+      if (token && type === 'recovery') {
+        console.log('✅ Recovery link detected - showing password form');
+        setPasswordFlowType('newUser'); 
+        setPasswordResetStage('password'); 
         setShowPasswordSetup(true);
       }
     }
@@ -270,34 +270,10 @@ export default function ContractorAuthScreen({
 
     setSetupLoading(true);
     try {
-      console.log('Setting new password');
+      console.log('✅ Setting new password');
       
-      // If coming from invitation link, verify the recovery code first
-      if (passwordFlowType === 'newUser' && typeof window !== 'undefined') {
-        const hash = window.location.hash;
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const code = hashParams.get('code');
-        
-        if (code) {
-          console.log('📧 Verifying recovery code from invitation link...');
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            email: setupEmail,
-            token: code,
-            type: 'recovery'
-          });
-          
-          if (verifyError) {
-            console.error('❌ Recovery code verification failed:', verifyError);
-            setOtpError('Failed to verify recovery code. The link may be expired.');
-            Alert.alert('Error', 'Failed to verify recovery code. Please request a new invitation.');
-            setSetupLoading(false);
-            return;
-          }
-          console.log('✅ Recovery code verified successfully');
-        }
-      }
-      
-      // Update password for the authenticated user
+      // When on a recovery link, Supabase auto-creates a session
+      // We just need to update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -307,9 +283,9 @@ export default function ContractorAuthScreen({
         Alert.alert('Error', error.message);
       } else {
         console.log('✅ Password set successfully');
-        Alert.alert('Success', 'Your password has been set. You can now log in with your email and password.');
+        Alert.alert('Success', 'Your password has been set. You can now log in.');
         
-        // Reset all states
+        // Reset all states and go back to login
         setShowPasswordSetup(false);
         setPasswordResetStage('email');
         setPasswordFlowType('reset');
