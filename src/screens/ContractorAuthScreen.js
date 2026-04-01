@@ -442,7 +442,7 @@ export default function ContractorAuthScreen({
                         fontWeight: '700', 
                         fontSize: 16 
                       }}>
-                        Send Reset Code
+                        {passwordFlowType === 'newUser' ? 'Get Started' : 'Send Reset Code'}
                       </Text>
                     )}
                   </TouchableOpacity>
