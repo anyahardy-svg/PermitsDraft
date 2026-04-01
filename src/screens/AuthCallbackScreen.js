@@ -166,8 +166,20 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Invalid or Expired Link</Text>
+          <Text style={styles.errorTitle}>⚠️ Invalid or Expired Link</Text>
           <Text style={styles.errorMessage}>{error}</Text>
+          
+          <TouchableOpacity 
+            style={styles.requestNewButton}
+            onPress={() => {
+              if (onPasswordSet) {
+                onPasswordSet('request-reset'); // Go back to request new link
+              }
+            }}
+          >
+            <Text style={styles.requestNewButtonText}>Request New Link</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => {
@@ -414,6 +426,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  requestNewButton: {
+    backgroundColor: '#ff9800',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  requestNewButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

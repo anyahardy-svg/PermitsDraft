@@ -21,6 +21,8 @@ import {
 
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
+  showPasswordReset,
+  setShowPasswordReset,
   styles 
 }) {
   const [email, setEmail] = useState('');
@@ -28,9 +30,16 @@ export default function ContractorAuthScreen({
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  const [showPasswordSetup, setShowPasswordSetup] = useState(showPasswordReset || false);
   const [setupEmail, setSetupEmail] = useState('');
   const [setupLoading, setSetupLoading] = useState(false);
+
+  // Sync showPasswordReset prop with local state
+  useEffect(() => {
+    if (showPasswordReset) {
+      setShowPasswordSetup(true);
+    }
+  }, [showPasswordReset]);
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -154,7 +163,12 @@ export default function ContractorAuthScreen({
           paddingTop: 80
         }}>
           <TouchableOpacity 
-            onPress={() => setShowPasswordSetup(false)}
+            onPress={() => {
+              setShowPasswordSetup(false);
+              if (setShowPasswordReset) {
+                setShowPasswordReset(false);
+              }
+            }}
             style={{ marginBottom: 16 }}
           >
             <Text style={{ color: '#9CA3AF', fontSize: 18, fontWeight: '600' }}>← Back</Text>

@@ -2057,6 +2057,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [hazardText, setHazardText] = useState('');
   const [currentScreen, setCurrentScreen] = useState(initialAdminRoute || 'dashboard');
   const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
+  const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
@@ -18894,19 +18895,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
           }}
+          showPasswordReset={showPasswordReset}
+          setShowPasswordReset={setShowPasswordReset}
           styles={styles}
         />
       );
     case 'authCallback':
       return (
         <AuthCallbackScreen
-          onPasswordSet={() => {
-            // Password has been set - redirect to login
-            console.log('✅ Password set successfully - redirecting to login');
-            setCurrentScreen('contractorAuth');
-            // Also clear the URL to remove the callback hash
-            if (typeof window !== 'undefined') {
-              window.history.replaceState({}, document.title, '/');
+          onPasswordSet={(action) => {
+            if (action === 'request-reset') {
+              // User clicked "Request New Link" - go back to password reset form
+              console.log('📧 User requesting new password reset link');
+              setCurrentScreen('contractorAuth');
+              setShowPasswordReset(true); // Show password reset form in ContractorAuthScreen
+            } else {
+              // Password has been set - redirect to login
+              console.log('✅ Password set successfully - redirecting to login');
+              setCurrentScreen('contractorAuth');
+              // Also clear the URL to remove the callback hash
+              if (typeof window !== 'undefined') {
+                window.history.replaceState({}, document.title, '/');
+              }
             }
           }}
           styles={styles}
