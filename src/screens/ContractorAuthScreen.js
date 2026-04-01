@@ -172,19 +172,9 @@ export default function ContractorAuthScreen({
     setOtpError(null);
     try {
       if (passwordFlowType === 'newUser') {
-        // NEW USER: Send invitation email
-        console.log('🆕 Sending new contractor invitation...');
-        const inviteResult = await inviteContractor(setupEmail);
-        
-        if (!inviteResult.success) {
-          Alert.alert('Error', inviteResult.error || 'Failed to send invitation');
-          setSetupLoading(false);
-          return;
-        }
-
-        console.log('✅ Invitation sent - show check email screen');
-        setPasswordResetStage('checkEmail');
-        Alert.alert('Check Your Email', 'We\'ve sent a setup link. Click it to create your password.');
+        // NEW USER: Go straight to password form
+        console.log('🆕 New user - showing password form');
+        setPasswordResetStage('password');
       } else {
         // PASSWORD RESET: Send OTP code
         console.log('🔐 Password reset flow - sending OTP');
@@ -269,21 +259,28 @@ export default function ContractorAuthScreen({
 
     setSetupLoading(true);
     try {
-      console.log('✅ Setting new password');
-      
-      // Update password for the authenticated user (recovery link creates session)
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+      if (passwordFlowType === 'newUser') {
+        // NEW USER: Sign up directly with email and password
+        console.log('🆕 Signing up new contractor:', setupEmail);
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: setupEmail,
+          password: newPassword,
+          options: {
+            emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : 'https://contractorhq.co.nz'
+          }
+        });
 
-      if (error) {
-        setOtpError(error.message);
-        Alert.alert('Error', error.message);
-      } else {
-        console.log('✅ Password set successfully');
-        Alert.alert('Success', 'Your password has been set. You can now log in.');
+        if (signUpError) {
+          console.error('❌ Signup error:', signUpError);
+          Alert.alert('Error', signUpError.message || 'Failed to create account');
+          setSetupLoading(false);
+          return;
+        }
+
+        console.log('✅ Account created successfully');
+        Alert.alert('Success', 'Your account has been created! You are now logged in.');
         
-        // Reset all states
+        // Reset and go back to login
         setShowPasswordSetup(false);
         setPasswordResetStage('email');
         setPasswordFlowType('reset');
@@ -293,14 +290,47 @@ export default function ContractorAuthScreen({
         setOtpCode('');
         setOtpError(null);
         
-        if (setShowPasswordReset) {
-          setShowPasswordReset(false);
+        // Trigger login success to redirect to dashboard
+        if (onLoginSuccess && signUpData.user) {
+          onLoginSuccess({
+            contractorId: setupEmail, // Will need to get from contractors table
+            contractorName: setupEmail,
+            companyId: null,
+            email: setupEmail
+          });
+        }
+      } else {
+        // PASSWORD RESET: Update password for existing user
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          setOtpError(error.message);
+          Alert.alert('Error', error.message);
+        } else {
+          console.log('✅ Password set successfully');
+          Alert.alert('Success', 'Your password has been set. You can now log in.');
+          
+          // Reset all states
+          setShowPasswordSetup(false);
+          setPasswordResetStage('email');
+          setPasswordFlowType('reset');
+          setSetupEmail('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setOtpCode('');
+          setOtpError(null);
+          
+          if (setShowPasswordReset) {
+            setShowPasswordReset(false);
+          }
         }
       }
     } catch (error) {
-      console.error('Password set error:', error);
+      console.error('❌ Error:', error);
       setOtpError(error.message);
-      Alert.alert('Error', error.message || 'Failed to set password');
+      Alert.alert('Error', error.message || 'An unexpected error occurred');
     } finally {
       setSetupLoading(false);
     }
