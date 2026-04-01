@@ -137,8 +137,8 @@ export async function getCurrentUser() {
 }
 
 /**
- * Send password reset/setup email to contractor using OTP (One-Time Password)
- * OTP prevents token consumption by email security scanners
+ * Send password reset/setup email to contractor
+ * Checks if email exists in contractors table, then sends reset link
  * @param {string} email - Contractor email
  * @returns {Object} { success: boolean, message: string, error: string }
  */
@@ -164,10 +164,9 @@ export async function sendPasswordResetEmail(email) {
 
     console.log('Contractor found, sending password reset email');
 
-    // Use resetPasswordForEmail which works for:
-    // - Existing users who need to reset password
-    // - New users who need to set password initially
+    // Use resetPasswordForEmail which sends recovery token
     // The actual token will be sent in the email (we updated the email template to show {{ .Token }})
+    console.log('📧 Calling resetPasswordForEmail for:', email);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/callback` 
@@ -175,19 +174,24 @@ export async function sendPasswordResetEmail(email) {
     });
 
     if (resetError) {
-      console.error('Password reset send error:', resetError);
+      console.error('❌ resetPasswordForEmail error:', resetError);
+      console.error('   Error code:', resetError.code);
+      console.error('   Error status:', resetError.status);
       return { 
         success: false, 
         error: resetError.message || 'Failed to send password reset code' 
       };
     }
 
+    console.log('✅ Password reset email sent successfully');
     return { 
       success: true, 
       message: `Password reset code has been sent to ${email}. Check your inbox for a 6-digit code and enter it in the form below.`
     };
   } catch (error) {
-    console.error('Password reset email error:', error);
+    console.error('❌ Password reset email exception:', error);
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
     return { 
       success: false, 
       error: error.message || 'An error occurred' 
