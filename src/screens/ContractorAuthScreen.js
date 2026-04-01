@@ -325,70 +325,38 @@ export default function ContractorAuthScreen({
         // Check if email confirmation is required
         const emailNeedsConfirmation = signUpData.user && signUpData.user.user_metadata?.email_verified === false;
         
+        // Reset the form and go back to login
+        // User will verify their email and be logged in automatically
+        setSetupLoading(false);
+        setShowPasswordSetup(false);
+        setPasswordResetStage('email');
+        setPasswordFlowType('reset');
+        setSetupEmail('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtpCode('');
+        setOtpError(null);
+        
         if (emailNeedsConfirmation) {
-          // Email confirmation required
-          console.log('📧 Email confirmation required - showing alert');
-          setSetupLoading(false); // Reset loading before showing alert
+          console.log('📧 Email confirmation required - account created, user should verify email');
+          // Show simple feedback that account was created
           Alert.alert(
-            'Confirm Your Email',
-            `We've sent a confirmation email to ${setupEmail}. Please check your email and click the confirmation link before signing in.`,
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  console.log('✅ User dismissed confirmation alert - resetting state');
-                  setShowPasswordSetup(false);
-                  setPasswordResetStage('email');
-                  setPasswordFlowType('reset');
-                  setSetupEmail('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  setOtpCode('');
-                  setOtpError(null);
-                }
-              }
-            ]
+            'Account Created! 🎉',
+            `Please check your email at ${setupEmail} and click the verification link to activate your account.`,
+            [{ text: 'OK' }]
           );
         } else {
+          console.log('✅ Account created, no email confirmation required - logging user in');
           // No email confirmation required, user can login immediately
-          console.log('✅ No email confirmation required - showing success alert');
-          setSetupLoading(false); // Reset loading before showing alert
-          Alert.alert(
-            'Success',
-            'Your account has been created! You can now sign in.',
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  console.log('✅ User dismissed success alert - resetting state and calling onLoginSuccess');
-                  // Reset and go back to login
-                  setShowPasswordSetup(false);
-                  setPasswordResetStage('email');
-                  setPasswordFlowType('reset');
-                  setSetupEmail('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  setOtpCode('');
-                  setOtpError(null);
-                  
-                  // Trigger login success to redirect to dashboard
-                  // Note: Contractor record must exist in the database for this to work
-                  // Admin should pre-create the contractor record before user signs up
-                  if (onLoginSuccess && signUpData.user) {
-                    console.log('📞 Calling onLoginSuccess with email:', setupEmail);
-                    onLoginSuccess({
-                      contractorId: setupEmail, // Will be resolved from contractors table
-                      contractorName: setupEmail,
-                      companyId: null,
-                      email: setupEmail
-                    });
-                  } else {
-                    console.error('❌ onLoginSuccess not available or no user:', {onLoginSuccess: !!onLoginSuccess, user: !!signUpData.user});
-                  }
-                }
-              }
-            ]
-          );
+          if (onLoginSuccess && signUpData.user) {
+            console.log('📞 Calling onLoginSuccess with email:', setupEmail);
+            onLoginSuccess({
+              contractorId: setupEmail,
+              contractorName: setupEmail,
+              companyId: null,
+              email: setupEmail
+            });
+          }
         }
         return; // Exit early, don't run the finally block's setSetupLoading(false)
       } else {
