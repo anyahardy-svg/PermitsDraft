@@ -1,14 +1,15 @@
 /**
- * SendGrid Email Integration
- * Handles all outbound emails via SendGrid
+ * Brevo Email Integration
+ * Handles all outbound emails via Brevo (formerly Sendinblue)
  */
 
-const SENDGRID_API_KEY = process.env.VITE_SENDGRID_API_KEY;
+const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
+const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
 
 /**
- * Send accreditation invitation email
+ * Send accreditation invitation email via Brevo
  * @param {string} toEmail - Email address to send to
  * @param {string} companyName - Company name for the invitation
  * @param {Date} deadline - Accreditation deadline
@@ -17,8 +18,8 @@ const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
  */
 export const sendAccreditationInvitation = async (toEmail, companyName, deadline, isNewUser = false) => {
   try {
-    if (!SENDGRID_API_KEY) {
-      console.error('❌ SendGrid API key not configured');
+    if (!BREVO_API_KEY) {
+      console.error('❌ Brevo API key not configured');
       return { success: false, error: 'Email service not configured' };
     }
 
@@ -54,37 +55,29 @@ export const sendAccreditationInvitation = async (toEmail, companyName, deadline
         <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
       `;
 
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: toEmail }],
-            subject: subject,
-          }
-        ],
-        from: { email: FROM_EMAIL, name: 'Contractor HQ' },
-        content: [
-          {
-            type: 'text/html',
-            value: htmlContent,
-          }
-        ],
+        to: [{ email: toEmail }],
+        subject: subject,
+        sender: { email: FROM_EMAIL, name: FROM_NAME },
+        htmlContent: htmlContent,
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ SendGrid error:', error);
+      console.error('❌ Brevo error:', error);
       return { success: false, error: error.message || 'Failed to send email' };
     }
 
+    const data = await response.json();
     console.log('✅ Accreditation invitation sent to:', toEmail);
-    return { success: true, messageId: response.headers.get('x-message-id') };
+    return { success: true, messageId: data.messageId };
   } catch (error) {
     console.error('❌ Error sending accreditation invitation:', error);
     return { success: false, error: error.message };
@@ -98,8 +91,8 @@ export const sendAccreditationInvitation = async (toEmail, companyName, deadline
  */
 export const sendInvitationRequest = async (data) => {
   try {
-    if (!SENDGRID_API_KEY) {
-      console.error('❌ SendGrid API key not configured');
+    if (!BREVO_API_KEY) {
+      console.error('❌ Brevo API key not configured');
       return { success: false, error: 'Email service not configured' };
     }
 
@@ -113,32 +106,23 @@ export const sendInvitationRequest = async (data) => {
       <p><a href="mailto:${email}">Reply to ${name}</a></p>
     `;
 
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: SUPPORT_EMAIL }],
-            subject: `[Accreditation Request] ${companyName} - ${name}`,
-          }
-        ],
-        from: { email: FROM_EMAIL, name: 'Contractor HQ' },
-        content: [
-          {
-            type: 'text/html',
-            value: htmlContent,
-          }
-        ],
+        to: [{ email: SUPPORT_EMAIL }],
+        subject: `[Accreditation Request] ${companyName} - ${name}`,
+        sender: { email: FROM_EMAIL, name: FROM_NAME },
+        htmlContent: htmlContent,
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ SendGrid error:', error);
+      console.error('❌ Brevo error:', error);
       return { success: false, error: error.message || 'Failed to send email' };
     }
 

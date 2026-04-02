@@ -25,6 +25,7 @@ import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachmen
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
 import { getCompanyAccreditation } from './src/api/accreditations';
+import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
@@ -2321,6 +2322,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [approvingTrainingRecords, setApprovingTrainingRecords] = useState(false);
   const [showTrainingRecordsFeedbackModal, setShowTrainingRecordsFeedbackModal] = useState(false);
   const [trainingRecordsFeedback, setTrainingRecordsFeedback] = useState('');
+  
+  // Accreditation Invitation States
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
+  const [selectedCompanyForInvitation, setSelectedCompanyForInvitation] = useState(null);
+  const [invitationForm, setInvitationForm] = useState({ email: '', deadline: '' });
+  const [sendingInvitation, setSendingInvitation] = useState(false);
+  
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -9094,7 +9102,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
-                        <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
+                        <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                       </View>
 
                       {/* Table Rows */}
@@ -9171,6 +9179,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               </View>
                             </TouchableOpacity>
                             <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
+                              <TouchableOpacity 
+                                style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#8B5CF6', borderRadius: 4 }}
+                                onPress={() => {
+                                  setSelectedCompanyForInvitation(company);
+                                  setInvitationForm({ email: company.contact_email || '', deadline: '' });
+                                  setShowInvitationModal(true);
+                                }}
+                              >
+                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>✉ Invite</Text>
+                              </TouchableOpacity>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
                                 onPress={() => {
@@ -9572,6 +9590,109 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   >
                     <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
                       {approvingTrainingRecords ? 'Processing...' : 'Send for Review'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Accreditation Invitation Modal */}
+        {showInvitationModal && selectedCompanyForInvitation && (
+          <Modal
+            visible={showInvitationModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowInvitationModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+                  Send Accreditation Invitation
+                </Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
+                  Company: <Text style={{ fontWeight: '600', color: '#1F2937' }}>{selectedCompanyForInvitation.name}</Text>
+                </Text>
+
+                {/* Email Field */}
+                <Text style={[styles.label, { marginTop: 0 }]}>Contact Email *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email address"
+                  value={invitationForm.email}
+                  onChangeText={(text) => setInvitationForm({ ...invitationForm, email: text })}
+                  keyboardType="email-address"
+                  editable={!sendingInvitation}
+                />
+
+                {/* Deadline Field */}
+                <Text style={styles.label}>Accreditation Deadline</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="DD/MM/YYYY"
+                  value={invitationForm.deadline}
+                  onChangeText={(text) => setInvitationForm({ ...invitationForm, deadline: text })}
+                  editable={!sendingInvitation}
+                />
+
+                {/* Action Buttons */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                  <TouchableOpacity
+                    style={[styles.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
+                    onPress={() => setShowInvitationModal(false)}
+                    disabled={sendingInvitation}
+                  >
+                    <Text style={styles.addButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addButton, { flex: 1, backgroundColor: sendingInvitation ? '#9CA3AF' : '#8B5CF6' }]}
+                    onPress={async () => {
+                      if (!invitationForm.email.trim()) {
+                        Alert.alert('Missing Info', 'Please enter an email address.');
+                        return;
+                      }
+
+                      setSendingInvitation(true);
+                      try {
+                        // Parse deadline if provided
+                        let deadline = null;
+                        if (invitationForm.deadline.trim()) {
+                          // Convert DD/MM/YYYY to Date
+                          const [day, month, year] = invitationForm.deadline.split('/');
+                          if (day && month && year) {
+                            deadline = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          }
+                        }
+
+                        const result = await sendAccreditationInvitation(
+                          invitationForm.email,
+                          selectedCompanyForInvitation.name,
+                          deadline,
+                          false // isNewUser - will check in backend
+                        );
+
+                        if (result.success) {
+                          Alert.alert('Success', 'Accreditation invitation sent successfully!');
+                          setShowInvitationModal(false);
+                          setInvitationForm({ email: '', deadline: '' });
+                          
+                          // Refresh companies to show updated invitation status
+                          const freshCompanies = await listCompanies();
+                          setCompanies(freshCompanies);
+                        } else {
+                          Alert.alert('Error', result.error || 'Failed to send invitation');
+                        }
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to send invitation: ' + error.message);
+                      } finally {
+                        setSendingInvitation(false);
+                      }
+                    }}
+                    disabled={sendingInvitation}
+                  >
+                    <Text style={styles.addButtonText}>
+                      {sendingInvitation ? '⏳ Sending...' : '✉ Send Invitation'}
                     </Text>
                   </TouchableOpacity>
                 </View>
