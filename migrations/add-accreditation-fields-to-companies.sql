@@ -403,6 +403,16 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS management_review_score INT DEFAU
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS management_review_evidence_url TEXT;
 
 -- ============================================================================
+-- ACCREDITATION INVITATION TRACKING
+-- ============================================================================
+
+-- When the accreditation invitation was last sent
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_invitation_sent_at TIMESTAMP WITH TIME ZONE;
+
+-- Deadline for completing accreditation
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accreditation_deadline DATE;
+
+-- ============================================================================
 -- Create Indexes for Common Queries
 -- ============================================================================
 
@@ -417,3 +427,7 @@ CREATE INDEX IF NOT EXISTS idx_companies_aep_expiry ON companies(aep_certificate
 CREATE INDEX IF NOT EXISTS idx_companies_iso_45001_expiry ON companies(iso_45001_certificate_expiry);
 CREATE INDEX IF NOT EXISTS idx_companies_totika_expiry ON companies(totika_certificate_expiry);
 CREATE INDEX IF NOT EXISTS idx_companies_accreditation_expiry ON companies(accreditation_expiry_date);
+
+-- For accreditation invitation tracking
+CREATE INDEX IF NOT EXISTS idx_companies_accreditation_deadline ON companies(accreditation_deadline);
+CREATE INDEX IF NOT EXISTS idx_companies_accreditation_invitation_sent_at ON companies(accreditation_invitation_sent_at);
