@@ -3,8 +3,21 @@
  * Handles all outbound emails via Brevo (formerly Sendinblue)
  */
 
-// Get API key lazily to avoid import.meta evaluation issues
-const getBrevoApiKey = () => import.meta.env.VITE_BREVO_API_KEY;
+// Get API key from environment variables with multiple fallback sources
+const getBrevoApiKey = () => {
+  try {
+    // Try import.meta first (for Vite builds)
+    return import.meta.env.VITE_BREVO_API_KEY;
+  } catch (e) {
+    // Fallback to window object (for bundled/legacy builds)
+    if (typeof window !== 'undefined' && window.VITE_BREVO_API_KEY) {
+      return window.VITE_BREVO_API_KEY;
+    }
+    // Last resort: try process.env (for some build contexts)
+    return process?.env?.VITE_BREVO_API_KEY;
+  }
+};
+
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
