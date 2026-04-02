@@ -3,7 +3,8 @@
  * Handles all outbound emails via Brevo (formerly Sendinblue)
  */
 
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
+// Get API key lazily to avoid import.meta evaluation issues
+const getBrevoApiKey = () => import.meta.env.VITE_BREVO_API_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
@@ -18,7 +19,8 @@ const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
  */
 export const sendAccreditationInvitation = async (toEmail, companyName, deadline, isNewUser = false) => {
   try {
-    if (!BREVO_API_KEY) {
+    const apiKey = getBrevoApiKey();
+    if (!apiKey) {
       console.error('❌ Brevo API key not configured');
       return { success: false, error: 'Email service not configured' };
     }
@@ -58,7 +60,7 @@ export const sendAccreditationInvitation = async (toEmail, companyName, deadline
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'api-key': BREVO_API_KEY,
+        'api-key': apiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -91,7 +93,8 @@ export const sendAccreditationInvitation = async (toEmail, companyName, deadline
  */
 export const sendInvitationRequest = async (data) => {
   try {
-    if (!BREVO_API_KEY) {
+    const apiKey = getBrevoApiKey();
+    if (!apiKey) {
       console.error('❌ Brevo API key not configured');
       return { success: false, error: 'Email service not configured' };
     }
@@ -109,7 +112,7 @@ export const sendInvitationRequest = async (data) => {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'api-key': BREVO_API_KEY,
+        'api-key': apiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
