@@ -345,16 +345,14 @@ export default function ContractorAuthScreen({
         setSetupLoading(false);
         
         if (emailNeedsConfirmation) {
-          console.log('📧 Setting showVerificationMessage to true and showPasswordSetup to false');
-          Alert.alert('Success', 'Account created! Check your email to verify.');
-          // Show on-screen verification message
+          console.log('📧 EMAIL NEEDS CONFIRMATION - showing verification screen');
           setShowPasswordSetup(false);
           setVerificationEmail(setupEmail);
           setShowVerificationMessage(true);
-          console.log('📧 After setState calls');
+          console.log('📧 showVerificationMessage set to true, showPasswordSetup set to false');
+          return;
         } else {
           console.log('✅ Account created, no email confirmation required - logging user in');
-          Alert.alert('Auto Login', 'No email confirmation required - logging you in');
           // Reset form
           setShowPasswordSetup(false);
           setPasswordResetStage('email');
