@@ -40,6 +40,7 @@ import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
 import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
 import AuthCallbackScreen from './src/screens/AuthCallbackScreen';
 import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
+import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen';
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 
 // List of all available sites
@@ -19108,6 +19109,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           isAdmin={isAdmin}
           styles={styles}
           onClose={() => setCurrentScreen('admin')}
+        />
+      );
+    case 'request_accreditation':
+      return (
+        <RequestAccreditationScreen
+          styles={styles}
+          onClose={() => setCurrentScreen('kiosk')}
         />
       );
     default:
