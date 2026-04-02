@@ -339,9 +339,8 @@ export default function ContractorAuthScreen({
         console.log('📋 user.email_confirmed_at:', signUpData.user.email_confirmed_at);
         
         // Check if email confirmation is required (confirmed_at will be null if email not confirmed)
-        // HARDCODE: For new users (passwordFlowType === 'newUser'), always show verification screen
-        const emailNeedsConfirmation = true; // Always require email verification for new users
-        console.log('📧 emailNeedsConfirmation: TRUE (hardcoded for new users)');
+        const emailNeedsConfirmation = !signUpData.user.confirmed_at && !signUpData.user.email_confirmed_at;
+        console.log('📧 emailNeedsConfirmation:', emailNeedsConfirmation);
         
         setSetupLoading(false);
         
@@ -494,26 +493,8 @@ export default function ContractorAuthScreen({
                 marginBottom: 20,
                 lineHeight: 22
               }}>
-                Click the verification link in the email to activate your account. After verification, you'll be logged in automatically to the dashboard.
+                Please confirm your email, after which time you can log in.
               </Text>
-
-              <View style={{
-                backgroundColor: '#FEF3C7',
-                borderRadius: 8,
-                padding: 12,
-                borderLeftWidth: 4,
-                borderLeftColor: '#F59E0B',
-                marginBottom: 20
-              }}>
-                <Text style={{ 
-                  fontSize: 13, 
-                  color: '#92400E',
-                  fontWeight: '500',
-                  lineHeight: 20
-                }}>
-                  💡 <Text style={{ fontWeight: '700' }}>Didn't receive an email?</Text> Check your spam folder, or wait a minute and refresh this page.
-                </Text>
-              </View>
 
               <TouchableOpacity
                 onPress={() => {
