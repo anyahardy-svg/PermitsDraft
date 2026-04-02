@@ -9213,8 +9213,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
                                   const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
                                   
+                                  // Try both snake_case and camelCase for email field
+                                  const contactEmail = company.contact_email || company.contactEmail || '';
+                                  
                                   setInvitationForm({ 
-                                    email: company.contact_email || '', 
+                                    email: contactEmail, 
                                     deadline: company.accreditation_deadline 
                                       ? new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                       : deadlineStr

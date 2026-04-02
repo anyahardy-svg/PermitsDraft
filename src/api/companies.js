@@ -26,6 +26,10 @@ const transformCompany = (dbCompany) => {
     accredited_date: dbCompany.accredited_date || '',
     manuallyCreated: dbCompany.manually_created || false,
     manually_created: dbCompany.manually_created || false,
+    accreditationInvitationSentAt: dbCompany.accreditation_invitation_sent_at || null,
+    accreditation_invitation_sent_at: dbCompany.accreditation_invitation_sent_at || null,
+    accreditationDeadline: dbCompany.accreditation_deadline || null,
+    accreditation_deadline: dbCompany.accreditation_deadline || null,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
     updatedAt: dbCompany.updated_at,
@@ -69,7 +73,7 @@ export const listCompanies = async () => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, created_at, updated_at')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -85,7 +89,7 @@ export const getCompany = async (companyId) => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, created_at, updated_at')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
       .eq('id', companyId)
       .single();
 
@@ -148,7 +152,7 @@ export const getCompanyByName = async (companyName) => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, created_at, updated_at')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
       .ilike('name', companyName)
       .single();
 
