@@ -45,6 +45,8 @@ export default function ContractorAuthScreen({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
   // Sync showPasswordReset prop with local state
   useEffect(() => {
@@ -260,6 +262,8 @@ export default function ContractorAuthScreen({
       return;
     }
 
+    Alert.alert('Starting', 'Beginning password setup for: ' + setupEmail);
+
     if (!newPassword.trim()) {
       Alert.alert('Validation', 'Please enter a password');
       return;
@@ -319,34 +323,48 @@ export default function ContractorAuthScreen({
 
         // Success! Account created
         console.log('✅ Account created successfully');
+        console.log('📋 Full signUpData:', JSON.stringify(signUpData, null, 2));
         console.log('📋 signUpData.user:', signUpData.user);
-        console.log('📋 Email verified?', signUpData.user?.user_metadata?.email_verified);
         
-        // Check if email confirmation is required
-        const emailNeedsConfirmation = signUpData.user && signUpData.user.user_metadata?.email_verified === false;
+        if (!signUpData.user) {
+          console.error('❌ No user data returned from signup');
+          Alert.alert('Error', 'Account creation failed - no user data returned');
+          setSetupLoading(false);
+          return;
+        }
+
+        console.log('📋 user.id:', signUpData.user.id);
+        console.log('📋 user.email:', signUpData.user.email);
+        console.log('📋 user.confirmed_at:', signUpData.user.confirmed_at);
+        console.log('📋 user.email_confirmed_at:', signUpData.user.email_confirmed_at);
         
-        // Reset the form and go back to login
-        // User will verify their email and be logged in automatically
+        // Check if email confirmation is required (confirmed_at will be null if email not confirmed)
+        const emailNeedsConfirmation = !signUpData.user.confirmed_at && !signUpData.user.email_confirmed_at;
+        console.log('📧 emailNeedsConfirmation:', emailNeedsConfirmation);
+        
         setSetupLoading(false);
-        setShowPasswordSetup(false);
-        setPasswordResetStage('email');
-        setPasswordFlowType('reset');
-        setSetupEmail('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setOtpCode('');
-        setOtpError(null);
         
         if (emailNeedsConfirmation) {
-          console.log('📧 Email confirmation required - account created, user should verify email');
-          // Show simple feedback that account was created
-          Alert.alert(
-            'Account Created! 🎉',
-            `Please check your email at ${setupEmail} and click the verification link to activate your account.`,
-            [{ text: 'OK' }]
-          );
+          console.log('📧 Setting showVerificationMessage to true and showPasswordSetup to false');
+          Alert.alert('Success', 'Account created! Check your email to verify.');
+          // Show on-screen verification message
+          setShowPasswordSetup(false);
+          setVerificationEmail(setupEmail);
+          setShowVerificationMessage(true);
+          console.log('📧 After setState calls');
         } else {
           console.log('✅ Account created, no email confirmation required - logging user in');
+          Alert.alert('Auto Login', 'No email confirmation required - logging you in');
+          // Reset form
+          setShowPasswordSetup(false);
+          setPasswordResetStage('email');
+          setPasswordFlowType('reset');
+          setSetupEmail('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setOtpCode('');
+          setOtpError(null);
+          
           // No email confirmation required, user can login immediately
           if (onLoginSuccess && signUpData.user) {
             console.log('📞 Calling onLoginSuccess with email:', setupEmail);
@@ -395,6 +413,135 @@ export default function ContractorAuthScreen({
       setSetupLoading(false);
     }
   };
+
+  // Show verification message screen
+  if (showVerificationMessage) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+        <View style={{ 
+          backgroundColor: '#1F2937',
+          paddingVertical: 50, 
+          paddingHorizontal: 16,
+          paddingTop: 80,
+          alignItems: 'center'
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 56, 
+            marginBottom: 16
+          }}>
+            ✅
+          </Text>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 28, 
+            fontWeight: '800',
+            textAlign: 'center'
+          }}>
+            Account Created!
+          </Text>
+          <Text style={{ 
+            color: '#9CA3AF', 
+            fontSize: 15, 
+            marginTop: 12,
+            textAlign: 'center'
+          }}>
+            Check your email to verify your account
+          </Text>
+        </View>
+
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3
+            }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 16,
+                lineHeight: 24
+              }}>
+                We've sent a verification email to:
+              </Text>
+              
+              <Text style={{
+                fontSize: 15,
+                fontWeight: '700',
+                color: '#3B82F6',
+                marginBottom: 24,
+                padding: 12,
+                backgroundColor: '#F0F9FF',
+                borderRadius: 8,
+                textAlign: 'center'
+              }}>
+                {verificationEmail}
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: '#4B5563',
+                marginBottom: 20,
+                lineHeight: 22
+              }}>
+                Click the verification link in the email to activate your account. After verification, you'll be logged in automatically to the dashboard.
+              </Text>
+
+              <View style={{
+                backgroundColor: '#FEF3C7',
+                borderRadius: 8,
+                padding: 12,
+                borderLeftWidth: 4,
+                borderLeftColor: '#F59E0B',
+                marginBottom: 20
+              }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  color: '#92400E',
+                  fontWeight: '500',
+                  lineHeight: 20
+                }}>
+                  💡 <Text style={{ fontWeight: '700' }}>Didn't receive an email?</Text> Check your spam folder, or wait a minute and refresh this page.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowVerificationMessage(false);
+                  setVerificationEmail('');
+                }}
+                style={{
+                  backgroundColor: '#3B82F6',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ 
+                  color: 'white', 
+                  fontWeight: '700', 
+                  fontSize: 16 
+                }}>
+                  Back to Sign In
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   if (showPasswordSetup) {
     return (
