@@ -9102,6 +9102,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
+                        <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
                         <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
                       </View>
 
@@ -9178,9 +9180,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 </Text>
                               </View>
                             </TouchableOpacity>
+                            
+                            {/* Invitation Sent Column */}
+                            <View style={{ width: 140, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <Text style={{ fontSize: 11, color: '#6B7280', textAlign: 'center' }}>
+                                {company.accreditation_invitation_sent_at 
+                                  ? new Date(company.accreditation_invitation_sent_at).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                  : '○ Not sent'}
+                              </Text>
+                            </View>
+
+                            {/* Deadline Column */}
+                            <View style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <Text style={{ fontSize: 11, color: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '#7F1D1D' : '#6B7280', textAlign: 'center', fontWeight: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '600' : '400' }}>
+                                {company.accreditation_deadline
+                                  ? (new Date(company.accreditation_deadline) < new Date() 
+                                    ? `⚠ ${new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+                                    : new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+                                  : '—'}
+                              </Text>
+                            </View>
+                            
                             <View style={{ width: 160, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
                               <TouchableOpacity 
-                                style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#8B5CF6', borderRadius: 4 }}
+                                style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: company.accreditation_invitation_sent_at ? '#F59E0B' : '#8B5CF6', borderRadius: 4 }}
                                 onPress={() => {
                                   setSelectedCompanyForInvitation(company);
                                   
@@ -9191,12 +9214,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   
                                   setInvitationForm({ 
                                     email: company.contact_email || '', 
-                                    deadline: deadlineStr
+                                    deadline: company.accreditation_deadline 
+                                      ? new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                      : deadlineStr
                                   });
                                   setShowInvitationModal(true);
                                 }}
                               >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>✉ Invite</Text>
+                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                                  {company.accreditation_invitation_sent_at ? '↻ Resend' : '✉ Invite'}
+                                </Text>
                               </TouchableOpacity>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
