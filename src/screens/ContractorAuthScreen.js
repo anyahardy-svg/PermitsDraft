@@ -339,8 +339,9 @@ export default function ContractorAuthScreen({
         console.log('📋 user.email_confirmed_at:', signUpData.user.email_confirmed_at);
         
         // Check if email confirmation is required (confirmed_at will be null if email not confirmed)
-        const emailNeedsConfirmation = !signUpData.user.confirmed_at && !signUpData.user.email_confirmed_at;
-        console.log('📧 emailNeedsConfirmation:', emailNeedsConfirmation);
+        // HARDCODE: For new users (passwordFlowType === 'newUser'), always show verification screen
+        const emailNeedsConfirmation = true; // Always require email verification for new users
+        console.log('📧 emailNeedsConfirmation: TRUE (hardcoded for new users)');
         
         setSetupLoading(false);
         
