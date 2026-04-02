@@ -3,7 +3,7 @@
  * Handles all outbound emails via Brevo (formerly Sendinblue)
  */
 
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY;
+const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
