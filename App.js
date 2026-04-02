@@ -9178,12 +9178,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 </Text>
                               </View>
                             </TouchableOpacity>
-                            <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
+                            <View style={{ width: 160, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#8B5CF6', borderRadius: 4 }}
                                 onPress={() => {
                                   setSelectedCompanyForInvitation(company);
-                                  setInvitationForm({ email: company.contact_email || '', deadline: '' });
+                                  
+                                  // Calculate 2 months from today
+                                  const today = new Date();
+                                  const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
+                                  const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
+                                  
+                                  setInvitationForm({ 
+                                    email: company.contact_email || '', 
+                                    deadline: deadlineStr
+                                  });
                                   setShowInvitationModal(true);
                                 }}
                               >
