@@ -142,29 +142,47 @@ export default async function handler(req, res) {
 
     // For invitation emails, update the company record and create user if needed
     if (type === 'invitation') {
-      const { companyId } = req.body;
+      const { companyId, deadline: deadlineParam } = req.body;
       
       try {
-        // Update companies table with invitation sent timestamp and deadline
-        if (companyId) {
-          const deadlineDate = deadline ? new Date(deadline).toISOString().split('T')[0] : null;
-          await supabaseRequest(
-            'companies',
-            'PATCH',
-            {
-              accreditation_invitation_sent_at: new Date().toISOString(),
-              accreditation_deadline: deadlineDate,
-            },
-            `id=eq.${companyId}`
-          );
-          console.log(`✅ Updated company ${companyId} with invitation sent date and deadline`);
-        }
+        // Check if we have Supabase credentials
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+          console.error('❌ Supabase credentials not available for DB update');
+          console.error('SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'NOT SET');
+          console.error('SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+        } else {
+          // Update companies table with invitation sent timestamp and deadline
+          if (companyId) {
+            const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
+            console.log(`📝 Updating company ${companyId} with deadline: ${deadlineDate}`);
+            
+            const updateUrl = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`;
+            const updateResponse = await fetch(updateUrl, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                accreditation_invitation_sent_at: new Date().toISOString(),
+                accreditation_deadline: deadlineDate,
+              }),
+            });
 
-        // Create user in Supabase Auth if this is a new user
-        if (isNewUser) {
-          try {
-            // Send magic link for signup
-            const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+            if (updateResponse.ok) {
+              console.log(`✅ Updated company ${companyId} with invitation sent date and deadline`);
+            } else {
+              const dbError = await updateResponse.text();
+              console.error(`❌ Failed to update company: ${updateResponse.status} - ${dbError}`);
+            }
+          }
+
+          // Create user in Supabase Auth if this is a new user
+          if (isNewUser) {
+            console.log(`👤 Creating user for ${toEmail}`);
+            const authUrl = `${SUPABASE_URL}/auth/v1/otp`;
+            const authResponse = await fetch(authUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -183,15 +201,13 @@ export default async function handler(req, res) {
               console.log(`✅ Created/invited user for ${toEmail}`);
             } else {
               const authError = await authResponse.text();
-              console.warn(`⚠️  Could not auto-create user, they can self-register: ${authError}`);
+              console.error(`❌ Auth error: ${authResponse.status} - ${authError}`);
             }
-          } catch (authErr) {
-            console.warn(`⚠️  Auth creation non-critical, user can register themselves:`, authErr.message);
           }
         }
       } catch (dbErr) {
-        console.warn(`⚠️  Warning updating company database:`, dbErr.message);
-        // Don't fail the whole operation if database update fails, email was sent successfully
+        console.error(`❌ Error in invitation follow-up:`, dbErr);
+        // Don't fail the operation - email was sent successfully
       }
     }
 
