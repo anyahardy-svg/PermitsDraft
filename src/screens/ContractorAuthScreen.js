@@ -60,18 +60,30 @@ export default function ContractorAuthScreen({
     checkExistingSession();
   }, []);
 
-  // Check if this is a recovery link from Supabase (when user clicks email link)
+  // Check if this is a recovery link or invitation link
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       const hashParams = new URLSearchParams(hash.substring(1));
       const token = hashParams.get('token');
-      const type = hashParams.get('type');
+      const hashType = hashParams.get('type');
       
-      console.log('🔍 URL hash detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', type });
+      // Also check query string for ?type=invited from email links
+      const queryParams = new URLSearchParams(window.location.search);
+      const queryType = queryParams.get('type');
       
-      // If this is a recovery/invitation link, show password setup immediately
-      if (token && type === 'recovery') {
+      console.log('🔍 URL parameters detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', hashType, queryType });
+      
+      // If this is an invitation link from email, show password setup immediately
+      if (queryType === 'invited') {
+        console.log('✅ Invitation link detected - showing password form');
+        setPasswordFlowType('newUser'); 
+        setPasswordResetStage('password'); 
+        setShowPasswordSetup(true);
+        window.history.replaceState(null, '', window.location.pathname); // Clean up URL
+      }
+      // If this is a recovery/password reset link, show password setup
+      else if (token && hashType === 'recovery') {
         console.log('✅ Recovery link detected - showing password form');
         setPasswordFlowType('newUser'); 
         setPasswordResetStage('password'); 
@@ -1196,7 +1208,7 @@ export default function ContractorAuthScreen({
                 fontWeight: '600', 
                 fontSize: 15 
               }}>
-                🎉 New Contractor? Set Password
+                🎉 Create Your Password
               </Text>
             </TouchableOpacity>
 
@@ -1217,8 +1229,8 @@ export default function ContractorAuthScreen({
               }}>
                 💡 <Text style={{ fontWeight: '700' }}>Three ways to access your account:</Text>{'\n'}
                 • <Text style={{ fontWeight: '600' }}>Sign In</Text> - if you know your password{'\n'}
-                • <Text style={{ fontWeight: '600' }}>Forgot Password</Text> - get a code to reset your password{'\n'}
-                • <Text style={{ fontWeight: '600' }}>New Contractor</Text> - create an account right now
+                • <Text style={{ fontWeight: '600' }}>Forgot Password</Text> - reset your password if you forgot it{'\n'}
+                • <Text style={{ fontWeight: '600' }}>Create Your Password</Text> - set up a new account
               </Text>
             </View>
           </View>

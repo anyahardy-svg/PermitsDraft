@@ -117,7 +117,10 @@ export default async function handler(req, res) {
           <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
           <p><strong>Deadline:</strong> ${deadlineStr}</p>
           <p>To get started, you'll need to create a password and access our portal:</p>
-          <p><a href="https://contractorhq.co.nz/sign-in-contractor" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Set Password & Begin Accreditation</a></p>
+          <p><a href="https://contractorhq.co.nz/sign-in-contractor?type=invited" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Create Your Password</a></p>
+          <p style="margin-top: 16px; padding: 12px; background-color: #F0F9FF; border-left: 3px solid #3B82F6; font-size: 13px;">
+            <strong>Already have an account?</strong> If you've already registered before, please use the "Forgot Password" option to reset your password instead of creating a new account.
+          </p>
           <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
         `
         : `
