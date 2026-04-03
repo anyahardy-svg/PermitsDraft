@@ -181,16 +181,18 @@ export default async function handler(req, res) {
           // Create user in Supabase Auth if this is a new user
           if (isNewUser) {
             console.log(`👤 Creating user for ${toEmail}`);
-            const authUrl = `${SUPABASE_URL}/auth/v1/otp`;
+            const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
             const authResponse = await fetch(authUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
                 email: toEmail,
-                data: {
+                email_confirm: false,
+                user_metadata: {
                   company_name: companyName,
                   company_id: companyId,
                 },
