@@ -19906,7 +19906,7 @@ const AppRouter = ({ initialRoute }) => {
 
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
-  const [showModeToggle, setShowModeToggle] = React.useState(true); // Show toggle for testing
+  const [showModeToggle, setShowModeToggle] = React.useState(false); // Disabled - admin key button removed
   const [kioskViewingPermits, setKioskViewingPermits] = React.useState(false); // Track if kiosk is viewing permits
   const [kioskSiteId, setKioskSiteId] = React.useState(null); // Track which site for kiosk permits view
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
