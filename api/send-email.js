@@ -6,7 +6,7 @@
  * Body: { toEmail, companyName, deadline, isNewUser }
  */
 
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY;
+const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
@@ -19,7 +19,12 @@ export default async function handler(req, res) {
 
   try {
     if (!BREVO_API_KEY) {
-      console.error('❌ Brevo API key not configured on server');
+      console.error('❌ Brevo API key not configured');
+      console.error('Available env vars:', {
+        has_vite_key: !!process.env.VITE_BREVO_API_KEY,
+        has_plain_key: !!process.env.BREVO_API_KEY,
+        env_keys: Object.keys(process.env).filter(k => k.includes('BREVO') || k.includes('KEY')).slice(0, 5)
+      });
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
