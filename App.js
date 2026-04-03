@@ -2060,6 +2060,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [currentScreen, setCurrentScreen] = useState(initialAdminRoute || 'dashboard');
   const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
+  const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
@@ -2068,7 +2069,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
 
-  // Load permits from Supabase on component mount
+  // Detect invitation flow from email (?type=invited)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const queryParams = new URLSearchParams(window.location.search);
+      const inviteType = queryParams.get('type');
+      
+      if (inviteType === 'invited') {
+        console.log('✅ Invitation link detected from email - setting up password form');
+        setInvitationFlow(true);
+      }
+    }
+  }, []);
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -19058,6 +19070,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setCurrentScreen('contractor_admin');
           }}
           showPasswordReset={showPasswordReset}
+          invitationFlow={invitationFlow}
           setShowPasswordReset={setShowPasswordReset}
           styles={styles}
         />

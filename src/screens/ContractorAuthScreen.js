@@ -24,6 +24,7 @@ import {
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
   showPasswordReset,
+  invitationFlow,
   setShowPasswordReset,
   styles 
 }) {
@@ -54,6 +55,16 @@ export default function ContractorAuthScreen({
       setShowPasswordSetup(true);
     }
   }, [showPasswordReset]);
+
+  // Handle invitation flow from email link
+  useEffect(() => {
+    if (invitationFlow) {
+      console.log('✅ Invitation flow activated - showing password setup');
+      setPasswordFlowType('newUser');
+      setPasswordResetStage('email');
+      setShowPasswordSetup(true);
+    }
+  }, [invitationFlow]);
 
   // Check if user is already logged in on mount
   useEffect(() => {
