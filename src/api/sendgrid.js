@@ -3,19 +3,21 @@
  * Handles all outbound emails via Brevo (formerly Sendinblue)
  */
 
-// Get API key from environment variables with multiple fallback sources
+// Get API key from multiple possible sources
 const getBrevoApiKey = () => {
-  try {
-    // Try import.meta first (for Vite builds)
-    return import.meta.env.VITE_BREVO_API_KEY;
-  } catch (e) {
-    // Fallback to window object (for bundled/legacy builds)
-    if (typeof window !== 'undefined' && window.VITE_BREVO_API_KEY) {
-      return window.VITE_BREVO_API_KEY;
-    }
-    // Last resort: try process.env (for some build contexts)
-    return process?.env?.VITE_BREVO_API_KEY;
+  // For Vite/web builds - try to get directly
+  if (typeof globalThis !== 'undefined' && globalThis.__VITE_BREVO_API_KEY__) {
+    return globalThis.__VITE_BREVO_API_KEY__;
   }
+  
+  // For window global
+  if (typeof window !== 'undefined' && window.__VITE_BREVO_API_KEY__) {
+    return window.__VITE_BREVO_API_KEY__;
+  }
+  
+  // Fallback: try to return something that was injected
+  console.warn('⚠️  Brevo API key not found in environment');
+  return undefined;
 };
 
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
