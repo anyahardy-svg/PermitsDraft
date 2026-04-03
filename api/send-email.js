@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                accreditation_invitation_sent_at: new Date().toISOString(),
+                accreditation_invitation_sent_at: new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' }),
                 accreditation_deadline: deadlineDate,
               }),
             });
@@ -180,8 +180,20 @@ export default async function handler(req, res) {
 
           // Create user in Supabase Auth if this is a new user
           if (isNewUser) {
-            console.log(`👤 Creating user for ${toEmail}`);
+            console.log(`👤 Creating user for ${toEmail}, isNewUser:`, isNewUser);
             const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
+            const authPayload = {
+              email: toEmail,
+              email_confirm: false,
+              user_metadata: {
+                company_name: companyName,
+                company_id: companyId,
+              },
+            };
+            
+            console.log(`📤 Auth request to: ${authUrl}`);
+            console.log(`📤 Payload:`, authPayload);
+            
             const authResponse = await fetch(authUrl, {
               method: 'POST',
               headers: {
@@ -189,22 +201,20 @@ export default async function handler(req, res) {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
-              body: JSON.stringify({
-                email: toEmail,
-                email_confirm: false,
-                user_metadata: {
-                  company_name: companyName,
-                  company_id: companyId,
-                },
-              }),
+              body: JSON.stringify(authPayload),
             });
 
+            const authData = await authResponse.text();
+            console.log(`📥 Auth response status: ${authResponse.status}`);
+            console.log(`📥 Auth response body:`, authData);
+
             if (authResponse.ok) {
-              console.log(`✅ Created/invited user for ${toEmail}`);
+              console.log(`✅ Created user for ${toEmail}`);
             } else {
-              const authError = await authResponse.text();
-              console.error(`❌ Auth error: ${authResponse.status} - ${authError}`);
+              console.error(`❌ Auth error: ${authResponse.status} - ${authData}`);
             }
+          } else {
+            console.log(`⏭️  Skipping user creation - isNewUser is:`, isNewUser);
           }
         }
       } catch (dbErr) {
