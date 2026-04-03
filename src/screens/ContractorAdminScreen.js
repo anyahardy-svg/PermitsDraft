@@ -91,6 +91,13 @@ export default function ContractorAdminScreen({
   const [editedTemplateName, setEditedTemplateName] = useState('');
   const [editedTemplateDescription, setEditedTemplateDescription] = useState('');
   const [savingPermitTemplate, setSavingPermitTemplate] = useState(false);
+  
+  // Contractor editing states
+  const [editingContractor, setEditingContractor] = useState(null);
+  const [editContractorName, setEditContractorName] = useState('');
+  const [editContractorEmail, setEditContractorEmail] = useState('');
+  const [editContractorPhone, setEditContractorPhone] = useState('');
+  const [savingContractor, setSavingContractor] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -415,13 +422,20 @@ export default function ContractorAdminScreen({
   }, []);
 
   useEffect(() => {
+    // Reload templates whenever login status changes
+    if (isLoggedIn && loggedInCompanyId) {
+      loadJseaTemplates();
+    }
+  }, [isLoggedIn, loggedInCompanyId]);
+
+  useEffect(() => {
     if (activeTab === 'jsea') {
       loadJseaTemplates();
       loadSites();
     } else {
       loadPermitTemplates();
     }
-  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds, isLoggedIn, loggedInCompanyId, loggedInCompanyName]);
+  }, [activeTab, effectiveBuId, jseaFilterBusinessUnitIds]);
 
   useEffect(() => {
     if (activeTab === 'inductions') {
@@ -958,6 +972,7 @@ export default function ContractorAdminScreen({
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inducted Services</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -986,6 +1001,52 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
               </Text>
+              <View style={{ width: 100, paddingRight: 8, flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingContractor(contractor);
+                    setEditContractorName(contractor.name);
+                    setEditContractorEmail(contractor.email || '');
+                    setEditContractorPhone(contractor.phone_number || '');
+                  }}
+                  style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
+                >
+                  <Text style={{ fontSize: 10, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert(
+                      'Delete Contractor',
+                      `Are you sure you want to delete ${contractor.name}?`,
+                      [
+                        { text: 'Cancel', onPress: () => {} },
+                        {
+                          text: 'Delete',
+                          onPress: async () => {
+                            try {
+                              const { error } = await supabase
+                                .from('contractors')
+                                .delete()
+                                .eq('id', contractor.id);
+                              if (error) {
+                                Alert.alert('Error', 'Failed to delete contractor');
+                              } else {
+                                loadInductions();
+                              }
+                            } catch (err) {
+                              Alert.alert('Error', 'Failed to delete contractor');
+                            }
+                          },
+                          style: 'destructive'
+                        }
+                      ]
+                    );
+                  }}
+                  style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                >
+                  <Text style={{ fontSize: 10, color: '#DC2626', fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
 
             </View>
           ))}
@@ -993,6 +1054,162 @@ export default function ContractorAdminScreen({
           </ScrollView>
         </ScrollView>
       </View>
+    );
+  };
+
+  // Render contractor edit modal
+  const renderEditContractorModal = () => {
+    const handleSaveContractor = async () => {
+      if (!editContractorName.trim()) {
+        Alert.alert('Validation', 'Name cannot be empty');
+        return;
+      }
+
+      if (editContractorEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editContractorEmail)) {
+        Alert.alert('Validation', 'Please enter a valid email address');
+        return;
+      }
+
+      setSavingContractor(true);
+      try {
+        const { error } = await supabase
+          .from('contractors')
+          .update({
+            name: editContractorName,
+            email: editContractorEmail,
+            phone_number: editContractorPhone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingContractor.id);
+
+        if (error) {
+          Alert.alert('Error', 'Failed to update contractor: ' + error.message);
+        } else {
+          Alert.alert('Success', 'Contractor updated successfully');
+          setEditingContractor(null);
+          loadInductions();
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to update contractor');
+      } finally {
+        setSavingContractor(false);
+      }
+    };
+
+    if (!editingContractor) return null;
+
+    return (
+      <Modal
+        visible={!!editingContractor}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            padding: 20,
+            paddingBottom: 40,
+            maxHeight: '80%'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Edit Contractor</Text>
+              <TouchableOpacity onPress={() => setEditingContractor(null)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>Name *</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 13,
+                    color: '#1F2937'
+                  }}
+                  value={editContractorName}
+                  onChangeText={setEditContractorName}
+                  placeholder="Contractor name"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>Email</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 13,
+                    color: '#1F2937'
+                  }}
+                  value={editContractorEmail}
+                  onChangeText={setEditContractorEmail}
+                  placeholder="Email address"
+                  keyboardType="email-address"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>Phone</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 13,
+                    color: '#1F2937'
+                  }}
+                  value={editContractorPhone}
+                  onChangeText={setEditContractorPhone}
+                  placeholder="Phone number"
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setEditingContractor(null)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 6,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveContractor}
+                disabled={savingContractor}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  backgroundColor: savingContractor ? '#94A3B8' : '#3B82F6',
+                  borderRadius: 6,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>
+                  {savingContractor ? 'Saving...' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
@@ -1961,6 +2178,9 @@ export default function ContractorAdminScreen({
           </View>
         </Modal>
       )}
+
+      {/* Edit Contractor Modal */}
+      {renderEditContractorModal()}
     </View>
   );
 }
