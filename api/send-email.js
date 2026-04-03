@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
       htmlContent = isNewUser 
         ? `
-          <h2>Complete Your Company Accreditation</h2>
+          <h2>Complete Your Company Accreditation New</h2>
           <p>Hello,</p>
           <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
           <p><strong>Deadline:</strong> ${deadlineStr}</p>
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
           <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
         `
         : `
-          <h2>Complete Your Company Accreditation</h2>
+          <h2>Complete Your Company Accreditation Return</h2>
           <p>Hello,</p>
           <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
           <p><strong>Deadline:</strong> ${deadlineStr}</p>
@@ -178,43 +178,68 @@ export default async function handler(req, res) {
             }
           }
 
-          // Create user in Supabase Auth if this is a new user
-          if (isNewUser) {
-            console.log(`👤 Creating user for ${toEmail}, isNewUser:`, isNewUser);
-            const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
-            const authPayload = {
-              email: toEmail,
-              email_confirm: false,
-              user_metadata: {
-                company_name: companyName,
-                company_id: companyId,
-              },
-            };
-            
-            console.log(`📤 Auth request to: ${authUrl}`);
-            console.log(`📤 Payload:`, authPayload);
-            
-            const authResponse = await fetch(authUrl, {
-              method: 'POST',
+          // Create user in Supabase Auth if this email doesn't already exist
+          // Check if user exists first by trying to get their info
+          console.log(`👤 Checking if user exists for ${toEmail}`);
+          const checkUserUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
+          
+          try {
+            // Try to get all users and check if this email exists
+            const listUsersResponse = await fetch(`${checkUserUrl}?limit=10000`, {
+              method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
-              body: JSON.stringify(authPayload),
             });
 
-            const authData = await authResponse.text();
-            console.log(`📥 Auth response status: ${authResponse.status}`);
-            console.log(`📥 Auth response body:`, authData);
-
-            if (authResponse.ok) {
-              console.log(`✅ Created user for ${toEmail}`);
-            } else {
-              console.error(`❌ Auth error: ${authResponse.status} - ${authData}`);
+            let userExists = false;
+            if (listUsersResponse.ok) {
+              const usersData = await listUsersResponse.json();
+              userExists = usersData.users && usersData.users.some(u => u.email === toEmail);
             }
-          } else {
-            console.log(`⏭️  Skipping user creation - isNewUser is:`, isNewUser);
+
+            console.log(`📋 User exists check: ${userExists}`);
+
+            if (!userExists) {
+              console.log(`👤 Creating new user for ${toEmail}`);
+              const authPayload = {
+                email: toEmail,
+                email_confirm: false,
+                user_metadata: {
+                  company_name: companyName,
+                  company_id: companyId,
+                },
+              };
+              
+              console.log(`📤 Auth request to: ${checkUserUrl}`);
+              console.log(`📤 Payload:`, authPayload);
+              
+              const authResponse = await fetch(checkUserUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify(authPayload),
+              });
+
+              const authData = await authResponse.text();
+              console.log(`📥 Auth response status: ${authResponse.status}`);
+              console.log(`📥 Auth response body:`, authData);
+
+              if (authResponse.ok) {
+                console.log(`✅ Created user for ${toEmail}`);
+              } else {
+                console.error(`❌ Auth error: ${authResponse.status} - ${authData}`);
+              }
+            } else {
+              console.log(`⏭️  User ${toEmail} already exists in auth`);
+            }
+          } catch (authErr) {
+            console.error(`⚠️  Error checking/creating auth user:`, authErr.message);
           }
         }
       } catch (dbErr) {
