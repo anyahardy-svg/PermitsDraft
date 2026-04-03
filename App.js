@@ -9709,7 +9709,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           invitationForm.email,
                           selectedCompanyForInvitation.name,
                           deadline,
-                          false // isNewUser - will check in backend
+                          false, // isNewUser - will check in backend
+                          selectedCompanyForInvitation.id // companyId for database updates
                         );
 
                         if (result.success) {
