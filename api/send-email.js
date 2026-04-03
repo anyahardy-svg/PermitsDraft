@@ -63,10 +63,37 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
-    const { toEmail, companyName, deadline, isNewUser, type = 'invitation' } = req.body;
+    const { toEmail, companyName, deadline, type = 'invitation' } = req.body;
 
     if (!toEmail || !companyName) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    let actuallyNewUser = false; // Will determine based on Supabase Auth
+    
+    // For invitations, check if user exists in Supabase Auth FIRST
+    if (type === 'invitation') {
+      try {
+        console.log(`🔍 Checking if ${toEmail} exists in Supabase Auth...`);
+        const checkUserUrl = `${SUPABASE_URL}/auth/v1/admin/users?limit=10000`;
+        const listUsersResponse = await fetch(checkUserUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
+
+        if (listUsersResponse.ok) {
+          const usersData = await listUsersResponse.json();
+          actuallyNewUser = !usersData.users || !usersData.users.some(u => u.email === toEmail);
+          console.log(`✓ User check result: ${actuallyNewUser ? 'NEW USER' : 'EXISTING USER'}`);
+        }
+      } catch (checkErr) {
+        console.warn(`⚠️ Could not check user existence, defaulting to existing user template:`, checkErr.message);
+        actuallyNewUser = false;
+      }
     }
 
     let subject, htmlContent;
@@ -79,15 +106,15 @@ export default async function handler(req, res) {
         day: 'numeric' 
       }) : 'As soon as possible';
 
-      subject = isNewUser 
+      subject = actuallyNewUser 
         ? `${companyName} - Complete Your Company Accreditation`
         : `Request to Complete ${companyName} Accreditation`;
 
-      htmlContent = isNewUser 
+      htmlContent = actuallyNewUser 
         ? `
-          <h2>Complete Your Company Accreditation New</h2>
+          <h2>Complete Your Company Accreditation</h2>
           <p>Hello,</p>
-          <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
+          <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
           <p><strong>Deadline:</strong> ${deadlineStr}</p>
           <p>To get started, you'll need to create a password and access our portal:</p>
           <p><a href="https://contractorhq.co.nz/sign-in-contractor" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Set Password & Begin Accreditation</a></p>
@@ -178,45 +205,27 @@ export default async function handler(req, res) {
             }
           }
 
-          // Create user in Supabase Auth if this email doesn't already exist
-          // Check if user exists first by trying to get their info
-          console.log(`👤 Checking if user exists for ${toEmail}`);
-          const checkUserUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
+          // Create user in Supabase Auth if this is actually a new user
+          // (We already checked this above before sending the email)
+          console.log(`👤 User creation check: actuallyNewUser = ${actuallyNewUser}`);
           
-          try {
-            // Try to get all users and check if this email exists
-            const listUsersResponse = await fetch(`${checkUserUrl}?limit=10000`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          if (actuallyNewUser) {
+            console.log(`👤 Creating new user for ${toEmail}`);
+            const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
+            const authPayload = {
+              email: toEmail,
+              email_confirm: false,
+              user_metadata: {
+                company_name: companyName,
+                company_id: companyId,
               },
-            });
-
-            let userExists = false;
-            if (listUsersResponse.ok) {
-              const usersData = await listUsersResponse.json();
-              userExists = usersData.users && usersData.users.some(u => u.email === toEmail);
-            }
-
-            console.log(`📋 User exists check: ${userExists}`);
-
-            if (!userExists) {
-              console.log(`👤 Creating new user for ${toEmail}`);
-              const authPayload = {
-                email: toEmail,
-                email_confirm: false,
-                user_metadata: {
-                  company_name: companyName,
-                  company_id: companyId,
-                },
-              };
-              
-              console.log(`📤 Auth request to: ${checkUserUrl}`);
-              console.log(`📤 Payload:`, authPayload);
-              
-              const authResponse = await fetch(checkUserUrl, {
+            };
+            
+            console.log(`📤 Auth request to: ${authUrl}`);
+            console.log(`📤 Payload:`, authPayload);
+            
+            try {
+              const authResponse = await fetch(authUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -235,11 +244,11 @@ export default async function handler(req, res) {
               } else {
                 console.error(`❌ Auth error: ${authResponse.status} - ${authData}`);
               }
-            } else {
-              console.log(`⏭️  User ${toEmail} already exists in auth`);
+            } catch (authErr) {
+              console.error(`❌ Error creating auth user:`, authErr.message);
             }
-          } catch (authErr) {
-            console.error(`⚠️  Error checking/creating auth user:`, authErr.message);
+          } else {
+            console.log(`⏭️  Skipping user creation - ${toEmail} already exists in auth`);
           }
         }
       } catch (dbErr) {
