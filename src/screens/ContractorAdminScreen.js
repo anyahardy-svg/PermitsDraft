@@ -190,19 +190,22 @@ export default function ContractorAdminScreen({
         setLoggedInCompanyId(companyId);
         setSelectedCompanyId(companyId);
         
-        // Fetch contractor name and company name
+        // Fetch contractor name, email, phone and company name
         const restoreLogin = async () => {
           try {
-            // Get contractor name
+            // Get ALL contractor fields
             const { data: contractor, error: contractorError } = await supabase
               .from('contractors')
-              .select('name')
+              .select('id, name, email, phone_number')
               .eq('id', contractorId)
               .single();
             
             if (!contractorError && contractor) {
+              setLoggedInContractorId(contractor.id);
               setLoggedInContractor(contractor.name);
-              console.log('✅ Restored contractor name:', contractor.name);
+              setLoggedInContractorEmail(contractor.email || '');
+              setLoggedInContractorPhone(contractor.phone_number || '');
+              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: contractor.phone_number });
             }
             
             // Get company name
@@ -218,6 +221,16 @@ export default function ContractorAdminScreen({
             }
             
             setIsLoggedIn(true);
+            
+            // Directly load inductions for the restored company to avoid showing wrong contractors
+            try {
+              const inductionsData = await getContractorInductionsForCompany(companyId);
+              setInductedContractors(inductionsData || []);
+              console.log('✅ Loaded inductions for restored company:', inductionsData?.length);
+            } catch (inductionErr) {
+              console.error('Error loading inductions during restore:', inductionErr);
+            }
+            
             console.log('✅ Login restored from URL');
           } catch (error) {
             console.error('Error restoring login:', error);
