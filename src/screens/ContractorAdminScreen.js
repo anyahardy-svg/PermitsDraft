@@ -35,8 +35,16 @@ export default function ContractorAdminScreen({
   // Authentication state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInContractor, setLoggedInContractor] = useState(null);
+  const [loggedInContractorEmail, setLoggedInContractorEmail] = useState(null);
+  const [loggedInContractorPhone, setLoggedInContractorPhone] = useState(null);
+  const [loggedInContractorId, setLoggedInContractorId] = useState(null);
   const [loggedInCompanyId, setLoggedInCompanyId] = useState(null);
   const [loggedInCompanyName, setLoggedInCompanyName] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [jseaTemplates, setJseaTemplates] = useState([]);
   const [permitTemplates, setPermitTemplates] = useState([]);
   const [loadingJsea, setLoadingJsea] = useState(false);
@@ -95,9 +103,15 @@ export default function ContractorAdminScreen({
     console.log('   - companyId:', contractorInfo.companyId);
     
     setLoggedInContractor(contractorInfo.contractorName);
+    setLoggedInContractorId(contractorInfo.contractorId);
+    setLoggedInContractorEmail(contractorInfo.email);
     setLoggedInCompanyId(contractorInfo.companyId);
     setIsLoggedIn(true);
     setSelectedCompanyId(contractorInfo.companyId);
+    
+    // Initialize profile editing fields
+    setProfileName(contractorInfo.contractorName);
+    setProfileEmail(contractorInfo.email || '');
     
     // Update URL to include contractor info for persistence
     if (typeof window !== 'undefined') {
@@ -937,14 +951,13 @@ export default function ContractorAdminScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1200
+                  minWidth: 1000
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Services</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inducted Services</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inductions</Text>
               </View>
 
               {/* Table Rows */}
@@ -958,7 +971,7 @@ export default function ContractorAdminScreen({
                 borderBottomColor: '#E5E7EB',
                 paddingVertical: 10,
                 paddingHorizontal: 8,
-                minWidth: 1200
+                minWidth: 1000
               }}
             >
               <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -973,25 +986,221 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
               </Text>
-              <View style={{ width: 200, paddingRight: 8 }}>
-                {contractor.completedInductions && contractor.completedInductions.length > 0 ? (
-                  <View>
-                    {contractor.completedInductions.map((induction, jdx) => (
-                      <Text key={jdx} style={{ fontSize: 10, color: '#1F2937', marginBottom: 2 }}>
-                        • {induction.inductions?.induction_name || 'Unknown'}
-                      </Text>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>No inductions</Text>
-                )}
-              </View>
+
             </View>
           ))}
             </View>
           </ScrollView>
         </ScrollView>
       </View>
+    );
+  };
+
+  // Render profile edit
+  const renderProfileEdit = () => {
+    const handleSaveProfile = async () => {
+      if (!profileName.trim()) {
+        Alert.alert('Validation', 'Name cannot be empty');
+        return;
+      }
+
+      if (profileEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) {
+        Alert.alert('Validation', 'Please enter a valid email address');
+        return;
+      }
+
+      setSavingProfile(true);
+      try {
+        // Update contractor record in Supabase
+        const { error } = await supabase
+          .from('contractors')
+          .update({
+            name: profileName,
+            email: profileEmail || null,
+            phone_number: profilePhone || null
+          })
+          .eq('id', loggedInContractorId);
+
+        if (error) {
+          Alert.alert('Error', 'Failed to update profile: ' + error.message);
+        } else {
+          // Update local state
+          setLoggedInContractor(profileName);
+          setLoggedInContractorEmail(profileEmail);
+          setLoggedInContractorPhone(profilePhone);
+          setEditingProfile(false);
+          Alert.alert('Success', 'Your profile has been updated');
+        }
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update profile: ' + err.message);
+      } finally {
+        setSavingProfile(false);
+      }
+    };
+
+    return (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+            My Profile
+          </Text>
+          <Text style={{ fontSize: 14, color: '#6B7280' }}>
+            Update your contact information
+          </Text>
+        </View>
+
+        {!editingProfile ? (
+          <View>
+            <View style={{ 
+              backgroundColor: 'white', 
+              borderRadius: 8, 
+              padding: 16, 
+              borderLeftWidth: 4, 
+              borderLeftColor: '#06B6D4',
+              marginBottom: 16
+            }}>
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Name</Text>
+                <Text style={{ fontSize: 16, color: '#1F2937', fontWeight: '500', marginTop: 4 }}>
+                  {loggedInContractor}
+                </Text>
+              </View>
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Email</Text>
+                <Text style={{ fontSize: 16, color: '#1F2937', fontWeight: '500', marginTop: 4 }}>
+                  {loggedInContractorEmail || 'Not provided'}
+                </Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Phone</Text>
+                <Text style={{ fontSize: 16, color: '#1F2937', fontWeight: '500', marginTop: 4 }}>
+                  {loggedInContractorPhone || 'Not provided'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setEditingProfile(true)}
+              style={{
+                backgroundColor: '#06B6D4',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                Edit Profile
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Name
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  fontSize: 15,
+                  color: '#1F2937',
+                  backgroundColor: '#F9FAFB'
+                }}
+                value={profileName}
+                onChangeText={setProfileName}
+                placeholder="Your name"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Email
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  fontSize: 15,
+                  color: '#1F2937',
+                  backgroundColor: '#F9FAFB'
+                }}
+                value={profileEmail}
+                onChangeText={setProfileEmail}
+                placeholder="your.email@company.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Phone (Optional)
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  fontSize: 15,
+                  color: '#1F2937',
+                  backgroundColor: '#F9FAFB'
+                }}
+                value={profilePhone}
+                onChangeText={setProfilePhone}
+                placeholder="+64 123 456 7890"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingProfile(false);
+                  setProfileName(loggedInContractor);
+                  setProfileEmail(loggedInContractorEmail || '');
+                  setProfilePhone(loggedInContractorPhone || '');
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#E5E7EB',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: '#374151', fontSize: 16, fontWeight: '600' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveProfile}
+                disabled={savingProfile}
+                style={{
+                  flex: 1,
+                  backgroundColor: savingProfile ? '#A0AEC0' : '#06B6D4',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </ScrollView>
     );
   };
 
@@ -1028,7 +1237,7 @@ export default function ContractorAdminScreen({
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>
-              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : 'Accreditation'}
+              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : 'Accreditation'}
             </Text>
             <TouchableOpacity onPress={() => setActiveTab(null)}>
               <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
@@ -1076,6 +1285,13 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>🎓</Text>
               <Text style={styles.cardLabel}>Training Records</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('profile')}
+              style={[styles.dashboardCard, { borderLeftColor: '#06B6D4', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>👤</Text>
+              <Text style={styles.cardLabel}>My Profile</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
@@ -1106,6 +1322,8 @@ export default function ContractorAdminScreen({
               onClose={() => setActiveTab(null)}
             />
           </View>
+        ) : activeTab === 'profile' ? (
+          renderProfileEdit()
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )
