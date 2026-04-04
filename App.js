@@ -42,6 +42,10 @@ import AuthCallbackScreen from './src/screens/AuthCallbackScreen';
 import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
 import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen';
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
+import AdminLoginScreen from './src/screens/AdminLoginScreen';
+import AdminDashboard from './src/screens/AdminDashboard';
+import AdminUsersManagement from './src/screens/AdminUsersManagement';
+import { loginAdminUser } from './src/api/adminAuth';
 
 // List of all available sites
 const ALL_SITES = [
@@ -2068,6 +2072,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
+  
+  // Admin session state
+  const [adminSessionActive, setAdminSessionActive] = useState(false);
+  const [loggedInAdmin, setLoggedInAdmin] = useState(null);
+  const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard' or 'admin-users'
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+
+  // Admin handler functions
+  const handleAdminLogout = () => {
+    setAdminSessionActive(false);
+    setLoggedInAdmin(null);
+    setAdminCurrentView('dashboard');
+    setShowAdminLoginModal(false);
+  };
+
+  const handleAdminLoginSuccess = (adminData) => {
+    setLoggedInAdmin(adminData);
+    setAdminSessionActive(true);
+    setShowAdminLoginModal(false);
+  };
+
+  const handleAdminNavigate = (menuId) => {
+    if (menuId === 'admin-users' && loggedInAdmin?.role === 'super_admin') {
+      setAdminCurrentView('admin-users');
+    } else {
+      // For other menu items, add navigation later
+      Alert.alert('Coming Soon', `${menuId} feature will be available soon`);
+    }
+  };
 
   // Detect invitation flow from email (?type=invited)
   useEffect(() => {
@@ -7638,7 +7671,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             shadowOpacity: 0.3,
             shadowRadius: 5,
           }}
-          onPress={() => setCurrentScreen('admin')}
+          onPress={() => setShowAdminLoginModal(true)}
         >
           <Text style={{ fontSize: 28 }}>⚙️</Text>
           <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Admin</Text>
@@ -19229,6 +19262,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return renderDashboard();
         }
       })()}
+
+      {/* ADMIN LOGIN MODAL */}
+      <Modal
+        visible={showAdminLoginModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAdminLoginModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxHeight: '90%' }}>
+            <AdminLoginScreen 
+              onLoginSuccess={handleAdminLoginSuccess}
+              onCancel={() => setShowAdminLoginModal(false)}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ADMIN DASHBOARD/MANAGEMENT MODAL */}
+      <Modal
+        visible={adminSessionActive}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleAdminLogout}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '95%', maxHeight: '95%' }}>
+            {adminCurrentView === 'dashboard' ? (
+              <AdminDashboard 
+                adminUser={loggedInAdmin}
+                onLogout={handleAdminLogout}
+                onNavigate={handleAdminNavigate}
+              />
+            ) : (
+              <AdminUsersManagement 
+                onBack={() => setAdminCurrentView('dashboard')}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

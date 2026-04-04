@@ -12,6 +12,7 @@
   "dependencies": {
     "@babel/types": "^7.28.6",
     "@supabase/supabase-js": "^2.91.1",
+    "bcryptjs": "^3.0.3",
     "expo": "~54.0.6",
     "expo-document-picker": "^55.0.8",
     "expo-image-picker": "^17.0.10",
