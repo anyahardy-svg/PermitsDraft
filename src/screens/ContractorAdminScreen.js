@@ -190,13 +190,13 @@ export default function ContractorAdminScreen({
         setLoggedInCompanyId(companyId);
         setSelectedCompanyId(companyId);
         
-        // Fetch contractor name, email, phone and company name
+        // Fetch contractor name and company name
         const restoreLogin = async () => {
           try {
-            // Get ALL contractor fields
+            // Get contractor name and email
             const { data: contractor, error: contractorError } = await supabase
               .from('contractors')
-              .select('id, name, email, phone_number')
+              .select('id, name, email')
               .eq('id', contractorId)
               .single();
             
@@ -204,8 +204,7 @@ export default function ContractorAdminScreen({
               setLoggedInContractorId(contractor.id);
               setLoggedInContractor(contractor.name);
               setLoggedInContractorEmail(contractor.email || '');
-              setLoggedInContractorPhone(contractor.phone_number || '');
-              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: contractor.phone_number });
+              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email });
             }
             
             // Get company name
