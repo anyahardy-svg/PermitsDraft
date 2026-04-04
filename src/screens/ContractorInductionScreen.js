@@ -497,7 +497,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
         if (ind.is_compulsory && isApplicableToSelectedSites) {
           compulsory.push(ind);
-        } else if (!ind.is_compulsory) {
+        } else if (!ind.is_compulsory && isApplicableToSelectedSites) {
           optional.push(ind);
         }
       });
