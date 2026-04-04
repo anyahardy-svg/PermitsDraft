@@ -423,9 +423,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
             <Text style={[styles.label, { marginTop: 0 }]}>Induction Name *</Text>
             <TextInput style={styles.input} placeholder="E.g., Working at Heights" value={formData.induction_name} onChangeText={(text) => setFormData({ ...formData, induction_name: text })} />
             
-            <Text style={[styles.label, { marginTop: 12 }]}>Variant Name</Text>
-            <TextInput style={styles.input} placeholder="E.g., MEWP, Ladder" value={formData.subsection_name} onChangeText={(text) => setFormData({ ...formData, subsection_name: text })} />
-            
             <Text style={[styles.label, { marginTop: 12 }]}>Description</Text>
             <TextInput style={[styles.input, { minHeight: 60 }]} placeholder="Brief description" value={formData.description} onChangeText={(text) => setFormData({ ...formData, description: text })} multiline />
 
