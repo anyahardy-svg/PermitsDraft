@@ -495,6 +495,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         const isSiteSpecific = ind.site_id !== null;
         const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
 
+        const statusStr = isSiteSpecific ? `(site-specific: ${ind.site_id}, selected: ${selectedSites.join(',')})` : '(applies to all sites)';
+        console.log(`   Induction: "${ind.induction_name}" ${statusStr} → ${isApplicableToSelectedSites ? '✅ SHOWN' : '❌ FILTERED OUT'}`);
+
         if (ind.is_compulsory && isApplicableToSelectedSites) {
           compulsory.push(ind);
         } else if (!ind.is_compulsory && isApplicableToSelectedSites) {
@@ -521,6 +524,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       }
 
       console.log('📋 Separated: Compulsory:', compulsory.length, 'Optional:', optional.length);
+      console.log('   Total loaded:', uniqueInductions.length, '| After filtering:', compulsory.length + optional.length, '| Filtered out:', uniqueInductions.length - (compulsory.length + optional.length));
 
       setCompulsoryInductions(compulsory);
       setOptionalInductions(optional);
@@ -1550,7 +1554,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
                         {induction.induction_name}
-                        {induction.subsection_name && ` - ${induction.subsection_name}`}
                       </Text>
                       {isCompulsory && (
                         <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, fontWeight: '500' }}>
@@ -1594,7 +1597,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                     <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>
                       {currentModalInduction.induction_name}
-                      {currentModalInduction.subsection_name && ` - ${currentModalInduction.subsection_name}`}
                     </Text>
                   </View>
 
