@@ -769,111 +769,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           )}
         </ScrollView>
 
-        {/* Resume Dialog Modal */}
-        <Modal
-          visible={showResumeDialog}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowResumeDialog(false)}
-        >
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 16,
-          }}>
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 12,
-              padding: 24,
-              width: '100%',
-              maxWidth: 400,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: '700',
-                color: '#1F2937',
-                marginBottom: 12,
-              }}>
-                Resume Inductions?
-              </Text>
-
-              <Text style={{
-                fontSize: 14,
-                color: '#6B7280',
-                marginBottom: 24,
-                lineHeight: 20,
-              }}>
-                You have {resumeInductionData ? resumeInductionData.inProgressCount || 0 : 0} induction(s) in progress. Do you want to resume where you left off?
-              </Text>
-
-              <View style={{ gap: 12, flexDirection: 'row' }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: '#F3F4F6',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    console.log('💾 User chose: Start Over');
-                    setShowResumeDialog(false);
-                    // Reset induction progress to start fresh
-                    setCompletedInductionIds([]);
-                    setSelectedOptionalIds([]);
-                    setStep('inductionsList');
-                  }}
-                >
-                  <Text style={{
-                    color: '#374151',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}>
-                    Start Over
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: '#3B82F6',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    console.log('💾 User chose: Resume');
-                    setShowResumeDialog(false);
-                    if (resumeInductionData && resumeInductionData.completedIds) {
-                      setCompletedInductionIds(resumeInductionData.completedIds);
-                    }
-                    if (resumeInductionData && resumeInductionData.resumeQueue) {
-                      setInductionQueue(resumeInductionData.resumeQueue);
-                    }
-                    setStep('inductionBoard');
-                  }}
-                >
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}>
-                    Resume
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        {/* Resume Dialog Moved to Info Screen - See STEP 1 */}
       </View>
     );
   }
@@ -1302,6 +1198,112 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   style={{ flex: 1, backgroundColor: loading ? '#9CA3AF' : '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
                 >
                   <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{loading ? 'Adding...' : 'Create'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Resume Inductions Dialog */}
+        <Modal
+          visible={showResumeDialog}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowResumeDialog(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 16,
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: 12,
+              }}>
+                Resume Inductions?
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: '#6B7280',
+                marginBottom: 24,
+                lineHeight: 20,
+              }}>
+                You have {resumeInductionData ? resumeInductionData.inProgressCount || 0 : 0} induction(s) in progress. Do you want to resume where you left off?
+              </Text>
+
+              <View style={{ gap: 12, flexDirection: 'row' }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#F3F4F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    console.log('💾 User chose: Start Over');
+                    setShowResumeDialog(false);
+                    // Reset induction progress to start fresh
+                    setCompletedInductionIds([]);
+                    setSelectedOptionalIds([]);
+                    setStep('inductionsList');
+                  }}
+                >
+                  <Text style={{
+                    color: '#374151',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}>
+                    Start Over
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#3B82F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    console.log('💾 User chose: Resume');
+                    setShowResumeDialog(false);
+                    if (resumeInductionData && resumeInductionData.completedIds) {
+                      setCompletedInductionIds(resumeInductionData.completedIds);
+                    }
+                    if (resumeInductionData && resumeInductionData.resumeQueue) {
+                      setInductionQueue(resumeInductionData.resumeQueue);
+                    }
+                    setStep('inductionBoard');
+                  }}
+                >
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}>
+                    Resume
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
