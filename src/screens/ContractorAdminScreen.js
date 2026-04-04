@@ -979,6 +979,26 @@ export default function ContractorAdminScreen({
     return (
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+          {/* Start New Induction Button */}
+          <View style={{ padding: 16, paddingBottom: 8 }}>
+            <TouchableOpacity 
+              style={{
+                backgroundColor: '#3B82F6',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                alignItems: 'center'
+              }}
+              onPress={() => {
+                window.open('https://wa-hunua-quarry-kiosk.contractorhq.co.nz/inductions/', '_blank');
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                ➕ Start New Induction
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Table Wrapper with horizontal scroll for wide table */}
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <View style={{ padding: 16 }}>
