@@ -531,9 +531,13 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       const existingProgress = await getContractorInductionProgress(contractorId);
       console.log('🔍 Existing progress records:', existingProgress?.length || 0);
       
-      if (existingProgress && existingProgress.length > 0) {
+      // For RETURNING contractors (not new), pre-select their completed inductions
+      if (!isNewContractor && existingProgress && existingProgress.length > 0) {
+        const completedInductions = existingProgress.filter(p => p.status === 'completed');
         const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
+        
         if (inProgressInductions.length > 0) {
+          // They have incomplete inductions - offer resume or start over
           console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
           console.log('📋 In-progress induction IDs:', inProgressInductions.map(p => p.induction_id));
           console.log('📚 Available inductions to resume from:', uniqueInductions.map(ind => ({ id: ind.id, name: ind.induction_name })));
@@ -553,6 +557,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           });
           setShowResumeDialog(true);
           return;
+        } else if (completedInductions.length > 0) {
+          // They have completed inductions but nothing in progress - pre-select the completed ones for redo
+          console.log('✅ Returning contractor with', completedInductions.length, 'completed inductions - pre-selecting for redo');
+          const completedIds = completedInductions.map(p => p.induction_id);
+          
+          // Filter to find which optional inductions are in their completed list
+          const preSelectedOptionals = optionalInductions
+            .filter(ind => completedIds.includes(ind.id))
+            .map(ind => ind.id);
+          
+          console.log('📋 Pre-selecting', preSelectedOptionals.length, 'completed optional inductions');
+          setSelectedOptionalIds(preSelectedOptionals);
         }
       }
       
@@ -1302,6 +1318,17 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         {renderHeader('Select Inductions', () => setStep('info'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {!isNewContractor && selectedOptionalIds.length > 0 && (
+            <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, color: '#166534', fontWeight: '600' }}>
+                ↩️ Previously Completed - Ready to Redo
+              </Text>
+              <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>
+                {selectedOptionalIds.length} induction(s) selected for redo. You can add more or remove any.
+              </Text>
+            </View>
+          )}
+
           {compulsoryInductions.length > 0 && (
             <>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#DC2626', marginBottom: 12 }}>
@@ -1323,11 +1350,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
                     {ind.induction_name}
                   </Text>
-                  {ind.subsection_name && (
-                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                      Variant: {ind.subsection_name}
-                    </Text>
-                  )}
                   {ind.video_url && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>📹 Video included</Text>}
                 </TouchableOpacity>
               ))}
@@ -1376,11 +1398,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
                       {ind.induction_name}
                     </Text>
-                    {ind.subsection_name && (
-                      <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-                        {ind.subsection_name}
-                      </Text>
-                    )}
                   </View>
                 </TouchableOpacity>
               ))}
