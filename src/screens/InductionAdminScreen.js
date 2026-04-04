@@ -437,21 +437,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
               </TouchableOpacity>
             ))}
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Services (optional)</Text>
-            {services.length > 0 ? (
-              services.map(service => (
-                <TouchableOpacity key={service.id} onPress={() => toggleService(service.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: isServiceSelected(service.id) ? '#DBEAFE' : '#F3F4F6', borderRadius: 6, marginBottom: 8 }}>
-                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#0EA5E9', alignItems: 'center', justifyContent: 'center', backgroundColor: isServiceSelected(service.id) ? '#0EA5E9' : 'white', marginRight: 10 }}>{isServiceSelected(service.id) && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: isServiceSelected(service.id) ? '600' : '400' }}>{service.name}</Text>
-                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Linked to {businessUnits.find(bu => bu.id === service.business_unit_id)?.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' }}>No services available</Text>
-            )}
-
             <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Service Selected (optional)</Text>
             <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>Select a service that, if assigned to a contractor, will make this induction compulsory</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, force_compulsory_with_service_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.force_compulsory_with_service_id === '' ? '#F3E8FF' : '#F3F4F6', marginBottom: 8 }}><Text style={{ color: formData.force_compulsory_with_service_id === '' ? '#7C3AED' : '#6B7280', fontWeight: '600' }}>None (optional induction)</Text></TouchableOpacity>
