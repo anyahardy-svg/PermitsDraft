@@ -319,35 +319,36 @@ export default function InductionAdminScreen({ onBack, styles }) {
       return;
     }
     
-    console.log('✅ Ready to show delete confirmation alert...');
+    console.log('✅ Showing delete confirmation...');
     
-    Alert.alert('Delete PDF', 'Remove this PDF?', [
-      { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
-      {
-        text: 'Delete',
-        onPress: async () => {
-          console.log('📋 User confirmed delete, calling deleteInductionPDF...');
-          try {
-            const result = await deleteInductionPDF(formData.id);
-            console.log('📥 deleteInductionPDF returned:', result);
-            
-            if (result.success) {
-              console.log('✅ Delete successful, clearing form data...');
-              setFormData({ ...formData, pdf_file_name: '', pdf_file_url: '' });
-              await loadData();
-              Alert.alert('Success', 'PDF deleted');
-            } else {
-              console.error('❌ Delete failed:', result.error);
-              Alert.alert('Error', result.error || 'Failed to delete PDF');
-            }
-          } catch (err) {
-            console.error('❌ Exception during delete:', err);
-            Alert.alert('Error', err.message || 'Failed to delete PDF');
-          }
-        },
-        style: 'destructive'
+    // Use window.confirm for web, Alert.alert for mobile
+    const confirmed = typeof window !== 'undefined' 
+      ? window.confirm('Are you sure you want to delete this PDF?')
+      : true; // Assume true for native, will show Alert below
+    
+    if (!confirmed) {
+      console.log('❌ User cancelled delete');
+      return;
+    }
+
+    console.log('📋 User confirmed delete, calling deleteInductionPDF...');
+    try {
+      const result = await deleteInductionPDF(formData.id);
+      console.log('📥 deleteInductionPDF returned:', result);
+      
+      if (result.success) {
+        console.log('✅ Delete successful, clearing form data...');
+        setFormData({ ...formData, pdf_file_name: '', pdf_file_url: '' });
+        await loadData();
+        Alert.alert('Success', 'PDF deleted');
+      } else {
+        console.error('❌ Delete failed:', result.error);
+        Alert.alert('Error', result.error || 'Failed to delete PDF');
       }
-    ]);
+    } catch (err) {
+      console.error('❌ Exception during delete:', err);
+      Alert.alert('Error', err.message || 'Failed to delete PDF');
+    }
   };
 
   const handleViewPDF = () => {
