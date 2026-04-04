@@ -19275,6 +19275,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <AdminLoginScreen 
               onLoginSuccess={handleAdminLoginSuccess}
               onCancel={() => setShowAdminLoginModal(false)}
+              styles={styles}
             />
           </View>
         </View>
@@ -19294,10 +19295,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 adminUser={loggedInAdmin}
                 onLogout={handleAdminLogout}
                 onNavigate={handleAdminNavigate}
+                styles={styles}
               />
             ) : (
               <AdminUsersManagement 
                 onBack={() => setAdminCurrentView('dashboard')}
+                styles={styles}
               />
             )}
           </View>
