@@ -306,18 +306,28 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
   const handleDeletePDF = async () => {
     console.log('🗑️ handleDeletePDF called, induction ID:', formData.id);
+    console.log('📋 Form data:', { pdf_file_url: formData.pdf_file_url, pdf_file_name: formData.pdf_file_name });
+    
     if (!formData.id) {
       console.warn('❌ No formData.id, aborting delete');
       return;
     }
+
+    if (!formData.pdf_file_url) {
+      console.warn('⚠️ No PDF file URL, nothing to delete');
+      Alert.alert('No PDF', 'No PDF file to delete');
+      return;
+    }
+    
+    console.log('✅ Ready to show delete confirmation alert...');
     
     Alert.alert('Delete PDF', 'Remove this PDF?', [
-      { text: 'Cancel' },
+      { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
       {
         text: 'Delete',
         onPress: async () => {
+          console.log('📋 User confirmed delete, calling deleteInductionPDF...');
           try {
-            console.log('📋 User confirmed delete, calling deleteInductionPDF...');
             const result = await deleteInductionPDF(formData.id);
             console.log('📥 deleteInductionPDF returned:', result);
             
