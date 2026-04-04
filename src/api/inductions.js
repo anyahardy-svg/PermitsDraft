@@ -40,7 +40,7 @@ export async function getAllInductions() {
     const { data, error } = await supabase
       .from('inductions')
       .select('*')
-      .order('induction_name, subsection_name', { ascending: true });
+      .order('induction_name', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -70,7 +70,7 @@ export async function getInductionsByBusinessUnit(businessUnitId, contractorServ
       // Note: We fetch all and filter in JS because Supabase doesn't support complex OR conditions easily
     }
 
-    const { data, error } = await query.order('induction_name, subsection_name', { ascending: true });
+    const { data, error } = await query.order('induction_name', { ascending: true });
 
     if (error) throw error;
     
@@ -106,7 +106,7 @@ export async function getInductionsBySite(siteId) {
       .from('inductions')
       .select('*')
       .or(`site_id.eq.${siteId},site_id.is.null`) // Site-specific OR applies to all sites
-      .order('induction_name, subsection_name', { ascending: true });
+      .order('induction_name', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -130,7 +130,7 @@ export async function getInductionsForContractor(contractorId, businessUnitId) {
       query = query.contains('business_unit_ids', [businessUnitId]);
     }
 
-    const { data, error } = await query.order('induction_name, subsection_name', { ascending: true });
+    const { data, error } = await query.order('induction_name', { ascending: true });
 
     if (error) throw error;
     return data || [];
