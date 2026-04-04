@@ -174,7 +174,6 @@ export async function createInduction(inductionData) {
       .insert([{
         induction_name: inductionData.induction_name,
         description: inductionData.description || '',
-        subsection_name: inductionData.subsection_name || '',
         business_unit_ids: inductionData.business_unit_ids || [],
         site_id: inductionData.site_id || null,
         service_id: inductionData.service_id || null,
@@ -216,7 +215,6 @@ export async function updateInduction(inductionId, updates) {
     const updateData = {
       induction_name: updates.induction_name,
       description: updates.description || '',
-      subsection_name: updates.subsection_name || '',
       business_unit_ids: updates.business_unit_ids || [],
       site_id: updates.site_id || null,
       service_id: updates.service_id || null,

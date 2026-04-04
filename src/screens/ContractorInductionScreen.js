@@ -2264,7 +2264,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     return (
       <View style={styles.container}>
         {renderHeader(
-          `${currentInduction.induction_name}${currentInduction.subsection_name ? ` - ${currentInduction.subsection_name}` : ''}`,
+          currentInduction.induction_name,
           () => { setStep('inductionsList'); setCurrentInductionIndex(0); }
         )}
 
