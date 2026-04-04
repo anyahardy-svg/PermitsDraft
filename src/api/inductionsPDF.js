@@ -98,6 +98,7 @@ export async function uploadInductionPDF(inductionId, file) {
       .update({
         pdf_file_url,
         pdf_file_name: file.name,
+        pdf_storage_filename: fileName,
         pdf_uploaded_at: new Date().toISOString()
       })
       .eq('id', inductionId);
@@ -205,6 +206,7 @@ export async function uploadVisitorInductionPDF(siteId, file) {
       .update({
         pdf_file_url,
         pdf_file_name: file.name,
+        pdf_storage_filename: fileName,
         pdf_uploaded_at: new Date().toISOString()
       })
       .eq('site_id', siteId);
@@ -240,7 +242,7 @@ export async function deleteInductionPDF(inductionId) {
     // Get current PDF info
     const { data: induction, error: fetchError } = await supabase
       .from('inductions')
-      .select('pdf_file_url')
+      .select('pdf_file_url, pdf_storage_filename')
       .eq('id', inductionId)
       .single();
 
@@ -248,8 +250,8 @@ export async function deleteInductionPDF(inductionId) {
       return { success: false, error: 'No PDF found for this induction' };
     }
 
-    // Extract filename from URL
-    const fileName = induction.pdf_file_url.split('/').pop();
+    // Use stored storage filename, or extract from URL if not available
+    const fileName = induction.pdf_storage_filename || induction.pdf_file_url.split('/').pop();
 
     console.log(`🗑️ Deleting induction PDF: ${fileName}`);
 
@@ -270,6 +272,7 @@ export async function deleteInductionPDF(inductionId) {
       .update({
         pdf_file_url: null,
         pdf_file_name: null,
+        pdf_storage_filename: null,
         pdf_uploaded_at: null
       })
       .eq('id', inductionId);
@@ -297,16 +300,16 @@ export async function deleteVisitorInductionPDF(siteId) {
     // Get current PDF info
     const { data: induction, error: fetchError } = await supabase
       .from('visitor_inductions')
-      .select('pdf_file_url')
+      .select('pdf_file_url, pdf_storage_filename')
       .eq('site_id', siteId)
       .single();
 
     if (fetchError || !induction?.pdf_file_url) {
-      return { success: false, error: 'No PDF found for this induction' };
+      return { success: false, error: 'No PDF found for this visitor induction' };
     }
 
-    // Extract filename from URL
-    const fileName = induction.pdf_file_url.split('/').pop();
+    // Use stored storage filename, or extract from URL if not available
+    const fileName = induction.pdf_storage_filename || induction.pdf_file_url.split('/').pop();
 
     console.log(`🗑️ Deleting visitor induction PDF: ${fileName}`);
 
@@ -327,6 +330,7 @@ export async function deleteVisitorInductionPDF(siteId) {
       .update({
         pdf_file_url: null,
         pdf_file_name: null,
+        pdf_storage_filename: null,
         pdf_uploaded_at: null
       })
       .eq('site_id', siteId);
