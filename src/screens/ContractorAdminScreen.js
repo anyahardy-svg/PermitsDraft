@@ -190,13 +190,13 @@ export default function ContractorAdminScreen({
         setLoggedInCompanyId(companyId);
         setSelectedCompanyId(companyId);
         
-        // Fetch contractor name and company name
+        // Fetch contractor name, email, and phone
         const restoreLogin = async () => {
           try {
-            // Get contractor name and email
+            // Get contractor details
             const { data: contractor, error: contractorError } = await supabase
               .from('contractors')
-              .select('id, name, email')
+              .select('id, name, email, phone')
               .eq('id', contractorId)
               .single();
             
@@ -204,7 +204,8 @@ export default function ContractorAdminScreen({
               setLoggedInContractorId(contractor.id);
               setLoggedInContractor(contractor.name);
               setLoggedInContractorEmail(contractor.email || '');
-              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email });
+              setLoggedInContractorPhone(contractor.phone || '');
+              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: contractor.phone });
             }
             
             // Get company name
@@ -1019,7 +1020,7 @@ export default function ContractorAdminScreen({
                     setEditingContractor(contractor);
                     setEditContractorName(contractor.name);
                     setEditContractorEmail(contractor.email || '');
-                    setEditContractorPhone(contractor.phone_number || '');
+                    setEditContractorPhone(contractor.phone || '');
                   }}
                   style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
                 >
@@ -1089,7 +1090,7 @@ export default function ContractorAdminScreen({
           .update({
             name: editContractorName,
             email: editContractorEmail,
-            phone_number: editContractorPhone,
+            phone: editContractorPhone,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingContractor.id);
@@ -1246,7 +1247,7 @@ export default function ContractorAdminScreen({
           .update({
             name: profileName,
             email: profileEmail || null,
-            phone_number: profilePhone || null
+            phone: profilePhone || null
           })
           .eq('id', loggedInContractorId);
 
