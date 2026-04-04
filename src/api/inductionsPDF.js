@@ -238,8 +238,11 @@ export async function uploadVisitorInductionPDF(siteId, file) {
  * @returns {Object} { success, message, error }
  */
 export async function deleteInductionPDF(inductionId) {
+  console.log('🗑️ deleteInductionPDF called with inductionId:', inductionId);
+  
   try {
     // Get current PDF info
+    console.log('📥 Fetching induction record...');
     const { data: induction, error: fetchError } = await supabase
       .from('inductions')
       .select('pdf_file_url, pdf_storage_filename')
@@ -247,11 +250,14 @@ export async function deleteInductionPDF(inductionId) {
       .single();
 
     if (fetchError) {
-      console.error('Fetch induction error:', fetchError);
-      return { success: false, error: 'Failed to fetch induction' };
+      console.error('❌ Fetch error:', fetchError);
+      return { success: false, error: `Fetch error: ${fetchError.message}` };
     }
 
+    console.log('✅ Induction fetched:', { pdf_file_url: induction?.pdf_file_url, pdf_storage_filename: induction?.pdf_storage_filename });
+
     if (!induction?.pdf_file_url) {
+      console.warn('⚠️ No PDF found in database');
       return { success: false, error: 'No PDF found for this induction' };
     }
 
@@ -259,38 +265,47 @@ export async function deleteInductionPDF(inductionId) {
     let fileName = induction.pdf_storage_filename;
     
     if (!fileName && induction.pdf_file_url) {
-      // Extract filename from URL - handle multiple URL formats
-      const urlParts = induction.pdf_file_url.split('/');
-      fileName = urlParts[urlParts.length - 1];
-      // Remove query parameters if present
-      fileName = fileName.split('?')[0];
+      console.log('📍 Extracting filename from URL since pdf_storage_filename is null...');
+      // Supabase URL format: https://{project}.supabase.co/storage/v1/object/public/inductions-pdf/{filename}
+      // Extract everything after 'inductions-pdf/'
+      const storageUrlMatch = induction.pdf_file_url.match(/inductions-pdf\/([^?]+)/);
+      if (storageUrlMatch) {
+        fileName = storageUrlMatch[1];
+        console.log('📍 Extracted from regex:', fileName);
+      } else {
+        // Fallback: split by '/' and take last part
+        const urlParts = induction.pdf_file_url.split('/');
+        fileName = urlParts[urlParts.length - 1]?.split('?')[0];
+        console.log('📍 Extracted from split:', fileName);
+      }
     }
 
-    console.log(`🗑️ Deleting PDF from bucket "${PDF_BUCKET}":`);
-    console.log(`   URL: ${induction.pdf_file_url}`);
-    console.log(`   Storage filename: ${induction.pdf_storage_filename || '(not stored)'}`);
-    console.log(`   Extracted filename: ${fileName}`);
+    console.log(`🗑️ DELETING PDF from bucket "${PDF_BUCKET}":`, fileName);
 
     if (!fileName) {
+      console.error('❌ Could not determine filename');
       return { success: false, error: 'Could not determine PDF filename' };
     }
 
     // Delete from storage
-    console.log(`📤 Sending delete request for: ${fileName}`);
+    console.log(`📤 Calling supabase.storage.from('${PDF_BUCKET}').remove([${fileName}])...`);
     const { data: deleteData, error: deleteError } = await supabase
       .storage
       .from(PDF_BUCKET)
       .remove([fileName]);
 
-    console.log(`📥 Delete response:`, { data: deleteData, error: deleteError });
+    console.log(`📥 Storage delete response:`, { deleteData, deleteError });
 
     if (deleteError) {
-      console.error('Delete storage error:', deleteError);
-      // Don't return here - try to clear DB anyway in case file is already gone
+      console.error('❌ Storage delete error:', deleteError.message);
+      // Continue anyway to clear DB records
+    } else {
+      console.log('✅ File deleted from storage');
     }
 
-    // Clear PDF info from database regardless of storage delete result
-    const { error: updateError } = await supabase
+    // Clear PDF info from database
+    console.log('🔄 Clearing database records...');
+    const { data: updateData, error: updateError } = await supabase
       .from('inductions')
       .update({
         pdf_file_url: null,
@@ -301,14 +316,14 @@ export async function deleteInductionPDF(inductionId) {
       .eq('id', inductionId);
 
     if (updateError) {
-      console.error('Update error:', updateError);
-      return { success: false, error: `Database update failed: ${updateError.message}` };
+      console.error('❌ Database update error:', updateError.message);
+      return { success: false, error: `DB error: ${updateError.message}` };
     }
 
-    console.log(`✅ PDF deleted successfully from database`);
+    console.log(`✅ DELETION COMPLETE - PDF deleted from database`);
     return { success: true, message: 'PDF deleted successfully' };
   } catch (error) {
-    console.error('Delete induction PDF error:', error);
+    console.error('❌ Unexpected error in deleteInductionPDF:', error);
     return { success: false, error: error.message };
   }
 }

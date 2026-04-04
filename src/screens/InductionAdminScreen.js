@@ -305,7 +305,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const handleDeletePDF = async () => {
-    if (!formData.id) return;
+    console.log('🗑️ handleDeletePDF called, induction ID:', formData.id);
+    if (!formData.id) {
+      console.warn('❌ No formData.id, aborting delete');
+      return;
+    }
     
     Alert.alert('Delete PDF', 'Remove this PDF?', [
       { text: 'Cancel' },
@@ -313,16 +317,22 @@ export default function InductionAdminScreen({ onBack, styles }) {
         text: 'Delete',
         onPress: async () => {
           try {
-            const { success, message } = await deleteInductionPDF(formData.id);
-            if (success) {
+            console.log('📋 User confirmed delete, calling deleteInductionPDF...');
+            const result = await deleteInductionPDF(formData.id);
+            console.log('📥 deleteInductionPDF returned:', result);
+            
+            if (result.success) {
+              console.log('✅ Delete successful, clearing form data...');
               setFormData({ ...formData, pdf_file_name: '', pdf_file_url: '' });
               await loadData();
               Alert.alert('Success', 'PDF deleted');
             } else {
-              Alert.alert('Error', message || 'Failed to delete PDF');
+              console.error('❌ Delete failed:', result.error);
+              Alert.alert('Error', result.error || 'Failed to delete PDF');
             }
           } catch (err) {
-            Alert.alert('Error', 'Failed to delete PDF');
+            console.error('❌ Exception during delete:', err);
+            Alert.alert('Error', err.message || 'Failed to delete PDF');
           }
         },
         style: 'destructive'
