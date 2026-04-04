@@ -2375,6 +2375,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [importMessage, setImportMessage] = useState('');
   // Filter state for services directory
   const [selectedService, setSelectedService] = useState('Hot Work');
+  const [selectedBusinessUnitFilter, setSelectedBusinessUnitFilter] = useState('All');
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState('All');
   const [servicesFromDb, setServicesFromDb] = useState([]);
   
   // Company dropdown state for contractor form
@@ -12275,23 +12277,45 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const renderServicesDirectory = () => {
-    // Filter contractors by selected service name
-    const contractorsWithService = contractors.filter(c => {
+    // Filter contractors by service, business unit, and company
+    const contractorsFiltered = contractors.filter(c => {
+      // Check service filter
       const serviceNames = getServiceNames(c.serviceIds || []);
-      return serviceNames.includes(selectedService);
+      if (!serviceNames.includes(selectedService)) return false;
+
+      // Check business unit filter
+      if (selectedBusinessUnitFilter !== 'All') {
+        const contractorBUIds = c.business_unit_ids || c.businessUnitIds || [];
+        if (!contractorBUIds.includes(selectedBusinessUnitFilter)) return false;
+      }
+
+      // Check company filter
+      if (selectedCompanyFilter !== 'All') {
+        if (c.company_id !== selectedCompanyFilter) return false;
+      }
+
+      return true;
+    });
+
+    // Get unique business units and companies from contractors
+    const contractorBusinessUnits = new Set();
+    const contractorCompanies = new Set();
+    contractors.forEach(c => {
+      (c.business_unit_ids || c.businessUnitIds || []).forEach(id => contractorBusinessUnits.add(id));
+      if (c.company_id) contractorCompanies.add(c.company_id);
     });
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); }}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setSelectedService('Hot Work'); setSelectedBusinessUnitFilter('All'); setSelectedCompanyFilter('All'); }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Services Directory</Text>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Filter Section */}
-          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 16 }}>
+          {/* Service Filter Section */}
+          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 12 }}>
             <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Service:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {(servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb : ALL_SERVICES.map(s => ({ name: s }))).map(service => (
@@ -12311,16 +12335,82 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </View>
           </View>
 
+          {/* Business Unit Filter Section */}
+          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 12 }}>
+            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Business Unit:</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <TouchableOpacity
+                style={[
+                  { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
+                  selectedBusinessUnitFilter === 'All'
+                    ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                    : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                ]}
+                onPress={() => setSelectedBusinessUnitFilter('All')}
+              >
+                <Text style={{ color: selectedBusinessUnitFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
+              </TouchableOpacity>
+              {businessUnits.filter(bu => contractorBusinessUnits.has(bu.id)).map(bu => (
+                <TouchableOpacity
+                  key={bu.id}
+                  style={[
+                    { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
+                    selectedBusinessUnitFilter === bu.id
+                      ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                      : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                  ]}
+                  onPress={() => setSelectedBusinessUnitFilter(bu.id)}
+                >
+                  <Text style={{ color: selectedBusinessUnitFilter === bu.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{bu.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Company Filter Section */}
+          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 16 }}>
+            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Company:</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <TouchableOpacity
+                style={[
+                  { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
+                  selectedCompanyFilter === 'All'
+                    ? { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
+                    : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                ]}
+                onPress={() => setSelectedCompanyFilter('All')}
+              >
+                <Text style={{ color: selectedCompanyFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
+              </TouchableOpacity>
+              {companies.filter(comp => contractorCompanies.has(comp.id)).map(comp => (
+                <TouchableOpacity
+                  key={comp.id}
+                  style={[
+                    { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1.5 },
+                    selectedCompanyFilter === comp.id
+                      ? { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
+                      : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                  ]}
+                  onPress={() => setSelectedCompanyFilter(comp.id)}
+                >
+                  <Text style={{ color: selectedCompanyFilter === comp.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{comp.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Table Title and Count */}
           <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold' }]}>Contractors - {selectedService}</Text>
-            <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>Results: {contractorsWithService.length}</Text>
+            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold' }]}>
+              Contractors {selectedService !== 'All' && `- ${selectedService}`}
+            </Text>
+            <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>Results: {contractorsFiltered.length}</Text>
           </View>
 
           {/* Spreadsheet Table */}
-          {contractorsWithService.length === 0 ? (
+          {contractorsFiltered.length === 0 ? (
             <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors offer "{selectedService}"</Text>
+              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors match the selected filters</Text>
             </View>
           ) : (
             <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
@@ -12335,7 +12425,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
 
                 {/* Table Rows */}
-                {contractorsWithService.map((contractor, index) => (
+                {contractorsFiltered.map((contractor, index) => (
                   <View 
                     key={contractor.id} 
                     style={{ 
