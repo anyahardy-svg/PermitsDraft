@@ -394,19 +394,6 @@ export async function deleteVisitorInductionPDF(siteId) {
   }
 }
 
-    if (updateError) {
-      console.error('Update error:', updateError);
-      return { success: false, error: updateError.message };
-    }
-
-    console.log(`✅ Visitor induction PDF deleted successfully`);
-    return { success: true, message: 'PDF deleted successfully' };
-  } catch (error) {
-    console.error('Delete visitor induction PDF error:', error);
-    return { success: false, error: error.message };
-  }
-}
-
 // ============================================================================
 // PDF VIEWING HELPER
 // ============================================================================
