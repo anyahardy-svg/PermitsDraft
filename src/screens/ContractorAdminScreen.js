@@ -32,6 +32,16 @@ export default function ContractorAdminScreen({
   activeTab = null,
   setActiveTab = () => {}
 }) {
+  // Helper function to format phone numbers with leading 0
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return '';
+    const phoneStr = String(phone).trim();
+    // If it already starts with 0, return as is
+    if (phoneStr.startsWith('0')) return phoneStr;
+    // Otherwise prepend 0
+    return '0' + phoneStr;
+  };
+
   // Authentication state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInContractor, setLoggedInContractor] = useState(null);
@@ -204,8 +214,8 @@ export default function ContractorAdminScreen({
               setLoggedInContractorId(contractor.id);
               setLoggedInContractor(contractor.name);
               setLoggedInContractorEmail(contractor.email || '');
-              setLoggedInContractorPhone(contractor.phone || '');
-              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: contractor.phone });
+              setLoggedInContractorPhone(formatPhoneNumber(contractor.phone || ''));
+              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: formatPhoneNumber(contractor.phone || '') });
             }
             
             // Get company name
@@ -410,15 +420,18 @@ export default function ContractorAdminScreen({
     }
   };
 
-  // Load inductions for selected company
+  // Load inductions for selected company or logged in contractor's company
   const loadInductions = async () => {
-    if (!selectedCompanyId) {
+    // Use logged in company if contractor is logged in, otherwise use selected company
+    const companyToUse = isLoggedIn && loggedInCompanyId ? loggedInCompanyId : selectedCompanyId;
+    
+    if (!companyToUse) {
       setInductedContractors([]);
       return;
     }
     setLoadingInductions(true);
     try {
-      const data = await getContractorInductionsForCompany(selectedCompanyId);
+      const data = await getContractorInductionsForCompany(companyToUse);
       setInductedContractors(data || []);
     } catch (error) {
       Alert.alert('Error', 'Failed to load inductions: ' + error.message);
@@ -1085,12 +1098,17 @@ export default function ContractorAdminScreen({
 
       setSavingContractor(true);
       try {
+        // Remove leading 0 from phone before saving to database
+        const phoneToSave = editContractorPhone.startsWith('0') 
+          ? editContractorPhone.substring(1)
+          : editContractorPhone;
+        
         const { error } = await supabase
           .from('contractors')
           .update({
             name: editContractorName,
             email: editContractorEmail,
-            phone: editContractorPhone,
+            phone: phoneToSave,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingContractor.id);
@@ -1241,13 +1259,18 @@ export default function ContractorAdminScreen({
 
       setSavingProfile(true);
       try {
+        // Remove leading 0 from phone before saving to database
+        const phoneToSave = profilePhone && profilePhone.startsWith('0')
+          ? profilePhone.substring(1)
+          : profilePhone;
+        
         // Update contractor record in Supabase
         const { error } = await supabase
           .from('contractors')
           .update({
             name: profileName,
             email: profileEmail || null,
-            phone: profilePhone || null
+            phone: phoneToSave || null
           })
           .eq('id', loggedInContractorId);
 
