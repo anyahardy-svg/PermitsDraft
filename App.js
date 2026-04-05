@@ -19287,9 +19287,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         </View>
       </Modal>
-
-      {/* Show original admin panel when logged in */}
-      {adminSessionActive && renderAdminDashboard()}
     </View>
   );
 };
