@@ -2083,7 +2083,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const handleAdminLogout = () => {
     setAdminSessionActive(false);
     setLoggedInAdmin(null);
-    setAdminCurrentView('dashboard');
+    setCurrentScreen('dashboard');
     setShowAdminLoginModal(false);
   };
 
@@ -2091,6 +2091,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setLoggedInAdmin(adminData);
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
+    setCurrentScreen('admin');
   };
 
   const handleAdminNavigate = (menuId) => {
@@ -7685,7 +7686,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('dashboard')}>
+          <TouchableOpacity onPress={() => {
+            if (adminSessionActive) {
+              handleAdminLogout();
+            } else {
+              setCurrentScreen('dashboard');
+            }
+          }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
@@ -19281,31 +19288,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
       </Modal>
 
-      {/* ADMIN DASHBOARD/MANAGEMENT MODAL */}
-      <Modal
-        visible={adminSessionActive}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleAdminLogout}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '95%', maxHeight: '95%' }}>
-            {adminCurrentView === 'dashboard' ? (
-              <AdminDashboard 
-                adminUser={loggedInAdmin}
-                onLogout={handleAdminLogout}
-                onNavigate={handleAdminNavigate}
-                styles={styles}
-              />
-            ) : (
-              <AdminUsersManagement 
-                onBack={() => setAdminCurrentView('dashboard')}
-                styles={styles}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+      {/* Show original admin panel when logged in */}
+      {adminSessionActive && renderAdminDashboard()}
     </View>
   );
 };
