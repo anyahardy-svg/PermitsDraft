@@ -2063,7 +2063,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Single hazards state
   const [singleHazards, setSingleHazards] = useState([]);
   const [hazardText, setHazardText] = useState('');
-  const [currentScreen, setCurrentScreen] = useState(initialAdminRoute || 'dashboard');
+  
+  // Initialize currentScreen - NEVER start with admin routes, they will be set by useEffect with auth check
+  const getInitialScreen = () => {
+    if (initialAdminRoute && !initialAdminRoute.startsWith('admin') && !initialAdminRoute.startsWith('manage_') && !initialAdminRoute.startsWith('services_') && !initialAdminRoute.startsWith('company_')) {
+      return initialAdminRoute; // Non-admin routes like contractor_admin
+    }
+    return 'dashboard'; // Default to dashboard, admin routes will be verified by useEffect
+  };
+  
+  const [currentScreen, setCurrentScreen] = useState(getInitialScreen());
   const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
