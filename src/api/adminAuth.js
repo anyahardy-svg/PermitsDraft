@@ -107,8 +107,8 @@ export async function createAdminUser(email, name, password, role = 'manager') {
       };
     }
 
-    // Hash password if provided, otherwise set to null (user will set on first login)
-    let passwordHash = null;
+    // Hash password if provided, otherwise set to empty string (user will set on first login)
+    let passwordHash = '';
     if (password) {
       passwordHash = await bcrypt.hash(password, 10);
     }

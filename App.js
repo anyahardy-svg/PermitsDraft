@@ -2118,7 +2118,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const result = await createAdminUser(
         newAdminForm.email,
         newAdminForm.name,
-        null, // password will be null, user sets it on first login
+        '', // empty password - user will set on first login
         newAdminForm.role
       );
       
