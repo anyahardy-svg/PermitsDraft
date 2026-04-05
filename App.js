@@ -7933,9 +7933,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <Text style={styles.title}>Admin Panel</Text>
           <TouchableOpacity 
             onPress={() => handleAdminLogout()}
-            style={{ padding: 8 }}
+            style={{ paddingHorizontal: 16, paddingVertical: 8 }}
           >
-            <Text style={{ fontSize: 20, color: 'white' }}>🚪</Text>
+            <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>

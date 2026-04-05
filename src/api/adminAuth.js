@@ -27,7 +27,7 @@ export async function loginAdminUser(email, password) {
       console.error('❌ Admin user not found:', email);
       return {
         success: false,
-        error: 'Invalid email or password'
+        error: 'Password or username incorrect'
       };
     }
 
@@ -38,7 +38,7 @@ export async function loginAdminUser(email, password) {
       console.error('❌ Password mismatch for:', email);
       return {
         success: false,
-        error: 'Invalid email or password'
+        error: 'Password or username incorrect'
       };
     }
 

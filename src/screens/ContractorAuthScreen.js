@@ -174,7 +174,7 @@ export default function ContractorAuthScreen({
           email: response.data.email
         });
       } else {
-        Alert.alert('Login Failed', response.error || 'Unable to log in. Please check your credentials.');
+        Alert.alert('Login Failed', response.error || 'Password or username incorrect');
         setPassword('');
       }
     } catch (error) {
