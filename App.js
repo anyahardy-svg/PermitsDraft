@@ -45,7 +45,7 @@ import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
-import { loginAdminUser } from './src/api/adminAuth';
+import { loginAdminUser, createAdminUser } from './src/api/adminAuth';
 
 // List of all available sites
 const ALL_SITES = [
@@ -2078,6 +2078,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [loggedInAdmin, setLoggedInAdmin] = useState(null);
   const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard' or 'admin-users'
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [newAdminForm, setNewAdminForm] = useState({ email: '', name: '', role: 'manager' });
+  const [addAdminLoading, setAddAdminLoading] = useState(false);
 
   // Admin handler functions
   const handleAdminLogout = () => {
@@ -2100,6 +2103,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     } else {
       // For other menu items, add navigation later
       Alert.alert('Coming Soon', `${menuId} feature will be available soon`);
+    }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!newAdminForm.email || !newAdminForm.name) {
+      Alert.alert('Missing Info', 'Please fill in email and name');
+      return;
+    }
+    
+    setAddAdminLoading(true);
+    try {
+      const result = await createAdminUser(
+        newAdminForm.email,
+        newAdminForm.name,
+        null, // password will be null, user sets it on first login
+        newAdminForm.role
+      );
+      
+      if (result.success) {
+        Alert.alert('Success', 'Admin user created. They can set their password on first login.');
+        setShowAddAdminModal(false);
+        setNewAdminForm({ email: '', name: '', role: 'manager' });
+      } else {
+        Alert.alert('Error', result.error || 'Failed to create admin user');
+      }
+    } catch (error) {
+      console.error('Error creating admin:', error);
+      Alert.alert('Error', 'Failed to create admin user: ' + error.message);
+    } finally {
+      setAddAdminLoading(false);
     }
   };
 
@@ -2651,12 +2684,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         
         // Check for main admin dashboard
         if (pathname === '/admin' || pathname === '/admin/') {
+          if (!adminSessionActive) {
+            console.log('❌ No admin session - showing login modal');
+            setShowAdminLoginModal(true);
+            return;
+          }
           setCurrentScreen('admin');
           return;
         }
         
         // Check for specific admin routes
         if (pathname.startsWith('/admin/')) {
+          if (!adminSessionActive) {
+            console.log('❌ No admin session - showing login modal');
+            setShowAdminLoginModal(true);
+            return;
+          }
           const route = pathname.slice(7); // Remove '/admin/' prefix
           
           // Check for company accreditation route
@@ -7735,6 +7778,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.cardNumber}>{businessUnits.length}</Text>
             <Text style={styles.cardLabel}>Business Units</Text>
           </TouchableOpacity>
+          {loggedInAdmin?.role === 'super_admin' && (
+            <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={() => setShowAddAdminModal(true)}>
+              <Text style={styles.cardNumber}>+</Text>
+              <Text style={styles.cardLabel}>Add Admin</Text>
+            </TouchableOpacity>
+          )}
         </View>
         </ScrollView>
       </View>
@@ -19284,6 +19333,142 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               onCancel={() => setShowAdminLoginModal(false)}
               styles={styles}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ADD ADMIN MODAL */}
+      <Modal
+        visible={showAddAdminModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddAdminModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 40 }}>
+          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Add Admin User</Text>
+              <TouchableOpacity onPress={() => setShowAddAdminModal(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView style={{ flex: 1, padding: 16 }}>
+            {/* Email Input */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  fontSize: 14,
+                  backgroundColor: '#F9FAFB',
+                }}
+                placeholder="admin@company.com"
+                placeholderTextColor="#9CA3AF"
+                value={newAdminForm.email}
+                onChangeText={(text) => setNewAdminForm({ ...newAdminForm, email: text })}
+                editable={!addAdminLoading}
+              />
+            </View>
+
+            {/* Name Input */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Name</Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  fontSize: 14,
+                  backgroundColor: '#F9FAFB',
+                }}
+                placeholder="Admin Name"
+                placeholderTextColor="#9CA3AF"
+                value={newAdminForm.name}
+                onChangeText={(text) => setNewAdminForm({ ...newAdminForm, name: text })}
+                editable={!addAdminLoading}
+              />
+            </View>
+
+            {/* Role Selector */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Role</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    backgroundColor: newAdminForm.role === 'manager' ? '#3B82F6' : '#F3F4F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setNewAdminForm({ ...newAdminForm, role: 'manager' })}
+                >
+                  <Text style={{ color: newAdminForm.role === 'manager' ? 'white' : '#374151', fontWeight: '600' }}>Manager</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    backgroundColor: newAdminForm.role === 'super_admin' ? '#10B981' : '#F3F4F6',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setNewAdminForm({ ...newAdminForm, role: 'super_admin' })}
+                >
+                  <Text style={{ color: newAdminForm.role === 'super_admin' ? 'white' : '#374151', fontWeight: '600' }}>Super Admin</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Info Text */}
+            <View style={{ backgroundColor: '#EFF6FF', padding: 12, borderRadius: 8, marginBottom: 24 }}>
+              <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
+                The new admin will receive an email with a link to set their password on first login.
+              </Text>
+            </View>
+          </ScrollView>
+
+          {/* Action Buttons */}
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 8,
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+              }}
+              onPress={() => setShowAddAdminModal(false)}
+              disabled={addAdminLoading}
+            >
+              <Text style={{ color: '#374151', fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 8,
+                backgroundColor: '#10B981',
+                alignItems: 'center',
+                opacity: addAdminLoading ? 0.6 : 1,
+              }}
+              onPress={handleAddAdmin}
+              disabled={addAdminLoading}
+            >
+              {addAdminLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={{ color: 'white', fontWeight: '600' }}>Create Admin</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
