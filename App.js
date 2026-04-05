@@ -26,6 +26,7 @@ import { createIsolationRegister, listIsolationRegisters, updateIsolationRegiste
 import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
 import { getCompanyAccreditation } from './src/api/accreditations';
 import { sendAccreditationInvitation } from './src/api/sendgrid';
+import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
@@ -2130,7 +2131,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       if (result.success) {
         console.log('✅ Admin created successfully');
-        Alert.alert('Success', 'Admin user created. They can set their password on first login.');
+        
+        // Send setup email
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const setupUrl = `${baseUrl}?type=invited`;
+        await sendAdminSetupEmail(newAdminForm.email, newAdminForm.name, setupUrl);
+        
+        Alert.alert('Success', 'Admin user created and setup email sent. They can set their password via the email link or on first login.');
         setShowAddAdminModal(false);
         setNewAdminForm({ email: '', name: '', role: 'manager' });
         // Reload admin list

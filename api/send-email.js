@@ -63,10 +63,25 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
-    const { toEmail, companyName, deadline, type = 'invitation' } = req.body;
+    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl } = req.body;
 
-    if (!toEmail || !companyName) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!toEmail) {
+      return res.status(400).json({ error: 'Missing toEmail' });
+    }
+
+    // Different types require different fields
+    if (type === 'invitation' || type === 'request') {
+      if (!companyName) {
+        return res.status(400).json({ error: 'Missing companyName for invitation/request' });
+      }
+    } else if (type === 'admin-setup') {
+      if (!adminName || !setupUrl) {
+        return res.status(400).json({ error: 'Missing adminName or setupUrl for admin-setup' });
+      }
+    } else if (type === 'admin-password-reset') {
+      if (!adminName || !resetUrl) {
+        return res.status(400).json({ error: 'Missing adminName or resetUrl for password reset' });
+      }
     }
 
     let actuallyNewUser = false; // Will determine based on Supabase Auth
@@ -142,6 +157,36 @@ export default async function handler(req, res) {
         <p><strong>Email:</strong> ${senderEmail}</p>
         <p><strong>Company:</strong> ${companyName}</p>
         <p><a href="mailto:${senderEmail}">Reply to ${name}</a></p>
+      `;
+    } else if (type === 'admin-setup') {
+      const { adminName, setupUrl } = req.body;
+      subject = 'Welcome to Admin Panel - Set Your Password';
+      htmlContent = `
+        <h2>Welcome to the Admin Panel</h2>
+        <p>Hello ${adminName},</p>
+        <p>Your admin account has been successfully created. To get started, please set your password:</p>
+        <p><a href="${setupUrl}" style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Set Your Password</a></p>
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${setupUrl}</p>
+        <p style="margin-top: 16px; padding: 12px; background-color: #EFF6FF; border-left: 3px solid #3B82F6; font-size: 13px;">
+          <strong>Note:</strong> This link expires in 24 hours. If you don't set your password within that time, please contact your administrator.
+        </p>
+        <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request admin access or have any questions, please contact your administrator.</p>
+      `;
+    } else if (type === 'admin-password-reset') {
+      const { adminName, resetUrl } = req.body;
+      subject = 'Admin Panel - Password Reset Request';
+      htmlContent = `
+        <h2>Password Reset Request</h2>
+        <p>Hello ${adminName},</p>
+        <p>You have requested to reset your admin password. Click the link below to proceed:</p>
+        <p><a href="${resetUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Reset Your Password</a></p>
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${resetUrl}</p>
+        <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
+          <strong>Security Note:</strong> This link expires in 24 hours. Never share this link with anyone.
+        </p>
+        <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request a password reset, you can ignore this email. Your password remains unchanged.</p>
       `;
     } else {
       return res.status(400).json({ error: 'Invalid email type' });

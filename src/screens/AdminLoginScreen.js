@@ -7,8 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { loginAdminUser, checkAdminPasswordSetup } from '../api/adminAuth';
+import { sendAdminPasswordResetEmail } from '../api/sendgrid';
 import AdminPasswordSetupScreen from './AdminPasswordSetupScreen';
 
 export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
@@ -19,6 +21,9 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
   const [setupEmail, setSetupEmail] = useState('');
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const handleEmailSubmit = async () => {
     setError('');
@@ -79,6 +84,50 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      Alert.alert('Missing Info', 'Please enter your email');
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    try {
+      console.log('📧 Requesting password reset for:', forgotPasswordEmail);
+      
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const resetUrl = `${baseUrl}?type=invited`;
+      
+      const result = await sendAdminPasswordResetEmail(
+        forgotPasswordEmail,
+        'Admin',
+        resetUrl
+      );
+
+      if (result.success) {
+        Alert.alert(
+          'Reset Email Sent',
+          'Check your email for password reset instructions.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setShowForgotPassword(false);
+                setForgotPasswordEmail('');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to send reset email');
+      }
+    } catch (error) {
+      console.error('Error sending reset email:', error);
+      Alert.alert('Error', 'Failed to send reset email: ' + error.message);
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter') {
       if (!emailSubmitted) {
@@ -88,6 +137,95 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
       }
     }
   };
+
+  // Show forgot password screen if needed
+  if (showForgotPassword) {
+    return (
+      <View style={styles?.container || { flex: 1, backgroundColor: 'white' }}>
+        {/* Header */}
+        <View style={{ padding: 16, backgroundColor: '#1F2937', paddingTop: 40 }}>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: 'white' }}>Reset Password</Text>
+          <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Enter your email to receive a password reset link</Text>
+        </View>
+
+        <ScrollView style={{ flex: 1, padding: 16 }}>
+          {/* Email Input */}
+          <View style={{ marginTop: 32 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+                borderRadius: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 12,
+                fontSize: 14,
+                backgroundColor: '#F9FAFB',
+              }}
+              placeholder="admin@company.com"
+              placeholderTextColor="#9CA3AF"
+              value={forgotPasswordEmail}
+              onChangeText={setForgotPasswordEmail}
+              editable={!forgotPasswordLoading}
+              keyboardType="email-address"
+              onKeyPress={
+                Platform.OS === 'web' ? (e) => {
+                  if (e.nativeEvent.key === 'Enter') {
+                    handleForgotPassword();
+                  }
+                } : undefined
+              }
+            />
+          </View>
+
+          {/* Info Text */}
+          <View style={{ backgroundColor: '#EFF6FF', padding: 12, borderRadius: 8, marginTop: 24 }}>
+            <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
+              A password reset link will be sent to your email. Follow the link to set a new password.
+            </Text>
+          </View>
+        </ScrollView>
+
+        {/* Action Buttons */}
+        <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 8,
+              backgroundColor: '#F3F4F6',
+              alignItems: 'center',
+            }}
+            onPress={() => {
+              setShowForgotPassword(false);
+              setForgotPasswordEmail('');
+            }}
+            disabled={forgotPasswordLoading}
+          >
+            <Text style={{ color: '#374151', fontSize: 16, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 8,
+              backgroundColor: '#3B82F6',
+              alignItems: 'center',
+              opacity: forgotPasswordLoading ? 0.6 : 1,
+            }}
+            onPress={handleForgotPassword}
+            disabled={forgotPasswordLoading}
+          >
+            {forgotPasswordLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Send Reset Email</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // Show password setup screen if needed
   if (showPasswordSetup) {
@@ -237,6 +375,10 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
               <TouchableOpacity onPress={() => { setEmail(''); setPassword(''); setEmailSubmitted(false); setError(''); }}>
                 <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center' }}>Use different email</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setShowForgotPassword(true)} style={{ marginTop: 12 }}>
+                <Text style={{ color: '#F59E0B', fontSize: 14, textAlign: 'center', fontWeight: '600' }}>Forgot Password?</Text>
               </TouchableOpacity>
             </>
           )}
