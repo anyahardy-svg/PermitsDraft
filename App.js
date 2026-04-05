@@ -7922,6 +7922,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
+          <TouchableOpacity 
+            onPress={() => handleAdminLogout()}
+            style={{ padding: 8 }}
+          >
+            <Text style={{ fontSize: 20, color: 'white' }}>🚪</Text>
+          </TouchableOpacity>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
@@ -19400,22 +19406,69 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'new_permit':
       return renderNewPermitForm();
     case 'admin':
+      // CRITICAL: Prevent admin dashboard from rendering without auth
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Admin dashboard accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderAdminDashboard();
     case 'manage_issuers':
+      // CRITICAL: Prevent manage screens from rendering without auth
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManagePermitIssuers();
     case 'manage_companies':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageCompanies();
     case 'manage_sites':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageSites();
     case 'manage_contractors':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageContractors();
     case 'manage_business_units':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageBusinessUnits();
     case 'manage_isolations':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageIsolations();
     case 'manage_visitor_inductions':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderManageVisitorInductions();
     case 'manage_inductions':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return (
         <InductionAdminScreen
           onBack={() => setCurrentScreen('admin')}
@@ -19480,8 +19533,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         />
       );
     case 'services_directory':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Services directory accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return renderServicesDirectory();
     case 'company_accreditation':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Company accreditation accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
       return (
         <CompanyAccreditationScreen
           companyId={selectedCompanyId}
