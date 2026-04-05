@@ -86,7 +86,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
   const handleForgotPassword = async () => {
     if (!forgotPasswordEmail) {
-      Alert.alert('Missing Info', 'Please enter your email');
+      console.warn('⚠️ Email required for password reset');
       return;
     }
 
@@ -110,49 +110,23 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
         );
 
         if (emailResult.success) {
-          Alert.alert(
-            'Reset Email Sent',
-            'Check your email for a password reset link. It will expire in 24 hours.',
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  console.log('✅ Closing forgot password modal');
-                  setShowForgotPassword(false);
-                  setForgotPasswordEmail('');
-                  // Reset to login screen
-                  setPassword('');
-                  setEmailSubmitted(false);
-                  setError('');
-                },
-              },
-            ]
-          );
+          console.log('✅ Reset email sent successfully');
         } else {
-          Alert.alert('Error', emailResult.error || 'Failed to send reset email');
+          console.error('❌ Failed to send email:', emailResult.error);
         }
       } else {
-        // Show generic message for security (don't reveal if email exists)
-        Alert.alert(
-          'Check Your Email',
-          'If an account with this email exists, a password reset link will be sent.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setShowForgotPassword(false);
-                setForgotPasswordEmail('');
-                setPassword('');
-                setEmailSubmitted(false);
-                setError('');
-              },
-            },
-          ]
-        );
+        console.log('ℹ️ Password reset requested (email check complete)');
       }
+      
+      // Close the modal after email is sent
+      console.log('✅ Closing forgot password modal');
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+      setPassword('');
+      setEmailSubmitted(false);
+      setError('');
     } catch (error) {
       console.error('Error requesting password reset:', error);
-      Alert.alert('Error', 'Failed to request password reset: ' + error.message);
     } finally {
       setForgotPasswordLoading(false);
     }

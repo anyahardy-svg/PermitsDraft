@@ -147,6 +147,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/reset-password",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/reset-password/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/contractor-admin",
       "destination": "/index.html"
     },
