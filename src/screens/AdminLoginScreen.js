@@ -19,6 +19,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
   const [error, setError] = useState('');
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
   const [setupEmail, setSetupEmail] = useState('');
+  const [emailSubmitted, setEmailSubmitted] = useState(false); // Track if email was submitted
 
   const handleEmailSubmit = async () => {
     setError('');
@@ -43,7 +44,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
       } else if (setupCheck.adminId) {
         // User exists and has password, show password input
         console.log('✅ User exists with password, showing login screen');
-        setError('');
+        setEmailSubmitted(true);
       } else {
         console.log('❌ Admin account not found');
         setError('Admin account not found');
@@ -84,9 +85,9 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
   const handleKeyPress = (e) => {
     if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter') {
-      if (password) {
+      if (emailSubmitted && password) {
         handleLogin();
-      } else {
+      } else if (!emailSubmitted) {
         handleEmailSubmit();
       }
     }
@@ -101,6 +102,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
           setShowPasswordSetup(false);
           setEmail(setupEmail);
           setPassword('');
+          setEmailSubmitted(false); // Reset to show password input
           setError('Password set successfully! Please log in now.');
         }}
         onCancel={() => {
@@ -168,7 +170,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
           </View>
 
           {/* Password Input (only show after email is entered) */}
-          {email && !password ? (
+          {email && !emailSubmitted ? (
             <>
               <TouchableOpacity
                 style={{
@@ -192,7 +194,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
                 <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center' }}>Use different email</Text>
               </TouchableOpacity>
             </>
-          ) : email && password !== undefined ? (
+          ) : email && emailSubmitted ? (
             <>
               {/* Password Input */}
               <View>
@@ -238,7 +240,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => { setEmail(''); setPassword(''); }}>
+              <TouchableOpacity onPress={() => { setEmail(''); setPassword(''); setEmailSubmitted(false); }}>
                 <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center' }}>Use different email</Text>
               </TouchableOpacity>
             </>
