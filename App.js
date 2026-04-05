@@ -45,7 +45,7 @@ import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
-import { loginAdminUser, createAdminUser } from './src/api/adminAuth';
+import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser } from './src/api/adminAuth';
 
 // List of all available sites
 const ALL_SITES = [
@@ -2081,6 +2081,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
   const [newAdminForm, setNewAdminForm] = useState({ email: '', name: '', role: 'manager' });
   const [addAdminLoading, setAddAdminLoading] = useState(false);
+  const [adminList, setAdminList] = useState([]);
+  const [adminListLoading, setAdminListLoading] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [showEditAdminModal, setShowEditAdminModal] = useState(false);
 
   // Admin handler functions
   const handleAdminLogout = () => {
@@ -2129,6 +2133,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         Alert.alert('Success', 'Admin user created. They can set their password on first login.');
         setShowAddAdminModal(false);
         setNewAdminForm({ email: '', name: '', role: 'manager' });
+        // Reload admin list
+        loadAdminList();
       } else {
         console.error('❌ Failed to create admin:', result.error);
         Alert.alert('Error', result.error || 'Failed to create admin user');
@@ -2139,6 +2145,78 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     } finally {
       setAddAdminLoading(false);
     }
+  };
+
+  const loadAdminList = async () => {
+    try {
+      setAdminListLoading(true);
+      const admins = await getAllAdminUsers();
+      setAdminList(admins || []);
+    } catch (error) {
+      console.error('Error loading admin list:', error);
+      Alert.alert('Error', 'Failed to load admin list');
+    } finally {
+      setAdminListLoading(false);
+    }
+  };
+
+  const handleEditAdmin = (admin) => {
+    setEditingAdmin({ ...admin });
+    setShowEditAdminModal(true);
+  };
+
+  const handleUpdateAdmin = async () => {
+    if (!editingAdmin.name) {
+      Alert.alert('Missing Info', 'Please fill in name');
+      return;
+    }
+
+    try {
+      const result = await updateAdminUser(editingAdmin.id, {
+        name: editingAdmin.name,
+        role: editingAdmin.role
+      });
+
+      if (result.success) {
+        Alert.alert('Success', 'Admin user updated');
+        setShowEditAdminModal(false);
+        setEditingAdmin(null);
+        loadAdminList();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to update admin user');
+      }
+    } catch (error) {
+      console.error('Error updating admin:', error);
+      Alert.alert('Error', 'Failed to update admin user: ' + error.message);
+    }
+  };
+
+  const handleDeleteAdmin = (admin) => {
+    Alert.alert(
+      'Delete Admin',
+      `Are you sure you want to delete ${admin.name}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await deleteAdminUser(admin.id);
+              if (result.success) {
+                Alert.alert('Success', 'Admin user deleted');
+                loadAdminList();
+              } else {
+                Alert.alert('Error', result.error || 'Failed to delete admin user');
+              }
+            } catch (error) {
+              console.error('Error deleting admin:', error);
+              Alert.alert('Error', 'Failed to delete admin user: ' + error.message);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Detect invitation flow from email (?type=invited)
@@ -2153,6 +2231,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     }
   }, []);
+
+  // Load admin list when modal opens
+  useEffect(() => {
+    if (showAddAdminModal) {
+      loadAdminList();
+    }
+  }, [showAddAdminModal]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -19347,98 +19433,273 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         visible={showAddAdminModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowAddAdminModal(false)}
+        onRequestClose={() => {
+          setShowAddAdminModal(false);
+          setAdminList([]);
+        }}
       >
         <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 40 }}>
           <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Add Admin User</Text>
-              <TouchableOpacity onPress={() => setShowAddAdminModal(false)}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Admin Users</Text>
+              <TouchableOpacity onPress={() => {
+                setShowAddAdminModal(false);
+                setAdminList([]);
+              }}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           <ScrollView style={{ flex: 1, padding: 16 }}>
-            {/* Email Input */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  fontSize: 14,
-                  backgroundColor: '#F9FAFB',
-                }}
-                placeholder="admin@company.com"
-                placeholderTextColor="#9CA3AF"
-                value={newAdminForm.email}
-                onChangeText={(text) => setNewAdminForm({ ...newAdminForm, email: text })}
-                editable={!addAdminLoading}
-              />
-            </View>
-
-            {/* Name Input */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Name</Text>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  fontSize: 14,
-                  backgroundColor: '#F9FAFB',
-                }}
-                placeholder="Admin Name"
-                placeholderTextColor="#9CA3AF"
-                value={newAdminForm.name}
-                onChangeText={(text) => setNewAdminForm({ ...newAdminForm, name: text })}
-                editable={!addAdminLoading}
-              />
-            </View>
-
-            {/* Role Selector */}
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Role</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
+            {/* Add New Admin Section */}
+            <View style={{ marginBottom: 32 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Add New Admin</Text>
+              
+              {/* Email Input */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
+                <TextInput
                   style={{
-                    flex: 1,
-                    paddingVertical: 12,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
                     borderRadius: 8,
-                    backgroundColor: newAdminForm.role === 'manager' ? '#3B82F6' : '#F3F4F6',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => setNewAdminForm({ ...newAdminForm, role: 'manager' })}
-                >
-                  <Text style={{ color: newAdminForm.role === 'manager' ? 'white' : '#374151', fontWeight: '600' }}>Manager</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
                     paddingVertical: 12,
-                    borderRadius: 8,
-                    backgroundColor: newAdminForm.role === 'super_admin' ? '#10B981' : '#F3F4F6',
-                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
                   }}
-                  onPress={() => setNewAdminForm({ ...newAdminForm, role: 'super_admin' })}
-                >
-                  <Text style={{ color: newAdminForm.role === 'super_admin' ? 'white' : '#374151', fontWeight: '600' }}>Super Admin</Text>
-                </TouchableOpacity>
+                  placeholder="admin@company.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={newAdminForm.email}
+                  onChangeText={(text) => setNewAdminForm({ ...newAdminForm, email: text })}
+                  editable={!addAdminLoading}
+                />
               </View>
+
+              {/* Name Input */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Name</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                  }}
+                  placeholder="Admin Name"
+                  placeholderTextColor="#9CA3AF"
+                  value={newAdminForm.name}
+                  onChangeText={(text) => setNewAdminForm({ ...newAdminForm, name: text })}
+                  editable={!addAdminLoading}
+                />
+              </View>
+
+              {/* Role Selector */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Role</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      backgroundColor: newAdminForm.role === 'manager' ? '#3B82F6' : '#F3F4F6',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setNewAdminForm({ ...newAdminForm, role: 'manager' })}
+                  >
+                    <Text style={{ color: newAdminForm.role === 'manager' ? 'white' : '#374151', fontWeight: '600' }}>Manager</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      backgroundColor: newAdminForm.role === 'super_admin' ? '#10B981' : '#F3F4F6',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setNewAdminForm({ ...newAdminForm, role: 'super_admin' })}
+                  >
+                    <Text style={{ color: newAdminForm.role === 'super_admin' ? 'white' : '#374151', fontWeight: '600' }}>Super Admin</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Create Button */}
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: '#10B981',
+                  alignItems: 'center',
+                  opacity: addAdminLoading ? 0.6 : 1,
+                }}
+                onPress={handleAddAdmin}
+                disabled={addAdminLoading}
+              >
+                {addAdminLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Create Admin</Text>
+                )}
+              </TouchableOpacity>
             </View>
 
-            {/* Info Text */}
-            <View style={{ backgroundColor: '#EFF6FF', padding: 12, borderRadius: 8, marginBottom: 24 }}>
-              <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
-                The new admin will receive an email with a link to set their password on first login.
-              </Text>
+            {/* All Admins Section */}
+            <View>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Existing Admins</Text>
+              {adminListLoading ? (
+                <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                  <ActivityIndicator size="large" color="#3B82F6" />
+                </View>
+              ) : adminList.length === 0 ? (
+                <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
+                  <Text style={{ color: '#6B7280' }}>No admin users yet</Text>
+                </View>
+              ) : (
+                adminList.map((admin) => (
+                  <View key={admin.id} style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{admin.name}</Text>
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{admin.email}</Text>
+                        <Text style={{ 
+                          fontSize: 11, 
+                          color: 'white',
+                          backgroundColor: admin.role === 'super_admin' ? '#10B981' : '#3B82F6',
+                          paddingVertical: 2,
+                          paddingHorizontal: 8,
+                          borderRadius: 4,
+                          marginTop: 4,
+                          overflow: 'hidden',
+                          alignSelf: 'flex-start'
+                        }}>
+                          {admin.role === 'super_admin' ? 'Super Admin' : 'Manager'}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        <TouchableOpacity
+                          style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
+                          onPress={() => handleEditAdmin(admin)}
+                        >
+                          <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{ padding: 8, backgroundColor: '#EF4444', borderRadius: 6 }}
+                          onPress={() => handleDeleteAdmin(admin)}
+                        >
+                          <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
             </View>
+          </ScrollView>
+
+          {/* Close Button */}
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+            <TouchableOpacity
+              style={{
+                paddingVertical: 12,
+                borderRadius: 8,
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setShowAddAdminModal(false);
+                setAdminList([]);
+              }}
+            >
+              <Text style={{ color: '#374151', fontWeight: '600' }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* EDIT ADMIN MODAL */}
+      <Modal
+        visible={showEditAdminModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowEditAdminModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 40 }}>
+          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Edit Admin</Text>
+              <TouchableOpacity onPress={() => setShowEditAdminModal(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView style={{ flex: 1, padding: 16 }}>
+            {editingAdmin && (
+              <>
+                {/* Email (Read Only) */}
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email (Read Only)</Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', paddingVertical: 12, paddingHorizontal: 12 }}>{editingAdmin.email}</Text>
+                </View>
+
+                {/* Name Input */}
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Name</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      fontSize: 14,
+                      backgroundColor: '#F9FAFB',
+                    }}
+                    placeholder="Admin Name"
+                    placeholderTextColor="#9CA3AF"
+                    value={editingAdmin.name}
+                    onChangeText={(text) => setEditingAdmin({ ...editingAdmin, name: text })}
+                  />
+                </View>
+
+                {/* Role Selector */}
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Role</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 8,
+                        backgroundColor: editingAdmin.role === 'manager' ? '#3B82F6' : '#F3F4F6',
+                        alignItems: 'center',
+                      }}
+                      onPress={() => setEditingAdmin({ ...editingAdmin, role: 'manager' })}
+                    >
+                      <Text style={{ color: editingAdmin.role === 'manager' ? 'white' : '#374151', fontWeight: '600' }}>Manager</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 8,
+                        backgroundColor: editingAdmin.role === 'super_admin' ? '#10B981' : '#F3F4F6',
+                        alignItems: 'center',
+                      }}
+                      onPress={() => setEditingAdmin({ ...editingAdmin, role: 'super_admin' })}
+                    >
+                      <Text style={{ color: editingAdmin.role === 'super_admin' ? 'white' : '#374151', fontWeight: '600' }}>Super Admin</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            )}
           </ScrollView>
 
           {/* Action Buttons */}
@@ -19451,8 +19712,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 backgroundColor: '#F3F4F6',
                 alignItems: 'center',
               }}
-              onPress={() => setShowAddAdminModal(false)}
-              disabled={addAdminLoading}
+              onPress={() => setShowEditAdminModal(false)}
             >
               <Text style={{ color: '#374151', fontWeight: '600' }}>Cancel</Text>
             </TouchableOpacity>
@@ -19461,18 +19721,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 8,
-                backgroundColor: '#10B981',
+                backgroundColor: '#3B82F6',
                 alignItems: 'center',
-                opacity: addAdminLoading ? 0.6 : 1,
               }}
-              onPress={handleAddAdmin}
-              disabled={addAdminLoading}
+              onPress={handleUpdateAdmin}
             >
-              {addAdminLoading ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text style={{ color: 'white', fontWeight: '600' }}>Create Admin</Text>
-              )}
+              <Text style={{ color: 'white', fontWeight: '600' }}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
