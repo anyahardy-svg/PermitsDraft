@@ -9,7 +9,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { supabaseClient } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 import bcryptjs from 'bcryptjs';
 
 export default function AdminPasswordSetupScreen({ email, onPasswordSet, onCancel, styles }) {
@@ -42,7 +42,7 @@ export default function AdminPasswordSetupScreen({ email, onPasswordSet, onCance
       const passwordHash = await bcryptjs.hash(password, 10);
 
       // Update the admin user
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await supabase
         .from('admin_users')
         .update({ password_hash: passwordHash })
         .eq('email', email);

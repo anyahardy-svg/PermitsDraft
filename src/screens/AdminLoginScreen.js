@@ -28,19 +28,24 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
       return;
     }
 
+    console.log('📧 Submitting email:', email);
     setLoading(true);
     try {
       // Check if user needs to set password
       const setupCheck = await checkAdminPasswordSetup(email);
+      console.log('Setup check result:', setupCheck);
 
       if (setupCheck.needsSetup) {
         // Show password setup screen
+        console.log('🔐 Showing password setup screen');
         setSetupEmail(email);
         setShowPasswordSetup(true);
       } else if (setupCheck.adminId) {
         // User exists and has password, show password input
+        console.log('✅ User exists with password, showing login screen');
         setError('');
       } else {
+        console.log('❌ Admin account not found');
         setError('Admin account not found');
       }
     } catch (err) {
