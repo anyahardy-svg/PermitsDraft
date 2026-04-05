@@ -9,13 +9,47 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { loginAdminUser } from '../api/adminAuth';
+import { loginAdminUser, checkAdminPasswordSetup } from '../api/adminAuth';
+import AdminPasswordSetupScreen from './AdminPasswordSetupScreen';
 
 export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  const [setupEmail, setSetupEmail] = useState('');
+
+  const handleEmailSubmit = async () => {
+    setError('');
+
+    if (!email) {
+      setError('Please enter your email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Check if user needs to set password
+      const setupCheck = await checkAdminPasswordSetup(email);
+
+      if (setupCheck.needsSetup) {
+        // Show password setup screen
+        setSetupEmail(email);
+        setShowPasswordSetup(true);
+      } else if (setupCheck.adminId) {
+        // User exists and has password, show password input
+        setError('');
+      } else {
+        setError('Admin account not found');
+      }
+    } catch (err) {
+      console.error('❌ Error checking email:', err);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     setError('');
@@ -45,12 +79,37 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
   const handleKeyPress = (e) => {
     if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter') {
-      handleLogin();
+      if (password) {
+        handleLogin();
+      } else {
+        handleEmailSubmit();
+      }
     }
   };
 
+  // Show password setup screen if needed
+  if (showPasswordSetup) {
+    return (
+      <AdminPasswordSetupScreen
+        email={setupEmail}
+        onPasswordSet={() => {
+          setShowPasswordSetup(false);
+          setEmail(setupEmail);
+          setPassword('');
+          setError('Password set successfully! Please log in now.');
+        }}
+        onCancel={() => {
+          setShowPasswordSetup(false);
+          setEmail('');
+          setError('');
+        }}
+        styles={styles}
+      />
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <View style={styles?.container || { flex: 1, backgroundColor: 'white' }}>
       {/* Header */}
       <View style={{ padding: 16, backgroundColor: '#1F2937', paddingTop: 40 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -74,8 +133,8 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
           {/* Error Message */}
           {error ? (
-            <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-              <Text style={{ color: '#991B1B', fontSize: 14, fontWeight: '500' }}>
+            <View style={{ backgroundColor: error.includes('successfully') ? '#DBEAFE' : '#FEE2E2', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: error.includes('successfully') ? '#0284C7' : '#DC2626' }}>
+              <Text style={{ color: error.includes('successfully') ? '#0C4A6E' : '#991B1B', fontSize: 14, fontWeight: '500' }}>
                 {error}
               </Text>
             </View>
@@ -98,58 +157,93 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
               placeholderTextColor="#9CA3AF"
               value={email}
               onChangeText={setEmail}
-              editable={!loading}
+              editable={!loading && !password}
               onKeyPress={handleKeyPress}
             />
           </View>
 
-          {/* Password Input */}
-          <View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Password</Text>
-            <TextInput
-              style={{
-                borderWidth: 1,
-                borderColor: '#D1D5DB',
-                borderRadius: 8,
-                paddingVertical: 12,
-                paddingHorizontal: 12,
-                fontSize: 14,
-                backgroundColor: '#F9FAFB',
-              }}
-              placeholder="Enter your password"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-              onKeyPress={handleKeyPress}
-            />
-          </View>
+          {/* Password Input (only show after email is entered) */}
+          {email && !password ? (
+            <>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#3B82F6',
+                  paddingVertical: 14,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  opacity: loading ? 0.6 : 1,
+                }}
+                onPress={handleEmailSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
+                )}
+              </TouchableOpacity>
 
-          {/* Login Button */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#3B82F6',
-              paddingVertical: 14,
-              borderRadius: 8,
-              alignItems: 'center',
-              marginTop: 8,
-              opacity: loading ? 0.6 : 1,
-            }}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Login</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEmail('')}>
+                <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center' }}>Use different email</Text>
+              </TouchableOpacity>
+            </>
+          ) : email && password !== undefined ? (
+            <>
+              {/* Password Input */}
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Password</Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                  }}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loading}
+                  onKeyPress={handleKeyPress}
+                  autoFocus
+                />
+              </View>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#3B82F6',
+                  paddingVertical: 14,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginTop: 8,
+                  opacity: loading ? 0.6 : 1,
+                }}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Login</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => { setEmail(''); setPassword(''); }}>
+                <Text style={{ color: '#3B82F6', fontSize: 14, textAlign: 'center' }}>Use different email</Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
 
           {/* Cancel Button */}
           <TouchableOpacity
             style={{
-              backgroundColor: '#F3F4F6',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
               paddingVertical: 14,
               borderRadius: 8,
               alignItems: 'center',
@@ -157,7 +251,7 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
             onPress={onCancel}
             disabled={loading}
           >
-            <Text style={{ color: '#374151', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
+            <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

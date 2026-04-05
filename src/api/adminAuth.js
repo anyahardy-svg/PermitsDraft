@@ -266,3 +266,34 @@ export async function changeAdminPassword(userId, currentPassword, newPassword) 
     };
   }
 }
+
+/**
+ * Check if an admin user needs to set their password
+ * @param {string} email - Admin email
+ * @returns {Object} { needsSetup: boolean, adminId: string }
+ */
+export async function checkAdminPasswordSetup(email) {
+  try {
+    const { data: adminUser, error } = await supabase
+      .from('admin_users')
+      .select('id, password_hash')
+      .eq('email', email)
+      .single();
+
+    if (error || !adminUser) {
+      return { needsSetup: false };
+    }
+
+    // Check if password_hash is null or empty
+    const needsSetup = !adminUser.password_hash || adminUser.password_hash.trim() === '';
+
+    return {
+      needsSetup,
+      adminId: adminUser.id,
+      email
+    };
+  } catch (error) {
+    console.error('❌ Error checking password setup:', error);
+    return { needsSetup: false };
+  }
+}
