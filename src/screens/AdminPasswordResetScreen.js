@@ -56,30 +56,19 @@ export default function AdminPasswordResetScreen({ token, onResetSuccess, onCanc
       const result = await resetPasswordWithToken(token, newPassword);
 
       if (result.success) {
-        Alert.alert(
-          'Password Reset Successful',
-          'Your password has been changed. You can now login with your new password.',
-          [
-            {
-              text: 'Go to Login',
-              onPress: () => {
-                if (onResetSuccess) {
-                  onResetSuccess();
-                } else if (typeof window !== 'undefined') {
-                  window.location.href = '/admin/';
-                }
-              },
-            },
-          ]
-        );
+        console.log('✅ Password reset successful - calling onResetSuccess');
+        // Direct callback - works better on web
+        if (onResetSuccess) {
+          onResetSuccess();
+        } else if (typeof window !== 'undefined') {
+          window.location.href = '/admin/';
+        }
       } else {
         setError(result.error || 'Failed to reset password');
-        Alert.alert('Error', result.error || 'Failed to reset password');
       }
     } catch (err) {
       console.error('Error resetting password:', err);
       setError('An error occurred: ' + err.message);
-      Alert.alert('Error', 'An error occurred while resetting your password');
     } finally {
       setLoading(false);
     }
