@@ -2114,6 +2114,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     setAddAdminLoading(true);
     try {
+      console.log('🔄 Creating admin with form data:', newAdminForm);
       const result = await createAdminUser(
         newAdminForm.email,
         newAdminForm.name,
@@ -2121,15 +2122,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         newAdminForm.role
       );
       
+      console.log('📋 Create admin result:', result);
+      
       if (result.success) {
+        console.log('✅ Admin created successfully');
         Alert.alert('Success', 'Admin user created. They can set their password on first login.');
         setShowAddAdminModal(false);
         setNewAdminForm({ email: '', name: '', role: 'manager' });
       } else {
+        console.error('❌ Failed to create admin:', result.error);
         Alert.alert('Error', result.error || 'Failed to create admin user');
       }
     } catch (error) {
-      console.error('Error creating admin:', error);
+      console.error('❌ Error creating admin:', error);
       Alert.alert('Error', 'Failed to create admin user: ' + error.message);
     } finally {
       setAddAdminLoading(false);

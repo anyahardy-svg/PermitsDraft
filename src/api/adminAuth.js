@@ -84,7 +84,7 @@ export async function getAllAdminUsers() {
  * Create a new admin user (super_admin only)
  * @param {string} email - Admin email
  * @param {string} name - Admin name
- * @param {string} password - Admin password (plaintext)
+ * @param {string} password - Admin password (plaintext) - optional, can be null for first-time setup
  * @param {string} role - 'super_admin' or 'manager'
  * @returns {Object} { success: boolean, data: user, error: string }
  */
@@ -93,10 +93,10 @@ export async function createAdminUser(email, name, password, role = 'manager') {
     console.log('👤 Creating admin user:', email, 'Role:', role);
 
     // Validate inputs
-    if (!email || !name || !password) {
+    if (!email || !name) {
       return {
         success: false,
-        error: 'Email, name, and password are required'
+        error: 'Email and name are required'
       };
     }
 
@@ -107,8 +107,11 @@ export async function createAdminUser(email, name, password, role = 'manager') {
       };
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password if provided, otherwise set to null (user will set on first login)
+    let passwordHash = null;
+    if (password) {
+      passwordHash = await bcrypt.hash(password, 10);
+    }
 
     // Insert into admin_users
     const { data, error } = await supabase
