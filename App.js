@@ -46,7 +46,8 @@ import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
-import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser } from './src/api/adminAuth';
+import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
+import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
 
 // List of all available sites
 const ALL_SITES = [
@@ -2086,6 +2087,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [adminListLoading, setAdminListLoading] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
+  
+  // Password reset state
+  const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
+  const [passwordResetToken, setPasswordResetToken] = useState(null);
 
   // Admin handler functions
   const handleAdminLogout = () => {
@@ -2657,6 +2662,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
       
+      //Skip admin routes - they're handled by admin protection check
+      if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
+        console.log('ℹ️ Admin route detected - will be handled by admin protection check');
+        return;
+      }
+      
       // Check if this is the contractor hub domain
       const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
       
@@ -2685,6 +2696,80 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     detectContractorHub();
   }, []);
+
+  // Check for admin routes on initial page load (standalone from back button handler)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const pathname = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const resetToken = searchParams.get('token');
+    
+    console.log('🔒 [ADMIN PROTECTION] Initial load check for path:', pathname, 'token:', !!resetToken);
+    
+    // Check for password reset route first (doesn't require admin session)
+    if (pathname === '/admin/reset-password' || pathname === '/admin/reset-password/') {
+      console.log('🔒 [PASSWORD RESET] Reset page requested with token:', !!resetToken);
+      if (resetToken) {
+        setPasswordResetToken(resetToken);
+        setShowPasswordResetScreen(true);
+        return;
+      } else {
+        console.log('❌ [PASSWORD RESET] No token provided - redirecting to login');
+        setShowAdminLoginModal(true);
+        return;
+      }
+    }
+    
+    // Only check if we're currently not in admin and not already showing login
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen?.startsWith('manage_')) {
+      console.log('ℹ️ Already in admin context, skipping check');
+      return;
+    }
+    
+    if (pathname === '/admin' || pathname === '/admin/') {
+      console.log('🔒 [ADMIN PROTECTION] /admin route detected on load');
+      if (!adminSessionActive) {
+        console.log('❌ [ADMIN PROTECTION] No admin session - SHOWING LOGIN MODAL');
+        setShowAdminLoginModal(true);
+      } else {
+        console.log('✅ [ADMIN PROTECTION] Admin session active - setting admin screen');
+        setCurrentScreen('admin');
+      }
+      return;
+    }
+    
+    // Check for other admin sub-routes
+    if (pathname.startsWith('/admin/')) {
+      console.log('🔒 [ADMIN PROTECTION] /admin/* route detected on load');
+      if (!adminSessionActive) {
+        console.log('❌ [ADMIN PROTECTION] No admin session - SHOWING LOGIN MODAL');
+        setShowAdminLoginModal(true);
+        return;
+      }
+      
+      const route = pathname.slice(7);
+      const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+      
+      const routeMap = {
+        'permit-issuers': 'manage_issuers',
+        'companies': 'manage_companies',
+        'contractors': 'manage_contractors',
+        'sites': 'manage_sites',
+        'services': 'services_directory',
+        'isolation-register': 'manage_isolations',
+        'visitor-inductions': 'manage_visitor_inductions',
+        'inductions': 'manage_inductions',
+        'business-units': 'manage_business_units'
+      };
+      
+      const screen = routeMap[routeWithoutTrailingSlash];
+      if (screen) {
+        console.log('✅ [ADMIN PROTECTION] Routing to admin screen:', screen);
+        setCurrentScreen(screen);
+      }
+    }
+  }, []); // Empty dependency - run once on mount
 
   // Handle password reset callback (/auth/callback)
   useEffect(() => {
@@ -19434,6 +19519,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         </View>
       </Modal>
+
+      {/* PASSWORD RESET SCREEN */}
+      {showPasswordResetScreen && (
+        <AdminPasswordResetScreen
+          token={passwordResetToken}
+          onResetSuccess={() => {
+            setShowPasswordResetScreen(false);
+            setPasswordResetToken(null);
+            setShowAdminLoginModal(true);
+          }}
+          onCancel={() => {
+            setShowPasswordResetScreen(false);
+            setPasswordResetToken(null);
+            setShowAdminLoginModal(true);
+          }}
+        />
+      )}
 
       {/* ADD ADMIN MODAL */}
       <Modal

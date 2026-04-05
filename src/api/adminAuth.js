@@ -310,3 +310,158 @@ export async function checkAdminPasswordSetup(email) {
     return { needsSetup: false };
   }
 }
+
+/**
+ * Request password reset by generating a reset token for admin email
+ * @param {string} email - Admin email
+ * @returns {Object} { success: boolean, resetUrl: string, error: string }
+ */
+export async function requestPasswordReset(email) {
+  try {
+    console.log('🔐 Password reset requested for:', email);
+
+    // Find admin by email
+    const { data: adminUser, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('id, email')
+      .eq('email', email)
+      .single();
+
+    if (fetchError || !adminUser) {
+      console.log('ℹ️ No admin user found for:', email);
+      // Don't reveal if email exists or not (security best practice)
+      return {
+        success: true,
+        note: 'If email exists, a reset link will be sent'
+      };
+    }
+
+    // Generate random token (32 character hex string)
+    const token = crypto.getRandomValues(new Uint8Array(32))
+      .reduce((acc, val) => acc + val.toString(16).padStart(2, '0'), '');
+
+    // Set expiration to 24 hours from now
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    console.log('🔑 Generated reset token for:', adminUser.id);
+
+    // Save token to database
+    const { error: updateError } = await supabase
+      .from('admin_users')
+      .update({
+        password_reset_token: token,
+        password_reset_token_expires_at: expiresAt,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', adminUser.id);
+
+    if (updateError) {
+      console.error('❌ Failed to save reset token:', updateError);
+      return {
+        success: false,
+        error: 'Failed to process reset request'
+      };
+    }
+
+    // Build reset URL (includes token)
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.REACT_APP_BASE_URL || 'https://base-url.com';
+    
+    const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
+
+    console.log('✅ Password reset token generated and saved');
+    return {
+      success: true,
+      resetUrl,
+      email: adminUser.email
+    };
+  } catch (error) {
+    console.error('❌ Error in requestPasswordReset:', error);
+    return {
+      success: false,
+      error: 'An error occurred while processing your request'
+    };
+  }
+}
+
+/**
+ * Reset admin password using a valid reset token
+ * @param {string} token - Password reset token
+ * @param {string} newPassword - New password (plaintext)
+ * @returns {Object} { success: boolean, error: string }
+ */
+export async function resetPasswordWithToken(token, newPassword) {
+  try {
+    console.log('🔐 Attempting password reset with token');
+
+    if (!token || !newPassword) {
+      return {
+        success: false,
+        error: 'Invalid reset request'
+      };
+    }
+
+    // Find admin by reset token
+    const { data: adminUser, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('id, email, password_reset_token_expires_at')
+      .eq('password_reset_token', token)
+      .single();
+
+    if (fetchError || !adminUser) {
+      console.error('❌ Invalid reset token');
+      return {
+        success: false,
+        error: 'Invalid or expired reset link'
+      };
+    }
+
+    // Check if token has expired
+    const expiresAt = new Date(adminUser.password_reset_token_expires_at);
+    if (expiresAt < new Date()) {
+      console.error('❌ Reset token expired');
+      return {
+        success: false,
+        error: 'Reset link has expired. Please request a new one.'
+      };
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    console.log('🔑 Hashing new password for admin:', adminUser.email);
+
+    // Update password and clear reset token
+    const { error: updateError } = await supabase
+      .from('admin_users')
+      .update({
+        password_hash: passwordHash,
+        password_reset_token: null,
+        password_reset_token_expires_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', adminUser.id);
+
+    if (updateError) {
+      console.error('❌ Failed to update password:', updateError);
+      return {
+        success: false,
+        error: 'Failed to update password'
+      };
+    }
+
+    console.log('✅ Password reset successful for:', adminUser.email);
+    return {
+      success: true,
+      message: 'Password has been reset successfully'
+    };
+  } catch (error) {
+    console.error('❌ Error in resetPasswordWithToken:', error);
+    return {
+      success: false,
+      error: 'An error occurred while resetting your password'
+    };
+  }
+}

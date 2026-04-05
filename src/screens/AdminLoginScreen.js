@@ -94,35 +94,65 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
     try {
       console.log('📧 Requesting password reset for:', forgotPasswordEmail);
       
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const resetUrl = `${baseUrl}?type=invited`;
+      // Import the new token-based reset function
+      const { requestPasswordReset } = await import('../api/adminAuth');
       
-      const result = await sendAdminPasswordResetEmail(
-        forgotPasswordEmail,
-        'Admin',
-        resetUrl
-      );
+      const result = await requestPasswordReset(forgotPasswordEmail);
 
-      if (result.success) {
+      if (result.success && result.resetUrl) {
+        // Send email with reset URL
+        const { sendAdminPasswordResetEmail } = await import('../api/sendgrid');
+        
+        const emailResult = await sendAdminPasswordResetEmail(
+          result.email,
+          'Admin',
+          result.resetUrl
+        );
+
+        if (emailResult.success) {
+          Alert.alert(
+            'Reset Email Sent',
+            'Check your email for a password reset link. It will expire in 24 hours.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  console.log('✅ Closing forgot password modal');
+                  setShowForgotPassword(false);
+                  setForgotPasswordEmail('');
+                  // Reset to login screen
+                  setPassword('');
+                  setEmailSubmitted(false);
+                  setError('');
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Error', emailResult.error || 'Failed to send reset email');
+        }
+      } else {
+        // Show generic message for security (don't reveal if email exists)
         Alert.alert(
-          'Reset Email Sent',
-          'Check your email for password reset instructions.',
+          'Check Your Email',
+          'If an account with this email exists, a password reset link will be sent.',
           [
             {
               text: 'OK',
               onPress: () => {
                 setShowForgotPassword(false);
                 setForgotPasswordEmail('');
+                setPassword('');
+                setEmailSubmitted(false);
+                setError('');
               },
             },
           ]
         );
-      } else {
-        Alert.alert('Error', result.error || 'Failed to send reset email');
       }
     } catch (error) {
-      console.error('Error sending reset email:', error);
-      Alert.alert('Error', 'Failed to send reset email: ' + error.message);
+      console.error('Error requesting password reset:', error);
+      Alert.alert('Error', 'Failed to request password reset: ' + error.message);
     } finally {
       setForgotPasswordLoading(false);
     }
