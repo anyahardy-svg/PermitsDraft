@@ -19301,13 +19301,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   return (
     <View style={styles.screenContainer}>
       {(() => {
-        // CRITICAL: Prevent any rendering if admin URL detected without session
+        // CRITICAL: Prevent any rendering if protected routes accessed without proper session
         if (typeof window !== 'undefined') {
           const pathname = window.location.pathname;
-          const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/contractor-admin');
+          const isAdminRoute = pathname.startsWith('/admin');
+          const isContractorRoute = pathname.startsWith('/contractor-admin');
           
+          // Block admin routes without admin session
           if (isAdminRoute && !adminSessionActive && !showAdminLoginModal) {
-            // Show access denied screen instead of rendering the protected route
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
                 <View style={{ alignItems: 'center' }}>
@@ -19321,6 +19322,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <TouchableOpacity
                     style={{ backgroundColor: '#3B82F6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
                     onPress={() => setShowAdminLoginModal(true)}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ paddingHorizontal: 24, paddingVertical: 12 }}
+                    onPress={() => setCurrentScreen('dashboard')}
+                  >
+                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to Kiosk</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          }
+          
+          // Block contractor routes without contractor session
+          if (isContractorRoute && !selectedCompanyId) {
+            return (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 8, textAlign: 'center' }}>
+                    Authentication Required
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>
+                    You must log in as a contractor to access this area.
+                  </Text>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#3B82F6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
+                    onPress={() => setCurrentScreen('contractorAuth')}
                   >
                     <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
                   </TouchableOpacity>
