@@ -691,7 +691,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialContractorAdminTab }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialContractorAdminTab, initialContractorParams }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -2076,7 +2076,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
-  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
@@ -20754,7 +20754,24 @@ const AppRouter = ({ initialRoute }) => {
   const initialCompanyAccreditationId = getInitialCompanyAccreditationId();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
-  console.log('🎯 Initial routes detected:', { initialAdminRoute, initialContractorAdminTab, initialCompanyAccreditationId });
+  // Extract contractor details from URL query params if present
+  const getInitialContractorParams = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const companyId = params.get('companyId');
+      const contractorId = params.get('contractorId');
+      
+      if (companyId || contractorId) {
+        console.log('🔗 Contractor params extracted from URL:', { contractorId, companyId });
+        return { contractorId, companyId };
+      }
+    }
+    return { contractorId: null, companyId: null };
+  };
+  
+  const initialContractorParams = getInitialContractorParams();
+  
+  console.log('🎯 Initial routes detected:', { initialAdminRoute, initialContractorAdminTab, initialCompanyAccreditationId, initialContractorParams });
 
   React.useEffect(() => {
     try {
@@ -20822,7 +20839,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialContractorAdminTab={initialContractorAdminTab} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
