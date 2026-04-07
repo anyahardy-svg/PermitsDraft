@@ -598,7 +598,7 @@ export async function getContractorInductionsForCompany(companyId) {
             induction_id,
             status,
             completed_at,
-            inductions(induction_name, subsection_name)
+            inductions(induction_name)
           `)
           .eq('contractor_id', contractor.id)
           .eq('status', 'completed')
