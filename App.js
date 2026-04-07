@@ -19554,7 +19554,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <ContractorAuthScreen
           onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
             // Contractor logged in successfully
-            console.log('✅ Contractor logged in:', contractorName);
+            console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
+            // Store company ID so auth checks pass
+            setSelectedCompanyId(companyId);
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
           }}
