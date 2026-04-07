@@ -2077,6 +2077,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
+  
+  // DEBUG: Log the initial state
+  console.log('PermitManagementApp initialized with:', { 
+    initialContractorParams, 
+    selectedCompanyIdInitial: initialContractorParams?.companyId,
+    currentScreen: getInitialScreen()
+  });
+  
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
@@ -19307,6 +19315,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const isAdminRoute = pathname.startsWith('/admin');
           const isContractorRoute = pathname.startsWith('/contractor-admin');
           
+          console.log('🔒 [AUTH GUARD] Checking path:', pathname, { isAdminRoute, isContractorRoute, adminSessionActive, selectedCompanyId });
+          
           // Block admin routes without admin session
           if (isAdminRoute && !adminSessionActive && !showAdminLoginModal) {
             return (
@@ -19338,6 +19348,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           
           // Block contractor routes without contractor session
           if (isContractorRoute && !selectedCompanyId) {
+            console.log('🔒 [AUTH GUARD - CONTRACTOR] Blocking - selectedCompanyId is:', selectedCompanyId);
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
                 <View style={{ alignItems: 'center' }}>
