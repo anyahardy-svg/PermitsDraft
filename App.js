@@ -23,7 +23,7 @@ import { createPermit, listPermits, updatePermit, deletePermit } from './src/api
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
-import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation } from './src/api/companies';
+import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation, getContractorsByCompany } from './src/api/companies';
 import { getCompanyAccreditation } from './src/api/accreditations';
 import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
@@ -8997,7 +8997,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         (async () => {
           try {
             console.log('🗑️ Deleting company:', id);
-            await deleteCompany(id);
+            
+            // Check for linked contractors
+            const linkedContractors = await getContractorsByCompany(id);
+            
+            if (linkedContractors.length > 0) {
+              // Prompt user for what to do with contractors
+              const deleteContractors = window.confirm(
+                `This company has ${linkedContractors.length} contractor(s):\n\n${linkedContractors.map(c => c.name).join('\n')}\n\n` +
+                `Choose:\n` +
+                `OK = Delete all contractors with this company\n` +
+                `Cancel = Keep contractors (unlink from company)`
+              );
+              
+              await deleteCompany(id, { deleteContractors });
+            } else {
+              await deleteCompany(id);
+            }
+            
             console.log('✅ Company deleted successfully');
             const freshCompanies = await listCompanies();
             setCompanies(freshCompanies);

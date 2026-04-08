@@ -131,9 +131,46 @@ export const updateCompany = async (companyId, updates) => {
   }
 };
 
-// Delete a company
-export const deleteCompany = async (companyId) => {
+// Get contractors linked to a company
+export const getContractorsByCompany = async (companyId) => {
   try {
+    const { data, error } = await supabase
+      .from('contractors')
+      .select('id, name, email')
+      .eq('company_id', companyId);
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching contractors for company:', error.message);
+    throw error;
+  }
+};
+
+// Delete a company with options for handling linked contractors
+export const deleteCompany = async (companyId, options = {}) => {
+  const { deleteContractors = false } = options;
+  
+  try {
+    // If deleteContractors is true, delete all contractors first
+    if (deleteContractors) {
+      const { error: contractorError } = await supabase
+        .from('contractors')
+        .delete()
+        .eq('company_id', companyId);
+      
+      if (contractorError) throw contractorError;
+    } else {
+      // Otherwise, set contractors' company_id to null
+      const { error: updateError } = await supabase
+        .from('contractors')
+        .update({ company_id: null })
+        .eq('company_id', companyId);
+      
+      if (updateError) throw updateError;
+    }
+
+    // Now delete the company
     const { error } = await supabase
       .from('companies')
       .delete()
