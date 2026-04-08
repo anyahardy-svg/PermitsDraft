@@ -20790,13 +20790,21 @@ const AppRouter = ({ initialRoute }) => {
   // Extract contractor details from URL query params if present
   const getInitialContractorParams = () => {
     if (typeof window !== 'undefined') {
+      console.log('🔍 [INIT] Checking URL for contractor params...');
+      console.log('   window.location.search:', window.location.search);
+      console.log('   window.location.href:', window.location.href);
+      
       const params = new URLSearchParams(window.location.search);
       const companyId = params.get('companyId');
       const contractorId = params.get('contractorId');
       
+      console.log('   Parsed params -> companyId:', companyId, 'contractorId:', contractorId);
+      
       if (companyId || contractorId) {
-        console.log('🔗 Contractor params extracted from URL:', { contractorId, companyId });
+        console.log('✅ 🔗 Contractor params extracted from URL:', { contractorId, companyId });
         return { contractorId, companyId };
+      } else {
+        console.log('⚠️ No contractor params found in URL');
       }
     }
     return { contractorId: null, companyId: null };
