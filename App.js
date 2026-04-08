@@ -2066,12 +2066,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // Initialize currentScreen - NEVER start with admin routes, they will be set by useEffect with auth check
   const getInitialScreen = () => {
-    // If contractor URL params are present but no active session, show contractor auth immediately
-    if (initialContractorParams?.companyId && !sessionStorage.getItem('contractor_session')) {
-      console.log('📱 Contractor URL params detected without session - showing auth');
-      return 'contractorAuth';
-    }
-    
     if (initialAdminRoute && !initialAdminRoute.startsWith('admin') && !initialAdminRoute.startsWith('manage_') && !initialAdminRoute.startsWith('services_') && !initialAdminRoute.startsWith('company_')) {
       return initialAdminRoute; // Non-admin routes like contractor_admin
     }
@@ -2083,8 +2077,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
-  // If URL has contractor params but no active session, show contractor auth immediately
-  const [forceShowContractorAuthOnLoad, setForceShowContractorAuthOnLoad] = useState(!!(initialContractorParams?.companyId && !sessionStorage.getItem('contractor_session')));
   
   // DEBUG: Log the initial state
   console.log('PermitManagementApp initialized with:', { 
@@ -19355,9 +19347,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           
           // Block contractor routes without contractor session
-          // BUT: allow if currentScreen is 'contractorAuth' (showing login form) or if URL has contractor params (will trigger auth on load)
-          if (isContractorRoute && !selectedCompanyId && currentScreen !== 'contractorAuth') {
-            console.log('🔒 [AUTH GUARD - CONTRACTOR] Blocking - selectedCompanyId is:', selectedCompanyId, 'currentScreen:', currentScreen);
+          if (isContractorRoute && !selectedCompanyId) {
+            console.log('🔒 [AUTH GUARD - CONTRACTOR] Blocking - selectedCompanyId is:', selectedCompanyId);
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
                 <View style={{ alignItems: 'center' }}>
@@ -19575,12 +19566,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
             // Contractor logged in successfully
             console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
-            // Store contractor session in sessionStorage
-            sessionStorage.setItem('contractor_session', JSON.stringify({ contractorId, contractorName, companyId, email, timestamp: Date.now() }));
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
-            // Clear the force auth flag
-            setForceShowContractorAuthOnLoad(false);
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
           }}
@@ -19616,10 +19603,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return (
         <ContractorAdminScreen
           onNavigateBack={() => {
-            // Clear contractor session when logging out
-            sessionStorage.removeItem('contractor_session');
-            setSelectedCompanyId(null);
-            setForceShowContractorAuthOnLoad(false);
             // For contractor hub, go back to login; for others, go to dashboard
             const isContractorHub = typeof window !== 'undefined' && 
               (window.location.hostname === 'contractorhq.co.nz' || 
@@ -19627,12 +19610,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                window.location.hostname === 'localhost:3000');
             setCurrentScreen(isContractorHub ? 'contractorAuth' : 'dashboard');
           }}
-          onReturnToKiosk={() => {
-            // Clear contractor session when exiting
-            sessionStorage.removeItem('contractor_session');
-            setSelectedCompanyId(null);
-            setCurrentScreen('kiosk');
-          }}
+          onReturnToKiosk={() => setCurrentScreen('kiosk')}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}
