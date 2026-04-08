@@ -1081,6 +1081,8 @@ export default function ContractorAuthScreen({
                   placeholder="Enter your password"
                   value={password}
                   onChangeText={setPassword}
+                  onSubmitEditing={handleLogin}
+                  returnKeyType="send"
                   secureTextEntry={!showPassword}
                   editable={!loading}
                   placeholderTextColor="#D1D5DB"
