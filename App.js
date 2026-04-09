@@ -17905,10 +17905,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     // Load existing sign-off if present
     const completedSignOff = latestPermit.completedSignOff || {};
-    const [issuerName, setIssuerName] = React.useState(completedSignOff.issuerName || '');
-    const [issuerSignature, setIssuerSignature] = React.useState(completedSignOff.issuerSignature || '');
-    const [receiverName, setReceiverName] = React.useState(completedSignOff.receiverName || '');
-    const [receiverSignature, setReceiverSignature] = React.useState(completedSignOff.receiverSignature || '');
+    const [issuerIdSelected, setIssuerIdSelected] = React.useState(completedSignOff.issuerUserId || '');
+    const [issuerSignatureData, setIssuerSignatureData] = React.useState(completedSignOff.issuerSignature || '');
+    const issuerSignatureRef = React.useRef(null);
+    const [issuerHasSignature, setIssuerHasSignature] = React.useState(!!completedSignOff.issuerSignature);
+    
+    const [receiverIdSelected, setReceiverIdSelected] = React.useState(completedSignOff.receiverContractorId || '');
+    const [receiverSignatureData, setReceiverSignatureData] = React.useState(completedSignOff.receiverSignature || '');
+    const receiverSignatureRef = React.useRef(null);
+    const [receiverHasSignature, setReceiverHasSignature] = React.useState(!!completedSignOff.receiverSignature);
+    
+    const [workCompletedAcknowledged, setWorkCompletedAcknowledged] = React.useState(completedSignOff.workCompletedAcknowledged || false);
+    
+    const [permitIssuersForSite, setPermitIssuersForSite] = React.useState([]);
+    const [contractorsForSite, setContractorsForSite] = React.useState([]);
+    const [loadingSignOffData, setLoadingSignOffData] = React.useState(false);
     const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
     const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
@@ -17930,7 +17941,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       completion: true
     });
 
-    const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    const toggleSection = (section) => {
+      if (section === 'completion' && !expandedSections.completion) {
+        // Load permit issuers and contractors when opening completion section
+        loadSignOffData();
+      }
+      setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+    
+    // Load permit issuers and contractors for this site  
+    const loadSignOffData = async () => {
+      try {
+        setLoadingSignOffData(true);
+        // Get permit issuers for this site
+        const allIssuers = await listPermitIssuers();
+        const siteIssuers = allIssuers.filter(issuer => 
+          issuer.siteIds && issuer.siteIds.includes(editData.siteId)
+        );
+        setPermitIssuersForSite(siteIssuers);
+        
+        // Get contractors
+        const allContractors = await listContractors();
+        setContractorsForSite(allContractors);
+      } catch (error) {
+        console.error('Error loading sign-off data:', error);
+      } finally {
+        setLoadingSignOffData(false);
+      }
+    };
+
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
@@ -17950,10 +17989,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Sync local state with latest permit when it changes
     React.useEffect(() => {
       setEditData({ ...latestPermit });
-      setIssuerName(completedSignOff.issuerName || '');
-      setIssuerSignature(completedSignOff.issuerSignature || '');
-      setReceiverName(completedSignOff.receiverName || '');
-      setReceiverSignature(completedSignOff.receiverSignature || '');
     }, [latestPermit.id, latestPermit.completedSignOff]);
 
     const handleSpecializedChange = (key, field, value) => {
@@ -19053,19 +19088,120 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </TouchableOpacity>
           {expandedSections.completion && (
             <View style={styles.sectionContent}>
-              <Text style={styles.label}>Permit Issuer Name:</Text>
-              <TextInput style={styles.input} value={issuerName} onChangeText={text => { setIssuerName(text); }} placeholder="Issuer Name" />
-              <Text style={styles.label}>Issuer Signature:</Text>
-              <TextInput style={styles.input} value={issuerSignature} onChangeText={text => { setIssuerSignature(text); }} placeholder="Issuer Signature" />
-              {latestPermit.completedSignOff?.issuerSignedAt && (
-                <Text style={styles.detailText}>Issuer Signed At: {latestPermit.completedSignOff.issuerSignedAt}</Text>
-              )}
-              <Text style={styles.label}>Permit Receiver Name:</Text>
-              <TextInput style={styles.input} value={receiverName} onChangeText={text => { setReceiverName(text); }} placeholder="Receiver Name" />
-              <Text style={styles.label}>Receiver Signature:</Text>
-              <TextInput style={styles.input} value={receiverSignature} onChangeText={text => { setReceiverSignature(text); }} placeholder="Receiver Signature" />
-              {latestPermit.completedSignOff?.receiverSignedAt && (
-                <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
+              {loadingSignOffData ? (
+                <Text style={styles.detailText}>Loading...</Text>
+              ) : (
+                <>
+                  {/* Acknowledgment Section */}
+                  <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#F59E42' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>⚠️ Completion Acknowledgment</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity 
+                        style={[{
+                          width: 24, 
+                          height: 24, 
+                          borderWidth: 2, 
+                          borderColor: '#F59E42', 
+                          borderRadius: 4, 
+                          marginRight: 8,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: workCompletedAcknowledged ? '#F59E42' : 'white'
+                        }]}
+                        onPress={() => setWorkCompletedAcknowledged(!workCompletedAcknowledged)}
+                      >
+                        {workCompletedAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, color: '#92400E', flex: 1 }}>Work has been completed, area is safe and permit can now be closed</Text>
+                    </View>
+                  </View>
+                  
+                  {/* Permit Issuer Section */}
+                  <Text style={[styles.label, { marginTop: 12 }]}>Permit Issuer:</Text>
+                  <View style={{ marginBottom: 12 }}>
+                    <Picker
+                      selectedValue={issuerIdSelected}
+                      onValueChange={(itemValue) => setIssuerIdSelected(itemValue)}
+                      style={styles.input}
+                    >
+                      <Picker.Item label="-- Select Permit Issuer --" value="" />
+                      {permitIssuersForSite.map(issuer => (
+                        <Picker.Item key={issuer.id} label={issuer.name} value={issuer.id} />
+                      ))}
+                    </Picker>
+                  </View>
+                  
+                  {issuerIdSelected && (
+                    <>
+                      <Text style={styles.label}>Issuer Signature:</Text>
+                      <View style={{ border: '1px solid #D1D5DB', borderRadius: 8, marginBottom: 12, backgroundColor: '#F9FAFB' }}>
+                        <WebSignaturePad 
+                          signatureRef={issuerSignatureRef}
+                          onSignatureChange={() => setIssuerHasSignature(!issuerSignatureRef.current.isEmpty())}
+                          width={300}
+                          height={180}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                        <TouchableOpacity 
+                          style={[styles.submitButton, { backgroundColor: '#EF4444', flex: 0.5 }]}
+                          onPress={() => {
+                            issuerSignatureRef.current?.clear();
+                            setIssuerHasSignature(false);
+                          }}
+                        >
+                          <Text style={styles.submitButtonText}>Clear Issuer Sig</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {latestPermit.completedSignOff?.issuerSignedAt && (
+                        <Text style={styles.detailText}>Issuer Signed At: {latestPermit.completedSignOff.issuerSignedAt}</Text>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Permit Receiver Section */}
+                  <Text style={[styles.label, { marginTop: 16 }]}>Permit Receiver (Contractor):</Text>
+                  <View style={{ marginBottom: 12 }}>
+                    <Picker
+                      selectedValue={receiverIdSelected}
+                      onValueChange={(itemValue) => setReceiverIdSelected(itemValue)}
+                      style={styles.input}
+                    >
+                      <Picker.Item label="-- Select Contractor --" value="" />
+                      {contractorsForSite.map(contractor => (
+                        <Picker.Item key={contractor.id} label={contractor.name} value={contractor.id} />
+                      ))}
+                    </Picker>
+                  </View>
+                  
+                  {receiverIdSelected && (
+                    <>
+                      <Text style={styles.label}>Receiver Signature:</Text>
+                      <View style={{ border: '1px solid #D1D5DB', borderRadius: 8, marginBottom: 12, backgroundColor: '#F9FAFB' }}>
+                        <WebSignaturePad 
+                          signatureRef={receiverSignatureRef}
+                          onSignatureChange={() => setReceiverHasSignature(!receiverSignatureRef.current.isEmpty())}
+                          width={300}
+                          height={180}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                        <TouchableOpacity 
+                          style={[styles.submitButton, { backgroundColor: '#EF4444', flex: 0.5 }]}
+                          onPress={() => {
+                            receiverSignatureRef.current?.clear();
+                            setReceiverHasSignature(false);
+                          }}
+                        >
+                          <Text style={styles.submitButtonText}>Clear Receiver Sig</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {latestPermit.completedSignOff?.receiverSignedAt && (
+                        <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
+                      )}
+                    </>
+                  )}
+                </>
               )}
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
@@ -19073,27 +19209,55 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
                   try {
+                    // Validate acknowledgment
+                    if (!workCompletedAcknowledged) {
+                      Alert.alert('Error', 'You must acknowledge that work has been completed and the area is safe');
+                      return;
+                    }
+                    
+                    // Validate issuer
+                    if (!issuerIdSelected) {
+                      Alert.alert('Error', 'Please select a Permit Issuer');
+                      return;
+                    }
+                    if (!issuerHasSignature || issuerSignatureRef.current?.isEmpty()) {
+                      Alert.alert('Error', 'Issuer must sign the permit');
+                      return;
+                    }
+                    
+                    // Validate receiver
+                    if (!receiverIdSelected) {
+                      Alert.alert('Error', 'Please select a Permit Receiver (Contractor)');
+                      return;
+                    }
+                    if (!receiverHasSignature || receiverSignatureRef.current?.isEmpty()) {
+                      Alert.alert('Error', 'Receiver must sign the permit');
+                      return;
+                    }
+                    
                     const now = new Date();
                     const dateStr = now.toISOString().split('T')[0];
                     const timeStr = now.toTimeString().split(' ')[0];
                     let newSignOff = { ...((latestPermit.completedSignOff) || {}) };
-                  let completed = false;
-                  // If issuer fields are filled and not yet timestamped, set timestamp
-                  if (issuerName && issuerSignature && (!newSignOff.issuerSignedAt || newSignOff.issuerName !== issuerName || newSignOff.issuerSignature !== issuerSignature)) {
-                    newSignOff.issuerName = issuerName;
-                    newSignOff.issuerSignature = issuerSignature;
-                    newSignOff.issuerSignedAt = dateStr + ' ' + timeStr;
-                  }
-                  // If receiver fields are filled and not yet timestamped, set timestamp
-                  if (receiverName && receiverSignature && (!newSignOff.receiverSignedAt || newSignOff.receiverName !== receiverName || newSignOff.receiverSignature !== receiverSignature)) {
-                    newSignOff.receiverName = receiverName;
-                    newSignOff.receiverSignature = receiverSignature;
-                    newSignOff.receiverSignedAt = dateStr + ' ' + timeStr;
-                  }
-                  // If all fields are filled, complete the permit
-                  if (newSignOff.issuerName && newSignOff.issuerSignature && newSignOff.receiverName && newSignOff.receiverSignature) {
-                    completed = true;
-                  }
+                    
+                    // Get selected issuer and receiver names
+                    const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
+                    const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
+                    
+                    // Save signatures and details
+                    newSignOff = {
+                      issuerUserId: issuerIdSelected,
+                      issuerName: selectedIssuer?.name || '',
+                      issuerSignature: issuerSignatureRef.current?.toDataURL() || '',
+                      issuerSignedAt: dateStr + ' ' + timeStr,
+                      receiverContractorId: receiverIdSelected,
+                      receiverName: selectedReceiver?.name || '',
+                      receiverSignature: receiverSignatureRef.current?.toDataURL() || '',
+                      receiverSignedAt: dateStr + ' ' + timeStr,
+                      workCompletedAcknowledged: true
+                    };
+                    
+                    const completed = true;
                   
                   // Save to database
                   const updateObj = { completed_sign_off: newSignOff, attachments: editData.attachments };
