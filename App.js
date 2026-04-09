@@ -19354,7 +19354,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ paddingHorizontal: 24, paddingVertical: 12 }}
-                    onPress={() => setCurrentScreen('dashboard')}
+                    onPress={() => {
+                      // Redirect to the kiosk URL (handles both subdomain and main domain)
+                      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+                      if (hostname.includes('-kiosk.')) {
+                        // Already on a kiosk subdomain, just go to root
+                        window.location.href = '/';
+                      } else {
+                        // On main domain, go to root which shows kiosk dashboard
+                        window.location.href = '/';
+                      }
+                    }}
                   >
                     <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to Kiosk</Text>
                   </TouchableOpacity>
@@ -19384,7 +19394,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ paddingHorizontal: 24, paddingVertical: 12 }}
-                    onPress={() => setCurrentScreen('dashboard')}
+                    onPress={() => {
+                      // Redirect to the kiosk URL (handles both subdomain and main domain)
+                      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+                      if (hostname.includes('-kiosk.')) {
+                        // Already on a kiosk subdomain, just go to root
+                        window.location.href = '/';
+                      } else {
+                        // On main domain, go to root which shows kiosk dashboard
+                        window.location.href = '/';
+                      }
+                    }}
                   >
                     <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to Kiosk</Text>
                   </TouchableOpacity>
