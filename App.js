@@ -18165,7 +18165,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     };
 
-    const canComplete = issuerName && issuerSignature && receiverName && receiverSignature;
     const siteName = siteIdToNameMap && editData.site_id ? siteIdToNameMap[editData.site_id] : '';
 
     return (
@@ -19346,7 +19345,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               // Save all changes including attachments to database
               await updatePermit(editData.id, { attachments: editData.attachments });
               
-              const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: { issuerName, issuerSignature, receiverName, receiverSignature } } : p);
+              const updated = permits.map(p => p.id === editData.id ? editData : p);
               setPermits(updated);
               setCurrentScreen('active');
               Alert.alert('Permit Updated', 'Permit details have been updated.');
