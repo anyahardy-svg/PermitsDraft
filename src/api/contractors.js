@@ -14,12 +14,6 @@ const transformContractor = (dbContractor) => {
     name: dbContractor.name,
     email: dbContractor.email,
     phone: dbContractor.phone,
-    address1: dbContractor.address_1 || '',
-    address_1: dbContractor.address_1 || '',
-    addressCity: dbContractor.address_city || '',
-    address_city: dbContractor.address_city || '',
-    addressPostcode: dbContractor.address_postcode || '',
-    address_postcode: dbContractor.address_postcode || '',
     companyId: dbContractor.company_id,
     company_id: dbContractor.company_id,
     companyName: getCompanyName(),
@@ -192,12 +186,6 @@ export const updateContractor = async (contractorId, updates) => {
         dbUpdates.company_id = value;
       } else if (key === 'inductionExpiry') {
         dbUpdates.induction_expiry = value;
-      } else if (key === 'address1') {
-        dbUpdates.address_1 = value;
-      } else if (key === 'addressCity') {
-        dbUpdates.address_city = value;
-      } else if (key === 'addressPostcode') {
-        dbUpdates.address_postcode = value;
       } else {
         // Pass through as-is for snake_case keys
         dbUpdates[key] = value;
