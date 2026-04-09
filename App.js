@@ -19117,18 +19117,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   {/* Permit Issuer Section */}
                   <Text style={[styles.label, { marginTop: 12 }]}>Permit Issuer:</Text>
-                  <View style={{ marginBottom: 12 }}>
-                    <Picker
-                      selectedValue={issuerIdSelected}
-                      onValueChange={(itemValue) => setIssuerIdSelected(itemValue)}
-                      style={styles.input}
-                    >
-                      <Picker.Item label="-- Select Permit Issuer --" value="" />
-                      {permitIssuersForSite.map(issuer => (
-                        <Picker.Item key={issuer.id} label={issuer.name} value={issuer.id} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <CustomDropdown
+                    label="Select Permit Issuer"
+                    options={permitIssuersForSite.map(issuer => issuer.name)}
+                    selectedValue={permitIssuersForSite.find(i => i.id === issuerIdSelected)?.name || ''}
+                    onValueChange={(issuerName) => {
+                      const issuer = permitIssuersForSite.find(i => i.name === issuerName);
+                      if (issuer) setIssuerIdSelected(issuer.id);
+                    }}
+                    style={styles.input}
+                  />
                   
                   {issuerIdSelected && (
                     <>
@@ -19160,18 +19158,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   {/* Permit Receiver Section */}
                   <Text style={[styles.label, { marginTop: 16 }]}>Permit Receiver (Contractor):</Text>
-                  <View style={{ marginBottom: 12 }}>
-                    <Picker
-                      selectedValue={receiverIdSelected}
-                      onValueChange={(itemValue) => setReceiverIdSelected(itemValue)}
-                      style={styles.input}
-                    >
-                      <Picker.Item label="-- Select Contractor --" value="" />
-                      {contractorsForSite.map(contractor => (
-                        <Picker.Item key={contractor.id} label={contractor.name} value={contractor.id} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <CustomDropdown
+                    label="Select Contractor"
+                    options={contractorsForSite.map(contractor => contractor.name)}
+                    selectedValue={contractorsForSite.find(c => c.id === receiverIdSelected)?.name || ''}
+                    onValueChange={(contractorName) => {
+                      const contractor = contractorsForSite.find(c => c.name === contractorName);
+                      if (contractor) setReceiverIdSelected(contractor.id);
+                    }}
+                    style={styles.input}
+                  />
                   
                   {receiverIdSelected && (
                     <>
