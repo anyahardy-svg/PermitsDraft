@@ -17956,7 +17956,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         // Get permit issuers for this site
         const allIssuers = await listPermitIssuers();
         const siteIssuers = allIssuers.filter(issuer => 
-          issuer.siteIds && issuer.siteIds.includes(editData.siteId)
+          issuer.site_ids && issuer.site_ids.includes(editData.site_id)
         );
         setPermitIssuersForSite(siteIssuers);
         
@@ -17969,6 +17969,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setLoadingSignOffData(false);
       }
     };
+    
+    // Load sign-off data when component mounts
+    React.useEffect(() => {
+      if (editData && editData.site_id) {
+        loadSignOffData();
+      }
+    }, [editData.id]);
 
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
