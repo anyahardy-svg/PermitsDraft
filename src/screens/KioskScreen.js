@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { listContractorsBySite } from '../api/contractors';
 import { listSites } from '../api/sites';
@@ -62,6 +63,8 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
   const [filteredContractors, setFilteredContractors] = useState([]);
   const [contractors, setContractors] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [contractorInductionExpiry, setContractorInductionExpiry] = useState(null);
+  const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
@@ -259,6 +262,35 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
     }
   };
 
+  const handleSelectContractor = async (contractor) => {
+    setSelectedContractor(contractor);
+    
+    // Fetch induction status for this contractor at this site
+    try {
+      const { data: induction } = await supabase
+        .from('contractor_inductions')
+        .select('*')
+        .eq('contractor_id', contractor.id)
+        .eq('site_id', siteId)
+        .eq('status', 'completed')
+        .single();
+
+      if (induction) {
+        const expiryDate = new Date(induction.expires_at).toLocaleDateString('en-NZ');
+        const isExpired = induction.expires_at && new Date(induction.expires_at) < new Date();
+        setContractorInductionExpiry(expiryDate);
+        setContractorInductionExpired(isExpired);
+      } else {
+        setContractorInductionExpiry(null);
+        setContractorInductionExpired(false);
+      }
+    } catch (error) {
+      console.warn('Could not fetch induction status:', error);
+      setContractorInductionExpiry(null);
+      setContractorInductionExpired(false);
+    }
+  };
+
   const handleCheckInContractor = async () => {
     if (!selectedContractor) {
       Alert.alert('Error', 'Please select a contractor');
@@ -274,6 +306,8 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
         setSelectedContractor(null);
         setContractorSearch('');
         setFilteredContractors([]);
+        setContractorInductionExpiry(null);
+        setContractorInductionExpired(false);
         setCurrentScreen('welcome');
         loadSignedInPeople();
       } else {
@@ -367,6 +401,8 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
               setCurrentScreen('contractor-signin');
               setSelectedContractor(null);
               setContractorSearch('');
+              setContractorInductionExpiry(null);
+              setContractorInductionExpired(false);
             }}
           >
             <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -541,7 +577,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
                     styles.contractorItem,
                     selectedContractor?.id === item.id && styles.contractorItemSelected
                   ]}
-                  onPress={() => setSelectedContractor(item)}
+                  onPress={() => handleSelectContractor(item)}
                 >
                   <Text style={styles.contractorName}>{item.name}</Text>
                   <Text style={styles.contractorEmail}>{item.email}</Text>
@@ -569,6 +605,46 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
                   minute: '2-digit'
                 })}
               </Text>
+              
+              {/* Induction Status */}
+              <View style={{ 
+                marginTop: 12, 
+                paddingTop: 12, 
+                borderTopWidth: 1, 
+                borderTopColor: '#E5E7EB' 
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>
+                  Induction Status:
+                </Text>
+                {contractorInductionExpiry ? (
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600',
+                    color: contractorInductionExpired ? '#DC2626' : '#10B981',
+                    backgroundColor: contractorInductionExpired ? '#FEE2E2' : '#DCFCE7',
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 4,
+                    alignSelf: 'flex-start'
+                  }}>
+                    {contractorInductionExpired ? '❌ EXPIRED' : '✓ Valid'} - Expires: {contractorInductionExpiry}
+                  </Text>
+                ) : (
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600',
+                    color: '#DC2626',
+                    backgroundColor: '#FEE2E2',
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 4,
+                    alignSelf: 'flex-start'
+                  }}>
+                    ⚠️ NOT INDUCTED
+                  </Text>
+                )}
+              </View>
+              
               <TouchableOpacity 
                 style={styles.submitButton}
                 onPress={handleCheckInContractor}
@@ -980,6 +1056,8 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
                 setCurrentScreen('contractor-signin');
                 setSelectedContractor(null);
                 setContractorSearch('');
+                setContractorInductionExpiry(null);
+                setContractorInductionExpired(false);
               }}
             >
               <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>

@@ -32,6 +32,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
     }
 
     const isInducted = !!induction && (!induction.expires_at || new Date(induction.expires_at) > new Date());
+    const isExpired = !!induction && induction.expires_at && new Date(induction.expires_at) < new Date();
 
     // Get contractor name, phone, and company
     const { data: contractor } = await supabase
@@ -64,11 +65,20 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
 
     if (error) throw error;
 
+    // Format expiry date for display
+    const expiryDate = induction?.expires_at ? new Date(induction.expires_at).toLocaleDateString('en-NZ') : null;
+
     return {
       success: true,
       data,
       inducted: isInducted,
-      message: isInducted ? 'Checked in successfully' : '⚠️ NOT INDUCTED - induction required before work',
+      isExpired,
+      expiryDate,
+      message: isExpired 
+        ? '⚠️ INDUCTION EXPIRED - renewal required before work' 
+        : isInducted 
+          ? 'Checked in successfully' 
+          : '⚠️ NOT INDUCTED - induction required before work',
     };
   } catch (error) {
     console.error('Check-in error:', error);
