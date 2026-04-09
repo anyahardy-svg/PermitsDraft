@@ -1259,14 +1259,14 @@ export default function CompanyAccreditationScreen({
   };
 
   // Unified helper function to render document toggle button and UI
-  const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence') => {
+  const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence', showOnlyIcon = false) => {
     const isDocUIExpanded = expandedEvidenceUI === documentKey;
     const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
     const needsDocument = itemData?.score > 1 && !hasDocument;
 
-    return (
-      <>
-        {/* Paperclip Toggle Button */}
+    // If showOnlyIcon is true, only render the paperclip button (for inline use in the row)
+    if (showOnlyIcon) {
+      return (
         <TouchableOpacity
           onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
           style={{
@@ -1283,51 +1283,51 @@ export default function CompanyAccreditationScreen({
         >
           <Text style={{ fontSize: 14 }}>📎</Text>
         </TouchableOpacity>
-        
-        {/* Expanded Document UI */}
-        {isDocUIExpanded && (
-          <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
-            {hasDocument ? (
-              <>
-                <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
-                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ {documentType} Uploaded</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL(itemData?.url || itemData?.evidence || itemData?.certificateUrl)}>
-                    <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>📄 View / Download</Text>
-                  </TouchableOpacity>
-                </View>
-                {handleDeleteFn && (
-                  <TouchableOpacity
-                    style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
-                    onPress={() => handleDeleteFn()}
-                  >
-                    <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>🗑 Delete {documentType}</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                  onPress={() => handleUploadFn()}
-                >
-                  <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Replace {documentType}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                {needsDocument && (
-                  <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                    <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required for Score {itemData?.score}</Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-                  onPress={() => handleUploadFn()}
-                >
-                  <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Upload {documentType}</Text>
-                </TouchableOpacity>
-              </>
+      );
+    }
+
+    // Otherwise render the full expanded UI
+    return (
+      <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
+        {hasDocument ? (
+          <>
+            <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#10B981' }}>
+              <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 8 }}>✓ {documentType} Uploaded</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(itemData?.url || itemData?.evidence || itemData?.certificateUrl)}>
+                <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+              </TouchableOpacity>
+            </View>
+            {handleDeleteFn && (
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
+                onPress={() => handleDeleteFn()}
+              >
+                <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>🗑 Delete {documentType}</Text>
+              </TouchableOpacity>
             )}
-          </View>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+              onPress={() => handleUploadFn()}
+            >
+              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Replace {documentType}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            {needsDocument && (
+              <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required for Score {itemData?.score}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+              onPress={() => handleUploadFn()}
+            >
+              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Upload {documentType}</Text>
+            </TouchableOpacity>
+          </>
         )}
-      </>
+      </View>
     );
   };
 
@@ -1340,7 +1340,8 @@ export default function CompanyAccreditationScreen({
       itemLabel,
       () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
       null,
-      'Evidence'
+      'Evidence',
+      true // showOnlyIcon = true to only show paperclip in the row
     );
   };
 
@@ -2341,7 +2342,7 @@ export default function CompanyAccreditationScreen({
                       <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         {item.question}
                       </Text>
-                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {[1, 2, 3, 4].map(score => (
                           <TouchableOpacity
                             key={score}
@@ -2372,6 +2373,13 @@ export default function CompanyAccreditationScreen({
                         {renderEvidenceToggle(section.number, item.key, section.state[item.key], item.question)}
                       </View>
                     </View>
+                    
+                    {/* Expanded Evidence UI - shown below scores */}
+                    {expandedEvidenceUI === `section${section.number}-${item.key}` && (
+                      <View style={{ marginBottom: 12, marginTop: 12 }}>
+                        {renderDocumentToggle(`section${section.number}-${item.key}`, section.state[item.key], item.question, () => handleUploadEvidence(`section${section.number}`, item.key, item.question), null, 'Evidence', false)}
+                      </View>
+                    )}
 
                     {/* Frequency selector for exposure_monitoring and health_monitoring */}
                     {item.hasFrequency && section.state[item.key]?.score > 0 && (
