@@ -10725,15 +10725,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
-            // Find column indices
-            const nameIdx = headerValues.findIndex(h => h.includes('name'));
-            const emailIdx = headerValues.findIndex(h => h.includes('email'));
-            const phoneIdx = headerValues.findIndex(h => h === 'phone');
-            const companyIdx = headerValues.findIndex(h => h.includes('company'));
+            // Find column indices with stricter matching
+            const nameIdx = headerValues.findIndex(h => h.match(/^(contractor_)?name$|^full_name$|^contractor$/i));
+            const emailIdx = headerValues.findIndex(h => h === 'email' || h === 'email_address');
+            const phoneIdx = headerValues.findIndex(h => h === 'phone' || h === 'phone_number');
+            const companyIdx = headerValues.findIndex(h => h === 'company' || h === 'company_name');
             const servicesIdx = headerValues.findIndex(h => h.includes('service'));
             const sitesIdx = headerValues.findIndex(h => h.includes('site') || h.includes('available'));
             const inductionIdx = headerValues.findIndex(h => h.includes('induction') || h.includes('expiry'));
             const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
+
+            // Helper: Check if value looks like invalid data (UUID, all zeros, etc)
+            const isValidName = (name) => {
+              if (!name || name.length === 0) return false;
+              // Skip if all zeros or all digits (looks like an ID)
+              if (/^0+$/.test(name)) return false;
+              if (/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(name)) return false;
+              // Skip if looks like a UUID without dashes
+              if (!/[a-zA-Z]/.test(name)) return false;
+              return true;
+            };
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -10767,7 +10778,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] ? values[businessUnitIdx].split(';').map(s => s.trim()) : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
-                if (name && email && company) {
+                // Validate name is not invalid/garbage data
+                if (isValidName(name) && email && company) {
                   // Skip if already processed in this CSV
                   if (processedEmails.has(email.toLowerCase())) {
                     duplicateCount++;
