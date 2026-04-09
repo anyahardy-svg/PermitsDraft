@@ -152,16 +152,51 @@ export const deleteCompany = async (companyId, options = {}) => {
   const { deleteContractors = false } = options;
   
   try {
-    // If deleteContractors is true, delete all contractors first
-    if (deleteContractors) {
+    // First, get all contractors for this company
+    const { data: companyContractors, error: fetchError } = await supabase
+      .from('contractors')
+      .select('id')
+      .eq('company_id', companyId);
+    
+    if (fetchError) throw fetchError;
+    
+    const contractorIds = (companyContractors || []).map(c => c.id);
+    
+    // If deleteContractors is true, handle cascade deletion
+    if (deleteContractors && contractorIds.length > 0) {
+      // Delete permits linked to these contractors
+      const { error: permitsError } = await supabase
+        .from('permits')
+        .delete()
+        .in('contractor_id', contractorIds);
+      
+      if (permitsError) throw permitsError;
+      
+      // Delete contractor inductions (should cascade automatically, but be explicit)
+      const { error: inductionsError } = await supabase
+        .from('contractor_inductions')
+        .delete()
+        .in('contractor_id', contractorIds);
+      
+      if (inductionsError) throw inductionsError;
+      
+      // Finally delete the contractors
       const { error: contractorError } = await supabase
         .from('contractors')
         .delete()
         .eq('company_id', companyId);
       
       if (contractorError) throw contractorError;
-    } else {
-      // Otherwise, set contractors' company_id to null
+    } else if (contractorIds.length > 0) {
+      // Otherwise, orphan contractors and set their permits' contractor_id to null
+      const { error: permitsError } = await supabase
+        .from('permits')
+        .update({ contractor_id: null })
+        .in('contractor_id', contractorIds);
+      
+      if (permitsError) throw permitsError;
+      
+      // Orphan the contractors
       const { error: updateError } = await supabase
         .from('contractors')
         .update({ company_id: null })
