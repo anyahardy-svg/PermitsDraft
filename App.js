@@ -717,7 +717,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     { key: 'electrical', label: 'Electrical', description: 'Electrical work, including panel access and live work.' },
     { key: 'excavation', label: 'Excavation', description: 'Digging, trenching, or disturbing the ground.' },
     { key: 'lifting', label: 'Lifting', description: 'Use of cranes, hoists, or other lifting equipment.' },
-    { key: 'blasting', label: 'Blasting', description: 'Use of explosives or blasting agents.' },
+    { key: 'blastingMarking', label: 'Blasting - Marking', description: 'Marking drill hole locations for blasting operations.' },
+    { key: 'blastingDrilling', label: 'Blasting - Drilling', description: 'Drilling holes for blasting operations.' },
+    { key: 'blastingExecution', label: 'Blasting - Execution', description: 'Execution of blasting operations and detonation.' },
     { key: 'plantServicing', label: 'Plant Servicing', description: 'Servicing or maintenance of plant and equipment.' },
     { key: 'stripping', label: 'Stripping', description: 'Stripping campaign to remove overburden.' },
     { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' }
@@ -938,11 +940,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'tag_lines', text: 'Are tag lines or piles available to control the load and swing?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'boom_positioning', text: 'Is the crew aware that the boom and loads are not to be left positioned over live work areas when left unattended?', type: 'yesno', required: true, controlsOn: 'no' }
     ],
-    blasting: [
-      
-      
-      // Marking Section
-      { id: 'marking_section', text: 'Marking Requirements', type: 'section' },
+    blastingMarking: [
       { id: 'marking_hazards_controlled', text: 'Are you aware of any bench condition and face edge hazards and are they controlled?', type: 'yesno', required: true },
       { id: 'marking_lv_parking', text: 'Light vehicles remain in designated LV parking area?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_standoff_established', text: 'Minimum 2m stand-off distance from the face established? (If not, RM needs to approve)', type: 'yesno', required: true, controlsOn: 'no' },
@@ -951,27 +949,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'marking_bund_break', text: 'Safe break in bund for drill rig established?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_bund_marked', text: 'Break in bund marked with cones?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_weather_checked', text: 'Weather checked to avoid significant weather events?', type: 'yesno', required: true, controlsOn: 'no' },
-      
-      // Marking Documentation
-      
       { id: 'marking_edge_protection', text: 'Edge protection marked on drill plan?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_plan_approved', text: 'Drill Plan reviewed and approved by Permit Issuer?', type: 'yesno', required: true },
-      { id: 'marking_drill_plan_file', text: 'Attach Drill Plan', type: 'attachment', note: 'Attach the drill plan document' }, 
-      
-      // Drilling Section
-      { id: 'drilling_section', text: 'Drilling Requirements', type: 'section' },
-      
+      { id: 'marking_drill_plan_file', text: 'Attach Drill Plan', type: 'attachment', note: 'Attach the drill plan document' },
+    ],
+    blastingDrilling: [
       { id: 'drilling_inspection_completed', text: 'Drill rig daily inspection sheet completed prior to start-up?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'drilling_ground_conditions', text: 'Are ground conditions suitable to prevent drill rigs toppling over?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'drilling_oriented_toppling', text: 'Is the drill rig oriented to prevent falling over edge if it should topple over ?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'drilling_oriented_distance', text: 'Is the drill rig oriented to maximize distance from face?', type: 'yesno', required: true, controlsOn: 'no' },  
       { id: 'drilling_normal_area', text: 'Is drilling completed in an area where geotechnical information is known?', type: 'yesno', required: true, controlsOn: 'no' },
-      
-      // Drilling Documentation
       { id: 'drilling_plan_received', text: 'Drill Plan and instructions received from the marker?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'drilling_log_attached', text: 'Drill log completed and attached?', type: 'yesno', required: true, controlsOn: 'no' },
-           
-      { id: 'blasting_section', text: 'Blasting Requirements', type: 'section' },
+    ],
+    blastingExecution: [
       { id: 'licensed_shot_firer', text: 'Name of licensed shot firer assigned.', type: 'text', required: true },
       { id: 'blasting_staff_notified', text: 'Staff notified of intended time/date/location of blast and which radio channel to use?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_third_parties_consulted', text: 'Third parties/members of the public consulted/notified?', type: 'yesno', required: true, controlsOn: 'no'},
@@ -987,29 +978,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'blasting_manager_signoff_required', text: 'Regional Manager Sign-Off Required: Safety requirements not met', type: 'section', dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent', 'blasting_safety_factor', 'blasting_safety_factor_plant'], dependsOnValue: ['no', 'no', 'no', 'no'] },
       { id: 'blasting_manager_name', text: 'Regional Manager Name', type: 'text', required: true, dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent'], dependsOnValue: ['no', 'no'] },
       { id: 'blasting_manager_signoff_file', text: 'Regional Manager Sign-Off Document', type: 'attachment', note: 'Attach signed approval from Regional Manager', dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent', 'blasting_safety_factor', 'blasting_safety_factor_plant'], dependsOnValue: ['no', 'no', 'no', 'no'] },
-      
       { id: 'blasting_safe_distance_personnel', text: 'Safe distance for personnel on site is', type: 'text', textLabel: '_____ m', required: true },
       { id: 'blasting_safe_distance_plant', text: 'Safe location distance for plant/equipment/vehicles is', type: 'text', textLabel: '_____ m', required: true },
       { id: 'blasting_firing_direction', text: 'Firing direction understood?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_monitors_set_up', text: 'Have the blast monitors been set up?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_site_plan', text: 'Site Plan completed with and discussed with Permit Issuer?', type: 'yesno', required: true, controlsOn: 'n' },
       { id: 'blasting_holes_below_midc', text: 'Are holes below or equal to their Maximum instantaneous Design Charge?', type: 'yesno_text', textLabel: 'If no, note the numbers and comment', textLabelOn: 'no', required: true, noControls: true },
-      
-      { id: 'final_checks_section', text: 'Final Checks Before Blasting', type: 'section' },
-      
-      
       { id: 'blasting_personnel_accounted', text: 'Visitors/Contractors/Personnel/Plant/Equipment on site all accounted for and in agreed safety zone?', type: 'yesno', required: true, controlsOn: 'no' },
-     
-
       { id: 'blasting_shotfirer_position', text: 'Shotfirer in the established firing position, not in line of sight of the blast?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_mgm_signoff_required', text: 'Blasting Company Operations Manager Sign-Off Required: Safety requirements not met', type: 'section', dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
       { id: 'blasting_mgm_name', text: 'Operations Manager Name', type: 'text', required: true, dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
       { id: 'blasting_mgm_signoff_file', text: 'Regional Manager Sign-Off Document', type: 'attachment', note: 'Attach signed approval from Regional Manager', dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
-      
-
-
-
-      { id: 'post_blast_section', text: 'Post Blast Inspection', type: 'section' },
       { id: 'blasting_fumex_settled', text: 'Fumex and dust have settled and dissipated before entering?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_faces_inspected', text: 'Faces inspected and deemed safe?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'blasting_all_holes_fired', text: 'All holes have fired?', type: 'yesno', required: true },
