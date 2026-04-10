@@ -2964,6 +2964,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const columns = getColumnWidths();
 
   // Utility functions
+  
+  // Filter permits by contractor company if contractor is logged in
+  const filterPermitsByContractorCompany = (permits) => {
+    if (!currentContractor || !currentContractor.companyId) {
+      console.log('⚠️ [FILTER] No contractor context, returning all permits');
+      return permits;
+    }
+    
+    const filtered = permits.filter(p => p.company_id === currentContractor.companyId);
+    console.log(`🔍 [FILTER] Filtered ${permits.length} → ${filtered.length} permits for company ${currentContractor.companyId}`);
+    return filtered;
+  };
+  
   const getStatusText = (status) => {
     switch (status) {
       case 'pending_approval': return 'Pending Approval';
@@ -7609,7 +7622,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const renderPermitList = (status, title) => {
-    const filteredPermits = permits.filter(p => p.status === status);
+    // Filter by status first
+    let filteredPermits = permits.filter(p => p.status === status);
+    
+    // If contractor is logged in, filter by their company
+    if (currentContractor && currentContractor.companyId) {
+      console.log(`📋 [PERMIT LIST] Filtering ${title} by contractor company ${currentContractor.companyId}`);
+      filteredPermits = filterPermitsByContractorCompany(filteredPermits);
+    }
+    
     return (
       <View style={styles.screenContainer}>
         <View style={styles.header}>
@@ -7889,9 +7910,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Dashboard
   const renderDashboard = () => {
     // Filter permits by selected site
-    const sitePermits = dashboardSelectedSite 
+    let sitePermits = dashboardSelectedSite 
       ? permits.filter(p => p.site_id === dashboardSelectedSite)
       : permits;
+    
+    // If contractor is logged in, filter by their company
+    if (currentContractor && currentContractor.companyId) {
+      console.log(`📊 [DASHBOARD] Filtering permits by contractor company ${currentContractor.companyId}`);
+      sitePermits = filterPermitsByContractorCompany(sitePermits);
+    }
 
     // Get selected site name for display
     const selectedSiteName = sites.find(s => s.id === dashboardSelectedSite)?.name || 'All Sites';
