@@ -101,7 +101,7 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
   );
   
   return (
-    <View style={{ position: 'relative', zIndex: modalVisible ? 1000 : 1 }}>
+    <View style={{ position: 'relative', zIndex: modalVisible ? 10000 : 1 }}>
       <TouchableOpacity
         style={[{
           borderWidth: 1,
@@ -131,7 +131,7 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
           backgroundColor: 'white',
           borderRadius: 8,
           maxHeight: 300,
-          zIndex: 1000,
+          zIndex: 10000,
           elevation: 5,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
@@ -183,7 +183,7 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
       
       {modalVisible && (
         <TouchableOpacity 
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
           onPress={() => {
             setModalVisible(false);
             setFilterText('');
