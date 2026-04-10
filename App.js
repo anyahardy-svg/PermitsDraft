@@ -2694,6 +2694,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     detectContractorHub();
   }, []);
 
+  // Sync selectedCompanyId from URL whenever the contractor-admin route is accessed
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Check if we're on a contractor route
+    const pathname = window.location.pathname;
+    const isContractorRoute = pathname === '/contractor-admin/' || pathname.startsWith('/contractor-admin/');
+    
+    if (isContractorRoute) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const companyIdFromUrl = urlParams.get('companyId');
+      
+      if (companyIdFromUrl) {
+        console.log('🔀 Syncing selectedCompanyId from URL:', companyIdFromUrl);
+        setSelectedCompanyId(companyIdFromUrl);
+      }
+    }
+  }, [currentScreen]); // Re-check whenever currentScreen changes, as this may indicate a URL change
+
   // Check for admin routes on initial page load (standalone from back button handler)
   useEffect(() => {
     if (typeof window === 'undefined') return;
