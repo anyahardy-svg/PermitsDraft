@@ -6584,23 +6584,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     justifyContent: 'center',
                     backgroundColor: '#F9FAFB'
                   }}
-                  onPress={async () => {
-                    try {
-                      const result = await ImagePicker.launchImageLibraryAsync({
-                        mediaTypes: ImagePicker.MediaTypeOptions.All,
-                        allowsEditing: false,
-                        quality: 1,
-                      });
-                      
-                      if (!result.canceled && result.assets && result.assets[0]) {
-                        const asset = result.assets[0];
-                        const fileName = asset.fileName || `attachment_${Date.now()}`;
-                        handleQuestionnaireResponse(permitKey, q.id, asset.uri);
+                  onPress={() => {
+                    Alert.alert('Attach Document', 'Choose source:', [
+                      {
+                        text: '📷 Take Photo',
+                        onPress: async () => {
+                          try {
+                            const result = await ImagePicker.launchCameraAsync({
+                              mediaTypes: ImagePicker.MediaTypeOptions.All,
+                              allowsEditing: false,
+                              quality: 1,
+                            });
+                            
+                            if (!result.canceled && result.assets && result.assets[0]) {
+                              const asset = result.assets[0];
+                              handleQuestionnaireResponse(permitKey, q.id, asset.uri);
+                            }
+                          } catch (err) {
+                            console.error('Error taking photo:', err);
+                            Alert.alert('Error', 'Failed to take photo');
+                          }
+                        }
+                      },
+                      {
+                        text: '🖼️ Choose from Library',
+                        onPress: async () => {
+                          try {
+                            const result = await ImagePicker.launchImageLibraryAsync({
+                              mediaTypes: ImagePicker.MediaTypeOptions.All,
+                              allowsEditing: false,
+                              quality: 1,
+                            });
+                            
+                            if (!result.canceled && result.assets && result.assets[0]) {
+                              const asset = result.assets[0];
+                              handleQuestionnaireResponse(permitKey, q.id, asset.uri);
+                            }
+                          } catch (err) {
+                            console.error('Error picking file:', err);
+                            Alert.alert('Error', 'Failed to select file');
+                          }
+                        }
+                      },
+                      {
+                        text: 'Cancel',
+                        onPress: () => {},
+                        style: 'cancel'
                       }
-                    } catch (err) {
-                      console.error('Error picking file:', err);
-                      Alert.alert('Error', 'Failed to select file');
-                    }
+                    ]);
                   }}
                 >
                   <Text style={{ fontSize: 24, marginBottom: 8 }}>📎</Text>
