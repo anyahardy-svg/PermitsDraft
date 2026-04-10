@@ -314,6 +314,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleSelectContractor = async (contractor) => {
     setSelectedContractor(contractor);
+    setFilteredContractors([]); // Clear the list so it collapses
     
     // Fetch induction status for this contractor at this site
     try {
@@ -322,7 +323,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         .select('*')
         .eq('contractor_id', contractor.id)
         .eq('site_id', siteId)
-        .eq('status', 'completed')
         .single();
 
       if (induction) {
