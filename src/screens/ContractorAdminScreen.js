@@ -106,10 +106,6 @@ export default function ContractorAdminScreen({
   const [draftPermits, setDraftPermits] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   
-  // Dialog modal for permit actions (replaces Alert.alert in React Native Web)
-  const [showDialog, setShowDialog] = useState(false);
-  const [dialogConfig, setDialogConfig] = useState({ type: '', title: '', message: '', buttons: [] });
-  
   // Contractor editing states
   const [editingContractor, setEditingContractor] = useState(null);
   const [editContractorName, setEditContractorName] = useState('');
@@ -1301,42 +1297,12 @@ export default function ContractorAdminScreen({
 
   // Handle "Create New Permit" button click
   const handleCreateNewPermit = () => {
-    console.log('🔘 Create New Permit button clicked');
-    console.log('onReturnToKiosk prop available:', !!onReturnToKiosk);
-    
-    setDialogConfig({
-      type: 'createPermit',
-      title: 'Create New Permit',
-      message: 'You can create permits either from:\n\n1. The Kiosk - Full permit creation form\n2. This dashboard - Your drafts will appear here\n\nWould you like to go to the Kiosk now?',
-      buttons: [
-        { 
-          text: 'Cancel', 
-          onPress: () => {
-            console.log('User cancelled');
-            setShowDialog(false);
-          },
-          style: 'cancel'
-        },
-        {
-          text: 'Go to Kiosk',
-          onPress: () => {
-            console.log('User clicked Go to Kiosk');
-            setShowDialog(false);
-            if (onReturnToKiosk) {
-              console.log('✅ Calling onReturnToKiosk()');
-              onReturnToKiosk();
-            } else {
-              console.log('⚠️ No onReturnToKiosk prop, using fallback');
-              if (typeof window !== 'undefined') {
-                window.location.href = '/';
-              }
-            }
-          },
-          style: 'default'
-        }
-      ]
-    });
-    setShowDialog(true);
+    console.log('� Navigating to kiosk to create permit');
+    if (onReturnToKiosk) {
+      onReturnToKiosk();
+    } else if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   // Handle editing a draft permit
@@ -2502,85 +2468,6 @@ export default function ContractorAdminScreen({
 
       {/* Edit Contractor Modal */}
       {renderEditContractorModal()}
-
-      {/* Dialog Modal - Replaces Alert.alert() for React Native Web */}
-      <Modal
-        visible={showDialog}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDialog(false)}
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 20
-        }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 24,
-            minWidth: '80%',
-            maxWidth: 400,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3,
-            elevation: 5
-          }}>
-            {/* Title */}
-            <Text style={{
-              fontSize: 18,
-              fontWeight: '700',
-              color: '#1F2937',
-              marginBottom: 12
-            }}>
-              {dialogConfig.title}
-            </Text>
-
-            {/* Message */}
-            <Text style={{
-              fontSize: 14,
-              color: '#4B5563',
-              lineHeight: 20,
-              marginBottom: 24,
-              whiteSpace: 'pre-wrap'
-            }}>
-              {dialogConfig.message}
-            </Text>
-
-            {/* Buttons */}
-            <View style={{
-              flexDirection: 'row-reverse',
-              gap: 12
-            }}>
-              {dialogConfig.buttons && dialogConfig.buttons.map((button, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={button.onPress}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: button.style === 'cancel' ? '#E5E7EB' : '#3B82F6',
-                    alignItems: 'center'
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: button.style === 'cancel' ? '#374151' : 'white'
-                  }}>
-                    {button.text}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
