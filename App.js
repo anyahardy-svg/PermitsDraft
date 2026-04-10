@@ -19718,6 +19718,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           case 'dashboard':
             return renderDashboard();
           case 'kiosk':
+            // On contractor hub domain, redirect to new_permit instead of rendering kiosk
+            if (typeof window !== 'undefined') {
+              const hostname = window.location.hostname;
+              const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
+              if (isContractorHub) {
+                console.log('ℹ️ On contractor hub - redirecting to new_permit instead of kiosk');
+                return renderNewPermitForm();
+              }
+            }
+            // On site kiosk domain, render KioskScreen
             return (
               <KioskScreen 
                 onViewPermits={(siteId) => {
