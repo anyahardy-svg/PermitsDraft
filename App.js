@@ -3098,6 +3098,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Check if accessing from kiosk subdomain
     const isKioskMode = typeof window !== 'undefined' && window.location.hostname.includes('-kiosk.');
     
+    // Log contractor context for debugging
+    if (currentContractor && currentContractor.companyId) {
+      console.log('📄 [NEW PERMIT FORM] Rendering with contractor context:', {
+        contractorId: currentContractor.id,
+        contractorName: currentContractor.name,
+        companyId: currentContractor.companyId
+      });
+    } else {
+      console.warn('⚠️ [NEW PERMIT FORM] No contractor context available - will show all permits');
+    }
+    
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
@@ -19982,7 +19993,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 services: contractorInfo.services || [],
                 siteIds: contractorInfo.siteIds || []
               });
-              console.log('✅ Set currentContractor from contractor admin:', contractorInfo.name);
+              console.log('✅ Set currentContractor from contractor admin:', contractorInfo.contractorName || contractorInfo.name || '(unknown)');
             }
             setCurrentScreen('kiosk');
           }}
