@@ -102,6 +102,10 @@ export default function ContractorAdminScreen({
   const [editedTemplateDescription, setEditedTemplateDescription] = useState('');
   const [savingPermitTemplate, setSavingPermitTemplate] = useState(false);
   
+  // Draft permits states
+  const [draftPermits, setDraftPermits] = useState([]);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  
   // Contractor editing states
   const [editingContractor, setEditingContractor] = useState(null);
   const [editContractorName, setEditContractorName] = useState('');
@@ -475,6 +479,33 @@ export default function ContractorAdminScreen({
       loadInductions();
     }
   }, [isLoggedIn, loggedInCompanyId]);
+
+  // Load draft permits for the logged-in contractor
+  useEffect(() => {
+    if (activeTab === 'my-permits' && loggedInContractorId) {
+      const loadDrafts = async () => {
+        setLoadingDrafts(true);
+        try {
+          const { data, error } = await supabase
+            .from('permits')
+            .select('*')
+            .eq('contractor_id', loggedInContractorId)
+            .eq('status', 'draft')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setDraftPermits(data || []);
+        } catch (error) {
+          console.error('Error loading draft permits:', error);
+          setDraftPermits([]);
+        } finally {
+          setLoadingDrafts(false);
+        }
+      };
+      
+      loadDrafts();
+    }
+  }, [activeTab, loggedInContractorId]);
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
@@ -1264,6 +1295,206 @@ export default function ContractorAdminScreen({
     );
   };
 
+  // Render my draft permits
+  const renderMyPermits = () => {
+    const handleCreateNewPermit = () => {
+      Alert.alert(
+        'Create New Permit',
+        'You can create permits either from:\n\n1. The Kiosk - Full permit creation form\n2. This dashboard - Your drafts will appear here\n\nWould you like to go to the Kiosk now?',
+        [
+          { text: 'Cancel', onPress: () => {} },
+          {
+            text: 'Go to Kiosk',
+            onPress: () => {
+              if (onReturnToKiosk) {
+                onReturnToKiosk();
+              } else {
+                // Fallback: navigate to kiosk URL
+                window.location.href = '/';
+              }
+            }
+          }
+        ]
+      );
+    };
+
+    const handleEditDraft = (permit) => {
+      // For now, provide info about the draft
+      const siteName = permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified';
+      const permitType = permit.permit_type ? permit.permit_type.replace(/([A-Z])/g, ' $1').trim() : 'General';
+      
+      Alert.alert(
+        'Edit Draft Permit',
+        `Description: ${permit.description || 'Untitled'}\n\nType: ${permitType}\n${siteName}\n\nTo edit this draft, visit the Kiosk and select it from the available permits.`,
+        [
+          { text: 'OK', onPress: () => {} },
+          {
+            text: 'Go to Kiosk',
+            onPress: () => {
+              if (onReturnToKiosk) {
+                onReturnToKiosk();
+              }
+            }
+          }
+        ]
+      );
+    };
+
+    const handleDeleteDraft = (permitId) => {
+      Alert.alert(
+        'Delete Draft',
+        'Are you sure you want to delete this draft permit?',
+        [
+          { text: 'Cancel', onPress: () => {} },
+          {
+            text: 'Delete',
+            onPress: async () => {
+              try {
+                const { error } = await supabase
+                  .from('permits')
+                  .delete()
+                  .eq('id', permitId);
+                
+                if (error) throw error;
+                
+                // Remove from local list
+                setDraftPermits(draftPermits.filter(p => p.id !== permitId));
+                Alert.alert('Success', 'Draft permit deleted');
+              } catch (error) {
+                console.error('Error deleting draft:', error);
+                Alert.alert('Error', 'Failed to delete draft permit');
+              }
+            },
+            style: 'destructive'
+          }
+        ]
+      );
+    };
+
+    const formatDate = (dateStr) => {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+
+    return (
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }}>
+        {loadingDrafts ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <Text style={{ fontSize: 14, color: '#6B7280' }}>Loading drafts...</Text>
+          </View>
+        ) : draftPermits.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <Text style={{ fontSize: 16, fontStyle: 'italic', color: '#9CA3AF', marginBottom: 20 }}>
+              No draft permits yet
+            </Text>
+            <TouchableOpacity
+              onPress={handleCreateNewPermit}
+              style={{
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                Create New Permit
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ padding: 16 }}>
+            <TouchableOpacity
+              onPress={handleCreateNewPermit}
+              style={{
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 20
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                + Create New Permit
+              </Text>
+            </TouchableOpacity>
+
+            {draftPermits.map((permit) => (
+              <View
+                key={permit.id}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 8,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#EF4444',
+                  padding: 16,
+                  marginBottom: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#E5E7EB',
+                  borderRightWidth: 1,
+                  borderRightColor: '#E5E7EB',
+                  borderTopWidth: 1,
+                  borderTopColor: '#E5E7EB'
+                }}
+              >
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>
+                    {permit.description || 'Untitled Permit'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                    {permit.permit_type ? permit.permit_type.replace(/([A-Z])/g, ' $1').trim() : 'General'}
+                  </Text>
+                </View>
+
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
+                    📍 Site: {permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                    📅 Created: {formatDate(permit.created_at)}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => handleEditDraft(permit)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#3B82F6',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 6,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteDraft(permit.id)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#F3F4F6',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 6,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: '#EF4444'
+                    }}
+                  >
+                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
+
   // Render profile edit
   const renderProfileEdit = () => {
     const handleSaveProfile = async () => {
@@ -1510,7 +1741,7 @@ export default function ContractorAdminScreen({
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>
-              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : 'Accreditation'}
+              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : 'Accreditation'}
             </Text>
             <TouchableOpacity onPress={() => setActiveTab(null)}>
               <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
@@ -1565,6 +1796,13 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>👤</Text>
               <Text style={styles.cardLabel}>My Profile</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('my-permits')}
+              style={[styles.dashboardCard, { borderLeftColor: '#EF4444', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>{draftPermits.length}</Text>
+              <Text style={styles.cardLabel}>My Drafts</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
@@ -1597,6 +1835,8 @@ export default function ContractorAdminScreen({
           </View>
         ) : activeTab === 'profile' ? (
           renderProfileEdit()
+        ) : activeTab === 'my-permits' ? (
+          renderMyPermits()
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )

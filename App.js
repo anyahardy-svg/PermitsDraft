@@ -1972,6 +1972,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
+        contractor_id: currentContractor?.id || null, // Save contractor ID if contractor is logged in
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
