@@ -941,7 +941,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'boom_positioning', text: 'Is the crew aware that the boom and loads are not to be left positioned over live work areas when left unattended?', type: 'yesno', required: true, controlsOn: 'no' }
     ],
     blastingMarking: [
-      { id: 'marking_hazards_controlled', text: 'Are you aware of any bench condition and face edge hazards and are they controlled?', type: 'yesno', required: true },
+      { id: 'marking_hazards_controlled', text: 'Are you aware of any bench condition and face edge hazards and are they controlled?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_lv_parking', text: 'Light vehicles remain in designated LV parking area?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_standoff_established', text: 'Minimum 2m stand-off distance from the face established? (If not, RM needs to approve)', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'marking_standoff_increased', text: 'Does the stand-off distance need to be increased?', type: 'yesno_text', textLabel: 'To how many meters:', noControls: true, dependsOn: 'marking_standoff_established', dependsOnValue: 'yes' },
@@ -6573,16 +6573,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View key={q.id} style={{ marginBottom: 12 }}>
                 <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                 {q.note && <Text style={{ color: '#6B7280', marginBottom: 6, fontSize: 12 }}>{q.note}</Text>}
-                <TouchableOpacity style={{
-                  borderWidth: 2,
-                  borderStyle: 'dashed',
-                  borderColor: '#D1D5DB',
-                  borderRadius: 6,
-                  padding: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#F9FAFB'
-                }}>
+                <TouchableOpacity 
+                  style={{
+                    borderWidth: 2,
+                    borderStyle: 'dashed',
+                    borderColor: '#D1D5DB',
+                    borderRadius: 6,
+                    padding: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                  onPress={async () => {
+                    try {
+                      const result = await ImagePicker.launchImageLibraryAsync({
+                        mediaTypes: ImagePicker.MediaTypeOptions.All,
+                        allowsEditing: false,
+                        quality: 1,
+                      });
+                      
+                      if (!result.canceled && result.assets && result.assets[0]) {
+                        const asset = result.assets[0];
+                        const fileName = asset.fileName || `attachment_${Date.now()}`;
+                        handleQuestionnaireResponse(permitKey, q.id, asset.uri);
+                      }
+                    } catch (err) {
+                      console.error('Error picking file:', err);
+                      Alert.alert('Error', 'Failed to select file');
+                    }
+                  }}
+                >
                   <Text style={{ fontSize: 24, marginBottom: 8 }}>📎</Text>
                   <Text style={{ color: '#2563EB', fontWeight: '500', textAlign: 'center' }}>Tap to attach document</Text>
                   {fileName && (
