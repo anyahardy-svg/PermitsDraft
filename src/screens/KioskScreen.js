@@ -97,6 +97,16 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
         const hostname = window.location.hostname;
         console.log('🏢 Kiosk hostname:', hostname);
         
+        // Check if on contractor hub domain - redirect to contractor auth
+        const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
+        if (isContractorHub) {
+          console.log('ℹ️ Contractor hub domain detected - redirecting to contractor auth');
+          if (typeof window !== 'undefined') {
+            window.location.href = '/sign-in-contractor';
+          }
+          return;
+        }
+        
         // Load sites
         const sitesData = await listSites();
         
