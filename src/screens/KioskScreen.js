@@ -49,7 +49,7 @@ const linesToHtml = (lines) => {
   }).join('');
 };
 
-const KioskScreen = ({ onViewPermits, initialRoute }) => {
+const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   // State
   const [currentScreen, setCurrentScreen] = useState(initialRoute || 'welcome'); // welcome, visitor-induction, visitor-signin, contractor-signin, signout, permits-kiosk, inductions, inductions-new, inductions-returning, inductions-resume
   const [site, setSite] = useState(null);
@@ -86,6 +86,17 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
   // For contractor induction
   const [showInductionModal, setShowInductionModal] = useState(false);
   const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
+
+  // Log when currentContractor is set
+  useEffect(() => {
+    if (currentContractor) {
+      console.log('👤 KioskScreen - currentContractor loaded:', { 
+        id: currentContractor.id,
+        name: currentContractor.name,
+        companyId: currentContractor.companyId
+      });
+    }
+  }, [currentContractor?.id]);
 
   // Initialize - detect site from subdomain
   useEffect(() => {
@@ -245,7 +256,15 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
         if (!siteId) return;
         const allPermits = await listPermits();
         // Filter permits for the current site
-        const sitePermits = allPermits.filter(p => p.site_id === siteId);
+        let sitePermits = allPermits.filter(p => p.site_id === siteId);
+        
+        // If a contractor is logged in, filter by their company
+        if (currentContractor && currentContractor.companyId) {
+          console.log('🔍 Filtering permits for contractor company:', currentContractor.companyId);
+          sitePermits = sitePermits.filter(p => p.company_id === currentContractor.companyId);
+          console.log(`📋 ${sitePermits.length} permits found for this contractor's company`);
+        }
+        
         setPermits(sitePermits);
         setPermitsLoading(false);
       } catch (error) {
@@ -257,7 +276,7 @@ const KioskScreen = ({ onViewPermits, initialRoute }) => {
     if (permitsLoading && currentScreen === 'permits-kiosk') {
       loadSitePermits();
     }
-  }, [permitsLoading, currentScreen, siteId]);
+  }, [permitsLoading, currentScreen, siteId, currentContractor?.companyId]);
 
   const handleContractorSearch = (text) => {
     setContractorSearch(text);
