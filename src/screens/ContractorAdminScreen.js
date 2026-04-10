@@ -1295,82 +1295,92 @@ export default function ContractorAdminScreen({
     );
   };
 
-  // Render my draft permits
-  const renderMyPermits = () => {
-    const handleCreateNewPermit = () => {
-      Alert.alert(
-        'Create New Permit',
-        'You can create permits either from:\n\n1. The Kiosk - Full permit creation form\n2. This dashboard - Your drafts will appear here\n\nWould you like to go to the Kiosk now?',
-        [
-          { text: 'Cancel', onPress: () => {} },
-          {
-            text: 'Go to Kiosk',
-            onPress: () => {
-              if (onReturnToKiosk) {
-                onReturnToKiosk();
-              } else {
-                // Fallback: navigate to kiosk URL
+  // Handle "Create New Permit" button click
+  const handleCreateNewPermit = () => {
+    console.log('🔘 Create New Permit button clicked');
+    console.log('onReturnToKiosk prop available:', !!onReturnToKiosk);
+    
+    Alert.alert(
+      'Create New Permit',
+      'You can create permits either from:\n\n1. The Kiosk - Full permit creation form\n2. This dashboard - Your drafts will appear here\n\nWould you like to go to the Kiosk now?',
+      [
+        { text: 'Cancel', onPress: () => { console.log('User cancelled'); } },
+        {
+          text: 'Go to Kiosk',
+          onPress: () => {
+            console.log('User clicked Go to Kiosk');
+            if (onReturnToKiosk) {
+              console.log('✅ Calling onReturnToKiosk()');
+              onReturnToKiosk();
+            } else {
+              console.log('⚠️ No onReturnToKiosk prop, using fallback');
+              if (typeof window !== 'undefined') {
                 window.location.href = '/';
               }
             }
           }
-        ]
-      );
-    };
+        }
+      ]
+    );
+  };
 
-    const handleEditDraft = (permit) => {
-      // For now, provide info about the draft
-      const siteName = permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified';
-      const permitType = permit.permit_type ? permit.permit_type.replace(/([A-Z])/g, ' $1').trim() : 'General';
-      
-      Alert.alert(
-        'Edit Draft Permit',
-        `Description: ${permit.description || 'Untitled'}\n\nType: ${permitType}\n${siteName}\n\nTo edit this draft, visit the Kiosk and select it from the available permits.`,
-        [
-          { text: 'OK', onPress: () => {} },
-          {
-            text: 'Go to Kiosk',
-            onPress: () => {
-              if (onReturnToKiosk) {
-                onReturnToKiosk();
-              }
+  // Handle editing a draft permit
+  const handleEditDraft = (permit) => {
+    // For now, provide info about the draft
+    const siteName = permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified';
+    const permitType = permit.permit_type ? permit.permit_type.replace(/([A-Z])/g, ' $1').trim() : 'General';
+    
+    Alert.alert(
+      'Edit Draft Permit',
+      `Description: ${permit.description || 'Untitled'}\n\nType: ${permitType}\n${siteName}\n\nTo edit this draft, visit the Kiosk and select it from the available permits.`,
+      [
+        { text: 'OK', onPress: () => {} },
+        {
+          text: 'Go to Kiosk',
+          onPress: () => {
+            if (onReturnToKiosk) {
+              onReturnToKiosk();
             }
           }
+        }
         ]
       );
-    };
+  };
 
-    const handleDeleteDraft = (permitId) => {
-      Alert.alert(
-        'Delete Draft',
-        'Are you sure you want to delete this draft permit?',
-        [
-          { text: 'Cancel', onPress: () => {} },
-          {
-            text: 'Delete',
-            onPress: async () => {
-              try {
-                const { error } = await supabase
-                  .from('permits')
-                  .delete()
-                  .eq('id', permitId);
-                
-                if (error) throw error;
-                
-                // Remove from local list
-                setDraftPermits(draftPermits.filter(p => p.id !== permitId));
-                Alert.alert('Success', 'Draft permit deleted');
-              } catch (error) {
-                console.error('Error deleting draft:', error);
-                Alert.alert('Error', 'Failed to delete draft permit');
-              }
-            },
-            style: 'destructive'
-          }
-        ]
-      );
-    };
+  // Handle deleting a draft permit
+  const handleDeleteDraft = (permitId) => {
+    Alert.alert(
+      'Delete Draft',
+      'Are you sure you want to delete this draft permit?',
+      [
+        { text: 'Cancel', onPress: () => {} },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('permits')
+                .delete()
+                .eq('id', permitId);
+              
+              if (error) throw error;
+              
+              // Remove from local list
+              setDraftPermits(draftPermits.filter(p => p.id !== permitId));
+              Alert.alert('Success', 'Draft permit deleted');
+            } catch (error) {
+              console.error('Error deleting draft:', error);
+              Alert.alert('Error', 'Failed to delete draft permit');
+            }
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
 
+  // Render my draft permits
+  const renderMyPermits = () => {
     const formatDate = (dateStr) => {
       if (!dateStr) return 'N/A';
       const date = new Date(dateStr);
