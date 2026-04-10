@@ -1297,9 +1297,17 @@ export default function ContractorAdminScreen({
 
   // Handle "Create New Permit" button click
   const handleCreateNewPermit = () => {
-    console.log('� Navigating to kiosk to create permit');
+    console.log('Navigating to kiosk to create permit for contractor:', loggedInContractor);
     if (onReturnToKiosk) {
-      onReturnToKiosk();
+      // Pass contractor info so kiosk filters permits by this contractor company
+      onReturnToKiosk({
+        id: loggedInContractorId,
+        contractorName: loggedInContractor,
+        email: loggedInContractorEmail,
+        phone: loggedInContractorPhone,
+        companyId: loggedInCompanyId,
+        company: loggedInCompanyName
+      });
     } else if (typeof window !== 'undefined') {
       window.location.href = '/';
     }
@@ -1320,7 +1328,14 @@ export default function ContractorAdminScreen({
           text: 'Go to Kiosk',
           onPress: () => {
             if (onReturnToKiosk) {
-              onReturnToKiosk();
+              onReturnToKiosk({
+                id: loggedInContractorId,
+                contractorName: loggedInContractor,
+                email: loggedInContractorEmail,
+                phone: loggedInContractorPhone,
+                companyId: loggedInCompanyId,
+                company: loggedInCompanyName
+              });
             }
           }
         }

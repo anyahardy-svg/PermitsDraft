@@ -19698,6 +19698,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         switch (currentScreen) {
           case 'dashboard':
             return renderDashboard();
+          case 'kiosk':
+            return (
+              <KioskScreen 
+                onViewPermits={(siteId) => {
+                  setInitialSiteId(siteId);
+                  setCurrentScreen('permit');
+                }}
+                currentContractor={currentContractor}
+              />
+            );
           case 'drafts':
             return renderPermitList('draft', 'Draft Permits');
           case 'pending_approval':
@@ -19928,7 +19938,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                window.location.hostname === 'localhost:3000');
             setCurrentScreen(isContractorHub ? 'contractorAuth' : 'dashboard');
           }}
-          onReturnToKiosk={() => setCurrentScreen('kiosk')}
+          onReturnToKiosk={(contractorInfo) => {
+            // If contractor info is passed, update currentContractor so kiosk filters permits by this contractor
+            if (contractorInfo && contractorInfo.id) {
+              setCurrentContractor({
+                id: contractorInfo.id,
+                name: contractorInfo.contractorName || contractorInfo.name || '',
+                email: contractorInfo.email || '',
+                phone: contractorInfo.phone || '',
+                company: contractorInfo.company || '',
+                companyId: contractorInfo.companyId || '',
+                businessUnitIds: contractorInfo.businessUnitIds || [],
+                services: contractorInfo.services || [],
+                siteIds: contractorInfo.siteIds || []
+              });
+              console.log('✅ Set currentContractor from contractor admin:', contractorInfo.name);
+            }
+            setCurrentScreen('kiosk');
+          }}
           businessUnitId={businessUnitId}
           businessUnits={businessUnits}
           styles={styles}
