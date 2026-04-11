@@ -2901,7 +2901,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           'permits': '/contractor-admin/permit-templates/',
           'accreditation': '/contractor-admin/accreditation/',
           'inductions': '/contractor-admin/inductions/',
-          'training-records': '/contractor-admin/training-records/'
+          'training-records': '/contractor-admin/training-records/',
+          'my-permits': '/contractor-admin/my-permits/'
         };
         newUrl = tabMap[contractorAdminTab] || '/contractor-admin/';
       }
@@ -2940,6 +2941,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'inductions': 'inductions',
             '/training-records': 'training-records',
             'training-records': 'training-records',
+            '/my-permits': 'my-permits',
+            'my-permits': 'my-permits',
             '': null,
             '/': null
           };
@@ -21292,6 +21295,8 @@ const AppRouter = ({ initialRoute }) => {
           'inductions': 'inductions',
           '/training-records': 'training-records',
           'training-records': 'training-records',
+          '/my-permits': 'my-permits',
+          'my-permits': 'my-permits',
           '': null,
           '/': null
         };

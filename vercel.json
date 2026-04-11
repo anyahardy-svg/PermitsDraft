@@ -203,6 +203,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/contractor-admin/my-permits",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contractor-admin/my-permits/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/auth/callback",
       "destination": "/index.html"
     },
