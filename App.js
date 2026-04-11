@@ -2653,6 +2653,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   }, [initialContractorAdminTab]);
 
+  // Restore contractor context from localStorage on app mount
+  useEffect(() => {
+    const stored = localStorage.getItem('_contractorContext');
+    if (stored) {
+      try {
+        const ctx = JSON.parse(stored);
+        console.log('📍 Restoring contractor from localStorage:', ctx);
+        setCurrentContractor({
+          id: ctx.id || '',
+          name: ctx.name || '',
+          email: ctx.email || '',
+          company_id: ctx.company_id || '',
+          phone: '',
+          businessUnitIds: [],
+          services: [],
+          siteIds: [],
+          company: '',
+          inductionExpiry: '',
+          companyManuallyEntered: false
+        });
+      } catch (e) {
+        console.warn('Failed to restore contractor context:', e);
+      }
+    }
+  }, []); // Run only on mount
+
   // Detect contractor hub domain and handle authentication
   useEffect(() => {
     const detectContractorHub = async () => {
@@ -2692,7 +2718,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setTimeout(() => setCurrentScreen('contractorAuth'), 0);
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
-          // Set currentContractor so dashboard can filter by company
+          // Persist contractor info to localStorage so it survives re-renders
+          localStorage.setItem('_contractorContext', JSON.stringify({
+            id: contractor.id,
+            name: contractor.name,
+            email: contractor.email,
+            company_id: contractor.company_id
+          }));
+          // Set currentContractor immediately
           setCurrentContractor({
             id: contractor.id,
             name: contractor.name,
@@ -20013,6 +20046,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
             // Contractor logged in successfully
             console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
+            // Store contractor info to localStorage for persistence
+            localStorage.setItem('_contractorContext', JSON.stringify({
+              id: contractorId,
+              name: contractorName,
+              email: email,
+              company_id: companyId
+            }));
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
             // Set currentContractor so dashboard filters by company
