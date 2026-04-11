@@ -283,10 +283,24 @@ export default function ContractorAdminScreen({
   const confirmLogout = (destination) => {
     console.log('← [BACK] Confirmed logout, returning to:', destination);
     setLogoutConfirmModal(false);
+    
+    // Build contractor info to pass back
+    const contractorInfo = {
+      id: loggedInContractorId,
+      contractorName: loggedInContractor,
+      name: loggedInContractor,
+      email: loggedInContractorEmail,
+      phone: loggedInContractorPhone,
+      companyId: loggedInCompanyId,
+      company_id: loggedInCompanyId
+    };
+    
     handleLogout();
     
     if (destination === 'kiosk' && onReturnToKiosk) {
-      onReturnToKiosk();
+      onReturnToKiosk(contractorInfo);
+    } else if (destination === 'dashboard' && onNavigateBack) {
+      onNavigateBack(contractorInfo);
     } else {
       onNavigateBack();
     }

@@ -2483,7 +2483,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -10776,7 +10776,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setContractors(freshContractors);
           window.alert('Contractor Added: New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false });
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -11386,7 +11386,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -20011,7 +20011,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'contractor_admin':
       return (
         <ContractorAdminScreen
-          onNavigateBack={() => {
+          onNavigateBack={(contractorInfo) => {
+            // If contractor info is passed, update currentContractor for dashboard filtering
+            if (contractorInfo && contractorInfo.id) {
+              setCurrentContractor({
+                id: contractorInfo.id || '',
+                name: contractorInfo.contractorName || contractorInfo.name || '',
+                email: contractorInfo.email || '',
+                phone: contractorInfo.phone || '',
+                company: contractorInfo.company || '',
+                company_id: contractorInfo.companyId || contractorInfo.company_id || '',
+                businessUnitIds: contractorInfo.businessUnitIds || [],
+                services: contractorInfo.services || [],
+                siteIds: contractorInfo.siteIds || []
+              });
+              console.log('✅ Set currentContractor from contractor admin:', contractorInfo.contractorName || contractorInfo.name);
+            }
             // For contractor hub, go back to login; for others, go to dashboard
             const isContractorHub = typeof window !== 'undefined' && 
               (window.location.hostname === 'contractorhq.co.nz' || 
