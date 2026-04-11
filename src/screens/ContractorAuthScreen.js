@@ -68,6 +68,24 @@ export default function ContractorAuthScreen({
 
   // Check if user is already logged in on mount
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const queryParams = new URLSearchParams(window.location.search);
+      const freshLogin = queryParams.get('fresh_login');
+      
+      // If fresh_login is set, clear any cached session to force new login
+      if (freshLogin === '1') {
+        console.log('🔄 Fresh login requested - clearing cached session');
+        // Clear contractor auth session from localStorage
+        localStorage.removeItem('contractor_session');
+        localStorage.removeItem('contractor_token');
+        localStorage.removeItem('contractor_id');
+        // Clear the URL parameter
+        window.history.replaceState(null, '', window.location.pathname);
+        // Don't check existing session when fresh login is requested
+        return;
+      }
+    }
+    
     checkExistingSession();
   }, []);
 
@@ -82,8 +100,18 @@ export default function ContractorAuthScreen({
       // Also check query string for ?type=invited from email links
       const queryParams = new URLSearchParams(window.location.search);
       const queryType = queryParams.get('type');
+      const freshLogin = queryParams.get('fresh_login');
       
-      console.log('🔍 URL parameters detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', hashType, queryType });
+      console.log('🔍 URL parameters detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', hashType, queryType, freshLogin });
+      
+      // If fresh_login is set, skip other flows and just show login form
+      if (freshLogin === '1') {
+        console.log('✅ Fresh login flow - showing login form');
+        setEmail('');
+        setPassword('');
+        setShowPasswordSetup(false);
+        return;
+      }
       
       // If this is an invitation link from email, show password setup immediately
       if (queryType === 'invited') {

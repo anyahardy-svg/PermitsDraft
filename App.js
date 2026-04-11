@@ -8023,7 +8023,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             shadowOpacity: 0.3,
             shadowRadius: 5,
           }}
-          onPress={() => setCurrentScreen('contractor_admin')}
+          onPress={() => {
+            // Redirect to contractor hub on main domain with fresh login
+            // This clears any cached sessions and forces a new authentication
+            window.location.href = 'https://contractorhq.co.nz/contractor-admin/?fresh_login=1';
+          }}
         >
           <Text style={{ fontSize: 24 }}>📋</Text>
           <Text style={{ fontSize: 8, color: 'white', marginTop: 2, fontWeight: '600' }}>Contractor</Text>
