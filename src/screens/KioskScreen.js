@@ -379,50 +379,30 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       console.log('📊 Check-in result:', result);
       
       if (result.success) {
+        // Clear the form immediately since check-in was recorded
+        const contractorName = selectedContractor.name;
+        setSelectedContractor(null);
+        setContractorSearch('');
+        setFilteredContractors([]);
+        setContractorInductionExpiry(null);
+        setContractorInductionExpired(false);
+        setAllContractorInductions([]);
+        setCurrentScreen('welcome');
+        loadSignedInPeople();
+        
+        // Then show status alert based on induction status
         if (result.isExpired) {
-          // Induction expired - need renewal
           Alert.alert(
             '⚠️ Induction Expired',
-            `${selectedContractor.name}'s induction expired on ${result.expiryDate}. Renewal required before check-in.`,
-            [
-              { text: 'Cancel', onPress: () => {} },
-              { text: 'Renew Induction', onPress: () => setShowInductionModal(true) }
-            ]
+            `${contractorName}'s induction expired on ${result.expiryDate}. They have been checked in but renewal is recommended.`
           );
         } else if (!result.inducted) {
-          // Not inducted - need induction first
           Alert.alert(
             '⚠️ Induction Required',
-            `${selectedContractor.name} has not completed induction at ${site.name}. Complete induction first.`,
-            [
-              { text: 'Cancel', onPress: () => {} },
-              { text: 'Start Induction', onPress: () => setShowInductionModal(true) }
-            ]
+            `${contractorName} is not inducted at ${site.name}. They have been checked in but induction is required.`
           );
         } else {
-          // Inducted and valid - show details then check in
-          Alert.alert(
-            '✓ Check In',
-            `${selectedContractor.name}\nInducted: ${result.expiryDate || 'Valid'}`,
-            [
-              { text: 'Cancel', onPress: () => {} },
-              { 
-                text: 'Confirm Check In', 
-                onPress: async () => {
-                  // Clear all contractor form state
-                  setSelectedContractor(null);
-                  setContractorSearch('');
-                  setFilteredContractors([]);
-                  setContractorInductionExpiry(null);
-                  setContractorInductionExpired(false);
-                  setAllContractorInductions([]);
-                  setCurrentScreen('welcome');
-                  loadSignedInPeople();
-                  Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
-                }
-              }
-            ]
-          );
+          Alert.alert('Success', `${contractorName} signed in successfully`);
         }
       } else {
         Alert.alert('Error', result.error || 'Check-in failed');
