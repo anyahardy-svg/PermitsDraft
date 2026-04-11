@@ -211,6 +211,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/permits",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/permits/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/auth/callback",
       "destination": "/index.html"
     },

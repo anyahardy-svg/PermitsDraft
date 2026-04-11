@@ -2889,7 +2889,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_business_units': '/admin/business-units/',
         'admin': '/admin/',
         'contractor_admin': '/contractor-admin/',
-        'dashboard': '/'
+        'dashboard': '/permits/'
       };
       
       let newUrl = routeMap[currentScreen] || '/';
@@ -3003,6 +3003,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setCurrentScreen(screen);
             return;
           }
+        }
+        
+        // Check for permits dashboard (contractor kiosk view)
+        if (pathname === '/permits' || pathname === '/permits/') {
+          setCurrentScreen('dashboard');
+          return;
         }
         
         // Default to dashboard if no route matched
@@ -20147,7 +20153,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('🔄 Navigating to dashboard to edit draft permit');
             // Update URL to dashboard first so contractor hub routing detects it properly
             if (typeof window !== 'undefined') {
-              window.history.replaceState({}, '', '/');
+              window.history.replaceState({}, '', '/permits/');
             }
             setCurrentScreen('dashboard');
           }}
