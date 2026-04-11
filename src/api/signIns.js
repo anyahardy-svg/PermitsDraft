@@ -18,29 +18,26 @@ import { supabase } from '../supabaseClient';
  */
 export async function checkInContractor(contractorId, siteId, businessUnitId) {
   try {
-    // First, check if contractor is inducted at this site
-    const { data: inductions, error: inductionError } = await supabase
-      .from('contractor_inductions')
-      .select('*')
-      .eq('contractor_id', contractorId)
-      .eq('site_id', siteId);
-
-    if (inductionError) {
-      throw inductionError;
-    }
-    
-    const induction = inductions?.[0] || null;
-
-    const isInducted = !!induction && (!induction.expires_at || new Date(induction.expires_at) > new Date());
-    const isExpired = !!induction && induction.expires_at && new Date(induction.expires_at) < new Date();
-
-    // Get contractor name, phone, and company
+    // Get contractor details including site_ids and induction_expiry
     const { data: contractor } = await supabase
       .from('contractors')
-      .select('name, phone, company_id')
+      .select('name, phone, company_id, site_ids, induction_expiry, services')
       .eq('id', contractorId)
       .single();
 
+    if (!contractor) {
+      return { success: false, error: 'Contractor not found' };
+    }
+
+    // Check if inducted at this site and if expired
+    const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
+    const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
+    const induction = isInductedHere ? {
+      expires_at: contractor.induction_expiry,
+      inducted_at: contractor.services // Using services as a proxy for what they're inducted for
+    } : null;
+
+    // Get company name if available
     const { data: company } = contractor?.company_id
       ? await supabase.from('companies').select('name').eq('id', contractor.company_id).single()
       : { data: null };
@@ -56,10 +53,10 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
         business_unit_id: businessUnitId,
         contractor_company: company?.name || 'Unknown',
         check_in_time: new Date().toISOString(),
-        inducted: isInducted,
-        induction_status: isExpired ? 'induction_expired' : (isInducted ? 'inducted' : 'not_inducted'),
-        inducted_at_site: induction?.inducted_at || null,
-        induction_expires_at: induction?.expires_at || null,
+        inducted: isInductedHere,
+        induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
+        inducted_at_site: contractor.induction_expiry || null,
+        induction_expires_at: contractor.induction_expiry || null,
       })
       .select()
       .single();
@@ -67,17 +64,17 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
     if (error) throw error;
 
     // Format expiry date for display
-    const expiryDate = induction?.expires_at ? new Date(induction.expires_at).toLocaleDateString('en-NZ') : null;
+    const expiryDate = contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : null;
 
     return {
       success: true,
       data,
-      inducted: isInducted,
+      inducted: isInductedHere,
       isExpired,
       expiryDate,
       message: isExpired 
         ? '⚠️ INDUCTION EXPIRED - renewal required before work' 
-        : isInducted 
+        : isInductedHere 
           ? 'Checked in successfully' 
           : '⚠️ NOT INDUCTED - induction required before work',
     };

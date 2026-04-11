@@ -319,40 +319,44 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setSelectedContractor(contractor);
     setFilteredContractors([]); // Clear the list so it collapses
     
-    console.log('🔍 Fetching inductions for contractor:', contractor.id, contractor.name);
+    console.log('🔍 Contractor selected:', contractor.name);
+    console.log('   Services:', contractor.services);
+    console.log('   Site IDs:', contractor.site_ids);
+    console.log('   Induction Expiry:', contractor.induction_expiry);
     
-    // Fetch ALL inductions for this contractor
     try {
-      const { data: allInductions } = await supabase
-        .from('contractor_inductions')
-        .select('*')
-        .eq('contractor_id', contractor.id);
-
-      console.log('📋 All inductions found:', allInductions?.length, allInductions);
-
-      // Find induction at current site
-      const currentSiteInduction = allInductions?.find(ind => ind.site_id === siteId);
+      // Check if contracted is inducted at current site
+      const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
+      const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
       
-      console.log('🎯 Current site induction:', currentSiteInduction);
-      
-      if (currentSiteInduction) {
-        const expiryDate = new Date(currentSiteInduction.expires_at).toLocaleDateString('en-NZ');
-        const isExpired = currentSiteInduction.expires_at && new Date(currentSiteInduction.expires_at) < new Date();
+      if (isInductedHere) {
+        const expiryDate = new Date(contractor.induction_expiry).toLocaleDateString('en-NZ');
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
-        console.log('✓ Current site inducted until:', expiryDate);
+        console.log('✓ Inducted at this site until:', expiryDate);
       } else {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
-        console.log('✗ Not inducted at current site');
+        console.log('✗ Not inducted at this site');
       }
       
-      // Store inductions at other sites for display
-      const otherSiteInductions = allInductions?.filter(ind => ind.site_id !== siteId) || [];
-      console.log('🌍 Other site inductions:', otherSiteInductions?.length, otherSiteInductions);
-      setAllContractorInductions(otherSiteInductions);
+      // Build a list of other sites where they ARE inducted
+      const otherSiteIds = contractor.site_ids?.filter(id => id !== siteId) || [];
+      console.log('🌍 Other site IDs:', otherSiteIds);
+      
+      // Create objects with site details for display
+      const otherSites = otherSiteIds.map(siteId => {
+        const site = allSites.find(s => s.id === siteId);
+        return {
+          site_id: siteId,
+          name: site?.name || siteId,
+          expires_at: contractor.induction_expiry
+        };
+      });
+      
+      setAllContractorInductions(otherSites);
     } catch (error) {
-      console.warn('❌ Could not fetch induction status:', error);
+      console.warn('❌ Error processing contractor:', error);
       setContractorInductionExpiry(null);
       setContractorInductionExpired(false);
       setAllContractorInductions([]);
