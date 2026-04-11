@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
+import { supabase } from '../supabaseClient';
 import { handoverPermit, getPermitHandoverHistory } from '../api/permitHandovers';
 
 export default function PermitHandoverModal({

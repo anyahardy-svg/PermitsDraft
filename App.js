@@ -34,6 +34,7 @@ import { listServicesByBusinessUnit, listAllServices } from './src/api/services'
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompanyTrainingRecordsStatus, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
+import { handoverPermit } from './src/api/permitHandovers';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -48,6 +49,7 @@ import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
+import PermitHandoverModal from './src/components/PermitHandoverModal';
 
 // List of all available sites
 const ALL_SITES = [
@@ -2511,6 +2513,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [approvingTrainingRecords, setApprovingTrainingRecords] = useState(false);
   const [showTrainingRecordsFeedbackModal, setShowTrainingRecordsFeedbackModal] = useState(false);
   const [trainingRecordsFeedback, setTrainingRecordsFeedback] = useState('');
+  
+  // Permit Handover States
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [permitForHandover, setPermitForHandover] = useState(null);
+  const [availableReceiversList, setAvailableReceiversList] = useState([]);
   
   // Accreditation Invitation States
   const [showInvitationModal, setShowInvitationModal] = useState(false);
@@ -18083,12 +18090,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
                 <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
               </View>
-              <TouchableOpacity style={styles.primaryButton} onPress={() => {
-                setSelectedPermit(item);
-                setCurrentScreen('edit_active_permit');
-              }}>
-                <Text style={styles.primaryButtonText}>Edit / Complete</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity style={[styles.primaryButton, { flex: 2 }]} onPress={() => {
+                  setSelectedPermit(item);
+                  setCurrentScreen('edit_active_permit');
+                }}>
+                  <Text style={styles.primaryButtonText}>Edit / Complete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.primaryButton, { flex: 1, backgroundColor: '#F59E0B' }]} 
+                  onPress={() => {
+                    setPermitForHandover(item);
+                    setShowHandoverModal(true);
+                    // TODO: Load available receivers for this site
+                  }}
+                >
+                  <Text style={styles.primaryButtonText}>Hand Over</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>No active permits.</Text>}
@@ -20562,6 +20581,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         </View>
       </Modal>
+
+      {/* PERMIT HANDOVER MODAL */}
+      <PermitHandoverModal
+        visible={showHandoverModal}
+        onClose={() => {
+          setShowHandoverModal(false);
+          setPermitForHandover(null);
+        }}
+        permit={permitForHandover}
+        currentReceiverId={currentContractor?.id}
+        currentReceiverName={currentContractor?.name || 'Unknown'}
+        availableReceivers={availableReceiversList}
+        onHandoverComplete={() => {
+          // Reload permits after successful handover
+          loadPermits();
+          setShowHandoverModal(false);
+          setPermitForHandover(null);
+        }}
+        styles={styles}
+      />
     </View>
   );
 };
