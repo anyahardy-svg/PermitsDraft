@@ -1360,6 +1360,8 @@ export default function ContractorAdminScreen({
   const handleEditDraft = (permit) => {
     // Navigate back to dashboard with contractor context
     // The dashboard will show draft permits and allow editing
+    console.log('🔄 handleEditDraft clicked for permit:', permit.id);
+    console.log('   Calling onNavigateBack with contractor info');
     if (onNavigateBack) {
       onNavigateBack({
         id: loggedInContractorId,
@@ -1372,6 +1374,8 @@ export default function ContractorAdminScreen({
         services: [],
         siteIds: []
       });
+    } else {
+      console.warn('⚠️ onNavigateBack is not defined!');
     }
   };
 
