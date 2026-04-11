@@ -18,18 +18,26 @@ import { supabase } from '../supabaseClient';
  */
 export async function checkInContractor(contractorId, siteId, businessUnitId) {
   try {
+    console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
+    
     // Get contractor details
-    const { data: contractor } = await supabase
+    const { data: contractor, error: contractorError } = await supabase
       .from('contractors')
       .select('*')
       .eq('id', contractorId)
       .single();
 
+    if (contractorError) {
+      console.error('❌ Contractor query error:', contractorError);
+      throw contractorError;
+    }
+
     if (!contractor) {
+      console.error('❌ No contractor found with ID:', contractorId);
       return { success: false, error: 'Contractor not found' };
     }
 
-    console.log('Contractor data:', contractor);
+    console.log('✓ Contractor data:', contractor);
 
     // Check if inducted at this site and if expired
     const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
@@ -39,12 +47,27 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
       inducted_at: contractor.services // Using services as a proxy for what they're inducted for
     } : null;
 
+    console.log('📋 Status - Inducted here:', isInductedHere, 'Expired:', isExpired);
+
     // Get company name if available
-    const { data: company } = contractor?.company_id
-      ? await supabase.from('companies').select('name').eq('id', contractor.company_id).single()
-      : { data: null };
+    let companyName = 'Unknown';
+    if (contractor?.company_id) {
+      try {
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', contractor.company_id)
+          .single();
+        if (!companyError && company) {
+          companyName = company.name;
+        }
+      } catch (err) {
+        console.warn('Could not fetch company name:', err.message);
+      }
+    }
 
     // Create sign-in record
+    console.log('📝 Creating sign-in record...');
     const { data, error } = await supabase
       .from('sign_ins')
       .insert({
@@ -53,7 +76,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
         contractor_phone: contractor?.phone || null,
         site_id: siteId,
         business_unit_id: businessUnitId,
-        contractor_company: company?.name || 'Unknown',
+        contractor_company: companyName,
         check_in_time: new Date().toISOString(),
         inducted: isInductedHere,
         induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
@@ -63,7 +86,12 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Sign-in insert error:', error);
+      throw error;
+    }
+
+    console.log('✓ Sign-in recorded:', data?.id);
 
     // Format expiry date for display
     const expiryDate = contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : null;
@@ -81,7 +109,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
           : '⚠️ NOT INDUCTED - induction required before work',
     };
   } catch (error) {
-    console.error('Check-in error:', error);
+    console.error('❌ Check-in error:', error.message, error.code);
     return { success: false, error: error.message };
   }
 }

@@ -365,14 +365,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInContractor = async () => {
+    console.log('🔘 Check-in button clicked');
     if (!selectedContractor) {
       Alert.alert('Error', 'Please select a contractor');
       return;
     }
     
+    console.log('📞 Calling checkInContractor for:', selectedContractor.name);
     try {
       // Check induction status
       const result = await checkInContractor(selectedContractor.id, siteId, businessUnitId);
+      
+      console.log('📊 Check-in result:', result);
       
       if (result.success) {
         if (result.isExpired) {
