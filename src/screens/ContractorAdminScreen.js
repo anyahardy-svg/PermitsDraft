@@ -529,7 +529,9 @@ export default function ContractorAdminScreen({
       if (!effectiveBuId) return;
       setLoadingSites(true);
       try {
+        console.log('📍 Loading sites for business unit:', effectiveBuId);
         const sitesData = await getSitesByBusinessUnits([effectiveBuId]);
+        console.log('✅ Loaded sites:', sitesData?.map(s => ({id: s.id, name: s.name})) || []);
         setSites(sitesData || []);
       } catch (error) {
         console.error('Failed to load sites:', error);
@@ -1492,7 +1494,12 @@ export default function ContractorAdminScreen({
 
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                    📍 Site: {permit.site_id ? (sites.find(s => s.id === permit.site_id)?.name || permit.site_id) : 'Not specified'}
+                    📍 Site: {permit.site_id ? (() => {
+                      console.log('🔍 Looking up site:', permit.site_id, 'Sites available:', sites.map(s => ({id: s.id, name: s.name})));
+                      const foundSite = sites.find(s => s.id === permit.site_id);
+                      console.log('   Found:', foundSite);
+                      return foundSite?.name || permit.site_id;
+                    })() : 'Not specified'}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
                     📅 Created: {formatDate(permit.created_at)}
