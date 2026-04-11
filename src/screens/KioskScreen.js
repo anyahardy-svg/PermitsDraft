@@ -55,6 +55,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [site, setSite] = useState(null);
   const [siteId, setSiteId] = useState(null);
   const [businessUnitId, setBusinessUnitId] = useState(null);
+  const [allSites, setAllSites] = useState([]); // Store all sites for lookup
   const [loading, setLoading] = useState(true);
   const [testMode, setTestMode] = useState(false); // For development/testing
   
@@ -65,6 +66,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [contractorInductionExpiry, setContractorInductionExpiry] = useState(null);
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
+  const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
@@ -120,6 +122,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         
         // Load sites
         const sitesData = await listSites();
+        setAllSites(sitesData); // Store for later lookups
         
         // Try to match by kiosk_subdomain
         const parts = hostname.split('.');
@@ -316,28 +319,34 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setSelectedContractor(contractor);
     setFilteredContractors([]); // Clear the list so it collapses
     
-    // Fetch induction status for this contractor at this site
+    // Fetch ALL inductions for this contractor
     try {
-      const { data: induction } = await supabase
+      const { data: allInductions } = await supabase
         .from('contractor_inductions')
         .select('*')
-        .eq('contractor_id', contractor.id)
-        .eq('site_id', siteId)
-        .single();
+        .eq('contractor_id', contractor.id);
 
-      if (induction) {
-        const expiryDate = new Date(induction.expires_at).toLocaleDateString('en-NZ');
-        const isExpired = induction.expires_at && new Date(induction.expires_at) < new Date();
+      // Find induction at current site
+      const currentSiteInduction = allInductions?.find(ind => ind.site_id === siteId);
+      
+      if (currentSiteInduction) {
+        const expiryDate = new Date(currentSiteInduction.expires_at).toLocaleDateString('en-NZ');
+        const isExpired = currentSiteInduction.expires_at && new Date(currentSiteInduction.expires_at) < new Date();
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
       } else {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
       }
+      
+      // Store inductions at other sites for display
+      const otherSiteInductions = allInductions?.filter(ind => ind.site_id !== siteId) || [];
+      setAllContractorInductions(otherSiteInductions);
     } catch (error) {
       console.warn('Could not fetch induction status:', error);
       setContractorInductionExpiry(null);
       setContractorInductionExpired(false);
+      setAllContractorInductions([]);
     }
   };
 
@@ -358,6 +367,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setFilteredContractors([]);
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
+        setAllContractorInductions([]);
         setCurrentScreen('welcome');
         loadSignedInPeople();
       } else {
@@ -453,6 +463,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               setContractorSearch('');
               setContractorInductionExpiry(null);
               setContractorInductionExpired(false);
+              setAllContractorInductions([]);
             }}
           >
             <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -667,31 +678,54 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   Induction Status:
                 </Text>
                 {contractorInductionExpiry ? (
-                  <Text style={{ 
-                    fontSize: 14, 
-                    fontWeight: '600',
-                    color: contractorInductionExpired ? '#DC2626' : '#10B981',
-                    backgroundColor: contractorInductionExpired ? '#FEE2E2' : '#DCFCE7',
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 4,
-                    alignSelf: 'flex-start'
-                  }}>
-                    {contractorInductionExpired ? '❌ EXPIRED' : '✓ Valid'} - Expires: {contractorInductionExpiry}
-                  </Text>
+                  <View>
+                    <Text style={{ 
+                      fontSize: 14, 
+                      fontWeight: '600',
+                      color: contractorInductionExpired ? '#DC2626' : '#10B981',
+                      backgroundColor: contractorInductionExpired ? '#FEE2E2' : '#DCFCE7',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 4,
+                      alignSelf: 'flex-start'
+                    }}>
+                      {contractorInductionExpired ? '❌ EXPIRED' : '✓ Valid'} - {contractorInductionExpiry}
+                    </Text>
+                  </View>
                 ) : (
-                  <Text style={{ 
-                    fontSize: 14, 
-                    fontWeight: '600',
-                    color: '#DC2626',
-                    backgroundColor: '#FEE2E2',
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 4,
-                    alignSelf: 'flex-start'
-                  }}>
-                    ⚠️ NOT INDUCTED
-                  </Text>
+                  <View>
+                    <Text style={{ 
+                      fontSize: 14, 
+                      fontWeight: '600',
+                      color: '#DC2626',
+                      backgroundColor: '#FEE2E2',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 4,
+                      alignSelf: 'flex-start'
+                    }}>
+                      ⚠️ NOT INDUCTED AT THIS SITE
+                    </Text>
+                    {allContractorInductions.length > 0 && (
+                      <View style={{ marginTop: 8 }}>
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Inducted at other sites:</Text>
+                        {allContractorInductions.map((induction, idx) => {
+                          const expiryDate = new Date(induction.expires_at).toLocaleDateString('en-NZ');
+                          const isExpired = induction.expires_at && new Date(induction.expires_at) < new Date();
+                          const siteName = allSites.find(s => s.id === induction.site_id)?.name || induction.site_id;
+                          return (
+                            <Text key={idx} style={{ 
+                              fontSize: 12, 
+                              color: isExpired ? '#DC2626' : '#10B981',
+                              marginBottom: 2
+                            }}>
+                              • {siteName} {isExpired ? `(Expired: ${expiryDate})` : `(Expires: ${expiryDate})`}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 )}
               </View>
               
@@ -1108,6 +1142,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 setContractorSearch('');
                 setContractorInductionExpiry(null);
                 setContractorInductionExpired(false);
+                setAllContractorInductions([]);
               }}
             >
               <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
