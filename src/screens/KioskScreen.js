@@ -319,6 +319,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setSelectedContractor(contractor);
     setFilteredContractors([]); // Clear the list so it collapses
     
+    console.log('🔍 Fetching inductions for contractor:', contractor.id, contractor.name);
+    
     // Fetch ALL inductions for this contractor
     try {
       const { data: allInductions } = await supabase
@@ -326,24 +328,31 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         .select('*')
         .eq('contractor_id', contractor.id);
 
+      console.log('📋 All inductions found:', allInductions?.length, allInductions);
+
       // Find induction at current site
       const currentSiteInduction = allInductions?.find(ind => ind.site_id === siteId);
+      
+      console.log('🎯 Current site induction:', currentSiteInduction);
       
       if (currentSiteInduction) {
         const expiryDate = new Date(currentSiteInduction.expires_at).toLocaleDateString('en-NZ');
         const isExpired = currentSiteInduction.expires_at && new Date(currentSiteInduction.expires_at) < new Date();
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
+        console.log('✓ Current site inducted until:', expiryDate);
       } else {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
+        console.log('✗ Not inducted at current site');
       }
       
       // Store inductions at other sites for display
       const otherSiteInductions = allInductions?.filter(ind => ind.site_id !== siteId) || [];
+      console.log('🌍 Other site inductions:', otherSiteInductions?.length, otherSiteInductions);
       setAllContractorInductions(otherSiteInductions);
     } catch (error) {
-      console.warn('Could not fetch induction status:', error);
+      console.warn('❌ Could not fetch induction status:', error);
       setContractorInductionExpiry(null);
       setContractorInductionExpired(false);
       setAllContractorInductions([]);
