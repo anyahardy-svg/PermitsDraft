@@ -2692,6 +2692,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setTimeout(() => setCurrentScreen('contractorAuth'), 0);
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
+          // Set currentContractor so dashboard can filter by company
+          setCurrentContractor({
+            id: contractor.id,
+            name: contractor.name,
+            email: contractor.email,
+            company_id: contractor.company_id,
+            phone: '',
+            businessUnitIds: [],
+            services: [],
+            siteIds: [],
+            company: '',
+            inductionExpiry: '',
+            companyManuallyEntered: false
+          });
+          // Also set selectedCompanyId for UI checks
+          setSelectedCompanyId(contractor.company_id);
           // Redirect to contractor admin
           setTimeout(() => setCurrentScreen('contractor_admin'), 0);
         }
