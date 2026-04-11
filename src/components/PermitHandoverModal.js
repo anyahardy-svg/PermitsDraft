@@ -20,7 +20,8 @@ export default function PermitHandoverModal({
   currentReceiverName,
   availableReceivers = [],
   onHandoverComplete,
-  styles
+  styles,
+  migrationRequired
 }) {
   const [selectedReceiverId, setSelectedReceiverId] = useState(null);
   const [selectedReceiverName, setSelectedReceiverName] = useState(null);
@@ -207,6 +208,7 @@ export default function PermitHandoverModal({
                             key={receiver.id}
                             onPress={() => {
                               setSelectedReceiverId(receiver.id);
+                              // Use email if available, otherwise name
                               setSelectedReceiverName(receiver.email || receiver.name || 'Unknown');
                               setShowReceiverDropdown(false);
                             }}
@@ -224,6 +226,11 @@ export default function PermitHandoverModal({
                             }}>
                               {receiver.email || receiver.name || 'Unknown'}
                             </Text>
+                            {receiver.name && receiver.email && (
+                              <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                                {receiver.name}
+                              </Text>
+                            )}
                           </TouchableOpacity>
                         ))
                     ) : (
