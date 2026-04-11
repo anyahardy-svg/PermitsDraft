@@ -1979,7 +1979,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
-        contractor_id: currentContractor?.i
+        contractor_id: currentContractor?.id || null,
+        controls_summary: '',
+        specialized_permits: formData.specializedPermits,
+        single_hazards: formData.singleHazards,
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
+        isolations: formData.isolations,
+        sign_ons: formData.signOns,
+        attachments: []
       };
 
       // Save to Supabase
