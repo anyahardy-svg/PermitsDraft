@@ -523,6 +523,26 @@ export default function ContractorAdminScreen({
     }
   }, [activeTab, loggedInContractorId]);
 
+  // Load sites for selected business units so we can display site names in draft permits
+  useEffect(() => {
+    const loadAllSites = async () => {
+      if (!effectiveBuId) return;
+      setLoadingSites(true);
+      try {
+        const sitesData = await getSitesByBusinessUnits([effectiveBuId]);
+        setSites(sitesData || []);
+      } catch (error) {
+        console.error('Failed to load sites:', error);
+      } finally {
+        setLoadingSites(false);
+      }
+    };
+    
+    if (isLoggedIn) {
+      loadAllSites();
+    }
+  }, [isLoggedIn, effectiveBuId]);
+
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
     console.log('🔴 SAVE CLICKED - Starting handleSaveJseaTemplate');
@@ -1472,7 +1492,7 @@ export default function ContractorAdminScreen({
 
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                    📍 Site: {permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified'}
+                    📍 Site: {permit.site_id ? (sites.find(s => s.id === permit.site_id)?.name || permit.site_id) : 'Not specified'}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
                     📅 Created: {formatDate(permit.created_at)}
