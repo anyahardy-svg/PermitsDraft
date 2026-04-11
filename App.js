@@ -1979,11 +1979,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (userData && userData.id) {
             receiverUserId = userData.id;
             console.log('✓ Found user ID for', formData.requestedByEmail, ':', receiverUserId);
-          } else if (userError) {
-            console.warn('⚠️ Could not find user for email:', formData.requestedByEmail, userError);
+          } else {
+            console.warn('⚠️ User not found for email:', formData.requestedByEmail, '- permit will be created without an initial receiver. You can assign one via handover.');
           }
         } catch (err) {
-          console.warn('⚠️ Error looking up user ID:', err);
+          console.warn('⚠️ Error looking up user ID:', err.message, '- permit will be created without an initial receiver. You can assign one via handover.');
         }
       }
       
