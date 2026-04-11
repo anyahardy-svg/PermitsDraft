@@ -486,14 +486,16 @@ export default function ContractorAdminScreen({
       const loadDrafts = async () => {
         setLoadingDrafts(true);
         try {
+          // Only select necessary columns for the list view (not all columns with large data like attachments)
           const { data, error } = await supabase
             .from('permits')
-            .select('*')
+            .select('id, description, permit_type, site_id, created_at, status')
             .eq('contractor_id', loggedInContractorId)
             .eq('status', 'draft')
             .order('created_at', { ascending: false });
           
           if (error) throw error;
+          console.log('✅ Loaded draft permits:', data?.length || 0);
           setDraftPermits(data || []);
         } catch (error) {
           console.error('Error loading draft permits:', error);

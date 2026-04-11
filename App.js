@@ -1977,7 +1977,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {}, // Keep first JSEA for backward compatibility
-        jseas: formData.jseas || [], // Save all JSEAs
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: [] // Will be populated after upload
@@ -6826,7 +6825,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
         jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
-        jseas: editData.jseas || [], // Save all JSEAs
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
@@ -6874,7 +6872,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
         jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
-        jseas: editData.jseas || [], // Save all JSEAs
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
