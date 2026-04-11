@@ -1973,6 +1973,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null, // Save contractor ID if contractor is logged in
+        company_id: currentContractor?.companyId || selectedCompanyId || null, // Save company ID for filtering in kiosk
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
@@ -6827,7 +6828,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
         isolations: editData.isolations,
         sign_ons: editData.signOns,
-        attachments: editData.attachments
+        attachments: editData.attachments,
+        company_id: editData.company_id // Preserve company_id for filtering
       });
       
       const freshPermits = await listPermits();
@@ -6874,7 +6876,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
         isolations: editData.isolations,
         sign_ons: editData.signOns,
-        attachments: editData.attachments
+        attachments: editData.attachments,
+        company_id: editData.company_id // Preserve company_id for filtering
       });
       
       const freshPermits = await listPermits();
