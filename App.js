@@ -2404,6 +2404,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const contractorsData = await listContractors();
         console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
         console.log('📊 Contractor data:', contractorsData);
+        // Cache contractors for permit filtering
+        window._contractorsCache = contractorsData;
         setContractors(contractorsData);
         console.log('🎯 Contractors state should now be:', contractorsData);
         
@@ -2972,26 +2974,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Utility functions
   
-  // Filter permits by contractor company if contractor is logged in
+  // Filter permits by contractor's company if contractor is logged in
   const filterPermitsByContractorCompany = (permits) => {
     if (!currentContractor || !currentContractor.company_id) {
       console.log('⚠️ [FILTER] No contractor company context, showing all permits');
       return permits;
     }
     
-    const userCompanyId = currentContractor.company_id;
+    const companyId = currentContractor.company_id;
+    const contractorsInCompany = window._contractorsCache?.filter(c => c.company_id === companyId) || [];
+    const contractorIds = new Set(contractorsInCompany.map(c => c.id));
     
-    // Filter to show permits from contractors in the same company
-    // We need to check each permit's contractor against contractors in this company
-    const filtered = permits.filter(p => {
-      if (!p.contractor_id) return false;
-      // Find the contractor for this permit and check if it's in the same company
-      const contractorForPermit = allContractors?.find(c => c.id === p.contractor_id);
-      return contractorForPermit && contractorForPermit.company_id === userCompanyId;
-    });
+    console.log(`🔍 [FILTER] Filtering permits for company ${companyId}`);
+    console.log(`   Found ${contractorsInCompany.length} contractors in company, IDs: ${Array.from(contractorIds).join(', ')}`);
     
-    console.log(`🏢 [FILTER] Showing permits for company ${userCompanyId}`);
-    console.log(`🔍 [FILTER] Filtered ${permits.length} → ${filtered.length} permits`);
+    // Filter to show only permits from contractors in this company
+    const filtered = permits.filter(p => contractorIds.has(p.contractor_id));
+    console.log(`   Filtered ${permits.length} → ${filtered.length} permits`);
     return filtered;
   };
   
@@ -5810,20 +5809,72 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <Text style={styles.primaryButtonText}>View</Text>
         </TouchableOpacity>
       ) : item.status === 'draft' ? (
-        <TouchableOpacity style={styles.primaryButton} onPress={() => {
-          setSelectedPermit(item);
-          setCurrentScreen('review_permit');
-        }}>
-          <Text style={styles.primaryButtonText}>Edit</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
+            setSelectedPermit(item);
+            setCurrentScreen('review_permit');
+          }}>
+            <Text style={styles.primaryButtonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
+            Alert.alert(
+              'Delete Draft',
+              'Are you sure you want to delete this draft permit?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Delete', 
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await deletePermit(item.id);
+                      setPermits(permits.filter(p => p.id !== item.id));
+                      Alert.alert('Success', 'Draft permit deleted');
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to delete permit: ' + error.message);
+                    }
+                  }
+                }
+              ]
+            );
+          }}>
+            <Text style={styles.primaryButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
-        <TouchableOpacity style={styles.primaryButton} onPress={() => {
-          setSelectedPermit(item);
-          setEditPermitData(null);
-          setCurrentScreen('edit_permit');
-        }}>
-          <Text style={styles.primaryButtonText}>Edit</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
+            setSelectedPermit(item);
+            setEditPermitData(null);
+            setCurrentScreen('edit_permit');
+          }}>
+            <Text style={styles.primaryButtonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
+            Alert.alert(
+              'Delete Permit',
+              'Are you sure you want to delete this permit?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Delete', 
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await deletePermit(item.id);
+                      setPermits(permits.filter(p => p.id !== item.id));
+                      Alert.alert('Success', 'Permit deleted');
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to delete permit: ' + error.message);
+                    }
+                  }
+                }
+              ]
+            );
+          }}>
+            <Text style={styles.primaryButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -7641,9 +7692,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Filter by status first
     let filteredPermits = permits.filter(p => p.status === status);
     
-    // If contractor is logged in, filter by their company
-    if (currentContractor && currentContractor.company_id) {
-      console.log(`📋 [PERMIT LIST] Filtering ${title} by contractor company ${currentContractor.company_id}`);
+    // If contractor is logged in, filter by their ID
+    if (currentContractor && currentContractor.id) {
+      console.log(`📋 [PERMIT LIST] Filtering ${title} by contractor ${currentContractor.id}`);
       filteredPermits = filterPermitsByContractorCompany(filteredPermits);
     }
     
@@ -7932,7 +7983,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     // If contractor is logged in, filter by their company
     if (currentContractor && currentContractor.company_id) {
-      console.log(`📊 [DASHBOARD] Filtering permits by contractor company ${currentContractor.company_id}`);
+      console.log(`📊 [DASHBOARD] Filtering permits by company ${currentContractor.company_id}`);
       sitePermits = filterPermitsByContractorCompany(sitePermits);
     }
 
