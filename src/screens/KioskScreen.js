@@ -325,7 +325,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     console.log('   Induction Expiry:', contractor.induction_expiry);
     
     try {
-      // Check if contracted is inducted at current site
+      // Check if contractor is inducted at current site
+      // The contractor object already has site_ids and induction_expiry from the list fetch
       const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
       const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
       

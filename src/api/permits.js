@@ -41,7 +41,6 @@ const transformPermit = (dbPermit) => {
     singleHazards: dbPermit.single_hazards || {},
     single_hazards: dbPermit.single_hazards || {},
     jsea: dbPermit.jsea || {},
-    jseas: dbPermit.jseas || [],
     isolations: dbPermit.isolations || [],
     signOns: dbPermit.sign_ons || {},
     sign_ons: dbPermit.sign_ons || {},

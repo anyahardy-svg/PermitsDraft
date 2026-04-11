@@ -18,16 +18,18 @@ import { supabase } from '../supabaseClient';
  */
 export async function checkInContractor(contractorId, siteId, businessUnitId) {
   try {
-    // Get contractor details including site_ids and induction_expiry
+    // Get contractor details
     const { data: contractor } = await supabase
       .from('contractors')
-      .select('name, phone, company_id, site_ids, induction_expiry, services')
+      .select('*')
       .eq('id', contractorId)
       .single();
 
     if (!contractor) {
       return { success: false, error: 'Contractor not found' };
     }
+
+    console.log('Contractor data:', contractor);
 
     // Check if inducted at this site and if expired
     const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
