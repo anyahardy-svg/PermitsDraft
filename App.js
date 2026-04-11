@@ -2656,6 +2656,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Restore contractor context from localStorage on app mount
   useEffect(() => {
     const stored = localStorage.getItem('_contractorContext');
+    console.log('🔄 Checking localStorage for contractor context:', stored ? '✅ Found' : '❌ Not found');
     if (stored) {
       try {
         const ctx = JSON.parse(stored);
@@ -2673,9 +2674,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           inductionExpiry: '',
           companyManuallyEntered: false
         });
+        console.log('✅ currentContractor state set from localStorage');
       } catch (e) {
         console.warn('Failed to restore contractor context:', e);
       }
+    } else {
+      console.log('ℹ️ localStorage empty - contractor will be restored from detectContractorHub');
     }
   }, []); // Run only on mount
 
@@ -2715,7 +2719,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         if (!success || !contractor) {
           console.log('❌ No logged-in contractor found - forcing login screen');
           // Force to contractor auth screen if not logged in
-          setTimeout(() => setCurrentScreen('contractorAuth'), 0);
+          setCurrentScreen('contractorAuth');
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
           // Persist contractor info to localStorage so it survives re-renders
@@ -2725,7 +2729,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             email: contractor.email,
             company_id: contractor.company_id
           }));
-          // Set currentContractor immediately
+          console.log('💾 Saved contractor to localStorage');
+          // Set currentContractor IMMEDIATELY without setTimeout
           setCurrentContractor({
             id: contractor.id,
             name: contractor.name,
@@ -2739,10 +2744,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             inductionExpiry: '',
             companyManuallyEntered: false
           });
+          console.log('✅ currentContractor state set immediately');
           // Also set selectedCompanyId for UI checks
           setSelectedCompanyId(contractor.company_id);
+          console.log('✅ selectedCompanyId set to:', contractor.company_id);
           // Redirect to contractor admin
-          setTimeout(() => setCurrentScreen('contractor_admin'), 0);
+          setCurrentScreen('contractor_admin');
         }
       } else {
         console.log('ℹ️ Not contractor hub domain - normal permit app');
@@ -20053,8 +20060,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               email: email,
               company_id: companyId
             }));
+            console.log('💾 Saved contractor to localStorage from onLoginSuccess');
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
+            console.log('✅ selectedCompanyId set to:', companyId);
             // Set currentContractor so dashboard filters by company
             setCurrentContractor({
               id: contractorId,
@@ -20069,6 +20078,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               inductionExpiry: '',
               companyManuallyEntered: false
             });
+            console.log('✅ currentContractor state set from onLoginSuccess');
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
           }}
