@@ -526,13 +526,18 @@ export default function ContractorAdminScreen({
   // Load sites for selected business units so we can display site names in draft permits
   useEffect(() => {
     const loadAllSites = async () => {
-      if (!effectiveBuId) return;
       setLoadingSites(true);
       try {
-        console.log('📍 Loading sites for business unit:', effectiveBuId);
-        const sitesData = await getSitesByBusinessUnits([effectiveBuId]);
-        console.log('✅ Loaded sites:', sitesData?.map(s => ({id: s.id, name: s.name})) || []);
-        setSites(sitesData || []);
+        console.log('📍 Loading ALL sites (not limited by business unit)');
+        // Load all sites, not just for the current business unit, so we can match any site_id
+        const { data, error } = await supabase
+          .from('sites')
+          .select('id, name')
+          .order('name', { ascending: true });
+        
+        if (error) throw error;
+        console.log('✅ Loaded all sites:', data?.map(s => ({id: s.id, name: s.name})) || []);
+        setSites(data || []);
       } catch (error) {
         console.error('Failed to load sites:', error);
       } finally {
@@ -543,7 +548,7 @@ export default function ContractorAdminScreen({
     if (isLoggedIn) {
       loadAllSites();
     }
-  }, [isLoggedIn, effectiveBuId]);
+  }, [isLoggedIn]);
 
   // Handle save JSEA template - show modal first
   const handleSaveJseaTemplate = async () => {
@@ -1495,9 +1500,11 @@ export default function ContractorAdminScreen({
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
                     📍 Site: {permit.site_id ? (() => {
-                      console.log('🔍 Looking up site:', permit.site_id, 'Sites available:', sites.map(s => ({id: s.id, name: s.name})));
                       const foundSite = sites.find(s => s.id === permit.site_id);
-                      console.log('   Found:', foundSite);
+                      if (!foundSite) {
+                        console.log('⚠️ Site not found. Looking for:', permit.site_id);
+                        console.log('   Available site IDs:', sites.map(s => s.id));
+                      }
                       return foundSite?.name || permit.site_id;
                     })() : 'Not specified'}
                   </Text>
