@@ -2655,9 +2655,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Restore contractor context from localStorage on app mount
   useEffect(() => {
+    console.log('🔄 [MOUNT] Restoration effect running');
     const stored = localStorage.getItem('_contractorContext');
     console.log('🔄 Checking localStorage for contractor context:', stored ? '✅ Found' : '❌ Not found');
     if (stored) {
+      console.log('📍 Raw localStorage value:', stored);
       try {
         const ctx = JSON.parse(stored);
         console.log('📍 Restoring contractor from localStorage:', ctx);
@@ -2677,9 +2679,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         console.log('✅ currentContractor state set from localStorage');
       } catch (e) {
         console.warn('Failed to restore contractor context:', e);
+        console.warn('Failed to parse:', stored);
       }
     } else {
-      console.log('ℹ️ localStorage empty - contractor will be restored from detectContractorHub');
+      console.log('ℹ️ localStorage empty - contractor will be restored from detectContractorHub or later');
     }
   }, []); // Run only on mount
 
@@ -20116,6 +20119,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onNavigateBack={(contractorInfo) => {
             // If contractor info is passed, update currentContractor for dashboard filtering
             if (contractorInfo && contractorInfo.id) {
+              // Save to localStorage for persistence through navigation
+              localStorage.setItem('_contractorContext', JSON.stringify({
+                id: contractorInfo.id,
+                name: contractorInfo.contractorName || contractorInfo.name || '',
+                email: contractorInfo.email || '',
+                company_id: contractorInfo.companyId || contractorInfo.company_id || ''
+              }));
+              console.log('💾 Saved contractor to localStorage from onNavigateBack');
               setCurrentContractor({
                 id: contractorInfo.id || '',
                 name: contractorInfo.contractorName || contractorInfo.name || '',
@@ -20139,13 +20150,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onReturnToKiosk={(contractorInfo) => {
             // If contractor info is passed, update currentContractor so kiosk filters permits by this contractor
             if (contractorInfo && contractorInfo.id) {
+              // Save to localStorage for persistence through navigation
+              localStorage.setItem('_contractorContext', JSON.stringify({
+                id: contractorInfo.id,
+                name: contractorInfo.contractorName || contractorInfo.name || '',
+                email: contractorInfo.email || '',
+                company_id: contractorInfo.companyId || contractorInfo.company_id || ''
+              }));
+              console.log('💾 Saved contractor to localStorage from onReturnToKiosk');
               setCurrentContractor({
                 id: contractorInfo.id,
                 name: contractorInfo.contractorName || contractorInfo.name || '',
                 email: contractorInfo.email || '',
                 phone: contractorInfo.phone || '',
                 company: contractorInfo.company || '',
-                companyId: contractorInfo.companyId || '',
+                company_id: contractorInfo.companyId || contractorInfo.company_id || '',
                 businessUnitIds: contractorInfo.businessUnitIds || [],
                 services: contractorInfo.services || [],
                 siteIds: contractorInfo.siteIds || []
