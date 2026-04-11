@@ -33,6 +33,9 @@ export default function PermitHandoverModal({
   // Load handover history when modal opens
   useEffect(() => {
     if (visible && permit?.id) {
+      console.log('🎯 Modal opened for permit:', permit.id);
+      console.log('   Current receiver name:', currentReceiverName);
+      console.log('   Available receivers:', availableReceivers?.length || 0);
       loadHandoverHistory();
     }
   }, [visible, permit?.id]);
@@ -196,37 +199,40 @@ export default function PermitHandoverModal({
                   marginTop: -1
                 }}>
                   <ScrollView nestedScrollEnabled>
-                    {availableReceivers
-                      .filter(r => r.id !== currentReceiverId) // Don't show current receiver
-                      .map(receiver => (
-                        <TouchableOpacity
-                          key={receiver.id}
-                          onPress={() => {
-                            setSelectedReceiverId(receiver.id);
-                            setSelectedReceiverName(receiver.name);
-                            setShowReceiverDropdown(false);
-                          }}
-                          style={{
-                            padding: 12,
-                            borderBottomWidth: 1,
-                            borderBottomColor: '#E5E7EB',
-                            backgroundColor: selectedReceiverId === receiver.id ? '#F0FDF4' : 'white'
-                          }}
-                        >
-                          <Text style={{
-                            fontSize: 13,
-                            color: selectedReceiverId === receiver.id ? '#059669' : '#1F2937',
-                            fontWeight: selectedReceiverId === receiver.id ? '600' : '400'
-                          }}>
-                            {receiver.name}
-                          </Text>
-                          {receiver.email && (
-                            <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                              {receiver.email}
+                    {availableReceivers && availableReceivers.length > 0 ? (
+                      availableReceivers
+                        .filter(r => r.id !== currentReceiverId) // Don't show current receiver
+                        .map(receiver => (
+                          <TouchableOpacity
+                            key={receiver.id}
+                            onPress={() => {
+                              setSelectedReceiverId(receiver.id);
+                              setSelectedReceiverName(receiver.email || receiver.name || 'Unknown');
+                              setShowReceiverDropdown(false);
+                            }}
+                            style={{
+                              padding: 12,
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#E5E7EB',
+                              backgroundColor: selectedReceiverId === receiver.id ? '#F0FDF4' : 'white'
+                            }}
+                          >
+                            <Text style={{
+                              fontSize: 13,
+                              color: selectedReceiverId === receiver.id ? '#059669' : '#1F2937',
+                              fontWeight: selectedReceiverId === receiver.id ? '600' : '400'
+                            }}>
+                              {receiver.email || receiver.name || 'Unknown'}
                             </Text>
-                          )}
-                        </TouchableOpacity>
-                      ))}
+                          </TouchableOpacity>
+                        ))
+                    ) : (
+                      <View style={{ padding: 12, alignItems: 'center' }}>
+                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+                          No available receivers
+                        </Text>
+                      </View>
+                    )}
                   </ScrollView>
                 </View>
               )}

@@ -2927,6 +2927,57 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId]);
 
   // Listen to browser back button
+  // Check initial URL on mount to restore screen
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      console.log('📍 Initial pathname on mount:', pathname);
+      
+      // Check for permits dashboard
+      if (pathname === '/permits' || pathname === '/permits/') {
+        console.log('✅ Setting initial screen to dashboard from URL /permits/');
+        setCurrentScreen('dashboard');
+        return;
+      }
+
+      // Check for contractor admin routes
+      if (pathname.startsWith('/contractor-admin')) {
+        console.log('✅ Setting initial screen to contractor_admin from URL');
+        setCurrentScreen('contractor_admin');
+        const route = pathname.slice(17); // Remove '/contractor-admin' prefix
+        const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
+        
+        const tabMap = {
+          '/jsea-templates': 'jsea',
+          'jsea-templates': 'jsea',
+          '/permit-templates': 'permits',
+          'permit-templates': 'permits',
+          '/accreditation': 'accreditation',
+          'accreditation': 'accreditation',
+          '/inductions': 'inductions',
+          'inductions': 'inductions',
+          '/training-records': 'training-records',
+          'training-records': 'training-records',
+          '/my-permits': 'my-permits',
+          'my-permits': 'my-permits',
+          '': null,
+          '/': null
+        };
+        
+        const tab = tabMap[routeWithoutTrailingSlash] || null;
+        setContractorAdminTab(tab);
+        return;
+      }
+
+      // Check for admin routes
+      if (pathname === '/admin' || pathname === '/admin/') {
+        console.log('✅ Setting initial screen to admin from URL');
+        setCurrentScreen('admin');
+        return;
+      }
+    }
+  }, []); // Only run on mount
+
   useEffect(() => {
     const handlePopState = () => {
       if (typeof window !== 'undefined') {
@@ -3103,6 +3154,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       setPermitForHandover(permit);
       setCurrentHandoverReceiverName('Unknown'); // Reset
+      setAvailableReceiversList([]); // Reset receivers
       
       // Load current receiver data from permit
       if (permit.current_permit_receiver_id) {
@@ -3119,31 +3171,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setCurrentHandoverReceiverName(receiverData?.email || 'Unknown');
         } catch (err) {
           console.log('⚠️ Could not load receiver data:', err.message);
-          setCurrentHandoverReceiverName('Unknown');
+          setCurrentHandoverReceiverName('Not assigned');
         }
       } else {
         console.log('⚠️ Permit has no current_permit_receiver_id yet');
         setCurrentHandoverReceiverName('Not assigned');
       }
 
-      // Load available receivers (permit issuers/admins at this site)
-      if (permit.site_id) {
-        try {
-          const { data: receivers, error } = await supabaseClient
-            .from('users')
-            .select('id, email')
-            .eq('site_id', permit.site_id)
-            .or('role.eq.permit_issuer,role.eq.admin')
-            .limit(50);
+      // Load available receivers - all permit issuers and admins from database
+      try {
+        console.log('📋 Loading available receivers (permit issuers and admins)');
+        const { data: receivers, error } = await supabaseClient
+          .from('users')
+          .select('id, email')
+          .in('role', ['permit_issuer', 'admin'])
+          .limit(100);
 
-          if (error) throw error;
-          
-          console.log('✅ Loaded', receivers?.length || 0, 'available receivers');
-          setAvailableReceiversList(receivers || []);
-        } catch (err) {
-          console.log('⚠️ Could not load available receivers:', err.message);
-          setAvailableReceiversList([]);
+        if (error) {
+          console.error('❌ Query error:', error);
+          throw error;
         }
+        
+        console.log('✅ Loaded', receivers?.length || 0, 'available receivers');
+        console.log('   Receivers:', receivers?.map(r => r.email));
+        setAvailableReceiversList(receivers || []);
+      } catch (err) {
+        console.log('⚠️ Could not load available receivers:', err.message);
+        setAvailableReceiversList([]);
       }
 
       setShowHandoverModal(true);
