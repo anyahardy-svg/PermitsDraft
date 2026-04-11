@@ -6843,9 +6843,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       });
       
       const freshPermits = await listPermits();
-        isolations: editData.isolations,
-        sign_ons: editData.signOns,
-        attachments: editData.attachments
+      setPermits(freshPermits);
+      Alert.alert('Success', 'Draft saved successfully');
+    } catch (error) {
+      console.error('Error saving draft:', error);
       Alert.alert('Error', 'Failed to save draft: ' + error.message);
     }
   };
@@ -6890,9 +6891,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       const freshPermits = await listPermits();
       setPermits(freshPermits);
-        isolations: editData.isolations,
-        sign_ons: editData.signOns,
-        attachments: editData.attachments
+      Alert.alert('Success', 'Draft saved successfully');
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      Alert.alert('Error', 'Failed to save draft: ' + error.message);
     }
   };
   
