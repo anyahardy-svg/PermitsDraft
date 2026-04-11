@@ -3130,11 +3130,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const isKioskMode = typeof window !== 'undefined' && window.location.hostname.includes('-kiosk.');
     
     // Log contractor context for debugging
-    if (currentContractor && currentContractor.companyId) {
+    if (currentContractor && currentContractor.company_id) {
       console.log('📄 [NEW PERMIT FORM] Rendering with contractor context:', {
         contractorId: currentContractor.id,
         contractorName: currentContractor.name,
-        companyId: currentContractor.companyId
+        company_id: currentContractor.company_id
       });
     } else {
       console.warn('⚠️ [NEW PERMIT FORM] No contractor context available - will show all permits');
@@ -7642,8 +7642,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     let filteredPermits = permits.filter(p => p.status === status);
     
     // If contractor is logged in, filter by their company
-    if (currentContractor && currentContractor.companyId) {
-      console.log(`📋 [PERMIT LIST] Filtering ${title} by contractor company ${currentContractor.companyId}`);
+    if (currentContractor && currentContractor.company_id) {
+      console.log(`📋 [PERMIT LIST] Filtering ${title} by contractor company ${currentContractor.company_id}`);
       filteredPermits = filterPermitsByContractorCompany(filteredPermits);
     }
     
@@ -7931,8 +7931,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       : permits;
     
     // If contractor is logged in, filter by their company
-    if (currentContractor && currentContractor.companyId) {
-      console.log(`📊 [DASHBOARD] Filtering permits by contractor company ${currentContractor.companyId}`);
+    if (currentContractor && currentContractor.company_id) {
+      console.log(`📊 [DASHBOARD] Filtering permits by contractor company ${currentContractor.company_id}`);
       sitePermits = filterPermitsByContractorCompany(sitePermits);
     }
 
