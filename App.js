@@ -1123,7 +1123,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     description: '',
     requestedBy: '',
     requestedById: '',
-    requestedByEmail: '',
     contractorCompany: '',
     manualCompany: '',
     contractorSelected: false,
@@ -1966,26 +1965,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         status: status
       });
 
-      // Look up user ID from requested_by email
-      let receiverUserId = null;
-      if (formData.requestedByEmail) {
-        try {
-          const { data: userData, error: userError } = await supabaseClient
-            .from('users')
-            .select('id')
-            .eq('email', formData.requestedByEmail)
-            .single();
-          
-          if (userData && userData.id) {
-            receiverUserId = userData.id;
-            console.log('✓ Found user ID for', formData.requestedByEmail, ':', receiverUserId);
-          } else {
-            console.warn('⚠️ User not found for email:', formData.requestedByEmail, '- permit will be created without an initial receiver. You can assign one via handover.');
-          }
-        } catch (err) {
-          console.warn('⚠️ Error looking up user ID:', err.message, '- permit will be created without an initial receiver. You can assign one via handover.');
-        }
-      }
+      // Set receiver to the requested person's name
+      const currentReceiver = formData.requestedBy || null;
       
       // Prepare permit data for Supabase
       const permitData = {
@@ -2006,7 +1987,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
         status: status === 'draft' ? 'draft' : 'pending_approval',
-        current_permit_receiver_id: receiverUserId,
+        current_permit_receiver_id: currentReceiver,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
@@ -2044,7 +2025,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         description: '',
         requestedBy: '',
         requestedById: '',
-        requestedByEmail: '',
         contractorCompany: '',
         manualCompany: '',
         contractorSelected: false,
@@ -3581,7 +3561,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setFormData({ ...formData, requestedBy: contractor.name, requestedById: contractor.id, requestedByEmail: contractor.email, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
+                            setFormData({ ...formData, requestedBy: contractor.name, requestedById: contractor.id, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
