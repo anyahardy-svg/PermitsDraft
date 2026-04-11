@@ -2977,20 +2977,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Filter permits by contractor's company if contractor is logged in
   const filterPermitsByContractorCompany = (permits) => {
     if (!currentContractor || !currentContractor.company_id) {
-      console.log('⚠️ [FILTER] No contractor company context, showing all permits');
+      console.log('⚠️ [FILTER] No currentContractor or company_id:', currentContractor);
       return permits;
     }
     
     const companyId = currentContractor.company_id;
-    const contractorsInCompany = window._contractorsCache?.filter(c => c.company_id === companyId) || [];
+    console.log(`🔍 [FILTER] Starting filter for company ${companyId}`);
+    console.log(`   currentContractor:`, currentContractor);
+    console.log(`   window._contractorsCache available:`, !!window._contractorsCache);
+    console.log(`   Cache size: ${window._contractorsCache?.length || 0}`);
+    
+    if (!window._contractorsCache || window._contractorsCache.length === 0) {
+      console.warn('⚠️ [FILTER] No contractors cache available, cannot filter');
+      return permits;
+    }
+    
+    const contractorsInCompany = window._contractorsCache.filter(c => {
+      console.log(`   Checking contractor ${c.id} (${c.name}): company_id=${c.company_id}, matches=${c.company_id === companyId}`);
+      return c.company_id === companyId;
+    });
+    
     const contractorIds = new Set(contractorsInCompany.map(c => c.id));
+    console.log(`   Found ${contractorsInCompany.length} contractors in company ${companyId}`);
+    console.log(`   Contractor IDs: ${Array.from(contractorIds).join(', ')}`);
     
-    console.log(`🔍 [FILTER] Filtering permits for company ${companyId}`);
-    console.log(`   Found ${contractorsInCompany.length} contractors in company, IDs: ${Array.from(contractorIds).join(', ')}`);
+    const filtered = permits.filter(p => {
+      const matches = contractorIds.has(p.contractor_id);
+      return matches;
+    });
     
-    // Filter to show only permits from contractors in this company
-    const filtered = permits.filter(p => contractorIds.has(p.contractor_id));
-    console.log(`   Filtered ${permits.length} → ${filtered.length} permits`);
+    console.log(`✅ [FILTER] Filtered ${permits.length} permits → ${filtered.length} permits for company ${companyId}`);
     return filtered;
   };
   
@@ -5809,72 +5825,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <Text style={styles.primaryButtonText}>View</Text>
         </TouchableOpacity>
       ) : item.status === 'draft' ? (
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
-            setSelectedPermit(item);
-            setCurrentScreen('review_permit');
-          }}>
-            <Text style={styles.primaryButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
-            Alert.alert(
-              'Delete Draft',
-              'Are you sure you want to delete this draft permit?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                  text: 'Delete', 
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      await deletePermit(item.id);
-                      setPermits(permits.filter(p => p.id !== item.id));
-                      Alert.alert('Success', 'Draft permit deleted');
-                    } catch (error) {
-                      Alert.alert('Error', 'Failed to delete permit: ' + error.message);
-                    }
-                  }
-                }
-              ]
-            );
-          }}>
-            <Text style={styles.primaryButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setCurrentScreen('review_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>Edit</Text>
+        </TouchableOpacity>
       ) : (
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => {
-            setSelectedPermit(item);
-            setEditPermitData(null);
-            setCurrentScreen('edit_permit');
-          }}>
-            <Text style={styles.primaryButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
-            Alert.alert(
-              'Delete Permit',
-              'Are you sure you want to delete this permit?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                  text: 'Delete', 
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      await deletePermit(item.id);
-                      setPermits(permits.filter(p => p.id !== item.id));
-                      Alert.alert('Success', 'Permit deleted');
-                    } catch (error) {
-                      Alert.alert('Error', 'Failed to delete permit: ' + error.message);
-                    }
-                  }
-                }
-              ]
-            );
-          }}>
-            <Text style={styles.primaryButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => {
+          setSelectedPermit(item);
+          setEditPermitData(null);
+          setCurrentScreen('edit_permit');
+        }}>
+          <Text style={styles.primaryButtonText}>Edit</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -20035,6 +19999,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
+            // Set currentContractor so dashboard filters by company
+            setCurrentContractor({
+              id: contractorId,
+              name: contractorName,
+              email: email,
+              company_id: companyId,
+              phone: '',
+              businessUnitIds: [],
+              services: [],
+              siteIds: [],
+              company: '',
+              inductionExpiry: '',
+              companyManuallyEntered: false
+            });
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
           }}
