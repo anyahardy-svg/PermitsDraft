@@ -20143,12 +20143,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               });
               console.log('✅ Set currentContractor from contractor admin:', contractorInfo.contractorName || contractorInfo.name);
             }
-            // For contractor hub, go back to login; for others, go to dashboard
-            const isContractorHub = typeof window !== 'undefined' && 
-              (window.location.hostname === 'contractorhq.co.nz' || 
-               window.location.hostname === 'www.contractorhq.co.nz' ||
-               window.location.hostname === 'localhost:3000');
-            setCurrentScreen(isContractorHub ? 'contractorAuth' : 'dashboard');
+            // When editing a draft from contractor admin, navigate to dashboard
+            console.log('🔄 Navigating to dashboard to edit draft permit');
+            // Update URL to dashboard first so contractor hub routing detects it properly
+            if (typeof window !== 'undefined') {
+              window.history.replaceState({}, '', '/');
+            }
+            setCurrentScreen('dashboard');
           }}
           onReturnToKiosk={(contractorInfo) => {
             // If contractor info is passed, update currentContractor so kiosk filters permits by this contractor
