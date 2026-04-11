@@ -57,8 +57,9 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
         contractor_company: company?.name || 'Unknown',
         check_in_time: new Date().toISOString(),
         inducted: isInducted,
-        induction_status: isInducted ? 'inducted' : 'not_inducted',
+        induction_status: isExpired ? 'induction_expired' : (isInducted ? 'inducted' : 'not_inducted'),
         inducted_at_site: induction?.inducted_at || null,
+        induction_expires_at: induction?.expires_at || null,
       })
       .select()
       .single();
