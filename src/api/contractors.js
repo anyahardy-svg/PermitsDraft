@@ -282,18 +282,18 @@ export const listContractorsWithExpiredInductions = async () => {
 export const listContractorsBySite = async (siteId) => {
   try {
     console.log('🔍 Loading contractors for site:', siteId);
+    // Get ALL contractors for this site (not filtered by induction status)
     const { data, error } = await supabase
       .from('contractors')
       .select()
-      .contains('site_ids', [siteId])
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('❌ Error fetching contractors for site:', error.code, error.message);
+      console.error('❌ Error fetching contractors:', error.code, error.message);
       throw error;
     }
     
-    console.log('✅ Contractors for site:', data?.length || 0);
+    console.log('✅ Contractors loaded:', data?.length || 0);
     
     // Get unique company IDs that need lookup
     const companyIds = [...new Set((data || [])
