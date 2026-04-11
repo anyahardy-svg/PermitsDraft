@@ -1955,14 +1955,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Convert site name to site_id
       const siteId = siteNameToIdMap[formData.site];
       
-      // Determine company_id - use currentContractor first, then fallback to selectedCompanyId
-      // selectedCompanyId may be set from initialContractorParams when coming from contractor admin
-      const companyId = currentContractor?.companyId || selectedCompanyId;
-      
       console.log('📝 [CREATE PERMIT] Context:', {
-        currentContractor: currentContractor?.companyId,
-        selectedCompanyId,
-        finalCompanyId: companyId,
+        currentContractor: currentContractor?.id,
         site: formData.site,
         siteId,
         status: status
@@ -1985,15 +1979,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
-        contractor_id: currentContractor?.id || null,
-        company_id: companyId || null,
-        controls_summary: '',
-        specialized_permits: formData.specializedPermits,
-        single_hazards: formData.singleHazards,
-        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
-        isolations: formData.isolations,
-        sign_ons: formData.signOns,
-        attachments: []
+        contractor_id: currentContractor?.i
       };
 
       // Save to Supabase
@@ -2981,13 +2967,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // Filter permits by contractor company if contractor is logged in
   const filterPermitsByContractorCompany = (permits) => {
-    if (!currentContractor || !currentContractor.companyId) {
-      console.log('⚠️ [FILTER] No contractor context, returning all permits');
+    if (!currentContractor || !currentContractor.company_id) {
+      console.log('⚠️ [FILTER] No contractor company context, showing all permits');
       return permits;
     }
     
-    const filtered = permits.filter(p => p.company_id === currentContractor.companyId);
-    console.log(`🔍 [FILTER] Filtered ${permits.length} → ${filtered.length} permits for company ${currentContractor.companyId}`);
+    const userCompanyId = currentContractor.company_id;
+    
+    // Filter to show permits from contractors in the same company
+    // We need to check each permit's contractor against contractors in this company
+    const filtered = permits.filter(p => {
+      if (!p.contractor_id) return false;
+      // Find the contractor for this permit and check if it's in the same company
+      const contractorForPermit = allContractors?.find(c => c.id === p.contractor_id);
+      return contractorForPermit && contractorForPermit.company_id === userCompanyId;
+    });
+    
+    console.log(`🏢 [FILTER] Showing permits for company ${userCompanyId}`);
+    console.log(`🔍 [FILTER] Filtered ${permits.length} → ${filtered.length} permits`);
     return filtered;
   };
   
@@ -6839,18 +6836,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {},
         isolations: editData.isolations,
         sign_ons: editData.signOns,
-        attachments: editData.attachments,
-        company_id: editData.company_id // Preserve company_id for filtering
+        attachments: editData.attachments
       });
       
       const freshPermits = await listPermits();
-      setPermits(freshPermits);
-      setCurrentScreen('dashboard');
-      Alert.alert('Draft Saved', 'Your draft has been saved successfully.');
-    } catch (error) {
+        isolations: editData.isolations,
+        sign_ons: editData.signOns,
+        attachments: editData.attachments
       Alert.alert('Error', 'Failed to save draft: ' + error.message);
     }
   };
@@ -6887,19 +6882,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jsea: editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {},
         isolations: editData.isolations,
         sign_ons: editData.signOns,
-        attachments: editData.attachments,
-        company_id: editData.company_id // Preserve company_id for filtering
+        attachments: editData.attachments
       });
       
       const freshPermits = await listPermits();
       setPermits(freshPermits);
-      setCurrentScreen('dashboard');
-      Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit permit: ' + error.message);
+        isolations: editData.isolations,
+        sign_ons: editData.signOns,
+        attachments: editData.attachments
     }
   };
   

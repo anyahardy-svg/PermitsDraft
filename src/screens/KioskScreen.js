@@ -262,32 +262,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         }
         const allPermits = await listPermits();
         console.log(`📥 Loaded ${allPermits.length} total permits from DB`);
-        console.log('First few permits:', allPermits.slice(0, 2).map(p => ({ id: p.id, site_id: p.site_id, company_id: p.company_id, status: p.status })));
+        console.log('First few permits:', allPermits.slice(0, 2).map(p => ({ id: p.id, site_id: p.site_id, contractor_id: p.contractor_id, status: p.status })));
         
-        // Filter permits for the current site
-        let sitePermits = allPermits.filter(p => p.site_id === siteId);
+        // Filter permits for the current site ONLY (kiosk shows all permits for this site)
+        const sitePermits = allPermits.filter(p => p.site_id === siteId);
         console.log(`🏢 Site ID: ${siteId}`);
         console.log(`📋 ${sitePermits.length} permits found for this site`);
-        
-        // If a contractor is logged in, filter by their company
-        if (currentContractor && currentContractor.companyId) {
-          console.log('👥 Contractor Context Found:', { 
-            contractorId: currentContractor.id,
-            contractorName: currentContractor.name,
-            companyId: currentContractor.companyId
-          });
-          console.log('🔍 Filtering permits for contractor company:', currentContractor.companyId);
-          const beforeFilter = sitePermits.length;
-          sitePermits = sitePermits.filter(p => p.company_id === currentContractor.companyId);
-          console.log(`✅ Filtering complete: ${beforeFilter} → ${sitePermits.length} permits (${sitePermits.length === 0 ? '⚠️ NONE' : '✓ OK'})`);
-          console.log('Filtered permits:', sitePermits.map(p => ({ id: p.id, company_id: p.company_id, status: p.status })));
-        } else {
-          console.warn('⚠️ NO contractor context - showing permits from all companies!', {
-            currentContractor,
-            companyId: currentContractor?.companyId
-          });
-          console.log('All permits for this site:', sitePermits.map(p => ({ id: p.id, company_id: p.company_id, status: p.status })));
-        }
         
         setPermits(sitePermits);
         setPermitsLoading(false);
