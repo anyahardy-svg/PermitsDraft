@@ -2518,6 +2518,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [permitForHandover, setPermitForHandover] = useState(null);
   const [availableReceiversList, setAvailableReceiversList] = useState([]);
+  const [currentHandoverReceiverName, setCurrentHandoverReceiverName] = useState('Unknown');
   
   // Accreditation Invitation States
   const [showInvitationModal, setShowInvitationModal] = useState(false);
@@ -3092,6 +3093,63 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       case 'active': return 'Active';
       case 'completed': return 'Completed';
       default: return status;
+    }
+  };
+
+  // Handler to open permit handover modal with proper receiver data
+  const handleOpenHandoverModal = async (permit) => {
+    console.log('🔄 Opening handover modal for permit:', permit.id);
+    
+    try {
+      setPermitForHandover(permit);
+      setCurrentHandoverReceiverName('Unknown'); // Reset
+      
+      // Load current receiver data from permit
+      if (permit.current_permit_receiver_id) {
+        try {
+          const { data: receiverData, error } = await supabaseClient
+            .from('users')
+            .select('id, email')
+            .eq('id', permit.current_permit_receiver_id)
+            .single();
+
+          if (error) throw error;
+          
+          console.log('✅ Loaded current receiver:', receiverData?.email);
+          setCurrentHandoverReceiverName(receiverData?.email || 'Unknown');
+        } catch (err) {
+          console.log('⚠️ Could not load receiver data:', err.message);
+          setCurrentHandoverReceiverName('Unknown');
+        }
+      } else {
+        console.log('⚠️ Permit has no current_permit_receiver_id yet');
+        setCurrentHandoverReceiverName('Not assigned');
+      }
+
+      // Load available receivers (permit issuers/admins at this site)
+      if (permit.site_id) {
+        try {
+          const { data: receivers, error } = await supabaseClient
+            .from('users')
+            .select('id, email')
+            .eq('site_id', permit.site_id)
+            .or('role.eq.permit_issuer,role.eq.admin')
+            .limit(50);
+
+          if (error) throw error;
+          
+          console.log('✅ Loaded', receivers?.length || 0, 'available receivers');
+          setAvailableReceiversList(receivers || []);
+        } catch (err) {
+          console.log('⚠️ Could not load available receivers:', err.message);
+          setAvailableReceiversList([]);
+        }
+      }
+
+      setShowHandoverModal(true);
+    } catch (err) {
+      console.error('❌ Error opening handover modal:', err);
+      Alert.alert('Error', 'Failed to open handover modal');
     }
   };
 
@@ -18099,11 +18157,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.primaryButton, { flex: 1, backgroundColor: '#F59E0B' }]} 
-                  onPress={() => {
-                    setPermitForHandover(item);
-                    setShowHandoverModal(true);
-                    // TODO: Load available receivers for this site
-                  }}
+                  onPress={() => handleOpenHandoverModal(item)}
                 >
                   <Text style={styles.primaryButtonText}>Hand Over</Text>
                 </TouchableOpacity>
@@ -20588,16 +20642,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         onClose={() => {
           setShowHandoverModal(false);
           setPermitForHandover(null);
+          setCurrentHandoverReceiverName('Unknown');
         }}
         permit={permitForHandover}
-        currentReceiverId={currentContractor?.id}
-        currentReceiverName={currentContractor?.name || 'Unknown'}
+        currentReceiverId={permitForHandover?.current_permit_receiver_id}
+        currentReceiverName={currentHandoverReceiverName}
         availableReceivers={availableReceiversList}
-        onHandoverComplete={() => {
+        onHandoverComplete={async () => {
           // Reload permits after successful handover
-          loadPermits();
+          try {
+            const refreshedPermits = await listPermits();
+            setPermits(refreshedPermits);
+          } catch (err) {
+            console.error('Error reloading permits:', err);
+          }
           setShowHandoverModal(false);
           setPermitForHandover(null);
+          setCurrentHandoverReceiverName('Unknown');
         }}
         styles={styles}
       />
