@@ -992,40 +992,43 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         <ScrollView contentContainerStyle={styles.formContent}>
           <Text style={styles.label}>Select Person to Sign Out:</Text>
           {signedInPeople.length > 0 ? (
-            signedInPeople.map((person) => {
-              // Determine type, company, and phone
-              const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
-              const name = person.contractor_name || person.visitor_name || 'Unknown';
-              const company = person.contractor_company || person.visitor_company || 'N/A';
-              const phone = person.contractor_phone || person.phone_number || 'N/A';
-              return (
-                <TouchableOpacity
-                  key={person.id}
-                  style={[
-                    styles.personItem,
-                    selectedPerson?.id === person.id && styles.personItemSelected
-                  ]}
-                  onPress={() => setSelectedPerson(person)}
-                >
-                  <Text style={styles.personName}>{name}</Text>
-                  <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
-                  <Text style={styles.personDetails}>Type: {type}</Text>
-                  <Text style={styles.personDetails}>Company: {company}</Text>
-                  <Text style={styles.personDetails}>Phone: {phone}</Text>
-                </TouchableOpacity>
-              );
-            })
+            <>
+              {signedInPeople.map((person) => {
+                // Determine type, company, and phone
+                const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
+                const name = person.contractor_name || person.visitor_name || 'Unknown';
+                const company = person.contractor_company || person.visitor_company || 'N/A';
+                const phone = person.contractor_phone || person.phone_number || 'N/A';
+                return (
+                  <View key={person.id}>
+                    <TouchableOpacity
+                      style={[
+                        styles.personItem,
+                        selectedPerson?.id === person.id && styles.personItemSelected
+                      ]}
+                      onPress={() => setSelectedPerson(person)}
+                    >
+                      <Text style={styles.personName}>{name}</Text>
+                      <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
+                      <Text style={styles.personDetails}>Type: {type}</Text>
+                      <Text style={styles.personDetails}>Company: {company}</Text>
+                      <Text style={styles.personDetails}>Phone: {phone}</Text>
+                    </TouchableOpacity>
+                    
+                    {selectedPerson?.id === person.id && (
+                      <TouchableOpacity
+                        style={styles.submitButton}
+                        onPress={handleSignOut}
+                      >
+                        <Text style={styles.submitButtonText}>✓ Sign Out</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })}
+            </>
           ) : (
             <Text style={styles.noResults}>No one currently signed in</Text>
-          )}
-
-          {selectedPerson && (
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSignOut}
-            >
-              <Text style={styles.submitButtonText}>✓ Sign Out</Text>
-            </TouchableOpacity>
           )}
         </ScrollView>
       </View>
