@@ -1358,32 +1358,21 @@ export default function ContractorAdminScreen({
 
   // Handle editing a draft permit
   const handleEditDraft = (permit) => {
-    // For now, provide info about the draft
-    const siteName = permit.site_id ? `Site ID: ${permit.site_id}` : 'Not specified';
-    const permitType = permit.permit_type ? permit.permit_type.replace(/([A-Z])/g, ' $1').trim() : 'General';
-    
-    Alert.alert(
-      'Edit Draft Permit',
-      `Description: ${permit.description || 'Untitled'}\n\nType: ${permitType}\n${siteName}\n\nTo edit this draft, visit the Kiosk and select it from the available permits.`,
-      [
-        { text: 'OK', onPress: () => {} },
-        {
-          text: 'Go to Kiosk',
-          onPress: () => {
-            if (onReturnToKiosk) {
-              onReturnToKiosk({
-                id: loggedInContractorId,
-                contractorName: loggedInContractor,
-                email: loggedInContractorEmail,
-                phone: loggedInContractorPhone,
-                companyId: loggedInCompanyId,
-                company: loggedInCompanyName
-              });
-            }
-          }
-        }
-        ]
-      );
+    // Navigate back to dashboard with contractor context
+    // The dashboard will show draft permits and allow editing
+    if (onNavigateBack) {
+      onNavigateBack({
+        id: loggedInContractorId,
+        contractorName: loggedInContractor,
+        email: loggedInContractorEmail,
+        phone: loggedInContractorPhone,
+        companyId: loggedInCompanyId,
+        company: loggedInCompanyName,
+        businessUnitIds: [],
+        services: [],
+        siteIds: []
+      });
+    }
   };
 
   // Handle deleting a draft permit
