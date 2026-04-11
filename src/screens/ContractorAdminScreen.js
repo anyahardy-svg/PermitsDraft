@@ -1506,7 +1506,6 @@ export default function ContractorAdminScreen({
                   <TouchableOpacity
                     onPress={() => handleEditDraft(permit)}
                     style={{
-                      flex: 1,
                       backgroundColor: '#3B82F6',
                       paddingHorizontal: 12,
                       paddingVertical: 8,
@@ -1515,21 +1514,6 @@ export default function ContractorAdminScreen({
                     }}
                   >
                     <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteDraft(permit.id)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#F3F4F6',
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 6,
-                      alignItems: 'center',
-                      borderWidth: 1,
-                      borderColor: '#EF4444'
-                    }}
-                  >
-                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
