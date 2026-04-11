@@ -19,17 +19,17 @@ import { supabase } from '../supabaseClient';
 export async function checkInContractor(contractorId, siteId, businessUnitId) {
   try {
     // First, check if contractor is inducted at this site
-    const { data: induction, error: inductionError } = await supabase
+    const { data: inductions, error: inductionError } = await supabase
       .from('contractor_inductions')
       .select('*')
       .eq('contractor_id', contractorId)
-      .eq('site_id', siteId)
-      .eq('status', 'completed')
-      .single();
+      .eq('site_id', siteId);
 
-    if (inductionError && inductionError.code !== 'PGRST116') {
+    if (inductionError) {
       throw inductionError;
     }
+    
+    const induction = inductions?.[0] || null;
 
     const isInducted = !!induction && (!induction.expires_at || new Date(induction.expires_at) > new Date());
     const isExpired = !!induction && induction.expires_at && new Date(induction.expires_at) < new Date();

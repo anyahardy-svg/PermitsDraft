@@ -357,19 +357,55 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
     
     try {
+      // Check induction status
       const result = await checkInContractor(selectedContractor.id, siteId, businessUnitId);
       
       if (result.success) {
-        Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
-        // Clear all contractor form state
-        setSelectedContractor(null);
-        setContractorSearch('');
-        setFilteredContractors([]);
-        setContractorInductionExpiry(null);
-        setContractorInductionExpired(false);
-        setAllContractorInductions([]);
-        setCurrentScreen('welcome');
-        loadSignedInPeople();
+        if (result.isExpired) {
+          // Induction expired - need renewal
+          Alert.alert(
+            '⚠️ Induction Expired',
+            `${selectedContractor.name}'s induction expired on ${result.expiryDate}. Renewal required before check-in.`,
+            [
+              { text: 'Cancel', onPress: () => {} },
+              { text: 'Renew Induction', onPress: () => setShowInductionModal(true) }
+            ]
+          );
+        } else if (!result.inducted) {
+          // Not inducted - need induction first
+          Alert.alert(
+            '⚠️ Induction Required',
+            `${selectedContractor.name} has not completed induction at ${site.name}. Complete induction first.`,
+            [
+              { text: 'Cancel', onPress: () => {} },
+              { text: 'Start Induction', onPress: () => setShowInductionModal(true) }
+            ]
+          );
+        } else {
+          // Inducted and valid - show details then check in
+          Alert.alert(
+            '✓ Check In',
+            `${selectedContractor.name}\nInducted: ${result.expiryDate || 'Valid'}`,
+            [
+              { text: 'Cancel', onPress: () => {} },
+              { 
+                text: 'Confirm Check In', 
+                onPress: async () => {
+                  // Clear all contractor form state
+                  setSelectedContractor(null);
+                  setContractorSearch('');
+                  setFilteredContractors([]);
+                  setContractorInductionExpiry(null);
+                  setContractorInductionExpired(false);
+                  setAllContractorInductions([]);
+                  setCurrentScreen('welcome');
+                  loadSignedInPeople();
+                  Alert.alert('Success', `${selectedContractor.name} signed in successfully`);
+                }
+              }
+            ]
+          );
+        }
       } else {
         Alert.alert('Error', result.error || 'Check-in failed');
       }
