@@ -1955,6 +1955,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Convert site name to site_id
       const siteId = siteNameToIdMap[formData.site];
       
+      // Determine company_id - use currentContractor first, then fallback to selectedCompanyId
+      // selectedCompanyId may be set from initialContractorParams when coming from contractor admin
+      const companyId = currentContractor?.companyId || selectedCompanyId;
+      
+      console.log('📝 [CREATE PERMIT] Context:', {
+        currentContractor: currentContractor?.companyId,
+        selectedCompanyId,
+        finalCompanyId: companyId,
+        site: formData.site,
+        siteId,
+        status: status
+      });
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
@@ -1972,15 +1985,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
-        contractor_id: currentContractor?.id || null, // Save contractor ID if contractor is logged in
-        company_id: currentContractor?.companyId || selectedCompanyId || null, // Save company ID for filtering in kiosk
+        contractor_id: currentContractor?.id || null,
+        company_id: companyId || null,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {}, // Keep first JSEA for backward compatibility
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
         isolations: formData.isolations,
         sign_ons: formData.signOns,
-        attachments: [] // Will be populated after upload
+        attachments: []
       };
 
       // Save to Supabase
@@ -2002,8 +2015,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
       }
       
-      // Update local state with the new permit
-      setPermits([...permits, { ...newPermit, attachments: uploadedAttachments, submittedDate: new Date().toISOString().split('T')[0] }]);
+      // Reload permits from database to ensure company_id and other fields are properly set
+      const refreshedPermits = await listPermits();
+      setPermits(refreshedPermits);
       
       setFormData({
         id: '',
