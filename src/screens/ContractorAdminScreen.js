@@ -1413,6 +1413,7 @@ export default function ContractorAdminScreen({
 
   // Render my draft permits
   const renderMyPermits = () => {
+    console.log('📋 renderMyPermits called with', draftPermits.length, 'permits');
     const formatDate = (dateStr) => {
       if (!dateStr) return 'N/A';
       const date = new Date(dateStr);
@@ -1508,7 +1509,10 @@ export default function ContractorAdminScreen({
 
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
-                    onPress={() => handleEditDraft(permit)}
+                    onPress={() => {
+                      console.log('✅ EDIT BUTTON PRESSED for permit:', permit.id);
+                      handleEditDraft(permit);
+                    }}
                     style={{
                       backgroundColor: '#3B82F6',
                       paddingHorizontal: 12,
