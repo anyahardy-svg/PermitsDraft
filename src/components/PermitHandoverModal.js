@@ -70,12 +70,12 @@ export default function PermitHandoverModal({
 
     setIsLoading(true);
     try {
-      console.log(`🔄 Handing over permit ${permit.id} to ${selectedReceiverName}`);
+      console.log(`🔄 Handing over permit ${permit.id} from "${currentReceiverName}" to "${selectedReceiverName}"`);
       
       const result = await handoverPermit(
         permit.id,
-        currentReceiverId,
-        selectedReceiverId,
+        currentReceiverName,  // Current receiver name (from permit)
+        selectedReceiverName,  // Selected receiver name
         reason
       );
 
@@ -202,33 +202,32 @@ export default function PermitHandoverModal({
                   <ScrollView nestedScrollEnabled>
                     {availableReceivers && availableReceivers.length > 0 ? (
                       availableReceivers
-                        .filter(r => r.id !== currentReceiverId) // Don't show current receiver
+                        .filter(r => r.name !== currentReceiverName) // Don't show current receiver
                         .map(receiver => (
                           <TouchableOpacity
                             key={receiver.id}
                             onPress={() => {
                               setSelectedReceiverId(receiver.id);
-                              // Use email if available, otherwise name
-                              setSelectedReceiverName(receiver.email || receiver.name || 'Unknown');
+                              setSelectedReceiverName(receiver.name || 'Unknown');
                               setShowReceiverDropdown(false);
                             }}
                             style={{
                               padding: 12,
                               borderBottomWidth: 1,
                               borderBottomColor: '#E5E7EB',
-                              backgroundColor: selectedReceiverId === receiver.id ? '#F0FDF4' : 'white'
+                              backgroundColor: selectedReceiverName === receiver.name ? '#F0FDF4' : 'white'
                             }}
                           >
                             <Text style={{
                               fontSize: 13,
-                              color: selectedReceiverId === receiver.id ? '#059669' : '#1F2937',
-                              fontWeight: selectedReceiverId === receiver.id ? '600' : '400'
+                              color: selectedReceiverName === receiver.name ? '#059669' : '#1F2937',
+                              fontWeight: selectedReceiverName === receiver.name ? '600' : '400'
                             }}>
-                              {receiver.email || receiver.name || 'Unknown'}
+                              {receiver.name || 'Unknown'}
                             </Text>
-                            {receiver.name && receiver.email && (
+                            {receiver.company_name && (
                               <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                                {receiver.name}
+                                {receiver.company_name}
                               </Text>
                             )}
                           </TouchableOpacity>

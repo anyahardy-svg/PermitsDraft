@@ -3157,70 +3157,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handler to open permit handover modal with proper receiver data
   const handleOpenHandoverModal = async (permit) => {
     console.log('🔄 Opening handover modal for permit:', permit.id);
-    console.log('   Current receiver ID:', permit.current_permit_receiver_id);
+    console.log('   Current receiver:', permit.current_permit_receiver_id);
     
     try {
       setPermitForHandover(permit);
-      setCurrentHandoverReceiverName('Not assigned'); // Default
+      // Set current receiver name directly from permit (it's TEXT field)
+      setCurrentHandoverReceiverName(permit.current_permit_receiver_id || 'Not assigned');
       setAvailableReceiversList([]); // Reset receivers
-      
-      // Load current receiver's email
-      if (permit.current_permit_receiver_id) {
-        try {
-          console.log('📋 Loading current receiver from permit_issuers');
-          
-          const { data: receiver, error } = await supabaseClient
-            .from('permit_issuers')
-            .select('id, email, name')
-            .eq('id', permit.current_permit_receiver_id)
-            .single();
 
-          if (error) {
-            console.log('⚠️ Not in permit_issuers, trying users table:', error.message);
-            // Try users table as fallback
-            const { data: user, error: userError } = await supabaseClient
-              .from('users')
-              .select('id, email')
-              .eq('id', permit.current_permit_receiver_id)
-              .single();
-            
-            if (user) {
-              setCurrentHandoverReceiverName(user.email || 'Unknown');
-            } else {
-              setCurrentHandoverReceiverName('Not assigned');
-            }
-          } else if (receiver) {
-            setCurrentHandoverReceiverName(receiver.email || receiver.name || 'Unknown');
-            console.log('✅ Current receiver:', receiver.email || receiver.name);
-          }
-        } catch (err) {
-          console.log('⚠️ Could not load current receiver:', err.message);
-          setCurrentHandoverReceiverName('Not assigned');
-        }
-      } else {
-        console.log('⚠️ Permit has no current receiver assigned');
-        setCurrentHandoverReceiverName('Not assigned');
-      }
-
-      // Load all available permit issuers for handover
+      // Load all available contractors for handover selection
       try {
-        console.log('📋 Loading available permit issuers');
+        console.log('📋 Loading available contractors');
         
-        const { data: permitIssuers, error } = await supabaseClient
-          .from('permit_issuers')
-          .select('id, email, name')
+        const { data: contractorsList, error } = await supabaseClient
+          .from('contractors')
+          .select('*')
+          .order('name', { ascending: true })
           .limit(200);
 
         if (error) {
-          console.error('❌ Error fetching permit issuers:', error);
+          console.error('❌ Error fetching contractors:', error);
           throw error;
         }
 
-        console.log('✅ Found', permitIssuers?.length || 0, 'permit issuers');
-        const receivers = (permitIssuers || []).map(p => ({
-          id: p.id,
-          email: p.email,
-          name: p.name || p.email
+        console.log('✅ Found', contractorsList?.length || 0, 'contractors');
+        const receivers = (contractorsList || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          company_name: c.company_name || c.company || ''
         }));
         
         setAvailableReceiversList(receivers);
