@@ -1122,6 +1122,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     id: '',
     description: '',
     requestedBy: '',
+    requestedById: '',
     contractorCompany: '',
     manualCompany: '',
     contractorSelected: false,
@@ -1982,6 +1983,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
+        status: status === 'draft' ? 'draft' : 'pending_approval',
+        current_permit_receiver_id: formData.requestedById || null,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
@@ -2018,6 +2021,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         id: '',
         description: '',
         requestedBy: '',
+        requestedById: '',
         contractorCompany: '',
         manualCompany: '',
         contractorSelected: false,
@@ -3554,7 +3558,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setFormData({ ...formData, requestedBy: contractor.name, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
+                            setFormData({ ...formData, requestedBy: contractor.name, requestedById: contractor.id, contractorCompany: contractor.companyName || '', contractorSelected: true, manualCompany: '' });
                             setShowRequestedByDropdown(false);
                             setFilteredRequestedBy([]);
                           }}
