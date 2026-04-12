@@ -3176,37 +3176,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setPermitForHandover(freshPermit);
       // Set current receiver name directly from permit (it's TEXT field)
       setCurrentHandoverReceiverName(freshPermit.current_permit_receiver_id || 'Not assigned');
-      setAvailableReceiversList([]); // Reset receivers
-
-      // Load all available contractors for handover selection
-      try {
-        console.log('📋 Loading available contractors');
-        
-        const { data: contractorsList, error } = await supabaseClient
-          .from('contractors')
-          .select('*')
-          .order('name', { ascending: true })
-          .limit(200);
-
-        if (error) {
-          console.error('❌ Error fetching contractors:', error);
-          throw error;
-        }
-
-        console.log('✅ Found', contractorsList?.length || 0, 'contractors');
-        const receivers = (contractorsList || []).map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          companyName: c.companyName || c.company || ''
-        }));
-        
-        setAvailableReceiversList(receivers);
-      } catch (err) {
-        console.error('❌ Error loading available receivers:', err);
-        Alert.alert('Error', 'Could not load available receivers: ' + err.message);
-      }
-
+      
+      // Use the existing contractors array - it already has all company data loaded
+      const receivers = (contractors || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        companyName: c.companyName || c.company || ''
+      }));
+      
+      setAvailableReceiversList(receivers);
       setShowHandoverModal(true);
     } catch (err) {
       console.error('❌ Error opening handover modal:', err);
