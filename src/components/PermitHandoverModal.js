@@ -44,14 +44,17 @@ export default function PermitHandoverModal({
   const loadHandoverHistory = async () => {
     try {
       console.log('📜 Loading handover history for permit:', permit.id);
-      const { data, error } = await supabase
-        .from('permit_handovers')
-        .select('*')
-        .eq('permit_id', permit.id)
-        .order('handover_timestamp', { ascending: false });
-      
-      if (error) throw error;
-      setHandoverHistory(data || []);
+      // History is stored in permit.last_receiver_id as a text log
+      if (permit?.last_receiver_id) {
+        // Split the log into entries
+        const entries = permit.last_receiver_id.split(', ').map((entry, idx) => ({
+          id: `${permit.id}-${idx}`,
+          entry: entry
+        }));
+        setHandoverHistory(entries);
+      } else {
+        setHandoverHistory([]);
+      }
     } catch (error) {
       console.error('Error loading history:', error);
     }
@@ -292,27 +295,12 @@ export default function PermitHandoverModal({
                 borderLeftColor: '#9CA3AF'
               }}>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
-                  Handover History
+                  Previous Receivers
                 </Text>
                 {handoverHistory.map((handover, index) => (
-                  <View key={handover.id} style={{ marginBottom: index < handoverHistory.length - 1 ? 12 : 0 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 11, fontWeight: '500', color: '#374151' }}>
-                        Handover #{index + 1}
-                      </Text>
-                      {handover.acknowledged_at && (
-                        <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600' }}>
-                          ✓ Acknowledged
-                        </Text>
-                      )}
-                    </View>
-                    {handover.reason && (
-                      <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>
-                        Reason: {handover.reason}
-                      </Text>
-                    )}
-                    <Text style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4 }}>
-                      {new Date(handover.handover_timestamp).toLocaleString()}
+                  <View key={handover.id} style={{ marginBottom: index < handoverHistory.length - 1 ? 8 : 0 }}>
+                    <Text style={{ fontSize: 11, color: '#374151', fontFamily: 'monospace' }}>
+                      {handover.entry}
                     </Text>
                   </View>
                 ))}

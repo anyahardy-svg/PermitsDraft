@@ -1,167 +1,80 @@
 import { supabase } from '../supabaseClient';
 
 // Transfer permit to a different receiver
-export const handoverPermit = async (permitId, fromReceiverId, toReceiverId, reason = '') => {
+export const handoverPermit = async (permitId, fromReceiverName, toReceiverName, reason = '') => {
   try {
-    console.log(`🔄 Handing over permit ${permitId} from ${fromReceiverId} to ${toReceiverId}`);
+    console.log(`🔄 Handing over permit ${permitId} from "${fromReceiverName}" to "${toReceiverName}"`);
     
-    // Create handover record
-    const { data: handover, error: handoverError } = await supabase
-      .from('permit_handovers')
-      .insert([{
-        permit_id: permitId,
-        from_receiver_id: fromReceiverId,
-        to_receiver_id: toReceiverId,
-        reason: reason,
-        handover_timestamp: new Date().toISOString()
-      }])
-      .select();
+    // Get current permit to access last_receiver_id log
+    const { data: permit, error: getError } = await supabase
+      .from('permits')
+      .select('current_permit_receiver_id, last_receiver_id')
+      .eq('id', permitId)
+      .single();
+
+    if (getError) throw getError;
+
+    // Build the handover log entry: "Name (YYYY-MM-DD HH:MM:SS)"
+    const now = new Date().toISOString();
+    const timestamp = now.split('T')[0] + ' ' + now.split('T')[1].substring(0, 8);
+    const logEntry = `${fromReceiverName} (${timestamp})`;
     
-    if (handoverError) throw handoverError;
-    
-    // Update permit to reflect new receiver
-    const { data: permit, error: permitError } = await supabase
+    // Append to last_receiver_id log, or create it if empty
+    const updatedLog = permit.last_receiver_id 
+      ? `${permit.last_receiver_id}, ${logEntry}`
+      : logEntry;
+
+    // Update permit: set new receiver and append to log
+    const { data: updatedPermit, error: updateError } = await supabase
       .from('permits')
       .update({
-        current_permit_receiver_id: toReceiverId,
-        last_receiver_id: fromReceiverId,
-        permitted_issuer: toReceiverId, // Keep this updated for backwards compatibility
+        current_permit_receiver_id: toReceiverName,
+        last_receiver_id: updatedLog,
         updated_at: new Date().toISOString()
       })
       .eq('id', permitId)
       .select();
-    
-    if (permitError) throw permitError;
-    
-    console.log('✅ Handover complete:', handover);
-    return { success: true, handover: handover[0], permit: permit[0] };
+
+    if (updateError) throw updateError;
+
+    console.log('✅ Handover complete. Log:', updatedLog);
+    return { success: true, handover: { from: fromReceiverName, to: toReceiverName, reason, timestamp }, permit: updatedPermit[0] };
   } catch (error) {
     console.error('Error handing over permit:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Acknowledge receipt of a handover
-export const acknowledgeHandover = async (handoverId, receiverId) => {
-  try {
-    console.log(`👤 ${receiverId} acknowledging handover ${handoverId}`);
-    
-    const { data, error } = await supabase
-      .from('permit_handovers')
-      .update({
-        acknowledged_by: receiverId,
-        acknowledged_at: new Date().toISOString()
-      })
-      .eq('id', handoverId)
-      .select();
-    
-    if (error) throw error;
-    
-    console.log('✅ Handover acknowledged');
-    return { success: true, data: data[0] };
-  } catch (error) {
-    console.error('Error acknowledging handover:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Get handover history for a permit
+// Get handover history for a permit (read from last_receiver_id field)
 export const getPermitHandoverHistory = async (permitId) => {
   try {
     console.log(`📜 Fetching handover history for permit ${permitId}`);
     
-    const { data, error } = await supabase
-      .from('permit_handovers')
-      .select(`
-        id,
-        permit_id,
-        from_receiver_id,
-        to_receiver_id,
-        reason,
-        handover_timestamp,
-        acknowledged_by,
-        acknowledged_at,
-        created_at
-      `)
-      .eq('permit_id', permitId)
-      .order('handover_timestamp', { ascending: false });
-    
+    const { data: permit, error } = await supabase
+      .from('permits')
+      .select('current_permit_receiver_id, last_receiver_id')
+      .eq('id', permitId)
+      .single();
+
     if (error) throw error;
     
-    console.log(`✅ Found ${data?.length || 0} handovers`);
-    return { success: true, data: data || [] };
+    // Parse the log from last_receiver_id
+    const history = [];
+    if (permit?.last_receiver_id) {
+      const entries = permit.last_receiver_id.split(', ');
+      entries.forEach((entry, index) => {
+        history.push({
+          id: `${permitId}-${index}`,
+          from_receiver: entry,
+          to_receiver: index === entries.length - 1 ? permit.current_permit_receiver_id : entries[index + 1]?.split('(')[0]?.trim()
+        });
+      });
+    }
+    
+    console.log(`✅ Found ${history.length} handovers`);
+    return { success: true, data: history };
   } catch (error) {
     console.error('Error fetching handover history:', error);
-    return { success: false, error: error.message, data: [] };
-  }
-};
-
-// Get pending handovers (not yet acknowledged)
-export const getPendingHandovers = async (receiverId) => {
-  try {
-    console.log(`📋 Fetching pending handovers for receiver ${receiverId}`);
-    
-    const { data, error } = await supabase
-      .from('permit_handovers')
-      .select(`
-        id,
-        permit_id,
-        from_receiver_id,
-        to_receiver_id,
-        reason,
-        handover_timestamp,
-        permits!inner(
-          id,
-          description,
-          permit_type,
-          site_id,
-          status
-        )
-      `)
-      .eq('to_receiver_id', receiverId)
-      .is('acknowledged_at', null)
-      .order('handover_timestamp', { ascending: false });
-    
-    if (error) throw error;
-    
-    console.log(`✅ Found ${data?.length || 0} pending handovers`);
-    return { success: true, data: data || [] };
-  } catch (error) {
-    console.error('Error fetching pending handovers:', error);
-    return { success: false, error: error.message, data: [] };
-  }
-};
-
-// Get all handovers involving a receiver (sent or received)
-export const getReceiverHandovers = async (receiverId) => {
-  try {
-    console.log(`📊 Fetching all handovers for receiver ${receiverId}`);
-    
-    const { data, error } = await supabase
-      .from('permit_handovers')
-      .select(`
-        id,
-        permit_id,
-        from_receiver_id,
-        to_receiver_id,
-        reason,
-        handover_timestamp,
-        acknowledged_at,
-        permits!inner(
-          id,
-          description,
-          permit_type
-        )
-      `)
-      .or(`from_receiver_id.eq.${receiverId},to_receiver_id.eq.${receiverId}`)
-      .order('handover_timestamp', { ascending: false });
-    
-    if (error) throw error;
-    
-    console.log(`✅ Found ${data?.length || 0} handovers`);
-    return { success: true, data: data || [] };
-  } catch (error) {
-    console.error('Error fetching receiver handovers:', error);
     return { success: false, error: error.message, data: [] };
   }
 };
