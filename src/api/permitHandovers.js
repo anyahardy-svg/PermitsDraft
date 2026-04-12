@@ -24,10 +24,11 @@ export const handoverPermit = async (permitId, fromReceiverName, toReceiverName,
       ? `${permit.last_receiver_id}, ${logEntry}`
       : logEntry;
 
-    // Update permit: set new receiver and append to log
+    // Update permit: set new receiver, update requested_by, and append to log
     const { data: updatedPermit, error: updateError } = await supabase
       .from('permits')
       .update({
+        requested_by: toReceiverName,
         current_permit_receiver_id: toReceiverName,
         last_receiver_id: updatedLog,
         updated_at: new Date().toISOString()
