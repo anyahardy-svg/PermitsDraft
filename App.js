@@ -14585,7 +14585,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {editData.isolations && editData.isolations.length > 0 ? editData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                     {isolation.source === 'register' ? (
                       <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
@@ -14678,7 +14678,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
+                          maxHeight: 150,
                           zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
@@ -14960,9 +14960,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.signons && (
               <View style={[styles.sectionContent, { overflow: 'visible' }]}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input]} 
                         value={signOn.name || ''} 
@@ -15014,7 +15014,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
+                          maxHeight: 150,
                           zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
@@ -17118,7 +17118,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {editData.isolations && editData.isolations.length > 0 ? editData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
+                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                       {isolation.source === 'register' ? (
                         <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
@@ -17282,9 +17282,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 - idx }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={signOn.name || ''} 
@@ -19137,7 +19137,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {editData.isolations && editData.isolations.length > 0 ? editData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4 }}>
+                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                     {isolation.source === 'register' ? (
                       <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
@@ -19299,9 +19299,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {editData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 12, marginLeft: 8, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Worker Name:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
+                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput 
                         style={[styles.input, { position: 'relative', zIndex: 1 }]} 
                         value={signOn.name || ''} 
