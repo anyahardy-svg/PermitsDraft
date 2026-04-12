@@ -40,6 +40,11 @@ export default function PermitHandoverModal({
       console.log('🎯 Modal opened for permit:', permit.id);
       console.log('   Current receiver name:', currentReceiverName);
       console.log('   Available receivers:', availableReceivers?.length || 0);
+      if (availableReceivers?.length > 0) {
+        const currentReceiverData = availableReceivers.find(r => r.name === currentReceiverName);
+        console.log('   Current receiver data:', currentReceiverData);
+        console.log('   Sample receiver:', availableReceivers[0]);
+      }
       loadHandoverHistory();
     }
   }, [visible, permit?.id]);
@@ -164,11 +169,15 @@ export default function PermitHandoverModal({
                 <Text style={{ fontSize: 13, color: '#1E40AF', fontWeight: '500' }}>
                   {currentReceiverName}
                 </Text>
-                {availableReceivers?.find(r => r.name === currentReceiverName)?.company_name && (
-                  <Text style={{ fontSize: 11, color: '#1E40AF', marginTop: 4, opacity: 0.8 }}>
-                    {availableReceivers.find(r => r.name === currentReceiverName).company_name}
-                  </Text>
-                )}
+                {(() => {
+                  const receiver = availableReceivers?.find(r => r.name === currentReceiverName);
+                  const company = receiver?.company_name || receiver?.company;
+                  return company ? (
+                    <Text style={{ fontSize: 11, color: '#1E40AF', marginTop: 4, opacity: 0.8 }}>
+                      {company}
+                    </Text>
+                  ) : null;
+                })()}
               </View>
             </View>
 
