@@ -4717,7 +4717,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.signons && (
               <View style={styles.sectionContent}>
                 {formData.signOns.map((signOn, idx) => (
-                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={styles.label}>Worker Name</Text>
                     <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
                       <TextInput
@@ -4775,7 +4775,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
+                          maxHeight: 150,
                           zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
@@ -17338,7 +17338,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
+                          maxHeight: 150,
                           zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
@@ -19355,7 +19355,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
-                          maxHeight: 300,
+                          maxHeight: 150,
                           zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
