@@ -1952,6 +1952,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     console.log('✅ All validations passed, proceeding with submission...');
+    console.log('   Status parameter:', status);
+    console.log('   Type of status:', typeof status);
+    console.log('   status === "pending_approval":', status === 'pending_approval');
     
     // If submitting for approval, show signature modal instead of saving directly
     if (status === 'pending_approval') {
@@ -1960,6 +1963,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return;
     }
     
+    console.log('ℹ️ Status is not pending_approval, calling saveNewPermitDraft');
     // For draft status, proceed directly to save
     await saveNewPermitDraft();
   };
