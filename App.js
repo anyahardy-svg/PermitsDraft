@@ -3178,18 +3178,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Set current receiver name directly from permit (it's TEXT field)
       setCurrentHandoverReceiverName(freshPermit.current_permit_receiver_id || 'Not assigned');
       
-      // Use the existing contractors array - it already has all company data loaded
-      console.log('\n💡 HANDOVER MODAL DEBUG:');
-      console.log('   Raw contractors:', contractors);
-      console.log('   Contractors count:', contractors?.length);
-      if (contractors && contractors.length > 0) {
-        console.log('   First contractor:', JSON.stringify(contractors[0], null, 2));
-        console.log('   First contractor keys:', Object.keys(contractors[0]));
-        console.log('   First contractor.companyName:', contractors[0].companyName);
-        console.log('   First contractor.company_name:', contractors[0].company_name);
+      // If contractors state is empty, fetch fresh
+      let contractorsToUse = contractors;
+      if (!contractors || contractors.length === 0) {
+        console.log('   ⚠️ Contractors state is empty, fetching fresh data...');
+        contractorsToUse = await listContractors();
+        console.log('   ✅ Fetched fresh contractors:', contractorsToUse?.length || 0);
       }
       
-      const receivers = (contractors || []).map(c => ({
+      // Use contractors to build receivers list
+      console.log('\n💡 HANDOVER MODAL DEBUG:');
+      console.log('   Raw contractors:', contractorsToUse);
+      console.log('   Contractors count:', contractorsToUse?.length);
+      if (contractorsToUse && contractorsToUse.length > 0) {
+        console.log('   First contractor:', JSON.stringify(contractorsToUse[0], null, 2));
+        console.log('   First contractor keys:', Object.keys(contractorsToUse[0]));
+        console.log('   First contractor.companyName:', contractorsToUse[0].companyName);
+        console.log('   First contractor.company_name:', contractorsToUse[0].company_name);
+      }
+      
+      const receivers = (contractorsToUse || []).map(c => ({
         id: c.id,
         name: c.name,
         email: c.email,
