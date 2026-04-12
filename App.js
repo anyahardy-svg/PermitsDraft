@@ -1202,6 +1202,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [agreeToStatementNewPermit, setAgreeToStatementNewPermit] = useState(false);
   const [loadingRequesterSignatureNewPermit, setLoadingRequesterSignatureNewPermit] = useState(false);
   const signatureRefNewPermit = useRef(null);
+
+  // Debug effect for new permit signature modal state
+  useEffect(() => {
+    console.log('🔍 NEW PERMIT SIGNATURE MODAL STATE CHANGED:');
+    console.log('   showRequesterSignatureNewPermit:', showRequesterSignatureNewPermit);
+    console.log('   agreeToStatementNewPermit:', agreeToStatementNewPermit);
+    console.log('   requesterSignatureNewPermit:', requesterSignatureNewPermit ? '✓ exists' : '✗ null');
+  }, [showRequesterSignatureNewPermit, agreeToStatementNewPermit, requesterSignatureNewPermit]);
   
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -16029,6 +16037,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         animationType="slide"
         transparent
         onRequestClose={() => {
+          console.log('🔴 Modal onRequestClose triggered');
           setShowRequesterSignatureNewPermit(false);
           setRequesterSignatureNewPermit(null);
           setAgreeToStatementNewPermit(false);
@@ -16110,7 +16119,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     marginRight: 12,
                     marginTop: 2
                   }}
-                  onPress={() => setAgreeToStatementNewPermit(!agreeToStatementNewPermit)}
+                  onPress={() => {
+                    console.log('☑️ Agreement checkbox toggled');
+                    console.log('   currentValue:', agreeToStatementNewPermit);
+                    console.log('   newValue:', !agreeToStatementNewPermit);
+                    setAgreeToStatementNewPermit(!agreeToStatementNewPermit);
+                  }}
                 >
                   {agreeToStatementNewPermit && (
                     <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
@@ -16147,8 +16161,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <WebSignaturePad
                     signatureRef={signatureRefNewPermit}
                     onSignatureChange={() => {
+                      console.log('🎨 Signature pad changed - checking for content');
                       if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
-                        setRequesterSignatureNewPermit(signatureRefNewPermit.current.toDataURL('image/png'));
+                        const sigData = signatureRefNewPermit.current.toDataURL('image/png');
+                        console.log('✍️ Signature captured, setting state');
+                        setRequesterSignatureNewPermit(sigData);
+                      } else {
+                        console.log('❌ Signature pad is empty');
                       }
                     }}
                     width={300}
