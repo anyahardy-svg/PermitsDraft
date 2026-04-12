@@ -202,10 +202,9 @@ export default function PermitHandoverModal({
                 value={receiverSearchText}
                 onChangeText={(text) => {
                   setReceiverSearchText(text);
-                  // Filter receivers based on input
                   if (text.trim().length > 0) {
                     const filtered = availableReceivers
-                      .filter(r => r.name !== currentReceiverName) // Don't show current receiver
+                      .filter(r => r.name !== currentReceiverName)
                       .filter(r => r.name.toLowerCase().includes(text.toLowerCase()));
                     setFilteredReceivers(filtered);
                     setShowReceiverDropdown(filtered.length > 0);
@@ -227,14 +226,6 @@ export default function PermitHandoverModal({
                   setTimeout(() => setShowReceiverDropdown(false), 200);
                 }}
               />
-              {selectedReceiverName && (
-                <View style={{ backgroundColor: '#F0FDF4', padding: 8, borderRadius: 8, marginTop: 8 }}>
-                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '500' }}>{selectedReceiverName}</Text>
-                  {selectedReceiverCompany && (
-                    <Text style={{ fontSize: 11, color: '#059669', marginTop: 2, opacity: 0.8 }}>{selectedReceiverCompany}</Text>
-                  )}
-                </View>
-              )}
 
               {showReceiverDropdown && filteredReceivers.length > 0 && (
                 <View style={{
@@ -259,32 +250,19 @@ export default function PermitHandoverModal({
                     {filteredReceivers.map(receiver => (
                       <TouchableOpacity
                         key={receiver.id}
-                        style={{ 
-                          padding: 12, 
-                          borderBottomWidth: 1, 
-                          borderBottomColor: '#E5E7EB',
-                          backgroundColor: selectedReceiverName === receiver.name ? '#F0FDF4' : 'white'
-                        }}
+                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                         activeOpacity={0.7}
                         onPress={() => {
                           setSelectedReceiverId(receiver.id);
-                          setSelectedReceiverName(receiver.name || 'Unknown');
+                          setSelectedReceiverName(receiver.name);
                           setSelectedReceiverCompany(receiver.companyName || receiver.company || '');
-                          setReceiverSearchText(receiver.name || 'Unknown');
+                          setReceiverSearchText(receiver.name);
                           setShowReceiverDropdown(false);
                           setFilteredReceivers([]);
                         }}
                       >
-                        <Text style={{
-                          fontSize: 14,
-                          color: '#374151',
-                          fontWeight: '500'
-                        }}>
-                          {receiver.name}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                          {receiver.companyName || receiver.company || ''}
-                        </Text>
+                        <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{receiver.name}</Text>
+                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{receiver.companyName || receiver.company || ''}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -305,9 +283,7 @@ export default function PermitHandoverModal({
                   zIndex: 50,
                   elevation: 10,
                 }}>
-                  <Text style={{ fontSize: 12, color: '#991B1B' }}>
-                    No receivers found matching "{receiverSearchText}"
-                  </Text>
+                  <Text style={{ fontSize: 12, color: '#991B1B' }}>No receivers found matching "{receiverSearchText}"</Text>
                 </View>
               )}
             </View>
