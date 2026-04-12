@@ -1953,7 +1953,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     console.log('✅ All validations passed, proceeding with submission...');
     
+    // If submitting for approval, show signature modal instead of saving directly
+    if (status === 'pending_approval') {
+      console.log('📝 Showing signature modal for new permit approval');
+      setShowRequesterSignatureNewPermit(true);
+      return;
+    }
     
+    // For draft status, proceed directly to save
+    await saveNewPermitDraft();
+  };
+
+  const saveNewPermitDraft = async () => {
     try {
       // Convert site name to site_id
       const siteId = siteNameToIdMap[formData.site];
@@ -1962,7 +1973,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         currentContractor: currentContractor?.id,
         site: formData.site,
         siteId,
-        status: status
+        status: 'draft'
       });
 
       // Set receiver to the requested person's name
@@ -1973,7 +1984,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permit_type: formData.id || 'general',
         description: formData.description,
         location: formData.location,
-        status: status || 'pending_approval',
+        status: 'draft',
         priority: formData.priority,
         start_date: formData.startDate || defaultDate,
         start_time: formData.startTime || defaultTime,
@@ -1986,7 +1997,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
-        status: status === 'draft' ? 'draft' : 'pending_approval',
+        status: 'draft',
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
@@ -2046,11 +2057,127 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         attachments: []
       });
       setCurrentScreen('dashboard');
-      const statusText = status === 'draft' ? 'Draft saved' : 'Permit submitted for approval';
-      Alert.alert('Success', statusText + '. It has been saved to the database.');
+      Alert.alert('Success', 'Draft saved. It has been saved to the database.');
     } catch (error) {
       console.error('Error creating permit:', error);
       Alert.alert('Error', 'Failed to save permit. Please try again.');
+    }
+  };
+
+  const saveNewPermitWithSignature = async () => {
+    if (!agreeToStatementNewPermit) {
+      Alert.alert('Required', 'Please agree to the statement before submitting.');
+      return;
+    }
+
+    // Capture signature from canvas before submitting
+    let signatureData = requesterSignatureNewPermit;
+    if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
+      signatureData = signatureRefNewPermit.current.toDataURL('image/png');
+    } else if (!requesterSignatureNewPermit) {
+      Alert.alert('Required', 'Please provide your signature before submitting.');
+      return;
+    }
+
+    try {
+      setLoadingRequesterSignatureNewPermit(true);
+      
+      // Convert site name to site_id
+      const siteId = siteNameToIdMap[formData.site];
+
+      // Set receiver to the requested person's name
+      const currentReceiver = formData.requestedBy || null;
+      
+      // Prepare permit data for Supabase
+      const permitData = {
+        permit_type: formData.id || 'general',
+        description: formData.description,
+        location: formData.location,
+        status: 'pending_approval',
+        priority: formData.priority,
+        start_date: formData.startDate || defaultDate,
+        start_time: formData.startTime || defaultTime,
+        end_date: formData.endDate || defaultDate,
+        end_time: formData.endTime || defaultTime,
+        requested_by: formData.requestedBy,
+        contractor_company: formData.contractorCompany || '',
+        manual_company: formData.manualCompany || '',
+        contractor_selected: formData.contractorSelected || false,
+        permitted_issuer: formData.permitIssuer || '',
+        site_id: siteId,
+        contractor_id: currentContractor?.id || null,
+        status: 'pending_approval',
+        current_permit_receiver_id: currentReceiver,
+        controls_summary: '',
+        specialized_permits: formData.specializedPermits,
+        single_hazards: formData.singleHazards,
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
+        isolations: formData.isolations,
+        sign_ons: formData.signOns,
+        attachments: [],
+        requester_signature: signatureData
+      };
+
+      // Save to Supabase
+      const newPermit = await createPermit(permitData);
+      
+      // Upload attachments if any
+      let uploadedAttachments = [];
+      if (formData.attachments && formData.attachments.length > 0) {
+        try {
+          uploadedAttachments = await uploadMultipleAttachments(newPermit.id, formData.attachments);
+          
+          // Update permit with attachment URLs
+          await updatePermit(newPermit.id, {
+            attachments: uploadedAttachments
+          });
+        } catch (error) {
+          console.warn('Error uploading attachments:', error);
+          Alert.alert('Warning', 'Permit submitted but some attachments failed to upload. You can try uploading them again later.');
+        }
+      }
+      
+      // Reload permits from database
+      const refreshedPermits = await listPermits();
+      setPermits(refreshedPermits);
+      
+      // Reset signature states
+      setShowRequesterSignatureNewPermit(false);
+      setRequesterSignatureNewPermit(null);
+      setAgreeToStatementNewPermit(false);
+      
+      setFormData({
+        id: '',
+        description: '',
+        requestedBy: '',
+        requestedById: '',
+        contractorCompany: '',
+        manualCompany: '',
+        contractorSelected: false,
+        location: '',
+        site: '',
+        permitIssuer: '',
+        status: 'pending_approval',
+        priority: 'medium',
+        startDate: defaultDate,
+        startTime: defaultTime,
+        endDate: defaultDate,
+        endTime: defaultTime,
+        specializedPermits: initialSpecializedPermits,
+        singleHazards: initialSingleHazards,
+        jsea: initialJSEA,
+        isolations: initialIsolations,
+        signOns: initialSignOns,
+        completion: { finalToolCount: '', completionNotes: '' },
+        attachments: []
+      });
+      setCurrentScreen('dashboard');
+      Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
+    } catch (error) {
+      console.error('Error submitting permit:', error);
+      Alert.alert('Error', 'Failed to submit permit: ' + error.message);
+    } finally {
+      setLoadingRequesterSignatureNewPermit(false);
     }
   };
   // JSEA steps state
@@ -13233,6 +13360,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [loadingRequesterSignatureDraft, setLoadingRequesterSignatureDraft] = React.useState(false);
     const signatureRefDraft = React.useRef(null);
     
+    // Requester Signature states for NEW permit submission
+    const [showRequesterSignatureNewPermit, setShowRequesterSignatureNewPermit] = React.useState(false);
+    const [requesterSignatureNewPermit, setRequesterSignatureNewPermit] = React.useState(null);
+    const [agreeToStatementNewPermit, setAgreeToStatementNewPermit] = React.useState(false);
+    const [loadingRequesterSignatureNewPermit, setLoadingRequesterSignatureNewPermit] = React.useState(false);
+    const signatureRefNewPermit = React.useRef(null);
+    
     // Issuer Signature states for approval
     const [showIssuerSignatureApproval, setShowIssuerSignatureApproval] = React.useState(false);
     const [issuerSignatureApproval, setIssuerSignatureApproval] = React.useState(null);
@@ -15859,6 +15993,221 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   disabled={loadingRequesterSignatureDraft || !agreeToStatementDraft || !requesterSignatureDraft}
                 >
                   {loadingRequesterSignatureDraft ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Requester Signature Modal for NEW Permit */}
+      <Modal
+        visible={showRequesterSignatureNewPermit}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowRequesterSignatureNewPermit(false);
+          setRequesterSignatureNewPermit(null);
+          setAgreeToStatementNewPermit(false);
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '95%'
+          }}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Requester Signature
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowRequesterSignatureNewPermit(false);
+                  setRequesterSignatureNewPermit(null);
+                  setAgreeToStatementNewPermit(false);
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Agreement Statement */}
+              <View style={{
+                backgroundColor: '#F0F9FF',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 20,
+                borderLeftWidth: 4,
+                borderLeftColor: '#3B82F6'
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#1F2937'
+                }}>
+                  I have assessed the risk as best as I could, and I have read this Permit to Work and understand the nature of the work and safety precautions to be taken. I agree to comply with the conditions detailed within this Permit to Work, the associated procedures and conditions of the JSEA, and accept responsibility as the person directly in charge.
+                </Text>
+              </View>
+
+              {/* Agreement Checkbox */}
+              <View style={{
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'flex-start'
+              }}>
+                <TouchableOpacity
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: agreeToStatementNewPermit ? '#3B82F6' : '#D1D5DB',
+                    backgroundColor: agreeToStatementNewPermit ? '#3B82F6' : 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    marginTop: 2
+                  }}
+                  onPress={() => setAgreeToStatementNewPermit(!agreeToStatementNewPermit)}
+                >
+                  {agreeToStatementNewPermit && (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: '#374151'
+                }}>
+                  I agree to the above statement
+                </Text>
+              </View>
+
+              {/* Signature Pad */}
+              <View style={{
+                marginBottom: 20
+              }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: 8
+                }}>
+                  Your Signature *
+                </Text>
+                <View style={{
+                  borderWidth: 2,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: '#FAFAFA',
+                  overflow: 'hidden'
+                }}>
+                  <WebSignaturePad
+                    signatureRef={signatureRefNewPermit}
+                    onSignatureChange={() => {
+                      if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
+                        setRequesterSignatureNewPermit(signatureRefNewPermit.current.toDataURL('image/png'));
+                      }
+                    }}
+                    width={300}
+                    height={250}
+                  />
+                </View>
+                {requesterSignatureNewPermit && (
+                  <Text style={{
+                    fontSize: 12,
+                    color: '#10B981',
+                    marginTop: 8,
+                    fontWeight: '600'
+                  }}>
+                    ✓ Signature captured
+                  </Text>
+                )}
+              </View>
+
+              {/* Clear Signature Button */}
+              {requesterSignatureNewPermit && (
+                <TouchableOpacity
+                  style={{
+                    padding: 10,
+                    marginBottom: 16,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#F3E8FF',
+                    backgroundColor: '#FEF5FF',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    if (signatureRefNewPermit.current) {
+                      signatureRefNewPermit.current.clear();
+                    }
+                    setRequesterSignatureNewPermit(null);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    color: '#8B5CF6',
+                    fontWeight: '600'
+                  }}>
+                    Clear Signature
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowRequesterSignatureNewPermit(false);
+                    setRequesterSignatureNewPermit(null);
+                    setAgreeToStatementNewPermit(false);
+                  }}
+                  disabled={loadingRequesterSignatureNewPermit}
+                >
+                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: loadingRequesterSignatureNewPermit ? '#D8BFD8' : '#3B82F6',
+                    padding: 12,
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={saveNewPermitWithSignature}
+                  disabled={loadingRequesterSignatureNewPermit || !agreeToStatementNewPermit || !requesterSignatureNewPermit}
+                >
+                  {loadingRequesterSignatureNewPermit ? (
                     <ActivityIndicator size="small" color="white" />
                   ) : (
                     <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
