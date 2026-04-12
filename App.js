@@ -20916,11 +20916,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       />
 
       {/* Requester Signature Modal for NEW Permit */}
-      {console.log('🔍 NEW PERMIT MODAL - visible:', showRequesterSignatureNewPermit, 'agree:', agreeToStatementNewPermit, 'sig:', !!requesterSignatureNewPermit)}
       <Modal
         visible={showRequesterSignatureNewPermit}
         animationType="slide"
-        transparent={false}
+        transparent
         onRequestClose={() => {
           console.log('🔴 Closing new permit signature modal');
           setShowRequesterSignatureNewPermit(false);
@@ -20930,11 +20929,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       >
         <View style={{
           flex: 1,
-          backgroundColor: '#FF0000',
+          backgroundColor: 'rgba(0,0,0,0.5)',
           justifyContent: 'center',
           padding: 16
         }}>
-          <Text style={{fontSize: 24, fontWeight: 'bold', color: 'white', textAlign: 'center', marginBottom: 20}}>🔍 DEBUG: MODAL IS SHOWING!</Text>
           <View style={{
             backgroundColor: 'white',
             borderRadius: 12,
