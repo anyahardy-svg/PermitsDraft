@@ -3157,6 +3157,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handler to open permit handover modal with proper receiver data
   const handleOpenHandoverModal = async (permit) => {
     console.log('🔄 Opening handover modal for permit:', permit.id);
+    console.log('   contractors state exists:', !!contractors, 'length:', contractors?.length);
     
     try {
       // Fetch fresh permit data to ensure current_permit_receiver_id is populated
@@ -3178,7 +3179,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentHandoverReceiverName(freshPermit.current_permit_receiver_id || 'Not assigned');
       
       // Use the existing contractors array - it already has all company data loaded
-      console.log('🔍 Contractors array sample:', contractors?.[0]);
+      console.log('\n💡 HANDOVER MODAL DEBUG:');
+      console.log('   Raw contractors:', contractors);
+      console.log('   Contractors count:', contractors?.length);
+      if (contractors && contractors.length > 0) {
+        console.log('   First contractor:', JSON.stringify(contractors[0], null, 2));
+        console.log('   First contractor keys:', Object.keys(contractors[0]));
+        console.log('   First contractor.companyName:', contractors[0].companyName);
+        console.log('   First contractor.company_name:', contractors[0].company_name);
+      }
+      
       const receivers = (contractors || []).map(c => ({
         id: c.id,
         name: c.name,
@@ -3186,7 +3196,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         companyName: c.companyName || c.company_name || c.company || ''
       }));
       
-      console.log('📨 Receivers mapped sample:', receivers?.[0]);
+      console.log('   Receivers array:', receivers);
+      console.log('   Receivers count:', receivers.length);
+      if (receivers.length > 0) {
+        console.log('   First receiver:', JSON.stringify(receivers[0], null, 2));
+      }
+      console.log('\n');
+      
       setAvailableReceiversList(receivers);
       setShowHandoverModal(true);
     } catch (err) {

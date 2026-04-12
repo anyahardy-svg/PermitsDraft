@@ -37,17 +37,22 @@ export default function PermitHandoverModal({
   // Load handover history when modal opens
   useEffect(() => {
     if (visible && permit?.id) {
-      console.log('🎯 Modal opened for permit:', permit.id);
+      console.log('\n🎯 MODAL RENDER DEBUG:');
+      console.log('   Modal opened for permit:', permit.id);
       console.log('   Current receiver name:', currentReceiverName);
-      console.log('   Available receivers:', availableReceivers?.length || 0);
+      console.log('   availableReceivers prop length:', availableReceivers?.length || 0);
+      console.log('   availableReceivers prop:', availableReceivers);
       if (availableReceivers?.length > 0) {
+        console.log('   First available receiver:', JSON.stringify(availableReceivers[0], null, 2));
         const currentReceiverData = availableReceivers.find(r => r.name === currentReceiverName);
-        console.log('   Current receiver data:', currentReceiverData);
-        console.log('   Sample receiver:', availableReceivers[0]);
+        console.log('   Current receiver found in list:', !!currentReceiverData, currentReceiverData);
+      } else {
+        console.error('   ❌ NO AVAILABLE RECEIVERS!');
       }
+      console.log('\n');
       loadHandoverHistory();
     }
-  }, [visible, permit?.id]);
+  }, [visible, permit?.id, availableReceivers]);
 
   const loadHandoverHistory = async () => {
     try {
