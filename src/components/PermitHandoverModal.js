@@ -25,6 +25,7 @@ export default function PermitHandoverModal({
 }) {
   const [selectedReceiverId, setSelectedReceiverId] = useState(null);
   const [selectedReceiverName, setSelectedReceiverName] = useState(null);
+  const [selectedReceiverCompany, setSelectedReceiverCompany] = useState(null);
   const [receiverSearchText, setReceiverSearchText] = useState('');
   const [filteredReceivers, setFilteredReceivers] = useState([]);
   const [reason, setReason] = useState('');
@@ -102,6 +103,7 @@ export default function PermitHandoverModal({
   const handleClose = () => {
     setSelectedReceiverId(null);
     setSelectedReceiverName(null);
+    setSelectedReceiverCompany(null);
     setReceiverSearchText('');
     setFilteredReceivers([]);
     setReason('');
@@ -162,6 +164,11 @@ export default function PermitHandoverModal({
                 <Text style={{ fontSize: 13, color: '#1E40AF', fontWeight: '500' }}>
                   {currentReceiverName}
                 </Text>
+                {availableReceivers?.find(r => r.name === currentReceiverName)?.company_name && (
+                  <Text style={{ fontSize: 11, color: '#1E40AF', marginTop: 4, opacity: 0.8 }}>
+                    {availableReceivers.find(r => r.name === currentReceiverName).company_name}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -211,6 +218,12 @@ export default function PermitHandoverModal({
                   setTimeout(() => setShowReceiverDropdown(false), 200);
                 }}
               />
+              {selectedReceiverName && selectedReceiverCompany && (
+                <View style={{ backgroundColor: '#F0FDF4', padding: 8, borderRadius: 8, marginTop: 8 }}>
+                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '500' }}>{selectedReceiverName}</Text>
+                  <Text style={{ fontSize: 11, color: '#059669', marginTop: 2, opacity: 0.8 }}>{selectedReceiverCompany}</Text>
+                </View>
+              )}
 
               {showReceiverDropdown && filteredReceivers.length > 0 && (
                 <View style={{
@@ -245,6 +258,7 @@ export default function PermitHandoverModal({
                         onPress={() => {
                           setSelectedReceiverId(receiver.id);
                           setSelectedReceiverName(receiver.name || 'Unknown');
+                          setSelectedReceiverCompany(receiver.company_name || 'Unknown');
                           setReceiverSearchText(receiver.name || 'Unknown');
                           setShowReceiverDropdown(false);
                           setFilteredReceivers([]);
@@ -258,7 +272,12 @@ export default function PermitHandoverModal({
                           {receiver.name || 'Unknown'}
                         </Text>
                         {receiver.company_name && (
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                          <Text style={{
+                            fontSize: 11,
+                            color: selectedReceiverName === receiver.name ? '#059669' : '#9CA3AF',
+                            marginTop: 2,
+                            fontWeight: selectedReceiverName === receiver.name ? '500' : '400'
+                          }}>
                             {receiver.company_name}
                           </Text>
                         )}
