@@ -20719,6 +20719,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           try {
             const refreshedPermits = await listPermits();
             setPermits(refreshedPermits);
+            
+            // Check if new receiver is from a different company - update front company if so
+            if (permitForHandover && availableReceiversList.length > 0) {
+              // Find the new receiver (current_permit_receiver_id = receiver name in TEXT field)
+              const updatedPermit = refreshedPermits?.find(p => p.id === permitForHandover.id);
+              if (updatedPermit && updatedPermit.current_permit_receiver_id) {
+                const newReceiver = availableReceiversList.find(r => r.name === updatedPermit.current_permit_receiver_id);
+                if (newReceiver && newReceiver.companyId) {
+                  // Check if it's different from current selected company
+                  if (selectedCompanyId !== newReceiver.companyId) {
+                    console.log('🔄 Receiver from different company. Updating front company from', selectedCompanyId, 'to', newReceiver.companyId);
+                    setSelectedCompanyId(newReceiver.companyId);
+                    // Update localStorage
+                    localStorage.setItem('currentContractor', JSON.stringify({
+                      id: newReceiver.id,
+                      name: newReceiver.name,
+                      companyId: newReceiver.companyId
+                    }));
+                  }
+                }
+              }
+            }
+            
             Alert.alert('Success', 'Permit handed over successfully!');
           } catch (err) {
             console.error('Error reloading permits:', err);
