@@ -3424,11 +3424,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Check if permit needs daily verification (>24 hours since last verification)
   const needsVerification = (permit) => {
-    if (!permit.last_verified_at) return true; // Never verified
-    const lastVerified = new Date(permit.last_verified_at);
+    // First, determine when the permit was created
+    const createdDate = new Date(permit.created_at || permit.submittedDate || permit.approvedDate);
+    if (isNaN(createdDate.getTime())) return false; // Invalid date, don't flag
+    
     const now = new Date();
-    const minutesSinceVerification = (now - lastVerified) / (1000 * 60);
-    return minutesSinceVerification > 1440; // 1440 minutes = 24 hours
+    const hoursSinceCreation = (now - createdDate) / (1000 * 60 * 60);
+    
+    // Only start checking verification after 24 hours from creation
+    if (hoursSinceCreation < 24) {
+      return false; // Too soon, don't show as needing verification
+    }
+    
+    // If never verified, show after 24 hours
+    if (!permit.last_verified_at) return true;
+    
+    // If verified before, check if 24 hours have passed since last verification
+    const lastVerified = new Date(permit.last_verified_at);
+    const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
+    return hoursSinceVerification > 24;
   };
 
   // Handle permit verification - update last_verified_at and verified_by
