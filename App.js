@@ -3178,13 +3178,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentHandoverReceiverName(freshPermit.current_permit_receiver_id || 'Not assigned');
       
       // Use the existing contractors array - it already has all company data loaded
+      console.log('🔍 Contractors array sample:', contractors?.[0]);
       const receivers = (contractors || []).map(c => ({
         id: c.id,
         name: c.name,
         email: c.email,
-        companyName: c.companyName || c.company || ''
+        companyName: c.companyName || c.company_name || c.company || ''
       }));
       
+      console.log('📨 Receivers mapped sample:', receivers?.[0]);
       setAvailableReceiversList(receivers);
       setShowHandoverModal(true);
     } catch (err) {
