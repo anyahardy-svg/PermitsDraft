@@ -3157,12 +3157,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handler to open permit handover modal with proper receiver data
   const handleOpenHandoverModal = async (permit) => {
     console.log('🔄 Opening handover modal for permit:', permit.id);
-    console.log('   Current receiver:', permit.current_permit_receiver_id);
     
     try {
-      setPermitForHandover(permit);
+      // Fetch fresh permit data to ensure current_permit_receiver_id is populated
+      const { data: freshPermit, error: fetchError } = await supabaseClient
+        .from('permits')
+        .select('id, description, permit_type, current_permit_receiver_id, last_receiver_id')
+        .eq('id', permit.id)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Error fetching permit:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('   Current receiver from DB:', freshPermit.current_permit_receiver_id);
+      
+      setPermitForHandover(freshPermit);
       // Set current receiver name directly from permit (it's TEXT field)
-      setCurrentHandoverReceiverName(permit.current_permit_receiver_id || 'Not assigned');
+      setCurrentHandoverReceiverName(freshPermit.current_permit_receiver_id || 'Not assigned');
       setAvailableReceiversList([]); // Reset receivers
 
       // Load all available contractors for handover selection
