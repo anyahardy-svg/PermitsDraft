@@ -2076,7 +2076,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const saveNewPermitWithSignature = async () => {
+    console.log('🖊️ saveNewPermitWithSignature called');
+    console.log('   agreeToStatementNewPermit:', agreeToStatementNewPermit);
+    console.log('   requesterSignatureNewPermit:', requesterSignatureNewPermit ? 'exists' : 'missing');
+    
     if (!agreeToStatementNewPermit) {
+      console.log('❌ Agreement not checked');
       Alert.alert('Required', 'Please agree to the statement before submitting.');
       return;
     }
@@ -2084,20 +2089,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Capture signature from canvas before submitting
     let signatureData = requesterSignatureNewPermit;
     if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
+      console.log('📸 Getting signature from canvas');
       signatureData = signatureRefNewPermit.current.toDataURL('image/png');
     } else if (!requesterSignatureNewPermit) {
+      console.log('❌ No signature captured');
       Alert.alert('Required', 'Please provide your signature before submitting.');
       return;
     }
 
     try {
+      console.log('⏳ Starting permit creation...');
       setLoadingRequesterSignatureNewPermit(true);
       
       // Convert site name to site_id
       const siteId = siteNameToIdMap[formData.site];
+      console.log('   Site:', formData.site, 'SiteId:', siteId);
 
       // Set receiver to the requested person's name
       const currentReceiver = formData.requestedBy || null;
+      console.log('   Receiver:', currentReceiver);
       
       // Prepare permit data for Supabase
       const permitData = {
@@ -2129,8 +2139,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         requester_signature: signatureData
       };
 
+      console.log('📝 Calling createPermit...');
       // Save to Supabase
       const newPermit = await createPermit(permitData);
+      console.log('✅ Permit created:', newPermit.id);
       
       // Upload attachments if any
       let uploadedAttachments = [];
@@ -2149,10 +2161,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       
       // Reload permits from database
+      console.log('🔄 Reloading permits...');
       const refreshedPermits = await listPermits();
       setPermits(refreshedPermits);
       
       // Reset signature states
+      console.log('🔄 Resetting form and closing modal...');
       setShowRequesterSignatureNewPermit(false);
       setRequesterSignatureNewPermit(null);
       setAgreeToStatementNewPermit(false);
@@ -2183,9 +2197,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         attachments: []
       });
       setCurrentScreen('dashboard');
+      console.log('✅ Done! Showing success alert');
       Alert.alert('Permit Submitted', 'Your permit has been submitted for approval.');
     } catch (error) {
-      console.error('Error submitting permit:', error);
+      console.error('❌ Error in saveNewPermitWithSignature:', error);
       Alert.alert('Error', 'Failed to submit permit: ' + error.message);
     } finally {
       setLoadingRequesterSignatureNewPermit(false);
