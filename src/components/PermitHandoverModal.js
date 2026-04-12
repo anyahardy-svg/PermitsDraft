@@ -277,21 +277,14 @@ export default function PermitHandoverModal({
                       >
                         <Text style={{
                           fontSize: 14,
-                          color: selectedReceiverName === receiver.name ? '#059669' : '#374151',
-                          fontWeight: selectedReceiverName === receiver.name ? '600' : '500'
+                          color: '#374151',
+                          fontWeight: '500'
                         }}>
-                          {receiver.name || 'Unknown'}
+                          {receiver.name}
                         </Text>
-                        {(receiver.companyName || receiver.company) && (
-                          <Text style={{
-                            fontSize: 11,
-                            color: selectedReceiverName === receiver.name ? '#059669' : '#9CA3AF',
-                            marginTop: 2,
-                            fontWeight: selectedReceiverName === receiver.name ? '500' : '400'
-                          }}>
-                            {receiver.companyName || receiver.company || ''}
-                          </Text>
-                        )}
+                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                          {receiver.companyName || receiver.company || ''}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
