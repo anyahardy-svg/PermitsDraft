@@ -3198,7 +3198,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           id: c.id,
           name: c.name,
           email: c.email,
-          company_name: c.company_name || c.company || ''
+          companyName: c.companyName || c.company || ''
         }));
         
         setAvailableReceiversList(receivers);
