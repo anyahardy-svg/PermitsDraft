@@ -16031,232 +16031,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
       </Modal>
 
-      {/* Requester Signature Modal for NEW Permit */}
-      <Modal
-        visible={showRequesterSignatureNewPermit}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
-          console.log('🔴 Modal onRequestClose triggered');
-          setShowRequesterSignatureNewPermit(false);
-          setRequesterSignatureNewPermit(null);
-          setAgreeToStatementNewPermit(false);
-        }}
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'center',
-          padding: 16
-        }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 20,
-            maxHeight: '95%'
-          }}>
-            <ScrollView showsVerticalScrollIndicator={true}>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16
-              }}>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: '#1F2937'
-                }}>
-                  Requester Signature
-                </Text>
-                <TouchableOpacity onPress={() => {
-                  setShowRequesterSignatureNewPermit(false);
-                  setRequesterSignatureNewPermit(null);
-                  setAgreeToStatementNewPermit(false);
-                }}>
-                  <Text style={{
-                    fontSize: 24,
-                    color: '#9CA3AF',
-                    fontWeight: 'bold'
-                  }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Agreement Statement */}
-              <View style={{
-                backgroundColor: '#F0F9FF',
-                borderRadius: 8,
-                padding: 16,
-                marginBottom: 20,
-                borderLeftWidth: 4,
-                borderLeftColor: '#3B82F6'
-              }}>
-                <Text style={{
-                  fontSize: 13,
-                  lineHeight: 20,
-                  color: '#1F2937'
-                }}>
-                  I have assessed the risk as best as I could, and I have read this Permit to Work and understand the nature of the work and safety precautions to be taken. I agree to comply with the conditions detailed within this Permit to Work, the associated procedures and conditions of the JSEA, and accept responsibility as the person directly in charge.
-                </Text>
-              </View>
-
-              {/* Agreement Checkbox */}
-              <View style={{
-                marginBottom: 20,
-                flexDirection: 'row',
-                alignItems: 'flex-start'
-              }}>
-                <TouchableOpacity
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 4,
-                    borderWidth: 2,
-                    borderColor: agreeToStatementNewPermit ? '#3B82F6' : '#D1D5DB',
-                    backgroundColor: agreeToStatementNewPermit ? '#3B82F6' : 'white',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 12,
-                    marginTop: 2
-                  }}
-                  onPress={() => {
-                    console.log('☑️ Agreement checkbox toggled');
-                    console.log('   currentValue:', agreeToStatementNewPermit);
-                    console.log('   newValue:', !agreeToStatementNewPermit);
-                    setAgreeToStatementNewPermit(!agreeToStatementNewPermit);
-                  }}
-                >
-                  {agreeToStatementNewPermit && (
-                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
-                  )}
-                </TouchableOpacity>
-                <Text style={{
-                  flex: 1,
-                  fontSize: 14,
-                  color: '#374151'
-                }}>
-                  I agree to the above statement
-                </Text>
-              </View>
-
-              {/* Signature Pad */}
-              <View style={{
-                marginBottom: 20
-              }}>
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: '#1F2937',
-                  marginBottom: 8
-                }}>
-                  Your Signature *
-                </Text>
-                <View style={{
-                  borderWidth: 2,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: '#FAFAFA',
-                  overflow: 'hidden'
-                }}>
-                  <WebSignaturePad
-                    signatureRef={signatureRefNewPermit}
-                    onSignatureChange={() => {
-                      console.log('🎨 Signature pad changed - checking for content');
-                      if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
-                        const sigData = signatureRefNewPermit.current.toDataURL('image/png');
-                        console.log('✍️ Signature captured, setting state');
-                        setRequesterSignatureNewPermit(sigData);
-                      } else {
-                        console.log('❌ Signature pad is empty');
-                      }
-                    }}
-                    width={300}
-                    height={250}
-                  />
-                </View>
-                {requesterSignatureNewPermit && (
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#10B981',
-                    marginTop: 8,
-                    fontWeight: '600'
-                  }}>
-                    ✓ Signature captured
-                  </Text>
-                )}
-              </View>
-
-              {/* Clear Signature Button */}
-              {requesterSignatureNewPermit && (
-                <TouchableOpacity
-                  style={{
-                    padding: 10,
-                    marginBottom: 16,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: '#F3E8FF',
-                    backgroundColor: '#FEF5FF',
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    if (signatureRefNewPermit.current) {
-                      signatureRefNewPermit.current.clear();
-                    }
-                    setRequesterSignatureNewPermit(null);
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#8B5CF6',
-                    fontWeight: '600'
-                  }}>
-                    Clear Signature
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: 12,
-                    backgroundColor: '#E5E7EB',
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    setShowRequesterSignatureNewPermit(false);
-                    setRequesterSignatureNewPermit(null);
-                    setAgreeToStatementNewPermit(false);
-                  }}
-                  disabled={loadingRequesterSignatureNewPermit}
-                >
-                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: loadingRequesterSignatureNewPermit ? '#D8BFD8' : '#3B82F6',
-                    padding: 12,
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={saveNewPermitWithSignature}
-                  disabled={loadingRequesterSignatureNewPermit || !agreeToStatementNewPermit || !requesterSignatureNewPermit}
-                >
-                  {loadingRequesterSignatureNewPermit ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
       {/* Issuer Signature Modal for Approval */}
       <Modal
         visible={showIssuerSignatureApproval}
@@ -21140,6 +20914,230 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }}
         styles={styles}
       />
+
+      {/* Requester Signature Modal for NEW Permit */}
+      {console.log('🔍 NEW PERMIT MODAL - visible:', showRequesterSignatureNewPermit, 'agree:', agreeToStatementNewPermit, 'sig:', !!requesterSignatureNewPermit)}
+      <Modal
+        visible={showRequesterSignatureNewPermit}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => {
+          console.log('🔴 Closing new permit signature modal');
+          setShowRequesterSignatureNewPermit(false);
+          setRequesterSignatureNewPermit(null);
+          setAgreeToStatementNewPermit(false);
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: '#FF0000',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <Text style={{fontSize: 24, fontWeight: 'bold', color: 'white', textAlign: 'center', marginBottom: 20}}>🔍 DEBUG: MODAL IS SHOWING!</Text>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 20,
+            maxHeight: '95%'
+          }}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#1F2937'
+                }}>
+                  Requester Signature
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowRequesterSignatureNewPermit(false);
+                  setRequesterSignatureNewPermit(null);
+                  setAgreeToStatementNewPermit(false);
+                }}>
+                  <Text style={{
+                    fontSize: 24,
+                    color: '#9CA3AF',
+                    fontWeight: 'bold'
+                  }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Agreement Statement */}
+              <View style={{
+                backgroundColor: '#F0F9FF',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 20,
+                borderLeftWidth: 4,
+                borderLeftColor: '#3B82F6'
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#1F2937'
+                }}>
+                  I have assessed the risk as best as I could, and I have read this Permit to Work and understand the nature of the work and safety precautions to be taken. I agree to comply with the conditions detailed within this Permit to Work, the associated procedures and conditions of the JSEA, and accept responsibility as the person directly in charge.
+                </Text>
+              </View>
+
+              {/* Agreement Checkbox */}
+              <View style={{
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'flex-start'
+              }}>
+                <TouchableOpacity
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: agreeToStatementNewPermit ? '#3B82F6' : '#D1D5DB',
+                    backgroundColor: agreeToStatementNewPermit ? '#3B82F6' : 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    marginTop: 2
+                  }}
+                  onPress={() => {
+                    console.log('☑️ Checkbox toggled:', !agreeToStatementNewPermit);
+                    setAgreeToStatementNewPermit(!agreeToStatementNewPermit);
+                  }}
+                >
+                  {agreeToStatementNewPermit && (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: '#374151'
+                }}>
+                  I agree to the above statement
+                </Text>
+              </View>
+
+              {/* Signature Pad */}
+              <View style={{
+                marginBottom: 20
+              }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: 8
+                }}>
+                  Your Signature *
+                </Text>
+                <View style={{
+                  borderWidth: 2,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  backgroundColor: '#FAFAFA',
+                  overflow: 'hidden'
+                }}>
+                  <WebSignaturePad
+                    signatureRef={signatureRefNewPermit}
+                    onSignatureChange={() => {
+                      console.log('🎨 Signature changed');
+                      if (signatureRefNewPermit.current && !signatureRefNewPermit.current.isEmpty()) {
+                        const sigData = signatureRefNewPermit.current.toDataURL('image/png');
+                        console.log('✍️ Captured new signature');
+                        setRequesterSignatureNewPermit(sigData);
+                      }
+                    }}
+                    width={300}
+                    height={250}
+                  />
+                </View>
+                {requesterSignatureNewPermit && (
+                  <Text style={{
+                    fontSize: 12,
+                    color: '#10B981',
+                    marginTop: 8,
+                    fontWeight: '600'
+                  }}>
+                    ✓ Signature captured
+                  </Text>
+                )}
+              </View>
+
+              {/* Clear Signature Button */}
+              {requesterSignatureNewPermit && (
+                <TouchableOpacity
+                  style={{
+                    padding: 10,
+                    marginBottom: 16,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#F3E8FF',
+                    backgroundColor: '#FEF5FF',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    if (signatureRefNewPermit.current) {
+                      signatureRefNewPermit.current.clear();
+                    }
+                    setRequesterSignatureNewPermit(null);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    color: '#8B5CF6',
+                    fontWeight: '600'
+                  }}>
+                    Clear Signature
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setShowRequesterSignatureNewPermit(false);
+                    setRequesterSignatureNewPermit(null);
+                    setAgreeToStatementNewPermit(false);
+                  }}
+                  disabled={loadingRequesterSignatureNewPermit}
+                >
+                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: loadingRequesterSignatureNewPermit ? '#D8BFD8' : '#3B82F6',
+                    padding: 12,
+                    borderRadius: 8,
+                    alignItems: 'center'
+                  }}
+                  onPress={saveNewPermitWithSignature}
+                  disabled={loadingRequesterSignatureNewPermit || !agreeToStatementNewPermit || !requesterSignatureNewPermit}
+                >
+                  {loadingRequesterSignatureNewPermit ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
