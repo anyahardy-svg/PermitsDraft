@@ -25,6 +25,8 @@ export default function PermitHandoverModal({
 }) {
   const [selectedReceiverId, setSelectedReceiverId] = useState(null);
   const [selectedReceiverName, setSelectedReceiverName] = useState(null);
+  const [receiverSearchText, setReceiverSearchText] = useState('');
+  const [filteredReceivers, setFilteredReceivers] = useState([]);
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showReceiverDropdown, setShowReceiverDropdown] = useState(false);
@@ -100,6 +102,8 @@ export default function PermitHandoverModal({
   const handleClose = () => {
     setSelectedReceiverId(null);
     setSelectedReceiverName(null);
+    setReceiverSearchText('');
+    setFilteredReceivers([]);
     setReason('');
     setShowReceiverDropdown(false);
     setShowHistory(false);
@@ -162,87 +166,125 @@ export default function PermitHandoverModal({
             </View>
 
             {/* New Receiver Selection */}
-            <View style={{ marginBottom: 16 }}>
+            <View style={{ marginBottom: 16, zIndex: 50 }} pointerEvents="box-none">
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
                 Hand Over To
               </Text>
               
-              <TouchableOpacity
-                onPress={() => setShowReceiverDropdown(!showReceiverDropdown)}
+              <TextInput
                 style={{
                   borderWidth: 1,
                   borderColor: '#D1D5DB',
                   padding: 12,
                   borderRadius: 8,
-                  backgroundColor: selectedReceiverId ? '#F0FDF4' : 'white',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{
+                  backgroundColor: 'white',
                   fontSize: 13,
-                  color: selectedReceiverId ? '#1F2937' : '#9CA3AF'
-                }}>
-                  {selectedReceiverName || 'Select receiver...'}
-                </Text>
-                <Text style={{ fontSize: 16, color: '#6B7280' }}>
-                  {showReceiverDropdown ? '▲' : '▼'}
-                </Text>
-              </TouchableOpacity>
+                  color: '#1F2937'
+                }}
+                placeholder="Start typing receiver name..."
+                placeholderTextColor="#9CA3AF"
+                value={receiverSearchText}
+                onChangeText={(text) => {
+                  setReceiverSearchText(text);
+                  // Filter receivers based on input
+                  if (text.trim().length > 0) {
+                    const filtered = availableReceivers
+                      .filter(r => r.name !== currentReceiverName) // Don't show current receiver
+                      .filter(r => r.name.toLowerCase().includes(text.toLowerCase()));
+                    setFilteredReceivers(filtered);
+                    setShowReceiverDropdown(filtered.length > 0);
+                  } else {
+                    setShowReceiverDropdown(false);
+                    setFilteredReceivers([]);
+                  }
+                }}
+                onFocus={() => {
+                  if (receiverSearchText.trim().length > 0) {
+                    const filtered = availableReceivers
+                      .filter(r => r.name !== currentReceiverName)
+                      .filter(r => r.name.toLowerCase().includes(receiverSearchText.toLowerCase()));
+                    setFilteredReceivers(filtered);
+                    setShowReceiverDropdown(filtered.length > 0);
+                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowReceiverDropdown(false), 200);
+                }}
+              />
 
-              {showReceiverDropdown && (
+              {showReceiverDropdown && filteredReceivers.length > 0 && (
                 <View style={{
+                  position: 'absolute',
+                  top: 55,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderRadius: 8,
+                  maxHeight: 200,
+                  zIndex: 1000,
+                  elevation: 10,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3,
                   borderWidth: 1,
                   borderColor: '#D1D5DB',
-                  borderTopWidth: 0,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 8,
-                  backgroundColor: 'white',
-                  maxHeight: 200,
-                  marginTop: -1
-                }}>
-                  <ScrollView nestedScrollEnabled>
-                    {availableReceivers && availableReceivers.length > 0 ? (
-                      availableReceivers
-                        .filter(r => r.name !== currentReceiverName) // Don't show current receiver
-                        .map(receiver => (
-                          <TouchableOpacity
-                            key={receiver.id}
-                            onPress={() => {
-                              setSelectedReceiverId(receiver.id);
-                              setSelectedReceiverName(receiver.name || 'Unknown');
-                              setShowReceiverDropdown(false);
-                            }}
-                            style={{
-                              padding: 12,
-                              borderBottomWidth: 1,
-                              borderBottomColor: '#E5E7EB',
-                              backgroundColor: selectedReceiverName === receiver.name ? '#F0FDF4' : 'white'
-                            }}
-                          >
-                            <Text style={{
-                              fontSize: 13,
-                              color: selectedReceiverName === receiver.name ? '#059669' : '#1F2937',
-                              fontWeight: selectedReceiverName === receiver.name ? '600' : '400'
-                            }}>
-                              {receiver.name || 'Unknown'}
-                            </Text>
-                            {receiver.company_name && (
-                              <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                                {receiver.company_name}
-                              </Text>
-                            )}
-                          </TouchableOpacity>
-                        ))
-                    ) : (
-                      <View style={{ padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
-                          No available receivers
+                  overflow: 'hidden',
+                }} pointerEvents="auto">
+                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                    {filteredReceivers.map(receiver => (
+                      <TouchableOpacity
+                        key={receiver.id}
+                        style={{ 
+                          padding: 12, 
+                          borderBottomWidth: 1, 
+                          borderBottomColor: '#E5E7EB',
+                          backgroundColor: selectedReceiverName === receiver.name ? '#F0FDF4' : 'white'
+                        }}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          setSelectedReceiverId(receiver.id);
+                          setSelectedReceiverName(receiver.name || 'Unknown');
+                          setReceiverSearchText(receiver.name || 'Unknown');
+                          setShowReceiverDropdown(false);
+                          setFilteredReceivers([]);
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 14,
+                          color: selectedReceiverName === receiver.name ? '#059669' : '#374151',
+                          fontWeight: selectedReceiverName === receiver.name ? '600' : '500'
+                        }}>
+                          {receiver.name || 'Unknown'}
                         </Text>
-                      </View>
-                    )}
+                        {receiver.company_name && (
+                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                            {receiver.company_name}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
                   </ScrollView>
+                </View>
+              )}
+
+              {showReceiverDropdown && filteredReceivers.length === 0 && receiverSearchText.trim().length > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: 55,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: '#FEE2E2',
+                  borderRadius: 8,
+                  padding: 12,
+                  borderWidth: 1,
+                  borderColor: '#FCA5A5',
+                  zIndex: 50,
+                  elevation: 10,
+                }}>
+                  <Text style={{ fontSize: 12, color: '#991B1B' }}>
+                    No receivers found matching "{receiverSearchText}"
+                  </Text>
                 </View>
               )}
             </View>
