@@ -1196,6 +1196,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedCompanyForPermitTemplateNew, setSelectedCompanyForPermitTemplateNew] = useState('');
   const [loadingPermitSaveTemplateNew, setLoadingPermitSaveTemplateNew] = useState(false);
   
+  // New Permit - Requester Signature Modal states (for new permit "Submit for Approval")
+  const [showRequesterSignatureNewPermit, setShowRequesterSignatureNewPermit] = useState(false);
+  const [requesterSignatureNewPermit, setRequesterSignatureNewPermit] = useState(null);
+  const [agreeToStatementNewPermit, setAgreeToStatementNewPermit] = useState(false);
+  const [loadingRequesterSignatureNewPermit, setLoadingRequesterSignatureNewPermit] = useState(false);
+  const signatureRefNewPermit = useRef(null);
+  
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
@@ -13363,13 +13370,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [agreeToStatementDraft, setAgreeToStatementDraft] = React.useState(false);
     const [loadingRequesterSignatureDraft, setLoadingRequesterSignatureDraft] = React.useState(false);
     const signatureRefDraft = React.useRef(null);
-    
-    // Requester Signature states for NEW permit submission
-    const [showRequesterSignatureNewPermit, setShowRequesterSignatureNewPermit] = React.useState(false);
-    const [requesterSignatureNewPermit, setRequesterSignatureNewPermit] = React.useState(null);
-    const [agreeToStatementNewPermit, setAgreeToStatementNewPermit] = React.useState(false);
-    const [loadingRequesterSignatureNewPermit, setLoadingRequesterSignatureNewPermit] = React.useState(false);
-    const signatureRefNewPermit = React.useRef(null);
     
     // Issuer Signature states for approval
     const [showIssuerSignatureApproval, setShowIssuerSignatureApproval] = React.useState(false);
