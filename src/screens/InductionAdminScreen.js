@@ -58,7 +58,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
     description: '',
     business_unit_ids: [],
     service_id: '',
-    force_compulsory_with_service_id: '',
+    force_compulsory_with_service_ids: [],
     site_id: '',
     video_url: '',
     video_duration: '',
@@ -114,7 +114,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: '',
       business_unit_ids: [],
       service_id: '',
-      force_compulsory_with_service_id: '',
+      force_compulsory_with_service_ids: [],
       site_id: '',
       video_url: '',
       video_duration: '',
@@ -146,7 +146,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: induction.description || '',
       business_unit_ids: induction.business_unit_ids || [],
       service_id: induction.service_id || '',
-      force_compulsory_with_service_id: induction.force_compulsory_with_service_id || '',
+      force_compulsory_with_service_ids: induction.force_compulsory_with_service_ids || (induction.force_compulsory_with_service_id ? [induction.force_compulsory_with_service_id] : []),
       site_id: induction.site_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
@@ -452,12 +452,26 @@ export default function InductionAdminScreen({ onBack, styles }) {
               </TouchableOpacity>
             ))}
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Service Selected (optional)</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>Select a service that, if assigned to a contractor, will make this induction compulsory</Text>
-            <TouchableOpacity onPress={() => setFormData({ ...formData, force_compulsory_with_service_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.force_compulsory_with_service_id === '' ? '#F3E8FF' : '#F3F4F6', marginBottom: 8 }}><Text style={{ color: formData.force_compulsory_with_service_id === '' ? '#7C3AED' : '#6B7280', fontWeight: '600' }}>None (optional induction)</Text></TouchableOpacity>
-            {services.map(service => (
-              <TouchableOpacity key={`force_${service.id}`} onPress={() => setFormData({ ...formData, force_compulsory_with_service_id: formData.force_compulsory_with_service_id === service.id ? '' : service.id })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.force_compulsory_with_service_id === service.id ? '#FEE2E2' : '#F3F4F6', marginBottom: 6 }}><Text style={{ color: formData.force_compulsory_with_service_id === service.id ? '#DC2626' : '#6B7280' }}>{service.name}</Text></TouchableOpacity>
-            ))}
+            <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Services Selected (optional)</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>Select services that, if assigned to a contractor, will make this induction compulsory</Text>
+            {services.map(service => {
+              const isSelected = formData.force_compulsory_with_service_ids && formData.force_compulsory_with_service_ids.includes(service.id);
+              return (
+                <TouchableOpacity 
+                  key={`force_${service.id}`} 
+                  onPress={() => {
+                    const newIds = isSelected 
+                      ? formData.force_compulsory_with_service_ids.filter(id => id !== service.id)
+                      : [...(formData.force_compulsory_with_service_ids || []), service.id];
+                    setFormData({ ...formData, force_compulsory_with_service_ids: newIds });
+                  }} 
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#DC2626', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#DC2626' : 'white', marginRight: 10 }}>{isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
+                  <Text style={{ color: isSelected ? '#DC2626' : '#6B7280', fontWeight: isSelected ? '600' : '400' }}>{service.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>
