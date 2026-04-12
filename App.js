@@ -3951,7 +3951,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Added Isolations List */}
                 <Text style={[styles.label, { marginTop: 12, marginBottom: 8 }]}>Added Isolations:</Text>
                 {formData.isolations && formData.isolations.length > 0 ? formData.isolations.map((isolation, idx) => (
-                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible' }}>
+                  <View key={idx} style={{ marginBottom: 20, padding: 8, backgroundColor: isolation.source === 'register' ? '#ECFDF5' : '#FEF3C7', borderLeftWidth: 3, borderLeftColor: isolation.source === 'register' ? '#10B981' : '#F59E0B', borderRadius: 4, overflow: 'visible', zIndex: 100, position: 'relative' }}>
                     <Text style={[styles.detailText, { fontWeight: 'bold' }]}>What:</Text>
                     {isolation.source === 'register' ? (
                       <Text style={[styles.detailText, { marginBottom: 8, color: '#374151' }]}>{isolation.main_lockout_item}</Text>
@@ -4040,13 +4040,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 300,
-                          zIndex: 9999,
+                          zIndex: 10000,
                           overflow: 'visible',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.15,
                           shadowRadius: 4,
-                          elevation: 5,
+                          elevation: 10,
                         }} pointerEvents="auto">
                           <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                             {filteredIsolatedByContractors[idx].map(contractor => (
@@ -21322,6 +21322,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
+    zIndex: 1,
+    position: 'relative',
   },
   sectionHeader: {
     backgroundColor: '#F3F4F6',
@@ -21362,7 +21364,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 0,
     overflow: 'visible',
-    zIndex: 1,
+    zIndex: 50,
   },
   label: {
     fontSize: 14,
