@@ -19871,6 +19871,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {issuerIdSelected && (
                     <>
                       <Text style={styles.label}>Issuer Signature:</Text>
+                      {latestPermit.completedSignOff?.issuerSignature ? (
+                        <View style={{
+                          borderWidth: 2,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 8,
+                          marginBottom: 12,
+                          backgroundColor: '#F9FAFB',
+                          padding: 12,
+                          alignItems: 'center'
+                        }}>
+                          <Image 
+                            source={{ uri: latestPermit.completedSignOff.issuerSignature }} 
+                            style={{ width: 280, height: 200, borderRadius: 4 }}
+                          />
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {latestPermit.completedSignOff.issuerSignedAt}</Text>
+                        </View>
+                      ) : (
                       <View style={{
                         borderWidth: 2,
                         borderColor: '#E5E7EB',
@@ -19886,6 +19903,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           height={250}
                         />
                       </View>
+                      )}
                       {issuerHasSignature && (
                         <Text style={{
                           fontSize: 12,
@@ -19896,6 +19914,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
+                      {!latestPermit.completedSignOff?.issuerSignature && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -19919,8 +19938,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Clear Signature
                         </Text>
                       </TouchableOpacity>
+                      )}
                       {latestPermit.completedSignOff?.issuerSignedAt && (
-                        <Text style={styles.detailText}>Issuer Signed At: {latestPermit.completedSignOff.issuerSignedAt}</Text>
+                        <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#2563EB', marginTop: 8 }}>
+                          <Text style={{ fontSize: 12, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{latestPermit.completedSignOff.issuerSignedAt}</Text>
+                        </View>
                       )}
                     </>
                   )}
@@ -19941,6 +19964,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {receiverIdSelected && (
                     <>
                       <Text style={styles.label}>Receiver Signature:</Text>
+                      {latestPermit.completedSignOff?.receiverSignature ? (
+                        <View style={{
+                          borderWidth: 2,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 8,
+                          marginBottom: 12,
+                          backgroundColor: '#F9FAFB',
+                          padding: 12,
+                          alignItems: 'center'
+                        }}>
+                          <Image 
+                            source={{ uri: latestPermit.completedSignOff.receiverSignature }} 
+                            style={{ width: 280, height: 200, borderRadius: 4 }}
+                          />
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {latestPermit.completedSignOff.receiverSignedAt}</Text>
+                        </View>
+                      ) : (
                       <View style={{
                         borderWidth: 2,
                         borderColor: '#E5E7EB',
@@ -19956,6 +19996,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           height={250}
                         />
                       </View>
+                      )}
                       {receiverHasSignature && (
                         <Text style={{
                           fontSize: 12,
@@ -19966,6 +20007,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
+                      {!latestPermit.completedSignOff?.receiverSignature && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -19989,80 +20031,91 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Clear Signature
                         </Text>
                       </TouchableOpacity>
+                      )}
                       {latestPermit.completedSignOff?.receiverSignedAt && (
-                        <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
+                        <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#10B981', marginTop: 8 }}>
+                          <Text style={{ fontSize: 12, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{latestPermit.completedSignOff.receiverSignedAt}</Text>
+                        </View>
                       )}
                     </>
                   )}
                 </>
               )}
+              
+              {/* Show completion status */}
+              {latestPermit.completedSignOff?.issuerSignedAt && latestPermit.completedSignOff?.receiverSignedAt && (
+                <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#0284C7', marginTop: 12 }}>
+                  <Text style={{ fontSize: 13, color: '#0C4A6E', fontWeight: '600' }}>✅ Permit Sign-Off Complete</Text>
+                  <Text style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>Both issuer and receiver have signed</Text>
+                </View>
+              )}
+              
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
                   <Text style={styles.submitButtonText}>🖨 Print</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#3B82F6', flex: 0.7 }]} onPress={async () => {
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#059669', flex: 0.35 }]} onPress={async () => {
                   try {
-                    console.log('🔍 Validating sign-off submission...');
-                    console.log('  - Issuer acknowledged:', issuerAcknowledged);
-                    console.log('  - Receiver acknowledged:', receiverAcknowledged);
-                    console.log('  - Issuer selected:', issuerIdSelected);
-                    console.log('  - Issuer has signature:', issuerHasSignature);
-                    console.log('  - Receiver selected:', receiverIdSelected);
-                    console.log('  - Receiver has signature:', receiverHasSignature);
-                    
-                    // Validate issuer acknowledgment
                     if (!issuerAcknowledged) {
-                      Alert.alert('Error', 'Permit Issuer must acknowledge that work has been completed');
+                      Alert.alert('Error', 'Check acknowledgement');
                       return;
                     }
-                    
-                    // Validate receiver acknowledgment
-                    if (!receiverAcknowledged) {
-                      Alert.alert('Error', 'Permit Receiver must acknowledge that work has been completed and area is safe');
-                      return;
-                    }
-                    
-                    // Validate issuer
                     if (!issuerIdSelected) {
-                      Alert.alert('Error', 'Please select a Permit Issuer');
+                      Alert.alert('Error', 'Select Issuer');
                       return;
                     }
                     if (!issuerHasSignature || issuerSignatureRef.current?.isEmpty()) {
-                      Alert.alert('Error', 'Issuer must sign the permit');
+                      Alert.alert('Error', 'Sign first');
                       return;
                     }
-                    
-                    // Validate receiver
-                    if (!receiverIdSelected) {
-                      Alert.alert('Error', 'Please select a Permit Receiver (Contractor)');
-                      return;
-                    }
-                    if (!receiverHasSignature || receiverSignatureRef.current?.isEmpty()) {
-                      Alert.alert('Error', 'Receiver must sign the permit');
-                      return;
-                    }
-                    
-                    console.log('✅ All validations passed, proceeding with sign-off...');
                     
                     const now = new Date();
                     const dateStr = now.toISOString().split('T')[0];
                     const timeStr = now.toTimeString().split(' ')[0];
-                    let newSignOff = { ...((latestPermit.completedSignOff) || {}) };
-                    
-                    // Get selected issuer and receiver names
                     const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
-                    const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
                     
-                    console.log('Selected issuer:', selectedIssuer?.name);
-                    console.log('Selected receiver:', selectedReceiver?.name);
-                    
-                    // Save signatures and details
-                    newSignOff = {
+                    const newSignOff = {
+                      ...(latestPermit.completedSignOff || {}),
                       issuerUserId: issuerIdSelected,
                       issuerName: selectedIssuer?.name || '',
                       issuerSignature: issuerSignatureRef.current?.toDataURL() || '',
                       issuerSignedAt: dateStr + ' ' + timeStr,
-                      issuerAcknowledged: true,
+                      issuerAcknowledged: true
+                    };
+                    
+                    await updatePermit(editData.id, { completed_sign_off: newSignOff });
+                    const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff } : p);
+                    setPermits(updated);
+                    Alert.alert('Success', 'Issuer signed');
+                  } catch (error) {
+                    Alert.alert('Error', error?.message);
+                  }
+                }}>
+                  <Text style={styles.submitButtonText}>✓ Issuer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#2563EB', flex: 0.35 }]} onPress={async () => {
+                  try {
+                    if (!receiverAcknowledged) {
+                      Alert.alert('Error', 'Check acknowledgement');
+                      return;
+                    }
+                    if (!receiverIdSelected) {
+                      Alert.alert('Error', 'Select Receiver');
+                      return;
+                    }
+                    if (!receiverHasSignature || receiverSignatureRef.current?.isEmpty()) {
+                      Alert.alert('Error', 'Sign first');
+                      return;
+                    }
+                    
+                    const now = new Date();
+                    const dateStr = now.toISOString().split('T')[0];
+                    const timeStr = now.toTimeString().split(' ')[0];
+                    const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
+                    
+                    const newSignOff = {
+                      ...(latestPermit.completedSignOff || {}),
                       receiverContractorId: receiverIdSelected,
                       receiverName: selectedReceiver?.name || '',
                       receiverSignature: receiverSignatureRef.current?.toDataURL() || '',
@@ -20070,50 +20123,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       receiverAcknowledged: true
                     };
                     
-                    const completed = true;
-                  
-                    console.log('📝 Updating permit with sign-off data...');
-                    // Save to database
-                    const updateObj = { completed_sign_off: newSignOff, attachments: editData.attachments };
-                    if (completed) {
-                      updateObj.status = 'completed';
-                    }
-                    await updatePermit(editData.id, updateObj);
-                    console.log('✅ Permit updated successfully');
-                  
-                    const updated = permits.map(p => {
-                      if (p.id === editData.id) {
-                        if (completed) {
-                          return {
-                            ...editData,
-                            status: 'completed',
-                            completedDate: dateStr,
-                            completedSignOff: newSignOff
-                          };
-                        } else {
-                          return {
-                            ...editData,
-                            completedSignOff: newSignOff
-                          };
-                        }
-                      }
-                      return p;
-                    });
+                    await updatePermit(editData.id, { completed_sign_off: newSignOff });
+                    const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff } : p);
                     setPermits(updated);
-                    if (completed) {
-                      setCurrentScreen('dashboard');
-                      Alert.alert('Permit Completed', 'Permit has been signed off as completed.');
-                    } else {
-                      Alert.alert('Sign-Off Saved', 'Sign-off information has been saved.');
-                    }
+                    Alert.alert('Success', 'Receiver signed');
                   } catch (error) {
-                    console.error('❌ Error saving sign-off:', error);
-                    console.error('Error details:', error?.message, error?.stack);
-                    Alert.alert('Error', `Failed to save sign-off: ${error?.message || 'Unknown error'}. Check console for details.`);
+                    Alert.alert('Error', error?.message);
                   }
                 }}>
-                <Text style={styles.submitButtonText}>✓ Submit Sign-Off</Text>
-              </TouchableOpacity>
+                  <Text style={styles.submitButtonText}>✓ Receiver</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
