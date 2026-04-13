@@ -18661,6 +18661,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     React.useEffect(() => {
       if (editData && editData.site_id) {
         loadSignOffData();
+        // Load existing sign-off data if available
+        if (latestPermit.completedSignOff) {
+          console.log('Loading existing sign-off data:', latestPermit.completedSignOff);
+          if (latestPermit.completedSignOff.issuerSignature) {
+            setIssuerHasSignature(true);
+          }
+          if (latestPermit.completedSignOff.receiverSignature) {
+            setReceiverHasSignature(true);
+          }
+        }
       }
     }, [editData.id]);
 
