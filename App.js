@@ -18589,8 +18589,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       attachments: latestPermit.attachments || []
     });
     
-    // Load existing sign-off if present
-    const completedSignOff = latestPermit.completedSignOff || {};
+    // Load existing sign-off if present - use editData for accuracy
+    const completedSignOff = editData.completedSignOff || editData.completed_sign_off || {};
     const [issuerIdSelected, setIssuerIdSelected] = React.useState(completedSignOff.issuerUserId || '');
     const [issuerSignatureData, setIssuerSignatureData] = React.useState(completedSignOff.issuerSignature || '');
     const issuerSignatureRef = React.useRef(null);
@@ -18662,60 +18662,63 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (editData && editData.site_id) {
         loadSignOffData();
         // Load existing sign-off data if available
-        console.log('🔍 Checking for existing sign-off data...');
-        console.log('  - latestPermit.completedSignOff:', latestPermit.completedSignOff);
-        console.log('  - latestPermit.completed_sign_off:', latestPermit.completed_sign_off);
+        const signOff = editData.completedSignOff || editData.completed_sign_off;
+        console.log('🔍 Checking for existing sign-off data in editData...');
+        console.log('  - editData.completedSignOff:', editData.completedSignOff);
+        console.log('  - editData.completed_sign_off:', editData.completed_sign_off);
+        console.log('  - Using signOff:', signOff);
         
-        if (latestPermit.completedSignOff) {
+        if (signOff) {
           console.log('✅ Found completedSignOff, restoring state...');
-          console.log('Loading existing sign-off data:', latestPermit.completedSignOff);
-          if (latestPermit.completedSignOff.issuerSignature) {
+          console.log('Loading existing sign-off data:', signOff);
+          if (signOff.issuerSignature) {
             console.log('  - Setting issuer signature');
             setIssuerHasSignature(true);
           }
-          if (latestPermit.completedSignOff.receiverSignature) {
+          if (signOff.receiverSignature) {
             console.log('  - Setting receiver signature');
             setReceiverHasSignature(true);
           }
           // Restore acknowledgement states
-          if (latestPermit.completedSignOff.issuerAcknowledged) {
+          if (signOff.issuerAcknowledged) {
             console.log('  - Setting issuer acknowledged');
             setIssuerAcknowledged(true);
           }
-          if (latestPermit.completedSignOff.receiverAcknowledged) {
+          if (signOff.receiverAcknowledged) {
             console.log('  - Setting receiver acknowledged');
             setReceiverAcknowledged(true);
           }
           // Restore selected issuer/receiver
-          if (latestPermit.completedSignOff.issuerUserId) {
-            console.log('  - Setting issuer ID:', latestPermit.completedSignOff.issuerUserId);
-            setIssuerIdSelected(latestPermit.completedSignOff.issuerUserId);
+          if (signOff.issuerUserId) {
+            console.log('  - Setting issuer ID:', signOff.issuerUserId);
+            setIssuerIdSelected(signOff.issuerUserId);
           }
-          if (latestPermit.completedSignOff.receiverContractorId) {
-            console.log('  - Setting receiver ID:', latestPermit.completedSignOff.receiverContractorId);
-            setReceiverIdSelected(latestPermit.completedSignOff.receiverContractorId);
+          if (signOff.receiverContractorId) {
+            console.log('  - Setting receiver ID:', signOff.receiverContractorId);
+            setReceiverIdSelected(signOff.receiverContractorId);
           }
         } else {
-          console.log('❌ No completedSignOff found');
+          console.log('❌ No completedSignOff found in editData');
         }
       }
     }, [editData.id]);
 
-    // Watch for changes to completedSignOff and update UI
+    // Watch for changes to editData.completedSignOff and update UI
     React.useEffect(() => {
-      console.log('📊 latestPermit.completedSignOff changed:', latestPermit.completedSignOff);
-      if (latestPermit.completedSignOff) {
+      const signOff = editData.completedSignOff || editData.completed_sign_off;
+      console.log('📊 editData.completedSignOff changed:', signOff);
+      if (signOff) {
         // Update visibility of already-signed sections
-        if (latestPermit.completedSignOff.issuerSignature) {
+        if (signOff.issuerSignature) {
           console.log('  ✓ Issuer has signature, showing as read-only');
           setIssuerHasSignature(true);
         }
-        if (latestPermit.completedSignOff.receiverSignature) {
+        if (signOff.receiverSignature) {
           console.log('  ✓ Receiver has signature, showing as read-only');
           setReceiverHasSignature(true);
         }
       }
-    }, [latestPermit.completedSignOff]);
+    }, [editData.completedSignOff, editData.completed_sign_off]);
 
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
@@ -18733,10 +18736,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [jseaTemplatesAvailableActive, setJseaTemplatesAvailableActive] = React.useState([]);
     const [loadingJseaTemplatesActive, setLoadingJseaTemplatesActive] = React.useState(false);
 
-    // Sync local state with latest permit when it changes
+    // Sync local state with latest permit when it changes (but preserve sign-off data)
     React.useEffect(() => {
-      setEditData({ ...latestPermit });
-    }, [latestPermit.id, latestPermit.completedSignOff]);
+      // Only sync if latestPermit has changed, preserve our local completion data
+      setEditData(prev => ({
+        ...latestPermit,
+        completedSignOff: prev.completedSignOff || latestPermit.completedSignOff
+      }));
+    }, [latestPermit.id]);
 
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
@@ -19914,7 +19921,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {issuerIdSelected && (
                     <>
                       <Text style={styles.label}>Issuer Signature:</Text>
-                      {latestPermit.completedSignOff?.issuerSignature ? (
+                      {editData.completedSignOff?.issuerSignature ? (
                         <View style={{
                           borderWidth: 2,
                           borderColor: '#D1D5DB',
@@ -19925,10 +19932,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           alignItems: 'center'
                         }}>
                           <Image 
-                            source={{ uri: latestPermit.completedSignOff.issuerSignature }} 
+                            source={{ uri: editData.completedSignOff.issuerSignature }} 
                             style={{ width: 280, height: 200, borderRadius: 4 }}
                           />
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {latestPermit.completedSignOff.issuerSignedAt}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {editData.completedSignOff.issuerSignedAt}</Text>
                         </View>
                       ) : (
                       <View style={{
@@ -19957,7 +19964,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
-                      {!latestPermit.completedSignOff?.issuerSignature && (
+                      {!editData.completedSignOff?.issuerSignature && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -19982,10 +19989,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                       </TouchableOpacity>
                       )}
-                      {latestPermit.completedSignOff?.issuerSignedAt && (
+                      {editData.completedSignOff?.issuerSignedAt && (
                         <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#2563EB', marginTop: 8 }}>
                           <Text style={{ fontSize: 12, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{latestPermit.completedSignOff.issuerSignedAt}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.completedSignOff.issuerSignedAt}</Text>
                         </View>
                       )}
                     </>
@@ -20007,7 +20014,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {receiverIdSelected && (
                     <>
                       <Text style={styles.label}>Receiver Signature:</Text>
-                      {latestPermit.completedSignOff?.receiverSignature ? (
+                      {editData.completedSignOff?.receiverSignature ? (
                         <View style={{
                           borderWidth: 2,
                           borderColor: '#D1D5DB',
@@ -20018,10 +20025,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           alignItems: 'center'
                         }}>
                           <Image 
-                            source={{ uri: latestPermit.completedSignOff.receiverSignature }} 
+                            source={{ uri: editData.completedSignOff.receiverSignature }} 
                             style={{ width: 280, height: 200, borderRadius: 4 }}
                           />
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {latestPermit.completedSignOff.receiverSignedAt}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {editData.completedSignOff.receiverSignedAt}</Text>
                         </View>
                       ) : (
                       <View style={{
@@ -20050,7 +20057,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
-                      {!latestPermit.completedSignOff?.receiverSignature && (
+                      {!editData.completedSignOff?.receiverSignature && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -20075,10 +20082,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                       </TouchableOpacity>
                       )}
-                      {latestPermit.completedSignOff?.receiverSignedAt && (
+                      {editData.completedSignOff?.receiverSignedAt && (
                         <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#10B981', marginTop: 8 }}>
                           <Text style={{ fontSize: 12, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{latestPermit.completedSignOff.receiverSignedAt}</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.completedSignOff.receiverSignedAt}</Text>
                         </View>
                       )}
                     </>
@@ -20087,12 +20094,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               )}
               
               {/* Show completion status */}
-              {latestPermit.completedSignOff?.issuerSignedAt && latestPermit.completedSignOff?.receiverSignedAt && (
+              {editData.completedSignOff?.issuerSignedAt && editData.completedSignOff?.receiverSignedAt && (
                 <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#0284C7', marginTop: 12 }}>
                   <Text style={{ fontSize: 13, color: '#0C4A6E', fontWeight: '600' }}>✅ Permit Sign-Off Complete</Text>
                   <Text style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>Both issuer and receiver have signed</Text>
                 </View>
-              )}
+              )
               
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
@@ -20119,7 +20126,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
                     
                     const newSignOff = {
-                      ...(latestPermit.completedSignOff || {}),
+                      ...(editData.completedSignOff || editData.completed_sign_off || {}),
                       issuerUserId: issuerIdSelected,
                       issuerName: selectedIssuer?.name || '',
                       issuerSignature: issuerSignatureRef.current?.toDataURL() || '',
@@ -20168,7 +20175,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
                     
                     const newSignOff = {
-                      ...(latestPermit.completedSignOff || {}),
+                      ...(editData.completedSignOff || editData.completed_sign_off || {}),
                       receiverContractorId: receiverIdSelected,
                       receiverName: selectedReceiver?.name || '',
                       receiverSignature: receiverSignatureRef.current?.toDataURL() || '',
