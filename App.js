@@ -20099,7 +20099,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ fontSize: 13, color: '#0C4A6E', fontWeight: '600' }}>✅ Permit Sign-Off Complete</Text>
                   <Text style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>Both issuer and receiver have signed</Text>
                 </View>
-              )
+              )}
               
               <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
