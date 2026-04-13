@@ -4,25 +4,52 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { handleError } from '../utils/errorHandler';
 
 /**
  * Get all business units
+ * RELIABILITY: Auto-retries on network failure, returns empty array gracefully
  * @returns {Array} All business units
  */
 export async function listBusinessUnits() {
-  try {
-    const { data, error } = await supabase
-      .from('business_units')
-      .select('*')
-      .order('name', { ascending: true });
+  let lastError;
+  const maxRetries = 3;
+  const baseDelay = 1000;
 
-    if (error) throw error;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from('business_units')
+        .select('*')
+        .order('name', { ascending: true });
 
-    return data || [];
-  } catch (error) {
-    console.error('Error listing business units:', error);
-    return [];
+      if (error) throw error;
+
+      if (process.env.NODE_ENV === 'development' && attempt > 1) {
+        console.log(`🔄 Business units loaded on attempt ${attempt}/${maxRetries}`);
+      }
+      return data || [];
+    } catch (error) {
+      lastError = error;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`⏳ Business units load attempt ${attempt}/${maxRetries} failed:`, error.message);
+      }
+
+      // Retry if not the last attempt
+      if (attempt < maxRetries) {
+        const delayMs = baseDelay * attempt;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
+
+  // All retries exhausted
+  handleError(lastError, 'loading business units', false);
+  if (process.env.NODE_ENV === 'development') {
+    console.error('❌ Failed to load business units after retries');
+  }
+  return [];
 }
 
 /**

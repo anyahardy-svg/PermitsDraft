@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { handleError } from '../utils/errorHandler';
 
 // Helper function to transform Supabase data to app format
 const transformSite = (dbSite) => {
@@ -19,18 +20,42 @@ const transformSite = (dbSite) => {
 
 // Get all sites
 export const listSites = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('sites')
-      .select('*')
-      .order('name', { ascending: true });
+  let lastError;
+  const maxRetries = 3;
+  const baseDelay = 1000;
 
-    if (error) throw error;
-    return (data || []).map(transformSite);
-  } catch (error) {
-    console.error('Error fetching sites:', error.message);
-    throw error;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from('sites')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      if (process.env.NODE_ENV === 'development' && attempt > 1) {
+        console.log(`🔄 Sites loaded on attempt ${attempt}/${maxRetries}`);
+      }
+      return (data || []).map(transformSite);
+    } catch (error) {
+      lastError = error;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`⏳ Sites load attempt ${attempt}/${maxRetries} failed:`, error.message);
+      }
+
+      // Retry if not the last attempt
+      if (attempt < maxRetries) {
+        const delayMs = baseDelay * attempt;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
+
+  // All retries exhausted
+  handleError(lastError, 'loading sites', false);
+  console.error('❌ Failed to load sites after retries');
+  return [];
 };
 // Get sites for specific business unit(s)
 export const getSitesByBusinessUnits = async (businessUnitIds) => {
