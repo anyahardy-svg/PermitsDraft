@@ -434,7 +434,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setSelectedPerson(null);
       loadSignedInPeople();
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message || 'Failed to sign out');
     }
   };
 

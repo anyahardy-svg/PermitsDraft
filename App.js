@@ -1675,15 +1675,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const missingFields = [];
     const missingSectionPermits = new Set();
     
+    const specializedPermits = formData?.specializedPermits || {};
     console.log('📋 Starting validation with:', {
-      specializedPermits: Object.keys(formData.specializedPermits),
-      enabledPermits: Object.keys(formData.specializedPermits).filter(key => formData.specializedPermits[key].required),
+      specializedPermits: Object.keys(specializedPermits),
+      enabledPermits: Object.keys(specializedPermits).filter(key => specializedPermits[key]?.required),
       questionnaireKeys: Object.keys(permitQuestionnaires)
     });
     
-    Object.keys(formData.specializedPermits).forEach(permitKey => {
-      const permit = formData.specializedPermits[permitKey];
-      if (!permit.required) {
+    Object.keys(specializedPermits).forEach(permitKey => {
+      const permit = specializedPermits[permitKey];
+      if (!permit?.required) {
         console.log(`⏭️  Skipping ${permitKey} - not required`);
         return;
       }
@@ -3665,13 +3666,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     if (text.trim().length > 0 && formData.site) {
                       const siteContractors = contractors.filter(contractor => 
                         contractor.siteIds && 
-                        contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                        contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === formData.site)
                       );
                       const filtered = siteContractors.filter(c => 
-                        c.name.toLowerCase().includes(text.toLowerCase())
+                        c.name?.toLowerCase?.()?.includes?.(text.toLowerCase())
                       );
                       setFilteredRequestedBy(filtered);
-                      setShowRequestedByDropdown(filtered.length > 0);
+                      setShowRequestedByDropdown(filtered?.length > 0);
                     } else {
                       setShowRequestedByDropdown(false);
                       setFilteredRequestedBy([]);
@@ -4002,13 +4003,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           if (text.trim().length > 0 && formData.site) {
                             const siteContractors = contractors.filter(contractor => 
                               contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                              contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === formData.site)
                             );
                             const filtered = siteContractors.filter(c => 
-                              c.name.toLowerCase().includes(text.toLowerCase())
+                              c.name?.toLowerCase?.()?.includes?.(text.toLowerCase())
                             );
                             setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: filtered.length > 0 }));
+                            setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: filtered?.length > 0 }));
                           } else {
                             setShowIsolatedByDropdown(prev => ({ ...prev, [idx]: false }));
                             setFilteredIsolatedByContractors(prev => ({ ...prev, [idx]: [] }));

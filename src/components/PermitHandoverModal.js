@@ -100,11 +100,11 @@ export default function PermitHandoverModal({
         onHandoverComplete?.(result.handover);
         handleClose();
       } else {
-        Alert.alert('Error', result.error || 'Failed to hand over permit');
+        Alert.alert('Error', result?.error || 'Failed to hand over permit');
       }
     } catch (error) {
       console.error('Error during handover:', error);
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message || 'Failed to hand over permit');
     } finally {
       setIsLoading(false);
     }
