@@ -27,23 +27,23 @@ export default function RequestAccreditationScreen({ onClose, styles }) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    // Validation
-    if (!formData.companyName.trim()) {
+    // Validation - safely access formData properties with fallbacks
+    if (!formData?.companyName?.trim?.()) {
       Alert.alert('Missing Info', 'Please enter your company name.');
       return;
     }
-    if (!formData.email.trim()) {
+    if (!formData?.email?.trim?.()) {
       Alert.alert('Missing Info', 'Please enter your email address.');
       return;
     }
-    if (!formData.name.trim()) {
+    if (!formData?.name?.trim?.()) {
       Alert.alert('Missing Info', 'Please enter your contact name.');
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    if (!emailRegex.test(formData?.email || '')) {
       Alert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
@@ -51,13 +51,13 @@ export default function RequestAccreditationScreen({ onClose, styles }) {
     setLoading(true);
     try {
       const result = await sendInvitationRequest({
-        name: formData.name,
-        email: formData.email,
-        companyName: formData.companyName,
-        phone: formData.phone || 'Not provided',
+        name: formData?.name || '',
+        email: formData?.email || '',
+        companyName: formData?.companyName || '',
+        phone: formData?.phone || 'Not provided',
       });
 
-      if (result.success) {
+      if (result?.success) {
         setSubmitted(true);
         setTimeout(() => {
           setFormData({ name: '', email: '', companyName: '', phone: '' });
@@ -65,10 +65,10 @@ export default function RequestAccreditationScreen({ onClose, styles }) {
           if (onClose) onClose();
         }, 3000);
       } else {
-        Alert.alert('Error', result.error || 'Failed to submit request');
+        Alert.alert('Error', result?.error || 'Failed to submit request');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit request: ' + error.message);
+      Alert.alert('Error', 'Failed to submit request: ' + (error?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }

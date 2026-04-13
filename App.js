@@ -12040,24 +12040,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const handleLoadInduction = async (siteId) => {
       try {
         const result = await getVisitorInduction(siteId);
-        if (result.success) {
+        if (result?.success && result?.data) {
           // Try to parse as structured format, otherwise treat as plain text
           try {
-            const parsed = JSON.parse(result.data.content);
+            const parsed = JSON.parse(result.data?.content || '');
             if (Array.isArray(parsed) && parsed[0]?.text !== undefined) {
               setVisitorInductionContent(parsed);
             } else {
               // Fallback: convert plain text to structured format
-              setVisitorInductionContent([{ text: result.data.content, type: 'normal' }]);
+              setVisitorInductionContent([{ text: result.data?.content || '', type: 'normal' }]);
             }
           } catch (e) {
             // Not JSON, treat as plain text
-            setVisitorInductionContent([{ text: result.data.content, type: 'normal' }]);
+            setVisitorInductionContent([{ text: result.data?.content || '', type: 'normal' }]);
           }
           setEditingVisitorInduction(siteId);
         }
       } catch (error) {
-        Alert.alert('Error', 'Failed to load induction: ' + error.message);
+        Alert.alert('Error', 'Failed to load induction: ' + (error?.message || 'Unknown error'));
       }
     };
 

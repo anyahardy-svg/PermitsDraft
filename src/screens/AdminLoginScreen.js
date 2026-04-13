@@ -70,11 +70,11 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
     try {
       const result = await loginAdminUser(email, password);
 
-      if (result.success) {
+      if (result?.success && result?.data) {
         console.log('✅ Admin login successful:', result.data);
         onLoginSuccess(result.data);
       } else {
-        setError(result.error || 'Login failed');
+        setError(result?.error || 'Login failed');
       }
     } catch (err) {
       console.error('❌ Login error:', err);

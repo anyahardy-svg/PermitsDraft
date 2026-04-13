@@ -193,16 +193,16 @@ export default function ContractorAuthScreen({
     try {
       const response = await loginWithEmailPassword(email, password);
 
-      if (response.success) {
+      if (response.success && response.data) {
         // Login successful
         onLoginSuccess({
-          contractorId: response.data.contractorId,
-          contractorName: response.data.contractorName,
-          companyId: response.data.companyId,
-          email: response.data.email
+          contractorId: response.data?.contractorId,
+          contractorName: response.data?.contractorName,
+          companyId: response.data?.companyId,
+          email: response.data?.email
         });
       } else {
-        Alert.alert('Login Failed', response.error || 'Password or username incorrect');
+        Alert.alert('Login Failed', response?.error || 'Password or username incorrect');
         setPassword('');
       }
     } catch (error) {

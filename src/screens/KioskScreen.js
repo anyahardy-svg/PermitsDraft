@@ -148,8 +148,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           
           // Load visitor induction content
           const inductionResult = await getVisitorInduction(matchingSite.id);
-          if (inductionResult.success) {
-            let contentToDisplay = inductionResult.data.content;
+          if (inductionResult?.success && inductionResult?.data) {
+            let contentToDisplay = inductionResult.data?.content;
             // Try to parse as JSON structured format
             try {
               const parsed = JSON.parse(contentToDisplay);
@@ -161,7 +161,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               // Not JSON, display as-is (plain text will be rendered as HTML)
             }
             setVisitorInductionContent(contentToDisplay);
-            setVisitorInductionPdfUrl(inductionResult.data.pdf_file_url || '');
+            setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
           }
           
           // Load current signins
