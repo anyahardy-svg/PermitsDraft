@@ -18670,6 +18670,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (latestPermit.completedSignOff.receiverSignature) {
             setReceiverHasSignature(true);
           }
+          // Restore acknowledgement states
+          if (latestPermit.completedSignOff.issuerAcknowledged) {
+            setIssuerAcknowledged(true);
+          }
+          if (latestPermit.completedSignOff.receiverAcknowledged) {
+            setReceiverAcknowledged(true);
+          }
+          // Restore selected issuer/receiver
+          if (latestPermit.completedSignOff.issuerUserId) {
+            setIssuerIdSelected(latestPermit.completedSignOff.issuerUserId);
+          }
+          if (latestPermit.completedSignOff.receiverContractorId) {
+            setReceiverIdSelected(latestPermit.completedSignOff.receiverContractorId);
+          }
         }
       }
     }, [editData.id]);
