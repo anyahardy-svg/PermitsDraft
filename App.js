@@ -18720,6 +18720,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     }, [editData.completedSignOff, editData.completed_sign_off]);
 
+    // Sync form state with editData.completedSignOff whenever it changes
+    React.useEffect(() => {
+      const signOff = editData.completedSignOff || editData.completed_sign_off;
+      console.log('🔄 Syncing form state with editData.completedSignOff:', signOff);
+      
+      if (signOff) {
+        // Sync issuer fields
+        if (signOff.issuerUserId) {
+          console.log('  📌 Updating issuerIdSelected to:', signOff.issuerUserId);
+          setIssuerIdSelected(signOff.issuerUserId);
+        }
+        if (signOff.issuerAcknowledged) {
+          console.log('  ✅ Setting issuerAcknowledged to true');
+          setIssuerAcknowledged(true);
+        }
+        if (signOff.issuerSignature) {
+          console.log('  ✅ Setting issuerHasSignature to true');
+          setIssuerHasSignature(true);
+        }
+        
+        // Sync receiver fields
+        if (signOff.receiverContractorId) {
+          console.log('  📌 Updating receiverIdSelected to:', signOff.receiverContractorId);
+          setReceiverIdSelected(signOff.receiverContractorId);
+        }
+        if (signOff.receiverAcknowledged) {
+          console.log('  ✅ Setting receiverAcknowledged to true');
+          setReceiverAcknowledged(true);
+        }
+        if (signOff.receiverSignature) {
+          console.log('  ✅ Setting receiverHasSignature to true');
+          setReceiverHasSignature(true);
+        }
+      }
+    }, [editData.completedSignOff?.issuerUserId, editData.completedSignOff?.receiverContractorId, editData.completedSignOff?.issuerAcknowledged, editData.completedSignOff?.receiverAcknowledged, editData.completedSignOff?.issuerSignature, editData.completedSignOff?.receiverSignature]);
+
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
