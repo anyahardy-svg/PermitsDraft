@@ -18662,31 +18662,60 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (editData && editData.site_id) {
         loadSignOffData();
         // Load existing sign-off data if available
+        console.log('🔍 Checking for existing sign-off data...');
+        console.log('  - latestPermit.completedSignOff:', latestPermit.completedSignOff);
+        console.log('  - latestPermit.completed_sign_off:', latestPermit.completed_sign_off);
+        
         if (latestPermit.completedSignOff) {
+          console.log('✅ Found completedSignOff, restoring state...');
           console.log('Loading existing sign-off data:', latestPermit.completedSignOff);
           if (latestPermit.completedSignOff.issuerSignature) {
+            console.log('  - Setting issuer signature');
             setIssuerHasSignature(true);
           }
           if (latestPermit.completedSignOff.receiverSignature) {
+            console.log('  - Setting receiver signature');
             setReceiverHasSignature(true);
           }
           // Restore acknowledgement states
           if (latestPermit.completedSignOff.issuerAcknowledged) {
+            console.log('  - Setting issuer acknowledged');
             setIssuerAcknowledged(true);
           }
           if (latestPermit.completedSignOff.receiverAcknowledged) {
+            console.log('  - Setting receiver acknowledged');
             setReceiverAcknowledged(true);
           }
           // Restore selected issuer/receiver
           if (latestPermit.completedSignOff.issuerUserId) {
+            console.log('  - Setting issuer ID:', latestPermit.completedSignOff.issuerUserId);
             setIssuerIdSelected(latestPermit.completedSignOff.issuerUserId);
           }
           if (latestPermit.completedSignOff.receiverContractorId) {
+            console.log('  - Setting receiver ID:', latestPermit.completedSignOff.receiverContractorId);
             setReceiverIdSelected(latestPermit.completedSignOff.receiverContractorId);
           }
+        } else {
+          console.log('❌ No completedSignOff found');
         }
       }
     }, [editData.id]);
+
+    // Watch for changes to completedSignOff and update UI
+    React.useEffect(() => {
+      console.log('📊 latestPermit.completedSignOff changed:', latestPermit.completedSignOff);
+      if (latestPermit.completedSignOff) {
+        // Update visibility of already-signed sections
+        if (latestPermit.completedSignOff.issuerSignature) {
+          console.log('  ✓ Issuer has signature, showing as read-only');
+          setIssuerHasSignature(true);
+        }
+        if (latestPermit.completedSignOff.receiverSignature) {
+          console.log('  ✓ Receiver has signature, showing as read-only');
+          setReceiverHasSignature(true);
+        }
+      }
+    }, [latestPermit.completedSignOff]);
 
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
@@ -20098,9 +20127,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       issuerAcknowledged: true
                     };
                     
-                    await updatePermit(editData.id, { completed_sign_off: newSignOff });
-                    const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff } : p);
+                    console.log('💾 Saving issuer sign-off:', newSignOff);
+                    const savedPermit = await updatePermit(editData.id, { completed_sign_off: newSignOff });
+                    console.log('✅ Database returned:', savedPermit.completedSignOff || savedPermit.completed_sign_off);
+                    
+                    const updated = permits.map(p => p.id === editData.id ? savedPermit : p);
                     setPermits(updated);
+                    setEditData(savedPermit);
+                    
+                    // Ensure state reflects saved data
+                    setIssuerIdSelected(issuerIdSelected);
+                    setIssuerAcknowledged(true);
+                    setIssuerHasSignature(true);
+                    
                     Alert.alert('Success', 'Issuer signed');
                   } catch (error) {
                     Alert.alert('Error', error?.message);
@@ -20137,9 +20176,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       receiverAcknowledged: true
                     };
                     
-                    await updatePermit(editData.id, { completed_sign_off: newSignOff });
-                    const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff } : p);
+                    console.log('💾 Saving receiver sign-off:', newSignOff);
+                    const savedPermit = await updatePermit(editData.id, { completed_sign_off: newSignOff });
+                    console.log('✅ Database returned:', savedPermit.completedSignOff || savedPermit.completed_sign_off);
+                    
+                    const updated = permits.map(p => p.id === editData.id ? savedPermit : p);
                     setPermits(updated);
+                    setEditData(savedPermit);
+                    
+                    // Ensure state reflects saved data
+                    setReceiverIdSelected(receiverIdSelected);
+                    setReceiverAcknowledged(true);
+                    setReceiverHasSignature(true);
+                    
                     Alert.alert('Success', 'Receiver signed');
                   } catch (error) {
                     Alert.alert('Error', error?.message);
