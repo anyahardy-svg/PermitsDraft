@@ -2248,12 +2248,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
   
-  // DEBUG: Log the initial state
-  console.log('PermitManagementApp initialized with:', { 
-    initialContractorParams, 
-    selectedCompanyIdInitial: initialContractorParams?.companyId,
-    currentScreen: getInitialScreen()
-  });
+  // DEBUG: Only log in development and once per mount
+  if (process.env.NODE_ENV === 'development' && !window.__permitAppInitialized) {
+    window.__permitAppInitialized = true;
+    console.log('✅ PermitManagementApp initialized once (suppress strict mode double-render logs)');
+  }
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [dashboardSelectedSite, setDashboardSelectedSite] = useState(null);
@@ -2454,8 +2453,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         });
         setSiteNameToIdMap(nameToIdMap);
         setSiteIdToNameMap(idToNameMap);
-        console.log('✅ Sites mapping loaded - Name to ID:', nameToIdMap);
-        console.log('✅ Sites mapping loaded - ID to Name:', idToNameMap);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Sites mapping loaded');
+        }
         
         // Load business units first - needed for filtering
         const businessUnitsData = await listBusinessUnits();
@@ -2530,7 +2530,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               );
               
               setTrainingRecordsStatuses(statusResults);
-              console.log('✅ All training records statuses loaded (batch query)');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ All training records statuses loaded (batch query)');
+              }
             } catch (error) {
               console.error('❌ Error loading training records statuses:', error);
             }
