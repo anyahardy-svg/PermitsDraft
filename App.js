@@ -33,7 +33,7 @@ import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSi
 import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
-import { getCompanyTrainingRecordsStatus, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
+import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { handoverPermit } from './src/api/permitHandovers';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
@@ -2518,31 +2518,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         
         // Load training records statuses in background (non-blocking)
         // This runs asynchronously after UI renders
-        // NOTE: Just READ the statuses from populated counters, don't recalculate
+        // NOTE: Use batch query for performance - single query instead of N+1
         setTimeout(() => {
           (async () => {
             try {
-              const statusPromises = companiesData.map(company =>
-                getCompanyTrainingRecordsStatus(company.id)
-                  .then(result => ({
-                    companyId: company.id,
-                    status: result.success ? result.status : 'none'
-                  }))
-                  .catch(() => ({
-                    companyId: company.id,
-                    status: 'none'
-                  }))
+              // PERFORMANCE FIX: Use batch endpoint instead of individual queries
+              // Before: 100 companies = 100 separate queries (N+1 problem)
+              // After:  100 companies = 1 batch query
+              const statusResults = await getCompanyTrainingRecordsStatusBatch(
+                companiesData.map(c => c.id)
               );
               
-              const statusResults = await Promise.all(statusPromises);
-              
-              // Update all statuses at once
-              const statuses = {};
-              statusResults.forEach(({ companyId, status }) => {
-                statuses[companyId] = status;
-              });
-              setTrainingRecordsStatuses(statuses);
-              console.log('✅ All training records statuses loaded');
+              setTrainingRecordsStatuses(statusResults);
+              console.log('✅ All training records statuses loaded (batch query)');
             } catch (error) {
               console.error('❌ Error loading training records statuses:', error);
             }

@@ -376,6 +376,75 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
 }
 
 /**
+ * Get training records status for multiple companies in a single batch query
+ * PERFORMANCE OPTIMIZATION: Reduces N+1 queries to 1 batch query
+ * @param {Array<UUID>} companyIds - Array of company IDs
+ * @returns {Promise<Object>} - Object with companyId as key and status object as value
+ */
+export async function getCompanyTrainingRecordsStatusBatch(companyIds) {
+  try {
+    if (!companyIds || companyIds.length === 0) {
+      console.log('⚠️  No company IDs provided for batch status query');
+      return {};
+    }
+
+    console.log(`📦 Getting training records statuses for ${companyIds.length} companies in batch...`);
+
+    // Single query for all companies instead of N separate queries
+    const { data: companies, error } = await supabase
+      .from('companies')
+      .select('id, training_records_total, training_records_approved')
+      .in('id', companyIds);
+
+    if (error) throw error;
+
+    // Map results to status objects
+    const statusMap = {};
+    
+    // Initialize all requested companies with 'none' status
+    companyIds.forEach(id => {
+      statusMap[id] = {
+        success: true,
+        status: 'none',
+        total: 0,
+        approved: 0,
+        pending: 0
+      };
+    });
+
+    // Update with actual data for companies that were found
+    (companies || []).forEach(company => {
+      const total = company?.training_records_total || 0;
+      const approved = company?.training_records_approved || 0;
+
+      let status = 'none';
+      if (total > 0) {
+        if (approved === total) {
+          status = 'approved';
+        } else {
+          status = 'added';
+        }
+      }
+
+      statusMap[company.id] = {
+        success: true,
+        status,
+        total,
+        approved,
+        pending: total - approved
+      };
+    });
+
+    console.log(`✅ Batch query complete: fetched ${companies?.length || 0} companies`);
+    return statusMap;
+  } catch (error) {
+    console.error('❌ Batch training records status error:', error);
+    // Return empty map with no error details to caller
+    return {};
+  }
+}
+
+/**
  * Approve all pending training records for a company at once
  * Updates both individual records and company-level status
  * @param {UUID} companyId - Company ID
