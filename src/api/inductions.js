@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { safePromiseAll } from '../utils/errorHandler';
 
 // ============================================================================
 // TIMEZONE UTILITY
@@ -590,34 +591,44 @@ export async function getContractorInductionsForCompany(companyId) {
     if (contractorError) throw contractorError;
 
     // For each contractor, get their completed inductions
-    const contractorsWithInductions = await Promise.all(
-      (contractors || []).map(async (contractor) => {
-        const { data: inductions, error: inductionError } = await supabase
-          .from('contractor_induction_progress')
-          .select(`
-            induction_id,
-            status,
-            completed_at,
-            inductions(induction_name)
-          `)
-          .eq('contractor_id', contractor.id)
-          .eq('status', 'completed')
-          .order('completed_at', { ascending: false });
+    // Use safePromiseAll for better error handling - partial success even if some queries fail
+    const inductionPromises = (contractors || []).map(async (contractor) => {
+      const { data: inductions, error: inductionError } = await supabase
+        .from('contractor_induction_progress')
+        .select(`
+          induction_id,
+          status,
+          completed_at,
+          inductions(induction_name)
+        `)
+        .eq('contractor_id', contractor.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
 
-        if (inductionError) throw inductionError;
+      if (inductionError) throw inductionError;
 
-        // Map service_ids to service names
-        const serviceNames = contractor.service_ids
-          ? contractor.service_ids.map(id => serviceMap[id] || 'Unknown').filter(Boolean)
-          : [];
+      // Map service_ids to service names
+      const serviceNames = contractor.service_ids
+        ? contractor.service_ids.map(id => serviceMap[id] || 'Unknown').filter(Boolean)
+        : [];
 
-        return {
-          ...contractor,
-          service_names: serviceNames,
-          completedInductions: inductions || []
-        };
-      })
+      return {
+        ...contractor,
+        service_names: serviceNames,
+        completedInductions: inductions || []
+      };
+    });
+
+    const { succeeded, failed } = await safePromiseAll(
+      inductionPromises,
+      `loading inductions for ${contractors?.length || 0} contractors`
     );
+
+    const contractorsWithInductions = succeeded.map(result => result.data);
+
+    if (failed.length > 0 && process.env.NODE_ENV === 'development') {
+      console.warn(`⚠️  Failed to load inductions for ${failed.length} contractors`);
+    }
 
     return contractorsWithInductions || [];
   } catch (error) {

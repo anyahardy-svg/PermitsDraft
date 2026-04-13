@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { safePromiseAll } from '../utils/errorHandler';
 
 // Helper function to transform Supabase data to app format
 const transformPermitIssuer = (dbUser) => {
@@ -141,9 +142,18 @@ export const listPermitIssuers = async () => {
       }
     });
     
-    // Wait for all site lookups
-    const permitIssuersWithSites = await Promise.all(sitePromises);
+    // Wait for all site lookups - use safePromiseAll for partial success on network errors
+    const { succeeded, failed } = await safePromiseAll(
+      sitePromises,
+      'loading permit issuer sites'
+    );
+
+    const permitIssuersWithSites = succeeded.map(result => result.data);
     
+    if (failed.length > 0 && process.env.NODE_ENV === 'development') {
+      console.warn(`⚠️  Failed to load sites for ${failed.length} permit issuers`);
+    }
+
     console.log('✅ listPermitIssuers complete. Returning:', permitIssuersWithSites);
     return permitIssuersWithSites;
   } catch (error) {

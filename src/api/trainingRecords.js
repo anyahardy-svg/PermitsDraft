@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { safePromiseAll, handleError } from '../utils/errorHandler';
 
 // Allowed file types
 const ALLOWED_FILE_TYPES = [
@@ -378,75 +379,101 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
 /**
  * Get training records status for multiple companies in a single batch query
  * PERFORMANCE OPTIMIZATION: Reduces N+1 queries to 1 batch query
+ * RELIABILITY: Auto-retries on network failure, returns partial results
  * @param {Array<UUID>} companyIds - Array of company IDs
  * @returns {Promise<Object>} - Object with companyId as key and status object as value
  */
 export async function getCompanyTrainingRecordsStatusBatch(companyIds) {
-  try {
-    if (!companyIds || companyIds.length === 0) {
+  if (!companyIds || companyIds.length === 0) {
+    if (process.env.NODE_ENV === 'development') {
       console.log('⚠️  No company IDs provided for batch status query');
-      return {};
     }
-
-    console.log(`📦 Getting training records statuses for ${companyIds.length} companies in batch...`);
-
-    // Single query for all companies instead of N separate queries
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('id, training_records_total, training_records_approved')
-      .in('id', companyIds);
-
-    if (error) throw error;
-
-    // Map results to status objects
-    const statusMap = {};
-    
-    // Initialize all requested companies with 'none' status
-    companyIds.forEach(id => {
-      statusMap[id] = {
-        success: true,
-        status: 'none',
-        total: 0,
-        approved: 0,
-        pending: 0
-      };
-    });
-
-    // Update with actual data for companies that were found
-    (companies || []).forEach(company => {
-      const total = company?.training_records_total || 0;
-      const approved = company?.training_records_approved || 0;
-
-      let status = 'none';
-      if (total > 0) {
-        if (approved === total) {
-          status = 'approved';
-        } else {
-          status = 'added';
-        }
-      }
-
-      statusMap[company.id] = {
-        success: true,
-        status,
-        total,
-        approved,
-        pending: total - approved
-      };
-    });
-
-    console.log(`✅ Batch query complete: fetched ${companies?.length || 0} companies`);
-    return statusMap;
-  } catch (error) {
-    console.error('❌ Batch training records status error:', error);
-    // Return empty map with no error details to caller
     return {};
   }
+
+  console.log(`📦 Getting training records statuses for ${companyIds.length} companies in batch...`);
+
+  let lastError;
+  const maxRetries = 3;
+  const baseDelay = 1000;
+
+  // Retry logic for transient network failures
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Single query for all companies instead of N separate queries
+      const { data: companies, error } = await supabase
+        .from('companies')
+        .select('id, training_records_total, training_records_approved')
+        .in('id', companyIds);
+
+      if (error) throw error;
+
+      // Map results to status objects
+      const statusMap = {};
+      
+      // Initialize all requested companies with 'none' status
+      companyIds.forEach(id => {
+        statusMap[id] = {
+          success: true,
+          status: 'none',
+          total: 0,
+          approved: 0,
+          pending: 0
+        };
+      });
+
+      // Update with actual data for companies that were found
+      (companies || []).forEach(company => {
+        const total = company?.training_records_total || 0;
+        const approved = company?.training_records_approved || 0;
+
+        let status = 'none';
+        if (total > 0) {
+          if (approved === total) {
+            status = 'approved';
+          } else {
+            status = 'added';
+          }
+        }
+
+        statusMap[company.id] = {
+          success: true,
+          status,
+          total,
+          approved,
+          pending: total - approved
+        };
+      });
+
+      console.log(`✅ Batch query complete: fetched ${companies?.length || 0} companies`);
+      return statusMap;
+    } catch (error) {
+      lastError = error;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`⏳ Training records batch attempt ${attempt}/${maxRetries} failed:`, error.message);
+      }
+
+      // Retry if not the last attempt
+      if (attempt < maxRetries) {
+        const delayMs = baseDelay * attempt;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  // All retries exhausted - log error but don't crash
+  handleError(lastError, 'loading training records statuses', false);
+  console.error('❌ Failed to load training records statuses after retries');
+  
+  // Return empty map so app continues to function
+  return {};
 }
 
 /**
  * Approve all pending training records for a company at once
  * Updates both individual records and company-level status
+ * RELIABILITY: Partial success supported - some records may be approved even if some fail
  * @param {UUID} companyId - Company ID
  * @param {string} approvedByName - Name of person approving
  * @param {string} businessUnitName - Business unit name (optional)
@@ -483,15 +510,17 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
         .eq('id', record.id)
     );
 
-    const results = await Promise.all(approvalPromises);
+    // Use safePromiseAll to handle partial successes
+    const { succeeded, failed } = await safePromiseAll(
+      approvalPromises,
+      `approving ${pendingRecords.length} training records`
+    );
 
-    // Check if all updates were successful
-    const errors = results.filter(r => r.error);
-    if (errors.length > 0) {
-      throw new Error(`Failed to approve ${errors.length} records`);
+    if (failed.length > 0) {
+      console.warn(`⚠️  Partially approved: ${succeeded.length} succeeded, ${failed.length} failed`);
     }
 
-    // Update company-level status
+    // Update company-level status (use succeeded count)
     const { error: companyError } = await supabase
       .from('companies')
       .update({
