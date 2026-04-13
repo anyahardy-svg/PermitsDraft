@@ -11074,9 +11074,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Helper function to look up service names from IDs
     // Load all services on first render if not already loaded
     if (servicesForContractors.length === 0) {
-      listAllServices().then(services => {
-        setServicesForContractors(services);
-      }).catch(err => console.error('Error loading services:', err));
+      listAllServices()
+        .then(services => {
+          if (services && services.length > 0) {
+            setServicesForContractors(services);
+            setSelectedService(services[0].name);
+          }
+        })
+        .catch(err => {
+          console.error('❌ Error loading services for contractors:', err.message);
+          // Services failed to load, but contractors screen can still function
+        });
     }
 
     const handleAddContractor = async () => {
