@@ -18601,7 +18601,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const receiverSignatureRef = React.useRef(null);
     const [receiverHasSignature, setReceiverHasSignature] = React.useState(!!completedSignOff.receiverSignature);
     
-    const [workCompletedAcknowledged, setWorkCompletedAcknowledged] = React.useState(completedSignOff.workCompletedAcknowledged || false);
+    const [issuerAcknowledged, setIssuerAcknowledged] = React.useState(completedSignOff.issuerAcknowledged || false);
+    const [receiverAcknowledged, setReceiverAcknowledged] = React.useState(completedSignOff.receiverAcknowledged || false);
     
     const [permitIssuersForSite, setPermitIssuersForSite] = React.useState([]);
     const [contractorsForSite, setContractorsForSite] = React.useState([]);
@@ -19796,9 +19797,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={styles.detailText}>Loading...</Text>
               ) : (
                 <>
-                  {/* Acknowledgment Section */}
+                  {/* Issuer Acknowledgment Section */}
                   <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#F59E42' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>⚠️ Completion Acknowledgment</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>⚠️ Permit Issuer Acknowledgment</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <TouchableOpacity 
                         style={[{
@@ -19810,13 +19811,37 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           marginRight: 8,
                           justifyContent: 'center',
                           alignItems: 'center',
-                          backgroundColor: workCompletedAcknowledged ? '#F59E42' : 'white'
+                          backgroundColor: issuerAcknowledged ? '#F59E42' : 'white'
                         }]}
-                        onPress={() => setWorkCompletedAcknowledged(!workCompletedAcknowledged)}
+                        onPress={() => setIssuerAcknowledged(!issuerAcknowledged)}
                       >
-                        {workCompletedAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
+                        {issuerAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
                       </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: '#92400E', flex: 1 }}>Work has been completed, area is safe and permit can now be closed</Text>
+                      <Text style={{ fontSize: 12, color: '#92400E', flex: 1 }}>Work has been completed and permit is ready to be closed (Issuer)</Text>
+                    </View>
+                  </View>
+
+                  {/* Receiver Acknowledgment Section */}
+                  <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 8 }}>⚠️ Permit Receiver Acknowledgment</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity 
+                        style={[{
+                          width: 24, 
+                          height: 24, 
+                          borderWidth: 2, 
+                          borderColor: '#3B82F6', 
+                          borderRadius: 4, 
+                          marginRight: 8,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: receiverAcknowledged ? '#3B82F6' : 'white'
+                        }]}
+                        onPress={() => setReceiverAcknowledged(!receiverAcknowledged)}
+                      >
+                        {receiverAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, color: '#1E40AF', flex: 1 }}>Work has been completed and area is safe (Receiver)</Text>
                     </View>
                   </View>
                   
@@ -19967,9 +19992,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#3B82F6', flex: 0.7 }]} onPress={async () => {
                   try {
-                    // Validate acknowledgment
-                    if (!workCompletedAcknowledged) {
-                      Alert.alert('Error', 'You must acknowledge that work has been completed and the area is safe');
+                    console.log('🔍 Validating sign-off submission...');
+                    console.log('  - Issuer acknowledged:', issuerAcknowledged);
+                    console.log('  - Receiver acknowledged:', receiverAcknowledged);
+                    console.log('  - Issuer selected:', issuerIdSelected);
+                    console.log('  - Issuer has signature:', issuerHasSignature);
+                    console.log('  - Receiver selected:', receiverIdSelected);
+                    console.log('  - Receiver has signature:', receiverHasSignature);
+                    
+                    // Validate issuer acknowledgment
+                    if (!issuerAcknowledged) {
+                      Alert.alert('Error', 'Permit Issuer must acknowledge that work has been completed');
+                      return;
+                    }
+                    
+                    // Validate receiver acknowledgment
+                    if (!receiverAcknowledged) {
+                      Alert.alert('Error', 'Permit Receiver must acknowledge that work has been completed and area is safe');
                       return;
                     }
                     
@@ -19993,6 +20032,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       return;
                     }
                     
+                    console.log('✅ All validations passed, proceeding with sign-off...');
+                    
                     const now = new Date();
                     const dateStr = now.toISOString().split('T')[0];
                     const timeStr = now.toTimeString().split(' ')[0];
@@ -20002,58 +20043,65 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
                     const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
                     
+                    console.log('Selected issuer:', selectedIssuer?.name);
+                    console.log('Selected receiver:', selectedReceiver?.name);
+                    
                     // Save signatures and details
                     newSignOff = {
                       issuerUserId: issuerIdSelected,
                       issuerName: selectedIssuer?.name || '',
                       issuerSignature: issuerSignatureRef.current?.toDataURL() || '',
                       issuerSignedAt: dateStr + ' ' + timeStr,
+                      issuerAcknowledged: true,
                       receiverContractorId: receiverIdSelected,
                       receiverName: selectedReceiver?.name || '',
                       receiverSignature: receiverSignatureRef.current?.toDataURL() || '',
                       receiverSignedAt: dateStr + ' ' + timeStr,
-                      workCompletedAcknowledged: true
+                      receiverAcknowledged: true
                     };
                     
                     const completed = true;
                   
-                  // Save to database
-                  const updateObj = { completed_sign_off: newSignOff, attachments: editData.attachments };
-                  if (completed) {
-                    updateObj.status = 'completed';
-                  }
-                  await updatePermit(editData.id, updateObj);
-                  
-                  const updated = permits.map(p => {
-                    if (p.id === editData.id) {
-                      if (completed) {
-                        return {
-                          ...editData,
-                          status: 'completed',
-                          completedDate: dateStr,
-                          completedSignOff: newSignOff
-                        };
-                      } else {
-                        return {
-                          ...editData,
-                          completedSignOff: newSignOff
-                        };
-                      }
+                    console.log('📝 Updating permit with sign-off data...');
+                    // Save to database
+                    const updateObj = { completed_sign_off: newSignOff, attachments: editData.attachments };
+                    if (completed) {
+                      updateObj.status = 'completed';
                     }
-                    return p;
-                  });
-                  setPermits(updated);
-                  if (completed) {
-                    setCurrentScreen('dashboard');
-                    Alert.alert('Permit Completed', 'Permit has been signed off as completed.');
-                  } else {
-                    Alert.alert('Sign-Off Saved', 'Sign-off information has been saved.');
+                    await updatePermit(editData.id, updateObj);
+                    console.log('✅ Permit updated successfully');
+                  
+                    const updated = permits.map(p => {
+                      if (p.id === editData.id) {
+                        if (completed) {
+                          return {
+                            ...editData,
+                            status: 'completed',
+                            completedDate: dateStr,
+                            completedSignOff: newSignOff
+                          };
+                        } else {
+                          return {
+                            ...editData,
+                            completedSignOff: newSignOff
+                          };
+                        }
+                      }
+                      return p;
+                    });
+                    setPermits(updated);
+                    if (completed) {
+                      setCurrentScreen('dashboard');
+                      Alert.alert('Permit Completed', 'Permit has been signed off as completed.');
+                    } else {
+                      Alert.alert('Sign-Off Saved', 'Sign-off information has been saved.');
+                    }
+                  } catch (error) {
+                    console.error('❌ Error saving sign-off:', error);
+                    console.error('Error details:', error?.message, error?.stack);
+                    Alert.alert('Error', `Failed to save sign-off: ${error?.message || 'Unknown error'}. Check console for details.`);
                   }
-                } catch (error) {
-                  console.error('Error saving sign-off:', error);
-                  Alert.alert('Error', 'Failed to save sign-off. Please try again.');
-                }
-              }}>
+                }}>
                 <Text style={styles.submitButtonText}>✓ Submit Sign-Off</Text>
               </TouchableOpacity>
               </View>
