@@ -124,7 +124,7 @@ export default async function handler(req, res) {
       subject = actuallyNewUser 
         ? `${companyName} - Complete Your Company Accreditation`
         : `Request to Complete ${companyName} Accreditation`;
-
+I 
       htmlContent = actuallyNewUser 
         ? `
           <h2>Complete Your Company Accreditation</h2>

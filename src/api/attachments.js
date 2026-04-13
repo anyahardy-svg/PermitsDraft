@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { compressImage, compressMultipleImages } from '../utils/imageCompression';
 
 const BUCKET_NAME = 'permit-attachments';
 
@@ -7,20 +8,34 @@ const BUCKET_NAME = 'permit-attachments';
  * @param {string} permitId - The permit ID (for organizing files)
  * @param {Blob|object} fileData - Blob object or file object with { uri, name, type }
  * @param {string} fileName - Optional filename (used when passing a blob)
- * @returns {Promise<object>} - Object with { url, name, uploadedAt, path }
+ * @param {object} compressionOptions - Optional compression settings { width, height, compress }
+ * @returns {Promise<object>} - Object with { url, name, uploadedAt, path, compressionInfo }
  */
-export const uploadAttachment = async (permitId, fileData, fileName) => {
+export const uploadAttachment = async (permitId, fileData, fileName, compressionOptions = {}) => {
   try {
     let blob = fileData;
     let name = fileName;
     let contentType = 'application/octet-stream';
+    let fileToUpload = fileData;
+    let compressionInfo = null;
     
-    // If it's a file object with uri, convert to blob
+    // If it's a file object with uri, convert to blob and optionally compress
     if (fileData.uri) {
-      const response = await fetch(fileData.uri);
+      // Compress image if it's an image file
+      if (fileData.type && fileData.type.startsWith('image/')) {
+        fileToUpload = await compressImage(fileData, compressionOptions);
+        compressionInfo = {
+          originalSize: fileData.size,
+          compressedSize: fileToUpload.size,
+          compressionRatio: fileToUpload.compressionRatio,
+          compressed: true
+        };
+      }
+
+      const response = await fetch(fileToUpload.uri);
       blob = await response.blob();
-      name = fileData.name;
-      contentType = fileData.type || 'application/octet-stream';
+      name = fileToUpload.name;
+      contentType = fileToUpload.type || 'application/octet-stream';
     } else if (fileData instanceof Blob) {
       // It's already a blob, use the provided fileName
       name = fileName || `attachment_${Date.now()}`;
@@ -51,7 +66,8 @@ export const uploadAttachment = async (permitId, fileData, fileName) => {
       url: publicUrl.publicUrl,
       name: name,
       uploadedAt: new Date().toISOString(),
-      path: filePath
+      path: filePath,
+      compressionInfo: compressionInfo
     };
   } catch (error) {
     console.error('Error uploading attachment:', error);
@@ -63,15 +79,16 @@ export const uploadAttachment = async (permitId, fileData, fileName) => {
  * Upload multiple attachments for a permit
  * @param {string} permitId - The permit ID
  * @param {array} files - Array of file objects
+ * @param {object} compressionOptions - Optional compression settings
  * @returns {Promise<array>} - Array of uploaded attachment metadata
  */
-export const uploadMultipleAttachments = async (permitId, files) => {
+export const uploadMultipleAttachments = async (permitId, files, compressionOptions = {}) => {
   if (!files || files.length === 0) return [];
   
   try {
     const uploaded = [];
     for (const file of files) {
-      const result = await uploadAttachment(permitId, file);
+      const result = await uploadAttachment(permitId, file, null, compressionOptions);
       uploaded.push(result);
     }
     return uploaded;
