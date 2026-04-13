@@ -714,18 +714,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // --- Advanced Permit Form State ---
   const specializedPermitTypes = [
-    { key: 'hotWork', label: 'Hot Work', description: 'Welding, cutting, grinding, or any activity that generates heat or sparks.' },
+    { key: 'blastingMarking', label: 'Blasting - 1 Marking', description: 'Marking drill hole locations for blasting operations.' },
+    { key: 'blastingDrilling', label: 'Blasting - 2 Drilling', description: 'Drilling holes for blasting operations.' },
+    { key: 'blastingExecution', label: 'Blasting - 3 Execution', description: 'Execution of blasting operations and detonation.' },
     { key: 'confinedSpace', label: 'Confined Space', description: 'Entry into tanks, vessels, pits, or other confined spaces.' },
-    { key: 'workingAtHeight', label: 'Working at Height', description: 'Work at height where a fall could occur.' },
     { key: 'electrical', label: 'Electrical', description: 'Electrical work, including panel access and live work.' },
     { key: 'excavation', label: 'Excavation', description: 'Digging, trenching, or disturbing the ground.' },
+    { key: 'hotWork', label: 'Hot Work', description: 'Welding, cutting, grinding, or any activity that generates heat or sparks.' },
     { key: 'lifting', label: 'Lifting', description: 'Use of cranes, hoists, or other lifting equipment.' },
-    { key: 'blastingMarking', label: 'Blasting - Marking', description: 'Marking drill hole locations for blasting operations.' },
-    { key: 'blastingDrilling', label: 'Blasting - Drilling', description: 'Drilling holes for blasting operations.' },
-    { key: 'blastingExecution', label: 'Blasting - Execution', description: 'Execution of blasting operations and detonation.' },
     { key: 'plantServicing', label: 'Plant Servicing', description: 'Servicing or maintenance of plant and equipment.' },
     { key: 'stripping', label: 'Stripping', description: 'Stripping campaign to remove overburden.' },
-    { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' }
+    { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' },
+    { key: 'workingAtHeight', label: 'Working at Height', description: 'Work at height where a fall could occur.' }
   ];
   const singleHazardTypes = [
     // Workplace Conditions / Weather
