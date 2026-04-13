@@ -21,8 +21,16 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
     
     // If it's a file object with uri, convert to blob and optionally compress
     if (fileData.uri) {
+      console.log('📁 Uploading file:', {
+        name: fileData.name,
+        type: fileData.type,
+        size: fileData.size,
+        uri: fileData.uri
+      });
+      
       // Compress image if it's an image file
       if (fileData.type && fileData.type.startsWith('image/')) {
+        console.log('🖼️  Image detected - starting compression...');
         fileToUpload = await compressImage(fileData, compressionOptions);
         compressionInfo = {
           originalSize: fileData.size,
@@ -30,6 +38,9 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
           compressionRatio: fileToUpload.compressionRatio,
           compressed: true
         };
+        console.log('✅ Compression complete:', compressionInfo);
+      } else {
+        console.log('⏭️  Skipping compression - not an image, type:', fileData.type);
       }
 
       const response = await fetch(fileToUpload.uri);

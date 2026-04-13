@@ -24,8 +24,12 @@ export const compressImage = async (fileData, options = {}) => {
     const isImageFile = fileData.type && fileData.type.startsWith('image/');
     
     if (!isImageFile) {
+      console.log('⏭️  Skipping compression - not an image file');
       return fileData; // Return original for non-image files
     }
+
+    console.log('🔧 Compression options:', compressionOptions);
+    console.log('📍 Image URI:', imageUri);
 
     // Perform image manipulation (resize and compress)
     const manipulatedImage = await ImageManipulator.manipulateAsync(
@@ -45,6 +49,8 @@ export const compressImage = async (fileData, options = {}) => {
       }
     );
 
+    console.log('✨ Image manipulated, URI:', manipulatedImage.uri);
+
     // Get file size info
     const response = await fetch(manipulatedImage.uri);
     const blob = await response.blob();
@@ -52,7 +58,7 @@ export const compressImage = async (fileData, options = {}) => {
     const compressedSize = blob.size / (1024 * 1024); // MB
     const compressionRatio = ((1 - blob.size / (fileData.size || blob.size)) * 100).toFixed(1);
 
-    console.log(`Image compressed: ${originalSize.toFixed(2)}MB → ${compressedSize.toFixed(2)}MB (${compressionRatio}% reduction)`);
+    console.log(`📊 Image compressed: ${originalSize.toFixed(2)}MB → ${compressedSize.toFixed(2)}MB (${compressionRatio}% reduction)`);
 
     return {
       uri: manipulatedImage.uri,
@@ -63,7 +69,7 @@ export const compressImage = async (fileData, options = {}) => {
       compressionRatio: compressionRatio
     };
   } catch (error) {
-    console.error('Error compressing image:', error);
+    console.error('❌ Error compressing image:', error);
     // Return original file on error
     return fileData;
   }

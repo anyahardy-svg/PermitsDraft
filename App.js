@@ -1605,12 +1605,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
       if (!result.cancelled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+        console.log('📸 ImagePicker result:', {
+          uri: asset.uri,
+          fileName: asset.fileName,
+          mimeType: asset.mimeType,
+          type: asset.type,
+          width: asset.width,
+          height: asset.height,
+          duration: asset.duration
+        });
+        
         const newAttachment = {
           uri: asset.uri,
           name: asset.fileName || `attachment_${Date.now()}`,
-          type: asset.type || 'image/jpeg',
+          type: asset.mimeType || asset.type || 'image/jpeg',
+          size: asset.fileSize,
           uploadedAt: new Date().toISOString()
         };
+        console.log('📦 Attachment object created:', newAttachment);
+        
         setFormData({
           ...formData,
           attachments: [...(formData.attachments || []), newAttachment]
@@ -7157,12 +7170,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const asset = result.assets[0];
         Alert.alert('Uploading', 'Please wait while we upload your file...');
         
-        // Convert uri to blob
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
+        // Pass file object directly to enable compression
+        const fileObj = {
+          uri: asset.uri,
+          name: asset.fileName || `attachment_${Date.now()}`,
+          type: asset.mimeType || asset.type || 'image/jpeg',
+          size: asset.fileSize
+        };
         
-        // Upload to Supabase Storage
-        const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+        const uploadedAttachment = await uploadAttachment(editData.id, fileObj);
         
         setEditData({
           ...editData,
@@ -7195,12 +7211,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const asset = result.assets[0];
         Alert.alert('Uploading', 'Please wait while we upload your photo...');
         
-        // Convert uri to blob
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
+        // Pass file object directly to enable compression
+        const fileObj = {
+          uri: asset.uri,
+          name: asset.fileName || `photo_${Date.now()}`,
+          type: asset.mimeType || asset.type || 'image/jpeg',
+          size: asset.fileSize
+        };
         
-        // Upload to Supabase Storage
-        const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `photo_${Date.now()}`);
+        const uploadedAttachment = await uploadAttachment(editData.id, fileObj);
         
         setEditData({
           ...editData,
@@ -13766,12 +13785,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const asset = result.assets[0];
           Alert.alert('Uploading', 'Please wait while we upload your file...');
           
-          // Convert uri to blob
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
+          // Pass file object directly to enable compression
+          const fileObj = {
+            uri: asset.uri,
+            name: asset.fileName || `attachment_${Date.now()}`,
+            type: asset.mimeType || asset.type || 'image/jpeg',
+            size: asset.fileSize
+          };
           
-          // Upload to Supabase Storage
-          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+          const uploadedAttachment = await uploadAttachment(editData.id, fileObj);
           
           setEditData({
             ...editData,
@@ -16703,12 +16725,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const asset = result.assets[0];
           Alert.alert('Uploading', 'Please wait while we upload your file...');
           
-          // Convert uri to blob
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
+          // Pass file object directly to enable compression
+          const fileObj = {
+            uri: asset.uri,
+            name: asset.fileName || `attachment_${Date.now()}`,
+            type: asset.mimeType || asset.type || 'image/jpeg',
+            size: asset.fileSize
+          };
           
-          // Upload to Supabase Storage
-          const uploadedAttachment = await uploadAttachment(editData.id, blob, asset.fileName || `attachment_${Date.now()}`);
+          const uploadedAttachment = await uploadAttachment(editData.id, fileObj);
           
           setEditData({
             ...editData,
