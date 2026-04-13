@@ -19836,25 +19836,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {issuerIdSelected && (
                     <>
                       <Text style={styles.label}>Issuer Signature:</Text>
-                      <View style={{ border: '1px solid #D1D5DB', borderRadius: 8, marginBottom: 12, backgroundColor: '#F9FAFB' }}>
+                      <View style={{
+                        borderWidth: 2,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        marginBottom: 12,
+                        backgroundColor: '#FAFAFA',
+                        overflow: 'hidden'
+                      }}>
                         <WebSignaturePad 
                           signatureRef={issuerSignatureRef}
                           onSignatureChange={() => setIssuerHasSignature(!issuerSignatureRef.current.isEmpty())}
                           width={300}
-                          height={180}
+                          height={250}
                         />
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                        <TouchableOpacity 
-                          style={[styles.submitButton, { backgroundColor: '#EF4444', flex: 0.5 }]}
-                          onPress={() => {
-                            issuerSignatureRef.current?.clear();
-                            setIssuerHasSignature(false);
-                          }}
-                        >
-                          <Text style={styles.submitButtonText}>Clear Issuer Sig</Text>
-                        </TouchableOpacity>
-                      </View>
+                      {issuerHasSignature && (
+                        <Text style={{
+                          fontSize: 12,
+                          color: '#10B981',
+                          marginBottom: 8,
+                          fontWeight: '600'
+                        }}>
+                          ✓ Signature captured
+                        </Text>
+                      )}
+                      <TouchableOpacity 
+                        style={{
+                          padding: 10,
+                          marginBottom: 12,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#F3E8FF',
+                          backgroundColor: '#FEF5FF',
+                          alignItems: 'center'
+                        }}
+                        onPress={() => {
+                          issuerSignatureRef.current?.clear();
+                          setIssuerHasSignature(false);
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 14,
+                          color: '#8B5CF6',
+                          fontWeight: '600'
+                        }}>
+                          Clear Signature
+                        </Text>
+                      </TouchableOpacity>
                       {latestPermit.completedSignOff?.issuerSignedAt && (
                         <Text style={styles.detailText}>Issuer Signed At: {latestPermit.completedSignOff.issuerSignedAt}</Text>
                       )}
@@ -19877,25 +19906,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {receiverIdSelected && (
                     <>
                       <Text style={styles.label}>Receiver Signature:</Text>
-                      <View style={{ border: '1px solid #D1D5DB', borderRadius: 8, marginBottom: 12, backgroundColor: '#F9FAFB' }}>
+                      <View style={{
+                        borderWidth: 2,
+                        borderColor: '#E5E7EB',
+                        borderRadius: 8,
+                        marginBottom: 12,
+                        backgroundColor: '#FAFAFA',
+                        overflow: 'hidden'
+                      }}>
                         <WebSignaturePad 
                           signatureRef={receiverSignatureRef}
                           onSignatureChange={() => setReceiverHasSignature(!receiverSignatureRef.current.isEmpty())}
                           width={300}
-                          height={180}
+                          height={250}
                         />
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                        <TouchableOpacity 
-                          style={[styles.submitButton, { backgroundColor: '#EF4444', flex: 0.5 }]}
-                          onPress={() => {
-                            receiverSignatureRef.current?.clear();
-                            setReceiverHasSignature(false);
-                          }}
-                        >
-                          <Text style={styles.submitButtonText}>Clear Receiver Sig</Text>
-                        </TouchableOpacity>
-                      </View>
+                      {receiverHasSignature && (
+                        <Text style={{
+                          fontSize: 12,
+                          color: '#10B981',
+                          marginBottom: 8,
+                          fontWeight: '600'
+                        }}>
+                          ✓ Signature captured
+                        </Text>
+                      )}
+                      <TouchableOpacity 
+                        style={{
+                          padding: 10,
+                          marginBottom: 12,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#F3E8FF',
+                          backgroundColor: '#FEF5FF',
+                          alignItems: 'center'
+                        }}
+                        onPress={() => {
+                          receiverSignatureRef.current?.clear();
+                          setReceiverHasSignature(false);
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 14,
+                          color: '#8B5CF6',
+                          fontWeight: '600'
+                        }}>
+                          Clear Signature
+                        </Text>
+                      </TouchableOpacity>
                       {latestPermit.completedSignOff?.receiverSignedAt && (
                         <Text style={styles.detailText}>Receiver Signed At: {latestPermit.completedSignOff.receiverSignedAt}</Text>
                       )}
@@ -19907,7 +19965,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', flex: 0.3 }]} onPress={() => handlePrintPermit(editData)}>
                   <Text style={styles.submitButtonText}>🖨 Print</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.submitButton, { flex: 0.7 }]} onPress={async () => {
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#3B82F6', flex: 0.7 }]} onPress={async () => {
                   try {
                     // Validate acknowledgment
                     if (!workCompletedAcknowledged) {
@@ -19996,7 +20054,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   Alert.alert('Error', 'Failed to save sign-off. Please try again.');
                 }
               }}>
-                <Text style={styles.submitButtonText}>Save Sign-Off</Text>
+                <Text style={styles.submitButtonText}>✓ Submit Sign-Off</Text>
               </TouchableOpacity>
               </View>
             </View>
