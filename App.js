@@ -9178,7 +9178,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={styles.detailText}>{user.email}</Text>
                   <Text style={styles.detailText}>{user.company}</Text>
                   <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
-                  <Text style={[styles.detailText, { marginTop: 4 }]}>Permitted Services: {user.permittedServiceIds && user.permittedServiceIds.length > 0 ? `${user.permittedServiceIds.length} service${user.permittedServiceIds.length !== 1 ? 's' : ''}` : 'None selected'}</Text>
+                  <Text style={[styles.detailText, { marginTop: 4 }]}>Permitted Services: {user.permittedServiceIds && user.permittedServiceIds.length > 0 ? servicesFromDb.filter(s => user.permittedServiceIds.includes(s.id)).map(s => s.name).join(', ') : 'None selected'}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={async () => { 
                       console.log('📋 Editing user:', {
