@@ -4539,7 +4539,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </View>
                   );
                 })()}
-                {Object.keys(formData.specializedPermits).map(permitKey => {
+                {Object.keys(formData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b);
+                    return aIdx - bIdx;
+                  })
+                  .map(permitKey => {
                   const permit = specializedPermitTypes.find(p => p.key === permitKey);
                   if (!formData.specializedPermits[permitKey].required) return null;
                   const controls = [];
@@ -6036,7 +6042,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           {item.specializedPermits && Object.entries(item.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
             <View style={{ marginBottom: 8 }}>
               <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>Specialized Permits:</Text>
-              {Object.entries(item.specializedPermits).map(([key, val]) => {
+              {Object.entries(item.specializedPermits)
+                .sort((a, b) => {
+                  const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                  const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                  return aIdx - bIdx;
+                })
+                .map(([key, val]) => {
                 const permit = specializedPermitTypes.find(p => p.key === key);
                 const questionnaire = permitQuestionnaires[key] || [];
                 return val.required && val.questionnaire ? (
@@ -7555,7 +7567,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
-                {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                   const permit = specializedPermitTypes.find(p => p.key === key);
                   const questionnaire = permitQuestionnaires[key] || [];
                   return val.required && val.questionnaire ? (
@@ -7729,7 +7753,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         {editData.specializedPermits && (
           <View style={{ marginTop: 12 }}>
             <Text style={styles.label}>Specialized Permits:</Text>
-            {Object.entries(editData.specializedPermits).map(([key, val]) => {
+            {Object.entries(editData.specializedPermits)
+              .sort((a, b) => {
+                const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                return aIdx - bIdx;
+              })
+              .map(([key, val]) => {
               const permit = specializedPermitTypes.find(p => p.key === key);
               return (
               <View key={key} style={{ marginBottom: 8 }}>
@@ -9148,7 +9178,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={styles.detailText}>{user.email}</Text>
                   <Text style={styles.detailText}>{user.company}</Text>
                   <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
-                  <Text style={[styles.detailText, { marginTop: 4, fontSize: 11, color: '#9CA3AF' }]}>ID: {user.id}</Text>
+                  <Text style={[styles.detailText, { marginTop: 4 }]}>Permitted Services: {user.permittedServiceIds && user.permittedServiceIds.length > 0 ? `${user.permittedServiceIds.length} service${user.permittedServiceIds.length !== 1 ? 's' : ''}` : 'None selected'}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={async () => { 
                       console.log('📋 Editing user:', {
@@ -14204,7 +14234,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
-                {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                   const permit = specializedPermitTypes.find(p => p.key === key);
                   return (
                     <View key={key} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
@@ -14831,7 +14867,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
-                    {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                    {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
                       const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
@@ -16928,7 +16970,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
-                {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                   const permit = specializedPermitTypes.find(p => p.key === key);
                   return (
                     <View key={key} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
@@ -17483,7 +17531,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
-                    {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                    {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
                       const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
@@ -18947,7 +19001,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
-                {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                   const permit = specializedPermitTypes.find(p => p.key === key);
                   return (
                     <View key={key} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 }}>
@@ -19500,7 +19560,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {editData.specializedPermits && Object.entries(editData.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
                   <View style={{ marginBottom: 12 }}>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Specialized Permits:</Text>
-                    {Object.entries(editData.specializedPermits).map(([key, val]) => {
+                    {Object.entries(editData.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
                       const permit = specializedPermitTypes.find(p => p.key === key);
                       const questionnaire = permitQuestionnaires[key] || [];
                       return val.required && val.questionnaire ? (
