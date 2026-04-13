@@ -35,6 +35,7 @@ import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusine
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { handoverPermit } from './src/api/permitHandovers';
+import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -2247,6 +2248,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
+  
+  // Network status tracking
+  const { isOnline } = useNetworkStatus();
   
   // DEBUG: Only log in development and once per mount
   if (process.env.NODE_ENV === 'development' && !window.__permitAppInitialized) {
@@ -8351,6 +8355,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        {!isOnline && (
+          <View style={{
+            backgroundColor: '#EF4444',
+            padding: 12,
+            paddingTop: 8,
+            paddingBottom: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottomWidth: 2,
+            borderBottomColor: '#DC2626'
+          }}>
+            <Text style={{
+              color: '#FFFFFF',
+              fontWeight: '600',
+              fontSize: 14
+            }}>
+              🔴 OFFLINE - Data cannot be loaded or saved
+            </Text>
+            <Text style={{
+              color: '#FCA5A5',
+              fontSize: 12,
+              marginTop: 4
+            }}>
+              Reconnecting... Check your internet connection
+            </Text>
+          </View>
+        )}
         <View style={styles.header}>
           <Text style={styles.title}>Permit Dashboard - {selectedSiteName}</Text>
         </View>
