@@ -358,7 +358,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       
       console.log('📊 Check-in result:', result);
       
-      if (result.success) {
+      if (result?.success) {
         // Clear the form immediately since check-in was recorded
         const contractorName = selectedContractor.name;
         setSelectedContractor(null);
@@ -371,12 +371,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         loadSignedInPeople();
         
         // Then show status alert based on induction status
-        if (result.isExpired) {
+        if (result?.isExpired) {
           Alert.alert(
             '⚠️ Induction Expired',
             `${contractorName}'s induction expired on ${result.expiryDate}. They have been checked in but renewal is recommended.`
           );
-        } else if (!result.inducted) {
+        } else if (!result?.inducted) {
           Alert.alert(
             '⚠️ Induction Required',
             `${contractorName} is not inducted at ${site.name}. They have been checked in but induction is required.`
@@ -385,10 +385,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           Alert.alert('Success', `${contractorName} signed in successfully`);
         }
       } else {
-        Alert.alert('Error', result.error || 'Check-in failed');
+        Alert.alert('Error', result?.error || 'Check-in failed');
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message);
       console.error('Check-in error:', error);
     }
   };
@@ -403,7 +403,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       const formattedName = formatNameToTitleCase(visitorName);
       const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone);
       
-      if (result.success) {
+      if (result?.success) {
         Alert.alert('Success', `${formattedName} signed in successfully`);
         // Clear all visitor form state
         setVisitorName('');
@@ -413,10 +413,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setCurrentScreen('welcome');
         loadSignedInPeople();
       } else {
-        Alert.alert('Error', result.error || 'Check-in failed');
+        Alert.alert('Error', result?.error || 'Check-in failed');
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message);
       console.error('Visitor check-in error:', error);
     }
   };

@@ -336,14 +336,14 @@ export default function InductionAdminScreen({ onBack, styles }) {
       const result = await deleteInductionPDF(formData.id);
       console.log('📥 deleteInductionPDF returned:', result);
       
-      if (result.success) {
+      if (result?.success) {
         console.log('✅ Delete successful, clearing form data...');
         setFormData({ ...formData, pdf_file_name: '', pdf_file_url: '' });
         await loadData();
         Alert.alert('Success', 'PDF deleted');
       } else {
-        console.error('❌ Delete failed:', result.error);
-        Alert.alert('Error', result.error || 'Failed to delete PDF');
+        console.error('❌ Delete failed:', result?.error);
+        Alert.alert('Error', result?.error || 'Failed to delete PDF');
       }
     } catch (err) {
       console.error('❌ Exception during delete:', err);

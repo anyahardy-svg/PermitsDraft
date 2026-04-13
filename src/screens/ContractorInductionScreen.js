@@ -54,8 +54,11 @@ const getYouTubeEmbedUrl = (url) => {
   let videoId = null;
   
   if (url.includes('youtube.com/watch')) {
-    const urlParams = new URLSearchParams(url.split('?')[1]);
-    videoId = urlParams.get('v');
+    const queryString = url.split('?')[1];
+    if (queryString) {
+      const urlParams = new URLSearchParams(queryString);
+      videoId = urlParams.get('v');
+    }
   } else if (url.includes('youtu.be/')) {
     videoId = url.split('youtu.be/')[1]?.split('?')[0];
   } else if (url.includes('youtube.com/embed/')) {

@@ -334,10 +334,10 @@ export const getAllCompaniesAccreditation = async () => {
  */
 export const uploadAccreditationCertificate = async (companyId, certificationType, file) => {
   try {
-    if (!file) throw new Error('No file provided');
+    if (!file || !file.name) throw new Error('No file provided');
 
     const timestamp = Date.now();
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${companyId}/${certificationType}/${timestamp}.${fileExt}`;
 
     const { data, error } = await supabase.storage

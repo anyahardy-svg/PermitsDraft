@@ -288,19 +288,19 @@ export default function ContractorAuthScreen({
       console.log('Verifying OTP for email:', setupEmail);
       const response = await verifyPasswordResetOtp(setupEmail, otpCode);
 
-      if (response.success) {
+      if (response?.success) {
         console.log('OTP verified successfully - moving to password set stage');
         setPasswordResetStage('password');
         setOtpCode('');
       } else {
-        console.log('OTP verification error:', response.error);
-        setOtpError(response.error);
-        Alert.alert('Invalid Code', response.error || 'The code you entered is invalid or has expired');
+        console.log('OTP verification error:', response?.error);
+        setOtpError(response?.error);
+        Alert.alert('Invalid Code', response?.error || 'The code you entered is invalid or has expired');
       }
     } catch (error) {
-      console.log('OTP verification exception:', error.message);
-      setOtpError(error.message);
-      Alert.alert('Error', error.message || 'An error occurred');
+      console.log('OTP verification exception:', error?.message);
+      setOtpError(error?.message);
+      Alert.alert('Error', error?.message || 'An error occurred');
     } finally {
       setSetupLoading(false);
     }

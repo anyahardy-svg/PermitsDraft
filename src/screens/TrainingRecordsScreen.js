@@ -165,7 +165,7 @@ export default function TrainingRecordsScreen({
         selectedServiceId // Store service_id in notes
       );
 
-      if (response.success) {
+      if (response?.success) {
         Alert.alert('Success', `Training record added for ${selectedContractorName}`);
         resetForm();
         setShowAddForm(false);
@@ -179,10 +179,10 @@ export default function TrainingRecordsScreen({
           onStatusChanged(loggedInCompanyId);
         }
       } else {
-        Alert.alert('Error', response.error);
+        Alert.alert('Error', response?.error);
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message);
     } finally {
       setLoading(false);
     }
@@ -198,7 +198,7 @@ export default function TrainingRecordsScreen({
       const record = trainingRecords.find(r => r.id === recordId);
       const response = await deleteTrainingRecord(recordId, record?.file_url);
 
-      if (response.success) {
+      if (response?.success) {
         Alert.alert('Success', 'Training record deleted');
         await loadAllData();
         
@@ -250,7 +250,7 @@ export default function TrainingRecordsScreen({
         expiryDateParam
       );
 
-      if (response.success) {
+      if (response?.success) {
         Alert.alert('Success', 'Training record updated');
         setEditingRecordId(null);
         setUpdateSelectedFile(null);
@@ -265,10 +265,10 @@ export default function TrainingRecordsScreen({
           onStatusChanged(loggedInCompanyId);
         }
       } else {
-        Alert.alert('Error', response.error);
+        Alert.alert('Error', response?.error);
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.message);
     } finally {
       setLoading(false);
     }
@@ -283,7 +283,7 @@ export default function TrainingRecordsScreen({
         ''
       );
 
-      if (response.success) {
+      if (response?.success) {
         Alert.alert('Success', 'Training record approved');
         await loadAllData();
         
@@ -295,7 +295,7 @@ export default function TrainingRecordsScreen({
           onStatusChanged(loggedInCompanyId);
         }
       } else {
-        Alert.alert('Error', response.error);
+        Alert.alert('Error', response?.error);
       }
     } catch (error) {
       Alert.alert('Error', error.message);

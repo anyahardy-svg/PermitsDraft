@@ -924,7 +924,7 @@ export default function CompanyAccreditationScreen({
         fileObject
       );
 
-      if (uploadResult.success) {
+      if (uploadResult?.success) {
         // Update state with the new URL
         setAccreditedSystems(prev => ({
           ...prev,
@@ -941,7 +941,7 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success', `${systemLabel} certificate uploaded successfully`);
       } else {
-        Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult.error || 'Unknown error'));
+        Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult?.error || 'Unknown error'));
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to upload: ' + error.message);

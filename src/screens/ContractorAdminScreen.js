@@ -424,11 +424,11 @@ export default function ContractorAdminScreen({
         console.log('📋 [ADMIN] getPermitTemplates response:', response);
       }
       
-      if (response.success) {
+      if (response?.success) {
         console.log(`✅ Loaded ${response.data?.length || 0} permit templates`);
         setPermitTemplates(response.data || []);
       } else {
-        console.error('❌ Failed to load templates:', response.error);
+        console.error('❌ Failed to load templates:', response?.error);
       }
     } catch (error) {
       console.error('❌ Exception loading templates:', error);
@@ -622,7 +622,7 @@ export default function ContractorAdminScreen({
 
       console.log('📋 API Response received:', response);
 
-      if (response.success) {
+      if (response?.success) {
         console.log('✅ Save successful!');
         const action = editingJseaTemplate ? 'updated' : 'created';
         Alert.alert('Success', `Template "${jseaTemplateName}" ${action} for ${selectedBusinessUnitIds.length} business unit(s)`);
@@ -632,9 +632,9 @@ export default function ContractorAdminScreen({
         resetJseaForm();
         loadJseaTemplates();
       } else {
-        console.error('❌ Save failed:', response.error);
-        Alert.alert('Error', response.error || 'Failed to save template');
-        window.alert(`❌ ERROR: ${response.error || 'Failed to save template'}`);
+        console.error('❌ Save failed:', response?.error);
+        Alert.alert('Error', response?.error || 'Failed to save template');
+        window.alert(`❌ ERROR: ${response?.error || 'Failed to save template'}`);
       }
     } catch (error) {
       console.error('❌ Exception caught:', error);
@@ -676,13 +676,13 @@ export default function ContractorAdminScreen({
       const response = await deleteJseaTemplate(templateId);
       console.log('📋 Delete API response:', response);
       
-      if (response.success) {
+      if (response?.success) {
         console.log('✅ Delete successful!');
         Alert.alert('Success', 'Template deleted');
         await loadJseaTemplates();
       } else {
-        console.error('❌ Delete failed:', response.error);
-        Alert.alert('Error', response.error || 'Failed to delete template');
+        console.error('❌ Delete failed:', response?.error);
+        Alert.alert('Error', response?.error || 'Failed to delete template');
       }
     } catch (error) {
       console.error('❌ Exception during delete:', error);
@@ -707,13 +707,13 @@ export default function ContractorAdminScreen({
       const response = await deletePermitTemplate(deletingTemplateId);
       console.log('🗑️ [DELETE] Response received:', response);
       
-      if (response.success) {
+      if (response?.success) {
         console.log('✅ [DELETE] Success! Reloading templates...');
-        Alert.alert('Success', response.message || 'Template deleted successfully');
+        Alert.alert('Success', response?.message || 'Template deleted successfully');
         setDeleteConfirmModal(false);
         setDeletingTemplateId(null);
         await loadPermitTemplates();
-      } else if (response.error) {
+      } else if (response?.error) {
         console.log('❌ [DELETE] Error from API:', response.error);
         Alert.alert('Error', response.error);
       } else {
@@ -757,12 +757,12 @@ export default function ContractorAdminScreen({
         editedTemplateDescription
       );
 
-      if (response.success) {
+      if (response?.success) {
         Alert.alert('Success', 'Template updated successfully');
         setShowPermitTemplateEditor(false);
         loadPermitTemplates();
       } else {
-        Alert.alert('Error', response.error || 'Failed to save template');
+        Alert.alert('Error', response?.error || 'Failed to save template');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to save template: ' + error.message);
