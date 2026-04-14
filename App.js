@@ -4630,7 +4630,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             allControls.push({
                               jseaIdx,
                               stepIdx,
-                              step: step.step || 'No description',
+                              step: step.description || step.step || 'No description',
                               controls: step.controls
                             });
                           }
@@ -4661,7 +4661,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             <Text style={{ fontSize: 12, fontWeight: '500', color: '#6B7280', marginBottom: 6 }}>Task Steps:</Text>
                             {jsea.taskSteps.map((step, idx) => (
                               <View key={idx} style={{ marginBottom: 10, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                                <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.step}</Text>
+                                <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.description || step.step}</Text>
                                 {step.hazards && (
                                   <View style={{ marginBottom: 4 }}>
                                     <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Hazards:</Text>
@@ -4747,7 +4747,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
                 {!Object.keys(formData.specializedPermits).some(permitKey => formData.specializedPermits[permitKey].required && permitQuestionnaires[permitKey]?.some(q => formData.specializedPermits[permitKey].questionnaire[q.id]?.controls)) &&
                  !Object.keys(formData.singleHazards).some(hazardKey => formData.singleHazards[hazardKey].present && formData.singleHazards[hazardKey].controls) &&
-                 !formData.jsea.additionalPrecautions && (
+                 !(formData.jsea?.additionalPrecautions) &&
+                 (!formData.jseas || formData.jseas.length === 0) && (
                   <Text style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 14 }}>No controls have been filled in yet.</Text>
                 )}
               </View>
@@ -6196,7 +6197,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <View>
                       {jsea.taskSteps.map((step, idx) => (
                         <View key={idx} style={{ marginBottom: 4, paddingLeft: 4, borderLeftWidth: 1, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F2937', marginBottom: 1 }}>Step {idx + 1}: {step.step}</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F2937', marginBottom: 1 }}>Step {idx + 1}: {step.description || step.step}</Text>
                           {step.hazards && (
                             <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9, marginBottom: 1 }]}>H: {step.hazards}</Text>
                           )}
@@ -7728,7 +7729,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ fontSize: 11, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
                         {jsea.taskSteps.map((step, idx) => (
                           <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                            <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.step}</Text>
+                            <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.description || step.step}</Text>
                             {step.hazards && (
                               <View style={{ marginBottom: 3 }}>
                                 <Text style={[styles.detailText, { color: '#6B7280', fontSize: 10, marginBottom: 1 }]}>Hazards:</Text>
@@ -7874,7 +7875,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.label}>JSEA Task Steps:</Text>
             {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.length > 0 ? editData.jsea?.taskSteps?.map((step, idx) => (
               <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
-                <Text style={styles.detailText}>Step {idx + 1}: {step.step}</Text>
+                <Text style={styles.detailText}>Step {idx + 1}: {step.description || step.step}</Text>
                 <Text style={styles.detailText}>Hazards: {step.hazards}</Text>
                 <Text style={styles.detailText}>Controls: {step.controls}</Text>
                 <Text style={styles.detailText}>Risk: {step.riskLevel}</Text>
