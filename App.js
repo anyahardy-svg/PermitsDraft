@@ -17612,7 +17612,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.some(step => step.controls) && (
+                {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
                   <View>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
                     {editData.jsea?.taskSteps?.map((step, idx) => 
@@ -19768,7 +19768,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.some(step => step.controls) && (
+                {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
                   <View>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
                     {editData.jsea?.taskSteps?.map((step, idx) => 
