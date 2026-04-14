@@ -18616,6 +18616,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [showVerificationModal, setShowVerificationModal] = React.useState(false);
     const [verifierName, setVerifierName] = React.useState('');
     
+    // JSEA editing modal state
+    const [showJseaEditorDraft, setShowJseaEditorDraft] = React.useState(false);
+    const [showJseaTemplateLoaderDraft, setShowJseaTemplateLoaderDraft] = React.useState(false);
+    const [showJseaSaveTemplateDraft, setShowJseaSaveTemplateDraft] = React.useState(false);
+    const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState('');
+    const [filteredJseaTemplatesDraft, setFilteredJseaTemplatesDraft] = React.useState([]);
+    const [jseaTemplateSearchDraft, setJseaTemplateSearchDraft] = React.useState('');
+    
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
       specialized: false,
@@ -18800,6 +18808,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
       }));
     };
+
+    // JSEA handlers for EditActivePermitScreen
+    const handleEditJseaDraft = useCallback(() => {
+      console.log('handleEditJseaDraft (active permit) callback executing');
+      setShowJseaEditorDraft(true);
+    }, []);
+
+    const handleLoadTemplateDraft = useCallback(() => {
+      console.log('handleLoadTemplateDraft (active permit) callback executing');
+      setShowJseaTemplateLoaderDraft(true);
+      if (businessUnitId) {
+        setSelectedBuForLoaderDraft(businessUnitId);
+      }
+    }, [businessUnitId]);
+
+    const handleSaveTemplateDraft = useCallback(() => {
+      console.log('handleSaveTemplateDraft (active permit) callback executing');
+      if (!editData.jsea?.taskSteps || editData.jsea.taskSteps.length === 0) {
+        Alert.alert('Error', 'Please add at least one task step before saving as template');
+        return;
+      }
+      setShowJseaSaveTemplateDraft(true);
+    }, [editData.jsea]);
     
     const updateJSEAStep = (idx, field, value) => {
       setEditData(prev => {
@@ -20435,6 +20466,141 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         </View>
       </Modal>
+
+      {/* JSEA EDITOR MODAL */}
+      <Modal 
+        visible={showJseaEditorDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaEditorDraft(false)}
+      >
+        <JseaEditorScreen
+          initialJsea={editData.jsea?.taskSteps || []}
+          onSave={(steps) => {
+            console.log('✅ JseaEditorScreen onSave called with steps:', steps);
+            setEditData({
+              ...editData,
+              jsea: {
+                ...editData.jsea,
+                taskSteps: steps
+              }
+            });
+            setShowJseaEditorDraft(false);
+          }}
+          onCancel={() => setShowJseaEditorDraft(false)}
+          styles={styles}
+        />
+      </Modal>
+
+      {/* JSEA TEMPLATE LOADER MODAL */}
+      <Modal 
+        visible={showJseaTemplateLoaderDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaTemplateLoaderDraft(false)}
+        transparent
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700' }}>Load JSEA Template</Text>
+              <TouchableOpacity onPress={() => setShowJseaTemplateLoaderDraft(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Select a business unit to view templates</Text>
+            
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 8, color: '#374151' }}>Business Unit</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, padding: 10, fontSize: 14, backgroundColor: '#F9FAFB' }}
+                placeholder="Search business units..."
+                value={selectedBuForLoaderDraft}
+                onChangeText={(value) => {
+                  setSelectedBuForLoaderDraft(value);
+                  if (value) {
+                    loadJseaTemplatesForLoaderActive(value);
+                  }
+                }}
+                editable={true}
+              />
+            </View>
+
+            {filteredJseaTemplatesDraft.length > 0 && (
+              <>
+                <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 8, color: '#374151' }}>Templates</Text>
+                <ScrollView style={{ maxHeight: 300, marginBottom: 16 }}>
+                  {filteredJseaTemplatesDraft.map((template, idx) => (
+                    <TouchableOpacity 
+                      key={idx}
+                      style={{ padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}
+                      onPress={() => handleLoadJseaTemplateActive(template)}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937' }}>{template.name || 'Untitled'}</Text>
+                      {template.jsea?.taskSteps?.length && (
+                        <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{template.jsea.taskSteps.length} steps</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#6B7280', padding: 12, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => setShowJseaTemplateLoaderDraft(false)}
+            >
+              <Text style={{ color: 'white', fontWeight: '600' }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* JSEA SAVE TEMPLATE MODAL */}
+      <Modal 
+        visible={showJseaSaveTemplateDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaSaveTemplateDraft(false)}
+        transparent
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700' }}>Save JSEA as Template</Text>
+              <TouchableOpacity onPress={() => setShowJseaSaveTemplateDraft(false)}>
+                <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#10B981', padding: 12, borderRadius: 6, alignItems: 'center', marginBottom: 8 }}
+              onPress={async () => {
+                if (!editData.jsea?.taskSteps || editData.jsea.taskSteps.length === 0) {
+                  Alert.alert('Error', 'No task steps to save');
+                  return;
+                }
+                try {
+                  const templateName = `JSEA Template - ${new Date().toLocaleDateString()}`;
+                  await saveJseaTemplate(templateName, editData.jsea.taskSteps, businessUnitId || '', null, []);
+                  Alert.alert('Success', 'Template saved successfully');
+                  setShowJseaSaveTemplateDraft(false);
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to save template: ' + error.message);
+                }
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600' }}>Save Template</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ borderWidth: 1, borderColor: '#E5E7EB', padding: 12, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => setShowJseaSaveTemplateDraft(false)}
+            >
+              <Text style={{ color: '#6B7280', fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       </View>
     );
   };
