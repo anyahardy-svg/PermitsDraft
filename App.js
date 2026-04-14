@@ -4631,6 +4631,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* JSEA Task Controls Summary */}
                 {(() => {
                   const allControls = [];
+                  
+                  // Include saved JSEAs from formData.jseas
                   if (formData.jseas && formData.jseas.length > 0) {
                     formData.jseas.forEach((jsea, jseaIdx) => {
                       if (jsea.taskSteps && jsea.taskSteps.length > 0) {
@@ -4640,19 +4642,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               jseaIdx,
                               stepIdx,
                               step: step.description || step.step || 'No description',
-                              controls: step.controls
+                              controls: step.controls,
+                              isSaved: true
                             });
                           }
                         });
                       }
                     });
                   }
+                  
+                  // ALSO include currently editing JSEA (currentJseaData) even before it's saved
+                  if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
+                    currentJseaData.taskSteps.forEach((step, stepIdx) => {
+                      if (step.controls) {
+                        allControls.push({
+                          jseaIdx: '(current)',
+                          stepIdx,
+                          step: step.description || step.step || 'No description',
+                          controls: step.controls,
+                          isSaved: false
+                        });
+                      }
+                    });
+                  }
+                  
                   return allControls.length > 0 && (
                     <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA Task Controls</Text>
                       {allControls.map((item, idx) => (
-                        <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
+                        <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: item.isSaved ? '#2563EB' : '#F59E0B' }}>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx}, Step {item.stepIdx + 1}: {item.step} {!item.isSaved ? '(editing)' : ''}</Text>
                           <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.controls}</Text>
                         </View>
                       ))}
@@ -14904,7 +14923,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
 
         {/* CONTROLS SUMMARY - COLLAPSIBLE */}
-        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps) && (
+        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
               <Text style={[styles.sectionTitle, { color: '#D97706' }]}>Controls Summary</Text>
@@ -15030,7 +15049,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             allControls.push({
                               jseaIdx,
                               stepIdx,
-                              step: step.step || 'No description',
+                              step: step.description || step.step || 'No description',
                               controls: step.controls
                             });
                           }
@@ -17600,7 +17619,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
 
         {/* CONTROLS SUMMARY - COLLAPSIBLE */}
-        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps) && (
+        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
               <Text style={[styles.sectionTitle, { color: '#D97706' }]}>Controls Summary</Text>
@@ -19757,7 +19776,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
 
         {/* CONTROLS SUMMARY - COLLAPSIBLE */}
-        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps) && (
+        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('controlsSummary')}>
               <Text style={[styles.sectionTitle, { color: '#D97706' }]}>Controls Summary</Text>
