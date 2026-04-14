@@ -4521,9 +4521,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
-                        if (answer && answer.answer === (q.blockingAnswer || 'no')) {
-                          triggeredQuestions.push(q.text);
+                        const permData = formData.specializedPermits[permitKey];
+                        if (permData && permData.questionnaire) {
+                          const answer = permData.questionnaire[q.id];
+                          if (answer && answer.answer === (q.blockingAnswer || 'no')) {
+                            triggeredQuestions.push(q.text);
+                          }
                         }
                       }
                     });
@@ -4550,12 +4553,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (!formData.specializedPermits[permitKey].required) return null;
                   const controls = [];
                   const questionnaire = permitQuestionnaires[permitKey] || [];
-                  questionnaire.forEach(q => {
-                    const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
-                    if (answer && answer.controls) {
-                      controls.push({ question: q.text, control: answer.controls });
-                    }
-                  });
+                  const permData = formData.specializedPermits[permitKey];
+                  if (permData && permData.questionnaire) {
+                    questionnaire.forEach(q => {
+                      const answer = permData.questionnaire[q.id];
+                      if (answer && answer.controls) {
+                        controls.push({ question: q.text, control: answer.controls });
+                      }
+                    });
+                  }
                   if (controls.length === 0) return null;
                   return (
                     <View key={permitKey} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
@@ -4590,23 +4596,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   const allPPE = [];
                   Object.keys(formData.specializedPermits).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
-                    questionnaire.forEach(q => {
-                      if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
-                        const answer = formData.specializedPermits[permitKey].questionnaire[q.id];
-                        if (answer && answer.answer) {
-                          const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
-                          values.forEach(v => {
-                            const option = q.options.find(opt => opt.value === v);
-                            if (option && !allPPE.includes(option.label)) {
-                              allPPE.push(option.label);
+                    const permData = formData.specializedPermits[permitKey];
+                    if (permData && permData.questionnaire) {
+                      questionnaire.forEach(q => {
+                        if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
+                          const answer = permData.questionnaire[q.id];
+                          if (answer && answer.answer) {
+                            const values = Array.isArray(answer.answer) ? answer.answer : [answer.answer];
+                            values.forEach(v => {
+                              const option = q.options.find(opt => opt.value === v);
+                              if (option && !allPPE.includes(option.label)) {
+                                allPPE.push(option.label);
+                              }
+                            });
+                            if (answer.other) {
+                              allPPE.push(answer.other);
                             }
-                          });
-                          if (answer.other) {
-                            allPPE.push(answer.other);
                           }
                         }
-                      }
-                    });
+                      });
+                    }
                   });
                   return allPPE.length > 0 && (
                     <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
