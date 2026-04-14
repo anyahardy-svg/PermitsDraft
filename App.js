@@ -4517,7 +4517,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {(() => {
                   // Check for any blocking questions that have been triggered
                   const triggeredQuestions = [];
-                  Object.keys(formData.specializedPermits).forEach(permitKey => {
+                  (formData.specializedPermits ? Object.keys(formData.specializedPermits) : []).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
@@ -4539,7 +4539,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </View>
                   );
                 })()}
-                {Object.keys(formData.specializedPermits)
+                {(formData.specializedPermits ? Object.keys(formData.specializedPermits) : [])
                   .sort((a, b) => {
                     const aIdx = specializedPermitTypes.findIndex(p => p.key === a);
                     const bIdx = specializedPermitTypes.findIndex(p => p.key === b);
@@ -14842,7 +14842,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Blocking Questions Flag */}
                 {(() => {
                   const triggeredQuestions = [];
-                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                  (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
@@ -17506,7 +17506,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Blocking Questions Flag */}
                 {(() => {
                   const triggeredQuestions = [];
-                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                  (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
@@ -19632,7 +19632,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* Blocking Questions Flag */}
                 {(() => {
                   const triggeredQuestions = [];
-                  Object.keys(editData.specializedPermits).forEach(permitKey => {
+                  (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
