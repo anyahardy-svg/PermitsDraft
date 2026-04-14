@@ -2000,6 +2000,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   const saveNewPermitDraft = async () => {
     try {
+      // Validate required fields
+      if (!formData.site) {
+        Alert.alert('Required', 'Please select a site');
+        return;
+      }
+      if (!formData.requestedBy) {
+        Alert.alert('Required', 'Please enter who the permit is for (requested by)');
+        return;
+      }
+      
       // Convert site name to site_id
       const siteId = siteNameToIdMap[formData.site];
       
@@ -2037,15 +2047,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
+        jseas: formData.jseas || [],  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: []
       };
-      
-      // Only add jseas if there's data (to avoid API validation issues with empty arrays)
-      if (formData.jseas && formData.jseas.length > 0) {
-        permitData.jseas = formData.jseas;
-      }
 
       // Save to Supabase
       const newPermit = await createPermit(permitData);
@@ -2108,6 +2114,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     console.log('   agreeToStatementNewPermit:', agreeToStatementNewPermit);
     console.log('   requesterSignatureNewPermit:', requesterSignatureNewPermit ? 'exists' : 'missing');
     
+    // Validate required fields
+    if (!formData.site) {
+      Alert.alert('Required', 'Please select a site');
+      return;
+    }
+    if (!formData.requestedBy) {
+      Alert.alert('Required', 'Please enter who the permit is for (requested by)');
+      return;
+    }
+    
     if (!agreeToStatementNewPermit) {
       console.log('❌ Agreement not checked');
       Alert.alert('Required', 'Please agree to the statement before submitting.');
@@ -2161,16 +2177,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
+        jseas: formData.jseas || [],  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: [],
         requester_signature: signatureData
       };
-      
-      // Only add jseas if there's data (to avoid API validation issues with empty arrays)
-      if (formData.jseas && formData.jseas.length > 0) {
-        permitData.jseas = formData.jseas;
-      }
 
       console.log('📝 Calling createPermit...');
       // Save to Supabase
