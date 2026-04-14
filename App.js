@@ -6065,7 +6065,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       </View>
 
       {/* CONTROLS SUMMARY - Show controls on list cards for all status except completed */}
-      {item.status !== 'completed' && (item.specializedPermits || item.singleHazards || item.jsea?.taskSteps) && (
+      {item.status !== 'completed' && (item.specializedPermits || item.singleHazards || item.jsea?.taskSteps || item.jseas?.length > 0) && (
         <View style={{ marginTop: 12, padding: 10, backgroundColor: '#FEF3C7', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
           <Text style={[styles.label, { marginBottom: 6, color: '#D97706', fontSize: 13 }]}>CONTROLS SUMMARY</Text>
           
@@ -6151,6 +6151,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               </View>
             ) : null;
+          })()}
+
+          {/* JSEA Task Controls Summary */}
+          {(() => {
+            const allControls = [];
+            if (item.jseas && item.jseas.length > 0) {
+              item.jseas.forEach((jsea, jseaIdx) => {
+                if (jsea.taskSteps && jsea.taskSteps.length > 0) {
+                  jsea.taskSteps.forEach((step, stepIdx) => {
+                    if (step.controls) {
+                      allControls.push({
+                        jseaIdx,
+                        stepIdx,
+                        step: step.step || 'No description',
+                        controls: step.controls
+                      });
+                    }
+                  });
+                }
+              });
+            }
+            return allControls.length > 0 && (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>JSEA Task Controls:</Text>
+                {allControls.map((item, idx) => (
+                  <View key={idx} style={{ marginLeft: 6, marginBottom: 3 }}>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {item.controls}</Text>
+                  </View>
+                ))}
+              </View>
+            );
           })()}
 
           {/* JSEA Task Steps - Full Details */}
