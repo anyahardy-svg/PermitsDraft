@@ -4619,6 +4619,37 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </View>
                   );
                 })()}
+                {/* JSEA Task Controls Summary */}
+                {(() => {
+                  const allControls = [];
+                  if (formData.jseas && formData.jseas.length > 0) {
+                    formData.jseas.forEach((jsea, jseaIdx) => {
+                      if (jsea.taskSteps && jsea.taskSteps.length > 0) {
+                        jsea.taskSteps.forEach((step, stepIdx) => {
+                          if (step.controls) {
+                            allControls.push({
+                              jseaIdx,
+                              stepIdx,
+                              step: step.step || 'No description',
+                              controls: step.controls
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
+                  return allControls.length > 0 && (
+                    <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA Task Controls</Text>
+                      {allControls.map((item, idx) => (
+                        <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
+                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.controls}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
                 {/* JSEA Task Steps */}
                 {formData.jseas && formData.jseas.length > 0 && (
                   <View>
@@ -14944,6 +14975,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </View>
                     </View>
                   ) : null;
+                })()}
+
+                {/* JSEA Task Controls Summary */}
+                {(() => {
+                  const allControls = [];
+                  if (editData.jseas && editData.jseas.length > 0) {
+                    editData.jseas.forEach((jsea, jseaIdx) => {
+                      if (jsea.taskSteps && jsea.taskSteps.length > 0) {
+                        jsea.taskSteps.forEach((step, stepIdx) => {
+                          if (step.controls) {
+                            allControls.push({
+                              jseaIdx,
+                              stepIdx,
+                              step: step.step || 'No description',
+                              controls: step.controls
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
+                  return allControls.length > 0 && (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
+                      {allControls.map((item, idx) => (
+                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {item.controls}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
                 })()}
 
                 {/* JSEA Task Steps - Full Details */}
