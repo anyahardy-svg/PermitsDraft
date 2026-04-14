@@ -7809,7 +7809,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         {editData.jsea && (
           <View style={{ marginTop: 12 }}>
             <Text style={styles.label}>JSEA Task Steps:</Text>
-            {editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 ? editData.jsea.taskSteps.map((step, idx) => (
+            {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.length > 0 ? editData.jsea?.taskSteps?.map((step, idx) => (
               <View key={idx} style={{ marginBottom: 8, marginLeft: 8 }}>
                 <Text style={styles.detailText}>Step {idx + 1}: {step.step}</Text>
                 <Text style={styles.detailText}>Hazards: {step.hazards}</Text>
@@ -7824,7 +7824,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={[
                   styles.addButton,
                   { 
-                    backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                    backgroundColor: editData.jsea?.overallRiskRating ? getRiskColor(editData.jsea?.overallRiskRating) : '#3B82F6',
                     flex: 1
                   }
                 ]}
@@ -7849,7 +7849,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }}
               >
                 <Text style={{color: 'white', fontWeight: '600'}}>
-                  {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                  {editData.jsea?.overallRiskRating ? editData.jsea?.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                 </Text>
               </TouchableOpacity>
             ) : isDraft ? (
@@ -14512,7 +14512,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <Text style={styles.label}>Task Steps ({editData.jsea?.taskSteps?.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
@@ -14524,7 +14524,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
                       onPress={handleSaveTemplateDraft}
@@ -14532,10 +14532,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
                   )}
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => {
+                      {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
                           <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
@@ -14551,14 +14551,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   style={[
                     styles.addButton,
                     { 
-                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                      backgroundColor: editData.jsea?.overallRiskRating ? getRiskColor(editData.jsea?.overallRiskRating) : '#3B82F6',
                       flex: 1
                     }
                   ]}
                   onPress={handleSelectRiskLevel}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
-                    {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                    {editData.jsea?.overallRiskRating ? editData.jsea?.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.label}>Additional Precautions</Text>
@@ -17056,7 +17056,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <Text style={styles.label}>Task Steps ({editData.jsea?.taskSteps?.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
@@ -17068,7 +17068,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
                       onPress={handleSaveTemplateDraft}
@@ -17076,10 +17076,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
                   )}
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => {
+                      {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
                           <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
@@ -17096,7 +17096,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   style={[
                     styles.addButton,
                     { 
-                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                      backgroundColor: editData.jsea?.overallRiskRating ? getRiskColor(editData.jsea?.overallRiskRating) : '#3B82F6',
                       flex: 1
                     }
                   ]}
@@ -17106,7 +17106,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   }}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
-                    {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                    {editData.jsea?.overallRiskRating ? editData.jsea?.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.label}>Additional Precautions</Text>
@@ -17612,10 +17612,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
+                {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.some(step => step.controls) && (
                   <View>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                    {editData.jsea.taskSteps.map((step, idx) => 
+                    {editData.jsea?.taskSteps?.map((step, idx) => 
                       step.controls ? (
                         <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
                           <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
@@ -19184,7 +19184,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.jsea && (
               <View style={styles.sectionContent}>
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.label}>Task Steps ({editData.jsea.taskSteps.length})</Text>
+                  <Text style={styles.label}>Task Steps ({editData.jsea?.taskSteps?.length})</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                     <TouchableOpacity style={[styles.addButton, { flex: 1 }]} onPress={handleEditJseaDraft}>
                       <Text style={styles.addButtonText}>Edit JSEA Table</Text>
@@ -19196,7 +19196,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Load Template</Text>
                     </TouchableOpacity>
                   </View>
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <TouchableOpacity 
                       style={[styles.addButton, { backgroundColor: '#F59E0B', marginBottom: 12 }]} 
                       onPress={handleSaveTemplateDraft}
@@ -19204,10 +19204,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.addButtonText}>Save as Template</Text>
                     </TouchableOpacity>
                   )}
-                  {editData.jsea.taskSteps.length > 0 && (
+                  {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
                       <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
-                      {editData.jsea.taskSteps.map((step, idx) => {
+                      {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
                           <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
@@ -19224,7 +19224,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   style={[
                     styles.addButton,
                     { 
-                      backgroundColor: editData.jsea.overallRiskRating ? getRiskColor(editData.jsea.overallRiskRating) : '#3B82F6',
+                      backgroundColor: editData.jsea?.overallRiskRating ? getRiskColor(editData.jsea?.overallRiskRating) : '#3B82F6',
                       flex: 1
                     }
                   ]}
@@ -19234,7 +19234,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   }}
                 >
                   <Text style={{color: 'white', fontWeight: '600'}}>
-                    {editData.jsea.overallRiskRating ? editData.jsea.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
+                    {editData.jsea?.overallRiskRating ? editData.jsea?.overallRiskRating.toUpperCase() : 'SELECT RISK LEVEL'}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.label}>Additional Precautions</Text>
@@ -19737,10 +19737,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea.taskSteps.some(step => step.controls) && (
+                {editData.jsea?.taskSteps && editData.jsea?.taskSteps?.some(step => step.controls) && (
                   <View>
                     <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                    {editData.jsea.taskSteps.map((step, idx) => 
+                    {editData.jsea?.taskSteps?.map((step, idx) => 
                       step.controls ? (
                         <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
                           <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
