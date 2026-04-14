@@ -2036,11 +2036,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jseas: formData.jseas || [],
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: []
       };
+      
+      // Only add jseas if there's data (to avoid API validation issues with empty arrays)
+      if (formData.jseas && formData.jseas.length > 0) {
+        permitData.jseas = formData.jseas;
+      }
 
       // Save to Supabase
       const newPermit = await createPermit(permitData);
@@ -2155,12 +2160,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jseas: formData.jseas || [],
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: [],
         requester_signature: signatureData
       };
+      
+      // Only add jseas if there's data (to avoid API validation issues with empty arrays)
+      if (formData.jseas && formData.jseas.length > 0) {
+        permitData.jseas = formData.jseas;
+      }
 
       console.log('📝 Calling createPermit...');
       // Save to Supabase
