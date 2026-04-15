@@ -2034,41 +2034,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
       }
       
-      // Validate required fields before sending
-      console.log('🔍 [DRAFT SAVE] Validating fields:');
-      console.log('   permit_type:', formData.id || 'general');
-      console.log('   location:', formData.location);
-      console.log('   start_date:', formData.startDate || defaultDate);
-      console.log('   start_time:', formData.startTime || defaultTime);
-      console.log('   end_date:', formData.endDate || defaultDate);
-      console.log('   end_time:', formData.endTime || defaultTime);
-      console.log('   requested_by:', formData.requestedBy);
-      console.log('   site_id:', siteId);
-      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
-        description: formData.description || '',
+        description: formData.description,
         location: formData.location,
         status: 'draft',
-        priority: formData.priority || 'medium',
+        priority: formData.priority,
         start_date: formData.startDate || defaultDate,
         start_time: formData.startTime || defaultTime,
         end_date: formData.endDate || defaultDate,
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
-        contractor_company: formData.contractorCompany || null,
-        permitted_issuer: formData.permitIssuer || null,
+        contractor_company: formData.contractorCompany || '',
+        manual_company: formData.manualCompany || '',
+        contractor_selected: formData.contractorSelected || false,
+        permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
-        specialized_permits: formData.specializedPermits || {},
-        single_hazards: formData.singleHazards || {},
+        specialized_permits: formData.specializedPermits,
+        single_hazards: formData.singleHazards,
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray || [],  // Always send jseas array (empty if no data)
-        isolations: formData.isolations || [],
-        sign_ons: formData.signOns || {}
+        jseas: jseaArray,  // Always send jseas array (empty if no data)
+        isolations: formData.isolations,
+        sign_ons: formData.signOns,
+        attachments: []
       };
       
       console.log('📝 [DRAFT SAVE] permitData object:', permitData);
@@ -2171,21 +2163,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const siteId = siteNameToIdMap[formData.site];
       console.log('   Site:', formData.site, 'SiteId:', siteId);
 
-      // Set receiver to the requested person's name
-      const currentReceiver = formData.requestedBy || null;
-      console.log('   Receiver:', currentReceiver);
-      
-      // Include currentJseaData if it has task steps and hasn't been formally added yet
-      let jseaArray = [...(formData.jseas || [])];
-      if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
-        // Check if this JSEA is already in the array (by checking if it has an ID that matches)
-        const isAlreadyAdded = jseaArray.some(jsea => jsea.id === currentJseaData.id || (jsea.title === currentJseaData.title && jsea.taskSteps?.length === currentJseaData.taskSteps?.length));
-        if (!isAlreadyAdded) {
-          jseaArray.push(currentJseaData);
-          console.log('📝 [APPROVAL SAVE] Added unsaved currentJseaData to jseas array:', currentJseaData);
-        }
-      }
-      
       // Validate required fields before sending
       console.log('🔍 [APPROVAL SAVE] Validating fields:');
       console.log('   permit_type:', formData.id || 'general');
@@ -2200,27 +2177,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
-        description: formData.description || '',
+        description: formData.description,
         location: formData.location,
         status: 'pending_approval',
-        priority: formData.priority || 'medium',
+        priority: formData.priority,
         start_date: formData.startDate || defaultDate,
         start_time: formData.startTime || defaultTime,
         end_date: formData.endDate || defaultDate,
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
-        contractor_company: formData.contractorCompany || null,
-        permitted_issuer: formData.permitIssuer || null,
+        contractor_company: formData.contractorCompany || '',
+        manual_company: formData.manualCompany || '',
+        contractor_selected: formData.contractorSelected || false,
+        permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
-        specialized_permits: formData.specializedPermits || {},
-        single_hazards: formData.singleHazards || {},
+        specialized_permits: formData.specializedPermits,
+        single_hazards: formData.singleHazards,
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray || [],  // Always send jseas array (empty if no data)
-        isolations: formData.isolations || [],
-        sign_ons: formData.signOns || {},
+        jseas: jseaArray,  // Always send jseas array (empty if no data)
+        isolations: formData.isolations,
+        sign_ons: formData.signOns,
+        attachments: [],
         requester_signature: signatureData
       };
       
