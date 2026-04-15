@@ -7315,6 +7315,245 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     );
   }
 
+  // --- COMPLETED PERMIT SUMMARY COMPONENT - Clean audit log view ---
+  const CompletedPermitSummary = ({ permit, setCurrentScreen, styles, handlePrintPermit, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
+    const completedSignOff = permit.completedSignOff || permit.completed_sign_off || {};
+    const issuerSignature = completedSignOff.issuerSignature;
+    const receiverSignature = completedSignOff.receiverSignature;
+    
+    const renderSignatureImage = (signatureDataUrl, label) => {
+      if (!signatureDataUrl) {
+        return (
+          <View style={{ padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6, alignItems: 'center' }}>
+            <Text style={{ fontSize: 12, color: '#9CA3AF' }}>ⓘ No signature</Text>
+          </View>
+        );
+      }
+      return (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: '500' }}>{label}</Text>
+          <Image
+            source={{ uri: signatureDataUrl }}
+            style={{ height: 80, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, backgroundColor: '#FAFAFA' }}
+            resizeMode="contain"
+          />
+        </View>
+      );
+    };
+
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 16 }}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('completed')}>
+            <Text style={styles.backButton}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Permit Summary {permit.permitNumber}</Text>
+        </View>
+
+        {/* COMPLETION STATUS BANNER */}
+        <View style={{ backgroundColor: '#ECFDF5', borderLeftWidth: 4, borderLeftColor: '#059669', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#065F46', marginBottom: 4 }}>✅ PERMIT COMPLETED</Text>
+          <Text style={{ fontSize: 11, color: '#047857', marginBottom: 2 }}>Issued: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
+          <Text style={{ fontSize: 11, color: '#047857' }}>Signed Off: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
+        </View>
+
+        {/* GENERAL INFORMATION SECTION */}
+        <View style={[styles.section, { marginBottom: 16 }]}>
+          <Text style={[styles.sectionTitle, { backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 12 }]}>📋 GENERAL INFORMATION</Text>
+          <View style={{ gap: 12 }}>
+            <View>
+              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Permit Number</Text>
+              <Text style={[styles.detailText, { fontSize: 14, fontWeight: '600', color: '#1F2937' }]}>{permit.permitNumber}</Text>
+            </View>
+            <View>
+              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Description</Text>
+              <Text style={[styles.detailText, { color: '#374151' }]}>{permit.description}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Site</Text>
+                <Text style={[styles.detailText, { color: '#374151' }]}>{siteIdToNameMap[permit.site_id] || 'N/A'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Location</Text>
+                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.location || 'N/A'}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Start</Text>
+                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.startDate} {permit.startTime}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>End</Text>
+                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.endDate} {permit.endTime}</Text>
+              </View>
+            </View>
+            <View>
+              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Requested By</Text>
+              <Text style={[styles.detailText, { color: '#374151' }]}>{permit.requestedBy || 'N/A'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* SIGN-ONS SECTION */}
+        {permit.signOns && permit.signOns.length > 0 && (
+          <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: '#0284C7' }]}>
+            <Text style={[styles.sectionTitle, { color: '#0C4A6E', marginBottom: 12 }]}>👥 SIGN-ONS (Workers)</Text>
+            {permit.signOns.map((signOn, idx) => (
+              <View key={idx} style={{ marginBottom: 12, paddingBottom: 12, borderBottomWidth: idx < permit.signOns.length - 1 ? 1 : 0, borderBottomColor: '#BAE6FD' }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1E40AF' }}>{signOn.name}</Text>
+                {signOn.company && <Text style={{ fontSize: 11, color: '#0369A1', marginTop: 2 }}>{signOn.company}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* CONTROLS SUMMARY SECTION */}
+        {(permit.specializedPermits || permit.singleHazards || (permit.jseas && permit.jseas.length > 0)) && (
+          <View style={[styles.section, { marginBottom: 16, backgroundColor: '#FFFBEB', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
+            <Text style={[styles.sectionTitle, { color: '#92400E', marginBottom: 12 }]}>⚠️ CONTROLS SUMMARY</Text>
+
+            {/* Specialized Permits Controls */}
+            {permit.specializedPermits && Object.entries(permit.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Specialized Permits:</Text>
+                {Object.entries(permit.specializedPermits)
+                  .sort((a, b) => {
+                    const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
+                    const bIdx = specializedPermitTypes.findIndex(p => p.key === b[0]);
+                    return aIdx - bIdx;
+                  })
+                  .map(([key, val]) => {
+                    const permitType = specializedPermitTypes.find(p => p.key === key);
+                    const questionnaire = permitQuestionnaires[key] || [];
+                    return val.required && val.questionnaire ? (
+                      <View key={key} style={{ marginLeft: 8, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#92400E' }}>• {permitType?.label || key}</Text>
+                        {Object.entries(val.questionnaire).map(([qid, qval]) => {
+                          const question = questionnaire.find(q => q.id === qid);
+                          return qval.controls ? (
+                            <View key={qid} style={{ marginLeft: 12, marginTop: 6 }}>
+                              <Text style={{ fontSize: 10, color: '#B45309' }}>Q: {question?.text || qid}</Text>
+                              <Text style={{ fontSize: 11, color: '#78350F', fontWeight: '500', marginTop: 2 }}>→ Control: {qval.controls}</Text>
+                            </View>
+                          ) : null;
+                        })}
+                      </View>
+                    ) : null;
+                  })}
+              </View>
+            )}
+
+            {/* Single Hazards Controls */}
+            {permit.singleHazards && Object.entries(permit.singleHazards).some(([_, val]) => val.present && val.controls) && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Single Hazards:</Text>
+                {Object.entries(permit.singleHazards).map(([key, val]) => {
+                  const hazardType = singleHazardTypes.find(h => h.key === key);
+                  return val.present && val.controls ? (
+                    <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '500', color: '#78350F' }}>• {hazardType?.label || key}</Text>
+                      <Text style={{ fontSize: 10, color: '#B45309', marginLeft: 8, marginTop: 2 }}>→ {val.controls}</Text>
+                    </View>
+                  ) : null;
+                })}
+              </View>
+            )}
+
+            {/* JSEA Controls */}
+            {permit.jseas && permit.jseas.length > 0 && (
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Job Safety & Environmental Analysis (JSEA):</Text>
+                {permit.jseas.map((jsea, jIdx) => (
+                  <View key={jIdx} style={{ marginLeft: 8, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#92400E' }}>JSEA {jIdx + 1}: {jsea.id || 'N/A'}</Text>
+                    {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
+                      jsea.taskSteps.map((step, sIdx) => (
+                        <View key={sIdx} style={{ marginLeft: 12, marginTop: 6, paddingBottom: 8, borderBottomWidth: sIdx < jsea.taskSteps.length - 1 ? 1 : 0, borderBottomColor: '#FED7AA' }}>
+                          <Text style={{ fontSize: 10, color: '#92400E', fontWeight: '500' }}>Step {sIdx + 1}: {step.task}</Text>
+                          <Text style={{ fontSize: 10, color: '#B45309', marginTop: 2 }}>→ Hazards: {step.hazards || 'None identified'}</Text>
+                          <Text style={{ fontSize: 10, color: '#78350F', marginTop: 2 }}>→ Controls: {step.controls || 'None specified'}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 12, fontStyle: 'italic' }}>No steps recorded</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* SIGN-OFF SECTION - SIGNATURES */}
+        <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F5F3FF', borderLeftWidth: 4, borderLeftColor: '#8B5CF6' }]}>
+          <Text style={[styles.sectionTitle, { color: '#5B21B6', marginBottom: 12 }]}>✍️ SIGN-OFF SIGNATURES</Text>
+          
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6B21A8', marginBottom: 8 }}>Permit Issuer</Text>
+            {renderSignatureImage(issuerSignature, 'Issuer Signature')}
+            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
+              <Text style={{ fontSize: 11, color: '#6B21A8' }}>Name: <Text style={{ fontWeight: '600' }}>{completedSignOff.issuerName || 'N/A'}</Text></Text>
+              <Text style={{ fontSize: 11, color: '#6B21A8', marginTop: 2 }}>Signed: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
+            </View>
+          </View>
+
+          <View>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6B21A8', marginBottom: 8 }}>Work Receiver/Completion</Text>
+            {renderSignatureImage(receiverSignature, 'Receiver Signature')}
+            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
+              <Text style={{ fontSize: 11, color: '#6B21A8' }}>Name: <Text style={{ fontWeight: '600' }}>{completedSignOff.receiverName || 'N/A'}</Text></Text>
+              <Text style={{ fontSize: 11, color: '#6B21A8', marginTop: 2 }}>Signed: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* AUDIT TRAIL */}
+        <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
+          <Text style={[styles.sectionTitle, { color: '#065F46', marginBottom: 12 }]}>📅 AUDIT TRAIL</Text>
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>Created:</Text>
+              <Text style={{ fontSize: 11, color: '#374151', fontWeight: '500' }}>{permit.createdAt ? new Date(permit.createdAt).toLocaleString('en-NZ') : 'N/A'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>Completed:</Text>
+              <Text style={{ fontSize: 11, color: '#374151', fontWeight: '500' }}>{permit.completedAt ? new Date(permit.completedAt).toLocaleString('en-NZ') : completedSignOff.receiverSignedAt || 'N/A'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>Status:</Text>
+              <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>COMPLETED</Text>
+            </View>
+            {permit.last_verified_at && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 11, color: '#6B7280' }}>Last Verified:</Text>
+                <Text style={{ fontSize: 11, color: '#374151' }}>{formatDateNZ(permit.last_verified_at)}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ACTION BUTTONS */}
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+          <TouchableOpacity 
+            style={[styles.submitButton, { backgroundColor: '#10B981', flex: 1 }]} 
+            onPress={() => handlePrintPermit(permit)}
+          >
+            <Text style={styles.submitButtonText}>🖨 Print Summary</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.submitButton, { backgroundColor: '#3B82F6', flex: 1 }]} 
+            onPress={() => setCurrentScreen('completed')}
+          >
+            <Text style={styles.submitButtonText}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  };
+
   // Standalone component for reviewing/editing a permit for approval
   const ReviewPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor }) => {
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
@@ -21299,17 +21538,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return renderPermitList('completed', 'Completed Permits');
     case 'view_completed_permit':
       return (
-        <ReviewPermitScreen
+        <CompletedPermitSummary
           permit={selectedPermit}
-          setPermits={setPermits}
           setCurrentScreen={setCurrentScreen}
-          permits={permits}
           styles={styles}
           handlePrintPermit={handlePrintPermit}
-          sites={sites}
-          users={permitIssuers}
-          contractors={contractors}
-          siteNameToIdMap={siteNameToIdMap}
           siteIdToNameMap={siteIdToNameMap}
           permitQuestionnaires={permitQuestionnaires}
           specializedPermitTypes={specializedPermitTypes}
