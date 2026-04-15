@@ -20885,7 +20885,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 Alert.alert(
                   'Permit Completed ✓',
                   'Both issuer and receiver have signed. Permit has been moved to Completed Permits.',
-                  [{ text: 'OK', onPress: () => setCurrentScreen('active') }]
+                  [{ text: 'OK', onPress: () => setCurrentScreen('dashboard') }]
                 );
               } else {
                 // Just save the signatures
