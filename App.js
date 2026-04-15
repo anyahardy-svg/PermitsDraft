@@ -17745,15 +17745,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* JSEA Task Steps Controls */}
                 {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
                   <View>
-                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                    {editData.jsea?.taskSteps?.map((step, idx) => 
-                      step.controls ? (
-                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
-                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
-                        </View>
-                      ) : null
-                    )}
+                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
+                    {editData.jsea?.taskSteps?.map((step, idx) => (
+                      <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                        <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA 1, Step {idx + 1}: {step.description || step.step || step.task}</Text>
+                        {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
+                      </View>
+                    ))}
                   </View>
                 )}
 
@@ -19901,15 +19899,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {/* JSEA Task Steps Controls */}
                 {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
                   <View>
-                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                    {editData.jsea?.taskSteps?.map((step, idx) => 
-                      step.controls ? (
-                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>Q: Step {idx + 1}: {step.task}</Text>
-                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>
-                        </View>
-                      ) : null
-                    )}
+                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
+                    {editData.jsea?.taskSteps?.map((step, idx) => (
+                      <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
+                        <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA 1, Step {idx + 1}: {step.description || step.step || step.task}</Text>
+                        {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
+                      </View>
+                    ))}
                   </View>
                 )}
 
