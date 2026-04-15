@@ -2067,9 +2067,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('📝 [DRAFT SAVE] jsea first element:', permitData.jsea);
 
       // Save to Supabase
-      try {
-        console.log('📝 [DRAFT SAVE] About to call createPermit...');
-        const newPermit = await createPermit(permitData);
+      console.log('📝 [DRAFT SAVE] About to call createPermit...');
+      const newPermit = await createPermit(permitData);
       
       // Upload attachments if any
       let uploadedAttachments = [];
