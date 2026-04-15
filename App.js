@@ -2047,12 +2047,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
         contractor_company: formData.contractorCompany || '',
-        manual_company: formData.manualCompany || '',
-        contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
-        status: 'draft',
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
@@ -2060,9 +2057,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
         jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
-        sign_ons: formData.signOns,
-        attachments: []
+        sign_ons: formData.signOns
       };
+      
+      console.log('📝 [DRAFT SAVE] permitData object:', permitData);
+      console.log('📝 [DRAFT SAVE] jseas array content:', jseaArray);
+      console.log('📝 [DRAFT SAVE] jsea first element:', permitData.jsea);
 
       // Save to Supabase
       const newPermit = await createPermit(permitData);
@@ -2188,12 +2188,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
         contractor_company: formData.contractorCompany || '',
-        manual_company: formData.manualCompany || '',
-        contractor_selected: formData.contractorSelected || false,
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
-        status: 'pending_approval',
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
@@ -2202,9 +2199,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
-        attachments: [],
         requester_signature: signatureData
       };
+      
+      console.log('📝 [APPROVAL SAVE] permitData object:', permitData);
+      console.log('📝 [APPROVAL SAVE] jseas array content:', jseaArray);
+      console.log('📝 [APPROVAL SAVE] requester_signature length:', signatureData?.length);
 
       console.log('📝 Calling createPermit...');
       // Save to Supabase

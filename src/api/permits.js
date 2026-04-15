@@ -64,12 +64,23 @@ const transformPermit = (dbPermit) => {
 // Create a new permit
 export const createPermit = async (permitData) => {
   try {
+    console.log('📋 [API] Creating permit with data:', permitData);
+    console.log('📋 [API] jsea field type:', typeof permitData.jsea);
+    console.log('📋 [API] jseas field type:', typeof permitData.jseas);
+    console.log('📋 [API] jseas content:', permitData.jseas);
+    
     const { data, error } = await supabase
       .from('permits')
       .insert([permitData])
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('❌ [API] Supabase error:', error);
+      console.error('❌ [API] Error message:', error.message);
+      console.error('❌ [API] Error details:', error.details);
+      console.error('❌ [API] Error hint:', error.hint);
+      throw error;
+    }
     return transformPermit(data[0]);
   } catch (error) {
     console.error('Error creating permit:', error);
