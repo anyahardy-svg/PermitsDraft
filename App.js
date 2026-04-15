@@ -722,7 +722,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     { key: 'excavation', label: 'Excavation', description: 'Digging, trenching, or disturbing the ground.' },
     { key: 'hotWork', label: 'Hot Work', description: 'Welding, cutting, grinding, or any activity that generates heat or sparks.' },
     { key: 'lifting', label: 'Lifting', description: 'Use of cranes, hoists, or other lifting equipment.' },
-    { key: 'plantServicing', label: 'Plant Servicing', description: 'Servicing or maintenance of plant and equipment.' },
+    { key: 'mobilePlantServicing', label: 'Mobile Plant Servicing', description: 'Servicing or maintenance of mobile plant and heavy equipment.' },
+    { key: 'plantServicing', label: 'Fixed Plant Servicing', description: 'Servicing or maintenance of fixed plant and equipment.' },
     { key: 'stripping', label: 'Stripping', description: 'Stripping campaign to remove overburden.' },
     { key: 'surveying', label: 'Surveying', description: 'Surveying activities in hazardous areas.' },
     { key: 'workingAtHeight', label: 'Working at Height', description: 'Work at height where a fall could occur.' }
@@ -998,28 +999,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'blasting_all_clear', text: 'All clear given to proceed with normal operations?', type: 'yesno', required: true }
     ],
     plantServicing: [
-      { id: 'lockout_recorded', text: 'All people working on mobile/fixed plant have applied a lockout and lockouts and these are recorded in Isolations section the PTW', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'lockout_recorded', text: 'All people working on fixed plant have applied a lockout and lockouts and these are recorded in Isolations section the PTW', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'zero_energy_confirmed', text: 'A zero-energy state confirmed. (All electrical, hydraulic, pneumatic, mechanical systems de-energized.  Think about hoseburst protection systems, springs, rollaway, flywheels etc.)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'workers_trained', text: 'All workers trained, competent and experienced at performing the repair task on the mobile/fixed plant.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'manufacturer_manual', text: 'Is the repair being completed as per the Mobile Plant or Fixed Plant Manufacturers Workshop Manual where applicable or available?', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'workers_trained', text: 'All workers trained, competent and experienced at performing the repair task on the fixed plant.', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'manufacturer_manual', text: 'Is the repair being completed as per the Fixed Plant Manufacturers Workshop Manual where applicable or available?', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'access_restricted', text: 'Access to the repair area is restricted for pedestrians and vehicles. Only workers engaged in the work and signed on to the permit and the permit issuer have access to the service area.', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'fluids_contained', text: 'Are all fluids and other waste materials contained and will it be removed by the end of the task.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no' },
       { id: 'hot_fluids_controls', text: 'Controls for release/draining of hot fluids in place - e.g. engine oil, hydraulic oils etc', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'pressurized_controls', text: 'Controls for venting of pressurized fluids or systems in place - e.g. hydraulic oil', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'flammable_controls', text: 'Controls for flammables in place - e.g. petrol, diesel', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'no_suspended_loads', text: 'Will anyone be under suspended loads?', type: 'yesno', required: true, blockingQuestion: true, blockingAnswer: 'yes', noControls: true },
-      { id: 'plant_operation', text: 'If the plant (mobile or fixed) is to be started or moved by the a contractor, are they trained and competent in the operation of the mobile/fixed plant, hold the correct licenses and be trained in the relevant Winsome Aggregates SOPs.', type: 'yesnona', required: true, controlsOn: 'no'},
+      { id: 'plant_operation', text: 'If the plant is to be started or moved by a contractor, are they trained and competent in the operation of the fixed plant, hold the correct licenses and be trained in the relevant Winstone Aggregates SOPs.', type: 'yesnona', required: true, controlsOn: 'no'},
+      { id: 'safe_access_height', text: 'Is there safe access to the work area?', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'heavy_lifting_controls', text: 'Controls in place for heavy lifting that might be involved.', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'additional_permits', text: 'Are all associated permits completed?  eg. Hot Work, Working at Height, Lifting with Cranes or Hiabs etc.', type: 'yesnona', required: true, controlsOn: 'no'},
+      { id: 'tools_equipment', text: 'All tools, equipment used fit for purpose, safe, certified where necessary. Any custom-built items verified.', type: 'yesnona', required: true, controlsOn: 'no' }
+    ],
+
+    mobilePlantServicing: [
+      { id: 'lockout_recorded', text: 'All people working on mobile plant have applied a lockout and lockouts and these are recorded in Isolations section the PTW', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'zero_energy_confirmed', text: 'A zero-energy state confirmed. (All electrical, hydraulic, pneumatic, mechanical systems de-energized.  Think about hoseburst protection systems, springs, rollaway, flywheels etc.)', type: 'yesno', required: true, controlsOn: 'no' },
+      { id: 'workers_trained', text: 'All workers trained, competent and experienced at performing the repair task on the mobile plant.', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'manufacturer_manual', text: 'Is the repair being completed as per the Mobile Plant Manufacturers Workshop Manual where applicable or available?', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'access_restricted', text: 'Access to the repair area is restricted for pedestrians and vehicles. Only workers engaged in the work and signed on to the permit and the permit issuer have access to the service area.', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'fluids_contained', text: 'Are all fluids and other waste materials contained and will it be removed by the end of the task.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no' },
+      { id: 'hot_fluids_controls', text: 'Controls for release/draining of hot fluids in place - e.g. engine oil, hydraulic oils etc', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'pressurized_controls', text: 'Controls for venting of pressurized fluids or systems in place - e.g. hydraulic oil', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'flammable_controls', text: 'Controls for flammables in place - e.g. petrol, diesel', type: 'yesnona', required: true, controlsOn: 'no' },
+      { id: 'no_suspended_loads', text: 'Will anyone be under suspended loads?', type: 'yesno', required: true, blockingQuestion: true, blockingAnswer: 'yes', noControls: true },
+      { id: 'plant_operation', text: 'If the mobile plant is to be started or moved by a contractor, are they trained and competent in the operation of the mobile plant, hold the correct licenses and be trained in the relevant Winstone Aggregates SOPs.', type: 'yesnona', required: true, controlsOn: 'no'},
       { id: 'safe_access_height', text: 'Is there safe access to the work area?', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'heavy_lifting_controls', text: 'Controls in place for heavy lifting that might be involved.', type: 'yesnona', required: true, controlsOn: 'no' },
       { id: 'additional_permits', text: 'Are all associated permits completed?  eg. Hot Work, Working at Height, Lifting with Cranes or Hiabs etc.', type: 'yesnona', required: true, controlsOn: 'no'},
       { id: 'tools_equipment', text: 'All tools, equipment used fit for purpose, safe, certified where necessary. Any custom-built items verified.', type: 'yesnona', required: true, controlsOn: 'no' },
       
-      // Mobile Plant Section
-      { id: 'mobile_plant_section', text: 'Mobile Plant Servicing', type: 'section' },
       { id: 'approved_area', text: 'Mobile Plant repair being done in approved servicing area.', type: 'yesnona', required: true, noControls: true },
       { id: 'traffic_diversion_required', text: 'Traffic Diversion required?', type: 'yesno', dependsOn: 'approved_area', dependsOnValue: 'no', controlsOn: 'no' },
-      
-      // Traffic Diversion Checklist (inline questions)
       
       { id: 'traffic_areas_described', text: 'Have all staff been informed of the areas of the site that will be affected?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
       { id: 'traffic_period_described', text: 'Have all staff been informed of the likely period of time that site traffic will be disrupted?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
@@ -1029,7 +1044,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       { id: 'traffic_route_checked', text: 'Have you checked the planned route of travel is appropriate for the load size and weight? (E.g. gradient, width, surface etc.)', type: 'yesnona', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
       { id: 'traffic_barriers_planned', text: 'Have you clearly marked the area using barriers, cones and signs etc.?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
       { id: 'traffic_pedestrian_hazards', text: 'Will all pedestrians be safe from traffic inside the marked barriers?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      
       
       { id: 'tire_safety', text: 'Safety systems in place for inflating tyres.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no'},
       { id: 'batteries_protected', text: 'Batteries protected from arcing.', type: 'yesnona', required: true, controlsOn: 'no' },

@@ -77,6 +77,7 @@ const PermitToWorkApp = () => {
       excavation: { required: false, controls: '', questionnaire: {} },
       lifting: { required: false, controls: '', questionnaire: {} },
       blasting: { required: false, controls: '', questionnaire: {} },
+      mobilePlantServicing: { required: false, controls: '', questionnaire: {} },
       plantServicing: { required: false, controls: '', questionnaire: {} },
       stripping: { required: false, controls: '', questionnaire: {} },
       surveying: { required: false, controls: '', questionnaire: {} },
@@ -122,7 +123,8 @@ const PermitToWorkApp = () => {
     { key: 'excavation', label: 'Excavation and Demolition', description: 'Digging, trenching, demolition work' },
     { key: 'lifting', label: 'Lifting with Crane or HIAB', description: 'Cranes, hoists, lifting equipment' },
     { key: 'blasting', label: 'Marking, Drilling & Blasting', description: 'Explosive work, quarry operations' },
-    { key: 'plantServicing', label: 'Mobile and Fixed Plant Servicing', description: 'Equipment maintenance and repair' },
+    { key: 'mobilePlantServicing', label: 'Mobile Plant Servicing', description: 'Mobile equipment maintenance and repair' },
+    { key: 'plantServicing', label: 'Fixed Plant Servicing', description: 'Fixed equipment maintenance and repair' },
     { key: 'stripping', label: 'Stripping Work', description: 'Site preparation, overburden removal' },
     { key: 'surveying', label: 'Surveying and Pedestrian Access', description: 'Survey work, pedestrian access to operational areas' },
     { key: 'conveyorServicing', label: 'Conveyor Servicing', description: 'Conveyor belt replacement and maintenance' }
