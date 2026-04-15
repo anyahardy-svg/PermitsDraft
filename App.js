@@ -7657,6 +7657,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   const saveDraftChanges = async () => {
     try {
+      // Prepare JSEA data - use jsea field since jseas doesn't exist in schema
+      const jseaData = editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {};
+      
       await updatePermit(editData.id, {
         description: editData.description,
         location: editData.location,
@@ -7673,7 +7676,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jseas: editData.jseas || [],
+        jsea: jseaData,
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
@@ -7704,6 +7707,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     try {
+      // Prepare JSEA data - use jsea field since jseas doesn't exist in schema
+      const jseaData = editData.jseas && editData.jseas.length > 0 ? editData.jseas[0] : {};
+      
       await updatePermit(editData.id, {
         description: editData.description,
         location: editData.location,
@@ -7720,7 +7726,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: editData.permitIssuer,
         specialized_permits: editData.specializedPermits,
         single_hazards: editData.singleHazards,
-        jseas: editData.jseas || [],
+        jsea: jseaData,
         isolations: editData.isolations,
         sign_ons: editData.signOns,
         attachments: editData.attachments
