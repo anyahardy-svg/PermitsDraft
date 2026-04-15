@@ -2068,7 +2068,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('📝 [DRAFT SAVE] jsea first element:', permitData.jsea);
 
       // Save to Supabase
-      const newPermit = await createPermit(permitData);
+      try {
+        console.log('📝 [DRAFT SAVE] About to call createPermit...');
+        const newPermit = await createPermit(permitData);
       
       // Upload attachments if any
       let uploadedAttachments = [];
@@ -2118,8 +2120,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentScreen('dashboard');
       Alert.alert('Success', 'Draft saved. It has been saved to the database.');
     } catch (error) {
-      console.error('Error creating permit:', error);
-      Alert.alert('Error', 'Failed to save permit. Please try again.');
+      console.error('❌ Error creating permit (catch block):', error);
+      console.error('   Error message:', error?.message);
+      console.error('   Error code:', error?.code);
+      console.error('   Error details:', error?.details);
+      console.error('   Error hint:', error?.hint);
+      console.error('   Full stack:', error?.stack);
+      Alert.alert('Error', `Failed to save permit: ${error?.message || 'Unknown error'}`);
     }
   };
 

@@ -65,9 +65,18 @@ const transformPermit = (dbPermit) => {
 export const createPermit = async (permitData) => {
   try {
     console.log('📋 [API] Creating permit with data:', permitData);
-    console.log('📋 [API] jsea field type:', typeof permitData.jsea);
-    console.log('📋 [API] jseas field type:', typeof permitData.jseas);
-    console.log('📋 [API] jseas content:', permitData.jseas);
+    console.log('📋 [API] Data keys:', Object.keys(permitData));
+    console.log('📋 [API] jsea field type:', typeof permitData.jsea, 'value:', permitData.jsea);
+    console.log('📋 [API] jseas field type:', typeof permitData.jseas, 'value:', permitData.jseas);
+    console.log('📋 [API] specializedPermits type:', typeof permitData.specialized_permits, 'value:', permitData.specialized_permits);
+    console.log('📋 [API] singleHazards type:', typeof permitData.single_hazards, 'value:', permitData.single_hazards);
+    
+    // Log as JSON to see structure
+    try {
+      console.log('📋 [API] Permit data as JSON:', JSON.stringify(permitData, null, 2));
+    } catch (e) {
+      console.log('📋 [API] Could not stringify permit data:', e.message);
+    }
     
     const { data, error } = await supabase
       .from('permits')
@@ -75,15 +84,16 @@ export const createPermit = async (permitData) => {
       .select();
     
     if (error) {
-      console.error('❌ [API] Supabase error:', error);
+      console.error('❌ [API] Supabase error code:', error.code);
       console.error('❌ [API] Error message:', error.message);
       console.error('❌ [API] Error details:', error.details);
       console.error('❌ [API] Error hint:', error.hint);
+      console.error('❌ [API] Full error object:', JSON.stringify(error, null, 2));
       throw error;
     }
     return transformPermit(data[0]);
   } catch (error) {
-    console.error('Error creating permit:', error);
+    console.error('❌ Error creating permit:', error);
     throw error;
   }
 };
