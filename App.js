@@ -2215,7 +2215,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       };
       
       console.log('📝 [APPROVAL SAVE] permitData object:', permitData);
-      console.log('📝 [APPROVAL SAVE] jseas array content:', jseaArray);
+      console.log('📝 [APPROVAL SAVE] jsea data:', permitData.jsea);
       console.log('📝 [APPROVAL SAVE] requester_signature length:', signatureData?.length);
 
       console.log('📝 Calling createPermit...');
