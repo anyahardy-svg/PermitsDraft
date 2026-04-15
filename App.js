@@ -20450,6 +20450,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={styles.detailText}>Loading...</Text>
               ) : (
                 <>
+                  {/* Permit Issuer Section */}
+                  <Text style={[styles.label, { marginTop: 12 }]}>Permit Issuer:</Text>
+                  
                   {/* Issuer Acknowledgment Section */}
                   <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#F59E42' }}>
                     <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>⚠️ Permit Issuer Acknowledgment</Text>
@@ -20473,33 +20476,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ fontSize: 12, color: '#92400E', flex: 1 }}>Work has been completed and permit is ready to be closed (Issuer)</Text>
                     </View>
                   </View>
-
-                  {/* Receiver Acknowledgment Section */}
-                  <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 8 }}>⚠️ Permit Receiver Acknowledgment</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <TouchableOpacity 
-                        style={[{
-                          width: 24, 
-                          height: 24, 
-                          borderWidth: 2, 
-                          borderColor: '#3B82F6', 
-                          borderRadius: 4, 
-                          marginRight: 8,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          backgroundColor: receiverAcknowledged ? '#3B82F6' : 'white'
-                        }]}
-                        onPress={() => setReceiverAcknowledged(!receiverAcknowledged)}
-                      >
-                        {receiverAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
-                      </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: '#1E40AF', flex: 1 }}>Work has been completed and area is safe (Receiver)</Text>
-                    </View>
-                  </View>
-                  
-                  {/* Permit Issuer Section */}
-                  <Text style={[styles.label, { marginTop: 12 }]}>Permit Issuer:</Text>
                   <CustomDropdown
                     label="Select Permit Issuer"
                     options={permitIssuersForSite.map(issuer => issuer.name)}
@@ -20584,6 +20560,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   {/* Permit Receiver Section */}
                   <Text style={[styles.label, { marginTop: 16 }]}>Permit Receiver (Contractor):</Text>
+                  
+                  {/* Receiver Acknowledgment Section */}
+                  <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 8 }}>⚠️ Permit Receiver Acknowledgment</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity 
+                        style={[{
+                          width: 24, 
+                          height: 24, 
+                          borderWidth: 2, 
+                          borderColor: '#3B82F6', 
+                          borderRadius: 4, 
+                          marginRight: 8,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: receiverAcknowledged ? '#3B82F6' : 'white'
+                        }]}
+                        onPress={() => setReceiverAcknowledged(!receiverAcknowledged)}
+                      >
+                        {receiverAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, color: '#1E40AF', flex: 1 }}>Work has been completed and area is safe (Receiver)</Text>
+                    </View>
+                  </View>
+                  
                   <CustomDropdown
                     label="Select Contractor"
                     options={contractorsForSite.map(contractor => contractor.name)}
