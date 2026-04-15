@@ -17138,8 +17138,53 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           },
                           permitQuestionnaires,
                           styles
-                        )
-                      }
+                        )}
+
+                      {/* HOTWORK SAFETY WATCH DROPDOWN */}
+                      {val.required && key === 'hotWork' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.hw_safety_watch?.text || ''} 
+                              pointerEvents="auto"
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  hw_safety_watch: { ...(editData.specializedPermits[key].questionnaire?.hw_safety_watch || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                              }}
+                              placeholder="Start typing person name..."
+                            />
+                          </View>
+                        </View>
+                      )}
+
+                      {/* CONFINED SPACE SAFETY WATCH DROPDOWN */}
+                      {val.required && key === 'confinedSpace' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.safety_watch_name?.text || ''} 
+                              pointerEvents="auto"
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  safety_watch_name: { ...(editData.specializedPermits[key].questionnaire?.safety_watch_name || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                              }}
+                              placeholder="Start typing person name..."
+                            />
+                          </View>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
