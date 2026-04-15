@@ -2035,6 +2035,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       
       // Prepare permit data for Supabase
+      // NOTE: jseas and attachments columns don't exist in schema yet, so only send jsea
       const permitData = {
         permit_type: formData.id || 'general',
         description: formData.description,
@@ -2057,10 +2058,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
-        sign_ons: formData.signOns,
-        attachments: []
+        sign_ons: formData.signOns
       };
       
       console.log('📝 [DRAFT SAVE] permitData object:', permitData);
@@ -2182,6 +2181,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('   site_id:', siteId);
       
       // Prepare permit data for Supabase
+      // NOTE: jseas and attachments columns don't exist in schema yet, so only send jsea
       const permitData = {
         permit_type: formData.id || 'general',
         description: formData.description,
@@ -2204,10 +2204,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
-        attachments: [],
         requester_signature: signatureData
       };
       
