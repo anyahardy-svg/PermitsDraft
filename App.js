@@ -14470,22 +14470,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 )}
                                 {showHwSafetyWatchDropdownDraft[key] && filteredHwSafetyWatchContractorsDraft[key] && filteredHwSafetyWatchContractorsDraft[key].length > 0 && (
                                   <View style={{
-                                    position: 'absolute',
-                                    top: 55,
-                                    left: 0,
-                                    right: 0,
                                     backgroundColor: 'white',
                                     borderWidth: 1,
                                     borderColor: '#D1D5DB',
                                     borderRadius: 6,
+                                    marginTop: 4,
                                     maxHeight: 300,
-                                    zIndex: 10000,
-                                    overflow: 'visible',
+                                    overflow: 'hidden',
                                     shadowColor: '#000',
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.15,
                                     shadowRadius: 4,
                                     elevation: 1000,
+                                    zIndex: 9999,
+                                    position: 'relative',
                                   }} pointerEvents="auto">
                                     <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                       {filteredHwSafetyWatchContractorsDraft[key].map(contractor => (
@@ -14566,22 +14564,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 )}
                                 {showCsSafetyWatchDropdownDraft[key] && filteredCsSafetyWatchContractorsDraft[key] && filteredCsSafetyWatchContractorsDraft[key].length > 0 && (
                                   <View style={{
-                                    position: 'absolute',
-                                    top: 55,
-                                    left: 0,
-                                    right: 0,
                                     backgroundColor: 'white',
                                     borderWidth: 1,
                                     borderColor: '#D1D5DB',
                                     borderRadius: 6,
+                                    marginTop: 4,
                                     maxHeight: 300,
-                                    zIndex: 10000,
-                                    overflow: 'visible',
+                                    overflow: 'hidden',
                                     shadowColor: '#000',
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.15,
                                     shadowRadius: 4,
                                     elevation: 1000,
+                                    zIndex: 9999,
+                                    position: 'relative',
                                   }} pointerEvents="auto">
                                     <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                       {filteredCsSafetyWatchContractorsDraft[key].map(contractor => (
