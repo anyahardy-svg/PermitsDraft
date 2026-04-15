@@ -4264,9 +4264,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   shadowOffset: { width: 0, height: 2 },
                                   shadowOpacity: 0.15,
                                   shadowRadius: 4,
-                                  elevation: 5,
-                                  zIndex: 100,
-                                }}>
+                                  elevation: 1000,
+                                  zIndex: 9999,
+                                  position: 'relative',
+                                }} pointerEvents="auto">
                                   <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
                                     {filteredHwSafetyWatchContractors.map(contractor => (
                                       <TouchableOpacity
@@ -4368,9 +4369,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   shadowOffset: { width: 0, height: 2 },
                                   shadowOpacity: 0.15,
                                   shadowRadius: 4,
-                                  elevation: 5,
-                                  zIndex: 100,
-                                }}>
+                                  elevation: 1000,
+                                  zIndex: 9999,
+                                  position: 'relative',
+                                }} pointerEvents="auto">
                                   <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
                                     {filteredCsSafetyWatchContractors.map(contractor => (
                                       <TouchableOpacity
