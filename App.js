@@ -20820,13 +20820,63 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             try {
-              // Save all changes including attachments to database
-              await updatePermit(editData.id, { attachments: editData.attachments });
+              const updateData = { attachments: editData.attachments };
+              let newSignOff = editData.completedSignOff || editData.completed_sign_off || {};
+              let signOffChanged = false;
               
-              const updated = permits.map(p => p.id === editData.id ? editData : p);
+              // Check if issuer has a new unsaved signature
+              if (issuerIdSelected && issuerHasSignature && !editData.completedSignOff?.issuerSignedAt) {
+                const issuerSignatureData = issuerSignatureRef.current?.toDataURL();
+                if (issuerSignatureData) {
+                  const now = new Date();
+                  const dateStr = now.toISOString().split('T')[0];
+                  const timeStr = now.toTimeString().split(' ')[0];
+                  const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
+                  
+                  newSignOff = {
+                    ...newSignOff,
+                    issuerUserId: issuerIdSelected,
+                    issuerName: selectedIssuer?.name || '',
+                    issuerSignature: issuerSignatureData,
+                    issuerSignedAt: dateStr + ' ' + timeStr,
+                    issuerAcknowledged: issuerAcknowledged
+                  };
+                  signOffChanged = true;
+                }
+              }
+              
+              // Check if receiver has a new unsaved signature
+              if (receiverIdSelected && receiverHasSignature && !editData.completedSignOff?.receiverSignedAt) {
+                const receiverSignatureData = receiverSignatureRef.current?.toDataURL();
+                if (receiverSignatureData) {
+                  const now = new Date();
+                  const dateStr = now.toISOString().split('T')[0];
+                  const timeStr = now.toTimeString().split(' ')[0];
+                  const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
+                  
+                  newSignOff = {
+                    ...newSignOff,
+                    receiverContractorId: receiverIdSelected,
+                    receiverName: selectedReceiver?.name || '',
+                    receiverSignature: receiverSignatureData,
+                    receiverSignedAt: dateStr + ' ' + timeStr,
+                    receiverAcknowledged: receiverAcknowledged
+                  };
+                  signOffChanged = true;
+                }
+              }
+              
+              if (signOffChanged) {
+                updateData.completed_sign_off = newSignOff;
+              }
+              
+              await updatePermit(editData.id, updateData);
+              
+              const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff, completed_sign_off: newSignOff } : p);
               setPermits(updated);
-              setCurrentScreen('active');
-              Alert.alert('Permit Updated', 'Permit details have been updated.');
+              setEditData(prev => ({ ...prev, completedSignOff: newSignOff, completed_sign_off: newSignOff }));
+              
+              Alert.alert('Permit Updated', 'Permit details and signatures have been saved.');
             } catch (error) {
               console.error('Error saving changes:', error);
               Alert.alert('Error', 'Failed to save changes. Please try again.');
