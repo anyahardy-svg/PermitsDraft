@@ -20514,21 +20514,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {issuerIdSelected && (
                     <>
                       <Text style={styles.label}>Issuer Signature:</Text>
-                      {editData.completedSignOff?.issuerSignature ? (
-                        <View style={{
-                          borderWidth: 2,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 8,
-                          marginBottom: 12,
-                          backgroundColor: '#F9FAFB',
-                          padding: 12,
-                          alignItems: 'center'
-                        }}>
-                          <Image 
-                            source={{ uri: editData.completedSignOff.issuerSignature }} 
-                            style={{ width: 280, height: 200, borderRadius: 4 }}
-                          />
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {editData.completedSignOff.issuerSignedAt}</Text>
+                      {editData.completedSignOff?.issuerSignedAt ? (
+                        <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#2563EB', marginBottom: 12 }}>
+                          <Text style={{ fontSize: 12, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.issuerSignedAt}</Text>
+                          {editData.completedSignOff.issuerSignature && (
+                            <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: '#2563EB', paddingTop: 8 }}>
+                              <Image 
+                                source={{ uri: editData.completedSignOff.issuerSignature }} 
+                                style={{ width: 200, height: 120, borderRadius: 4, alignSelf: 'center' }}
+                              />
+                            </View>
+                          )}
                         </View>
                       ) : (
                       <View style={{
@@ -20547,7 +20544,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         />
                       </View>
                       )}
-                      {issuerHasSignature && (
+                      {issuerHasSignature && !editData.completedSignOff?.issuerSignedAt && (
                         <Text style={{
                           fontSize: 12,
                           color: '#10B981',
@@ -20557,7 +20554,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
-                      {!editData.completedSignOff?.issuerSignature && (
+                      {!editData.completedSignOff?.issuerSignature && !editData.completedSignOff?.issuerSignedAt && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -20582,12 +20579,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                       </TouchableOpacity>
                       )}
-                      {editData.completedSignOff?.issuerSignedAt && (
-                        <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#2563EB', marginTop: 8 }}>
-                          <Text style={{ fontSize: 12, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.completedSignOff.issuerSignedAt}</Text>
-                        </View>
-                      )}
                     </>
                   )}
                   
@@ -20607,21 +20598,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {receiverIdSelected && (
                     <>
                       <Text style={styles.label}>Receiver Signature:</Text>
-                      {editData.completedSignOff?.receiverSignature ? (
-                        <View style={{
-                          borderWidth: 2,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 8,
-                          marginBottom: 12,
-                          backgroundColor: '#F9FAFB',
-                          padding: 12,
-                          alignItems: 'center'
-                        }}>
-                          <Image 
-                            source={{ uri: editData.completedSignOff.receiverSignature }} 
-                            style={{ width: 280, height: 200, borderRadius: 4 }}
-                          />
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8 }}>Signature from {editData.completedSignOff.receiverSignedAt}</Text>
+                      {editData.completedSignOff?.receiverSignedAt ? (
+                        <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#10B981', marginBottom: 12 }}>
+                          <Text style={{ fontSize: 12, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.receiverSignedAt}</Text>
+                          {editData.completedSignOff.receiverSignature && (
+                            <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: '#10B981', paddingTop: 8 }}>
+                              <Image 
+                                source={{ uri: editData.completedSignOff.receiverSignature }} 
+                                style={{ width: 200, height: 120, borderRadius: 4, alignSelf: 'center' }}
+                              />
+                            </View>
+                          )}
                         </View>
                       ) : (
                       <View style={{
@@ -20640,7 +20628,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         />
                       </View>
                       )}
-                      {receiverHasSignature && (
+                      {receiverHasSignature && !editData.completedSignOff?.receiverSignedAt && (
                         <Text style={{
                           fontSize: 12,
                           color: '#10B981',
@@ -20650,7 +20638,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ✓ Signature captured
                         </Text>
                       )}
-                      {!editData.completedSignOff?.receiverSignature && (
+                      {!editData.completedSignOff?.receiverSignature && !editData.completedSignOff?.receiverSignedAt && (
                       <TouchableOpacity 
                         style={{
                           padding: 10,
@@ -20674,12 +20662,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Clear Signature
                         </Text>
                       </TouchableOpacity>
-                      )}
-                      {editData.completedSignOff?.receiverSignedAt && (
-                        <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#10B981', marginTop: 8 }}>
-                          <Text style={{ fontSize: 12, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280' }}>{editData.completedSignOff.receiverSignedAt}</Text>
-                        </View>
                       )}
                     </>
                   )}
