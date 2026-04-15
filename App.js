@@ -20870,13 +20870,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 updateData.completed_sign_off = newSignOff;
               }
               
-              await updatePermit(editData.id, updateData);
+              const savedPermit = await updatePermit(editData.id, updateData);
               
-              const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff, completed_sign_off: newSignOff } : p);
-              setPermits(updated);
-              setEditData(prev => ({ ...prev, completedSignOff: newSignOff, completed_sign_off: newSignOff }));
+              // Use the most up-to-date signature data
+              const finalSignOff = signOffChanged ? newSignOff : (savedPermit.completedSignOff || savedPermit.completed_sign_off || editData.completedSignOff || editData.completed_sign_off || {});
+              const bothSigned = finalSignOff.issuerSignedAt && finalSignOff.receiverSignedAt;
               
-              Alert.alert('Permit Updated', 'Permit details and signatures have been saved.');
+              if (bothSigned) {
+                // Mark permit as completed
+                const completedPermit = await updatePermit(editData.id, { status: 'completed' });
+                const updatedPermits = permits.map(p => p.id === editData.id ? completedPermit : p);
+                setPermits(updatedPermits);
+                
+                Alert.alert(
+                  'Permit Completed ✓',
+                  'Both issuer and receiver have signed. Permit has been moved to Completed Permits.',
+                  [{ text: 'OK', onPress: () => setCurrentScreen('active') }]
+                );
+              } else {
+                // Just save the signatures
+                const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff, completed_sign_off: newSignOff } : p);
+                setPermits(updated);
+                setEditData(prev => ({ ...prev, completedSignOff: newSignOff, completed_sign_off: newSignOff }));
+                
+                Alert.alert('Permit Updated', 'Permit details and signatures have been saved.');
+              }
             } catch (error) {
               console.error('Error saving changes:', error);
               Alert.alert('Error', 'Failed to save changes. Please try again.');
