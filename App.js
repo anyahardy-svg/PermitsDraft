@@ -2034,30 +2034,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
       }
       
+      // Validate required fields before sending
+      console.log('🔍 [DRAFT SAVE] Validating fields:');
+      console.log('   permit_type:', formData.id || 'general');
+      console.log('   location:', formData.location);
+      console.log('   start_date:', formData.startDate || defaultDate);
+      console.log('   start_time:', formData.startTime || defaultTime);
+      console.log('   end_date:', formData.endDate || defaultDate);
+      console.log('   end_time:', formData.endTime || defaultTime);
+      console.log('   requested_by:', formData.requestedBy);
+      console.log('   site_id:', siteId);
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
-        description: formData.description,
+        description: formData.description || '',
         location: formData.location,
         status: 'draft',
-        priority: formData.priority,
+        priority: formData.priority || 'medium',
         start_date: formData.startDate || defaultDate,
         start_time: formData.startTime || defaultTime,
         end_date: formData.endDate || defaultDate,
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
-        contractor_company: formData.contractorCompany || '',
-        permitted_issuer: formData.permitIssuer || '',
+        contractor_company: formData.contractorCompany || null,
+        permitted_issuer: formData.permitIssuer || null,
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
-        specialized_permits: formData.specializedPermits,
-        single_hazards: formData.singleHazards,
+        specialized_permits: formData.specializedPermits || {},
+        single_hazards: formData.singleHazards || {},
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray,  // Always send jseas array (empty if no data)
-        isolations: formData.isolations,
-        sign_ons: formData.signOns
+        jseas: jseaArray || [],  // Always send jseas array (empty if no data)
+        isolations: formData.isolations || [],
+        sign_ons: formData.signOns || {}
       };
       
       console.log('📝 [DRAFT SAVE] permitData object:', permitData);
@@ -2175,30 +2186,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
       }
       
+      // Validate required fields before sending
+      console.log('🔍 [APPROVAL SAVE] Validating fields:');
+      console.log('   permit_type:', formData.id || 'general');
+      console.log('   location:', formData.location);
+      console.log('   start_date:', formData.startDate || defaultDate);
+      console.log('   start_time:', formData.startTime || defaultTime);
+      console.log('   end_date:', formData.endDate || defaultDate);
+      console.log('   end_time:', formData.endTime || defaultTime);
+      console.log('   requested_by:', formData.requestedBy);
+      console.log('   site_id:', siteId);
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
-        description: formData.description,
+        description: formData.description || '',
         location: formData.location,
         status: 'pending_approval',
-        priority: formData.priority,
+        priority: formData.priority || 'medium',
         start_date: formData.startDate || defaultDate,
         start_time: formData.startTime || defaultTime,
         end_date: formData.endDate || defaultDate,
         end_time: formData.endTime || defaultTime,
         requested_by: formData.requestedBy,
-        contractor_company: formData.contractorCompany || '',
-        permitted_issuer: formData.permitIssuer || '',
+        contractor_company: formData.contractorCompany || null,
+        permitted_issuer: formData.permitIssuer || null,
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
         current_permit_receiver_id: currentReceiver,
         controls_summary: '',
-        specialized_permits: formData.specializedPermits,
-        single_hazards: formData.singleHazards,
+        specialized_permits: formData.specializedPermits || {},
+        single_hazards: formData.singleHazards || {},
         jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray,  // Always send jseas array (empty if no data)
-        isolations: formData.isolations,
-        sign_ons: formData.signOns,
+        jseas: jseaArray || [],  // Always send jseas array (empty if no data)
+        isolations: formData.isolations || [],
+        sign_ons: formData.signOns || {},
         requester_signature: signatureData
       };
       
