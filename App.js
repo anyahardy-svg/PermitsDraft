@@ -1337,9 +1337,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
 
     // Save to array (either update existing or add new)
-    const updatedJseas = [...formData.jseas];
-    updatedJseas[currentJseaIndex] = { ...currentJseaData };
-    setFormData({ ...formData, jseas: updatedJseas });
+    setFormData(prev => {
+      const updatedJseas = [...(prev.jseas || [])];
+      updatedJseas[currentJseaIndex] = { ...currentJseaData };
+      return { ...prev, jseas: updatedJseas };
+    });
     
     // Now prepare for next JSEA
     const nextIndex = currentJseaIndex + 1;
@@ -1361,8 +1363,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         {
           text: 'Delete',
           onPress: () => {
-            const updatedJseas = formData.jseas.filter((_, idx) => idx !== index);
-            setFormData({ ...formData, jseas: updatedJseas });
+            setFormData(prev => ({
+              ...prev,
+              jseas: prev.jseas.filter((_, idx) => idx !== index)
+            }));
           },
           style: 'destructive'
         }
