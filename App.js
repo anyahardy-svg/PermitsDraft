@@ -18901,7 +18901,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   // Edit/Complete Active Permit Screen
-  const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, users, sites, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters }) => {
+  const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, users, sites, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, contractors }) => {
     // Always get the latest permit from permits array
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
     const [editData, setEditData] = React.useState({
@@ -18951,6 +18951,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState('');
     const [filteredJseaTemplatesDraft, setFilteredJseaTemplatesDraft] = React.useState([]);
     const [jseaTemplateSearchDraft, setJseaTemplateSearchDraft] = React.useState('');
+    
+    // Safety watch dropdown state for active permit screen
+    const [showHwSafetyWatchDropdownActive, setShowHwSafetyWatchDropdownActive] = React.useState(false);
+    const [filteredHwSafetyWatchContractorsActive, setFilteredHwSafetyWatchContractorsActive] = React.useState([]);
+    const [showCsSafetyWatchDropdownActive, setShowCsSafetyWatchDropdownActive] = React.useState(false);
+    const [filteredCsSafetyWatchContractorsActive, setFilteredCsSafetyWatchContractorsActive] = React.useState([]);
     
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
@@ -19496,6 +19502,200 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           styles
                         )
                       }
+
+                      {/* HOTWORK SAFETY WATCH DROPDOWN */}
+                      {val.required && key === 'hotWork' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Who is the safety watch person?</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.hw_safety_watch?.text || ''} 
+                              pointerEvents="auto"
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  hw_safety_watch: { ...(editData.specializedPermits[key].questionnaire?.hw_safety_watch || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                                
+                                // Filter contractors by name AND site
+                                if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                                  const siteId = editData.site_id;
+                                  const siteContractors = siteId ? contractors.filter(c => 
+                                    c.siteIds && 
+                                    c.siteIds.some(sid => sid === siteId)
+                                  ) : contractors;
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                  );
+                                  setFilteredHwSafetyWatchContractorsActive(filtered);
+                                  setShowHwSafetyWatchDropdownActive(filtered.length > 0);
+                                } else {
+                                  setShowHwSafetyWatchDropdownActive(false);
+                                  setFilteredHwSafetyWatchContractorsActive([]);
+                                }
+                              }}
+                              onFocus={() => {
+                                if ((editData.specializedPermits[key].questionnaire?.hw_safety_watch?.text || '').trim().length > 0 && contractors && contractors.length > 0) {
+                                  const siteId = editData.site_id;
+                                  const siteContractors = siteId ? contractors.filter(c => 
+                                    c.siteIds && 
+                                    c.siteIds.some(sid => sid === siteId)
+                                  ) : contractors;
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes((editData.specializedPermits[key].questionnaire?.hw_safety_watch?.text || '').toLowerCase())
+                                  );
+                                  setFilteredHwSafetyWatchContractorsActive(filtered);
+                                  setShowHwSafetyWatchDropdownActive(filtered.length > 0);
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setShowHwSafetyWatchDropdownActive(false), 500);
+                              }}
+                              placeholder="Start typing person name..."
+                            />
+                            {showHwSafetyWatchDropdownActive && filteredHwSafetyWatchContractorsActive.length > 0 && (
+                              <View style={{
+                                backgroundColor: 'white',
+                                borderWidth: 1,
+                                borderColor: '#D1D5DB',
+                                borderRadius: 8,
+                                marginTop: 4,
+                                maxHeight: 300,
+                                overflow: 'hidden',
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 4,
+                                elevation: 1000,
+                                zIndex: 9999,
+                                position: 'relative',
+                              }} pointerEvents="auto">
+                                <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                  {filteredHwSafetyWatchContractorsActive.map(contractor => (
+                                    <TouchableOpacity
+                                      key={contractor.id}
+                                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                      activeOpacity={0.7}
+                                      onPress={() => {
+                                        const updated = {
+                                          ...editData.specializedPermits[key].questionnaire,
+                                          hw_safety_watch: { ...(editData.specializedPermits[key].questionnaire?.hw_safety_watch || {}), text: contractor.name }
+                                        };
+                                        handleSpecializedChange(key, 'questionnaire', updated);
+                                        setShowHwSafetyWatchDropdownActive(false);
+                                        setFilteredHwSafetyWatchContractorsActive([]);
+                                      }}
+                                    >
+                                      <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+
+                      {/* CONFINED SPACE SAFETY WATCH DROPDOWN */}
+                      {val.required && key === 'confinedSpace' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Safety Watch Name</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.safety_watch_name?.text || ''} 
+                              pointerEvents="auto"
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  safety_watch_name: { ...(editData.specializedPermits[key].questionnaire?.safety_watch_name || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                                
+                                // Filter contractors by name AND site
+                                if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                                  const siteId = editData.site_id;
+                                  const siteContractors = siteId ? contractors.filter(c => 
+                                    c.siteIds && 
+                                    c.siteIds.some(sid => sid === siteId)
+                                  ) : contractors;
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                  );
+                                  setFilteredCsSafetyWatchContractorsActive(filtered);
+                                  setShowCsSafetyWatchDropdownActive(filtered.length > 0);
+                                } else {
+                                  setShowCsSafetyWatchDropdownActive(false);
+                                  setFilteredCsSafetyWatchContractorsActive([]);
+                                }
+                              }}
+                              onFocus={() => {
+                                if ((editData.specializedPermits[key].questionnaire?.safety_watch_name?.text || '').trim().length > 0 && contractors && contractors.length > 0) {
+                                  const siteId = editData.site_id;
+                                  const siteContractors = siteId ? contractors.filter(c => 
+                                    c.siteIds && 
+                                    c.siteIds.some(sid => sid === siteId)
+                                  ) : contractors;
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes((editData.specializedPermits[key].questionnaire?.safety_watch_name?.text || '').toLowerCase())
+                                  );
+                                  setFilteredCsSafetyWatchContractorsActive(filtered);
+                                  setShowCsSafetyWatchDropdownActive(filtered.length > 0);
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setShowCsSafetyWatchDropdownActive(false), 500);
+                              }}
+                              placeholder="Start typing person name..."
+                            />
+                            {showCsSafetyWatchDropdownActive && filteredCsSafetyWatchContractorsActive.length > 0 && (
+                              <View style={{
+                                backgroundColor: 'white',
+                                borderWidth: 1,
+                                borderColor: '#D1D5DB',
+                                borderRadius: 8,
+                                marginTop: 4,
+                                maxHeight: 300,
+                                overflow: 'hidden',
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 4,
+                                elevation: 1000,
+                                zIndex: 9999,
+                                position: 'relative',
+                              }} pointerEvents="auto">
+                                <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                  {filteredCsSafetyWatchContractorsActive.map(contractor => (
+                                    <TouchableOpacity
+                                      key={contractor.id}
+                                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                      activeOpacity={0.7}
+                                      onPress={() => {
+                                        const updated = {
+                                          ...editData.specializedPermits[key].questionnaire,
+                                          safety_watch_name: { ...(editData.specializedPermits[key].questionnaire?.safety_watch_name || {}), text: contractor.name }
+                                        };
+                                        handleSpecializedChange(key, 'questionnaire', updated);
+                                        setShowCsSafetyWatchDropdownActive(false);
+                                        setFilteredCsSafetyWatchContractorsActive([]);
+                                      }}
+                                    >
+                                      <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -20995,6 +21195,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           singleHazardTypes={singleHazardTypes}
           getRiskColor={getRiskColor}
           isolationRegisters={isolationRegisters}
+          contractors={contractors}
         />
       );
     case 'completed':
