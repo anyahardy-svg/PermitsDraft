@@ -20781,44 +20781,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             </View>
           )}
-        </View>
 
-        {/* VERIFICATION SECTION - Show if permit needs verification */}
-        {needsVerification(latestPermit) && (
-          <View style={[styles.section, { backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626' }]}>
-            <View style={{ padding: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
-                ⚠️ Daily Verification Required
-              </Text>
-              <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
-                This permit has not been verified in the last 24 hours. Click the button below to verify it's still safe to proceed.
-              </Text>
-              {latestPermit.last_verified_at && (
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
-                  Last verified: {formatDateNZ(latestPermit.last_verified_at)}
-                  {latestPermit.verified_by && ` by ${latestPermit.verified_by}`}
-                </Text>
+              {/* VERIFICATION SECTION - inside completion section */}
+              {needsVerification(latestPermit) && (
+                <View style={{ backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626', padding: 12, borderRadius: 8, marginTop: 16 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
+                    ⚠️ Daily Verification Required
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                    This permit has not been verified in the last 24 hours. Click the button below to verify it's still safe to proceed.
+                  </Text>
+                  {latestPermit.last_verified_at && (
+                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+                      Last verified: {formatDateNZ(latestPermit.last_verified_at)}
+                      {latestPermit.verified_by && ` by ${latestPermit.verified_by}`}
+                    </Text>
+                  )}
+                  <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => setShowVerificationModal(true)}>
+                    <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
+                  </TouchableOpacity>
+                </View>
               )}
-              <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => setShowVerificationModal(true)}>
-                <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
 
-        {/* VERIFICATION CONFIRMATION - Show if recently verified */}
-        {latestPermit.last_verified_at && !needsVerification(latestPermit) && (
-          <View style={[styles.section, { backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
-            <View style={{ padding: 12 }}>
-              <Text style={{ fontSize: 12, color: '#059669' }}>
-                ✓ Verified by {latestPermit.verified_by || 'Unknown'}
-              </Text>
-              <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                {latestPermit.last_verified_at ? formatDateNZ(latestPermit.last_verified_at) : 'N/A'}
-              </Text>
-            </View>
-          </View>
-        )}
+              {/* VERIFICATION CONFIRMATION - inside completion section */}
+              {latestPermit.last_verified_at && !needsVerification(latestPermit) && (
+                <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginTop: 16 }}>
+                  <Text style={{ fontSize: 12, color: '#059669' }}>
+                    ✓ Verified by {latestPermit.verified_by || 'Unknown'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                    {latestPermit.last_verified_at ? formatDateNZ(latestPermit.last_verified_at) : 'N/A'}
+                  </Text>
+                </View>
+              )}
+        </View>
 
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
