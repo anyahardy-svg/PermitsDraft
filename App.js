@@ -2187,8 +2187,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       // Prepare permit data for Supabase
       // NOTE: jseas and attachments columns don't exist in schema yet, so only send jsea
-      let jseaArray = [...(formData.jseas || [])];
-      
       const permitData = {
         permit_type: formData.id || 'general',
         description: formData.description,
@@ -2210,8 +2208,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
-        jseas: jseaArray || [],
+        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         requester_signature: signatureData
