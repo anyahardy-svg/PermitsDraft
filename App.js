@@ -7320,21 +7320,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const completedSignOff = permit.completedSignOff || permit.completed_sign_off || {};
     const issuerSignature = completedSignOff.issuerSignature;
     const receiverSignature = completedSignOff.receiverSignature;
+    const approvalSignature = permit.requester_signature; // Original approval signature
     
     const renderSignatureImage = (signatureDataUrl, label) => {
       if (!signatureDataUrl) {
         return (
-          <View style={{ padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6, alignItems: 'center' }}>
-            <Text style={{ fontSize: 12, color: '#9CA3AF' }}>ⓘ No signature</Text>
+          <View style={{ padding: 16, backgroundColor: '#F3F4F6', borderRadius: 8, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#9CA3AF' }}>ⓘ No signature</Text>
           </View>
         );
       }
       return (
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: '500' }}>{label}</Text>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 16, color: '#6B7280', marginBottom: 8, fontWeight: '600' }}>{label}</Text>
           <Image
             source={{ uri: signatureDataUrl }}
-            style={{ height: 80, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, backgroundColor: '#FAFAFA' }}
+            style={{ height: 120, borderWidth: 2, borderColor: '#E5E7EB', borderRadius: 8, backgroundColor: '#FAFAFA' }}
             resizeMode="contain"
           />
         </View>
@@ -7348,63 +7349,63 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <TouchableOpacity onPress={() => setCurrentScreen('completed')}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Permit Summary {permit.permitNumber}</Text>
+          <Text style={[styles.title, { fontSize: 22, fontWeight: '700' }]}>Permit Summary {permit.permitNumber}</Text>
         </View>
 
         {/* COMPLETION STATUS BANNER */}
-        <View style={{ backgroundColor: '#ECFDF5', borderLeftWidth: 4, borderLeftColor: '#059669', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#065F46', marginBottom: 4 }}>✅ PERMIT COMPLETED</Text>
-          <Text style={{ fontSize: 11, color: '#047857', marginBottom: 2 }}>Issued: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
-          <Text style={{ fontSize: 11, color: '#047857' }}>Signed Off: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
+        <View style={{ backgroundColor: '#ECFDF5', borderLeftWidth: 4, borderLeftColor: '#059669', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#065F46', marginBottom: 8 }}>✅ PERMIT COMPLETED</Text>
+          <Text style={{ fontSize: 14, color: '#047857', marginBottom: 4 }}>Issued: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
+          <Text style={{ fontSize: 14, color: '#047857' }}>Signed Off: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
         </View>
 
         {/* GENERAL INFORMATION SECTION */}
-        <View style={[styles.section, { marginBottom: 16 }]}>
-          <Text style={[styles.sectionTitle, { backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 12 }]}>📋 GENERAL INFORMATION</Text>
-          <View style={{ gap: 12 }}>
+        <View style={[styles.section, { marginBottom: 20 }]}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', backgroundColor: '#F3F4F6', padding: 14, borderRadius: 8, marginBottom: 14 }}>📋 GENERAL INFORMATION</Text>
+          <View style={{ gap: 16 }}>
             <View>
-              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Permit Number</Text>
-              <Text style={[styles.detailText, { fontSize: 14, fontWeight: '600', color: '#1F2937' }]}>{permit.permitNumber}</Text>
-            </View>
-            <View>
-              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Description</Text>
-              <Text style={[styles.detailText, { color: '#374151' }]}>{permit.description}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Site</Text>
-                <Text style={[styles.detailText, { color: '#374151' }]}>{siteIdToNameMap[permit.site_id] || 'N/A'}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Location</Text>
-                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.location || 'N/A'}</Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Start</Text>
-                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.startDate} {permit.startTime}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>End</Text>
-                <Text style={[styles.detailText, { color: '#374151' }]}>{permit.endDate} {permit.endTime}</Text>
-              </View>
+              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Permit Number</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 4 }}>{permit.permitNumber}</Text>
             </View>
             <View>
-              <Text style={[styles.label, { fontSize: 11, color: '#6B7280' }]}>Requested By</Text>
-              <Text style={[styles.detailText, { color: '#374151' }]}>{permit.requestedBy || 'N/A'}</Text>
+              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Description</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{permit.description}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Site</Text>
+                <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{siteIdToNameMap[permit.site_id] || 'N/A'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Location</Text>
+                <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{permit.location || 'N/A'}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Start</Text>
+                <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{permit.startDate} {permit.startTime}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>End</Text>
+                <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{permit.endDate} {permit.endTime}</Text>
+              </View>
+            </View>
+            <View>
+              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Requested By</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginTop: 4 }}>{permit.requestedBy || 'N/A'}</Text>
             </View>
           </View>
         </View>
 
         {/* SIGN-ONS SECTION */}
         {permit.signOns && permit.signOns.length > 0 && (
-          <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: '#0284C7' }]}>
-            <Text style={[styles.sectionTitle, { color: '#0C4A6E', marginBottom: 12 }]}>👥 SIGN-ONS (Workers)</Text>
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: '#0284C7', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0C4A6E', marginBottom: 14 }}>👥 SIGN-ONS (Workers)</Text>
             {permit.signOns.map((signOn, idx) => (
-              <View key={idx} style={{ marginBottom: 12, paddingBottom: 12, borderBottomWidth: idx < permit.signOns.length - 1 ? 1 : 0, borderBottomColor: '#BAE6FD' }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1E40AF' }}>{signOn.name}</Text>
-                {signOn.company && <Text style={{ fontSize: 11, color: '#0369A1', marginTop: 2 }}>{signOn.company}</Text>}
+              <View key={idx} style={{ marginBottom: 14, paddingBottom: 14, borderBottomWidth: idx < permit.signOns.length - 1 ? 1 : 0, borderBottomColor: '#BAE6FD' }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E40AF' }}>{signOn.name}</Text>
+                {signOn.company && <Text style={{ fontSize: 14, color: '#0369A1', marginTop: 4 }}>{signOn.company}</Text>}
               </View>
             ))}
           </View>
@@ -7412,13 +7413,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         {/* CONTROLS SUMMARY SECTION */}
         {(permit.specializedPermits || permit.singleHazards || (permit.jseas && permit.jseas.length > 0)) && (
-          <View style={[styles.section, { marginBottom: 16, backgroundColor: '#FFFBEB', borderLeftWidth: 4, borderLeftColor: '#F59E0B' }]}>
-            <Text style={[styles.sectionTitle, { color: '#92400E', marginBottom: 12 }]}>⚠️ CONTROLS SUMMARY</Text>
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FFFBEB', borderLeftWidth: 4, borderLeftColor: '#F59E0B', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#92400E', marginBottom: 14 }}>⚠️ CONTROLS SUMMARY</Text>
 
             {/* Specialized Permits Controls */}
             {permit.specializedPermits && Object.entries(permit.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Specialized Permits:</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>Specialized Permits:</Text>
                 {Object.entries(permit.specializedPermits)
                   .sort((a, b) => {
                     const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
@@ -7429,14 +7430,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const permitType = specializedPermitTypes.find(p => p.key === key);
                     const questionnaire = permitQuestionnaires[key] || [];
                     return val.required && val.questionnaire ? (
-                      <View key={key} style={{ marginLeft: 8, marginBottom: 12 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#92400E' }}>• {permitType?.label || key}</Text>
+                      <View key={key} style={{ marginLeft: 12, marginBottom: 14 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E' }}>• {permitType?.label || key}</Text>
                         {Object.entries(val.questionnaire).map(([qid, qval]) => {
                           const question = questionnaire.find(q => q.id === qid);
                           return qval.controls ? (
-                            <View key={qid} style={{ marginLeft: 12, marginTop: 6 }}>
-                              <Text style={{ fontSize: 10, color: '#B45309' }}>Q: {question?.text || qid}</Text>
-                              <Text style={{ fontSize: 11, color: '#78350F', fontWeight: '500', marginTop: 2 }}>→ Control: {qval.controls}</Text>
+                            <View key={qid} style={{ marginLeft: 16, marginTop: 8 }}>
+                              <Text style={{ fontSize: 13, color: '#B45309' }}>Q: {question?.text || qid}</Text>
+                              <Text style={{ fontSize: 14, color: '#78350F', fontWeight: '600', marginTop: 4 }}>→ Control: {qval.controls}</Text>
                             </View>
                           ) : null;
                         })}
@@ -7449,13 +7450,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {/* Single Hazards Controls */}
             {permit.singleHazards && Object.entries(permit.singleHazards).some(([_, val]) => val.present && val.controls) && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Single Hazards:</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>Single Hazards:</Text>
                 {Object.entries(permit.singleHazards).map(([key, val]) => {
                   const hazardType = singleHazardTypes.find(h => h.key === key);
                   return val.present && val.controls ? (
-                    <View key={key} style={{ marginLeft: 8, marginBottom: 8 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '500', color: '#78350F' }}>• {hazardType?.label || key}</Text>
-                      <Text style={{ fontSize: 10, color: '#B45309', marginLeft: 8, marginTop: 2 }}>→ {val.controls}</Text>
+                    <View key={key} style={{ marginLeft: 12, marginBottom: 10 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#78350F' }}>• {hazardType?.label || key}</Text>
+                      <Text style={{ fontSize: 14, color: '#B45309', marginLeft: 12, marginTop: 4 }}>→ {val.controls}</Text>
                     </View>
                   ) : null;
                 })}
@@ -7465,20 +7466,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {/* JSEA Controls */}
             {permit.jseas && permit.jseas.length > 0 && (
               <View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>Job Safety & Environmental Analysis (JSEA):</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>Job Safety & Environmental Analysis (JSEA):</Text>
                 {permit.jseas.map((jsea, jIdx) => (
-                  <View key={jIdx} style={{ marginLeft: 8, marginBottom: 12 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#92400E' }}>JSEA {jIdx + 1}: {jsea.id || 'N/A'}</Text>
+                  <View key={jIdx} style={{ marginLeft: 12, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E' }}>JSEA {jIdx + 1}: {jsea.id || 'N/A'}</Text>
                     {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
                       jsea.taskSteps.map((step, sIdx) => (
-                        <View key={sIdx} style={{ marginLeft: 12, marginTop: 6, paddingBottom: 8, borderBottomWidth: sIdx < jsea.taskSteps.length - 1 ? 1 : 0, borderBottomColor: '#FED7AA' }}>
-                          <Text style={{ fontSize: 10, color: '#92400E', fontWeight: '500' }}>Step {sIdx + 1}: {step.task}</Text>
-                          <Text style={{ fontSize: 10, color: '#B45309', marginTop: 2 }}>→ Hazards: {step.hazards || 'None identified'}</Text>
-                          <Text style={{ fontSize: 10, color: '#78350F', marginTop: 2 }}>→ Controls: {step.controls || 'None specified'}</Text>
+                        <View key={sIdx} style={{ marginLeft: 16, marginTop: 10, paddingBottom: 10, borderBottomWidth: sIdx < jsea.taskSteps.length - 1 ? 1 : 0, borderBottomColor: '#FED7AA' }}>
+                          <Text style={{ fontSize: 13, color: '#92400E', fontWeight: '600' }}>Step {sIdx + 1}: {step.task}</Text>
+                          <Text style={{ fontSize: 13, color: '#B45309', marginTop: 4 }}>→ Hazards: {step.hazards || 'None identified'}</Text>
+                          <Text style={{ fontSize: 13, color: '#78350F', marginTop: 4 }}>→ Controls: {step.controls || 'None specified'}</Text>
                         </View>
                       ))
                     ) : (
-                      <Text style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 12, fontStyle: 'italic' }}>No steps recorded</Text>
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 16, fontStyle: 'italic' }}>No steps recorded</Text>
                     )}
                   </View>
                 ))}
@@ -7487,67 +7488,78 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         )}
 
+        {/* APPROVAL SIGNATURE SECTION */}
+        {approvalSignature && (
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#7F1D1D', marginBottom: 14 }}>📝 APPROVAL SIGNATURE</Text>
+            {renderSignatureImage(approvalSignature, 'Permit Requester Approval')}
+            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#FECACA' }}>
+              <Text style={{ fontSize: 14, color: '#7F1D1D', fontWeight: '600' }}>Original Approval Signature from Initial Submission</Text>
+            </View>
+          </View>
+        )}
+
         {/* SIGN-OFF SECTION - SIGNATURES */}
-        <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F5F3FF', borderLeftWidth: 4, borderLeftColor: '#8B5CF6' }]}>
-          <Text style={[styles.sectionTitle, { color: '#5B21B6', marginBottom: 12 }]}>✍️ SIGN-OFF SIGNATURES</Text>
+        <View style={[styles.section, { marginBottom: 20, backgroundColor: '#F5F3FF', borderLeftWidth: 4, borderLeftColor: '#8B5CF6', padding: 14, borderRadius: 8 }]}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#5B21B6', marginBottom: 14 }}>✍️ SIGN-OFF SIGNATURES</Text>
           
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6B21A8', marginBottom: 8 }}>Permit Issuer</Text>
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Permit Issuer</Text>
             {renderSignatureImage(issuerSignature, 'Issuer Signature')}
-            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
-              <Text style={{ fontSize: 11, color: '#6B21A8' }}>Name: <Text style={{ fontWeight: '600' }}>{completedSignOff.issuerName || 'N/A'}</Text></Text>
-              <Text style={{ fontSize: 11, color: '#6B21A8', marginTop: 2 }}>Signed: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
+            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
+              <Text style={{ fontSize: 15, color: '#6B21A8', marginBottom: 4 }}>Name: <Text style={{ fontWeight: '700' }}>{completedSignOff.issuerName || 'N/A'}</Text></Text>
+              <Text style={{ fontSize: 15, color: '#6B21A8' }}>Signed: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
             </View>
           </View>
 
           <View>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6B21A8', marginBottom: 8 }}>Work Receiver/Completion</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Work Receiver/Completion</Text>
             {renderSignatureImage(receiverSignature, 'Receiver Signature')}
-            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
-              <Text style={{ fontSize: 11, color: '#6B21A8' }}>Name: <Text style={{ fontWeight: '600' }}>{completedSignOff.receiverName || 'N/A'}</Text></Text>
-              <Text style={{ fontSize: 11, color: '#6B21A8', marginTop: 2 }}>Signed: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
+            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
+              <Text style={{ fontSize: 15, color: '#6B21A8', marginBottom: 4 }}>Name: <Text style={{ fontWeight: '700' }}>{completedSignOff.receiverName || 'N/A'}</Text></Text>
+              <Text style={{ fontSize: 15, color: '#6B21A8' }}>Signed: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
             </View>
           </View>
         </View>
 
         {/* AUDIT TRAIL */}
-        <View style={[styles.section, { marginBottom: 16, backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
-          <Text style={[styles.sectionTitle, { color: '#065F46', marginBottom: 12 }]}>📅 AUDIT TRAIL</Text>
-          <View style={{ gap: 8 }}>
+        <View style={[styles.section, { marginBottom: 20, backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 14, borderRadius: 8 }]}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#065F46', marginBottom: 14 }}>📅 AUDIT TRAIL</Text>
+          <View style={{ gap: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 11, color: '#6B7280' }}>Created:</Text>
-              <Text style={{ fontSize: 11, color: '#374151', fontWeight: '500' }}>{permit.createdAt ? new Date(permit.createdAt).toLocaleString('en-NZ') : 'N/A'}</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '600' }}>Created:</Text>
+              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{permit.createdAt ? new Date(permit.createdAt).toLocaleString('en-NZ') : 'N/A'}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 11, color: '#6B7280' }}>Completed:</Text>
-              <Text style={{ fontSize: 11, color: '#374151', fontWeight: '500' }}>{permit.completedAt ? new Date(permit.completedAt).toLocaleString('en-NZ') : completedSignOff.receiverSignedAt || 'N/A'}</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '600' }}>Completed:</Text>
+              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{permit.completedAt ? new Date(permit.completedAt).toLocaleString('en-NZ') : completedSignOff.receiverSignedAt || 'N/A'}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 11, color: '#6B7280' }}>Status:</Text>
-              <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>COMPLETED</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '600' }}>Status:</Text>
+              <Text style={{ fontSize: 14, color: '#10B981', fontWeight: '700' }}>COMPLETED</Text>
             </View>
             {permit.last_verified_at && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 11, color: '#6B7280' }}>Last Verified:</Text>
-                <Text style={{ fontSize: 11, color: '#374151' }}>{formatDateNZ(permit.last_verified_at)}</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '600' }}>Last Verified:</Text>
+                <Text style={{ fontSize: 14, color: '#374151' }}>{formatDateNZ(permit.last_verified_at)}</Text>
               </View>
             )}
           </View>
         </View>
 
         {/* ACTION BUTTONS */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
           <TouchableOpacity 
             style={[styles.submitButton, { backgroundColor: '#10B981', flex: 1 }]} 
             onPress={() => handlePrintPermit(permit)}
           >
-            <Text style={styles.submitButtonText}>🖨 Print Summary</Text>
+            <Text style={[styles.submitButtonText, { fontSize: 16 }]}>🖨 Print Summary</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.submitButton, { backgroundColor: '#3B82F6', flex: 1 }]} 
             onPress={() => setCurrentScreen('completed')}
           >
-            <Text style={styles.submitButtonText}>← Back</Text>
+            <Text style={[styles.submitButtonText, { fontSize: 16 }]}>← Back</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
