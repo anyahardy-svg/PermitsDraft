@@ -2023,6 +2023,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Set receiver to the requested person's name
       const currentReceiver = formData.requestedBy || null;
       
+      // Include currentJseaData if it has task steps and hasn't been formally added yet
+      let jseaArray = [...(formData.jseas || [])];
+      if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
+        // Check if this JSEA is already in the array (by checking if it has an ID that matches)
+        const isAlreadyAdded = jseaArray.some(jsea => jsea.id === currentJseaData.id || (jsea.title === currentJseaData.title && jsea.taskSteps?.length === currentJseaData.taskSteps?.length));
+        if (!isAlreadyAdded) {
+          jseaArray.push(currentJseaData);
+          console.log('📝 [DRAFT SAVE] Added unsaved currentJseaData to jseas array:', currentJseaData);
+        }
+      }
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
@@ -2046,8 +2057,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
-        jseas: formData.jseas || [],  // Always send jseas array (empty if no data)
+        jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
+        jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: []
@@ -2153,6 +2164,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const currentReceiver = formData.requestedBy || null;
       console.log('   Receiver:', currentReceiver);
       
+      // Include currentJseaData if it has task steps and hasn't been formally added yet
+      let jseaArray = [...(formData.jseas || [])];
+      if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
+        // Check if this JSEA is already in the array (by checking if it has an ID that matches)
+        const isAlreadyAdded = jseaArray.some(jsea => jsea.id === currentJseaData.id || (jsea.title === currentJseaData.title && jsea.taskSteps?.length === currentJseaData.taskSteps?.length));
+        if (!isAlreadyAdded) {
+          jseaArray.push(currentJseaData);
+          console.log('📝 [APPROVAL SAVE] Added unsaved currentJseaData to jseas array:', currentJseaData);
+        }
+      }
+      
       // Prepare permit data for Supabase
       const permitData = {
         permit_type: formData.id || 'general',
@@ -2176,8 +2198,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
-        jseas: formData.jseas || [],  // Always send jseas array (empty if no data)
+        jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
+        jseas: jseaArray,  // Always send jseas array (empty if no data)
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         attachments: [],
