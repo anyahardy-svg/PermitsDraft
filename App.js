@@ -15088,53 +15088,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ) : null;
                 })()}
 
-                {/* JSEA Task Controls Summary */}
-                {(() => {
-                  const allControls = [];
-                  
-                  // Check singular jsea field first (current implementation)
-                  if (editData.jsea && editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0) {
-                    editData.jsea.taskSteps.forEach((step, stepIdx) => {
-                      if (step.controls) {
-                        allControls.push({
-                          jseaIdx: 0,
-                          stepIdx,
-                          step: step.description || step.step || 'No description',
-                          controls: step.controls
-                        });
-                      }
-                    });
-                  }
-                  
-                  // Also check jseas array if it exists (for backward compatibility)
-                  if (editData.jseas && editData.jseas.length > 0) {
-                    editData.jseas.forEach((jsea, jseaIdx) => {
-                      if (jsea.taskSteps && jsea.taskSteps.length > 0) {
-                        jsea.taskSteps.forEach((step, stepIdx) => {
-                          if (step.controls) {
-                            allControls.push({
-                              jseaIdx,
-                              stepIdx,
-                              step: step.description || step.step || 'No description',
-                              controls: step.controls
-                            });
-                          }
-                        });
-                      }
-                    });
-                  }
-                  return allControls.length > 0 && (
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Task Controls:</Text>
-                      {allControls.map((item, idx) => (
-                        <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
-                          <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {item.controls}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  );
-                })()}
 
                 {/* JSEA Task Steps - Full Details */}
                 {(editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
