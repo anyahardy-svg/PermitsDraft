@@ -14484,7 +14484,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.15,
                                     shadowRadius: 4,
-                                    elevation: 5,
+                                    elevation: 1000,
                                   }} pointerEvents="auto">
                                     <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                       {filteredHwSafetyWatchContractorsDraft[key].map(contractor => (
@@ -14579,7 +14579,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.15,
                                     shadowRadius: 4,
-                                    elevation: 5,
+                                    elevation: 1000,
                                   }} pointerEvents="auto">
                                     <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                       {filteredCsSafetyWatchContractorsDraft[key].map(contractor => (
