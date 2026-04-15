@@ -7320,7 +7320,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const completedSignOff = permit.completedSignOff || permit.completed_sign_off || {};
     const issuerSignature = completedSignOff.issuerSignature;
     const receiverSignature = completedSignOff.receiverSignature;
-    const approvalSignature = permit.requester_signature; // Original approval signature
+    const requesterApprovalSignature = permit.requester_signature; // Requester signature when submitting for approval
+    const issuerApprovalSignature = permit.issuer_signature; // Issuer signature when approving the permit
     
     const renderSignatureImage = (signatureDataUrl, label) => {
       if (!signatureDataUrl) {
@@ -7488,24 +7489,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         )}
 
-        {/* APPROVAL SIGNATURE SECTION */}
-        {approvalSignature && (
-          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626', padding: 14, borderRadius: 8 }]}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#7F1D1D', marginBottom: 14 }}>📝 APPROVAL SIGNATURE</Text>
-            {renderSignatureImage(approvalSignature, 'Permit Requester Approval')}
-            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#FECACA' }}>
-              <Text style={{ fontSize: 14, color: '#7F1D1D', fontWeight: '600' }}>Original Approval Signature from Initial Submission</Text>
-            </View>
+        {/* APPROVAL STAGE SIGNATURES SECTION */}
+        {(requesterApprovalSignature || issuerApprovalSignature) && (
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#FBBF24', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#92400E', marginBottom: 14 }}>✅ APPROVAL STAGE SIGNATURES</Text>
+            
+            {requesterApprovalSignature && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>1. Requester - Initial Submission</Text>
+                {renderSignatureImage(requesterApprovalSignature, 'Requester Signature')}
+                <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#FCD34D' }}>
+                  <Text style={{ fontSize: 14, color: '#92400E', fontWeight: '600' }}>Signed to submit permit for approval</Text>
+                </View>
+              </View>
+            )}
+            
+            {issuerApprovalSignature && (
+              <View>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>2. Permit Issuer - Approval</Text>
+                {renderSignatureImage(issuerApprovalSignature, 'Issuer Approval Signature')}
+                <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#FCD34D' }}>
+                  <Text style={{ fontSize: 14, color: '#92400E', fontWeight: '600' }}>Signed to approve and issue permit</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
-        {/* SIGN-OFF SECTION - SIGNATURES */}
+        {/* COMPLETION SIGN-OFF SECTION - SIGNATURES */}
         <View style={[styles.section, { marginBottom: 20, backgroundColor: '#F5F3FF', borderLeftWidth: 4, borderLeftColor: '#8B5CF6', padding: 14, borderRadius: 8 }]}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#5B21B6', marginBottom: 14 }}>✍️ SIGN-OFF SIGNATURES</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#5B21B6', marginBottom: 14 }}>✍️ COMPLETION SIGN-OFF SIGNATURES</Text>
           
           <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Permit Issuer</Text>
-            {renderSignatureImage(issuerSignature, 'Issuer Signature')}
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Permit Issuer - Work Completion Sign-Off</Text>
+            {renderSignatureImage(issuerSignature, 'Issuer Completion Signature')}
             <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
               <Text style={{ fontSize: 15, color: '#6B21A8', marginBottom: 4 }}>Name: <Text style={{ fontWeight: '700' }}>{completedSignOff.issuerName || 'N/A'}</Text></Text>
               <Text style={{ fontSize: 15, color: '#6B21A8' }}>Signed: {completedSignOff.issuerSignedAt || 'N/A'}</Text>
@@ -7513,8 +7530,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
 
           <View>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Work Receiver/Completion</Text>
-            {renderSignatureImage(receiverSignature, 'Receiver Signature')}
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#6B21A8', marginBottom: 10 }}>Work Receiver - Completion Sign-Off</Text>
+            {renderSignatureImage(receiverSignature, 'Receiver Completion Signature')}
             <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E9D5FF' }}>
               <Text style={{ fontSize: 15, color: '#6B21A8', marginBottom: 4 }}>Name: <Text style={{ fontWeight: '700' }}>{completedSignOff.receiverName || 'N/A'}</Text></Text>
               <Text style={{ fontSize: 15, color: '#6B21A8' }}>Signed: {completedSignOff.receiverSignedAt || 'N/A'}</Text>
