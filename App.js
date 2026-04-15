@@ -1183,6 +1183,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [permitTemplatesAvailable, setPermitTemplatesAvailable] = useState([]);
   const [loadingPermitTemplates, setLoadingPermitTemplates] = useState(false);
   const [selectedBuForPermitTemplateLoader, setSelectedBuForPermitTemplateLoader] = useState('');
+  const [selectedCompanyForPermitTemplateLoader, setSelectedCompanyForPermitTemplateLoader] = useState('');
   const [showRiskMatrix, setShowRiskMatrix] = useState(false);
   const [riskMatrixContext, setRiskMatrixContext] = useState('new'); // 'new' or 'draft'
   const [selectedLikelihood, setSelectedLikelihood] = useState('');
@@ -1533,6 +1534,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       completion: template.completion || prev.completion,
     }));
     setShowPermitTemplateLoader(false);
+    setSelectedCompanyForPermitTemplateLoader('');
     Alert.alert('Success', `Loaded permit template: ${template.template_name}`);
   };
 
@@ -5339,7 +5341,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <Modal 
           visible={showPermitTemplateLoader} 
           animationType="slide"
-          onRequestClose={() => setShowPermitTemplateLoader(false)}
+          onRequestClose={() => {
+            setShowPermitTemplateLoader(false);
+            setSelectedCompanyForPermitTemplateLoader('');
+          }}
           transparent
         >
           <View style={{
@@ -5367,7 +5372,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }}>
                   Load Permit Template
                 </Text>
-                <TouchableOpacity onPress={() => setShowPermitTemplateLoader(false)}>
+                <TouchableOpacity onPress={() => {
+                  setShowPermitTemplateLoader(false);
+                  setSelectedCompanyForPermitTemplateLoader('');
+                }}>
                   <Text style={{
                     fontSize: 24,
                     color: '#9CA3AF',
@@ -5393,6 +5401,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     selectedValue={selectedBuForPermitTemplateLoader}
                     onValueChange={(itemValue) => {
                       setSelectedBuForPermitTemplateLoader(itemValue);
+                      setSelectedCompanyForPermitTemplateLoader('');
                       if (itemValue) {
                         loadPermitTemplatesForLoader(itemValue);
                       }
@@ -5409,6 +5418,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               </View>
 
+              {selectedBuForPermitTemplateLoader && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600', 
+                    color: '#1F2937', 
+                    marginBottom: 8 
+                  }}>Company (Optional)</Text>
+                  <View style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    backgroundColor: 'white'
+                  }}>
+                    <Picker
+                      selectedValue={selectedCompanyForPermitTemplateLoader}
+                      onValueChange={(itemValue) => {
+                        setSelectedCompanyForPermitTemplateLoader(itemValue);
+                      }}
+                      style={{
+                        color: '#1F2937'
+                      }}
+                    >
+                      <Picker.Item label="All Companies" value="" />
+                      {[...new Set(permitTemplatesAvailable.map(t => t.company_name).filter(Boolean))].map((company) => (
+                        <Picker.Item key={company} label={company} value={company} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+              )}
+
               {loadingPermitTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
@@ -5421,7 +5462,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {permitTemplatesAvailable.map((template) => (
+                  {permitTemplatesAvailable
+                    .filter(template => !selectedCompanyForPermitTemplateLoader || template.company_name === selectedCompanyForPermitTemplateLoader)
+                    .map((template) => (
                     <TouchableOpacity
                       key={template.id}
                       style={{
@@ -5471,7 +5514,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   borderRadius: 8,
                   alignItems: 'center'
                 }}
-                onPress={() => setShowPermitTemplateLoader(false)}
+                onPress={() => {
+                  setShowPermitTemplateLoader(false);
+                  setSelectedCompanyForPermitTemplateLoader('');
+                }}
               >
                 <Text style={{
                   fontSize: 14,
