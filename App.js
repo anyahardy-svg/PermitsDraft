@@ -2204,7 +2204,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitted_issuer: formData.permitIssuer || '',
         site_id: siteId,
         contractor_id: currentContractor?.id || null,
-        current_permit_receiver_id: currentReceiver,
+        current_permit_receiver_id: formData.requestedBy || null,
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
@@ -4736,54 +4736,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </View>
                   );
                 })()}
-                {/* JSEA Task Steps */}
-                {formData.jseas && formData.jseas.length > 0 && (
-                  <View>
-                    {formData.jseas.map((jsea, jseaIdx) => (
-                      <View key={jsea.id || jseaIdx} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
-                        {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
-                          <View style={{ marginBottom: 8 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#6B7280', marginBottom: 6 }}>Task Steps:</Text>
-                            {jsea.taskSteps.map((step, idx) => (
-                              <View key={idx} style={{ marginBottom: 10, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                                <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '600', marginBottom: 4 }}>Step {idx + 1}: {step.description || step.step}</Text>
-                                {step.hazards && (
-                                  <View style={{ marginBottom: 4 }}>
-                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Hazards:</Text>
-                                    <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.hazards}</Text>
-                                  </View>
-                                )}
-                                {step.controls && (
-                                  <View style={{ marginBottom: 4 }}>
-                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Controls:</Text>
-                                    <Text style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{step.controls}</Text>
-                                  </View>
-                                )}
-                                {step.riskLevel && (
-                                  <View>
-                                    <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Risk Level:</Text>
-                                    <Text style={{ fontSize: 12, color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', marginLeft: 8 }}>{step.riskLevel}</Text>
-                                  </View>
-                                )}
-                              </View>
-                            ))}
-                          </View>
-                        ) : (
-                          <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>No task steps added</Text>
-                        )}
-                        {jsea.additionalPrecautions && (
-                          <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Additional Precautions:</Text>
-                            <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                              <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}>{jsea.additionalPrecautions}</Text>
-                            </View>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
+
                 {/* Safety Watches & Firewatch */}
                 {(() => {
                   const safetyWatches = [];
