@@ -14371,13 +14371,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         {/* SPECIALIZED PERMITS - COLLAPSIBLE */}
         {editData.specializedPermits && permitQuestionnaires && (
-          <View style={styles.section}>
+          <View style={[styles.section, { zIndex: 100, overflow: 'visible' }]}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
               <Text style={styles.sectionTitle}>Specialized Permits</Text>
               <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.specialized && (
-              <View style={styles.sectionContent}>
+              <View style={[styles.sectionContent, { zIndex: 9999, overflow: 'visible' }]}>
                 {Object.entries(editData.specializedPermits)
                   .sort((a, b) => {
                     const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
@@ -14422,10 +14422,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           {key === 'hotWork' && (
                             <View style={{ marginBottom: 12 }}>
                               <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Who is the safety watch person?</Text>
-                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
                                 <TextInput 
                                   style={[styles.input]} 
                                   value={val.questionnaire?.hw_safety_watch?.text || ''} 
+                                  pointerEvents="auto"
                                   onChangeText={text => {
                                     const updated = {
                                       ...val.questionnaire,
@@ -14517,10 +14518,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           {key === 'confinedSpace' && (
                             <View style={{ marginBottom: 12 }}>
                               <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Name</Text>
-                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 1000 }}>
+                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
                                 <TextInput 
                                   style={[styles.input]} 
                                   value={val.questionnaire?.safety_watch_name?.text || ''} 
+                                  pointerEvents="auto"
                                   onChangeText={text => {
                                     const updated = {
                                       ...val.questionnaire,
