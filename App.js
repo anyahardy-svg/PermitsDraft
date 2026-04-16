@@ -2746,12 +2746,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // --- Render questionnaire for a specialized permit ---
   // This function is defined inside PermitManagementApp so it can access state variables via closure
   const renderQuestionnaire = (permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) => {
-    const questions = permitQuestionnaires[permitKey] || [];
-    const answers = formData.specializedPermits[permitKey]?.questionnaire || {};
+    if (!permitKey || !permitQuestionnaires) {
+      console.warn('renderQuestionnaire: missing permitKey or permitQuestionnaires', { permitKey, hasQuestionnaires: !!permitQuestionnaires });
+      return <View />;
+    }
+    const questions = (permitQuestionnaires[permitKey] || []).filter(q => q != null);
+    const answers = formData?.specializedPermits?.[permitKey]?.questionnaire || {};
     
     // Helper to check if a field is empty but required
     const isEmptyRequired = (question) => {
-      if (!question.required) return false;
+      if (!question || !question.required) return false;
       const answerObj = answers[question.id] || {};
       const answer = answerObj.answer || '';
       const textValue = answerObj.text || '';
@@ -2772,6 +2776,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={styles.questionnaireScroll}>
         {questions.map((q) => {
+          if (!q || !q.id) return null;
           const answerObj = answers[q.id] || {};
           const answer = answerObj.answer || '';
           const controls = answerObj.controls || '';
