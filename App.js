@@ -7286,16 +7286,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const siteName = formData.site || (formData.site_id ? siteIdToNameMap?.[formData.site_id] : null);
               
               return (
-                <View key={q.id} style={{ marginBottom: 12, position: 'relative', overflow: 'visible', zIndex: 9999 }}>
+                <View key={q.id} style={{ marginBottom: 12 }}>
                   <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                   <TextInput
-                    style={[styles.input, { marginBottom: 4 }]}
+                    style={[styles.detailTextInput, { marginBottom: 8 }]}
                     value={value}
                     onChangeText={text => {
                       handleQuestionnaireResponse(permitKey, q.id, text);
                       // Filter contractors based on input and site
                       if (text.trim().length > 0 && siteName) {
-                        const siteContractors = contractors.filter(contractor=>
+                        const siteContractors = contractors.filter(contractor =>
                           contractor.siteIds &&
                           contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === siteName)
                         );
@@ -7323,43 +7323,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       }
                     }}
                     onBlur={() => {
-                      setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 300);
+                      setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
                     }}
                     placeholder={q.textLabel || 'Start typing person name...'}
                     editable={siteName ? true : false}
+                    multiline
                   />
                   {!siteName && (
                     <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                   )}
                   {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
                     <View style={{
-                      position: 'absolute',
-                      top: 55,
-                      left: 0,
-                      right: 0,
                       backgroundColor: 'white',
                       borderWidth: 1,
                       borderColor: '#D1D5DB',
                       borderRadius: 6,
                       maxHeight: 200,
-                      elevation: 9999,
-                      zIndex: 99999,
-                      overflow: 'hidden'
+                      marginTop: 4,
+                      elevation: 999,
+                      zIndex: 9999,
                     }}>
                       <ScrollView scrollEnabled={true}>
                         {filteredCompetentPersonContractors[permitKey].map(contractor => (
                           <TouchableOpacity
                             key={contractor.id}
-                            style={{ 
-                              padding: 12, 
-                              borderBottomWidth: 1, 
-                              borderBottomColor: '#E5E7EB', 
-                              backgroundColor: 'white',
-                              width: '100%'
-                            }}
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                             activeOpacity={0.7}
                             onPress={() => {
-                              console.log('✅ Contractor selected:', contractor.name);
                               handleQuestionnaireResponse(permitKey, q.id, contractor.name);
                               setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                               setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
@@ -7816,6 +7806,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Requested By dropdown states
   const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
   const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
+  
+  // Competent person dropdown states for excavation permit
+  const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = React.useState({});
+  const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = React.useState({});
   
   const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
@@ -14907,13 +14901,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         {/* SPECIALIZED PERMITS - COLLAPSIBLE */}
         {editData.specializedPermits && permitQuestionnaires && (
-          <View style={[styles.section, { zIndex: 100, overflow: 'visible' }]}>
+          <View style={styles.section}>
             <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('specialized')}>
               <Text style={styles.sectionTitle}>Specialized Permits</Text>
               <Text style={styles.expandIcon}>{expandedSections.specialized ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {expandedSections.specialized && (
-              <View style={[styles.sectionContent, { zIndex: 9999, overflow: 'visible' }]}>
+              <View style={styles.sectionContent}>
                 {Object.entries(editData.specializedPermits)
                   .sort((a, b) => {
                     const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
