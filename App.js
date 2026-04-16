@@ -212,7 +212,8 @@ function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, p
     if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
       return !answer;
     } else if (question.type === 'text') {
-      return !textValue || !textValue.trim();
+      // Check BOTH fields for backward compatibility
+      return (!textValue || !textValue.trim()) && (!answer || !answer.trim());
     } else if (question.type === 'yesno_text') {
       return !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
     } else if (question.type === 'multi_checkbox') {
@@ -1748,8 +1749,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
             isEmpty = !answer;
           } else if (question.type === 'text') {
-            // For text questions, check both 'answer' and 'text' fields (some custom fields store in 'text')
-            isEmpty = (!answer || !answer.trim()) && (!textValue || !textValue.trim());
+            // Check BOTH answer and text fields (backward compatible)
+            isEmpty = (!textValue || !textValue.trim()) && (!answer || !answer.trim());
           } else if (question.type === 'yesno_text') {
             isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
           } else if (question.type === 'multi_checkbox') {
@@ -1829,7 +1830,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
           isEmpty = !answer;
         } else if (question.type === 'text') {
-          isEmpty = !textValue || !textValue.trim();
+          // Check BOTH fields for backward compatibility
+          isEmpty = (!textValue || !textValue.trim()) && (!answer || !answer.trim());
         } else if (question.type === 'yesno_text') {
           isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
         } else if (question.type === 'multi_checkbox') {
@@ -1913,7 +1915,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
               isEmpty = !answer;
             } else if (question.type === 'text') {
-              isEmpty = !textValue || !textValue.trim();
+              // Check BOTH answer and text fields (backward compatible - data might be in either)
+              isEmpty = (!textValue || !textValue.trim()) && (!answer || !answer.trim());
             } else if (question.type === 'yesno_text') {
               isEmpty = !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
             } else if (question.type === 'multi_checkbox') {
