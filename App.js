@@ -1873,8 +1873,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (dataToValidate.specializedPermits) {
       Object.keys(dataToValidate.specializedPermits).forEach(permitKey => {
         const permit = dataToValidate.specializedPermits[permitKey];
-        if (!permit.required) return;
+        if (!permit.required) {
+          console.log(`⏭️ [validatePermitForApproval] Skipping ${permitKey} - not required`);
+          return;
+        }
         
+        console.log(`✅ [validatePermitForApproval] Validating ${permitKey}...`);
         const permitQuestions = permitQuestionnaires[permitKey] || [];
         const questionnaire = permit.questionnaire || {};
         
@@ -1890,10 +1894,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             const shouldShow = dependsOnIds.some(depId => {
               const depAnswer = questionnaire[depId]?.answer;
+              console.log(`  🔍 [draft validation] Dependency for "${question.id}": "${depId}" = "${depAnswer}" (expected: ${JSON.stringify(dependsOnValue)}) → ${dependsOnValue.includes(depAnswer) ? 'SHOW' : 'SKIP'}`);
               return dependsOnValue.includes(depAnswer);
             });
             
-            if (!shouldShow) return;
+            if (!shouldShow) {
+              console.log(`  ⏭️ SKIPPING "${question.id}" - dependency not met`);
+              return;
+            }
           }
           
           if (question.required) {
@@ -1913,6 +1921,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
             
             if (isEmpty) {
+              console.log(`❌ [draft validation] MISSING in ${permitKey}: "${question.id}" (type: ${question.type}, answer="${answer}", text="${textValue}")`);
               const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
                 .split(' ')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -1922,12 +1931,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 section: permitName,
                 field: question.text.substring(0, 70) + (question.text.length > 70 ? '...' : '')
               });
+            } else {
+              console.log(`✓ [draft validation] OK: "${question.id}"`);
             }
           }
         });
       });
     }
     
+    console.log(`[validatePermitForApproval] Final result: ${allMissingFields.length} missing fields`);
     return allMissingFields;
   };
   const handleSubmit = async (status) => {
