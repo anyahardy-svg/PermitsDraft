@@ -2851,109 +2851,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   )}
                 </View>
               )}
-              {q.type === 'text' && (
-                <>
-                  {q.id === 'competent_person' ? (
-                    <View 
-                      onStartShouldSetResponder={() => true}
-                      onMoveShouldSetResponder={() => true}
-                      style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4, overflow: 'visible', zIndex: 9999, position: 'relative' }} 
-                      pointerEvents="auto"
-                    >
-                      <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
-                      <TextInput
-                        editable={true}
-                        pointerEvents="auto"
-                        onStartShouldSetResponder={() => true}
-                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2, position: 'relative', zIndex: 1 }]}
-                        value={answerObj.text || ''}
-                        onChangeText={text => {
-                          handleQuestionnaireResponse(permitKey, q.id, text, 'text');
-                          
-                          // Filter contractors based on input text
-                          if (text && text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c =>
-                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
-                          } else {
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                          }
-                        }}
-                        onFocus={() => {
-                          console.log('[COMPETENT_PERSON] onFocus called');
-                          setCompetentPersonFocused(true);
-                          // Show contractors that match current text
-                          const textVal = (answerObj.text || '').trim();
-                          if (textVal.length > 0 && contractors && contractors.length > 0) {
-                            const filtered = contractors.filter(c =>
-                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
-                            );
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
-                          }
-                        }}
-                        onBlur={() => {
-                          console.log('[COMPETENT_PERSON] onBlur called');
-                          setCompetentPersonFocused(false);
-                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 200);
-                        }}
-                        placeholder="Enter name (starts typing to see suggestions)"
-                        placeholderTextColor="#D1D5DB"
-                      />
-                      {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
-                        <ScrollView pointerEvents="auto" style={{
-                          backgroundColor: 'white',
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 6,
-                          maxHeight: 200,
-                          marginTop: 8,
-                          elevation: 9999,
-                          zIndex: 9999,
-                          position: 'absolute',
-                          top: 100,
-                          left: 0,
-                          right: 0
-                        }} scrollEnabled={true} nestedScrollEnabled={true}>
-                          {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
-                            <TouchableOpacity
-                              pointerEvents="auto"
-                              key={contractor.id || idx}
-                              style={{ 
-                                padding: 12, 
-                                borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
-                                borderBottomColor: '#E5E7EB', 
-                                backgroundColor: 'white' 
-                              }}
-                              activeOpacity={0.7}
-                              onPress={() => {
-                                handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
-                                setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                                setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                              }}
-                            >
-                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.textInputContainer}>
-                      <TextInput
-                        style={styles.detailTextInput}
-                        value={answerObj.text || ''}
-                        onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
-                        placeholder={q.textLabel || 'Enter details'}
-                        multiline
-                      />
-                    </View>
-                  )}
-                </>
+              {q.type === 'text' && q.id !== 'competent_person' && (
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.detailTextInput}
+                    value={answerObj.text || ''}
+                    onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
+                    placeholder={q.textLabel || 'Enter details'}
+                    multiline
+                  />
+                </View>
               )}
               {/* Controls input based on controlsOn field (defaults to 'yes' if not specified) */}
               {!q.noControls && ((q.type === 'yesno' || q.type === 'yesno_text' || q.type === 'yesnona') && answer === (q.controlsOn || 'yes')) && (
@@ -4349,6 +4256,95 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <>
                         {/* Render the new questionnaire with per-question controls */}
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
+                        {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
+                        {permit.key === 'excavation' && (
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                            <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }}>
+                              <TextInput 
+                                editable={true}
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]} 
+                                value={formData.specializedPermits[permit.key].questionnaire?.competent_person?.text || ''} 
+                                onChangeText={text => {
+                                  const updated = {
+                                    ...formData.specializedPermits[permit.key].questionnaire,
+                                    competent_person: { ...(formData.specializedPermits[permit.key].questionnaire?.competent_person || {}), text: text }
+                                  };
+                                  handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
+                                  
+                                  // Filter contractors
+                                  if (text.trim().length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
+                                    const filtered = siteContractors.filter(c => 
+                                      c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                    );
+                                    setFilteredCompetentPersonContractors(prev => ({ ...prev, [permit.key]: filtered }));
+                                    setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: filtered.length > 0 }));
+                                  } else {
+                                    setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: false }));
+                                  }
+                                }}
+                                onFocus={() => {
+                                  const textVal = (formData.specializedPermits[permit.key].questionnaire?.competent_person?.text || '').trim();
+                                  if (textVal.length > 0) {
+                                    let siteContractors = contractors;
+                                    if (formData.site) {
+                                      const siteId = siteNameToIdMap[formData.site];
+                                      siteContractors = contractors.filter(c => 
+                                        c.siteIds && 
+                                        c.siteIds.some(sid => sid === siteId)
+                                      );
+                                    }
+                                    const filtered = siteContractors.filter(c => 
+                                      c && c.name && c.name.toLowerCase().includes(textVal.toLowerCase())
+                                    );
+                                    setFilteredCompetentPersonContractors(prev => ({ ...prev, [permit.key]: filtered }));
+                                    setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: filtered.length > 0 }));
+                                  }
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: false })), 200);
+                                }}
+                                placeholder="Enter name (starts typing to see suggestions)"
+                              />
+                              {filteredCompetentPersonContractors[permit.key] && filteredCompetentPersonContractors[permit.key].length === 0 && formData.specializedPermits[permit.key].questionnaire?.competent_person?.text && (
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.competent_person?.text}"</Text>
+                              )}
+                              {showCompetentPersonDropdown[permit.key] && filteredCompetentPersonContractors[permit.key] && filteredCompetentPersonContractors[permit.key].length > 0 && (
+                                <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 9999, elevation: 9999, overflow: 'hidden' }}>
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                                    {filteredCompetentPersonContractors[permit.key].map((contractor, idx) => (
+                                      <TouchableOpacity
+                                        key={contractor.id || idx}
+                                        style={{ padding: 12, borderBottomWidth: idx < filteredCompetentPersonContractors[permit.key].length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                          const updated = {
+                                            ...formData.specializedPermits[permit.key].questionnaire,
+                                            competent_person: { ...(formData.specializedPermits[permit.key].questionnaire?.competent_person || {}), text: contractor.name }
+                                          };
+                                          handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
+                                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: false }));
+                                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permit.key]: [] }));
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                        )}
                         {/* HOT WORK SAFETY WATCH CUSTOM FIELD */}
                         {permit.key === 'hotWork' && (
                           <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
