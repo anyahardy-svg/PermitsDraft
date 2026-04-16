@@ -2847,7 +2847,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <View style={{ marginBottom: 12, position: 'relative', zIndex: 50 }}>
+                    <View style={{ marginBottom: 12 }} pointerEvents="auto">
                       <TextInput
                         style={[styles.detailTextInput, { marginBottom: 8 }]}
                         value={answerObj.text || ''}
@@ -2896,7 +2896,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 100);
                         }}
                         placeholder={q.textLabel || 'Start typing person name...'}
-                        editable={formData.site ? true : false}
+                        editable={true}
                         multiline
                       />
                       {!formData.site && (
@@ -2912,12 +2912,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           marginTop: 4,
                           elevation: 999,
                           zIndex: 9999,
-                          overflow: 'hidden',
-                          position: 'absolute',
-                          width: '100%',
-                          left: 0,
-                          right: 0,
-                          top: '100%'
+                          overflow: 'hidden'
                         }} pointerEvents="auto">
                           {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
                             <TouchableOpacity
