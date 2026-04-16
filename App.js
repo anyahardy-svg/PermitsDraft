@@ -13138,6 +13138,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Requested By dropdown states
     const [filteredRequestedBy, setFilteredRequestedBy] = React.useState([]);
     const [showRequestedByDropdown, setShowRequestedByDropdown] = React.useState(false);
+    const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = React.useState({});
+    const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = React.useState({});
+    const [competentPersonFocused, setCompetentPersonFocused] = React.useState(false);
     
     const [expandedSections, setExpandedSections] = React.useState({
       general: true,
@@ -13153,6 +13156,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const isDraft = permit.status === 'draft';
     const isCompleted = permit.status === 'completed';
     const toggleSection = (section) => {
+      // Don't toggle if competent_person field is focused or dropdown is open
+      if (competentPersonFocused || Object.values(showCompetentPersonDropdown).some(v => v)) {
+        return;
+      }
       console.log('toggleSection called for:', section);
       setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
