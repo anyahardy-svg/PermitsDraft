@@ -7286,10 +7286,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const siteName = formData.site || (formData.site_id ? siteIdToNameMap?.[formData.site_id] : null);
               
               return (
-                <View key={q.id} style={{ marginBottom: 12 }}>
+                <View key={q.id} style={{ marginBottom: 12, position: 'relative', overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
                   <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                   <TextInput
-                    style={[styles.input, { marginBottom: 8 }]}
+                    style={[styles.input, { marginBottom: 4 }]}
                     value={value}
                     onChangeText={text => {
                       handleQuestionnaireResponse(permitKey, q.id, text);
@@ -7327,6 +7327,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     }}
                     placeholder={q.textLabel || 'Start typing person name...'}
                     editable={siteName ? true : false}
+                    pointerEvents="auto"
                   />
                   {!siteName && (
                     <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
@@ -7338,10 +7339,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       borderColor: '#D1D5DB',
                       borderRadius: 6,
                       maxHeight: 200,
+                      marginTop: 4,
                       elevation: 999,
                       zIndex: 9999,
-                    }}>
-                      <ScrollView scrollEnabled={true}>
+                    }} pointerEvents="auto">
+                      <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                         {filteredCompetentPersonContractors[permitKey].map(contractor => (
                           <TouchableOpacity
                             key={contractor.id}
@@ -7352,6 +7354,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                               setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                             }}
+                            pointerEvents="auto"setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                            }}
+                            pointerEvents="auto"
                           >
                             <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
                             <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
