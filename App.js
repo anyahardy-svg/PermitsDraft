@@ -2847,9 +2847,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <View style={{ marginBottom: 12 }} pointerEvents="auto">
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={[styles.textLabel, { marginBottom: 8 }]}>Enter competent person name:</Text>
                       <TextInput
-                        style={[styles.detailTextInput, { marginBottom: 8 }]}
+                        style={styles.detailTextInput}
                         value={answerObj.text || ''}
                         onChangeText={text => {
                           try {
@@ -2900,20 +2901,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         multiline
                       />
                       {!formData.site && (
-                        <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Note: Select a site above to get contractor suggestions</Text>
                       )}
                       {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
-                        <View style={{
+                        <ScrollView style={{
                           backgroundColor: 'white',
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
                           borderRadius: 6,
                           maxHeight: 200,
-                          marginTop: 4,
+                          marginTop: 8,
                           elevation: 999,
                           zIndex: 9999,
-                          overflow: 'hidden'
-                        }} pointerEvents="auto">
+                        }} scrollEnabled={true}>
                           {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
                             <TouchableOpacity
                               key={contractor.id || idx}
@@ -2929,13 +2929,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                                 setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                               }}
-                              pointerEvents="auto"
                             >
                               <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
                               <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                             </TouchableOpacity>
                           ))}
-                        </View>
+                        </ScrollView>
                       )}
                     </View>
                   ) : (
