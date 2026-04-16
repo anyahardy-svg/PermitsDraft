@@ -20815,14 +20815,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const updatedPermits = permits.map(p => p.id === editData.id ? completedPermit : p);
                 setPermits(updatedPermits);
                 
-                Alert.alert(
-                  'Permit Completed ✓',
-                  'Both issuer and receiver have signed. Permit has been moved to Completed Permits.',
-                  [{ text: 'OK', onPress: () => {
-                    console.log('✅ Navigation to dashboard');
-                    setCurrentScreen('dashboard');
-                  }}]
-                );
+                // Navigate immediately, don't rely on alert callback in web
+                console.log('✅ Navigation to dashboard - called immediately');
+                setCurrentScreen('dashboard');
+                
+                // Show confirmation alert (async, non-blocking)
+                setTimeout(() => {
+                  Alert.alert(
+                    'Permit Completed ✓',
+                    'Both issuer and receiver have signed. Permit has been moved to Completed Permits.'
+                  );
+                }, 100);
               } else {
                 // Just save the signatures
                 console.log('⚠️ Not both signed yet:', { issuer: !!finalSignOff.issuerSignedAt, receiver: !!finalSignOff.receiverSignedAt });
