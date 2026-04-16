@@ -2847,13 +2847,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <View style={{ marginBottom: 12 }}>
+                    <View style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }}>
                       <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
                       <TextInput
-                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF' }]}
+                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2 }]}
                         value={answerObj.text || ''}
                         onChangeText={text => {
                           handleQuestionnaireResponse(permitKey, q.id, text, 'text');
+                        }}
+                        onFocus={() => {
+                          console.log('[COMPETENT_PERSON] onFocus called');
+                        }}
+                        onBlur={() => {
+                          console.log('[COMPETENT_PERSON] onBlur called');
                         }}
                         placeholder="Enter name"
                         placeholderTextColor="#D1D5DB"
