@@ -2802,6 +2802,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ))}
                 </View>
               )}
+              {q.type === 'yesnona' && (
+                <View style={styles.radioGroup}>
+                  {['yes', 'no', 'n/a'].map(opt => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={styles.radioOption}
+                      onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                    >
+                      <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                      <Text style={styles.radioLabel}>{opt === 'n/a' ? 'N/A' : opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               {q.type === 'yesno_text' && (
                 <View>
                   <View style={styles.radioGroup}>
