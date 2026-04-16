@@ -14239,7 +14239,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{val.questionnaire?.competent_person?.text}"</Text>
                                 )}
                                 {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
-                                  <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                                  <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'visible' }} pointerEvents="auto">
                                     <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                       {filteredCompetentPersonContractors[key].map((contractor, idx) => (
                                         <TouchableOpacity
@@ -16982,7 +16982,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 borderRadius: 8,
                                 marginTop: 4,
                                 maxHeight: 300,
-                                overflow: 'hidden',
+                                overflow: 'visible',
                                 shadowColor: '#000',
                                 shadowOffset: { width: 0, height: 2 },
                                 shadowOpacity: 0.15,
@@ -17078,7 +17078,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{editData.specializedPermits[key].questionnaire?.competent_person?.text}"</Text>
                             )}
                             {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
-                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'visible' }} pointerEvents="auto">
                                 <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                   {filteredCompetentPersonContractors[key].map((contractor, idx) => (
                                     <TouchableOpacity
@@ -19539,7 +19539,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{editData.specializedPermits[key].questionnaire?.competent_person?.text}"</Text>
                             )}
                             {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
-                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'visible' }}>
                                 <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                   {filteredCompetentPersonContractors[key].map((contractor, idx) => (
                                     <TouchableOpacity
