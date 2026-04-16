@@ -7380,7 +7380,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }}
                           activeOpacity={0.7}
                           onPress={() => {
-                            handleQuestionnaireResponse(permitKey, q.id, contractor.name);
+                            handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
                             setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                             setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                           }}
