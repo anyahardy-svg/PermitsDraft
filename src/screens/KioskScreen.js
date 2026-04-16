@@ -488,8 +488,20 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     console.log('✅ Emergency contact access granted to:', adminData.email);
     
     if (pendingPhoneRevealId) {
-      // Add this phone ID to the revealed set
-      setRevealedPhoneIds(new Set(revealedPhoneIds).add(pendingPhoneRevealId));
+      let personsToReveal = [];
+      
+      // If revealing all, add all signed in people
+      if (pendingPhoneRevealId === 'ALL') {
+        personsToReveal = signedInPeople.map(p => p.id);
+      } else {
+        // Single person
+        personsToReveal = [pendingPhoneRevealId];
+      }
+      
+      // Add to revealed set
+      const newRevealedSet = new Set(revealedPhoneIds);
+      personsToReveal.forEach(id => newRevealedSet.add(id));
+      setRevealedPhoneIds(newRevealedSet);
       
       // Log the access to Supabase for audit trail
       const logAccess = async () => {
@@ -499,7 +511,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             .insert({
               admin_email: adminData.email,
               admin_id: adminData.id,
-              person_id: pendingPhoneRevealId,
+              person_id: pendingPhoneRevealId === 'ALL' ? 'ALL' : pendingPhoneRevealId,
               accessed_at: new Date().toISOString(),
               reason: 'Emergency contact kiosk sign-out view'
             });
@@ -1038,13 +1050,39 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   // Sign-Out Screen
   if (currentScreen === 'signout') {
+    const handleRevealAllPhones = () => {
+      // Set flag to reveal all after auth
+      setPendingPhoneRevealId('ALL');
+      setShowEmergencyLoginModal(true);
+    };
+
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign Out</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Sign Out</Text>
+            {signedInPeople.length > 0 && revealedPhoneIds.size < signedInPeople.length && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#DC2626',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 4
+                }}
+                onPress={handleRevealAllPhones}
+              >
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>🔓 Unlock</Text>
+              </TouchableOpacity>
+            )}
+            {signedInPeople.length > 0 && revealedPhoneIds.size === signedInPeople.length && (
+              <View style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>✓ Unlocked</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
@@ -1074,26 +1112,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                       <Text style={styles.personDetails}>Type: {type}</Text>
                       <Text style={styles.personDetails}>Company: {company}</Text>
                       
-                      {/* Phone display with masking and reveal button */}
+                      {/* Phone display with masking */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                         <Text style={styles.personDetails}>
                           Phone: {displayPhone}
                           {phone !== 'N/A' && !isPhoneRevealed && ' (masked for privacy)'}
                         </Text>
-                        {phone !== 'N/A' && !isPhoneRevealed && (
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: '#DC2626',
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                              borderRadius: 4,
-                              marginLeft: 8
-                            }}
-                            onPress={() => handleRevealPhoneClick(person.id)}
-                          >
-                            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>🔓 Reveal</Text>
-                          </TouchableOpacity>
-                        )}
                       </View>
                     </TouchableOpacity>
                     
