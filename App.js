@@ -14176,6 +14176,96 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               </View>
                             </View>
                           )}
+
+                          {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
+                          {key === 'excavation' && (
+                            <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 99999, elevation: 99999, position: 'relative' }}>
+                              <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
+                              <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 999999 }}>
+                                <TextInput 
+                                  editable={true}
+                                  style={[styles.input, { position: 'relative', zIndex: 999999 }]} 
+                                  value={val.questionnaire?.competent_person?.text || ''} 
+                                  onChangeText={text => {
+                                    const updated = {
+                                      ...val.questionnaire,
+                                      competent_person: { ...(val.questionnaire?.competent_person || {}), text: text }
+                                    };
+                                    handleSpecializedChange(key, 'questionnaire', updated);
+                                    
+                                    // Filter contractors
+                                    if (text.trim().length > 0) {
+                                      let siteContractors = contractors;
+                                      if (editData.site) {
+                                        const siteId = siteNameToIdMap[editData.site];
+                                        siteContractors = contractors.filter(c => 
+                                          c.siteIds && 
+                                          c.siteIds.some(sid => sid === siteId)
+                                        );
+                                      }
+                                      const filtered = siteContractors.filter(c => 
+                                        c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                      );
+                                      setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                      setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                    } else {
+                                      setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                    }
+                                  }}
+                                  onFocus={() => {
+                                    const textVal = (val.questionnaire?.competent_person?.text || '').trim();
+                                    if (textVal.length > 0) {
+                                      let siteContractors = contractors;
+                                      if (editData.site) {
+                                        const siteId = siteNameToIdMap[editData.site];
+                                        siteContractors = contractors.filter(c => 
+                                          c.siteIds && 
+                                          c.siteIds.some(sid => sid === siteId)
+                                        );
+                                      }
+                                      const filtered = siteContractors.filter(c => 
+                                        c && c.name && c.name.toLowerCase().includes(textVal.toLowerCase())
+                                      );
+                                      setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                      setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false })), 200);
+                                  }}
+                                  placeholder="Enter name (starts typing to see suggestions)"
+                                />
+                                {filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length === 0 && val.questionnaire?.competent_person?.text && (
+                                  <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{val.questionnaire?.competent_person?.text}"</Text>
+                                )}
+                                {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
+                                  <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                                    <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                                      {filteredCompetentPersonContractors[key].map((contractor, idx) => (
+                                        <TouchableOpacity
+                                          key={contractor.id || idx}
+                                          style={{ padding: 12, borderBottomWidth: idx < filteredCompetentPersonContractors[key].length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                          activeOpacity={0.7}
+                                          onPress={() => {
+                                            const updated = {
+                                              ...val.questionnaire,
+                                              competent_person: { ...(val.questionnaire?.competent_person || {}), text: contractor.name }
+                                            };
+                                            handleSpecializedChange(key, 'questionnaire', updated);
+                                            setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: [] }));
+                                          }}
+                                        >
+                                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                        </TouchableOpacity>
+                                      ))}
+                                    </ScrollView>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          )}
                         </>
                       )}
                     </View>
@@ -16927,6 +17017,94 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           </View>
                         </View>
                       )}
+
+                      {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
+                      {val.required && key === 'excavation' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 99999, elevation: 99999, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 999999 }}>
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 999999 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.competent_person?.text || ''} 
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  competent_person: { ...(editData.specializedPermits[key].questionnaire?.competent_person || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                                
+                                // Filter contractors
+                                if (text.trim().length > 0) {
+                                  let siteContractors = contractors;
+                                  if (editData.site_id) {
+                                    siteContractors = contractors.filter(c => 
+                                      c.siteIds && 
+                                      c.siteIds.some(sid => sid === editData.site_id)
+                                    );
+                                  }
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                  );
+                                  setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                } else {
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                }
+                              }}
+                              onFocus={() => {
+                                const textVal = (editData.specializedPermits[key].questionnaire?.competent_person?.text || '').trim();
+                                if (textVal.length > 0) {
+                                  let siteContractors = contractors;
+                                  if (editData.site_id) {
+                                    siteContractors = contractors.filter(c => 
+                                      c.siteIds && 
+                                      c.siteIds.some(sid => sid === editData.site_id)
+                                    );
+                                  }
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(textVal.toLowerCase())
+                                  );
+                                  setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false })), 200);
+                              }}
+                              placeholder="Enter name (starts typing to see suggestions)"
+                            />
+                            {filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length === 0 && editData.specializedPermits[key].questionnaire?.competent_person?.text && (
+                              <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{editData.specializedPermits[key].questionnaire?.competent_person?.text}"</Text>
+                            )}
+                            {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
+                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                                <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                                  {filteredCompetentPersonContractors[key].map((contractor, idx) => (
+                                    <TouchableOpacity
+                                      key={contractor.id || idx}
+                                      style={{ padding: 12, borderBottomWidth: idx < filteredCompetentPersonContractors[key].length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                      activeOpacity={0.7}
+                                      onPress={() => {
+                                        const updated = {
+                                          ...editData.specializedPermits[key].questionnaire,
+                                          competent_person: { ...(editData.specializedPermits[key].questionnaire?.competent_person || {}), text: contractor.name }
+                                        };
+                                        handleSpecializedChange(key, 'questionnaire', updated);
+                                        setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                        setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: [] }));
+                                      }}
+                                    >
+                                      <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -19288,6 +19466,94 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         handleSpecializedChange(key, 'questionnaire', updated);
                                         setShowCsSafetyWatchDropdownActive(false);
                                         setFilteredCsSafetyWatchContractorsActive([]);
+                                      }}
+                                    >
+                                      <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+
+                      {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
+                      {val.required && key === 'excavation' && (
+                        <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 99999, elevation: 99999, position: 'relative' }}>
+                          <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
+                          <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 999999 }}>
+                            <TextInput 
+                              editable={true}
+                              style={[styles.input, { position: 'relative', zIndex: 999999 }]} 
+                              value={editData.specializedPermits[key].questionnaire?.competent_person?.text || ''} 
+                              onChangeText={text => {
+                                const updated = {
+                                  ...editData.specializedPermits[key].questionnaire,
+                                  competent_person: { ...(editData.specializedPermits[key].questionnaire?.competent_person || {}), text: text }
+                                };
+                                handleSpecializedChange(key, 'questionnaire', updated);
+                                
+                                // Filter contractors
+                                if (text.trim().length > 0) {
+                                  let siteContractors = contractors;
+                                  if (editData.site_id) {
+                                    siteContractors = contractors.filter(c => 
+                                      c.siteIds && 
+                                      c.siteIds.some(sid => sid === editData.site_id)
+                                    );
+                                  }
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
+                                  );
+                                  setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                } else {
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                }
+                              }}
+                              onFocus={() => {
+                                const textVal = (editData.specializedPermits[key].questionnaire?.competent_person?.text || '').trim();
+                                if (textVal.length > 0) {
+                                  let siteContractors = contractors;
+                                  if (editData.site_id) {
+                                    siteContractors = contractors.filter(c => 
+                                      c.siteIds && 
+                                      c.siteIds.some(sid => sid === editData.site_id)
+                                    );
+                                  }
+                                  const filtered = siteContractors.filter(c => 
+                                    c && c.name && c.name.toLowerCase().includes(textVal.toLowerCase())
+                                  );
+                                  setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: filtered }));
+                                  setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: filtered.length > 0 }));
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false })), 200);
+                              }}
+                              placeholder="Enter name (starts typing to see suggestions)"
+                            />
+                            {filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length === 0 && editData.specializedPermits[key].questionnaire?.competent_person?.text && (
+                              <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{editData.specializedPermits[key].questionnaire?.competent_person?.text}"</Text>
+                            )}
+                            {showCompetentPersonDropdown[key] && filteredCompetentPersonContractors[key] && filteredCompetentPersonContractors[key].length > 0 && (
+                              <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
+                                <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                                  {filteredCompetentPersonContractors[key].map((contractor, idx) => (
+                                    <TouchableOpacity
+                                      key={contractor.id || idx}
+                                      style={{ padding: 12, borderBottomWidth: idx < filteredCompetentPersonContractors[key].length - 1 ? 1 : 0, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                      activeOpacity={0.7}
+                                      onPress={() => {
+                                        const updated = {
+                                          ...editData.specializedPermits[key].questionnaire,
+                                          competent_person: { ...(editData.specializedPermits[key].questionnaire?.competent_person || {}), text: contractor.name }
+                                        };
+                                        handleSpecializedChange(key, 'questionnaire', updated);
+                                        setShowCompetentPersonDropdown(prev => ({ ...prev, [key]: false }));
+                                        setFilteredCompetentPersonContractors(prev => ({ ...prev, [key]: [] }));
                                       }}
                                     >
                                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
