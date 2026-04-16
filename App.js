@@ -7282,6 +7282,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             // Special handling for competent_person field with contractor autocomplete
             if (q.id === 'competent_person') {
+              // Get site name from either formData.site (new permits) or formData.site_id (draft/pending permits)
+              const siteName = formData.site || (formData.site_id ? siteIdToNameMap?.[formData.site_id] : null);
+              
               return (
                 <View key={q.id} style={{ marginBottom: 12 }}>
                   <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
@@ -7291,10 +7294,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     onChangeText={text => {
                       handleQuestionnaireResponse(permitKey, q.id, text);
                       // Filter contractors based on input and site
-                      if (text.trim().length > 0 && formData.site) {
+                      if (text.trim().length > 0 && siteName) {
                         const siteContractors = contractors.filter(contractor =>
                           contractor.siteIds &&
-                          contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === formData.site)
+                          contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === siteName)
                         );
                         const filtered = siteContractors.filter(c =>
                           c.name?.toLowerCase?.()?.includes?.(text.toLowerCase())
@@ -7307,10 +7310,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       }
                     }}
                     onFocus={() => {
-                      if (value.trim().length > 0 && formData.site) {
+                      if (value.trim().length > 0 && siteName) {
                         const siteContractors = contractors.filter(contractor =>
                           contractor.siteIds &&
-                          contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
+                          contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === siteName)
                         );
                         const filtered = siteContractors.filter(c =>
                           c.name.toLowerCase().includes(value.toLowerCase())
@@ -7323,9 +7326,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
                     }}
                     placeholder={q.textLabel || 'Start typing person name...'}
-                    editable={formData.site ? true : false}
+                    editable={siteName ? true : false}
                   />
-                  {!formData.site && (
+                  {!siteName && (
                     <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                   )}
                   {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
