@@ -2854,16 +2854,71 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         value={answerObj.text || ''}
                         onChangeText={text => {
                           handleQuestionnaireResponse(permitKey, q.id, text, 'text');
+                          
+                          // Filter contractors based on input text
+                          if (text && text.trim().length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c =>
+                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
+                          } else {
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                          }
                         }}
                         onFocus={() => {
                           console.log('[COMPETENT_PERSON] onFocus called');
+                          // Show contractors that match current text
+                          const textVal = (answerObj.text || '').trim();
+                          if (textVal.length > 0 && contractors && contractors.length > 0) {
+                            const filtered = contractors.filter(c =>
+                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
+                            );
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
+                          }
                         }}
                         onBlur={() => {
                           console.log('[COMPETENT_PERSON] onBlur called');
+                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 200);
                         }}
-                        placeholder="Enter name"
+                        placeholder="Enter name (starts typing to see suggestions)"
                         placeholderTextColor="#D1D5DB"
                       />
+                      {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
+                        <ScrollView style={{
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          marginTop: 8,
+                          elevation: 999,
+                          zIndex: 9999,
+                        }} scrollEnabled={true} nestedScrollEnabled={true}>
+                          {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
+                            <TouchableOpacity
+                              key={contractor.id || idx}
+                              style={{ 
+                                padding: 12, 
+                                borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
+                                borderBottomColor: '#E5E7EB', 
+                                backgroundColor: 'white' 
+                              }}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
+                                setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                                setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                              }}
+                            >
+                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      )}
                     </View>
                   ) : (
                     <View style={styles.textInputContainer}>
