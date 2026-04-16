@@ -2780,20 +2780,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const answerObj = answers[q.id] || {};
           const answer = answerObj.answer || '';
           const controls = answerObj.controls || '';
-          const isEmpty = isEmptyRequired(q);
           
           return (
-            <View key={q.id} style={[
-              styles.questionContainer,
-              isEmpty && { backgroundColor: '#FEE2E2', borderRadius: 8, borderWidth: 2, borderColor: '#DC2626', padding: 12 }
-            ]}>
-              <Text style={[
-                styles.questionText,
-                isEmpty && { color: '#7F1D1D' }
-              ]}>
-                {q.text} {q.required && <Text style={isEmpty ? { color: '#DC2626', fontWeight: 'bold' } : styles.required}>*</Text>}
+            <View key={q.id} style={styles.questionContainer}>
+              <Text style={styles.questionText}>
+                {q.text} {q.required && <Text style={styles.required}>*</Text>}
               </Text>
-              {isEmpty && <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
               {q.note && <Text style={styles.noteText}>{q.note}</Text>}
               {/* Render input based on type */}
               {q.type === 'yesno' && (
