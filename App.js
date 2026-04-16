@@ -197,222 +197,6 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
   );
 }
 
-// --- Render questionnaire for a specialized permit ---
-function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) {
-  const questions = permitQuestionnaires[permitKey] || [];
-  const answers = formData.specializedPermits[permitKey]?.questionnaire || {};
-  
-  // Helper to check if a field is empty but required
-  const isEmptyRequired = (question) => {
-    if (!question.required) return false;
-    const answerObj = answers[question.id] || {};
-    const answer = answerObj.answer || '';
-    const textValue = answerObj.text || '';
-    
-    if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
-      return !answer;
-    } else if (question.type === 'text') {
-      // Check BOTH fields for backward compatibility
-      return (!textValue || !textValue.trim()) && (!answer || !answer.trim());
-    } else if (question.type === 'yesno_text') {
-      return !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
-    } else if (question.type === 'multi_checkbox') {
-      return !Array.isArray(answer) || answer.length === 0;
-    }
-    return false;
-  };
-  
-  return (
-    <View style={styles.questionnaireScroll}>
-      {questions.map((q) => {
-        const answerObj = answers[q.id] || {};
-        const answer = answerObj.answer || '';
-        const controls = answerObj.controls || '';
-        const isEmpty = isEmptyRequired(q);
-        
-        return (
-          <View key={q.id} style={[
-            styles.questionContainer,
-            isEmpty && { backgroundColor: '#FEE2E2', borderRadius: 8, borderWidth: 2, borderColor: '#DC2626', padding: 12 }
-          ]}>
-            <Text style={[
-              styles.questionText,
-              isEmpty && { color: '#7F1D1D' }
-            ]}>
-              {q.text} {q.required && <Text style={isEmpty ? { color: '#DC2626', fontWeight: 'bold' } : styles.required}>*</Text>}
-            </Text>
-            {isEmpty && <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
-            {q.note && <Text style={styles.noteText}>{q.note}</Text>}
-            {/* Render input based on type */}
-            {q.type === 'yesno' && (
-              <View style={styles.radioGroup}>
-                {['yes', 'no'].map(opt => (
-                  <TouchableOpacity
-                    key={opt}
-                    style={styles.radioOption}
-                    onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
-                  >
-                    <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
-                    <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            {q.type === 'yesno_text' && (
-              <View>
-                <View style={styles.radioGroup}>
-                  {['yes', 'no'].map(opt => (
-                    <TouchableOpacity
-                      key={opt}
-                      style={styles.radioOption}
-                      onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
-                    >
-                      <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
-                      <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {answer === 'yes' && (
-                  <View style={styles.textInputContainer}>
-                    <Text style={styles.textLabel}>{q.textLabel || 'Please provide details:'}</Text>
-                    <TextInput
-                      style={styles.detailTextInput}
-                      value={answerObj.text || ''}
-                      onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
-                      placeholder={q.textLabel || 'Enter details'}
-                      multiline
-                    />
-                  </View>
-                )}
-              </View>
-            )}
-            {q.type === 'text' && (
-              <>
-                {q.id === 'competent_person' ? (
-                  <View style={{ marginBottom: 12 }}>
-                    <TextInput
-                      style={[styles.detailTextInput, { marginBottom: 8 }]}
-                      value={answerObj.text || ''}
-                      onChangeText={text => {
-                        try {
-                          handleQuestionnaireResponse(permitKey, q.id, text, 'text');
-                          // Filter contractors based on input and site
-                          if (text && text.trim && text.trim().length > 0 && formData.site) {
-                            const siteContractors = (contractors || []).filter(contractor =>
-                              contractor && contractor.siteIds &&
-                              contractor.siteIds.some(sideId => (siteIdToNameMap || {})[sideId] === formData.site)
-                            );
-                            const filtered = siteContractors.filter(c =>
-                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
-                          } else {
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                          }
-                        } catch (err) {
-                          console.error('Competent person filter error:', err);
-                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                        }
-                      }}
-                      onFocus={() => {
-                        try {
-                          const textVal = (answerObj.text || '');
-                          if (textVal && textVal.trim && textVal.trim().length > 0 && formData.site && contractors) {
-                            const siteContractors = (contractors || []).filter(contractor =>
-                              contractor && contractor.siteIds &&
-                              contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === formData.site)
-                            );
-                            const filtered = siteContractors.filter(c =>
-                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
-                            );
-                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
-                          }
-                        } catch (err) {
-                          console.error('Competent person focus error:', err);
-                        }
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
-                      }}
-                      placeholder={q.textLabel || 'Start typing person name...'}
-                      editable={formData.site ? true : false}
-                      multiline
-                    />
-                    {!formData.site && (
-                      <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
-                    )}
-                    {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
-                      <View style={{
-                        backgroundColor: 'white',
-                        borderWidth: 1,
-                        borderColor: '#D1D5DB',
-                        borderRadius: 6,
-                        maxHeight: 200,
-                        marginTop: 4,
-                        elevation: 999,
-                        zIndex: 9999,
-                        overflow: 'hidden'
-                      }} pointerEvents="box-none">
-                        {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
-                          <TouchableOpacity
-                            key={contractor.id || idx}
-                            style={{ 
-                              padding: 12, 
-                              borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
-                              borderBottomColor: '#E5E7EB', 
-                              backgroundColor: 'white' 
-                            }}
-                            activeOpacity={0.7}
-                            onPress={() => {
-                              handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
-                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                            }}
-                            pointerEvents="auto"
-                          >
-                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View style={styles.textInputContainer}>
-                    <TextInput
-                      style={styles.detailTextInput}
-                      value={answerObj.text || ''}
-                      onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
-                      placeholder={q.textLabel || 'Enter details'}
-                      multiline
-                    />
-                  </View>
-                )}
-              </>
-            )}
-            {/* Controls input based on controlsOn field (defaults to 'yes' if not specified) */}
-            {!q.noControls && ((q.type === 'yesno' || q.type === 'yesno_text') && answer === (q.controlsOn || 'yes')) && (
-              <View style={styles.textInputContainer}>
-                <Text style={styles.textLabel}>Controls for this question:</Text>
-                <TextInput
-                  style={styles.detailTextInput}
-                  value={controls}
-                  onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'controls')}
-                  placeholder="Describe controls for this hazard/question"
-                  multiline
-                />
-              </View>
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 // Custom DateTimePicker Component
 const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValue }) => {
   const formatDate = (date) => {
@@ -2958,6 +2742,223 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
+
+  // --- Render questionnaire for a specialized permit ---
+  // This function is defined inside PermitManagementApp so it can access state variables via closure
+  const renderQuestionnaire = (permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) => {
+    const questions = permitQuestionnaires[permitKey] || [];
+    const answers = formData.specializedPermits[permitKey]?.questionnaire || {};
+    
+    // Helper to check if a field is empty but required
+    const isEmptyRequired = (question) => {
+      if (!question.required) return false;
+      const answerObj = answers[question.id] || {};
+      const answer = answerObj.answer || '';
+      const textValue = answerObj.text || '';
+      
+      if (question.type === 'yesno' || question.type === 'yesnona' || question.type === 'radio') {
+        return !answer;
+      } else if (question.type === 'text') {
+        // Check BOTH fields for backward compatibility
+        return (!textValue || !textValue.trim()) && (!answer || !answer.trim());
+      } else if (question.type === 'yesno_text') {
+        return !answer || (answer === 'yes' && (!textValue || !textValue.trim()));
+      } else if (question.type === 'multi_checkbox') {
+        return !Array.isArray(answer) || answer.length === 0;
+      }
+      return false;
+    };
+    
+    return (
+      <View style={styles.questionnaireScroll}>
+        {questions.map((q) => {
+          const answerObj = answers[q.id] || {};
+          const answer = answerObj.answer || '';
+          const controls = answerObj.controls || '';
+          const isEmpty = isEmptyRequired(q);
+          
+          return (
+            <View key={q.id} style={[
+              styles.questionContainer,
+              isEmpty && { backgroundColor: '#FEE2E2', borderRadius: 8, borderWidth: 2, borderColor: '#DC2626', padding: 12 }
+            ]}>
+              <Text style={[
+                styles.questionText,
+                isEmpty && { color: '#7F1D1D' }
+              ]}>
+                {q.text} {q.required && <Text style={isEmpty ? { color: '#DC2626', fontWeight: 'bold' } : styles.required}>*</Text>}
+              </Text>
+              {isEmpty && <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
+              {q.note && <Text style={styles.noteText}>{q.note}</Text>}
+              {/* Render input based on type */}
+              {q.type === 'yesno' && (
+                <View style={styles.radioGroup}>
+                  {['yes', 'no'].map(opt => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={styles.radioOption}
+                      onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                    >
+                      <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                      <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {q.type === 'yesno_text' && (
+                <View>
+                  <View style={styles.radioGroup}>
+                    {['yes', 'no'].map(opt => (
+                      <TouchableOpacity
+                        key={opt}
+                        style={styles.radioOption}
+                        onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                      >
+                        <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                        <Text style={styles.radioLabel}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {answer === 'yes' && (
+                    <View style={styles.textInputContainer}>
+                      <Text style={styles.textLabel}>{q.textLabel || 'Please provide details:'}</Text>
+                      <TextInput
+                        style={styles.detailTextInput}
+                        value={answerObj.text || ''}
+                        onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
+                        placeholder={q.textLabel || 'Enter details'}
+                        multiline
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+              {q.type === 'text' && (
+                <>
+                  {q.id === 'competent_person' ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <TextInput
+                        style={[styles.detailTextInput, { marginBottom: 8 }]}
+                        value={answerObj.text || ''}
+                        onChangeText={text => {
+                          try {
+                            handleQuestionnaireResponse(permitKey, q.id, text, 'text');
+                            // Filter contractors based on input and site
+                            if (text && text.trim && text.trim().length > 0 && formData.site) {
+                              const siteContractors = (contractors || []).filter(contractor =>
+                                contractor && contractor.siteIds &&
+                                contractor.siteIds.some(sideId => (siteIdToNameMap || {})[sideId] === formData.site)
+                              );
+                              const filtered = siteContractors.filter(c =>
+                                c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
+                              );
+                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                            } else {
+                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                            }
+                          } catch (err) {
+                            console.error('Competent person filter error:', err);
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                          }
+                        }}
+                        onFocus={() => {
+                          try {
+                            const textVal = (answerObj.text || '');
+                            if (textVal && textVal.trim && textVal.trim().length > 0 && formData.site && contractors) {
+                              const siteContractors = (contractors || []).filter(contractor =>
+                                contractor && contractor.siteIds &&
+                                contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === formData.site)
+                              );
+                              const filtered = siteContractors.filter(c =>
+                                c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
+                              );
+                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                            }
+                          } catch (err) {
+                            console.error('Competent person focus error:', err);
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
+                        }}
+                        placeholder={q.textLabel || 'Start typing person name...'}
+                        editable={formData.site ? true : false}
+                        multiline
+                      />
+                      {!formData.site && (
+                        <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                      )}
+                      {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
+                        <View style={{
+                          backgroundColor: 'white',
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          borderRadius: 6,
+                          maxHeight: 200,
+                          marginTop: 4,
+                          elevation: 999,
+                          zIndex: 9999,
+                          overflow: 'hidden'
+                        }} pointerEvents="box-none">
+                          {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
+                            <TouchableOpacity
+                              key={contractor.id || idx}
+                              style={{ 
+                                padding: 12, 
+                                borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
+                                borderBottomColor: '#E5E7EB', 
+                                backgroundColor: 'white' 
+                              }}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
+                                setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                                setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                              }}
+                              pointerEvents="auto"
+                            >
+                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.textInputContainer}>
+                      <TextInput
+                        style={styles.detailTextInput}
+                        value={answerObj.text || ''}
+                        onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
+                        placeholder={q.textLabel || 'Enter details'}
+                        multiline
+                      />
+                    </View>
+                  )}
+                </>
+              )}
+              {/* Controls input based on controlsOn field (defaults to 'yes' if not specified) */}
+              {!q.noControls && ((q.type === 'yesno' || q.type === 'yesno_text') && answer === (q.controlsOn || 'yes')) && (
+                <View style={styles.textInputContainer}>
+                  <Text style={styles.textLabel}>Controls for this question:</Text>
+                  <TextInput
+                    style={styles.detailTextInput}
+                    value={controls}
+                    onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'controls')}
+                    placeholder="Describe controls for this hazard/question"
+                    multiline
+                  />
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
 
   // Refs for admin screen ScrollViews
   const permitIssuersScrollRef = useRef(null);
