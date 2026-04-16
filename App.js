@@ -1725,10 +1725,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           
           const shouldShow = dependsOnIds.some(depId => {
             const depAnswer = questionnaire[depId]?.answer;
-            return dependsOnValue.includes(depAnswer);
+            const parentQuestion = permitQuestions.find(q => q.id === depId);
+            const matches = dependsOnValue.includes(depAnswer);
+            console.log(`    🔍 Dependency check for "${question.id}": depends on "${depId}" = "${depAnswer}" (expected: ${JSON.stringify(dependsOnValue)}) → should show: ${matches}`);
+            return matches;
           });
           
-          if (!shouldShow) return;
+          if (!shouldShow) {
+            console.log(`    ⏭️  SKIPPING "${question.id}" - dependency not met`);
+            return;
+          }
         }
         
         if (question.required) {
@@ -1753,7 +1759,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           
           if (isEmpty) {
-            console.log(`❌ MISSING in ${permitKey}: ${question.text.substring(0, 50)}... (answer="${answer}", text="${textValue}")`);
+            console.log(`❌ MISSING in ${permitKey}: "${question.id}" (type: ${question.type}, answer="${answer}", text="${textValue}")`);
             
             const permitName = permitKey.replace(/([A-Z])/g, ' $1').trim()
               .split(' ')
@@ -1768,6 +1774,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             });
             
             missingSectionPermits.add(permitKey);
+          } else {
+            console.log(`✓ OK: "${question.id}" has value (answer="${answer}", text="${textValue}")`);
           }
         }
       });
