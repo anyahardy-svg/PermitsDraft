@@ -7309,7 +7309,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     value={textValue}
                     onChangeText={text => {
                       try {
-                        handleQuestionnaireResponse(permitKey, q.id, text);
+                        handleQuestionnaireResponse(permitKey, q.id, text, 'text');
                         // Filter contractors based on input and site
                         if (text && text.trim && text.trim().length > 0 && siteName) {
                           const siteContractors = (contractors || []).filter(contractor =>
