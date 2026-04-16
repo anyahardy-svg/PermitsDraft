@@ -2774,7 +2774,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
     
     return (
-      <View style={styles.questionnaireScroll}>
+      <View style={styles.questionnaireScroll} pointerEvents="box-none">
         {questions.map((q) => {
           if (!q || !q.id) return null;
           const answerObj = answers[q.id] || {};
@@ -2782,7 +2782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const controls = answerObj.controls || '';
           
           return (
-            <View key={q.id} style={styles.questionContainer} pointerEvents={q.id === 'competent_person' ? 'auto' : undefined} onStartShouldSetResponder={() => q.id === 'competent_person' ? true : false}>
+            <View key={q.id} style={styles.questionContainer} pointerEvents={q.id === 'competent_person' ? 'auto' : 'box-none'}>
               <Text style={styles.questionText}>
                 {q.text} {q.required && <Text style={styles.required}>*</Text>}
               </Text>
