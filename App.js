@@ -2847,7 +2847,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }} pointerEvents="auto">
+                    <TouchableOpacity 
+                      activeOpacity={1} 
+                      onPress={() => {}}
+                      onStartShouldSetResponder={() => true}
+                      onMoveShouldSetResponder={() => true}
+                      style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }} 
+                      pointerEvents="auto"
+                    >
                       <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
                       <TextInput
                         pointerEvents="auto"
