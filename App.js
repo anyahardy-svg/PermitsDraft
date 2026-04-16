@@ -2847,9 +2847,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <TouchableOpacity 
-                      activeOpacity={1} 
-                      onPress={() => {}}
+                    <View 
                       onStartShouldSetResponder={() => true}
                       onMoveShouldSetResponder={() => true}
                       style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }} 
@@ -2928,7 +2926,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ))}
                         </ScrollView>
                       )}
-                    </TouchableOpacity>
+                    </View>
                   ) : (
                     <View style={styles.textInputContainer}>
                       <TextInput
