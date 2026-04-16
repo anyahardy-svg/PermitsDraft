@@ -2861,7 +2861,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     >
                       <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
                       <TextInput
+                        editable={true}
                         pointerEvents="auto"
+                        onStartShouldSetResponder={() => true}
                         style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2 }]}
                         value={answerObj.text || ''}
                         onChangeText={text => {
