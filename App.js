@@ -7401,8 +7401,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                 <TextInput
                   style={styles.input}
-                  value={value}
-                  onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text)}
+                  value={textValue}
+                  onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, 'text')}
                   placeholder={q.textLabel || 'Enter answer'}
                 />
               </View>
