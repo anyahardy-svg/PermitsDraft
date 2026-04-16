@@ -1109,13 +1109,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [showRequesterSignatureNewPermit, agreeToStatementNewPermit, requesterSignatureNewPermit]);
   
   // --- Handlers for advanced form ---
-  const toggleSection = (section) => {
-    // Don't toggle if competent_person field is focused or dropdown is open
-    if (competentPersonFocused || Object.values(showCompetentPersonDropdown).some(v => v)) {
-      return;
-    }
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const handleSpecializedPermitChange = (key, field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -2784,12 +2778,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       <View style={styles.questionnaireScroll} pointerEvents="box-none">
         {questions.map((q) => {
           if (!q || !q.id) return null;
+          // Skip competent_person - it's rendered as a custom field
+          if (q.id === 'competent_person') return null;
           const answerObj = answers[q.id] || {};
           const answer = answerObj.answer || '';
           const controls = answerObj.controls || '';
           
           return (
-            <View key={q.id} style={styles.questionContainer} pointerEvents={q.id === 'competent_person' ? 'auto' : 'box-none'}>
+            <View key={q.id} style={styles.questionContainer} pointerEvents="box-none">
               <Text style={styles.questionText}>
                 {q.text} {q.required && <Text style={styles.required}>*</Text>}
               </Text>
@@ -2851,7 +2847,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   )}
                 </View>
               )}
-              {q.type === 'text' && q.id !== 'competent_person' && (
+              {q.type === 'text' && (
                 <View style={styles.textInputContainer}>
                   <TextInput
                     style={styles.detailTextInput}
@@ -3665,7 +3661,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           style={styles.screenContainer} 
           contentContainerStyle={{ flexGrow: 1 }} 
           ref={permitFormScrollRef}
-          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v) && !Object.values(showCompetentPersonDropdown).some(v => v)}
+          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v)}
         >
           {/* Load Permit Template Section */}
           <View style={{ padding: 16, backgroundColor: '#F0F9FF', marginBottom: 12, borderRadius: 8, marginHorizontal: 16, marginTop: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
