@@ -2782,7 +2782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const controls = answerObj.controls || '';
           
           return (
-            <View key={q.id} style={styles.questionContainer}>
+            <View key={q.id} style={styles.questionContainer} pointerEvents={q.id === 'competent_person' ? 'auto' : undefined} onStartShouldSetResponder={() => q.id === 'competent_person' ? true : false}>
               <Text style={styles.questionText}>
                 {q.text} {q.required && <Text style={styles.required}>*</Text>}
               </Text>
@@ -2847,9 +2847,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <View style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }}>
+                    <View style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }} pointerEvents="auto">
                       <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
                       <TextInput
+                        pointerEvents="auto"
                         style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2 }]}
                         value={answerObj.text || ''}
                         onChangeText={text => {
@@ -2887,7 +2888,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         placeholderTextColor="#D1D5DB"
                       />
                       {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
-                        <ScrollView style={{
+                        <ScrollView pointerEvents="auto" style={{
                           backgroundColor: 'white',
                           borderWidth: 1,
                           borderColor: '#D1D5DB',
@@ -2899,6 +2900,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }} scrollEnabled={true} nestedScrollEnabled={true}>
                           {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
                             <TouchableOpacity
+                              pointerEvents="auto"
                               key={contractor.id || idx}
                               style={{ 
                                 padding: 12, 
@@ -4307,7 +4309,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
                 {specializedPermitTypes.map(permit => (
-                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible', zIndex: permit.key === 'hotWork' || permit.key === 'confinedSpace' ? 50 : 0 }}>
+                  <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible', zIndex: permit.key === 'hotWork' || permit.key === 'confinedSpace' || permit.key === 'excavation' ? 50 : 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Switch
                         value={formData.specializedPermits[permit.key].required}
