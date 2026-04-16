@@ -22,7 +22,9 @@ import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
+import { loginAdminUser } from '../api/adminAuth';
 import ContractorInductionScreen from './ContractorInductionScreen';
+import AdminLoginScreen from './AdminLoginScreen';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -32,6 +34,34 @@ const formatNameToTitleCase = (name) => {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+};
+
+// Mask phone number - show only last 3 digits (e.g., "+64 2 XXXX-XXXX" or "0211 XXXX-XXXX")
+const maskPhoneNumber = (phone) => {
+  if (!phone) return 'N/A';
+  // Remove all non-digit characters for processing
+  const digitsOnly = phone.replace(/\D/g, '');
+  if (digitsOnly.length < 4) return phone; // Too short to mask meaningfully
+  
+  // Get last 3 digits
+  const last3 = digitsOnly.slice(-3);
+  
+  // Create mask of X's for all but last 3 digits
+  const maskedLength = digitsOnly.length - 3;
+  let masked = 'X'.repeat(maskedLength);
+  
+  // Format: group by 4 digits from the right
+  // E.g., "XXXXXXXX-234" pattern
+  if (digitsOnly.length > 4) {
+    const chunks = [];
+    for (let i = masked.length; i > 0; i -= 4) {
+      chunks.unshift(masked.substring(Math.max(0, i - 4), i));
+    }
+    masked = chunks.join('-');
+    if (masked.startsWith('-')) masked = masked.slice(1);
+  }
+  
+  return masked + '-' + last3;
 };
 
 // Helper function to convert structured lines to HTML
@@ -80,6 +110,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   // For signout list
   const [signedInPeople, setSignedInPeople] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
+  
+  // Emergency contact reveal system
+  const [revealedPhoneIds, setRevealedPhoneIds] = useState(new Set()); // Set of person IDs with revealed phones
+  const [showEmergencyLoginModal, setShowEmergencyLoginModal] = useState(false);
+  const [pendingPhoneRevealId, setPendingPhoneRevealId] = useState(null); // Which person's phone to reveal after auth
 
   // For permits list
   const [permits, setPermits] = useState([]);
@@ -436,6 +471,49 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     } catch (error) {
       Alert.alert('Error', error?.message || 'Failed to sign out');
     }
+  };
+
+  const handleRevealPhoneClick = (personId) => {
+    // If already revealed, don't ask for auth again
+    if (revealedPhoneIds.has(personId)) {
+      return;
+    }
+    
+    console.log('🔓 Emergency contact reveal requested for person:', personId);
+    setPendingPhoneRevealId(personId);
+    setShowEmergencyLoginModal(true);
+  };
+
+  const handleEmergencyLoginSuccess = (adminData) => {
+    console.log('✅ Emergency contact access granted to:', adminData.email);
+    
+    if (pendingPhoneRevealId) {
+      // Add this phone ID to the revealed set
+      setRevealedPhoneIds(new Set(revealedPhoneIds).add(pendingPhoneRevealId));
+      
+      // Log the access to Supabase for audit trail
+      const logAccess = async () => {
+        try {
+          const { error } = await supabase
+            .from('emergency_contact_access_log')
+            .insert({
+              admin_email: adminData.email,
+              admin_id: adminData.id,
+              person_id: pendingPhoneRevealId,
+              accessed_at: new Date().toISOString(),
+              reason: 'Emergency contact kiosk sign-out view'
+            });
+          if (error) console.error('Failed to log access:', error);
+          else console.log('✓ Emergency contact access logged');
+        } catch (err) {
+          console.error('Error logging access:', err);
+        }
+      };
+      logAccess();
+    }
+    
+    setShowEmergencyLoginModal(false);
+    setPendingPhoneRevealId(null);
   };
 
   if (loading) {
@@ -979,6 +1057,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 const name = person.contractor_name || person.visitor_name || 'Unknown';
                 const company = person.contractor_company || person.visitor_company || 'N/A';
                 const phone = person.contractor_phone || person.phone_number || 'N/A';
+                const isPhoneRevealed = revealedPhoneIds.has(person.id);
+                const displayPhone = isPhoneRevealed ? phone : maskPhoneNumber(phone);
+                
                 return (
                   <View key={person.id}>
                     <TouchableOpacity
@@ -992,7 +1073,28 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                       <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
                       <Text style={styles.personDetails}>Type: {type}</Text>
                       <Text style={styles.personDetails}>Company: {company}</Text>
-                      <Text style={styles.personDetails}>Phone: {phone}</Text>
+                      
+                      {/* Phone display with masking and reveal button */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                        <Text style={styles.personDetails}>
+                          Phone: {displayPhone}
+                          {phone !== 'N/A' && !isPhoneRevealed && ' (masked for privacy)'}
+                        </Text>
+                        {phone !== 'N/A' && !isPhoneRevealed && (
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: '#DC2626',
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              borderRadius: 4,
+                              marginLeft: 8
+                            }}
+                            onPress={() => handleRevealPhoneClick(person.id)}
+                          >
+                            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>🔓 Reveal</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </TouchableOpacity>
                     
                     {selectedPerson?.id === person.id && (
@@ -1011,6 +1113,43 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             <Text style={styles.noResults}>No one currently signed in</Text>
           )}
         </ScrollView>
+
+        {/* Emergency Contact Admin Login Modal */}
+        <Modal
+          visible={showEmergencyLoginModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => {
+            setShowEmergencyLoginModal(false);
+            setPendingPhoneRevealId(null);
+          }}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, width: '90%', maxWidth: 400, maxHeight: '90%' }}>
+              <View style={{ padding: 16, backgroundColor: '#DC2626', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: 'white' }}>🔓 Emergency Contact Access</Text>
+                <TouchableOpacity onPress={() => { setShowEmergencyLoginModal(false); setPendingPhoneRevealId(null); }}>
+                  <Text style={{ fontSize: 20, color: 'white' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={{ padding: 16 }}>
+                <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+                  For emergency purposes only. Admin authentication required to view phone numbers.
+                </Text>
+                
+                <AdminLoginScreen
+                  onLoginSuccess={handleEmergencyLoginSuccess}
+                  onCancel={() => {
+                    setShowEmergencyLoginModal(false);
+                    setPendingPhoneRevealId(null);
+                  }}
+                  styles={styles}
+                />
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
