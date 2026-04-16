@@ -1110,8 +1110,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // --- Handlers for advanced form ---
   const toggleSection = (section) => {
-    // Don't toggle if competent_person dropdown is open
-    if (Object.values(showCompetentPersonDropdown).some(v => v)) {
+    // Don't toggle if competent_person field is focused or dropdown is open
+    if (competentPersonFocused || Object.values(showCompetentPersonDropdown).some(v => v)) {
       return;
     }
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -2745,6 +2745,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Competent person dropdown state for excavation permit
   const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = useState({});
   const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = useState({});
+  const [competentPersonFocused, setCompetentPersonFocused] = useState(false);
   
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
@@ -2883,6 +2884,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }}
                         onFocus={() => {
                           console.log('[COMPETENT_PERSON] onFocus called');
+                          setCompetentPersonFocused(true);
                           // Show contractors that match current text
                           const textVal = (answerObj.text || '').trim();
                           if (textVal.length > 0 && contractors && contractors.length > 0) {
@@ -2895,6 +2897,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }}
                         onBlur={() => {
                           console.log('[COMPETENT_PERSON] onBlur called');
+                          setCompetentPersonFocused(false);
                           setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 200);
                         }}
                         placeholder="Enter name (starts typing to see suggestions)"
