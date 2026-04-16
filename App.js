@@ -16288,7 +16288,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       controlsSummary: false,
       attachments: true
     });
-    const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = React.useState({});
+    const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = React.useState({});
+    const [competentPersonFocused, setCompetentPersonFocused] = React.useState(false);
+    const toggleSection = (section) => {
+      // Don't toggle if competent_person field is focused or dropdown is open
+      if (competentPersonFocused || Object.values(showCompetentPersonDropdown).some(v => v)) {
+        return;
+      }
+      setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
@@ -18561,8 +18570,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       attachments: true,
       completion: true
     });
+    const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = React.useState({});
+    const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = React.useState({});
+    const [competentPersonFocused, setCompetentPersonFocused] = React.useState(false);
 
     const toggleSection = (section) => {
+      // Don't toggle if competent_person field is focused or dropdown is open
+      if (competentPersonFocused || Object.values(showCompetentPersonDropdown).some(v => v)) {
+        return;
+      }
       if (section === 'completion' && !expandedSections.completion) {
         // Load permit issuers and contractors when opening completion section
         loadSignOffData();
