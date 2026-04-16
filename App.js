@@ -240,7 +240,7 @@ function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, p
             ]}>
               {q.text} {q.required && <Text style={isEmpty ? { color: '#DC2626', fontWeight: 'bold' } : styles.required}>*</Text>}
             </Text>
-            {isEmpty && <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
+            {isEmpty && <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>⚠️ This field is required</Text>}
             {q.note && <Text style={styles.noteText}>{q.note}</Text>}
             {/* Render input based on type */}
             {q.type === 'yesno' && (
@@ -3665,7 +3665,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   // Show site as read-only text when in kiosk mode
                   <View style={[styles.input, { backgroundColor: '#F3F4F6', paddingVertical: 12, justifyContent: 'center' }]}>
                     <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{formData.site}</Text>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Determined by kiosk location</Text>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>Determined by kiosk location</Text>
                   </View>
                 ) : (
                   <CustomDropdown
@@ -3718,7 +3718,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     
                     return (
                       <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
                         <Text style={{ fontSize: 13, color: '#1E40AF' }}>{serviceNames}</Text>
                       </View>
                     );
@@ -3769,7 +3769,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={formData.site ? true : false}
                 />
                 {!formData.site && (
-                  <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                  <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                 )}
                 {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
                   <View style={{
@@ -3803,7 +3803,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
+                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -3823,7 +3823,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     zIndex: 50,
                     elevation: 10,
                   }}>
-                    <Text style={{ fontSize: 12, color: '#991B1B' }}>No contractors found on this site matching "{formData.requestedBy}"</Text>
+                    <Text style={{ fontSize: 14, color: '#991B1B' }}>No contractors found on this site matching "{formData.requestedBy}"</Text>
                   </View>
                 )}
                 </View>
@@ -3842,7 +3842,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     
                     return (
                       <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#22C55E' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
                         <Text style={{ fontSize: 13, color: '#15803D' }}>{serviceNames}</Text>
                       </View>
                     );
@@ -4047,16 +4047,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <>
                         {isolation.linked_items && isolation.linked_items.length > 0 && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
                             {isolation.linked_items.map((item, lidx) => (
-                              <Text key={lidx} style={[styles.detailText, { fontSize: 11, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
+                              <Text key={lidx} style={[styles.detailText, { fontSize: 14, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
                             ))}
                           </View>
                         )}
                         {isolation.key_procedure && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
-                            <Text style={[styles.detailText, { fontSize: 11, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
                           </View>
                         )}
                       </>
@@ -4105,7 +4105,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         editable={formData.site ? true : false}
                       />
                       {!formData.site && (
-                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                        <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                       )}
                       {showIsolatedByDropdown[idx] && filteredIsolatedByContractors[idx] && filteredIsolatedByContractors[idx].length > 0 && (
                         <View style={{
@@ -4140,7 +4140,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -4199,7 +4199,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
                       {formData.specializedPermits[permit.key].required && getPermitSectionMissingCount(permit.key) > 0 && (
                         <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                          <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                             {getPermitSectionMissingCount(permit.key)} missing
                           </Text>
                         </View>
@@ -4269,7 +4269,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 placeholder="Start typing person name..."
                               />
                               {filteredHwSafetyWatchContractors.length === 0 && formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text && (
-                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text}"</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text}"</Text>
                               )}
                               {showHwSafetyWatchDropdown && filteredHwSafetyWatchContractors.length > 0 && (
                                 <View style={{
@@ -4305,7 +4305,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         }}
                                       >
                                         <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                       </TouchableOpacity>
                                     ))}
                                   </ScrollView>
@@ -4374,7 +4374,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 placeholder="Start typing person name..."
                               />
                               {filteredCsSafetyWatchContractors.length === 0 && formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text && (
-                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text}"</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text}"</Text>
                               )}
                               {showCsSafetyWatchDropdown && filteredCsSafetyWatchContractors.length > 0 && (
                                 <View style={{
@@ -4410,7 +4410,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         }}
                                       >
                                         <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                        <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                       </TouchableOpacity>
                                     ))}
                                   </ScrollView>
@@ -4479,7 +4479,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             JSEA #{idx + 1}
                           </Text>
                           {jsea.taskSteps?.length > 0 && (
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                            <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
                               {jsea.taskSteps.length} step{jsea.taskSteps.length !== 1 ? 's' : ''}
                             </Text>
                           )}
@@ -4489,7 +4489,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             style={{ padding: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
                             onPress={() => openJseaEditor(idx)}
                           >
-                            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>Edit</Text>
+                            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Edit</Text>
                           </TouchableOpacity>
                           <TouchableOpacity 
                             style={{ padding: 6, backgroundColor: '#EF4444', borderRadius: 4 }}
@@ -4534,9 +4534,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     )}
                     {currentJseaData?.taskSteps && currentJseaData.taskSteps.length > 0 && (
                       <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                        <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                         {currentJseaData.taskSteps.map((step, idx) => (
-                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          <Text key={idx} style={{ fontSize: 14, color: '#374151', marginBottom: 4 }}>
                             Step {idx + 1}: {step.description.substring(0, 50)}{step.description.length > 50 ? '...' : ''}
                           </Text>
                         ))}
@@ -4607,9 +4607,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   return triggeredQuestions.length > 0 && (
                     <View style={{ marginBottom: 16, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                       <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                      <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 8 }}>The following critical condition(s) have been triggered:</Text>
+                      <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 8, marginBottom: 8 }}>The following critical condition(s) have been triggered:</Text>
                       {triggeredQuestions.map((question, idx) => (
-                        <Text key={idx} style={{ fontSize: 11, color: '#991B1B', marginLeft: 8, marginBottom: 4 }}>• {question}</Text>
+                        <Text key={idx} style={{ fontSize: 14, color: '#991B1B', marginLeft: 8, marginBottom: 4 }}>• {question}</Text>
                       ))}
                     </View>
                   );
@@ -4640,7 +4640,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>{permit.label}</Text>
                       {controls.map((item, idx) => (
                         <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Q: {item.question}</Text>
+                          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 2 }}>Q: {item.question}</Text>
                           <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.control}</Text>
                         </View>
                       ))}
@@ -4656,7 +4656,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       if (!formData.singleHazards[hazardKey].present || !formData.singleHazards[hazardKey].controls) return null;
                       return (
                         <View key={hazardKey} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Q: {hazard.label}</Text>
+                          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 2 }}>Q: {hazard.label}</Text>
                           <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {formData.singleHazards[hazardKey].controls}</Text>
                         </View>
                       );
@@ -4743,7 +4743,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA Task Controls</Text>
                       {allControls.map((item, idx) => (
                         <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: item.isSaved ? '#2563EB' : '#F59E0B' }}>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx}, Step {item.stepIdx + 1}: {item.step} {!item.isSaved ? '(editing)' : ''}</Text>
+                          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx}, Step {item.stepIdx + 1}: {item.step} {!item.isSaved ? '(editing)' : ''}</Text>
                           <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.controls}</Text>
                         </View>
                       ))}
@@ -4788,10 +4788,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>🔒 Safety Watches & Firewatch</Text>
                       {safetyWatches.map((watch, idx) => (
                         <View key={idx} style={{ marginBottom: 12, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#10B981' }}>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#047857', marginBottom: 4 }}>{watch.permit}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#047857', marginBottom: 4 }}>{watch.permit}</Text>
                           <Text style={{ fontSize: 13, color: '#1F2937', marginBottom: 2 }}>👤 {watch.person}</Text>
                           {watch.period && (
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>⏱️ {watch.period}</Text>
+                            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 2 }}>⏱️ {watch.period}</Text>
                           )}
                         </View>
                       ))}
@@ -4862,7 +4862,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         editable={formData.site ? true : false}
                       />
                       {!formData.site && (
-                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                        <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                       )}
                       {showSignOnWorkerDropdown[idx] && filteredSignOnWorkers[idx] && filteredSignOnWorkers[idx].length > 0 && (
                         <View style={{
@@ -4898,7 +4898,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -4975,7 +4975,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.attachments && (
               <View style={styles.sectionContent}>
-                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add photos or documents to support this permit.</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>Add photos or documents to support this permit.</Text>
                 
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                   <TouchableOpacity 
@@ -5017,7 +5017,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           <Text style={{ fontWeight: '500', color: '#1F2937', marginBottom: 2 }}>
                             {attachment.name}
                           </Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                          <Text style={{ fontSize: 14, color: '#6B7280' }}>
                             {new Date(attachment.uploadedAt).toLocaleString()}
                           </Text>
                         </View>
@@ -5034,7 +5034,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     ))}
                   </View>
                 ) : (
-                  <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                  <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
                     No attachments yet
                   </Text>
                 )}
@@ -5255,7 +5255,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         
                         <View style={{ gap: 6 }}>
                           <Text style={{
-                            fontSize: 11,
+                            fontSize: 14,
                             color: '#6B7280'
                           }}>
                             {template.jsea?.length || 0} step{template.jsea?.length !== 1 ? 's' : ''}
@@ -5263,7 +5263,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           
                           {templateBuNames.length > 0 && (
                             <Text style={{
-                              fontSize: 11,
+                              fontSize: 14,
                               color: '#3B82F6',
                               fontWeight: '500'
                             }}>
@@ -5273,7 +5273,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           
                           {companyName && (
                             <Text style={{
-                              fontSize: 11,
+                              fontSize: 14,
                               color: '#059669',
                               fontWeight: '500'
                             }}>
@@ -5458,7 +5458,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </Text>
                       {template.company_name && (
                         <Text style={{
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#6B7280',
                           marginBottom: 4
                         }}>
@@ -5467,7 +5467,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       )}
                       {template.description && (
                         <Text style={{
-                          fontSize: 11,
+                          fontSize: 14,
                           color: '#6B7280'
                         }}>
                           {template.description.substring(0, 60)}{template.description.length > 60 ? '...' : ''}
@@ -5557,7 +5557,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                         <Text style={{
                           color: selectedLikelihood === item.key ? '#1E40AF' : '#6B7280',
-                          fontSize: 12,
+                          fontSize: 14,
                           fontStyle: 'italic'
                         }}>
                           {item.desc}
@@ -5599,7 +5599,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                         <Text style={{
                           color: selectedSeverity === item.key ? '#1E40AF' : '#6B7280',
-                          fontSize: 12,
+                          fontSize: 14,
                           fontStyle: 'italic'
                         }}>
                           {item.desc}
@@ -5617,7 +5617,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     borderRadius: 8,
                     marginBottom: 24
                   }}>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
                     <View style={{
                       backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihood, selectedSeverity)),
                       paddingVertical: 12,
@@ -6145,18 +6145,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const renderPermitItem = ({ item }) => (
     <View style={styles.permitListCard}>
       <View style={styles.permitListHeader}>
-        <Text style={styles.permitId}>#{item.permitNumber}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.permitId, { fontSize: 18, fontWeight: '700' }]}>#{item.permitNumber}</Text>
+          <Text style={{ fontSize: 15, color: '#374151', fontWeight: '600', marginTop: 2 }}>
+            {item.contractorCompany || item.manualCompany || 'Contractor'}
+          </Text>
+        </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
           <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
       </View>
-      <Text style={styles.permitType}>{item.type}</Text>
-      <Text style={styles.permitDescription}>{item.description}</Text>
+      <Text style={[styles.permitType, { fontSize: 16 }]}>{item.type}</Text>
+      <Text style={[styles.permitDescription, { fontSize: 15 }]}>{item.description}</Text>
       <View style={styles.permitDetails}>
-        <Text style={styles.detailText}>Location: {item.location}</Text>
-        <Text style={styles.detailText}>Requested by: {item.requestedBy}</Text>
-        {(item.contractorCompany || item.manualCompany) && <Text style={styles.detailText}>Company: {item.contractorCompany || item.manualCompany}</Text>}
-        <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
+        <Text style={[styles.detailText, { fontSize: 15 }]}>Location: {item.location}</Text>
+        <Text style={[styles.detailText, { fontSize: 15 }]}>Requested by: {item.requestedBy}</Text>
+        <Text style={[styles.detailText, { fontSize: 15 }]}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
       </View>
       <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]}> 
         <Text style={styles.priorityText}>{item.priority?.toUpperCase?.() || ''}</Text>
@@ -6165,12 +6169,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       {/* CONTROLS SUMMARY - Show controls on list cards for all status except completed */}
       {item.status !== 'completed' && (item.specializedPermits || item.singleHazards || item.jsea?.taskSteps || item.jseas?.length > 0) && (
         <View style={{ marginTop: 12, padding: 10, backgroundColor: '#FEF3C7', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
-          <Text style={[styles.label, { marginBottom: 6, color: '#D97706', fontSize: 13 }]}>CONTROLS SUMMARY</Text>
+          <Text style={[styles.label, { marginBottom: 6, color: '#D97706', fontSize: 15, fontWeight: '700' }]}>CONTROLS SUMMARY</Text>
           
           {/* Specialized Permits Controls */}
           {item.specializedPermits && Object.entries(item.specializedPermits).some(([_, val]) => val.required && val.questionnaire) && (
             <View style={{ marginBottom: 8 }}>
-              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>Specialized Permits:</Text>
+              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 15, color: '#374151' }}>Specialized Permits:</Text>
               {Object.entries(item.specializedPermits)
                 .sort((a, b) => {
                   const aIdx = specializedPermitTypes.findIndex(p => p.key === a[0]);
@@ -6182,13 +6186,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const questionnaire = permitQuestionnaires[key] || [];
                 return val.required && val.questionnaire ? (
                   <View key={key} style={{ marginLeft: 6, marginBottom: 4 }}>
-                    <Text style={[styles.detailText, { fontWeight: '500', color: '#374151', fontSize: 11 }]}>{permit?.label || key}:</Text>
+                    <Text style={[styles.detailText, { fontWeight: '500', color: '#374151', fontSize: 14 }]}>{permit?.label || key}:</Text>
                     {Object.entries(val.questionnaire).map(([qid, qval]) => {
                       const question = questionnaire.find(q => q.id === qid);
                       return qval.controls ? (
                         <View key={qid} style={{ marginLeft: 8, marginBottom: 2 }}>
-                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>Q: {question?.text || qid}</Text>
-                          <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {qval.controls}</Text>
+                          <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13 }]}>Q: {question?.text || qid}</Text>
+                          <Text style={[styles.detailText, { color: '#374151', fontSize: 13 }]}>• {qval.controls}</Text>
                         </View>
                       ) : null;
                     })}
@@ -6201,13 +6205,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           {/* Single Hazards Controls */}
           {item.singleHazards && Object.entries(item.singleHazards).some(([_, val]) => val.present && val.controls) && (
             <View style={{ marginBottom: 8 }}>
-              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>Single Hazards:</Text>
+              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 15, color: '#374151' }}>Single Hazards:</Text>
               {Object.entries(item.singleHazards).map(([key, val]) => {
                 const hazard = singleHazardTypes.find(h => h.key === key);
                 return val.present && val.controls ? (
                   <View key={key} style={{ marginLeft: 6, marginBottom: 3 }}>
-                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>Q: {hazard?.label || key}</Text>
-                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {val.controls}</Text>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13 }]}>Q: {hazard?.label || key}</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 13 }]}>• {val.controls}</Text>
                   </View>
                 ) : null;
               })}
@@ -6241,10 +6245,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             });
             return allPPE.length > 0 ? (
               <View style={{ marginBottom: 8 }}>
-                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>PPE Required:</Text>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 15, color: '#374151' }}>PPE Required:</Text>
                 <View style={{ marginLeft: 6 }}>
                   {allPPE.map((ppe, idx) => (
-                    <Text key={idx} style={[styles.detailText, { color: '#374151', fontSize: 10, marginBottom: 2 }]}>• {ppe}</Text>
+                    <Text key={idx} style={[styles.detailText, { color: '#374151', fontSize: 14, marginBottom: 2 }]}>• {ppe}</Text>
                   ))}
                 </View>
               </View>
@@ -6272,11 +6276,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
             return allControls.length > 0 && (
               <View style={{ marginBottom: 8 }}>
-                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>JSEA Task Controls:</Text>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 15, color: '#374151' }}>JSEA Task Controls:</Text>
                 {allControls.map((item, idx) => (
                   <View key={idx} style={{ marginLeft: 6, marginBottom: 3 }}>
-                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
-                    <Text style={[styles.detailText, { color: '#374151', fontSize: 10 }]}>• {item.controls}</Text>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13 }]}>JSEA {item.jseaIdx + 1}, Step {item.stepIdx + 1}: {item.step}</Text>
+                    <Text style={[styles.detailText, { color: '#374151', fontSize: 13 }]}>• {item.controls}</Text>
                   </View>
                 ))}
               </View>
@@ -6286,32 +6290,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           {/* JSEA Task Steps - Full Details */}
           {item.jseas && item.jseas.length > 0 && (
             <View style={{ marginTop: 6 }}>
-              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>JSEA Details:</Text>
+              <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 15, color: '#374151' }}>JSEA Details:</Text>
               {item.jseas.map((jsea, jseaIdx) => (
                 <View key={jsea.id || jseaIdx} style={{ marginBottom: 6, marginLeft: 6, paddingLeft: 6, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 3 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 3 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
                   {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
                     <View>
                       {jsea.taskSteps.map((step, idx) => (
                         <View key={idx} style={{ marginBottom: 4, paddingLeft: 4, borderLeftWidth: 1, borderLeftColor: '#2563EB' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F2937', marginBottom: 1 }}>Step {idx + 1}: {step.description || step.step}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 1 }}>Step {idx + 1}: {step.description || step.step}</Text>
                           {step.hazards && (
-                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9, marginBottom: 1 }]}>H: {step.hazards}</Text>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>H: {step.hazards}</Text>
                           )}
                           {step.controls && (
-                            <Text style={[styles.detailText, { color: '#374151', fontSize: 9, fontWeight: '500' }]}>C: {step.controls}</Text>
+                            <Text style={[styles.detailText, { color: '#374151', fontSize: 13, fontWeight: '500' }]}>C: {step.controls}</Text>
                           )}
                           {step.riskLevel && (
-                            <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontSize: 9, fontWeight: '600' }]}>R: {step.riskLevel}</Text>
+                            <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontSize: 13, fontWeight: '600' }]}>R: {step.riskLevel}</Text>
                           )}
                         </View>
                       ))}
                     </View>
                   ) : (
-                    <Text style={[styles.detailText, { color: '#9CA3AF', fontSize: 9, fontStyle: 'italic' }]}>No task steps</Text>
+                    <Text style={[styles.detailText, { color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }]}>No task steps</Text>
                   )}
                   {jsea.additionalPrecautions && (
-                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9, marginTop: 2, fontStyle: 'italic' }]}>Precautions: {jsea.additionalPrecautions}</Text>
+                    <Text style={[styles.detailText, { color: '#6B7280', fontSize: 133, marginTop: 2, fontStyle: 'italic' }]}>Precautions: {jsea.additionalPrecautions}</Text>
                   )}
                 </View>
               ))}
@@ -6351,7 +6355,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             return safetyWatches.length > 0 ? (
               <View style={{ marginTop: 8 }}>
-                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 12, color: '#374151' }}>🔒 Safety Watches:</Text>
+                <Text style={{ fontWeight: '600', marginBottom: 4, fontSize: 14, color: '#374151' }}>🔒 Safety Watches:</Text>
                 {safetyWatches.map((watch, idx) => (
                   <View key={idx} style={{ marginLeft: 6, marginBottom: 3 }}>
                     <Text style={[styles.detailText, { color: '#6B7280', fontSize: 9 }]}>{watch.permit}:</Text>
@@ -6547,8 +6551,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                     <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
-                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
+                    <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 14, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
               </View>
@@ -6696,8 +6700,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {q.blockingQuestion && value === (q.blockingAnswer || 'no') && (
                   <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                     <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                    <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
-                    <Text style={{ fontSize: 11, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
+                    <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 8, marginBottom: 4 }}>Reason:</Text>
+                    <Text style={{ fontSize: 14, color: '#991B1B', marginLeft: 8 }}>• {q.text}</Text>
                   </View>
                 )}
                 {/* Render inline dependent questions for yesno */}
@@ -6768,6 +6772,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           // Yes/No + text
           if (q.type === 'yesno_text') {
+            // Check dependencies
+            let shouldShow = true;
+            if (q.dependsOn) {
+              const answerValue = answers[q.dependsOn]?.answer;
+              if (Array.isArray(q.dependsOnValue)) {
+                // dependsOnValue is an array - check if answer matches any value in it
+                if (Array.isArray(answerValue)) {
+                  shouldShow = answerValue.some(v => q.dependsOnValue.includes(v));
+                } else {
+                  shouldShow = q.dependsOnValue.includes(answerValue);
+                }
+              } else {
+                // dependsOnValue is a single string
+                if (Array.isArray(answerValue)) {
+                  // answerValue is array (from multi_checkbox), check if dependsOnValue is in it
+                  shouldShow = answerValue.includes(q.dependsOnValue);
+                } else {
+                  // both are single values
+                  shouldShow = answerValue === q.dependsOnValue;
+                }
+              }
+            }
+            if (!shouldShow) return null;
+            
             return (
               <View key={q.id} style={{ marginBottom: 12 }}>
                 <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
@@ -7557,12 +7585,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const initialJSEA = { id: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' };
   const initialIsolations = [];
   const initialSignOns = [];
+  
+  // Merge permit specializedPermits with initialSpecializedPermits to ensure all keys exist
+  const mergedSpecializedPermits = { ...initialSpecializedPermits, ...(permit.specializedPermits || {}) };
+  
   const [editData, setEditData] = React.useState({
     ...permit,
     contractorCompany: permit.contractor_company || permit.contractorCompany || '',
     manualCompany: permit.manual_company || permit.manualCompany || '',
     contractorSelected: permit.contractor_selected || false,
-    specializedPermits: permit.specializedPermits || initialSpecializedPermits,
+    specializedPermits: mergedSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
     jseas: permit.jseas || [],
     isolations: permit.isolations || initialIsolations,
@@ -7828,7 +7860,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               editable={editData.site_id ? true : false}
             />
             {!editData.site_id && (
-              <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+              <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
             )}
             {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
               <View style={{
@@ -7860,7 +7892,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       }}
                     >
                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
+                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -8097,26 +8129,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
                     {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
                       <View style={{ marginBottom: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
                         {jsea.taskSteps.map((step, idx) => (
                           <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
                             <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.description || step.step}</Text>
                             {step.hazards && (
                               <View style={{ marginBottom: 3 }}>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 10, marginBottom: 1 }]}>Hazards:</Text>
-                                <Text style={[styles.detailText, { color: '#374151', fontSize: 11, marginLeft: 4 }]}>{step.hazards}</Text>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Hazards:</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.hazards}</Text>
                               </View>
                             )}
                             {step.controls && (
                               <View style={{ marginBottom: 3 }}>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 10, marginBottom: 1 }]}>Controls:</Text>
-                                <Text style={[styles.detailText, { color: '#374151', fontSize: 11, marginLeft: 4 }]}>{step.controls}</Text>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Controls:</Text>
+                                <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.controls}</Text>
                               </View>
                             )}
                             {step.riskLevel && (
                               <View>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 10, marginBottom: 1 }]}>Risk Level:</Text>
-                                <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', fontSize: 11, marginLeft: 4 }]}>{step.riskLevel}</Text>
+                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Risk Level:</Text>
+                                <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', fontSize: 14, marginLeft: 4 }]}>{step.riskLevel}</Text>
                               </View>
                             )}
                           </View>
@@ -8127,7 +8159,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     )}
                     {jsea.additionalPrecautions && (
                       <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        <Text style={[styles.detailText, { fontWeight: '500', color: '#6B7280', fontSize: 11, marginBottom: 3 }]}>Additional Precautions:</Text>
+                        <Text style={[styles.detailText, { fontWeight: '500', color: '#6B7280', fontSize: 14, marginBottom: 3 }]}>Additional Precautions:</Text>
                         <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
                           <Text style={[styles.detailText, { color: '#1F2937', fontWeight: '500', fontSize: 11 }]}>{jsea.additionalPrecautions}</Text>
                         </View>
@@ -8351,7 +8383,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }}>
                   <Text style={{ color: '#3B82F6', fontWeight: '500', marginBottom: 2 }}>📎 {attachment.name || 'Unnamed'}</Text>
                 </TouchableOpacity>
-                <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                <Text style={{ fontSize: 14, color: '#6B7280' }}>
                   {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
                 </Text>
               </View>
@@ -8660,7 +8692,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
                         {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                           <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                               {getPermitSectionMissingCount(key, editData)} missing
                             </Text>
                           </View>
@@ -8841,7 +8873,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </Text>
             <Text style={{
               color: '#FCA5A5',
-              fontSize: 12,
+              fontSize: 14,
               marginTop: 4
             }}>
               Reconnecting... Check your internet connection
@@ -8873,7 +8905,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.cardNumber}>{needsVerificationCount}</Text>
             <Text style={styles.cardLabel}>Needs Verification</Text>
             {needsVerificationCount > 0 && (
-              <Text style={{ fontSize: 10, color: '#DC2626', fontWeight: '600', marginTop: 4 }}>⚠️ Action Required</Text>
+              <Text style={{ fontSize: 13, color: '#DC2626', fontWeight: '600', marginTop: 4 }}>⚠️ Action Required</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#6B7280' }]} onPress={() => setCurrentScreen('completed')}>
@@ -9353,7 +9385,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }
                       }}
                     >
-                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -9423,12 +9455,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 marginRight: 12
                               }}
                             >
-                              {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                              {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{serviceName}</Text>
                               {serviceGroup.length > 1 && (
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>({serviceGroup.length} business units)</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>({serviceGroup.length} business units)</Text>
                               )}
                             </View>
                           </TouchableOpacity>
@@ -9473,7 +9505,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }
                         }}
                       >
-                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
+                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{siteName}</Text>
                       </TouchableOpacity>
                     );
                   }) : (
@@ -9529,20 +9561,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   setUsers(freshUsers);
                 }}
               >
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>🔄 Refresh</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>🔄 Refresh</Text>
               </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportPermitIssuerCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {permitIssuers.length} permit issuers {permitIssuers.length > 0 && `(${permitIssuers.filter(u => u.sites && u.sites.length > 0).length} with sites assigned)`}</Text>
             
             {/* Filters */}
             <View style={{ marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8 }}>FILTERS:</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 8 }}>FILTERS:</Text>
               <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                 <View style={{ flex: 1, minWidth: 150 }}>
-                  <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Business Unit</Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>Business Unit</Text>
                   <View style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden', backgroundColor: 'white' }}>
                     <Picker
                       selectedValue={permitIssuerBusinessUnitFilter}
@@ -9559,7 +9591,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 
                 <View style={{ flex: 1, minWidth: 150 }}>
-                  <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>Site</Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>Site</Text>
                   <View style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden', backgroundColor: 'white' }}>
                     <Picker
                       selectedValue={permitIssuerSiteFilter}
@@ -9607,7 +9639,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
                     {user.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>ADMIN</Text>
+                      <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>ADMIN</Text>
                     </View>}
                   </View>
                   <Text style={styles.detailText}>{user.email}</Text>
@@ -10328,7 +10360,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                        {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
                       </View>
                       <Text style={{ color: '#1F2937', fontSize: 14 }}>{unit.name}</Text>
                     </TouchableOpacity>
@@ -10421,7 +10453,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
               </View>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV/Excel</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV/Excel</Text>
               </TouchableOpacity>
             </View>
 
@@ -10474,13 +10506,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <View>
                       {/* Table Header */}
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-                        <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
-                        <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
-                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
-                        <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
-                        <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
-                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
-                        <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
+                        <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+                        <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
+                        <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
+                        <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
+                        <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                       </View>
 
                       {/* Table Rows */}
@@ -10503,7 +10535,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             <Text style={{ width: 250, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                               {company.name}
                             </Text>
-                            <Text style={{ width: 300, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                            <Text style={{ width: 300, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               {companyBUs}
                             </Text>
                             <TouchableOpacity 
@@ -10517,7 +10549,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : '#FEF3C7',
                               }}>
                                 <Text style={{
-                                  fontSize: 10,
+                                  fontSize: 13,
                                   fontWeight: '600',
                                   color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : '#92400E'
                                 }}>
@@ -10544,7 +10576,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   '#F3F4F6'
                               }}>
                                 <Text style={{
-                                  fontSize: 10,
+                                  fontSize: 13,
                                   fontWeight: '600',
                                   color:
                                     trainingRecordsStatuses[company.id] === 'approved' ? '#065F46' :
@@ -10559,7 +10591,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             
                             {/* Invitation Sent Column */}
                             <View style={{ width: 140, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
-                              <Text style={{ fontSize: 11, color: '#6B7280', textAlign: 'center' }}>
+                              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
                                 {company.accreditation_invitation_sent_at 
                                   ? new Date(company.accreditation_invitation_sent_at).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                   : '○ Not sent'}
@@ -10568,7 +10600,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
                             {/* Deadline Column */}
                             <View style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
-                              <Text style={{ fontSize: 11, color: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '#7F1D1D' : '#6B7280', textAlign: 'center', fontWeight: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '600' : '400' }}>
+                              <Text style={{ fontSize: 14, color: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '#7F1D1D' : '#6B7280', textAlign: 'center', fontWeight: company.accreditation_deadline && new Date(company.accreditation_deadline) < new Date() ? '600' : '400' }}>
                                 {company.accreditation_deadline
                                   ? (new Date(company.accreditation_deadline) < new Date() 
                                     ? `⚠ ${new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
@@ -10600,7 +10632,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   setShowInvitationModal(true);
                                 }}
                               >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                                <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>
                                   {company.accreditation_invitation_sent_at ? '↻ Resend' : '✉ Invite'}
                                 </Text>
                               </TouchableOpacity>
@@ -10611,13 +10643,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   setEditingCompany(true);
                                 }}
                               >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
+                                <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Edit</Text>
                               </TouchableOpacity>
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
                                 onPress={() => handleDeleteCompany(company.id)}
                               >
-                                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Del</Text>
+                                <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Del</Text>
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -10658,7 +10690,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', marginBottom: 4 }}>
                     {selectedCompanyForAccreditation.name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#DBEAFE' }}>
+                  <Text style={{ fontSize: 14, color: '#DBEAFE' }}>
                     Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
                   </Text>
                 </View>
@@ -10850,7 +10882,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ fontSize: 18, fontWeight: '700', color: 'white', marginBottom: 4 }}>
                     {selectedCompanyForTrainingRecords.name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#E9D5FF' }}>
+                  <Text style={{ fontSize: 14, color: '#E9D5FF' }}>
                     Training Records - {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? '📝 Pending Review' : '○ None'}
                   </Text>
                 </View>
@@ -11406,7 +11438,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         setCurrentSite({ ...currentSite, businessUnitId: unit.id });
                       }}
                     >
-                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -11419,7 +11451,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 onChangeText={text => setCurrentSite({ ...currentSite, kioskSubdomain: text })} 
                 placeholder="e.g., wa-amisfield-quarry-kiosk" 
               />
-              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 12 }}>The subdomain used for the kiosk sign-in at this site (contractorhq.co.nz)</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>The subdomain used for the kiosk sign-in at this site (contractorhq.co.nz)</Text>
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddSite}>
                 <Text style={styles.addButtonText}>{editingSite ? 'Update Site' : 'Add Site'}</Text>
@@ -11439,7 +11471,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Sites Database</Text>
               </View>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportSitesCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {sites.length} sites</Text>
@@ -11447,7 +11479,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {/* Filter section */}
             {sites.length > 0 && (
               <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filters:</Text>
+                <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Filters:</Text>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <TextInput 
                     style={[styles.input, { flex: 1 }]}
@@ -11468,7 +11500,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 {(siteSearchText.length > 0 || siteFilterBusinessUnit) && (
                   <TouchableOpacity onPress={() => { setSiteSearchText(''); setSiteFilterBusinessUnit(''); }} style={{ marginTop: 8 }}>
-                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '500' }}>Clear filters</Text>
+                    <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500' }}>Clear filters</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -11483,11 +11515,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View>
                   {/* Table Header */}
                   <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Site Name</Text>
-                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Location</Text>
-                    <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Unit</Text>
-                    <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
-                    <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 12, textAlign: 'center' }}>Actions</Text>
+                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Site Name</Text>
+                    <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Location</Text>
+                    <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Unit</Text>
+                    <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
+                    <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                   </View>
 
                   {/* Table Rows */}
@@ -11518,13 +11550,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 150, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                           {site.name}
                         </Text>
-                        <Text style={{ width: 150, padding: 12, fontSize: 12, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                        <Text style={{ width: 150, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                           {site.location}
                         </Text>
-                        <Text style={{ width: 120, padding: 12, fontSize: 12, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                        <Text style={{ width: 120, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                           {buName}
                         </Text>
-                        <Text style={{ width: 180, padding: 12, fontSize: 11, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
+                        <Text style={{ width: 180, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
                           {site.kioskSubdomain || '—'}
                         </Text>
                         <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
@@ -11535,13 +11567,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               setEditingSite(true);
                             }}
                           >
-                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Edit</Text>
+                            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Edit</Text>
                           </TouchableOpacity>
                           <TouchableOpacity 
                             style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
                             onPress={() => handleDeleteSite(site.id)}
                           >
-                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>Del</Text>
+                            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Del</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -12074,7 +12106,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }
                       }}
                     >
-                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{unit.name}</Text>
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -12146,7 +12178,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{company.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{company.id}</Text>
+                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{company.id}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -12228,7 +12260,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             }
                           }}
                         >
-                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{serviceName}</Text>
+                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{serviceName}</Text>
                         </TouchableOpacity>
                       );
                     });
@@ -12271,7 +12303,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }
                         }}
                       >
-                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 12, fontWeight: '500' }}>{siteName}</Text>
+                        <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{siteName}</Text>
                       </TouchableOpacity>
                     );
                   }) : (
@@ -12309,14 +12341,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
               </View>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Import CSV</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
               </TouchableOpacity>
             </View>
 
             {/* Filter and Search Section */}
             {contractors.length > 0 && (
               <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
+                <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Type name, email..."
@@ -12324,7 +12356,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   onChangeText={setContractorSearchText}
                 />
 
-                <Text style={[styles.label, { fontSize: 12, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
+                <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   <TouchableOpacity
                     style={[
@@ -12389,7 +12421,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
                         <Text style={[{ width: columns.sites, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Available Sites</Text>
                         <Text style={[{ width: columns.inductionExpiry, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Induction Exp</Text>
-                        <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11, textAlign: 'center' }]}>Actions</Text>
+                        <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }]}>Actions</Text>
                       </View>
 
                       {/* Table Rows */}
@@ -12404,17 +12436,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             alignItems: 'center'
                           }}
                         >
-                          <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
-                          <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                          <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone) || '-'}</Text>
-                          <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
-                          <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
+                          <Text style={[{ width: columns.name, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
+                          <Text style={[{ width: columns.email, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
+                          <Text style={[{ width: columns.phone, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone) || '-'}</Text>
+                          <Text style={[{ width: columns.company, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
+                          <Text style={[{ width: columns.services, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
                             {(contractor.serviceIds || []).length > 0 ? getServiceNames(contractor.serviceIds).slice(0, 2).join(', ') + ((contractor.serviceIds || []).length > 2 ? '...' : '') : 'None'}
                           </Text>
-                          <Text style={[{ width: columns.sites, padding: 12, fontSize: 11, color: '#1F2937' }, styles.tableBorder]}>
+                          <Text style={[{ width: columns.sites, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
                             {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
                           </Text>
-                          <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 11, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
+                          <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 14, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
                             {contractor.inductionExpiry ? formatDateNZ(contractor.inductionExpiry) : '-'}
                           </Text>
                           <View style={{ width: columns.actions, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 12 }}>
@@ -12458,13 +12490,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 setCurrentContractor(editedContractor); 
                               }}
                             >
-                              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Edit</Text>
+                              <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Edit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
                               style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#EF4444', borderRadius: 4 }}
                               onPress={() => handleDeleteContractor(contractor.id)}
                             >
-                              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>Del</Text>
+                              <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Del</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -12613,7 +12645,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }}
                       >
                         <Text style={{
-                          fontSize: 11,
+                          fontSize: 14,
                           fontWeight: line.type === option.type ? '700' : '500',
                           color: line.type === option.type ? 'white' : '#374151',
                         }}>
@@ -12630,7 +12662,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         setVisitorInductionContent(newLines);
                       }}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#DC2626' }}>Delete</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626' }}>Delete</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -12744,13 +12776,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <Text style={styles.title}>Visitor Inductions</Text>
         </View>
         <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
-          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
             Manage the induction content that visitors must read and accept before signing in at your sites.
           </Text>
 
           {/* Business Unit Filter */}
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit:</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <TouchableOpacity
                 style={{
@@ -12763,7 +12795,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }}
                 onPress={() => setVisitorInductionFilterBusinessUnit('')}
               >
-                <Text style={{ color: visitorInductionFilterBusinessUnit === '' ? 'white' : '#1F2937', fontSize: 12, fontWeight: '500' }}>
+                <Text style={{ color: visitorInductionFilterBusinessUnit === '' ? 'white' : '#1F2937', fontSize: 14, fontWeight: '500' }}>
                   All
                 </Text>
               </TouchableOpacity>
@@ -12780,7 +12812,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   }}
                   onPress={() => setVisitorInductionFilterBusinessUnit(bu.id)}
                 >
-                  <Text style={{ color: visitorInductionFilterBusinessUnit === bu.id ? 'white' : '#1F2937', fontSize: 12, fontWeight: '500' }}>
+                  <Text style={{ color: visitorInductionFilterBusinessUnit === bu.id ? 'white' : '#1F2937', fontSize: 14, fontWeight: '500' }}>
                     {bu.name}
                   </Text>
                 </TouchableOpacity>
@@ -12818,7 +12850,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 paddingHorizontal: 8,
                 paddingVertical: 4,
                 borderRadius: 4,
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: '600',
                 alignSelf: 'flex-start'
               }}>
@@ -12971,7 +13003,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         {bu.name}
                       </Text>
                       {bu.description && (
-                        <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>
                           {bu.description}
                         </Text>
                       )}
@@ -12979,7 +13011,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         style={{ alignSelf: 'flex-start', marginTop: 8 }}
                         onPress={() => handleDeleteBusinessUnit(bu.id)}
                       >
-                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+                        <Text style={{ fontSize: 14, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
                       </TouchableOpacity>
                     </TouchableOpacity>
                   </View>
@@ -13596,13 +13628,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         style={{ backgroundColor: '#10B981', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 }}
                         onPress={() => handleEditIsolation(isolation)}
                       >
-                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                        <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Edit</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={{ backgroundColor: '#EF4444', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 }}
                         onPress={() => handleDeleteIsolation(isolation.id)}
                       >
-                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                        <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Delete</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -13697,7 +13729,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
           {/* Service Filter Section */}
           <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 12 }}>
-            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Service:</Text>
+            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Service:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {(servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb : ALL_SERVICES.map(s => ({ name: s }))).map(service => (
                 <TouchableOpacity
@@ -13718,7 +13750,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
           {/* Business Unit Filter Section */}
           <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 12 }}>
-            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Business Unit:</Text>
+            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Business Unit:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <TouchableOpacity
                 style={[
@@ -13750,7 +13782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
           {/* Company Filter Section */}
           <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 16 }}>
-            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Company:</Text>
+            <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Filter by Company:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <TouchableOpacity
                 style={[
@@ -13785,7 +13817,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold' }]}>
               Contractors {selectedService !== 'All' && `- ${selectedService}`}
             </Text>
-            <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>Results: {contractorsFiltered.length}</Text>
+            <Text style={{ color: '#6B7280', fontSize: 14, marginTop: 2 }}>Results: {contractorsFiltered.length}</Text>
           </View>
 
           {/* Spreadsheet Table */}
@@ -13816,11 +13848,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       borderBottomColor: '#E5E7EB'
                     }}
                   >
-                    <Text style={[{ width: columns.name, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
-                    <Text style={[{ width: columns.email, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
-                    <Text style={[{ width: columns.phone, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone)}</Text>
-                    <Text style={[{ width: columns.company, padding: 12, fontSize: 12, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName}</Text>
-                    <Text style={[{ width: columns.services, padding: 12, fontSize: 11, color: '#1F2937' }]}>
+                    <Text style={[{ width: columns.name, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.name}</Text>
+                    <Text style={[{ width: columns.email, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.email}</Text>
+                    <Text style={[{ width: columns.phone, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{formatPhoneNumber(contractor.phone)}</Text>
+                    <Text style={[{ width: columns.company, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName}</Text>
+                    <Text style={[{ width: columns.services, padding: 12, fontSize: 14, color: '#1F2937' }]}>
                       {(contractor.serviceIds || []).length > 0 ? getServiceNames(contractor.serviceIds).join(', ') : 'None'}
                     </Text>
                   </View>
@@ -13837,13 +13869,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Editable Approval Permit Screen (for Pending Approval)
   const EditableApprovalPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, handlePrintPermit, sites, users, contractors, servicesFromDb, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, setShowJseaEditor, setSelectedBuForLoader, setShowJseaTemplateLoader, setShowJseaSaveTemplate, loadJseaTemplatesForLoader, businessUnitId, setShowRiskMatrix, setSelectedLikelihood, setSelectedSeverity, setRiskMatrixContext }) => {
+    const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
+    const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
+    const initialIsolations = [];
+    const initialSignOns = [];
+    
+    // Merge permit specializedPermits with initialSpecializedPermits to ensure all keys exist (for backward compatibility)
+    const mergedSpecializedPermits = { ...initialSpecializedPermits, ...(permit.specializedPermits || {}) };
+    
     const [editData, setEditData] = React.useState({
       ...permit,
       permitIssuer: permit.permitted_issuer || '',
       contractorCompany: permit.contractor_company || '',
       manualCompany: permit.manual_company || '',
       contractorSelected: permit.contractor_selected || false,
-      specializedPermits: permit.specializedPermits || initialSpecializedPermits,
+      specializedPermits: mergedSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jseas: permit.jseas || [],
       isolations: permit.isolations || initialIsolations,
@@ -14386,7 +14426,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         {/* REJECTION COMMENT ALERT - Show if this draft was rejected */}
         {isDraft && permit.rejection_comment && (
           <View style={{ backgroundColor: '#FEF2F2', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#7F1D1D', marginBottom: 6 }}>⚠️ Feedback from Reviewer:</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#7F1D1D', marginBottom: 6 }}>⚠️ Feedback from Reviewer:</Text>
             <Text style={{ fontSize: 13, color: '#991B1B' }}>{permit.rejection_comment}</Text>
           </View>
         )}
@@ -14483,7 +14523,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   return (
                     <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 4 }}>Permitted Services:</Text>
                       <Text style={{ fontSize: 13, color: '#1E40AF' }}>{serviceNames}</Text>
                     </View>
                   );
@@ -14519,7 +14559,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={editData.site_id ? true : false}
                 />
                 {!editData.site_id && (
-                  <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
+                  <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                 )}
                 {showRequestedByDropdown && filteredRequestedBy.length > 0 && (
                   <View style={{
@@ -14548,7 +14588,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
+                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || ''}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -14570,7 +14610,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   return (
                     <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#22C55E' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#15803D', marginBottom: 4 }}>Inducted Services:</Text>
                       <Text style={{ fontSize: 13, color: '#15803D' }}>{serviceNames}</Text>
                     </View>
                   );
@@ -14687,7 +14727,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
                           {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                                 {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
@@ -14757,7 +14797,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   placeholder="Start typing person name (contractor or employee)..."
                                 />
                                 {!editData.site && (
-                                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
+                                  <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                                 )}
                                 {showHwSafetyWatchDropdownDraft[key] && filteredHwSafetyWatchContractorsDraft[key] && filteredHwSafetyWatchContractorsDraft[key].length > 0 && (
                                   <View style={{
@@ -14793,7 +14833,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                           }}
                                         >
                                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                                         </TouchableOpacity>
                                       ))}
                                     </ScrollView>
@@ -14851,7 +14891,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   placeholder="Start typing person name (contractor or employee)..."
                                 />
                                 {!editData.site && (
-                                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
+                                  <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                                 )}
                                 {showCsSafetyWatchDropdownDraft[key] && filteredCsSafetyWatchContractorsDraft[key] && filteredCsSafetyWatchContractorsDraft[key].length > 0 && (
                                   <View style={{
@@ -14887,7 +14927,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                           }}
                                         >
                                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                          <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                          <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                                         </TouchableOpacity>
                                       ))}
                                     </ScrollView>
@@ -14967,11 +15007,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   )}
                   {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                       {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
-                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          <Text key={idx} style={{ fontSize: 14, color: '#374151', marginBottom: 4 }}>
                             Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
                           </Text>
                         );
@@ -15128,16 +15168,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <>
                         {isolation.linked_items && isolation.linked_items.length > 0 && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
                             {isolation.linked_items.map((item, lidx) => (
-                              <Text key={lidx} style={[styles.detailText, { fontSize: 11, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
+                              <Text key={lidx} style={[styles.detailText, { fontSize: 14, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
                             ))}
                           </View>
                         )}
                         {isolation.key_procedure && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
-                            <Text style={[styles.detailText, { fontSize: 11, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
                           </View>
                         )}
                       </>
@@ -15187,7 +15227,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         placeholder="Start typing person name (contractor or employee)..."
                       />
                       {!editData.site && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
+                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                       )}
                       {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
                         <View style={{
@@ -15223,7 +15263,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -15289,9 +15329,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   return triggeredQuestions.length > 0 ? (
                     <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                       <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
                       {triggeredQuestions.map((question, idx) => (
-                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                        <Text key={idx} style={{ fontSize: 13, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
                       ))}
                     </View>
                   ) : null;
@@ -15409,7 +15449,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               </View>
                             ))
                           ) : (
-                            <Text style={[styles.detailText, { color: '#9CA3AF', fontSize: 11, fontStyle: 'italic', marginLeft: 8 }]}>No task steps added</Text>
+                            <Text style={[styles.detailText, { color: '#9CA3AF', fontSize: 14, fontStyle: 'italic', marginLeft: 8 }]}>No task steps added</Text>
                           )}
                         </View>
                       ))
@@ -15518,7 +15558,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         placeholder="Start typing worker name..."
                       />
                       {!editData.site && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
+                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
                       )}
                       {showSignOnWorkerDropdownDraft[idx] && filteredSignOnWorkersDraft[idx] && filteredSignOnWorkersDraft[idx].length > 0 && (
                         <View style={{
@@ -15553,7 +15593,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -15591,7 +15631,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </TouchableOpacity>
           {expandedSections.attachments && (
             <View style={styles.sectionContent}>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
               
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                 <TouchableOpacity 
@@ -15641,7 +15681,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {attachment.name || 'Unnamed'}
                           </Text>
                         </TouchableOpacity>
-                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>
                           {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
                         </Text>
                       </View>
@@ -15658,7 +15698,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ))}
                 </View>
               ) : (
-                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
                   No attachments
                 </Text>
               )}
@@ -15768,9 +15808,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {!canApprove && (
                     <View style={{ marginBottom: 12, padding: 12, backgroundColor: '#FEE2E2', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                       <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#DC2626' }}>⚠️ PERMIT CANNOT BE APPROVED</Text>
-                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 8, marginBottom: 6 }}>The following critical condition(s) must be resolved:</Text>
+                      <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 8, marginBottom: 6 }}>The following critical condition(s) must be resolved:</Text>
                       {blockedQuestions.map((question, idx) => (
-                        <Text key={idx} style={{ fontSize: 11, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                        <Text key={idx} style={{ fontSize: 14, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
                       ))}
                     </View>
                   )}
@@ -15849,11 +15889,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 ) : (
                   <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
                     <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                    <Text style={{ fontSize: 14, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
                   </View>
                 )}
 
-                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
                   Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
                 </Text>
 
@@ -16055,7 +16095,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
                       {template.name}
                     </Text>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
                       {Array.isArray(template.jsea) ? template.jsea.length : template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
@@ -16480,7 +16520,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 {requesterSignatureDraft && (
                   <Text style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     color: '#10B981',
                     marginTop: 8,
                     fontWeight: '600'
@@ -16695,7 +16735,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 {issuerSignatureApproval && (
                   <Text style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     color: '#10B981',
                     marginTop: 8,
                     fontWeight: '600'
@@ -16831,7 +16871,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </Text>
                       <Text style={{
                         color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontStyle: 'italic'
                       }}>
                         {item.desc}
@@ -16873,7 +16913,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </Text>
                       <Text style={{
                         color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontStyle: 'italic'
                       }}>
                         {item.desc}
@@ -16891,7 +16931,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   borderRadius: 8,
                   marginBottom: 24
                 }}>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
                   <View style={{
                     backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft)),
                     paddingVertical: 12,
@@ -16959,13 +16999,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Editable Inspection Permit Screen (for Needs Inspection)
   const EditInspectionPermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, sites, users, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, businessUnitId, contractors, servicesFromDb, initialSiteId }) => {
+    const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
+    const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
+    const initialIsolations = [];
+    const initialSignOns = [];
+    
+    // Merge permit specializedPermits with initialSpecializedPermits to ensure all keys exist (for backward compatibility)
+    const mergedSpecializedPermits = { ...initialSpecializedPermits, ...(permit.specializedPermits || {}) };
+    
     const [editData, setEditData] = React.useState({
       ...permit,
       contractorCompany: permit.contractor_company || permit.contractorCompany || '',
       manualCompany: permit.manual_company || permit.manualCompany || '',
       contractorSelected: permit.contractor_selected || false,
       permitIssuer: permit.permitIssuer || permit.permitted_issuer || '',
-      specializedPermits: permit.specializedPermits || initialSpecializedPermits,
+      specializedPermits: mergedSpecializedPermits,
       singleHazards: permit.singleHazards || initialSingleHazards,
       jseas: permit.jseas || [],
       isolations: permit.isolations || initialIsolations,
@@ -17416,7 +17464,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
                           {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                                 {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
@@ -17524,7 +17572,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                       }}
                                     >
                                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                     </TouchableOpacity>
                                   ))}
                                 </ScrollView>
@@ -17621,7 +17669,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                       }}
                                     >
                                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                     </TouchableOpacity>
                                   ))}
                                 </ScrollView>
@@ -17699,11 +17747,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   )}
                   {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                       {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
-                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          <Text key={idx} style={{ fontSize: 14, color: '#374151', marginBottom: 4 }}>
                             Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
                           </Text>
                         );
@@ -17864,16 +17912,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <>
                         {isolation.linked_items && isolation.linked_items.length > 0 && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
                             {isolation.linked_items.map((item, lidx) => (
-                              <Text key={lidx} style={[styles.detailText, { fontSize: 11, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
+                              <Text key={lidx} style={[styles.detailText, { fontSize: 14, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
                             ))}
                           </View>
                         )}
                         {isolation.key_procedure && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
-                            <Text style={[styles.detailText, { fontSize: 11, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
                           </View>
                         )}
                       </>
@@ -17958,7 +18006,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -18049,7 +18097,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         editable={editData.site_id ? true : false}
                       />
                       {!editData.site_id && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
                         <View style={{
@@ -18085,7 +18133,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -18141,9 +18189,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   return triggeredQuestions.length > 0 ? (
                     <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                       <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
                       {triggeredQuestions.map((question, idx) => (
-                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                        <Text key={idx} style={{ fontSize: 13, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
                       ))}
                     </View>
                   ) : null;
@@ -18300,7 +18348,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </TouchableOpacity>
           {expandedSections.attachments && (
             <View style={styles.sectionContent}>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
               
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                 <TouchableOpacity 
@@ -18350,7 +18398,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {attachment.name || 'Unnamed'}
                           </Text>
                         </TouchableOpacity>
-                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>
                           {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
                         </Text>
                       </View>
@@ -18367,7 +18415,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ))}
                 </View>
               ) : (
-                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
                   No attachments
                 </Text>
               )}
@@ -18397,11 +18445,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
                 ⚠️ Daily Verification Required
               </Text>
-              <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+              <Text style={{ fontSize: 14, color: '#7F1D1D', marginBottom: 12 }}>
                 This permit has not been verified in the last 24 hours. Verify it's still safe to proceed with inspection.
               </Text>
               {permit.last_verified_at && (
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, color: '#9CA3AF', marginBottom: 12 }}>
                   Last verified: {formatDateNZ(permit.last_verified_at)}
                   {permit.verified_by && ` by ${permit.verified_by}`}
                 </Text>
@@ -18417,10 +18465,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         {permit.last_verified_at && !needsVerification(permit) && (
           <View style={[styles.section, { backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981' }]}>
             <View style={{ padding: 12 }}>
-              <Text style={{ fontSize: 12, color: '#059669' }}>
+              <Text style={{ fontSize: 14, color: '#059669' }}>
                 ✓ Verified by {permit.verified_by || 'Unknown'}
               </Text>
-              <Text style={{ fontSize: 11, color: '#6B7280' }}>
+              <Text style={{ fontSize: 14, color: '#6B7280' }}>
                 {permit.last_verified_at ? formatDateNZ(permit.last_verified_at) : 'N/A'}
               </Text>
             </View>
@@ -18561,11 +18609,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 ) : (
                   <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
                     <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                    <Text style={{ fontSize: 14, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
                   </View>
                 )}
 
-                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
                   Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
                 </Text>
 
@@ -18767,7 +18815,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ fontWeight: '600', color: '#1F2937', fontSize: 14 }}>
                       {template.name}
                     </Text>
-                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
                       {Array.isArray(template.jsea) ? template.jsea.length : template.jsea?.taskSteps?.length || 0} steps
                     </Text>
                   </TouchableOpacity>
@@ -18916,7 +18964,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </Text>
                       <Text style={{
                         color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontStyle: 'italic'
                       }}>
                         {item.desc}
@@ -18958,7 +19006,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </Text>
                       <Text style={{
                         color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontStyle: 'italic'
                       }}>
                         {item.desc}
@@ -18976,7 +19024,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   borderRadius: 8,
                   marginBottom: 24
                 }}>
-                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>Calculated Risk Level:</Text>
                   <View style={{
                     backgroundColor: getRiskColor(calculateRiskLevel(selectedLikelihoodDraft, selectedSeverityDraft)),
                     paddingVertical: 12,
@@ -19171,7 +19219,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {item.contractorCompany && <Text style={styles.detailText}>Company: {item.contractorCompany}</Text>}
                 <Text style={styles.detailText}>Date: {formatDateNZ(item.submittedDate || item.approvedDate || item.completedDate || '')}</Text>
                 {item.last_verified_at && (
-                  <Text style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>
+                  <Text style={{ fontSize: 14, color: '#DC2626', marginTop: 4 }}>
                     ⚠️ Last verified: {formatDateNZ(item.last_verified_at)}{item.verified_by && ` by ${item.verified_by}`}
                   </Text>
                 )}
@@ -19195,12 +19243,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const EditActivePermitScreen = ({ permit, setPermits, setCurrentScreen, permits, styles, users, sites, siteNameToIdMap, siteIdToNameMap, permitQuestionnaires, specializedPermitTypes, singleHazardTypes, getRiskColor, isolationRegisters, contractors }) => {
     // Always get the latest permit from permits array
     const latestPermit = permits.find(p => p.id === permit.id) || permit;
+    
+    const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
+    const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
+    const initialIsolations = [];
+    const initialSignOns = [];
+    
+    // Merge permit specializedPermits with initialSpecializedPermits to ensure all keys exist (for backward compatibility)
+    const mergedSpecializedPermits = { ...initialSpecializedPermits, ...(latestPermit.specializedPermits || {}) };
+    
     const [editData, setEditData] = React.useState({
       ...latestPermit,
       contractorCompany: latestPermit.contractor_company || latestPermit.contractorCompany || '',
       manualCompany: latestPermit.manual_company || latestPermit.manualCompany || '',
       contractorSelected: latestPermit.contractor_selected || false,
-      specializedPermits: latestPermit.specializedPermits || initialSpecializedPermits,
+      specializedPermits: mergedSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
       jseas: latestPermit.jseas || [],
       isolations: latestPermit.isolations || initialIsolations,
@@ -19772,7 +19829,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit?.label || key}</Text>
                           {val.required && getPermitSectionMissingCount(key, editData) > 0 && (
                             <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
-                              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                                 {getPermitSectionMissingCount(key, editData)} missing
                               </Text>
                             </View>
@@ -19881,7 +19938,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                       }}
                                     >
                                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                     </TouchableOpacity>
                                   ))}
                                 </ScrollView>
@@ -19978,7 +20035,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                       }}
                                     >
                                       <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
+                                      <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.company || 'Contractor'}</Text>
                                     </TouchableOpacity>
                                   ))}
                                 </ScrollView>
@@ -20056,11 +20113,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   )}
                   {editData.jsea?.taskSteps?.length > 0 && (
                     <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F3F4F6', borderRadius: 6 }}>
-                      <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
+                      <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '500', marginBottom: 8 }}>Steps Summary:</Text>
                       {editData.jsea?.taskSteps?.map((step, idx) => {
                         const stepText = step.description || step.step || '';
                         return (
-                          <Text key={idx} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>
+                          <Text key={idx} style={{ fontSize: 14, color: '#374151', marginBottom: 4 }}>
                             Step {idx + 1}: {stepText.substring(0, 50)}{stepText.length > 50 ? '...' : ''}
                           </Text>
                         );
@@ -20221,16 +20278,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <>
                         {isolation.linked_items && isolation.linked_items.length > 0 && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Linked Items:</Text>
                             {isolation.linked_items.map((item, lidx) => (
-                              <Text key={lidx} style={[styles.detailText, { fontSize: 11, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
+                              <Text key={lidx} style={[styles.detailText, { fontSize: 14, color: '#047857', marginLeft: 12, marginBottom: 2 }]}>• {item}</Text>
                             ))}
                           </View>
                         )}
                         {isolation.key_procedure && (
                           <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.detailText, { fontSize: 12, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
-                            <Text style={[styles.detailText, { fontSize: 11, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, fontWeight: 'bold', color: '#059669', marginBottom: 4 }]}>Key Procedure:</Text>
+                            <Text style={[styles.detailText, { fontSize: 14, color: '#047857', marginBottom: 4 }]}>{isolation.key_procedure}</Text>
                           </View>
                         )}
                       </>
@@ -20313,7 +20370,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={[styles.detailText, { color: '#1F2937' }]}>{contractor.name}</Text>
-                                {contractor.company && <Text style={[styles.detailText, { fontSize: 11, color: '#6B7280' }]}>{contractor.company}</Text>}
+                                {contractor.company && <Text style={[styles.detailText, { fontSize: 14, color: '#6B7280' }]}>{contractor.company}</Text>}
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -20404,7 +20461,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         editable={editData.site_id ? true : false}
                       />
                       {!editData.site_id && (
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
+                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Select a site to filter by location</Text>
                       )}
                       {showSignOnWorkerDropdownActive[idx] && filteredSignOnWorkersActive[idx] && filteredSignOnWorkersActive[idx].length > 0 && (
                         <View style={{
@@ -20440,7 +20497,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                               >
                                 <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -20496,9 +20553,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   return triggeredQuestions.length > 0 ? (
                     <View style={{ marginBottom: 12, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
                       <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DC2626', textAlign: 'center' }}>⚠️ PERMIT CAN NOT BE ISSUED</Text>
-                      <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
+                      <Text style={{ fontSize: 14, color: '#991B1B', marginTop: 6, marginBottom: 4 }}>Critical conditions triggered:</Text>
                       {triggeredQuestions.map((question, idx) => (
-                        <Text key={idx} style={{ fontSize: 10, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
+                        <Text key={idx} style={{ fontSize: 13, color: '#991B1B', marginLeft: 8, marginBottom: 2 }}>• {question}</Text>
                       ))}
                     </View>
                   ) : null;
@@ -20654,7 +20711,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </TouchableOpacity>
           {expandedSections.attachments && (
             <View style={styles.sectionContent}>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>Add or view attached photos and documents.</Text>
               
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                 <TouchableOpacity 
@@ -20704,7 +20761,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {attachment.name || 'Unnamed'}
                           </Text>
                         </TouchableOpacity>
-                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>
                           {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
                         </Text>
                       </View>
@@ -20721,7 +20778,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ))}
                 </View>
               ) : (
-                <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
+                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 }}>
                   No attachments
                 </Text>
               )}
@@ -20764,7 +20821,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       >
                         {issuerAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
                       </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: '#92400E', flex: 1 }}>Work has been completed and permit is ready to be closed (Issuer)</Text>
+                      <Text style={{ fontSize: 14, color: '#92400E', flex: 1 }}>Work has been completed and permit is ready to be closed (Issuer)</Text>
                     </View>
                   </View>
                   <CustomDropdown
@@ -20783,8 +20840,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.label}>Issuer Signature:</Text>
                       {editData.completedSignOff?.issuerSignedAt ? (
                         <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#2563EB', marginBottom: 12 }}>
-                          <Text style={{ fontSize: 12, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.issuerSignedAt}</Text>
+                          <Text style={{ fontSize: 14, color: '#0C4A6E', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.issuerSignedAt}</Text>
                           {editData.completedSignOff.issuerSignature && (
                             <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: '#2563EB', paddingTop: 8 }}>
                               <Image 
@@ -20813,7 +20870,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       )}
                       {issuerHasSignature && !editData.completedSignOff?.issuerSignedAt && (
                         <Text style={{
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#10B981',
                           marginBottom: 8,
                           fontWeight: '600'
@@ -20872,7 +20929,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       >
                         {receiverAcknowledged && <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>✓</Text>}
                       </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: '#1E40AF', flex: 1 }}>Work has been completed and area is safe (Receiver)</Text>
+                      <Text style={{ fontSize: 14, color: '#1E40AF', flex: 1 }}>Work has been completed and area is safe (Receiver)</Text>
                     </View>
                   </View>
                   
@@ -20892,8 +20949,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       <Text style={styles.label}>Receiver Signature:</Text>
                       {editData.completedSignOff?.receiverSignedAt ? (
                         <View style={{ backgroundColor: '#DCFCE7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#10B981', marginBottom: 12 }}>
-                          <Text style={{ fontSize: 12, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
-                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.receiverSignedAt}</Text>
+                          <Text style={{ fontSize: 14, color: '#065F46', fontWeight: '600' }}>✓ Already Signed</Text>
+                          <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>{editData.completedSignOff.receiverSignedAt}</Text>
                           {editData.completedSignOff.receiverSignature && (
                             <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: '#10B981', paddingTop: 8 }}>
                               <Image 
@@ -20922,7 +20979,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       )}
                       {receiverHasSignature && !editData.completedSignOff?.receiverSignedAt && (
                         <Text style={{
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#10B981',
                           marginBottom: 8,
                           fontWeight: '600'
@@ -20964,7 +21021,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {editData.completedSignOff?.issuerSignedAt && editData.completedSignOff?.receiverSignedAt && (
                 <View style={{ backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#0284C7', marginTop: 12 }}>
                   <Text style={{ fontSize: 13, color: '#0C4A6E', fontWeight: '600' }}>✅ Permit Sign-Off Complete</Text>
-                  <Text style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>Both issuer and receiver have signed</Text>
+                  <Text style={{ fontSize: 14, color: '#475569', marginTop: 4 }}>Both issuer and receiver have signed</Text>
                 </View>
               )}
               
@@ -21080,11 +21137,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
                     ⚠️ Daily Verification Required
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, color: '#7F1D1D', marginBottom: 12 }}>
                     This permit has not been verified in the last 24 hours. Click the button below to verify it's still safe to proceed.
                   </Text>
                   {latestPermit.last_verified_at && (
-                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 14, color: '#9CA3AF', marginBottom: 12 }}>
                       Last verified: {formatDateNZ(latestPermit.last_verified_at)}
                       {latestPermit.verified_by && ` by ${latestPermit.verified_by}`}
                     </Text>
@@ -21098,10 +21155,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {/* VERIFICATION CONFIRMATION - inside completion section */}
               {latestPermit.last_verified_at && !needsVerification(latestPermit) && (
                 <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginTop: 16 }}>
-                  <Text style={{ fontSize: 12, color: '#059669' }}>
+                  <Text style={{ fontSize: 14, color: '#059669' }}>
                     ✓ Verified by {latestPermit.verified_by || 'Unknown'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
                     {latestPermit.last_verified_at ? formatDateNZ(latestPermit.last_verified_at) : 'N/A'}
                   </Text>
                 </View>
@@ -21114,6 +21171,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const updateData = { attachments: editData.attachments };
               let newSignOff = editData.completedSignOff || editData.completed_sign_off || {};
               let signOffChanged = false;
+              
+              console.log('💾 Saving permit completion...', {
+                issuerIdSelected,
+                issuerHasSignature,
+                receiverIdSelected,
+                receiverHasSignature,
+                existingIssuerSigned: !!editData.completedSignOff?.issuerSignedAt,
+                existingReceiverSigned: !!editData.completedSignOff?.receiverSignedAt
+              });
               
               // Check if issuer has a new unsaved signature
               if (issuerIdSelected && issuerHasSignature && !editData.completedSignOff?.issuerSignedAt) {
@@ -21133,6 +21199,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     issuerAcknowledged: issuerAcknowledged
                   };
                   signOffChanged = true;
+                  console.log('✍️ New issuer signature captured');
                 }
               }
               
@@ -21154,21 +21221,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     receiverAcknowledged: receiverAcknowledged
                   };
                   signOffChanged = true;
+                  console.log('✍️ New receiver signature captured');
                 }
               }
               
               if (signOffChanged) {
                 updateData.completed_sign_off = newSignOff;
+              } else {
+                // Always include existing sign-off even if not changed
+                if (Object.keys(newSignOff).length > 0) {
+                  updateData.completed_sign_off = newSignOff;
+                }
               }
               
+              console.log('📤 Sending to database:', { updateData });
               const savedPermit = await updatePermit(editData.id, updateData);
               
-              // Use the most up-to-date signature data
-              const finalSignOff = signOffChanged ? newSignOff : (savedPermit.completedSignOff || savedPermit.completed_sign_off || editData.completedSignOff || editData.completed_sign_off || {});
+              // Use the most up-to-date signature data - always include existing signatures from editData
+              const existingSignOff = editData.completedSignOff || editData.completed_sign_off || {};
+              const savedSignOff = savedPermit.completedSignOff || savedPermit.completed_sign_off || {};
+              const finalSignOff = signOffChanged ? { ...existingSignOff, ...newSignOff } : { ...existingSignOff, ...savedSignOff };
               const bothSigned = finalSignOff.issuerSignedAt && finalSignOff.receiverSignedAt;
+              
+              console.log('📋 Sign-off status:', {
+                existingSignOff,
+                newSignOff,
+                savedSignOff,
+                finalSignOff,
+                bothSigned,
+                issuerSignedAt: finalSignOff.issuerSignedAt,
+                receiverSignedAt: finalSignOff.receiverSignedAt
+              });
               
               if (bothSigned) {
                 // Mark permit as completed
+                console.log('✅ Both signatures present - marking permit as completed');
                 const completedPermit = await updatePermit(editData.id, { status: 'completed' });
                 const updatedPermits = permits.map(p => p.id === editData.id ? completedPermit : p);
                 setPermits(updatedPermits);
@@ -21180,6 +21267,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 );
               } else {
                 // Just save the signatures
+                console.log('⚠️ Not both signed yet:', { issuer: !!finalSignOff.issuerSignedAt, receiver: !!finalSignOff.receiverSignedAt });
                 const updated = permits.map(p => p.id === editData.id ? { ...editData, completedSignOff: newSignOff, completed_sign_off: newSignOff } : p);
                 setPermits(updated);
                 setEditData(prev => ({ ...prev, completedSignOff: newSignOff, completed_sign_off: newSignOff }));
@@ -21304,11 +21392,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 ) : (
                   <View style={{ backgroundColor: '#F3F4F6', padding: 20, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
                     <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>📄 File Preview Not Available</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
+                    <Text style={{ fontSize: 14, color: '#9CA3AF' }}>This file type cannot be previewed in the app.</Text>
                   </View>
                 )}
 
-                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
                   Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
                 </Text>
 
@@ -21964,9 +22052,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{admin.name}</Text>
-                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{admin.email}</Text>
+                        <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>{admin.email}</Text>
                         <Text style={{ 
-                          fontSize: 11, 
+                          fontSize: 14, 
                           color: 'white',
                           backgroundColor: admin.role === 'super_admin' ? '#10B981' : '#3B82F6',
                           paddingVertical: 2,
@@ -21984,13 +22072,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
                           onPress={() => handleEditAdmin(admin)}
                         >
-                          <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Edit</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={{ padding: 8, backgroundColor: '#EF4444', borderRadius: 6 }}
                           onPress={() => handleDeleteAdmin(admin)}
                         >
-                          <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Delete</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -22323,7 +22411,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 {requesterSignatureNewPermit && (
                   <Text style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     color: '#10B981',
                     marginTop: 8,
                     fontWeight: '600'
@@ -22516,7 +22604,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   permitType: {
@@ -22538,7 +22626,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   detailText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#9CA3AF',
     marginBottom: 2,
   },
@@ -22552,7 +22640,7 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     color: 'white',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   emptyState: {
@@ -22687,7 +22775,7 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
   noteText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6B7280',
     fontStyle: 'italic',
     marginBottom: 8,
@@ -22790,7 +22878,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   riskButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   submitSection: {
@@ -22876,7 +22964,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priorityButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

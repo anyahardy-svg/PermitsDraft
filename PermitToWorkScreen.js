@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
   noteText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6B7280',
     fontStyle: 'italic',
     marginBottom: 8,
@@ -875,7 +875,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   riskButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   submitSection: {

@@ -104,7 +104,7 @@ const JseaEditorScreen = forwardRef(({
       )}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+        <Text style={{ fontSize: 15, color: '#6B7280', marginBottom: 16 }}>
           Create a step-by-step analysis. Add as many steps as needed.
         </Text>
 
@@ -124,7 +124,7 @@ const JseaEditorScreen = forwardRef(({
                 </View>
 
                 {/* Description */}
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Description</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Description</Text>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -132,7 +132,7 @@ const JseaEditorScreen = forwardRef(({
                     borderRadius: 6,
                     padding: 12,
                     marginBottom: 12,
-                    fontSize: 13,
+                    fontSize: 15,
                     color: '#1F2937',
                     minHeight: 80,
                     textAlignVertical: 'top',
@@ -145,7 +145,7 @@ const JseaEditorScreen = forwardRef(({
                 />
 
                 {/* Hazards */}
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Hazards</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Hazards</Text>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -153,7 +153,7 @@ const JseaEditorScreen = forwardRef(({
                     borderRadius: 6,
                     padding: 12,
                     marginBottom: 12,
-                    fontSize: 13,
+                    fontSize: 15,
                     color: '#1F2937',
                     minHeight: 80,
                     textAlignVertical: 'top',
@@ -166,14 +166,14 @@ const JseaEditorScreen = forwardRef(({
                 />
 
                 {/* Controls */}
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Controls</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Controls</Text>
                 <TextInput
                   style={{
                     borderWidth: 1,
                     borderColor: '#D1D5DB',
                     borderRadius: 6,
                     padding: 12,
-                    fontSize: 13,
+                    fontSize: 15,
                     color: '#1F2937',
                     minHeight: 80,
                     textAlignVertical: 'top',
@@ -192,10 +192,10 @@ const JseaEditorScreen = forwardRef(({
           <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16, flex: 1 }}>
             {/* Header Row */}
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 16 }}>
-              <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 12 }}>Step</Text>
-              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 12 }}>Description</Text>
-              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 12 }}>Hazards</Text>
-              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 12 }}>Controls</Text>
+              <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Step</Text>
+              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Description</Text>
+              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Hazards</Text>
+              <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Controls</Text>
               <View style={{ width: 50, alignItems: 'center' }} />
             </View>
 
@@ -205,7 +205,7 @@ const JseaEditorScreen = forwardRef(({
                 <View key={`step-${step.id}`}>
                   {/* Step Header Row */}
                   <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', minHeight: 40 }}>
-                    <Text style={{ flex: 0.8, fontWeight: '600', color: '#1F2937', fontSize: 13 }}>Step {index + 1}</Text>
+                    <Text style={{ flex: 0.8, fontWeight: '600', color: '#1F2937', fontSize: 15 }}>Step {index + 1}</Text>
                     <View style={{ flex: 6.8 }} />
                   </View>
 
@@ -218,7 +218,7 @@ const JseaEditorScreen = forwardRef(({
                       <TextInput
                         style={{
                           flex: 1,
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#1F2937',
                           padding: 8,
                           borderWidth: 1,
@@ -239,7 +239,7 @@ const JseaEditorScreen = forwardRef(({
                       <TextInput
                         style={{
                           flex: 1,
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#1F2937',
                           padding: 8,
                           borderWidth: 1,
@@ -260,7 +260,7 @@ const JseaEditorScreen = forwardRef(({
                       <TextInput
                         style={{
                           flex: 1,
-                          fontSize: 12,
+                          fontSize: 14,
                           color: '#1F2937',
                           padding: 8,
                           borderWidth: 1,
