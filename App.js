@@ -4254,12 +4254,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
                         {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
                         {permit.key === 'excavation' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 99999, position: 'relative' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 99999, elevation: 99999, position: 'relative' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
-                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 99999 }}>
+                            <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 999999 }}>
                               <TextInput 
                                 editable={true}
-                                style={[styles.input, { position: 'relative', zIndex: 99999 }]} 
+                                style={[styles.input, { position: 'relative', zIndex: 999999 }]} 
                                 value={formData.specializedPermits[permit.key].questionnaire?.competent_person?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
@@ -4314,7 +4314,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.competent_person?.text}"</Text>
                               )}
                               {showCompetentPersonDropdown[permit.key] && filteredCompetentPersonContractors[permit.key] && filteredCompetentPersonContractors[permit.key].length > 0 && (
-                                <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 99999, elevation: 99999, overflow: 'hidden' }}>
+                                <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', maxHeight: 200, zIndex: 999999, elevation: 999999, overflow: 'hidden' }}>
                                   <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                                     {filteredCompetentPersonContractors[permit.key].map((contractor, idx) => (
                                       <TouchableOpacity
