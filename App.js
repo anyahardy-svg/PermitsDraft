@@ -2857,7 +2857,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <View 
                       onStartShouldSetResponder={() => true}
                       onMoveShouldSetResponder={() => true}
-                      style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4 }} 
+                      style={{ marginBottom: 12, backgroundColor: '#FEF3C7', padding: 8, borderRadius: 4, overflow: 'visible', zIndex: 9999, position: 'relative' }} 
                       pointerEvents="auto"
                     >
                       <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
@@ -2865,7 +2865,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         editable={true}
                         pointerEvents="auto"
                         onStartShouldSetResponder={() => true}
-                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2 }]}
+                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF', borderColor: '#F97316', borderWidth: 2, position: 'relative', zIndex: 1 }]}
                         value={answerObj.text || ''}
                         onChangeText={text => {
                           handleQuestionnaireResponse(permitKey, q.id, text, 'text');
@@ -2911,8 +2911,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           borderRadius: 6,
                           maxHeight: 200,
                           marginTop: 8,
-                          elevation: 999,
+                          elevation: 9999,
                           zIndex: 9999,
+                          position: 'absolute',
+                          top: 100,
+                          left: 0,
+                          right: 0
                         }} scrollEnabled={true} nestedScrollEnabled={true}>
                           {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
                             <TouchableOpacity
