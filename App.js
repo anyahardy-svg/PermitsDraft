@@ -6541,6 +6541,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           
           const value = answers[q.id]?.answer || '';
+          const textValue = answers[q.id]?.text || '';
           const controlsValue = answers[q.id]?.controls || '';
           
           // Check if question belongs to a collapsed section
@@ -7305,7 +7306,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                   <TextInput
                     style={[styles.detailTextInput, { marginBottom: 8 }]}
-                    value={value}
+                    value={textValue}
                     onChangeText={text => {
                       try {
                         handleQuestionnaireResponse(permitKey, q.id, text);
@@ -7331,13 +7332,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     }}
                     onFocus={() => {
                       try {
-                        if (value && value.trim && value.trim().length > 0 && siteName && contractors) {
+                        if (textValue && textValue.trim && textValue.trim().length > 0 && siteName && contractors) {
                           const siteContractors = (contractors || []).filter(contractor =>
                             contractor && contractor.siteIds &&
                             contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === siteName)
                           );
                           const filtered = siteContractors.filter(c =>
-                            c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(value.toLowerCase())
+                            c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textValue.toLowerCase())
                           );
                           setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
                           setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
