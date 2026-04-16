@@ -7791,7 +7791,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     jseas: permit.jseas || [],
     isolations: permit.isolations || initialIsolations,
     signOns: permit.signOns || initialSignOns,
-    attachments: permit.attachments || []
+    attachments: permit.attachments || [],
+    site: permit.site_id ? siteIdToNameMap[permit.site_id] : ''
   });
   
   // Date/time picker states for draft editing
