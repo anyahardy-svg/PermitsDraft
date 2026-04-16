@@ -2848,94 +2848,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <>
                   {q.id === 'competent_person' ? (
                     <View style={{ marginBottom: 12 }}>
-                      <Text style={[styles.textLabel, { marginBottom: 8 }]}>Enter competent person name:</Text>
+                      <Text style={[styles.textLabel, { marginBottom: 8 }]}>Competent Person Name</Text>
                       <TextInput
-                        style={styles.detailTextInput}
+                        style={[styles.detailTextInput, { color: '#1F2937', backgroundColor: '#FFFFFF' }]}
                         value={answerObj.text || ''}
                         onChangeText={text => {
-                          try {
-                            handleQuestionnaireResponse(permitKey, q.id, text, 'text');
-                            // Filter contractors based on input and site
-                            if (text && text.trim && text.trim().length > 0 && formData.site) {
-                              const siteContractors = (contractors || []).filter(contractor =>
-                                contractor && contractor.siteIds &&
-                                contractor.siteIds.some(sideId => (siteIdToNameMap || {})[sideId] === formData.site)
-                              );
-                              const filtered = siteContractors.filter(c =>
-                                c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
-                              );
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
-                            } else {
-                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                            }
-                          } catch (err) {
-                            console.error('Competent person filter error:', err);
-                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                          }
+                          handleQuestionnaireResponse(permitKey, q.id, text, 'text');
                         }}
-                        onFocus={() => {
-                          try {
-                            const textVal = (answerObj.text || '');
-                            if (textVal && textVal.trim && textVal.trim().length > 0 && formData.site && contractors) {
-                              const siteContractors = (contractors || []).filter(contractor =>
-                                contractor && contractor.siteIds &&
-                                contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === formData.site)
-                              );
-                              const filtered = siteContractors.filter(c =>
-                                c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
-                              );
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
-                            }
-                          } catch (err) {
-                            console.error('Competent person focus error:', err);
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 100);
-                        }}
-                        placeholder={q.textLabel || 'Start typing person name...'}
-                        editable={true}
-                        multiline
+                        placeholder="Enter name"
+                        placeholderTextColor="#D1D5DB"
                       />
-                      {!formData.site && (
-                        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>Note: Select a site above to get contractor suggestions</Text>
-                      )}
-                      {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
-                        <ScrollView style={{
-                          backgroundColor: 'white',
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 6,
-                          maxHeight: 200,
-                          marginTop: 8,
-                          elevation: 999,
-                          zIndex: 9999,
-                        }} scrollEnabled={true}>
-                          {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
-                            <TouchableOpacity
-                              key={contractor.id || idx}
-                              style={{ 
-                                padding: 12, 
-                                borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
-                                borderBottomColor: '#E5E7EB', 
-                                backgroundColor: 'white' 
-                              }}
-                              activeOpacity={0.7}
-                              onPress={() => {
-                                handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
-                                setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                                setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                              }}
-                            >
-                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
                     </View>
                   ) : (
                     <View style={styles.textInputContainer}>
