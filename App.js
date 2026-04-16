@@ -7286,7 +7286,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const siteName = formData.site || (formData.site_id ? siteIdToNameMap?.[formData.site_id] : null);
               
               return (
-                <View key={q.id} style={{ marginBottom: 12, position: 'relative', overflow: 'visible', zIndex: 9999 }} pointerEvents="box-none">
+                <View key={q.id} style={{ marginBottom: 12, position: 'relative', overflow: 'visible', zIndex: 9999 }}>
                   <Text style={styles.label}>{q.text}{q.required ? ' *' : ''}</Text>
                   <TextInput
                     style={[styles.input, { marginBottom: 4 }]}
@@ -7295,7 +7295,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       handleQuestionnaireResponse(permitKey, q.id, text);
                       // Filter contractors based on input and site
                       if (text.trim().length > 0 && siteName) {
-                        const siteContractors = contractors.filter(contractor =>
+                        const siteContractors = contractors.filter(contractor=>
                           contractor.siteIds &&
                           contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === siteName)
                         );
@@ -7323,38 +7323,47 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       }
                     }}
                     onBlur={() => {
-                      setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
+                      setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 300);
                     }}
                     placeholder={q.textLabel || 'Start typing person name...'}
                     editable={siteName ? true : false}
-                    pointerEvents="auto"
                   />
                   {!siteName && (
                     <Text style={{ fontSize: 14, color: '#EF4444', marginTop: 4 }}>Please select a site first</Text>
                   )}
                   {showCompetentPersonDropdown[permitKey] && filteredCompetentPersonContractors[permitKey] && filteredCompetentPersonContractors[permitKey].length > 0 && (
                     <View style={{
+                      position: 'absolute',
+                      top: 55,
+                      left: 0,
+                      right: 0,
                       backgroundColor: 'white',
                       borderWidth: 1,
                       borderColor: '#D1D5DB',
                       borderRadius: 6,
                       maxHeight: 200,
-                      marginTop: 4,
-                      elevation: 999,
-                      zIndex: 9999,
-                    }} pointerEvents="auto">
-                      <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
+                      elevation: 9999,
+                      zIndex: 99999,
+                      overflow: 'hidden'
+                    }}>
+                      <ScrollView scrollEnabled={true}>
                         {filteredCompetentPersonContractors[permitKey].map(contractor => (
                           <TouchableOpacity
                             key={contractor.id}
-                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                            style={{ 
+                              padding: 12, 
+                              borderBottomWidth: 1, 
+                              borderBottomColor: '#E5E7EB', 
+                              backgroundColor: 'white',
+                              width: '100%'
+                            }}
                             activeOpacity={0.7}
                             onPress={() => {
+                              console.log('✅ Contractor selected:', contractor.name);
                               handleQuestionnaireResponse(permitKey, q.id, contractor.name);
                               setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                               setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                             }}
-                            pointerEvents="auto"
                           >
                             <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
                             <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
