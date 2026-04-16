@@ -7354,9 +7354,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
                               setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                             }}
-                            pointerEvents="auto"setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                            }}
                             pointerEvents="auto"
                           >
                             <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
