@@ -3738,7 +3738,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           style={styles.screenContainer} 
           contentContainerStyle={{ flexGrow: 1 }} 
           ref={permitFormScrollRef}
-          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v)}
+          scrollEnabled={!Object.values(showSignOnWorkerDropdown).some(v => v) && !Object.values(showIsolatedByDropdown).some(v => v) && !Object.values(showCompetentPersonDropdown).some(v => v)}
         >
           {/* Load Permit Template Section */}
           <View style={{ padding: 16, backgroundColor: '#F0F9FF', marginBottom: 12, borderRadius: 8, marginHorizontal: 16, marginTop: 12, borderLeftWidth: 4, borderLeftColor: '#0284C7' }}>
