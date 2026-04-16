@@ -2847,7 +2847,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {q.type === 'text' && (
                 <>
                   {q.id === 'competent_person' ? (
-                    <View style={{ marginBottom: 12 }}>
+                    <View style={{ marginBottom: 12, position: 'relative', zIndex: 50 }}>
                       <TextInput
                         style={[styles.detailTextInput, { marginBottom: 8 }]}
                         value={answerObj.text || ''}
@@ -2893,7 +2893,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }
                         }}
                         onBlur={() => {
-                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 500);
+                          setTimeout(() => setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false })), 100);
                         }}
                         placeholder={q.textLabel || 'Start typing person name...'}
                         editable={formData.site ? true : false}
@@ -2912,8 +2912,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           marginTop: 4,
                           elevation: 999,
                           zIndex: 9999,
-                          overflow: 'hidden'
-                        }} pointerEvents="box-none">
+                          overflow: 'hidden',
+                          position: 'absolute',
+                          width: '100%',
+                          left: 0,
+                          right: 0,
+                          top: '100%'
+                        }} pointerEvents="auto">
                           {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
                             <TouchableOpacity
                               key={contractor.id || idx}
@@ -2952,7 +2957,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </>
               )}
               {/* Controls input based on controlsOn field (defaults to 'yes' if not specified) */}
-              {!q.noControls && ((q.type === 'yesno' || q.type === 'yesno_text') && answer === (q.controlsOn || 'yes')) && (
+              {!q.noControls && ((q.type === 'yesno' || q.type === 'yesno_text' || q.type === 'yesnona') && answer === (q.controlsOn || 'yes')) && (
                 <View style={styles.textInputContainer}>
                   <Text style={styles.textLabel}>Controls for this question:</Text>
                   <TextInput
