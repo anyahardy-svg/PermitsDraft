@@ -1109,7 +1109,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [showRequesterSignatureNewPermit, agreeToStatementNewPermit, requesterSignatureNewPermit]);
   
   // --- Handlers for advanced form ---
-  const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const toggleSection = (section) => {
+    // Don't toggle if competent_person dropdown is open
+    if (Object.values(showCompetentPersonDropdown).some(v => v)) {
+      return;
+    }
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
   const handleSpecializedPermitChange = (key, field, value) => {
     setFormData(prev => ({
       ...prev,
