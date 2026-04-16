@@ -4254,7 +4254,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
                         {/* EXCAVATION COMPETENT PERSON CUSTOM FIELD */}
                         {permit.key === 'excavation' && (
-                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 100, position: 'relative' }}>
+                          <View style={{ marginTop: 12, marginBottom: 12, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B', overflow: 'visible', zIndex: 9999, position: 'relative' }}>
                             <Text style={[styles.label, { fontWeight: 'bold' }]}>Competent Person Name</Text>
                             <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 9999 }}>
                               <TextInput 
