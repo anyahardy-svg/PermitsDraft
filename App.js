@@ -294,34 +294,44 @@ function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, p
                       style={[styles.detailTextInput, { marginBottom: 8 }]}
                       value={answerObj.text || ''}
                       onChangeText={text => {
-                        handleQuestionnaireResponse(permitKey, q.id, text, 'text');
-                        // Filter contractors based on input and site
-                        if (text.trim().length > 0 && formData.site) {
-                          const siteContractors = contractors.filter(contractor =>
-                            contractor.siteIds &&
-                            contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === formData.site)
-                          );
-                          const filtered = siteContractors.filter(c =>
-                            c.name?.toLowerCase?.()?.includes?.(text.toLowerCase())
-                          );
-                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered?.length > 0 }));
-                        } else {
+                        try {
+                          handleQuestionnaireResponse(permitKey, q.id, text, 'text');
+                          // Filter contractors based on input and site
+                          if (text && text.trim && text.trim().length > 0 && formData.site) {
+                            const siteContractors = (contractors || []).filter(contractor =>
+                              contractor && contractor.siteIds &&
+                              contractor.siteIds.some(sideId => (siteIdToNameMap || {})[sideId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c =>
+                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
+                            );
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                          } else {
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                          }
+                        } catch (err) {
+                          console.error('Competent person filter error:', err);
                           setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                         }
                       }}
                       onFocus={() => {
-                        if ((answerObj.text || '').trim().length > 0 && formData.site) {
-                          const siteContractors = contractors.filter(contractor =>
-                            contractor.siteIds &&
-                            contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === formData.site)
-                          );
-                          const filtered = siteContractors.filter(c =>
-                            c.name.toLowerCase().includes((answerObj.text || '').toLowerCase())
-                          );
-                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
+                        try {
+                          const textVal = (answerObj.text || '');
+                          if (textVal && textVal.trim && textVal.trim().length > 0 && formData.site && contractors) {
+                            const siteContractors = (contractors || []).filter(contractor =>
+                              contractor && contractor.siteIds &&
+                              contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === formData.site)
+                            );
+                            const filtered = siteContractors.filter(c =>
+                              c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(textVal.toLowerCase())
+                            );
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                          }
+                        } catch (err) {
+                          console.error('Competent person focus error:', err);
                         }
                       }}
                       onBlur={() => {
@@ -7297,34 +7307,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     style={[styles.detailTextInput, { marginBottom: 8 }]}
                     value={value}
                     onChangeText={text => {
-                      handleQuestionnaireResponse(permitKey, q.id, text);
-                      // Filter contractors based on input and site
-                      if (text.trim().length > 0 && siteName) {
-                        const siteContractors = contractors.filter(contractor =>
-                          contractor.siteIds &&
-                          contractor.siteIds.some(siteId => (siteIdToNameMap || {})[siteId] === siteName)
-                        );
-                        const filtered = siteContractors.filter(c =>
-                          c.name?.toLowerCase?.()?.includes?.(text.toLowerCase())
-                        );
-                        setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                        setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered?.length > 0 }));
-                      } else {
+                      try {
+                        handleQuestionnaireResponse(permitKey, q.id, text);
+                        // Filter contractors based on input and site
+                        if (text && text.trim && text.trim().length > 0 && siteName) {
+                          const siteContractors = (contractors || []).filter(contractor =>
+                            contractor && contractor.siteIds &&
+                            contractor.siteIds.some(sideId => (siteIdToNameMap || {})[sideId] === siteName)
+                          );
+                          const filtered = siteContractors.filter(c =>
+                            c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(text.toLowerCase())
+                          );
+                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                        } else {
+                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                        }
+                      } catch (err) {
+                        console.error('Competent person filter error:', err);
                         setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                        setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
                       }
                     }}
                     onFocus={() => {
-                      if (value.trim().length > 0 && siteName) {
-                        const siteContractors = contractors.filter(contractor =>
-                          contractor.siteIds &&
-                          contractor.siteIds.some(siteId => siteIdToNameMap[siteId] === siteName)
-                        );
-                        const filtered = siteContractors.filter(c =>
-                          c.name.toLowerCase().includes(value.toLowerCase())
-                        );
-                        setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
-                        setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered.length > 0 }));
+                      try {
+                        if (value && value.trim && value.trim().length > 0 && siteName && contractors) {
+                          const siteContractors = (contractors || []).filter(contractor =>
+                            contractor && contractor.siteIds &&
+                            contractor.siteIds.some(sideId => siteIdToNameMap && siteIdToNameMap[sideId] === siteName)
+                          );
+                          const filtered = siteContractors.filter(c =>
+                            c && c.name && typeof c.name === 'string' && c.name.toLowerCase().includes(value.toLowerCase())
+                          );
+                          setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: filtered }));
+                          setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: filtered && filtered.length > 0 }));
+                        }
+                      } catch (err) {
+                        console.error('Competent person focus error:', err);
                       }
                     }}
                     onBlur={() => {
