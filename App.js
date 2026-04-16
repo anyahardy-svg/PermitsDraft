@@ -20790,11 +20790,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               console.log('📤 Sending to database:', { updateData });
               const savedPermit = await updatePermit(editData.id, updateData);
               
-              // Use the most up-to-date signature data - always include existing signatures from editData
+              // Always get the most up-to-date signature data
               const existingSignOff = editData.completedSignOff || editData.completed_sign_off || {};
               const savedSignOff = savedPermit.completedSignOff || savedPermit.completed_sign_off || {};
-              const finalSignOff = signOffChanged ? { ...existingSignOff, ...newSignOff } : { ...existingSignOff, ...savedSignOff };
-              const bothSigned = finalSignOff.issuerSignedAt && finalSignOff.receiverSignedAt;
+              
+              // Merge all available signature data - prioritize saved data over what we sent
+              const finalSignOff = { ...existingSignOff, ...newSignOff, ...savedSignOff };
+              const bothSigned = !!(finalSignOff.issuerSignedAt && finalSignOff.receiverSignedAt);
               
               console.log('📋 Sign-off status:', {
                 existingSignOff,
@@ -20816,7 +20818,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 Alert.alert(
                   'Permit Completed ✓',
                   'Both issuer and receiver have signed. Permit has been moved to Completed Permits.',
-                  [{ text: 'OK', onPress: () => setCurrentScreen('dashboard') }]
+                  [{ text: 'OK', onPress: () => {
+                    console.log('✅ Navigation to dashboard');
+                    setCurrentScreen('dashboard');
+                  }}]
                 );
               } else {
                 // Just save the signatures
