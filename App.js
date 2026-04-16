@@ -344,24 +344,29 @@ function renderQuestionnaire(permitKey, formData, handleQuestionnaireResponse, p
                         marginTop: 4,
                         elevation: 999,
                         zIndex: 9999,
-                      }}>
-                        <ScrollView scrollEnabled={true}>
-                          {filteredCompetentPersonContractors[permitKey].map(contractor => (
-                            <TouchableOpacity
-                              key={contractor.id}
-                              style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                              activeOpacity={0.7}
-                              onPress={() => {
-                                handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
-                                setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                                setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                              }}
-                            >
-                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
+                        overflow: 'hidden'
+                      }} pointerEvents="box-none">
+                        {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
+                          <TouchableOpacity
+                            key={contractor.id || idx}
+                            style={{ 
+                              padding: 12, 
+                              borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
+                              borderBottomColor: '#E5E7EB', 
+                              backgroundColor: 'white' 
+                            }}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                              handleQuestionnaireResponse(permitKey, q.id, contractor.name, 'text');
+                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                            }}
+                            pointerEvents="auto"
+                          >
+                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                          </TouchableOpacity>
+                        ))}
                       </View>
                     )}
                   </View>
@@ -7342,24 +7347,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       marginTop: 4,
                       elevation: 999,
                       zIndex: 9999,
-                    }}>
-                      <ScrollView scrollEnabled={true}>
-                        {filteredCompetentPersonContractors[permitKey].map(contractor => (
-                          <TouchableOpacity
-                            key={contractor.id}
-                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                            activeOpacity={0.7}
-                            onPress={() => {
-                              handleQuestionnaireResponse(permitKey, q.id, contractor.name);
-                              setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
-                              setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
-                            }}
-                          >
-                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
+                      overflow: 'hidden'
+                    }} pointerEvents="box-none">
+                      {filteredCompetentPersonContractors[permitKey].map((contractor, idx) => (
+                        <TouchableOpacity
+                          key={contractor.id || idx}
+                          style={{ 
+                            padding: 12, 
+                            borderBottomWidth: idx < filteredCompetentPersonContractors[permitKey].length - 1 ? 1 : 0, 
+                            borderBottomColor: '#E5E7EB', 
+                            backgroundColor: 'white' 
+                          }}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            handleQuestionnaireResponse(permitKey, q.id, contractor.name);
+                            setShowCompetentPersonDropdown(prev => ({ ...prev, [permitKey]: false }));
+                            setFilteredCompetentPersonContractors(prev => ({ ...prev, [permitKey]: [] }));
+                          }}
+                          pointerEvents="auto"
+                        >
+                          <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
                   )}
                 </View>
