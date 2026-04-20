@@ -1932,25 +1932,27 @@ export default function ContractorAdminScreen({
             </View>
 
             {/* JSEA Editor */}
-            <JseaEditorScreen
-              ref={jseaEditorRef}
-              initialJsea={currentJseaSteps}
-              onSave={(steps) => {
-                console.log('✏️ JSEA EDITOR ONSAVE CALLED');
-                console.log('✏️ Steps received from editor:', steps);
-                console.log('✏️ Step count:', steps?.length || 0);
-                setCurrentJseaSteps(steps);
-                console.log('✏️ currentJseaSteps state updated');
-              }}
-              onCancel={() => {
-                console.log('❌ JSEA EDITOR CANCELLED');
-                setShowJseaEditor(false);
-                resetJseaForm();
-              }}
-              styles={styles}
-              isInModal={true}
-              hideButtons={true}
-            />
+            <View style={{ flex: 1 }}>
+              <JseaEditorScreen
+                ref={jseaEditorRef}
+                initialJsea={currentJseaSteps}
+                onSave={(steps) => {
+                  console.log('✏️ JSEA EDITOR ONSAVE CALLED');
+                  console.log('✏️ Steps received from editor:', steps);
+                  console.log('✏️ Step count:', steps?.length || 0);
+                  setCurrentJseaSteps(steps);
+                  console.log('✏️ currentJseaSteps state updated');
+                }}
+                onCancel={() => {
+                  console.log('❌ JSEA EDITOR CANCELLED');
+                  setShowJseaEditor(false);
+                  resetJseaForm();
+                }}
+                styles={styles}
+                isInModal={true}
+                hideButtons={true}
+              />
+            </View>
 
             {/* Bottom Buttons */}
             <View style={{
