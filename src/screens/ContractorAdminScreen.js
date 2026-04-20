@@ -1889,15 +1889,16 @@ export default function ContractorAdminScreen({
             resetJseaForm();
           }}
         >
-          <View style={{ flex: 1 }}>
-            {/* Modal Header */}
+          <View style={{ flex: 1, backgroundColor: 'white' }}>
+            {/* Modal Header - Fixed height, no flex */}
             <View style={{
               paddingHorizontal: 12,
               paddingVertical: 12,
               backgroundColor: '#F9FAFB',
               borderBottomWidth: 1,
               borderBottomColor: '#E5E7EB',
-              paddingTop: 16
+              paddingTop: 16,
+              minHeight: 130
             }}>
               <TouchableOpacity onPress={() => {
                 setShowJseaEditor(false);
@@ -1931,30 +1932,140 @@ export default function ContractorAdminScreen({
               </View>
             </View>
 
-            {/* JSEA Editor */}
-            <View style={{ flex: 1 }}>
-              <JseaEditorScreen
-                ref={jseaEditorRef}
-                initialJsea={currentJseaSteps}
-                onSave={(steps) => {
-                  console.log('✏️ JSEA EDITOR ONSAVE CALLED');
-                  console.log('✏️ Steps received from editor:', steps);
-                  console.log('✏️ Step count:', steps?.length || 0);
-                  setCurrentJseaSteps(steps);
-                  console.log('✏️ currentJseaSteps state updated');
-                }}
-                onCancel={() => {
-                  console.log('❌ JSEA EDITOR CANCELLED');
-                  setShowJseaEditor(false);
-                  resetJseaForm();
-                }}
-                styles={styles}
-                isInModal={true}
-                hideButtons={true}
-              />
-            </View>
+            {/* Content scrolling area - flex: 1 to take remaining space */}
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              <Text style={{ fontSize: 15, color: '#6B7280', marginBottom: 16 }}>
+                Create a step-by-step analysis. Add as many steps as needed.
+              </Text>
 
-            {/* Bottom Buttons */}
+              {/* Desktop Table Layout */}
+              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16 }}>
+                {/* Header Row */}
+                <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 16 }}>
+                  <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Step</Text>
+                  <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Description</Text>
+                  <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Hazards</Text>
+                  <Text style={{ flex: 2, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Controls</Text>
+                  <View style={{ width: 50, alignItems: 'center' }} />
+                </View>
+
+                {/* Steps Container */}
+                {currentJseaSteps.map((step, index) => (
+                  <View key={`step-${step.id}`}>
+                    {/* Step Header Row */}
+                    <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', minHeight: 40 }}>
+                      <Text style={{ flex: 0.8, fontWeight: '600', color: '#1F2937', fontSize: 15 }}>Step {index + 1}</Text>
+                      <View style={{ flex: 6.8 }} />
+                    </View>
+
+                    {/* Step Data Row */}
+                    <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 100, paddingVertical: 8, paddingHorizontal: 16, alignItems: 'flex-start', gap: 8 }}>
+                      <View style={{ flex: 0.8 }} />
+
+                      {/* Description */}
+                      <View style={{ flex: 2 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 14,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., Drive to site"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.description || ''}
+                          onChangeText={(value) => {
+                            const updated = [...currentJseaSteps];
+                            updated[index].description = value;
+                            setCurrentJseaSteps(updated);
+                          }}
+                          multiline
+                        />
+                      </View>
+
+                      {/* Hazards */}
+                      <View style={{ flex: 2 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 14,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., Collisions, Fatigue"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.hazards || ''}
+                          onChangeText={(value) => {
+                            const updated = [...currentJseaSteps];
+                            updated[index].hazards = value;
+                            setCurrentJseaSteps(updated);
+                          }}
+                          multiline
+                        />
+                      </View>
+
+                      {/* Controls */}
+                      <View style={{ flex: 2 }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            fontSize: 14,
+                            color: '#1F2937',
+                            padding: 8,
+                            borderWidth: 1,
+                            borderColor: '#D1D5DB',
+                            borderRadius: 4,
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="E.g., RT, Flags, Beacons"
+                          placeholderTextColor="#9CA3AF"
+                          value={step.controls || ''}
+                          onChangeText={(value) => {
+                            const updated = [...currentJseaSteps];
+                            updated[index].controls = value;
+                            setCurrentJseaSteps(updated);
+                          }}
+                          multiline
+                        />
+                      </View>
+
+                      {/* Delete Button */}
+                      <View style={{ width: 50, alignItems: 'center', justifyContent: 'center' }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            const updated = currentJseaSteps.filter((_, i) => i !== index);
+                            setCurrentJseaSteps(updated);
+                          }}
+                          style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                        >
+                          <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Add Step Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setCurrentJseaSteps([...currentJseaSteps, { id: Date.now(), description: '', hazards: '', controls: '' }]);
+                }}
+                style={{ backgroundColor: '#E0E7FF', padding: 12, borderRadius: 8, marginBottom: 16, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '600' }}>+ Add Another Step</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Bottom Buttons - Fixed height, no flex */}
             <View style={{
               paddingHorizontal: 12,
               paddingVertical: 12,
@@ -1990,32 +2101,22 @@ export default function ContractorAdminScreen({
                 onPress={() => {
                   console.log('💾 SAVE TEMPLATE BUTTON PRESSED');
                   
-                  // Get current steps from the editor (in case hideButtons=true and onSave wasn't called)
-                  if (jseaEditorRef.current) {
-                    const editorSteps = jseaEditorRef.current.getSteps();
-                    console.log('💾 Got steps from editor ref:', editorSteps);
-                    setCurrentJseaSteps(editorSteps);
-                  }
-                  
                   console.log('💾 Current state:', {
                     jseaTemplateName,
                     currentJseaSteps_count: currentJseaSteps?.length || 0,
-                    currentJseaSteps: currentJseaSteps,
-                    selectedBusinessUnitIds,
-                    selectedCompanyId,
-                    editingJseaTemplate_id: editingJseaTemplate?.id
+                    currentJseaSteps: currentJseaSteps
                   });
                   
                   if (!jseaTemplateName.trim()) {
                     Alert.alert('Validation', 'Please enter a template name');
                     return;
                   }
+                  if (!currentJseaSteps || currentJseaSteps.length === 0) {
+                    Alert.alert('Validation', 'Please add at least one step');
+                    return;
+                  }
                   // Show the save modal to select company and business units
                   console.log('🔓 Opening save modal...');
-                  console.log('Current selections:', {
-                    selectedBUs: selectedBusinessUnitIds,
-                    selectedCompany: selectedCompanyId
-                  });
                   // Always load fresh business units for the modal
                   loadBusinessUnits();
                   setShowSaveModal(true);
