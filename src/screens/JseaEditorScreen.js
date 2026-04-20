@@ -199,96 +199,94 @@ const JseaEditorScreen = forwardRef(({
               <View style={{ width: 50, alignItems: 'center' }} />
             </View>
 
-            {/* Steps Container - maxHeight allows scrolling while limiting visible area */}
-            <ScrollView style={{ maxHeight: 500 }} nestedScrollEnabled={true} bounces={false}>
-              {steps.map((step, index) => (
-                <View key={`step-${step.id}`}>
-                  {/* Step Header Row */}
-                  <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', minHeight: 40 }}>
-                    <Text style={{ flex: 0.8, fontWeight: '600', color: '#1F2937', fontSize: 15 }}>Step {index + 1}</Text>
-                    <View style={{ flex: 6.8 }} />
+            {/* Steps Container - No nested ScrollView, let outer scroll handle everything */}
+            {steps.map((step, index) => (
+              <View key={`step-${step.id}`}>
+                {/* Step Header Row */}
+                <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', minHeight: 40 }}>
+                  <Text style={{ flex: 0.8, fontWeight: '600', color: '#1F2937', fontSize: 15 }}>Step {index + 1}</Text>
+                  <View style={{ flex: 6.8 }} />
+                </View>
+
+                {/* Step Data Row */}
+                <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 100, paddingVertical: 8, paddingHorizontal: 16, alignItems: 'flex-start', gap: 8 }}>
+                  <View style={{ flex: 0.8 }} />
+
+                  {/* Description */}
+                  <View style={{ flex: 2 }}>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        color: '#1F2937',
+                        padding: 8,
+                        borderWidth: 1,
+                        borderColor: '#D1D5DB',
+                        borderRadius: 4,
+                        textAlignVertical: 'top',
+                      }}
+                      placeholder="E.g., Drive to site"
+                      placeholderTextColor="#9CA3AF"
+                      value={step.description}
+                      onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
+                      multiline
+                    />
                   </View>
 
-                  {/* Step Data Row */}
-                  <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', minHeight: 100, paddingVertical: 8, paddingHorizontal: 16, alignItems: 'flex-start', gap: 8 }}>
-                    <View style={{ flex: 0.8 }} />
+                  {/* Hazards */}
+                  <View style={{ flex: 2 }}>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        color: '#1F2937',
+                        padding: 8,
+                        borderWidth: 1,
+                        borderColor: '#D1D5DB',
+                        borderRadius: 4,
+                        textAlignVertical: 'top',
+                      }}
+                      placeholder="E.g., Collisions, Fatigue"
+                      placeholderTextColor="#9CA3AF"
+                      value={step.hazards}
+                      onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
+                      multiline
+                    />
+                  </View>
 
-                    {/* Description */}
-                    <View style={{ flex: 2 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 14,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., Drive to site"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.description}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'description', value)}
-                        multiline
-                      />
-                    </View>
+                  {/* Controls */}
+                  <View style={{ flex: 2 }}>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        color: '#1F2937',
+                        padding: 8,
+                        borderWidth: 1,
+                        borderColor: '#D1D5DB',
+                        borderRadius: 4,
+                        textAlignVertical: 'top',
+                      }}
+                      placeholder="E.g., RT, Flags, Beacons"
+                      placeholderTextColor="#9CA3AF"
+                      value={step.controls}
+                      onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
+                      multiline
+                    />
+                  </View>
 
-                    {/* Hazards */}
-                    <View style={{ flex: 2 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 14,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., Collisions, Fatigue"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.hazards}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'hazards', value)}
-                        multiline
-                      />
-                    </View>
-
-                    {/* Controls */}
-                    <View style={{ flex: 2 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          fontSize: 14,
-                          color: '#1F2937',
-                          padding: 8,
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 4,
-                          textAlignVertical: 'top',
-                        }}
-                        placeholder="E.g., RT, Flags, Beacons"
-                        placeholderTextColor="#9CA3AF"
-                        value={step.controls}
-                        onChangeText={(value) => handleUpdateStep(step.id, 'controls', value)}
-                        multiline
-                      />
-                    </View>
-
-                    {/* Delete Button */}
-                    <View style={{ width: 50, alignItems: 'center', justifyContent: 'center' }}>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteStep(step.id)}
-                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
-                      >
-                        <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
+                  {/* Delete Button */}
+                  <View style={{ width: 50, alignItems: 'center', justifyContent: 'center' }}>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteStep(step.id)}
+                      style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                    >
+                      <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>✕</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              ))}
-            </ScrollView>
+              </View>
+            ))}
           </View>
         )}
 
