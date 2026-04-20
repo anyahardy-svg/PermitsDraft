@@ -189,7 +189,7 @@ const JseaEditorScreen = forwardRef(({
           </View>
         ) : (
           // DESKTOP TABLE LAYOUT
-          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16, flex: 1 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden', marginBottom: 16 }}>
             {/* Header Row */}
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 16 }}>
               <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 14 }}>Step</Text>
@@ -199,8 +199,8 @@ const JseaEditorScreen = forwardRef(({
               <View style={{ width: 50, alignItems: 'center' }} />
             </View>
 
-            {/* Steps Container */}
-            <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true} bounces={false}>
+            {/* Steps Container - maxHeight allows scrolling while limiting visible area */}
+            <ScrollView style={{ maxHeight: 500 }} nestedScrollEnabled={true} bounces={false}>
               {steps.map((step, index) => (
                 <View key={`step-${step.id}`}>
                   {/* Step Header Row */}
