@@ -1002,6 +1002,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
   const initialJSEA = { id: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
   const initialIsolations = [];
+
+  // Function to normalize specialized permits from template data
+  const normalizeSpecializedPermits = (templatePermits) => {
+    if (!templatePermits) return initialSpecializedPermits;
+    
+    // Ensure all permit types are present with required structure
+    const normalized = { ...initialSpecializedPermits };
+    
+    // Merge in the template data for permits that exist
+    Object.entries(templatePermits).forEach(([key, permitData]) => {
+      if (permitData) {
+        normalized[key] = {
+          required: permitData.required ?? false,
+          controls: permitData.controls ?? '',
+          questionnaire: permitData.questionnaire ?? {}
+        };
+      }
+    });
+    
+    return normalized;
+  };
   // Initial sign-ons: empty array
   const initialSignOns = [];
   // Date/time state for new permit
@@ -1427,7 +1448,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // Load template data - only specialized permits, hazards, and JSEA
     setFormData(prev => ({
       ...prev,
-      specializedPermits: template.specialized_permits || prev.specializedPermits,
+      // Normalize specialized permits to ensure all types are present with proper structure
+      specializedPermits: normalizeSpecializedPermits(template.specialized_permits) || prev.specializedPermits,
       singleHazards: template.single_hazards || prev.singleHazards,
       jsea: template.jsea || prev.jsea,
       completion: template.completion || prev.completion,
@@ -1755,7 +1777,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (dataToValidate.specializedPermits) {
       Object.keys(dataToValidate.specializedPermits).forEach(permitKey => {
         const permit = dataToValidate.specializedPermits[permitKey];
-        if (!permit.required) {
+        if (!permit || !permit.required) {
           console.log(`⏭️ [validatePermitForApproval] Skipping ${permitKey} - not required`);
           return;
         }
@@ -4231,15 +4253,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             {expandedSections.specialized && (
               <View style={styles.sectionContent}>
-                {specializedPermitTypes.map(permit => (
+                {specializedPermitTypes.map(permit => {
+                  const permitData = formData.specializedPermits?.[permit.key];
+                  if (!permitData) {
+                    console.warn(`⚠️ Missing permit data for key: ${permit.key}`);
+                    return null;
+                  }
+                  return (
                   <View key={permit.key} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12, overflow: 'visible', zIndex: permit.key === 'hotWork' || permit.key === 'confinedSpace' || permit.key === 'excavation' ? 50 : 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Switch
-                        value={formData.specializedPermits[permit.key].required}
+                        value={permitData.required}
                         onValueChange={val => handleSpecializedPermitChange(permit.key, 'required', val)}
                       />
                       <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>{permit.label}</Text>
-                      {formData.specializedPermits[permit.key].required && getPermitSectionMissingCount(permit.key) > 0 && (
+                      {permitData.required && getPermitSectionMissingCount(permit.key) > 0 && (
                         <View style={{ marginLeft: 8, backgroundColor: '#DC2626', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
                           <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
                             {getPermitSectionMissingCount(permit.key)} missing
@@ -4248,7 +4276,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       )}
                     </View>
                     <Text style={{ color: '#6B7280', marginBottom: 4 }}>{permit.description}</Text>
-                    {formData.specializedPermits[permit.key].required && (
+                    {formData.specializedPermits?.[permit.key]?.required && (
                       <>
                         {/* Render the new questionnaire with per-question controls */}
                         {renderQuestionnaire(permit.key, formData, handleQuestionnaireResponse, permitQuestionnaires, styles)}
@@ -4260,11 +4288,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <TextInput 
                                 editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
-                                value={formData.specializedPermits[permit.key].questionnaire?.competent_person?.text || ''} 
+                                value={formData.specializedPermits?.[permit.key]?.questionnaire?.competent_person?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
-                                    ...formData.specializedPermits[permit.key].questionnaire,
-                                    competent_person: { ...(formData.specializedPermits[permit.key].questionnaire?.competent_person || {}), text: text }
+                                    ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                    competent_person: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.competent_person || {}), text: text }
                                   };
                                   handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                   
@@ -4338,8 +4366,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         activeOpacity={0.7}
                                         onPress={() => {
                                           const updated = {
-                                            ...formData.specializedPermits[permit.key].questionnaire,
-                                            competent_person: { ...(formData.specializedPermits[permit.key].questionnaire?.competent_person || {}), text: contractor.name }
+                                            ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                            competent_person: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.competent_person || {}), text: contractor.name }
                                           };
                                           handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                           setShowCompetentPersonDropdown(prev => ({ ...prev, [permit.key]: false }));
@@ -4364,11 +4392,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <TextInput 
                                 editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
-                                value={formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch?.text || ''} 
+                                value={formData.specializedPermits?.[permit.key]?.questionnaire?.hw_safety_watch?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
-                                    ...formData.specializedPermits[permit.key].questionnaire,
-                                    hw_safety_watch: { ...(formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch || {}), text: text }
+                                    ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                    hw_safety_watch: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.hw_safety_watch || {}), text: text }
                                   };
                                   handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                   
@@ -4442,8 +4470,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         activeOpacity={0.7}
                                         onPress={() => {
                                           const updated = {
-                                            ...formData.specializedPermits[permit.key].questionnaire,
-                                            hw_safety_watch: { ...(formData.specializedPermits[permit.key].questionnaire?.hw_safety_watch || {}), text: contractor.name }
+                                            ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                            hw_safety_watch: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.hw_safety_watch || {}), text: contractor.name }
                                           };
                                           handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                           setShowHwSafetyWatchDropdown(false);
@@ -4469,11 +4497,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <TextInput 
                                 editable={true}
                                 style={[styles.input, { position: 'relative', zIndex: 1 }]} 
-                                value={formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text || ''} 
+                                value={formData.specializedPermits?.[permit.key]?.questionnaire?.safety_watch_name?.text || ''} 
                                 onChangeText={text => {
                                   const updated = {
-                                    ...formData.specializedPermits[permit.key].questionnaire,
-                                    safety_watch_name: { ...(formData.specializedPermits[permit.key].questionnaire?.safety_watch_name || {}), text: text }
+                                    ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                    safety_watch_name: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.safety_watch_name || {}), text: text }
                                   };
                                   handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                   
@@ -4519,8 +4547,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 }}
                                 placeholder="Start typing person name..."
                               />
-                              {filteredCsSafetyWatchContractors.length === 0 && formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text && (
-                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits[permit.key].questionnaire?.safety_watch_name?.text}"</Text>
+                              {filteredCsSafetyWatchContractors.length === 0 && formData.specializedPermits?.[permit.key]?.questionnaire?.safety_watch_name?.text && (
+                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>No contractors found matching "{formData.specializedPermits?.[permit.key]?.questionnaire?.safety_watch_name?.text}"</Text>
                               )}
                               {showCsSafetyWatchDropdown && filteredCsSafetyWatchContractors.length > 0 && (
                                 <View style={{
@@ -4547,8 +4575,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                         activeOpacity={0.7}
                                         onPress={() => {
                                           const updated = {
-                                            ...formData.specializedPermits[permit.key].questionnaire,
-                                            safety_watch_name: { ...(formData.specializedPermits[permit.key].questionnaire?.safety_watch_name || {}), text: contractor.name }
+                                            ...formData.specializedPermits?.[permit.key]?.questionnaire,
+                                            safety_watch_name: { ...(formData.specializedPermits?.[permit.key]?.questionnaire?.safety_watch_name || {}), text: contractor.name }
                                           };
                                           handleSpecializedPermitChange(permit.key, 'questionnaire', updated);
                                           setShowCsSafetyWatchDropdown(false);
@@ -4739,7 +4767,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const permData = formData.specializedPermits[permitKey];
+                        const permData = formData.specializedPermits?.[permitKey];
                         if (permData && permData.questionnaire) {
                           const answer = permData.questionnaire[q.id];
                           if (answer && answer.answer === (q.blockingAnswer || 'no')) {
@@ -4768,10 +4796,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   })
                   .map(permitKey => {
                   const permit = specializedPermitTypes.find(p => p.key === permitKey);
-                  if (!formData.specializedPermits[permitKey].required) return null;
+                  if (!formData.specializedPermits?.[permitKey]?.required) return null;
                   const controls = [];
                   const questionnaire = permitQuestionnaires[permitKey] || [];
-                  const permData = formData.specializedPermits[permitKey];
+                  const permData = formData.specializedPermits?.[permitKey];
                   if (permData && permData.questionnaire) {
                     questionnaire.forEach(q => {
                       const answer = permData.questionnaire[q.id];
@@ -4814,7 +4842,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   const allPPE = [];
                   Object.keys(formData.specializedPermits).forEach(permitKey => {
                     const questionnaire = permitQuestionnaires[permitKey] || [];
-                    const permData = formData.specializedPermits[permitKey];
+                    const permData = formData.specializedPermits?.[permitKey];
                     if (permData && permData.questionnaire) {
                       questionnaire.forEach(q => {
                         if (q.id === 'ppe' || q.id === 'safety_equipment' || q.id === 'grinder_ppe') {
