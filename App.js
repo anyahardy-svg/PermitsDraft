@@ -2033,8 +2033,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       
       // Reload permits from database to ensure company_id and other fields are properly set
-      const refreshedPermits = await listPermits();
-      setPermits(refreshedPermits);
+      try {
+        const refreshedPermits = await listPermits();
+        setPermits(refreshedPermits);
+      } catch (reloadError) {
+        console.warn('⚠️ Warning reloading permits after save:', reloadError);
+        // Don't fail the entire save operation if reload fails
+      }
       
       // Return the new permit so that template saving can use its ID
       return newPermit;
@@ -2815,6 +2820,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (!q || !q.id) return null;
           // Skip competent_person - it's rendered as a custom field
           if (q.id === 'competent_person') return null;
+          
+          // Check if this is a conditional question and if its dependency is met
+          if (q.dependsOn) {
+            const dependsOnValue = Array.isArray(q.dependsOnValue) 
+              ? q.dependsOnValue 
+              : [q.dependsOnValue];
+            const dependsOnIds = Array.isArray(q.dependsOn) 
+              ? q.dependsOn 
+              : [q.dependsOn];
+            
+            const shouldShow = dependsOnIds.some(depId => {
+              const depAnswer = answers[depId]?.answer;
+              return dependsOnValue.includes(depAnswer);
+            });
+            
+            if (!shouldShow) return null;
+          }
+          
           const answerObj = answers[q.id] || {};
           const answer = answerObj.answer || '';
           const controls = answerObj.controls || '';
@@ -2891,6 +2914,59 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     placeholder={q.textLabel || 'Enter details'}
                     multiline
                   />
+                </View>
+              )}
+              {q.type === 'multi_checkbox' && q.options && (
+                <View style={styles.checkboxGroup}>
+                  {q.options.map(opt => {
+                    const isArray = Array.isArray(answer);
+                    const isChecked = isArray && answer.includes(opt.value);
+                    return (
+                      <View key={opt.value}>
+                        <TouchableOpacity
+                          style={styles.checkboxOption}
+                          onPress={() => {
+                            const currentArray = Array.isArray(answer) ? answer : [];
+                            let newArray;
+                            if (isChecked) {
+                              newArray = currentArray.filter(v => v !== opt.value);
+                            } else {
+                              newArray = [...currentArray, opt.value];
+                            }
+                            handleQuestionnaireResponse(permitKey, q.id, newArray, 'answer');
+                          }}
+                        >
+                          <View style={[styles.checkbox, isChecked && styles.checkboxChecked]} />
+                          <Text style={styles.checkboxLabel}>{opt.label}</Text>
+                        </TouchableOpacity>
+                        {isChecked && opt.textLabel && (
+                          <View style={styles.textInputContainer}>
+                            <TextInput
+                              style={styles.detailTextInput}
+                              value={answerObj[`text_${opt.value}`] || ''}
+                              onChangeText={text => handleQuestionnaireResponse(permitKey, q.id, text, `text_${opt.value}`)}
+                              placeholder={opt.textLabel}
+                              multiline
+                            />
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+              {q.type === 'radio' && q.options && (
+                <View style={styles.radioGroup}>
+                  {q.options.map(opt => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={styles.radioOption}
+                      onPress={() => handleQuestionnaireResponse(permitKey, q.id, opt, 'answer')}
+                    >
+                      <View style={[styles.radioCircle, answer === opt && styles.radioSelected]} />
+                      <Text style={styles.radioLabel}>{opt}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
               {/* Controls input based on controlsOn field (defaults to 'yes' if not specified) */}
@@ -6255,11 +6331,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       
                       if (!permitId) {
                         // Permit not yet saved - save it as draft first
+                        console.log('📝 [TEMPLATE SAVE] Saving permit as draft before template save...');
                         const newPermit = await _savePermitDraftInternal();
+                        console.log('📝 [TEMPLATE SAVE] Permit save result:', newPermit);
                         if (newPermit && newPermit.id) {
                           permitId = newPermit.id;
+                          console.log('📝 [TEMPLATE SAVE] Got permit ID:', permitId);
                         } else {
-                          throw new Error('Failed to save permit as draft');
+                          console.error('❌ [TEMPLATE SAVE] Permit save returned:', newPermit);
+                          throw new Error('Failed to save permit as draft - permit returned null or missing ID');
                         }
                       }
 
@@ -22444,6 +22524,33 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 14,
     color: '#374151',
+  },
+  checkboxGroup: {
+    marginVertical: 8,
+  },
+  checkboxOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  checkbox: {
+    height: 20,
+    width: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    borderColor: '#2563EB',
+    backgroundColor: '#2563EB',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
   },
   textInputContainer: {
     marginTop: 8,
