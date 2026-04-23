@@ -4777,11 +4777,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   // Check for any blocking questions that have been triggered
                   const triggeredQuestions = [];
                   (formData.specializedPermits ? Object.keys(formData.specializedPermits) : []).forEach(permitKey => {
+                    // Only check blocking questions for required (enabled) permits
+                    const permData = formData.specializedPermits?.[permitKey];
+                    if (!permData || !permData.required) {
+                      return; // Skip if permit not enabled
+                    }
+                    
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const permData = formData.specializedPermits?.[permitKey];
-                        if (permData && permData.questionnaire) {
+                        if (permData.questionnaire) {
                           const answer = permData.questionnaire[q.id];
                           if (answer && answer.answer === (q.blockingAnswer || 'no')) {
                             triggeredQuestions.push(q.text);
