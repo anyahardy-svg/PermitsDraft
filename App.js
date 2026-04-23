@@ -4685,7 +4685,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </>
                     )}
                   </View>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
