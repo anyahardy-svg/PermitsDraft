@@ -14718,12 +14718,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {(() => {
                   const triggeredQuestions = [];
                   (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
+                    // Only check blocking questions for required (enabled) permits
+                    const permData = editData.specializedPermits?.[permitKey];
+                    if (!permData || !permData.required) {
+                      return; // Skip if permit not enabled
+                    }
+                    
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (permData.questionnaire) {
+                          const answer = permData.questionnaire[q.id];
                         if (answer && answer.answer === (q.blockingAnswer || 'no')) {
                           triggeredQuestions.push(q.text);
+                        }
                         }
                       }
                     });
@@ -17681,12 +17689,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {(() => {
                   const triggeredQuestions = [];
                   (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
+                    // Only check blocking questions for required (enabled) permits
+                    const permData = editData.specializedPermits?.[permitKey];
+                    if (!permData || !permData.required) {
+                      return; // Skip if permit not enabled
+                    }
+                    
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (permData.questionnaire) {
+                          const answer = permData.questionnaire[q.id];
                         if (answer && answer.answer === (q.blockingAnswer || 'no')) {
                           triggeredQuestions.push(q.text);
+                        }
                         }
                       }
                     });
@@ -20146,12 +20162,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {(() => {
                   const triggeredQuestions = [];
                   (editData.specializedPermits ? Object.keys(editData.specializedPermits) : []).forEach(permitKey => {
+                    // Only check blocking questions for required (enabled) permits
+                    const permData = editData.specializedPermits?.[permitKey];
+                    if (!permData || !permData.required) {
+                      return; // Skip if permit not enabled
+                    }
+                    
                     const questionnaire = permitQuestionnaires[permitKey] || [];
                     questionnaire.forEach(q => {
                       if (q.blockingQuestion) {
-                        const answer = editData.specializedPermits[permitKey].questionnaire[q.id];
+                        if (permData.questionnaire) {
+                          const answer = permData.questionnaire[q.id];
                         if (answer && answer.answer === (q.blockingAnswer || 'no')) {
                           triggeredQuestions.push(q.text);
+                        }
                         }
                       }
                     });
