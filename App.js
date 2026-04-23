@@ -2818,8 +2818,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       <View style={styles.questionnaireScroll} pointerEvents="box-none">
         {questions.map((q) => {
           if (!q || !q.id) return null;
-          // Skip competent_person - it's rendered as a custom field
-          if (q.id === 'competent_person') return null;
+          // Skip competent_person and safety_watch fields - they're rendered as custom fields
+          if (q.id === 'competent_person' || q.id === 'hw_safety_watch' || q.id === 'safety_watch_name') return null;
           
           // Check if this is a conditional question and if its dependency is met
           if (q.dependsOn) {
@@ -2842,11 +2842,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const answer = answerObj.answer || '';
           const controls = answerObj.controls || '';
           
+          // Check if this is a blocking question that has been triggered
+          const isBlockingTriggered = q.blockingQuestion && answer && answer === (q.blockingAnswer || 'no');
+          
           return (
-            <View key={q.id} style={styles.questionContainer} pointerEvents="box-none">
-              <Text style={styles.questionText}>
-                {q.text} {q.required && <Text style={styles.required}>*</Text>}
-              </Text>
+            <View key={q.id} style={[styles.questionContainer, isBlockingTriggered && { backgroundColor: '#FEE2E2', borderLeftWidth: 4, borderLeftColor: '#DC2626', paddingLeft: 12 }]} pointerEvents="box-none">
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={[styles.questionText, isBlockingTriggered && { color: '#991B1B', fontWeight: 'bold' }]}>
+                  {q.text} {q.required && <Text style={styles.required}>*</Text>}
+                </Text>
+                {isBlockingTriggered && <Text style={{ fontSize: 18, marginLeft: 8 }}>⚠️</Text>}
+              </View>
               {q.note && <Text style={styles.noteText}>{q.note}</Text>}
               {/* Render input based on type */}
               {q.type === 'yesno' && (
