@@ -1943,16 +1943,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     await saveNewPermitDraft();
   };
 
-  const saveNewPermitDraft = async () => {
+  // Internal function to save permit draft without UI side effects (used by template saving)
+  const _savePermitDraftInternal = async () => {
     try {
       // Validate required fields
       if (!formData.site) {
         Alert.alert('Required', 'Please select a site');
-        return;
+        return null;
       }
       if (!formData.requestedBy) {
         Alert.alert('Required', 'Please enter who the permit is for (requested by)');
-        return;
+        return null;
       }
       
       // Convert site name to site_id
@@ -2035,6 +2036,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const refreshedPermits = await listPermits();
       setPermits(refreshedPermits);
       
+      // Return the new permit so that template saving can use its ID
+      return newPermit;
+    } catch (error) {
+      console.error('❌ Error creating permit (catch block):', error);
+      console.error('   Error message:', error?.message);
+      console.error('   Error code:', error?.code);
+      console.error('   Error details:', error?.details);
+      console.error('   Error hint:', error?.hint);
+      console.error('   Full stack:', error?.stack);
+      Alert.alert('Error', `Failed to save permit: ${error?.message || 'Unknown error'}`);
+      return null;
+    }
+  };
+
+  const saveNewPermitDraft = async () => {
+    // Save the draft permit and get the result
+    const newPermit = await _savePermitDraftInternal();
+    
+    if (newPermit) {
+      // Add UI side effects only for the normal flow (not template saving)
       setFormData({
         id: '',
         description: '',
@@ -2062,14 +2083,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       });
       setCurrentScreen('dashboard');
       Alert.alert('Success', 'Draft saved. It has been saved to the database.');
-    } catch (error) {
-      console.error('❌ Error creating permit (catch block):', error);
-      console.error('   Error message:', error?.message);
-      console.error('   Error code:', error?.code);
-      console.error('   Error details:', error?.details);
-      console.error('   Error hint:', error?.hint);
-      console.error('   Full stack:', error?.stack);
-      Alert.alert('Error', `Failed to save permit: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -6237,16 +6250,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       
                       if (!permitId) {
                         // Permit not yet saved - save it as draft first
-                        const result = await handleSubmit('draft');
-                        if (!result || !result.id) {
-                          // If result doesn't have ID, check formData after draft save
-                          await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for state update
-                          permitId = formData.id;
+                        const newPermit = await _savePermitDraftInternal();
+                        if (newPermit && newPermit.id) {
+                          permitId = newPermit.id;
                         } else {
-                          permitId = result.id;
-                        }
-                        
-                        if (!permitId) {
                           throw new Error('Failed to save permit as draft');
                         }
                       }
@@ -13384,11 +13391,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
-      if (!businessUnitId) {
-        Alert.alert('Error', 'Cannot save template: Business Unit is not set. Please make sure the permit has a valid business unit assigned.');
-        return;
-      }
-
       if (!editData?.id) {
         Alert.alert('Error', 'Cannot save template: Permit ID is missing.');
         return;
@@ -13396,10 +13398,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
       try {
         setLoadingPermitSaveTemplate(true);
+        
+        // Get business unit ID from the permit's site
+        let buId = businessUnitId; // Use prop as primary source
+        
+        // If site_id exists in editData, try to get business_unit_id from site
+        if (editData.site_id) {
+          const site = sites.find(s => s.id === editData.site_id);
+          if (site && site.business_unit_id) {
+            buId = site.business_unit_id;
+            console.log('[App.js] Got business unit from site:', site.name, 'BU:', buId);
+          }
+        }
+        
+        if (!buId) {
+          Alert.alert('Error', 'Cannot save template: Business Unit is not set. Please make sure the permit has a valid site with a business unit assigned.');
+          return;
+        }
+
         console.log('[App.js] Saving permit template with:', {
           permitId: editData.id,
           templateName: permitTemplateNameDraft,
-          businessUnitId,
+          businessUnitId: buId,
           company: selectedCompanyForPermitTemplateDraft
         });
         
@@ -13407,7 +13427,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const response = await savePermitAsTemplate(
           editData.id,
           permitTemplateNameDraft,
-          businessUnitId,
+          buId,
           selectedCompanyForPermitTemplateDraft || null,
           null // createdBy (optional)
         );
