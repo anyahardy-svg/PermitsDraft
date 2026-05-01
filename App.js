@@ -9921,14 +9921,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 paddingHorizontal: 8,
                                 paddingVertical: 4,
                                 borderRadius: 4,
-                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : '#FEF3C7',
+                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : company.accreditation_status === 'pending' ? '#E0E7FF' : '#FEF3C7',
                               }}>
                                 <Text style={{
                                   fontSize: 13,
                                   fontWeight: '600',
-                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : '#92400E'
+                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : company.accreditation_status === 'pending' ? '#3730A3' : '#92400E'
                                 }}>
-                                  {!company.accreditation_status || company.accreditation_status === 'not_submitted' ? '○ None' : company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : '⚠ Needs Revision'}
+                                  {company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : company.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : company.accreditation_status === 'started' || company.accredited_date ? '→ Started' : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -9946,8 +9946,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 borderRadius: 4,
                                 backgroundColor: 
                                   trainingRecordsStatuses[company.id] === 'approved' ? '#D1FAE5' :
-                                  trainingRecordsStatuses[company.id] === 'needs_review' ? '#FEE2E2' :
                                   trainingRecordsStatuses[company.id] === 'added' ? '#FEF3C7' :
+                                  company.training_records_total > 0 ? '#FEF3C7' :
                                   '#F3F4F6'
                               }}>
                                 <Text style={{
@@ -9955,11 +9955,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   fontWeight: '600',
                                   color:
                                     trainingRecordsStatuses[company.id] === 'approved' ? '#065F46' :
-                                    trainingRecordsStatuses[company.id] === 'needs_review' ? '#7F1D1D' :
                                     trainingRecordsStatuses[company.id] === 'added' ? '#92400E' :
+                                    company.training_records_total > 0 ? '#92400E' :
                                     '#6B7280'
                                 }}>
-                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'needs_review' ? '⚠ Needs Review' : trainingRecordsStatuses[company.id] === 'added' ? '📝 Added' : '○ None'}
+                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'added' ? '📝 Added' : company.training_records_total > 0 ? '📝 Added' : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
