@@ -2302,6 +2302,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setLoggedInAdmin(null);
     setCurrentScreen('dashboard');
     setShowAdminLoginModal(false);
+    // Clear admin session from localStorage
+    try {
+      localStorage.removeItem('adminSession');
+      localStorage.removeItem('adminData');
+    } catch (e) {
+      console.warn('Could not clear localStorage:', e);
+    }
   };
 
   const handleAdminLoginSuccess = (adminData) => {
@@ -2309,6 +2316,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
     setCurrentScreen('admin');
+    // Persist admin session to localStorage
+    try {
+      localStorage.setItem('adminSession', JSON.stringify({
+        active: true,
+        timestamp: new Date().toISOString()
+      }));
+      localStorage.setItem('adminData', JSON.stringify(adminData));
+    } catch (e) {
+      console.warn('Could not save admin session to localStorage:', e);
+    }
   };
 
   const handleAdminNavigate = (menuId) => {
@@ -2319,6 +2336,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       Alert.alert('Coming Soon', `${menuId} feature will be available soon`);
     }
   };
+
+  // Restore admin session from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedAdminSession = localStorage.getItem('adminSession');
+      const savedAdminData = localStorage.getItem('adminData');
+      
+      if (savedAdminSession && savedAdminData) {
+        const sessionData = JSON.parse(savedAdminSession);
+        const adminData = JSON.parse(savedAdminData);
+        
+        // Restore the session
+        setAdminSessionActive(sessionData.active);
+        setLoggedInAdmin(adminData);
+        console.log('✅ Admin session restored from localStorage');
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not restore admin session from localStorage:', e);
+    }
+  }, []);
 
   const handleAddAdmin = async () => {
     if (!newAdminForm.email || !newAdminForm.name) {
