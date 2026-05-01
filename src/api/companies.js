@@ -48,6 +48,12 @@ const transformCompany = (dbCompany) => {
     created_at: dbCompany.created_at,
     updatedAt: dbCompany.updated_at,
     updated_at: dbCompany.updated_at,
+    accreditationStatus: dbCompany.accreditation_status || 'none',
+    accreditation_status: dbCompany.accreditation_status || 'none',
+    trainingRecordsTotal: dbCompany.training_records_total || 0,
+    training_records_total: dbCompany.training_records_total || 0,
+    trainingRecordsApproved: dbCompany.training_records_approved || 0,
+    training_records_approved: dbCompany.training_records_approved || 0,
   };
 };
 
