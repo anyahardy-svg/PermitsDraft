@@ -395,18 +395,31 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleCheckInContractor = async () => {
     console.log('🔘 Check-in button clicked');
-    console.log('📍 Current site:', JSON.stringify(site, null, 2));
-    console.log('👤 Selected contractor:', selectedContractor?.name);
     
     if (!selectedContractor) {
       Alert.alert('Error', 'Please select a contractor');
       return;
     }
     
+    // Refresh site data to get latest flag/rt settings
+    try {
+      console.log('🔄 Refreshing site data from database...');
+      const refreshedSites = await listSites();
+      const refreshedSite = refreshedSites.find(s => s.id === siteId);
+      if (refreshedSite) {
+        setSite(refreshedSite);
+        console.log('✓ Site data refreshed:', refreshedSite.name);
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not refresh site data:', err.message);
+    }
+    
     // Check if site requires flag/RT
     const siteNeedsFlag = site?.flag;
     const siteNeedsRT = site?.rt;
     
+    console.log('📍 Current site:', JSON.stringify(site, null, 2));
+    console.log('👤 Selected contractor:', selectedContractor?.name);
     console.log('🚩 Site needs Flag:', siteNeedsFlag, 'Type:', typeof siteNeedsFlag);
     console.log('📡 Site needs RT:', siteNeedsRT, 'Type:', typeof siteNeedsRT);
 
