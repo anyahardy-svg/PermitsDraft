@@ -407,36 +407,40 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
     
     // Refresh site data to get latest flag/rt settings
+    let refreshedSite = site; // Default to current site
     try {
       console.log('3️⃣ Starting site refresh...');
       const refreshedSites = await listSites();
       console.log('4️⃣ Sites refreshed, count:', refreshedSites?.length);
       
-      const refreshedSite = refreshedSites.find(s => s.id === siteId);
+      refreshedSite = refreshedSites.find(s => s.id === siteId);
       console.log('5️⃣ Current site ID:', siteId);
       console.log('6️⃣ Found refreshed site:', refreshedSite?.name);
       
       if (refreshedSite) {
-        console.log('7️⃣ Setting site to refreshed data:', { 
+        console.log('7️⃣ Refreshed site data:', { 
           id: refreshedSite.id, 
           name: refreshedSite.name, 
           flag: refreshedSite.flag, 
           rt: refreshedSite.rt 
         });
+        // Update state for future renders, but check refreshed data NOW
         setSite(refreshedSite);
       } else {
         console.warn('⚠️ Could not find refreshed site with ID:', siteId);
+        refreshedSite = site; // Fall back to current site
       }
     } catch (err) {
       console.error('❌ Error refreshing site data:', err);
+      refreshedSite = site; // Fall back to current site
     }
     
-    // Check if site requires flag/RT
-    console.log('8️⃣ Checking flag/rt requirements...');
-    const siteNeedsFlag = site?.flag;
-    const siteNeedsRT = site?.rt;
+    // Check if site requires flag/RT - USE REFRESHED DATA, not state
+    console.log('8️⃣ Checking flag/rt requirements on refreshed site...');
+    const siteNeedsFlag = refreshedSite?.flag;
+    const siteNeedsRT = refreshedSite?.rt;
     
-    console.log('9️⃣ Site data:', { name: site?.name, flag: siteNeedsFlag, rt: siteNeedsRT });
+    console.log('9️⃣ Refreshed site data:', { name: refreshedSite?.name, flag: siteNeedsFlag, rt: siteNeedsRT });
     console.log('🚩 Site needs Flag:', siteNeedsFlag, 'Type:', typeof siteNeedsFlag);
     console.log('📡 Site needs RT:', siteNeedsRT, 'Type:', typeof siteNeedsRT);
 
@@ -448,7 +452,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setRtTaken(false);
       setRtName('');
       setShowFlagRTModal(true);
-      console.log('1️⃣1️⃣ Modal state set');
+      console.log('1️⃣1️⃣ Modal state set - showFlagRTModal:', true);
       return;
     }
 
