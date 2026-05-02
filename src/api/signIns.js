@@ -16,7 +16,7 @@ import { supabase } from '../supabaseClient';
  * @param {UUID} businessUnitId - Business Unit UUID
  * @returns {Object} Sign-in record
  */
-export async function checkInContractor(contractorId, siteId, businessUnitId) {
+export async function checkInContractor(contractorId, siteId, businessUnitId, flagData = null, rtData = null) {
   try {
     console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
     
@@ -68,21 +68,33 @@ export async function checkInContractor(contractorId, siteId, businessUnitId) {
 
     // Create sign-in record
     console.log('📝 Creating sign-in record...');
+    const signInData = {
+      contractor_id: contractorId,
+      contractor_name: contractor?.name || 'Unknown',
+      contractor_phone: contractor?.phone || null,
+      site_id: siteId,
+      business_unit_id: businessUnitId,
+      contractor_company: companyName,
+      check_in_time: new Date().toISOString(),
+      inducted: isInductedHere,
+      induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
+      inducted_at_site: contractor.induction_expiry || null,
+      induction_expires_at: contractor.induction_expiry || null,
+    };
+
+    // Add flag and RT data if provided
+    if (flagData) {
+      signInData.flag_taken = flagData.taken || false;
+      signInData.flag_name = flagData.taken ? flagData.name : null;
+    }
+    if (rtData) {
+      signInData.rt_taken = rtData.taken || false;
+      signInData.rt_name = rtData.taken ? rtData.name : null;
+    }
+
     const { data, error } = await supabase
       .from('sign_ins')
-      .insert({
-        contractor_id: contractorId,
-        contractor_name: contractor?.name || 'Unknown',
-        contractor_phone: contractor?.phone || null,
-        site_id: siteId,
-        business_unit_id: businessUnitId,
-        contractor_company: companyName,
-        check_in_time: new Date().toISOString(),
-        inducted: isInductedHere,
-        induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
-        inducted_at_site: contractor.induction_expiry || null,
-        induction_expires_at: contractor.induction_expiry || null,
-      })
+      .insert(signInData)
       .select()
       .single();
 
@@ -155,18 +167,30 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
 /**
  * Sign-Out (works for both contractors and visitors)
  * @param {UUID} signInId - Sign-in record ID
+ * @param {Object} flagReturnData - Flag return information (optional)
+ * @param {Object} rtReturnData - RT return information (optional)
  * @returns {Object} Updated sign-in record with duration
  */
-export async function checkOut(signInId) {
+export async function checkOut(signInId, flagReturnData = null, rtReturnData = null) {
   try {
     const now = new Date().toISOString();
 
+    const updateData = {
+      check_out_time: now,
+      updated_at: now,
+    };
+
+    // Add flag and RT return data if provided
+    if (flagReturnData !== null) {
+      updateData.flag_returned = flagReturnData;
+    }
+    if (rtReturnData !== null) {
+      updateData.rt_returned = rtReturnData;
+    }
+
     const { data, error } = await supabase
       .from('sign_ins')
-      .update({
-        check_out_time: now,
-        updated_at: now,
-      })
+      .update(updateData)
       .eq('id', signInId)
       .select()
       .single();

@@ -124,6 +124,20 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [showInductionModal, setShowInductionModal] = useState(false);
   const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
 
+  // For flag/RT during check-in
+  const [showFlagRTModal, setShowFlagRTModal] = useState(false);
+  const [flagTaken, setFlagTaken] = useState(false);
+  const [flagName, setFlagName] = useState('');
+  const [rtTaken, setRtTaken] = useState(false);
+  const [rtName, setRtName] = useState('');
+  const [pendingCheckInContractor, setPendingCheckInContractor] = useState(null); // Contractor waiting for flag/RT modal
+
+  // For flag/RT during check-out
+  const [showReturnFlagRTModal, setShowReturnFlagRTModal] = useState(false);
+  const [flagReturned, setFlagReturned] = useState(false);
+  const [rtReturned, setRtReturned] = useState(false);
+  const [pendingCheckOutId, setPendingCheckOutId] = useState(null); // Sign-in record waiting for return confirmation
+
   // Log when currentContractor is set
   useEffect(() => {
     if (currentContractor) {
@@ -386,16 +400,35 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
     
-    console.log('📞 Calling checkInContractor for:', selectedContractor.name);
+    // Check if site requires flag/RT
+    const siteNeedsFlag = site?.flag;
+    const siteNeedsRT = site?.rt;
+
+    if (siteNeedsFlag || siteNeedsRT) {
+      // Show flag/RT modal instead of checking in directly
+      setPendingCheckInContractor(selectedContractor);
+      setFlagTaken(false);
+      setFlagName('');
+      setRtTaken(false);
+      setRtName('');
+      setShowFlagRTModal(true);
+      return;
+    }
+
+    // No flag/RT required, proceed with check-in
+    await performCheckIn(selectedContractor, null, null);
+  };
+
+  const performCheckIn = async (contractor, flagData, rtData) => {
+    console.log('📞 Calling checkInContractor for:', contractor.name);
     try {
-      // Check induction status
-      const result = await checkInContractor(selectedContractor.id, siteId, businessUnitId);
+      const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData);
       
       console.log('📊 Check-in result:', result);
       
       if (result?.success) {
         // Clear the form immediately since check-in was recorded
-        const contractorName = selectedContractor.name;
+        const contractorName = contractor.name;
         setSelectedContractor(null);
         setContractorSearch('');
         setFilteredContractors([]);
@@ -462,9 +495,28 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
     
+    // Check if person took flag or RT
+    const tookFlag = selectedPerson.flag_taken;
+    const tookRT = selectedPerson.rt_taken;
+
+    if (tookFlag || tookRT) {
+      // Show return confirmation modal
+      setPendingCheckOutId(selectedPerson.id);
+      setFlagReturned(false);
+      setRtReturned(false);
+      setShowReturnFlagRTModal(true);
+      return;
+    }
+
+    // No flag/RT to return, proceed with sign-out
+    await performCheckOut(selectedPerson.id, null, null);
+  };
+
+  const performCheckOut = async (signInId, flagReturned, rtReturned) => {
     try {
-      await checkOut(selectedPerson.id);
-      Alert.alert('Success', `${selectedPerson.name} signed out successfully`);
+      await checkOut(signInId, flagReturned, rtReturned);
+      const personName = selectedPerson.name;
+      Alert.alert('Success', `${personName} signed out successfully`);
       setCurrentScreen('welcome');
       setSelectedPerson(null);
       loadSignedInPeople();
@@ -1385,6 +1437,300 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
+      )}
+
+      {/* Flag/RT Check-In Modal */}
+      {showFlagRTModal && (
+        <Modal
+          visible={showFlagRTModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setShowFlagRTModal(false);
+            setPendingCheckInContractor(null);
+          }}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+                Equipment for {pendingCheckInContractor?.name}
+              </Text>
+
+              {site?.flag && (
+                <View style={{ marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 12 }}>
+                    Do you require a Flag?
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: flagTaken ? '#DBEAFE' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: flagTaken ? '#3B82F6' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setFlagTaken(true)}
+                    >
+                      <Text style={{ fontWeight: flagTaken ? '600' : '500', color: flagTaken ? '#1E40AF' : '#6B7280' }}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: !flagTaken ? '#DBEAFE' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: !flagTaken ? '#3B82F6' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => { setFlagTaken(false); setFlagName(''); }}
+                    >
+                      <Text style={{ fontWeight: !flagTaken ? '600' : '500', color: !flagTaken ? '#1E40AF' : '#6B7280' }}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {flagTaken && (
+                    <>
+                      <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>Flag Name/Number</Text>
+                      <TextInput
+                        style={{
+                          borderWidth: 2,
+                          borderColor: '#3B82F6',
+                          borderRadius: 8,
+                          padding: 12,
+                          fontSize: 16,
+                          backgroundColor: '#DBEAFE',
+                        }}
+                        placeholder="Enter flag name or number"
+                        value={flagName}
+                        onChangeText={setFlagName}
+                      />
+                    </>
+                  )}
+                </View>
+              )}
+
+              {site?.rt && (
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 12 }}>
+                    Do you require an RT?
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: rtTaken ? '#DBEAFE' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: rtTaken ? '#3B82F6' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setRtTaken(true)}
+                    >
+                      <Text style={{ fontWeight: rtTaken ? '600' : '500', color: rtTaken ? '#1E40AF' : '#6B7280' }}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: !rtTaken ? '#DBEAFE' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: !rtTaken ? '#3B82F6' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => { setRtTaken(false); setRtName(''); }}
+                    >
+                      <Text style={{ fontWeight: !rtTaken ? '600' : '500', color: !rtTaken ? '#1E40AF' : '#6B7280' }}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {rtTaken && (
+                    <>
+                      <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>RT Name/Number</Text>
+                      <TextInput
+                        style={{
+                          borderWidth: 2,
+                          borderColor: '#3B82F6',
+                          borderRadius: 8,
+                          padding: 12,
+                          fontSize: 16,
+                          backgroundColor: '#DBEAFE',
+                        }}
+                        placeholder="Enter RT name or number"
+                        value={rtName}
+                        onChangeText={setRtName}
+                      />
+                    </>
+                  )}
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#6B7280', alignItems: 'center' }}
+                  onPress={() => {
+                    setShowFlagRTModal(false);
+                    setPendingCheckInContractor(null);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#10B981', alignItems: 'center' }}
+                  onPress={async () => {
+                    const flagData = site?.flag ? { taken: flagTaken, name: flagName } : null;
+                    const rtData = site?.rt ? { taken: rtTaken, name: rtName } : null;
+                    
+                    setShowFlagRTModal(false);
+                    await performCheckIn(pendingCheckInContractor, flagData, rtData);
+                    setPendingCheckInContractor(null);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Continue Sign-In</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Flag/RT Return Modal */}
+      {showReturnFlagRTModal && (
+        <Modal
+          visible={showReturnFlagRTModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setShowReturnFlagRTModal(false);
+            setPendingCheckOutId(null);
+          }}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
+                Equipment Return Confirmation
+              </Text>
+
+              {selectedPerson?.flag_taken && (
+                <View style={{ marginBottom: 24, paddingBottom: 24, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>
+                    Flag taken: <Text style={{ fontWeight: '600', color: '#1F2937' }}>{selectedPerson?.flag_name}</Text>
+                  </Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginTop: 12, marginBottom: 12 }}>
+                    Did you return the Flag?
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: flagReturned ? '#DCFCE7' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: flagReturned ? '#10B981' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setFlagReturned(true)}
+                    >
+                      <Text style={{ fontWeight: flagReturned ? '600' : '500', color: flagReturned ? '#166534' : '#6B7280' }}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: flagReturned === false ? '#FEE2E2' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: flagReturned === false ? '#EF4444' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setFlagReturned(false)}
+                    >
+                      <Text style={{ fontWeight: flagReturned === false ? '600' : '500', color: flagReturned === false ? '#991B1B' : '#6B7280' }}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {selectedPerson?.rt_taken && (
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>
+                    RT taken: <Text style={{ fontWeight: '600', color: '#1F2937' }}>{selectedPerson?.rt_name}</Text>
+                  </Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginTop: 12, marginBottom: 12 }}>
+                    Did you return the RT?
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: rtReturned ? '#DCFCE7' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: rtReturned ? '#10B981' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setRtReturned(true)}
+                    >
+                      <Text style={{ fontWeight: rtReturned ? '600' : '500', color: rtReturned ? '#166534' : '#6B7280' }}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ 
+                        flex: 1, 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 16, 
+                        borderRadius: 8, 
+                        backgroundColor: rtReturned === false ? '#FEE2E2' : '#F3F4F6',
+                        borderWidth: 2,
+                        borderColor: rtReturned === false ? '#EF4444' : '#D1D5DB',
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setRtReturned(false)}
+                    >
+                      <Text style={{ fontWeight: rtReturned === false ? '600' : '500', color: rtReturned === false ? '#991B1B' : '#6B7280' }}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#6B7280', alignItems: 'center' }}
+                  onPress={() => {
+                    setShowReturnFlagRTModal(false);
+                    setPendingCheckOutId(null);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#10B981', alignItems: 'center' }}
+                  onPress={async () => {
+                    const flagReturnStatus = selectedPerson?.flag_taken ? flagReturned : null;
+                    const rtReturnStatus = selectedPerson?.rt_taken ? rtReturned : null;
+                    
+                    setShowReturnFlagRTModal(false);
+                    await performCheckOut(pendingCheckOutId, flagReturnStatus, rtReturnStatus);
+                    setPendingCheckOutId(null);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Complete Sign-Out</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </View>
   );
