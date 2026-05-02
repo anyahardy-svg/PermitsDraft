@@ -11144,6 +11144,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Location</Text>
                     <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Unit</Text>
                     <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
+                    <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Flag</Text>
+                    <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>RT</Text>
                     <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                   </View>
 
@@ -11183,6 +11185,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                         <Text style={{ width: 180, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontFamily: 'monospace' }}>
                           {site.kioskSubdomain || '—'}
+                        </Text>
+                        <Text style={{ width: 60, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
+                          {site.flag ? '🚩' : ''}
+                        </Text>
+                        <Text style={{ width: 60, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
+                          {site.rt ? '📡' : ''}
                         </Text>
                         <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
                           <TouchableOpacity 
