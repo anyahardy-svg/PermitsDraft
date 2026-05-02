@@ -11,6 +11,8 @@ const transformSite = (dbSite) => {
     business_unit_id: dbSite.business_unit_id,
     kioskSubdomain: dbSite.kiosk_subdomain,
     kiosk_subdomain: dbSite.kiosk_subdomain,
+    flag: dbSite.flag || false,
+    rt: dbSite.rt || false,
     createdAt: dbSite.created_at,
     created_at: dbSite.created_at,
     updatedAt: dbSite.updated_at,

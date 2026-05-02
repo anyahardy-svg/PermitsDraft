@@ -2759,7 +2759,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
-  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
+  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
   const [siteSearchText, setSiteSearchText] = useState('');
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState([]); // Array of { text, type }
@@ -10720,7 +10720,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             name: currentSite.name,
             location: currentSite.location,
             business_unit_id: currentSite.businessUnitId,
-            kiosk_subdomain: currentSite.kioskSubdomain || null
+            kiosk_subdomain: currentSite.kioskSubdomain || null,
+            flag: currentSite.flag || false,
+            rt: currentSite.rt || false
           });
           const freshSites = await listSites();
           setSites(freshSites);
@@ -10731,13 +10733,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             name: currentSite.name,
             location: currentSite.location,
             business_unit_id: currentSite.businessUnitId,
-            kiosk_subdomain: currentSite.kioskSubdomain || null
+            kiosk_subdomain: currentSite.kioskSubdomain || null,
+            flag: currentSite.flag || false,
+            rt: currentSite.rt || false
           });
           const freshSites = await listSites();
           setSites(freshSites);
           Alert.alert('Site Added', 'New site has been added successfully.');
         }
-        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
+        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
         setSelectedSite(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save site: ' + error.message);
@@ -11008,11 +11012,77 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               />
               <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>The subdomain used for the kiosk sign-in at this site (contractorhq.co.nz)</Text>
 
+              <Text style={styles.label}>Equipment at this Site</Text>
+              <View style={{ marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    backgroundColor: currentSite.flag ? '#DBEAFE' : '#F3F4F6',
+                    borderRadius: 8,
+                    marginBottom: 8,
+                    borderWidth: 2,
+                    borderColor: currentSite.flag ? '#3B82F6' : '#D1D5DB'
+                  }}
+                  onPress={() => setCurrentSite({ ...currentSite, flag: !currentSite.flag })}
+                >
+                  <View style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: '#3B82F6',
+                    backgroundColor: currentSite.flag ? '#3B82F6' : 'white',
+                    marginRight: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    {currentSite.flag && <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: currentSite.flag ? '#1E40AF' : '#6B7280' }}>
+                    🚩 Site uses Flags
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    backgroundColor: currentSite.rt ? '#DBEAFE' : '#F3F4F6',
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: currentSite.rt ? '#3B82F6' : '#D1D5DB'
+                  }}
+                  onPress={() => setCurrentSite({ ...currentSite, rt: !currentSite.rt })}
+                >
+                  <View style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: '#3B82F6',
+                    backgroundColor: currentSite.rt ? '#3B82F6' : 'white',
+                    marginRight: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    {currentSite.rt && <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: currentSite.rt ? '#1E40AF' : '#6B7280' }}>
+                    📡 Site uses RTs
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity style={styles.addButton} onPress={handleAddSite}>
                 <Text style={styles.addButtonText}>{editingSite ? 'Update Site' : 'Add Site'}</Text>
               </TouchableOpacity>
               {editingSite && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' }); setSelectedSite(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false }); setSelectedSite(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
