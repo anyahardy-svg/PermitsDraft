@@ -2752,6 +2752,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [invitationForm, setInvitationForm] = useState({ email: '', deadline: '' });
   const [sendingInvitation, setSendingInvitation] = useState(false);
   
+  // New Company Invitation States
+  const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
+  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({ companyName: '', email: '', deadline: '' });
+  const [creatingAndSendingInvitation, setCreatingAndSendingInvitation] = useState(false);
+  
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
   const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '' });
@@ -9864,6 +9869,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
               </View>
+              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { setShowNewCompanyInvitationModal(true); setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '' }); }}>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV/Excel</Text>
               </TouchableOpacity>
@@ -10553,6 +10561,133 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   >
                     <Text style={styles.addButtonText}>
                       {sendingInvitation ? '⏳ Sending...' : '✉ Send Invitation'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* New Company Invitation Modal */}
+        {showNewCompanyInvitationModal && (
+          <Modal
+            visible={showNewCompanyInvitationModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowNewCompanyInvitationModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+                  Invite New Company
+                </Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
+                  Create a new company and send accreditation invitation
+                </Text>
+
+                {/* Company Name Field */}
+                <Text style={[styles.label, { marginTop: 0 }]}>Company Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter company name"
+                  value={newCompanyInvitationForm.companyName}
+                  onChangeText={(text) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, companyName: text })}
+                  editable={!creatingAndSendingInvitation}
+                />
+
+                {/* Email Field */}
+                <Text style={styles.label}>Contact Email *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email address"
+                  value={newCompanyInvitationForm.email}
+                  onChangeText={(text) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, email: text })}
+                  keyboardType="email-address"
+                  editable={!creatingAndSendingInvitation}
+                />
+
+                {/* Deadline Field */}
+                <Text style={styles.label}>Accreditation Deadline</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="DD/MM/YYYY"
+                  value={newCompanyInvitationForm.deadline}
+                  onChangeText={(text) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, deadline: text })}
+                  editable={!creatingAndSendingInvitation}
+                />
+
+                {/* Action Buttons */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                  <TouchableOpacity
+                    style={[styles.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
+                    onPress={() => setShowNewCompanyInvitationModal(false)}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <Text style={styles.addButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addButton, { flex: 1, backgroundColor: creatingAndSendingInvitation ? '#9CA3AF' : '#8B5CF6' }]}
+                    onPress={async () => {
+                      if (!newCompanyInvitationForm.companyName.trim()) {
+                        Alert.alert('Missing Info', 'Please enter a company name.');
+                        return;
+                      }
+                      if (!newCompanyInvitationForm.email.trim()) {
+                        Alert.alert('Missing Info', 'Please enter an email address.');
+                        return;
+                      }
+
+                      setCreatingAndSendingInvitation(true);
+                      try {
+                        // Step 1: Create the new company
+                        const newCompany = await createCompany({ 
+                          name: newCompanyInvitationForm.companyName 
+                        });
+
+                        if (!newCompany || !newCompany.id) {
+                          throw new Error('Failed to create company');
+                        }
+
+                        // Step 2: Send the accreditation invitation
+                        let deadline = null;
+                        if (newCompanyInvitationForm.deadline.trim()) {
+                          // Convert DD/MM/YYYY to Date
+                          const [day, month, year] = newCompanyInvitationForm.deadline.split('/');
+                          if (day && month && year) {
+                            deadline = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          }
+                        }
+
+                        const result = await sendAccreditationInvitation(
+                          newCompanyInvitationForm.email,
+                          newCompanyInvitationForm.companyName,
+                          deadline,
+                          false,
+                          newCompany.id
+                        );
+
+                        if (result.success) {
+                          Alert.alert('Success', 'Company created and invitation sent successfully!');
+                          setShowNewCompanyInvitationModal(false);
+                          setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '' });
+                          
+                          // Refresh companies to show the new company
+                          const freshCompanies = await listCompanies();
+                          setCompanies(freshCompanies);
+                        } else {
+                          Alert.alert('Partial Success', 'Company was created but invitation failed to send: ' + (result.error || 'Unknown error'));
+                        }
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to create company or send invitation: ' + error.message);
+                      } finally {
+                        setCreatingAndSendingInvitation(false);
+                      }
+                    }}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <Text style={styles.addButtonText}>
+                      {creatingAndSendingInvitation ? '⏳ Processing...' : '+ Create & Invite'}
                     </Text>
                   </TouchableOpacity>
                 </View>
