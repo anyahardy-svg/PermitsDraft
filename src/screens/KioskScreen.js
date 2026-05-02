@@ -11,7 +11,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -1479,20 +1478,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
       {/* Flag/RT Check-In Modal */}
       {showFlagRTModal && (
-        <Modal
-          visible={showFlagRTModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => {
-            setShowFlagRTModal(false);
-            setPendingCheckInContractor(null);
-          }}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
-                Equipment for {pendingCheckInContractor?.name}
-              </Text>
+        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 9999 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+              Equipment for {pendingCheckInContractor?.name}
+            </Text>
 
               {site?.flag && (
                 <View style={{ marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
@@ -1636,25 +1626,15 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               </View>
             </View>
           </View>
-        </Modal>
       )}
 
       {/* Flag/RT Return Modal */}
       {showReturnFlagRTModal && (
-        <Modal
-          visible={showReturnFlagRTModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => {
-            setShowReturnFlagRTModal(false);
-            setPendingCheckOutId(null);
-          }}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
-                Equipment Return Confirmation
-              </Text>
+        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 9999 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
+              Equipment Return Confirmation
+            </Text>
 
               {selectedPerson?.flag_taken && (
                 <View style={{ marginBottom: 24, paddingBottom: 24, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
@@ -1768,7 +1748,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               </View>
             </View>
           </View>
-        </Modal>
       )}
     </View>
   );
