@@ -9869,7 +9869,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
               </View>
-              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { setShowNewCompanyInvitationModal(true); setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '' }); }}>
+              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { 
+                // Calculate 2 months from today
+                const today = new Date();
+                const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
+                const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
+                
+                setShowNewCompanyInvitationModal(true); 
+                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: deadlineStr }); 
+              }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
