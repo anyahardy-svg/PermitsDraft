@@ -396,47 +396,64 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const handleCheckInContractor = async () => {
     console.log('🔘 Check-in button clicked');
     
+    console.log('1️⃣ Checking if contractor selected...');
+    console.log('   selectedContractor:', selectedContractor);
+    
     if (!selectedContractor) {
+      console.log('❌ No contractor selected - showing alert');
       Alert.alert('Error', 'Please select a contractor');
       return;
     }
     
+    console.log('2️⃣ Contractor selected:', selectedContractor.name);
+    
     // Refresh site data to get latest flag/rt settings
     try {
-      console.log('🔄 Refreshing site data from database...');
+      console.log('3️⃣ Starting site refresh...');
       const refreshedSites = await listSites();
+      console.log('4️⃣ Sites refreshed, count:', refreshedSites?.length);
+      
       const refreshedSite = refreshedSites.find(s => s.id === siteId);
+      console.log('5️⃣ Current site ID:', siteId);
+      console.log('6️⃣ Found refreshed site:', refreshedSite?.name);
+      
       if (refreshedSite) {
+        console.log('7️⃣ Setting site to refreshed data:', { 
+          id: refreshedSite.id, 
+          name: refreshedSite.name, 
+          flag: refreshedSite.flag, 
+          rt: refreshedSite.rt 
+        });
         setSite(refreshedSite);
-        console.log('✓ Site data refreshed:', refreshedSite.name);
+      } else {
+        console.warn('⚠️ Could not find refreshed site with ID:', siteId);
       }
     } catch (err) {
-      console.warn('⚠️ Could not refresh site data:', err.message);
+      console.error('❌ Error refreshing site data:', err);
     }
     
     // Check if site requires flag/RT
+    console.log('8️⃣ Checking flag/rt requirements...');
     const siteNeedsFlag = site?.flag;
     const siteNeedsRT = site?.rt;
     
-    console.log('📍 Current site:', JSON.stringify(site, null, 2));
-    console.log('👤 Selected contractor:', selectedContractor?.name);
+    console.log('9️⃣ Site data:', { name: site?.name, flag: siteNeedsFlag, rt: siteNeedsRT });
     console.log('🚩 Site needs Flag:', siteNeedsFlag, 'Type:', typeof siteNeedsFlag);
     console.log('📡 Site needs RT:', siteNeedsRT, 'Type:', typeof siteNeedsRT);
 
     if (siteNeedsFlag || siteNeedsRT) {
-      // Show flag/RT modal instead of checking in directly
-      console.log('✓ Showing Flag/RT modal');
+      console.log('🔟 Flag/RT required - showing modal');
       setPendingCheckInContractor(selectedContractor);
       setFlagTaken(false);
       setFlagName('');
       setRtTaken(false);
       setRtName('');
       setShowFlagRTModal(true);
+      console.log('1️⃣1️⃣ Modal state set');
       return;
     }
 
-    // No flag/RT required, proceed with check-in
-    console.log('✓ No Flag/RT required, proceeding with check-in');
+    console.log('1️⃣2️⃣ No Flag/RT required - proceeding with check-in');
     await performCheckIn(selectedContractor, null, null);
   };
 
