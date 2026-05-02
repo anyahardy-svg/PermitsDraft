@@ -395,6 +395,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleCheckInContractor = async () => {
     console.log('🔘 Check-in button clicked');
+    console.log('📍 Current site:', JSON.stringify(site, null, 2));
+    console.log('👤 Selected contractor:', selectedContractor?.name);
+    
     if (!selectedContractor) {
       Alert.alert('Error', 'Please select a contractor');
       return;
@@ -403,9 +406,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     // Check if site requires flag/RT
     const siteNeedsFlag = site?.flag;
     const siteNeedsRT = site?.rt;
+    
+    console.log('🚩 Site needs Flag:', siteNeedsFlag, 'Type:', typeof siteNeedsFlag);
+    console.log('📡 Site needs RT:', siteNeedsRT, 'Type:', typeof siteNeedsRT);
 
     if (siteNeedsFlag || siteNeedsRT) {
       // Show flag/RT modal instead of checking in directly
+      console.log('✓ Showing Flag/RT modal');
       setPendingCheckInContractor(selectedContractor);
       setFlagTaken(false);
       setFlagName('');
@@ -416,6 +423,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
 
     // No flag/RT required, proceed with check-in
+    console.log('✓ No Flag/RT required, proceeding with check-in');
     await performCheckIn(selectedContractor, null, null);
   };
 
