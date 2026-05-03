@@ -75,6 +75,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({}); // Field-specific errors: { name: 'error message', company: 'error message' }
 
   // Step 0: Select existing or new contractor
   // initialRoute can be 'new', 'returning', 'resume', or null
@@ -484,22 +485,41 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     console.log('✅ BUTTON CLICKED - handleInfoContinue called');
     console.log('📋 Contractor Info:', { name: contractorInfo.name, email: contractorInfo.email, buIds: contractorInfo.selectedBusinessUnitIds, isNew: isNewContractor });
     
-    if (!contractorInfo.name?.trim() || !contractorInfo.email?.trim()) {
-      console.error('❌ Missing name or email');
-      Alert.alert('Error', 'Please enter name and email');
-      return;
+    // Clear previous errors
+    const newValidationErrors = {};
+    
+    // Validate name
+    if (!contractorInfo.name?.trim()) {
+      newValidationErrors.name = '⚠️ Full name is required';
     }
+    
+    // Validate email
+    if (!contractorInfo.email?.trim()) {
+      newValidationErrors.email = '⚠️ Email is required';
+    } else if (!contractorInfo.email.includes('@')) {
+      newValidationErrors.email = '⚠️ Please enter a valid email';
+    }
+    
+    // Validate company
     if (!contractorInfo.companyId) {
-      console.error('❌ Missing company');
-      Alert.alert('Error', 'Please select a company');
-      return;
+      newValidationErrors.company = '⚠️ Company is required - search for one or create a new one';
     }
+    
+    // Validate business units
     const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
     if (selectedBUs.length === 0) {
-      console.error('❌ No business units selected');
-      Alert.alert('Error', 'Please select at least one business unit');
+      newValidationErrors.businessUnits = '⚠️ Please select at least one business unit';
+    }
+    
+    // If there are errors, show them and return
+    if (Object.keys(newValidationErrors).length > 0) {
+      setValidationErrors(newValidationErrors);
+      Alert.alert('Missing Information', 'Please check the highlighted fields below');
       return;
     }
+    
+    // Clear errors if we get here
+    setValidationErrors({});
 
     try {
       console.log('🚀 Starting induction load for BUs:', selectedBUs);
@@ -1276,20 +1296,32 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <Text style={styles.label}>Full Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, validationErrors.name ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
             placeholder="John Smith"
             value={contractorInfo.name}
-            onChangeText={(text) => setContractorInfo({ ...contractorInfo, name: text })}
+            onChangeText={(text) => {
+              setContractorInfo({ ...contractorInfo, name: text });
+              if (text.trim()) {
+                setValidationErrors(prev => ({ ...prev, name: undefined }));
+              }
+            }}
           />
+          {validationErrors.name && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.name}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Email *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, validationErrors.email ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
             placeholder="john@example.com"
             keyboardType="email-address"
             value={contractorInfo.email}
-            onChangeText={(text) => setContractorInfo({ ...contractorInfo, email: text })}
+            onChangeText={(text) => {
+              setContractorInfo({ ...contractorInfo, email: text });
+              if (text.includes('@')) {
+                setValidationErrors(prev => ({ ...prev, email: undefined }));
+              }
+            }}
           />
+          {validationErrors.email && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.email}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Phone</Text>
           <TextInput
@@ -1302,7 +1334,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
           <TextInput
-            style={[styles.input, { marginBottom: 0 }]}
+            style={[styles.input, { marginBottom: 0 }, validationErrors.company ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
             placeholder="Search or type company name..."
             value={contractorInfo.companyId ? companies.find(c => c.id === contractorInfo.companyId)?.name || companySearchText : companySearchText}
             onChangeText={(text) => {
@@ -1313,7 +1345,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             onFocus={() => setShowCompanyDropdown(true)}
           />
           {showCompanyDropdown && (
-            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 16, marginTop: 0 }}>
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 0, marginTop: 0 }}>
               {companies
                 .filter(company => company.name.toLowerCase().includes(companySearchText.toLowerCase()))
                 .map(company => (
@@ -1323,6 +1355,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                       setContractorInfo({ ...contractorInfo, companyId: company.id });
                       setCompanySearchText('');
                       setShowCompanyDropdown(false);
+                      setValidationErrors(prev => ({ ...prev, company: undefined }));
                     }}
                     style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
@@ -1343,15 +1376,19 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               )}
             </View>
           )}
+          {validationErrors.company && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.company}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Business Units (select one or more) *</Text>
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: 8, paddingBottom: validationErrors.businessUnits ? 4 : 0 }}>
             {businessUnits.map(bu => {
               const isSelected = (contractorInfo.selectedBusinessUnitIds || []).includes(bu.id);
               return (
                 <TouchableOpacity
                   key={bu.id}
-                  onPress={() => handleBusinessUnitChange(bu.id)}
+                  onPress={() => {
+                    handleBusinessUnitChange(bu.id);
+                    setValidationErrors(prev => ({ ...prev, businessUnits: undefined }));
+                  }}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -1369,6 +1406,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               );
             })}
           </View>
+          {validationErrors.businessUnits && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.businessUnits}</Text>}
 
           {sites.length > 0 && (
             <>
