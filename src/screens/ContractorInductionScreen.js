@@ -326,20 +326,36 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const handleLoadIncompleteInductions = async () => {
     try {
       setLoading(true);
-      // Load all contractors and check which ones have incomplete inductions
-      const allContractorsData = await listContractors();
-      const contractorsWithIncomplete = [];
+      setError('Loading contractors with incomplete inductions...');
       
-      for (const contractor of allContractorsData) {
-        const progressData = await getContractorInductionProgress(contractor.id);
-        const incomplete = progressData.filter(p => p.status === 'in_progress');
-        if (incomplete.length > 0) {
-          contractorsWithIncomplete.push({
-            ...contractor,
-            incompleteCount: incomplete.length
-          });
-        }
-      }
+      // Load all contractors
+      const allContractorsData = await listContractors();
+      
+      // Load progress for ALL contractors in parallel (not sequential!)
+      const progressPromises = allContractorsData.map(contractor =>
+        getContractorInductionProgress(contractor.id)
+          .then(progressData => ({
+            contractorId: contractor.id,
+            contractor,
+            progressData,
+          }))
+          .catch(err => {
+            console.error('Error loading progress for', contractor.id, ':', err);
+            return { contractorId: contractor.id, contractor, progressData: [] };
+          })
+      );
+      
+      const allProgress = await Promise.all(progressPromises);
+      
+      // Filter to only contractors with incomplete inductions
+      const contractorsWithIncomplete = allProgress
+        .filter(({ progressData }) => progressData.some(p => p.status === 'in_progress'))
+        .map(({ contractor, progressData }) => ({
+          ...contractor,
+          incompleteCount: progressData.filter(p => p.status === 'in_progress').length
+        }));
+      
+      setError('');
       
       if (contractorsWithIncomplete.length === 0) {
         Alert.alert('No Saved Inductions', 'No contractors have incomplete inductions to resume.');
@@ -350,7 +366,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       setContractors(contractorsWithIncomplete);
       setIsNewContractor('choose-contractor-for-resume');
     } catch (err) {
-      Alert.alert('Error', 'Failed to load contractors');
+      setError('');
+      Alert.alert('Error', 'Failed to load contractors: ' + err.message);
       console.error(err);
     } finally {
       setLoading(false);
