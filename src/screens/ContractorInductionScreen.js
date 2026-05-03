@@ -1028,9 +1028,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 // Load the selected inductions into the queue
                 const selectedIds = Object.keys(newInductionsToAdd).filter(id => newInductionsToAdd[id]);
                 const inductionsToAdd = allInductions.filter(ind => selectedIds.includes(ind.id));
-                setInductionQueue(inductionsToAdd);
+                
+                // Set contractor info for add-parts flow
+                setContractorInfo({
+                  id: addPartsContractor.id,
+                  name: addPartsContractor.name,
+                  email: addPartsContractor.email,
+                  phone: addPartsContractor.phone || '',
+                  companyId: addPartsContractor.company_id,
+                  selectedBusinessUnitIds: addPartsContractor.business_unit_ids || [],
+                  selectedSiteIds: addPartsContractor.site_ids || [],
+                  service_ids: addPartsContractor.service_ids || [],
+                });
+                setSelectedContractorId(addPartsContractor.id);
+                
+                // Set inductions as optional (user can review/deselect if needed)
+                setOptionalInductions(inductionsToAdd);
                 setCompulsoryInductions([]);
-                setOptionalInductions([]);
+                setSelectedOptionalIds(selectedIds);
+                setInductionQueue(inductionsToAdd);
                 setStep('inductionsList');
               }}
               style={{ backgroundColor: '#A855F7', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', marginTop: 12 }}
