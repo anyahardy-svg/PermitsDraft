@@ -236,7 +236,11 @@ export async function getSignedInPeople(siteId) {
         phone_number,
         check_in_time,
         inducted,
-        induction_status
+        induction_status,
+        flag_taken,
+        flag_name,
+        rt_taken,
+        rt_name
       `)
       .eq('site_id', siteId)
       .is('check_out_time', null) // Currently signed in (no check-out time)
