@@ -1758,8 +1758,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
       )}
-
-
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
