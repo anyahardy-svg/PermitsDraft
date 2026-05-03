@@ -99,6 +99,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [showReturningBUDropdown, setShowReturningBUDropdown] = useState(false);
   const [showReturningCompanyDropdown, setShowReturningCompanyDropdown] = useState(false);
 
+  // Add Parts to Existing Induction state
+  const [addPartsContractorId, setAddPartsContractorId] = useState(''); // Contractor to add parts to
+  const [addPartsContractor, setAddPartsContractor] = useState(null); // Full contractor data
+  const [existingInductionProgress, setExistingInductionProgress] = useState([]); // Their completed/incomplete inductions
+  const [completedInductionIds_AddParts, setCompletedInductionIds_AddParts] = useState([]); // IDs of their completed inductions
+  const [newInductionsToAdd, setNewInductionsToAdd] = useState({}); // { inductionId: true/false } for selection
+  const [addPartsFilterBUId, setAddPartsFilterBUId] = useState('');
+  const [showAddPartsBUDropdown, setShowAddPartsBUDropdown] = useState(false);
+
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
     id: '', // For existing contractors
@@ -145,6 +154,52 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [pendingResumeChoice, setPendingResumeChoice] = useState(null); // Will be set when resume dialog needs to appear
   const [resumeInductionData, setResumeInductionData] = useState(null); // Data to use when they choose resume
+
+  // ============================================================================
+  // HANDLERS FOR ADD PARTS TO EXISTING INDUCTION
+  // ============================================================================
+  
+  const handleAddPartsContractorSelected = async (contractorId) => {
+    try {
+      setLoading(true);
+      const contractor = await getContractor(contractorId);
+      setAddPartsContractorId(contractorId);
+      setAddPartsContractor(contractor);
+      
+      // Load their induction progress
+      const progressData = await getContractorInductionProgress(contractorId);
+      setExistingInductionProgress(progressData);
+      
+      // Identify completed induction IDs
+      const completedIds = progressData
+        .filter(p => p.status === 'completed')
+        .map(p => p.induction_id);
+      setCompletedInductionIds_AddParts(completedIds);
+      
+      // Load all available inductions for their business units
+      const contractorBUs = contractor.business_unit_ids || [];
+      if (contractorBUs.length > 0) {
+        const allInductionsForBU = await getInductionsByBusinessUnit(contractorBUs[0]);
+        setAllInductions(allInductionsForBU);
+        // Initialize selection state - don't select already completed ones
+        const selectionState = {};
+        allInductionsForBU.forEach(ind => {
+          if (!completedIds.includes(ind.id)) {
+            selectionState[ind.id] = false; // Unchecked by default for incomplete
+          }
+        });
+        setNewInductionsToAdd(selectionState);
+      }
+      
+      // Move to selection screen
+      setStep('info-add-parts');
+    } catch (err) {
+      console.error('Error loading contractor for add-parts:', err);
+      Alert.alert('Error', 'Failed to load contractor');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load initial data
   useEffect(() => {
@@ -752,6 +807,27 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             <Text style={{ fontSize: 13, color: '#6B7280' }}>Complete my induction in progress</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            onPress={async () => {
+              setIsNewContractor('add-parts');
+              setAddPartsFilterBUId('');
+              // Load contractors
+              try {
+                const allContractors = await listContractors();
+                setContractors(allContractors);
+              } catch (err) {
+                console.error('Error loading contractors:', err);
+              }
+              if (onSelectInductionType) {
+                onSelectInductionType('add-parts');
+              }
+            }}
+            style={{ backgroundColor: '#F3E8FF', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#A855F7' }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#A855F7', marginBottom: 8 }}>📚 Add Parts to Existing Induction</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280' }}>Add missing induction sections to my profile</Text>
+          </TouchableOpacity>
+
           {showContractorDropdown && (
             <View style={{ marginTop: 16, backgroundColor: '#F9FAFB', borderRadius: 8 }}>
               <TouchableOpacity 
@@ -818,6 +894,152 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               ))}
             </ScrollView>
           </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP 0: SELECT CONTRACTOR FOR ADD-PARTS
+  if (step === 'info' && isNewContractor === 'add-parts') {
+    return (
+      <View style={styles.container}>
+        {renderHeader('Add Parts - Select Contractor', () => {
+          setIsNewContractor(null);
+          setContractors([]);
+        })}
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+            Which contractor needs to add induction sections?
+          </Text>
+
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {contractors.length > 0 ? (
+                contractors.map(contractor => (
+                  <TouchableOpacity
+                    key={contractor.id}
+                    onPress={() => handleAddPartsContractorSelected(contractor.id)}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={{ padding: 12, color: '#9CA3AF' }}>No contractors found</Text>
+              )}
+            </ScrollView>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // STEP INFO-ADD-PARTS: SELECT SECTIONS TO ADD
+  if (step === 'info-add-parts' && addPartsContractor) {
+    const incompleteInductions = allInductions.filter(ind => !completedInductionIds_AddParts.includes(ind.id));
+    const completedInductions = allInductions.filter(ind => completedInductionIds_AddParts.includes(ind.id));
+    const selectedCount = Object.values(newInductionsToAdd).filter(v => v).length;
+
+    return (
+      <View style={styles.container}>
+        {renderHeader(`Add Parts - ${addPartsContractor.name}`, () => {
+          setAddPartsContractor(null);
+          setIsNewContractor('add-parts');
+        })}
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+            Completed Inductions ({completedInductions.length}):
+          </Text>
+          
+          {completedInductions.length > 0 ? (
+            <View style={{ backgroundColor: '#F0FDF4', borderRadius: 8, padding: 12, marginBottom: 20 }}>
+              {completedInductions.map(ind => {
+                const progress = existingInductionProgress.find(p => p.induction_id === ind.id);
+                return (
+                  <View key={ind.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#DCFCE7' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '500', color: '#15803D' }}>✓ {ind.induction_name}</Text>
+                    {progress?.completed_at && (
+                      <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        Completed: {new Date(progress.completed_at).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+            Available to Add ({incompleteInductions.length}):
+          </Text>
+
+          {incompleteInductions.length > 0 ? (
+            <View style={{ backgroundColor: '#F3E8FF', borderRadius: 8, marginBottom: 20 }}>
+              {incompleteInductions.map(ind => (
+                <TouchableOpacity
+                  key={ind.id}
+                  onPress={() => {
+                    setNewInductionsToAdd(prev => ({
+                      ...prev,
+                      [ind.id]: !prev[ind.id],
+                    }));
+                  }}
+                  style={{ 
+                    paddingVertical: 12, 
+                    paddingHorizontal: 12, 
+                    borderBottomWidth: 1, 
+                    borderBottomColor: '#E9D5FF',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: newInductionsToAdd[ind.id] ? '#F3E8FF' : 'transparent'
+                  }}
+                >
+                  <View style={{ 
+                    width: 20, 
+                    height: 20, 
+                    borderWidth: 2, 
+                    borderColor: newInductionsToAdd[ind.id] ? '#A855F7' : '#D8B4FE',
+                    borderRadius: 4,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    backgroundColor: newInductionsToAdd[ind.id] ? '#A855F7' : 'transparent'
+                  }}>
+                    {newInductionsToAdd[ind.id] && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', flex: 1 }}>
+                    {ind.induction_name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20 }}>
+              All available inductions have been completed.
+            </Text>
+          )}
+
+          {selectedCount > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                // Load the selected inductions into the queue
+                const selectedIds = Object.keys(newInductionsToAdd).filter(id => newInductionsToAdd[id]);
+                const inductionsToAdd = allInductions.filter(ind => selectedIds.includes(ind.id));
+                setInductionQueue(inductionsToAdd);
+                setCompulsoryInductions([]);
+                setOptionalInductions([]);
+                setStep('inductionsList');
+              }}
+              style={{ backgroundColor: '#A855F7', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', marginTop: 12 }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                Add {selectedCount} Section{selectedCount > 1 ? 's' : ''} to Induction
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
     );
