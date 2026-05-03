@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
