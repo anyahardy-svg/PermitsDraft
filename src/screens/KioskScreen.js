@@ -544,8 +544,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     if (tookFlag || tookRT) {
       // Show return confirmation modal
       setPendingCheckOutId(selectedPerson.id);
-      setFlagReturned(false);
-      setRtReturned(false);
+      setFlagReturned(true);
+      setRtReturned(true);
       setShowReturnFlagRTModal(true);
       return;
     }
