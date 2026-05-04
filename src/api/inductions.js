@@ -498,20 +498,22 @@ export async function completeInduction(contractorId, inductionId, signatureText
     if (progressError) throw progressError;
 
     // Get the induction name to add as a service earned
+    // Note: Only select induction_name for now - subsection_name may not exist in all DB versions
     const { data: inductionData, error: inductionError } = await supabase
       .from('inductions')
-      .select('induction_name, subsection_name')
+      .select('induction_name')
       .eq('id', inductionId)
       .single();
 
-    if (inductionError) throw inductionError;
+    if (inductionError) {
+      // If query fails, just log it and continue - don't block induction completion
+      console.warn(`[${getNZTimestamp()}] ⚠️ Could not fetch induction name for service record:`, inductionError);
+    }
 
     // Add induction as a service earned
     if (inductionData) {
-      // Format: "Working at Heights - MEWP" or just "Working at Heights"
-      const serviceName = inductionData.subsection_name
-        ? `${inductionData.induction_name} - ${inductionData.subsection_name}`
-        : inductionData.induction_name;
+      // Use induction_name as the service name (may be enhanced later with subsection_name if available)
+      const serviceName = inductionData.induction_name;
 
       const { data: contractorData } = await supabase
         .from('contractors')
