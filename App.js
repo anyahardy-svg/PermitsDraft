@@ -6914,11 +6914,51 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showCompetentPersonDropdown, setShowCompetentPersonDropdown] = React.useState({});
   const [filteredCompetentPersonContractors, setFilteredCompetentPersonContractors] = React.useState({});
   
+  // Locked out by (multiple people) dropdown state for each person in each isolation
+  // Structure: { 'isolationIdx-personIdx': boolean }
+  const [showLockedOutByDropdownDraft, setShowLockedOutByDropdownDraft] = React.useState({});
+  const [filteredLockedOutByContractorsDraft, setFilteredLockedOutByContractorsDraft] = React.useState({});
+  
   const isDraft = permit.status === 'draft';
   const isCompleted = permit.status === 'completed';
   
   const handleEditChange = (field, value) => {
     setEditData({ ...editData, [field]: value });
+  };
+  
+  // Helper functions for managing multi-person isolations in draft permit
+  const addPersonToIsolationDraft = (isolationIdx) => {
+    setEditData(prev => {
+      const isolations = [...prev.isolations];
+      if (!isolations[isolationIdx].locked_out_by) {
+        isolations[isolationIdx].locked_out_by = [];
+      }
+      isolations[isolationIdx].locked_out_by.push({ name: '', company: '' });
+      return { ...prev, isolations };
+    });
+  };
+  
+  const removePersonFromIsolationDraft = (isolationIdx, personIdx) => {
+    setEditData(prev => {
+      const isolations = [...prev.isolations];
+      if (isolations[isolationIdx].locked_out_by) {
+        isolations[isolationIdx].locked_out_by.splice(personIdx, 1);
+      }
+      return { ...prev, isolations };
+    });
+  };
+  
+  const updatePersonInIsolationDraft = (isolationIdx, personIdx, field, value) => {
+    setEditData(prev => {
+      const isolations = [...prev.isolations];
+      if (isolations[isolationIdx].locked_out_by && isolations[isolationIdx].locked_out_by[personIdx]) {
+        isolations[isolationIdx].locked_out_by[personIdx] = {
+          ...isolations[isolationIdx].locked_out_by[personIdx],
+          [field]: value
+        };
+      }
+      return { ...prev, isolations };
+    });
   };
   
   // --- Handle image/attachment picking for review screen ---
@@ -14815,98 +14855,120 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </>
                     )}
 
-                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 100 }}>
-                      <TextInput 
-                        style={[styles.input]} 
-                        value={isolation.isolatedBy || ''} 
-                        onChangeText={text => {
-                          const updated = [...editData.isolations];
-                          updated[idx] = { ...updated[idx], isolatedBy: text };
-                          setEditData(prev => ({ ...prev, isolations: updated }));
-                          // Filter by name AND site
-                          if (text.trim().length > 0 && contractors && contractors.length > 0) {
-                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
-                            console.log('Isolation filtering - editData.site:', editData.site, 'siteId:', siteId, 'siteNameToIdMap:', siteNameToIdMap);
-                            const filtered = contractors.filter(c => {
-                              const matchesName = c && c.name && c.name.toLowerCase().includes(text.toLowerCase());
-                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
-                              return matchesName && matchesSite;
-                            });
-                            console.log('Filtered contractors:', filtered.map(c => ({ name: c.name, siteIds: c.siteIds })));
-                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          } else {
-                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false }));
-                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: [] }));
-                          }
-                        }}
-                        onFocus={() => {
-                          if (isolation.isolatedBy.trim().length > 0 && contractors && contractors.length > 0) {
-                            const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
-                            const filtered = contractors.filter(c => {
-                              const matchesName = c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase());
-                              const matchesSite = !siteId || (c.siteIds && Array.isArray(c.siteIds) && c.siteIds.includes(siteId));
-                              return matchesName && matchesSite;
-                            });
-                            setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false })), 500);
-                        }}
-                        placeholder="Start typing person name (contractor or employee)..."
-                      />
-                      {!editData.site && (
-                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Tip: Site is required for filtering</Text>
-                      )}
-                      {showIsolatedByDropdownDraft[idx] && filteredIsolatedByContractorsDraft[idx] && filteredIsolatedByContractorsDraft[idx].length > 0 && (
-                        <View style={{
-                          position: 'absolute',
-                          top: 55,
-                          left: 0,
-                          right: 0,
-                          backgroundColor: 'white',
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 6,
-                          maxHeight: 150,
-                          zIndex: 10000,
-                          overflow: 'visible',
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.15,
-                          shadowRadius: 4,
-                          elevation: 5,
-                        }} pointerEvents="auto">
-                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
-                            {filteredIsolatedByContractorsDraft[idx].map(contractor => (
-                              <TouchableOpacity
-                                key={contractor.id}
-                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                                activeOpacity={0.7}
-                                onPress={() => {
-                                  const updated = [...editData.isolations];
-                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name, isolatedByCompany: contractor.companyName || contractor.company || '' };
-                                  setEditData(prev => ({ ...prev, isolations: updated }));
-                                  setShowIsolatedByDropdownDraft(prev => ({ ...prev, [idx]: false }));
-                                  setFilteredIsolatedByContractorsDraft(prev => ({ ...prev, [idx]: [] }));
+                    {/* Locked out by - MULTIPLE PEOPLE */}
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 8 }]}>People who isolated this:</Text>
+                    {(isolation.locked_out_by && isolation.locked_out_by.length > 0) ? (
+                      <View>
+                        {isolation.locked_out_by.map((person, personIdx) => (
+                          <View key={personIdx} style={{ marginBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, paddingBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, borderBottomWidth: personIdx === isolation.locked_out_by.length - 1 ? 0 : 1, borderBottomColor: '#E2E8F0' }}>
+                            {/* Person's name field */}
+                            <View style={{ position: 'relative', marginBottom: 8, zIndex: 100 - personIdx }}>
+                              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '500', marginBottom: 4 }}>Person {personIdx + 1}</Text>
+                              <TextInput
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]}
+                                value={person.name || ''}
+                                onChangeText={text => {
+                                  updatePersonInIsolationDraft(idx, personIdx, 'name', text);
+                                  // Filter contractors
+                                  if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(text.toLowerCase())) &&
+                                      (!siteId || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(siteId)))
+                                    );
+                                    setFilteredLockedOutByContractorsDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
                                 }}
-                              >
-                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                    {isolation.isolatedByCompany && (
-                      <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 4 }}>
-                        <Text style={[styles.detailText, { color: '#374151' }]}>Company: {isolation.isolatedByCompany}</Text>
+                                onFocus={() => {
+                                  if (person.name?.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(person.name?.toLowerCase())) &&
+                                      (!siteId || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(siteId)))
+                                    );
+                                    setFilteredLockedOutByContractorsDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => setShowLockedOutByDropdownDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: false })), 500);
+                                }}
+                                placeholder="Start typing person name..."
+                              />
+                              {!editData.site && (
+                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Tip: Select site for filtering</Text>
+                              )}
+                              {showLockedOutByDropdownDraft[`${idx}-${personIdx}`] && filteredLockedOutByContractorsDraft[`${idx}-${personIdx}`] && filteredLockedOutByContractorsDraft[`${idx}-${personIdx}`].length > 0 && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: 55,
+                                  left: 0,
+                                  right: 0,
+                                  backgroundColor: 'white',
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 4,
+                                  maxHeight: 120,
+                                  zIndex: 10001,
+                                  overflow: 'visible',
+                                  shadowColor: '#000',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.15,
+                                  shadowRadius: 4,
+                                  elevation: 5,
+                                }} pointerEvents="auto">
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                    {filteredLockedOutByContractorsDraft[`${idx}-${personIdx}`].map(contractor => (
+                                      <TouchableOpacity
+                                        key={contractor.id}
+                                        style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        onPress={() => {
+                                          updatePersonInIsolationDraft(idx, personIdx, 'name', contractor.name);
+                                          updatePersonInIsolationDraft(idx, personIdx, 'company', contractor.companyName || contractor.company || '');
+                                          setShowLockedOutByDropdownDraft(prev => ({ ...prev, [`${idx}-${personIdx}`]: false }));
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 13, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
+                            
+                            {/* Person's company field */}
+                            <TextInput
+                              style={[styles.input, { marginBottom: 8 }]}
+                              value={person.company || ''}
+                              onChangeText={text => updatePersonInIsolationDraft(idx, personIdx, 'company', text)}
+                              placeholder="Company (auto-filled)"
+                              editable={true}
+                            />
+                            
+                            {/* Remove this person button */}
+                            <TouchableOpacity
+                              onPress={() => removePersonFromIsolationDraft(idx, personIdx)}
+                              style={{ backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center' }}
+                            >
+                              <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 12 }}>✕ Remove this person</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
                       </View>
+                    ) : (
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 8 }}>No people added yet</Text>
                     )}
+                    
+                    {/* Add another person button */}
+                    <TouchableOpacity
+                      onPress={() => addPersonToIsolationDraft(idx)}
+                      style={{ backgroundColor: '#DBEAFE', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 4, marginBottom: 12, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#0284C7', fontWeight: '600', fontSize: 13 }}>➕ Add Another Person's Lock</Text>
+                    </TouchableOpacity>
+                    
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
@@ -14927,7 +14989,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
-                <TouchableOpacity style={[styles.addButton, { marginTop: 8 }]} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', isolatedByCompany: '', date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
+                <TouchableOpacity style={[styles.addButton, { marginTop: 8 }]} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', locked_out_by: [], date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
                   <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
