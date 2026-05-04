@@ -6288,14 +6288,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <View style={{
               backgroundColor: 'white',
               borderRadius: 12,
-              padding: 20,
-              maxHeight: '80%'
+              maxHeight: '80%',
+              flexDirection: 'column'
             }}>
               <View style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 16
+                marginBottom: 16,
+                paddingHorizontal: 20,
+                paddingTop: 20
               }}>
                 <Text style={{
                   fontSize: 18,
@@ -6318,107 +6320,109 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  color: '#1F2937', 
-                  marginBottom: 8 
-                }}>Template Name *</Text>
-                <TextInput
-                  style={{
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600', 
+                    color: '#1F2937', 
+                    marginBottom: 8 
+                  }}>Template Name *</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 8,
+                      padding: 12,
+                      fontSize: 14,
+                      color: '#1F2937'
+                    }}
+                    placeholder="e.g., Milling Machine Setup"
+                    value={permitTemplateNameNew}
+                    onChangeText={setPermitTemplateNameNew}
+                    editable={!loadingPermitSaveTemplateNew}
+                  />
+                </View>
+
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600', 
+                    color: '#1F2937', 
+                    marginBottom: 8 
+                  }}>Business Units * (select one or more)</Text>
+                  <View style={{ gap: 8 }}>
+                    {businessUnits.map(bu => {
+                      const isSelected = selectedBusForPermitTemplateNew.includes(bu.id);
+                      return (
+                        <TouchableOpacity
+                          key={bu.id}
+                          onPress={() => {
+                            setSelectedBusForPermitTemplateNew(prev =>
+                              prev.includes(bu.id)
+                                ? prev.filter(id => id !== bu.id)
+                                : [...prev, bu.id]
+                            );
+                          }}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
+                            backgroundColor: isSelected ? '#E9D5FF' : '#F3F4F6',
+                          }}
+                        >
+                          <View style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 3,
+                            borderWidth: 2,
+                            borderColor: '#8B5CF6',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isSelected ? '#8B5CF6' : 'white',
+                            marginRight: 10
+                          }}>
+                            {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                          </View>
+                          <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '600', 
+                    color: '#1F2937', 
+                    marginBottom: 8 
+                  }}>Contractor Company (Optional)</Text>
+                  <View style={{
                     borderWidth: 1,
                     borderColor: '#E5E7EB',
                     borderRadius: 8,
-                    padding: 12,
-                    fontSize: 14,
-                    color: '#1F2937'
-                  }}
-                  placeholder="e.g., Milling Machine Setup"
-                  value={permitTemplateNameNew}
-                  onChangeText={setPermitTemplateNameNew}
-                  editable={!loadingPermitSaveTemplateNew}
-                />
-              </View>
-
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  color: '#1F2937', 
-                  marginBottom: 8 
-                }}>Business Units * (select one or more)</Text>
-                <View style={{ gap: 8 }}>
-                  {businessUnits.map(bu => {
-                    const isSelected = selectedBusForPermitTemplateNew.includes(bu.id);
-                    return (
-                      <TouchableOpacity
-                        key={bu.id}
-                        onPress={() => {
-                          setSelectedBusForPermitTemplateNew(prev =>
-                            prev.includes(bu.id)
-                              ? prev.filter(id => id !== bu.id)
-                              : [...prev, bu.id]
-                          );
-                        }}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: 12,
-                          paddingHorizontal: 12,
-                          borderRadius: 8,
-                          backgroundColor: isSelected ? '#E9D5FF' : '#F3F4F6',
-                        }}
-                      >
-                        <View style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 3,
-                          borderWidth: 2,
-                          borderColor: '#8B5CF6',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: isSelected ? '#8B5CF6' : 'white',
-                          marginRight: 10
-                        }}>
-                          {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
-                        </View>
-                        <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400' }}>{bu.name}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                    backgroundColor: 'white'
+                  }}>
+                    <Picker
+                      selectedValue={selectedCompanyForPermitTemplateNew}
+                      onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateNew(itemValue)}
+                      style={{
+                        color: '#1F2937'
+                      }}
+                    >
+                      <Picker.Item label="No specific company" value="" />
+                      {companies.map(company => (
+                        <Picker.Item key={company.id} label={company.name} value={company.name} />
+                      ))}
+                    </Picker>
+                  </View>
                 </View>
-              </View>
+              </ScrollView>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  color: '#1F2937', 
-                  marginBottom: 8 
-                }}>Contractor Company (Optional)</Text>
-                <View style={{
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: 'white'
-                }}>
-                  <Picker
-                    selectedValue={selectedCompanyForPermitTemplateNew}
-                    onValueChange={(itemValue) => setSelectedCompanyForPermitTemplateNew(itemValue)}
-                    style={{
-                      color: '#1F2937'
-                    }}
-                  >
-                    <Picker.Item label="No specific company" value="" />
-                    {companies.map(company => (
-                      <Picker.Item key={company.id} label={company.name} value={company.name} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 20 }}>
                 <TouchableOpacity
                   style={{
                     flex: 1,
