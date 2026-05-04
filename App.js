@@ -13484,11 +13484,49 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('toggleSection called for:', section);
       setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
+    
+    // Helper functions for managing multi-person isolations in draft permit
+    const addPersonToIsolationDraft = (isolationIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (!isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by = [];
+        }
+        isolations[isolationIdx].locked_out_by.push({ name: '', company: '' });
+        return { ...prev, isolations };
+      });
+    };
+    
+    const removePersonFromIsolationDraft = (isolationIdx, personIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by.splice(personIdx, 1);
+        }
+        return { ...prev, isolations };
+      });
+    };
+    
+    const updatePersonInIsolationDraft = (isolationIdx, personIdx, field, value) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by && isolations[isolationIdx].locked_out_by[personIdx]) {
+          isolations[isolationIdx].locked_out_by[personIdx] = {
+            ...isolations[isolationIdx].locked_out_by[personIdx],
+            [field]: value
+          };
+        }
+        return { ...prev, isolations };
+      });
+    };
+    
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [rejectionComment, setRejectionComment] = React.useState('');
     const [showIsolatedByDropdownDraft, setShowIsolatedByDropdownDraft] = React.useState({});
     const [filteredIsolatedByContractorsDraft, setFilteredIsolatedByContractorsDraft] = React.useState({});
+    const [showLockedOutByDropdownDraft, setShowLockedOutByDropdownDraft] = React.useState({});
+    const [filteredLockedOutByContractorsDraft, setFilteredLockedOutByContractorsDraft] = React.useState({});
     const [showSignOnWorkerDropdownDraft, setShowSignOnWorkerDropdownDraft] = React.useState({});
     const [filteredSignOnWorkersDraft, setFilteredSignOnWorkersDraft] = React.useState({});
     const [showHwSafetyWatchDropdownDraft, setShowHwSafetyWatchDropdownDraft] = React.useState({});
