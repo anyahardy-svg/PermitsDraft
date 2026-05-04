@@ -6715,6 +6715,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         )}
 
+        {/* ISOLATIONS SECTION */}
+        {permit.isolations && permit.isolations.length > 0 && (
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FEF2F2', borderLeftWidth: 4, borderLeftColor: '#DC2626', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#7F1D1D', marginBottom: 14 }}>🔒 ISOLATIONS (Locked Out Equipment)</Text>
+            {permit.isolations.map((isolation, idx) => (
+              <View key={idx} style={{ marginBottom: 16, paddingBottom: 16, borderBottomWidth: idx < permit.isolations.length - 1 ? 1 : 0, borderBottomColor: '#FECACA' }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B91C1C' }}>Equipment: {isolation.equipment || 'N/A'}</Text>
+                {isolation.date && <Text style={{ fontSize: 13, color: '#991B1B', marginTop: 4 }}>Date: {isolation.date}</Text>}
+                
+                {isolation.locked_out_by && isolation.locked_out_by.length > 0 ? (
+                  <View style={{ marginTop: 10, marginLeft: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#7F1D1D', marginBottom: 8 }}>Locked out by:</Text>
+                    {isolation.locked_out_by.map((person, pIdx) => (
+                      <View key={pIdx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#FCA5A5' }}>
+                        <Text style={{ fontSize: 14, color: '#991B1B', fontWeight: '600' }}>{person.name || 'N/A'}</Text>
+                        {person.company && <Text style={{ fontSize: 13, color: '#B91C1C', marginTop: 2 }}>{person.company}</Text>}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 8, fontStyle: 'italic' }}>No one locked out</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* CONTROLS SUMMARY SECTION */}
         {(permit.specializedPermits || permit.singleHazards || (permit.jseas && permit.jseas.length > 0)) && (
           <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FFFBEB', borderLeftWidth: 4, borderLeftColor: '#F59E0B', padding: 14, borderRadius: 8 }]}>
