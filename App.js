@@ -7823,12 +7823,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             try {
               console.log('Approving permit:', editData.id, 'New status:', newStatus);
-              // Update in Supabase - include all edited data (JSEA, specializedPermits, etc.)
-              const result = await updatePermit(editData.id, {
-                ...editData,
+              // Update in Supabase - include all permit data but only valid database fields
+              const permitUpdate = {
                 status: newStatus,
-                approved_date: approvedDate
-              });
+                approved_date: approvedDate,
+                permit_type: editData.permit_type,
+                description: editData.description,
+                location: editData.location,
+                priority: editData.priority,
+                start_date: editData.start_date || editData.startDate,
+                start_time: editData.start_time || editData.startTime,
+                end_date: editData.end_date || editData.endDate,
+                end_time: editData.end_time || editData.endTime,
+                contractor_company: editData.contractor_company || editData.contractorCompany,
+                manual_company: editData.manual_company || editData.manualCompany,
+                contractor_selected: editData.contractor_selected || editData.contractorSelected,
+                permitted_issuer: editData.permitted_issuer || editData.permitIssuer,
+                specialized_permits: editData.specialized_permits || editData.specializedPermits,
+                single_hazards: editData.single_hazards || editData.singleHazards,
+                jsea: editData.jsea,
+                isolations: editData.isolations,
+                sign_ons: editData.sign_ons || editData.signOns,
+                attachments: editData.attachments,
+                rejection_comment: editData.rejection_comment
+              };
+              const result = await updatePermit(editData.id, permitUpdate);
               console.log('Update result:', result);
               
               // Reload all permits to get fresh data from database
@@ -13870,13 +13889,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const newStatus = isHighRisk ? 'pending_inspection' : 'active';
         const approvedDate = new Date().toISOString().split('T')[0];
 
-        // Save all edited data including JSEA, specializedPermits, etc. when approving
-        await updatePermit(editData.id, {
-          ...editData,
+        // Save all edited permit data (JSEA, specializedPermits, etc.) when approving
+        const permitUpdate = {
           status: newStatus,
           approved_date: approvedDate,
+          permit_type: editData.permit_type,
+          description: editData.description,
+          location: editData.location,
+          priority: editData.priority,
+          start_date: editData.start_date || editData.startDate,
+          start_time: editData.start_time || editData.startTime,
+          end_date: editData.end_date || editData.endDate,
+          end_time: editData.end_time || editData.endTime,
+          contractor_company: editData.contractor_company || editData.contractorCompany,
+          manual_company: editData.manual_company || editData.manualCompany,
+          contractor_selected: editData.contractor_selected || editData.contractorSelected,
+          permitted_issuer: editData.permitted_issuer || editData.permitIssuer,
+          specialized_permits: editData.specialized_permits || editData.specializedPermits,
+          single_hazards: editData.single_hazards || editData.singleHazards,
+          jsea: editData.jsea,
+          isolations: editData.isolations,
+          sign_ons: editData.sign_ons || editData.signOns,
+          attachments: editData.attachments,
           issuer_signature: issuerSignatureData
-        });
+        };
+
+        await updatePermit(editData.id, permitUpdate);
 
         const freshPermits = await listPermits();
         setPermits(freshPermits);
@@ -18399,12 +18437,29 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             try {
               // Update permit with all edited data including JSEA, and mark as inspected
-              await updatePermit(editData.id, {
-                ...editData,
+              const permitUpdate = {
                 status: 'active',
-                inspected: { inspector, date, comments },
-                attachments: editData.attachments
-              });
+                permit_type: editData.permit_type,
+                description: editData.description,
+                location: editData.location,
+                priority: editData.priority,
+                start_date: editData.start_date || editData.startDate,
+                start_time: editData.start_time || editData.startTime,
+                end_date: editData.end_date || editData.endDate,
+                end_time: editData.end_time || editData.endTime,
+                contractor_company: editData.contractor_company || editData.contractorCompany,
+                manual_company: editData.manual_company || editData.manualCompany,
+                contractor_selected: editData.contractor_selected || editData.contractorSelected,
+                permitted_issuer: editData.permitted_issuer || editData.permitIssuer,
+                specialized_permits: editData.specialized_permits || editData.specializedPermits,
+                single_hazards: editData.single_hazards || editData.singleHazards,
+                jsea: editData.jsea,
+                isolations: editData.isolations,
+                sign_ons: editData.sign_ons || editData.signOns,
+                attachments: editData.attachments,
+                inspected: { inspector, date, comments }
+              };
+              await updatePermit(editData.id, permitUpdate);
               
               // Reload all permits to get fresh data from database
               const freshPermits = await listPermits();
