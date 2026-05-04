@@ -7823,8 +7823,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             try {
               console.log('Approving permit:', editData.id, 'New status:', newStatus);
-              // Update in Supabase
+              // Update in Supabase - include all edited data (JSEA, specializedPermits, etc.)
               const result = await updatePermit(editData.id, {
+                ...editData,
                 status: newStatus,
                 approved_date: approvedDate
               });
@@ -13869,7 +13870,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const newStatus = isHighRisk ? 'pending_inspection' : 'active';
         const approvedDate = new Date().toISOString().split('T')[0];
 
+        // Save all edited data including JSEA, specializedPermits, etc. when approving
         await updatePermit(editData.id, {
+          ...editData,
           status: newStatus,
           approved_date: approvedDate,
           issuer_signature: issuerSignatureData
@@ -18395,8 +18398,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <View style={styles.submitSection}>
           <TouchableOpacity style={styles.submitButton} onPress={async () => {
             try {
-              // Update permit with inspection details and attachments
+              // Update permit with all edited data including JSEA, and mark as inspected
               await updatePermit(editData.id, {
+                ...editData,
                 status: 'active',
                 inspected: { inspector, date, comments },
                 attachments: editData.attachments
