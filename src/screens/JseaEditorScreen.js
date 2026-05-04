@@ -188,15 +188,9 @@ const JseaEditorScreen = forwardRef(({
             ))}
           </View>
         ) : (
-          // DESKTOP TABLE LAYOUT - Nested scrolling: vertical (outer) and horizontal (inner)
-          <View style={{ marginBottom: 16, minHeight: 200 }}>
-            <ScrollView 
-              horizontal={true} 
-              nestedScrollEnabled={true}
-              scrollEnabled={true}
-              showsHorizontalScrollIndicator={true}
-            >
-              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'visible' }}>
+          // DESKTOP TABLE LAYOUT - Let outer ScrollView handle all vertical scrolling naturally
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'visible' }}>
                 {/* Header Row */}
                 <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 16 }}>
                 <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 14, minWidth: 60 }}>Step</Text>
@@ -294,8 +288,7 @@ const JseaEditorScreen = forwardRef(({
                   </View>
                 </View>
               ))}
-              </View>
-            </ScrollView>
+            </View>
           </View>
         )}
 
