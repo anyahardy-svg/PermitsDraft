@@ -103,7 +103,12 @@ const JseaEditorScreen = forwardRef(({
         </View>
       )}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ padding: 16, flexGrow: 1 }}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+      >
         <Text style={{ fontSize: 15, color: '#6B7280', marginBottom: 16 }}>
           Create a step-by-step analysis. Add as many steps as needed.
         </Text>
