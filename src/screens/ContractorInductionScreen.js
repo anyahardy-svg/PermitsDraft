@@ -1795,20 +1795,34 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         console.log('✅ Induction marked as completed');
         
         // Update local state
-        setCompletedInductionIds([...completedInductionIds, currentModalInduction.id]);
+        const newCompletedIds = [...completedInductionIds, currentModalInduction.id];
+        setCompletedInductionIds(newCompletedIds);
         
-        // Close modal and return to kiosk
-        setModalVisible(false);
-        Alert.alert('Success', 'Induction completed!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCurrentModalInduction(null);
-              setModalAnswers({});
-              onCancel(); // Go back to kiosk
+        // Find the next incomplete induction
+        const nextIncompleteInduction = inductionQueue.find(
+          ind => !newCompletedIds.includes(ind.id)
+        );
+        
+        if (nextIncompleteInduction) {
+          // Auto-open the next induction
+          console.log('➡️ Opening next induction:', nextIncompleteInduction.induction_name);
+          setModalAnswers({});
+          await handleOpenInduction(nextIncompleteInduction);
+        } else {
+          // All done! Close modal and show completion message
+          console.log('🎉 All inductions completed!');
+          setModalVisible(false);
+          Alert.alert('Success', 'All inductions completed!', [
+            {
+              text: 'OK',
+              onPress: () => {
+                setCurrentModalInduction(null);
+                setModalAnswers({});
+                onCancel(); // Go back to kiosk
+              }
             }
-          }
-        ]);
+          ]);
+        }
       } catch (error) {
         console.error('❌ Error completing induction:', error);
         Alert.alert('Error', 'Failed to complete induction: ' + error.message);
