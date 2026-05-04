@@ -16826,6 +16826,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
     const [filteredIsolatedByContractorsActive, setFilteredIsolatedByContractorsActive] = React.useState({});
     
+    // Multi-person isolation dropdown states for inspection
+    const [showLockedOutByDropdownInspection, setShowLockedOutByDropdownInspection] = React.useState({});
+    const [filteredLockedOutByContractorsInspection, setFilteredLockedOutByContractorsInspection] = React.useState({});
+    
     const handleSpecializedChange = (key, field, value) => {
       setEditData(prev => ({
         ...prev,
@@ -16856,6 +16860,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const signOns = [...(prev.signOns || [])];
         signOns[idx] = { ...signOns[idx], [field]: value };
         return { ...prev, signOns };
+      });
+    };
+    
+    // Multi-person isolation helpers for inspection screen
+    const addPersonToIsolationInspection = (isolationIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (!isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by = [];
+        }
+        isolations[isolationIdx].locked_out_by.push({ name: '', company: '' });
+        return { ...prev, isolations };
+      });
+    };
+    
+    const removePersonFromIsolationInspection = (isolationIdx, personIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by.splice(personIdx, 1);
+        }
+        return { ...prev, isolations };
+      });
+    };
+    
+    const updatePersonInIsolationInspection = (isolationIdx, personIdx, field, value) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by && isolations[isolationIdx].locked_out_by[personIdx]) {
+          isolations[isolationIdx].locked_out_by[personIdx] = {
+            ...isolations[isolationIdx].locked_out_by[personIdx],
+            [field]: value
+          };
+        }
+        return { ...prev, isolations };
       });
     };
     
@@ -17770,92 +17809,119 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </>
                     )}
 
-                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible', zIndex: 10 }}>
-                      <TextInput 
-                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
-                        value={isolation.isolatedBy || ''} 
-                        onChangeText={text => {
-                          const updated = [...editData.isolations];
-                          updated[idx] = { ...updated[idx], isolatedBy: text };
-                          setEditData(prev => ({ ...prev, isolations: updated }));
-                          
-                          // Filter contractors based on input and site
-                          if (text.trim().length > 0 && editData.site_id) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteId === editData.site_id)
-                            );
-                            const filtered = siteContractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          } else {
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: [] }));
-                          }
-                        }}
-                        onFocus={() => {
-                          if (isolation.isolatedBy && isolation.isolatedBy.trim().length > 0 && editData.site_id) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteId === editData.site_id)
-                            );
-                            const filtered = siteContractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
-                            );
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
-                        }}
-                        placeholder="Name of person who isolated"
-                      />
-                      {showIsolatedByDropdownActive[idx] && filteredIsolatedByContractorsActive[idx] && filteredIsolatedByContractorsActive[idx].length > 0 && (
-                        <View style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: 4,
-                          backgroundColor: 'white',
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10000,
-                          overflow: 'visible',
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.15,
-                          shadowRadius: 4,
-                          elevation: 10,
-                        }} pointerEvents="auto">
-                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
-                            {filteredIsolatedByContractorsActive[idx].map(contractor => (
-                              <TouchableOpacity
-                                key={contractor.id}
-                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                                activeOpacity={0.7}
-                                onPress={() => {
-                                  const updated = [...editData.isolations];
-                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name };
-                                  setEditData(prev => ({ ...prev, isolations: updated }));
-                                  setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
-                                  setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: [] }));
+                    {/* Locked out by - MULTIPLE PEOPLE */}
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 8 }]}>People who isolated this:</Text>
+                    {(isolation.locked_out_by && isolation.locked_out_by.length > 0) ? (
+                      <View>
+                        {isolation.locked_out_by.map((person, personIdx) => (
+                          <View key={personIdx} style={{ marginBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, paddingBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, borderBottomWidth: personIdx === isolation.locked_out_by.length - 1 ? 0 : 1, borderBottomColor: '#E2E8F0' }}>
+                            {/* Person's name field */}
+                            <View style={{ position: 'relative', marginBottom: 8, zIndex: 100 - personIdx }}>
+                              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '500', marginBottom: 4 }}>Person {personIdx + 1}</Text>
+                              <TextInput
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]}
+                                value={person.name || ''}
+                                onChangeText={text => {
+                                  updatePersonInIsolationInspection(idx, personIdx, 'name', text);
+                                  // Filter contractors
+                                  if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(text.toLowerCase())) &&
+                                      (!siteId || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(siteId)))
+                                    );
+                                    setFilteredLockedOutByContractorsInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
                                 }}
-                              >
-                                <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
-                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
+                                onFocus={() => {
+                                  if (person.name?.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const siteId = editData.site ? siteNameToIdMap[editData.site] : null;
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(person.name?.toLowerCase())) &&
+                                      (!siteId || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(siteId)))
+                                    );
+                                    setFilteredLockedOutByContractorsInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => setShowLockedOutByDropdownInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: false })), 500);
+                                }}
+                                placeholder="Start typing person name..."
+                              />
+                              {!editData.site && (
+                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Tip: Select site for filtering</Text>
+                              )}
+                              {showLockedOutByDropdownInspection[`${idx}-${personIdx}`] && filteredLockedOutByContractorsInspection[`${idx}-${personIdx}`] && filteredLockedOutByContractorsInspection[`${idx}-${personIdx}`].length > 0 && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: 55,
+                                  left: 0,
+                                  right: 0,
+                                  backgroundColor: 'white',
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 4,
+                                  maxHeight: 120,
+                                  zIndex: 10001,
+                                  overflow: 'visible',
+                                  shadowColor: '#000',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.15,
+                                  shadowRadius: 4,
+                                  elevation: 5,
+                                }} pointerEvents="auto">
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                    {filteredLockedOutByContractorsInspection[`${idx}-${personIdx}`].map(contractor => (
+                                      <TouchableOpacity
+                                        key={contractor.id}
+                                        style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        onPress={() => {
+                                          updatePersonInIsolationInspection(idx, personIdx, 'name', contractor.name);
+                                          updatePersonInIsolationInspection(idx, personIdx, 'company', contractor.companyName || contractor.company || '');
+                                          setShowLockedOutByDropdownInspection(prev => ({ ...prev, [`${idx}-${personIdx}`]: false }));
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 13, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
+                            
+                            {/* Person's company field */}
+                            <TextInput
+                              style={[styles.input, { marginBottom: 8 }]}
+                              value={person.company || ''}
+                              onChangeText={text => updatePersonInIsolationInspection(idx, personIdx, 'company', text)}
+                              placeholder="Company (auto-filled)"
+                              editable={true}
+                            />
+                            
+                            {/* Remove this person button */}
+                            <TouchableOpacity
+                              onPress={() => removePersonFromIsolationInspection(idx, personIdx)}
+                              style={{ backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center' }}
+                            >
+                              <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 12 }}>✕ Remove this person</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 8 }}>No people added yet</Text>
+                    )}
+                    
+                    {/* Add another person button */}
+                    <TouchableOpacity
+                      onPress={() => addPersonToIsolationInspection(idx)}
+                      style={{ backgroundColor: '#DBEAFE', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 4, marginBottom: 12, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#0284C7', fontWeight: '600', fontSize: 13 }}>➕ Add Another Person's Lock</Text>
+                    </TouchableOpacity>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
@@ -19308,6 +19374,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [showIsolatedByDropdownActive, setShowIsolatedByDropdownActive] = React.useState({});
     const [filteredIsolatedByContractorsActive, setFilteredIsolatedByContractorsActive] = React.useState({});
+    const [showLockedOutByDropdownActive, setShowLockedOutByDropdownActive] = React.useState({});
+    const [filteredLockedOutByContractorsActiveEdit, setFilteredLockedOutByContractorsActiveEdit] = React.useState({});
     const [showSignOnWorkerDropdownActive, setShowSignOnWorkerDropdownActive] = React.useState({});
     const [filteredSignOnWorkersActive, setFilteredSignOnWorkersActive] = React.useState({});
     const [previewAttachment, setPreviewAttachment] = React.useState(null);
@@ -19385,6 +19453,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const signOns = [...(prev.signOns || [])];
         signOns[idx] = { ...signOns[idx], [field]: value };
         return { ...prev, signOns };
+      });
+    };
+    
+    // Multi-person isolation helpers for active permit screen
+    const addPersonToIsolationActive = (isolationIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (!isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by = [];
+        }
+        isolations[isolationIdx].locked_out_by.push({ name: '', company: '' });
+        return { ...prev, isolations };
+      });
+    };
+    
+    const removePersonFromIsolationActive = (isolationIdx, personIdx) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by) {
+          isolations[isolationIdx].locked_out_by.splice(personIdx, 1);
+        }
+        return { ...prev, isolations };
+      });
+    };
+    
+    const updatePersonInIsolationActive = (isolationIdx, personIdx, field, value) => {
+      setEditData(prev => {
+        const isolations = [...prev.isolations];
+        if (isolations[isolationIdx].locked_out_by && isolations[isolationIdx].locked_out_by[personIdx]) {
+          isolations[isolationIdx].locked_out_by[personIdx] = {
+            ...isolations[isolationIdx].locked_out_by[personIdx],
+            [field]: value
+          };
+        }
+        return { ...prev, isolations };
       });
     };
 
@@ -20245,90 +20348,117 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </>
                     )}
 
-                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Isolated By:</Text>
-                    <View style={{ position: 'relative', marginBottom: 12, overflow: 'visible' }}>
-                      <TextInput 
-                        style={[styles.input, { position: 'relative', zIndex: 1 }]} 
-                        value={isolation.isolatedBy || ''} 
-                        onChangeText={text => {
-                          const updated = [...editData.isolations];
-                          updated[idx] = { ...updated[idx], isolatedBy: text };
-                          setEditData(prev => ({ ...prev, isolations: updated }));
-                          if (text.trim().length > 0 && editData.site_id) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteId === editData.site_id)
-                            );
-                            const filtered = siteContractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(text.toLowerCase())
-                            );
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          } else {
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: [] }));
-                          }
-                        }}
-                        onFocus={() => {
-                          if (isolation.isolatedBy && isolation.isolatedBy.trim().length > 0 && editData.site_id) {
-                            const siteContractors = contractors.filter(contractor => 
-                              contractor.siteIds && 
-                              contractor.siteIds.some(siteId => siteId === editData.site_id)
-                            );
-                            const filtered = siteContractors.filter(c => 
-                              c && c.name && c.name.toLowerCase().includes(isolation.isolatedBy.toLowerCase())
-                            );
-                            setFilteredIsolatedByContractorsActive(prev => ({ ...prev, [idx]: filtered }));
-                            setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: filtered.length > 0 }));
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false })), 500);
-                        }}
-                        placeholder="Name of person who isolated"
-                        keyboardType="default"
-                      />
-                      {showIsolatedByDropdownActive[idx] && filteredIsolatedByContractorsActive[idx] && filteredIsolatedByContractorsActive[idx].length > 0 && (
-                        <View style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: 4,
-                          backgroundColor: 'white',
-                          borderWidth: 1,
-                          borderColor: '#D1D5DB',
-                          borderRadius: 6,
-                          maxHeight: 200,
-                          zIndex: 10000,
-                          overflow: 'visible',
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.15,
-                          shadowRadius: 4,
-                          elevation: 10,
-                        }} pointerEvents="auto">
-                          <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
-                            {filteredIsolatedByContractorsActive[idx].map(contractor => (
-                              <TouchableOpacity
-                                key={contractor.id}
-                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
-                                activeOpacity={0.7}
-                                onPress={() => {
-                                  const updated = [...editData.isolations];
-                                  updated[idx] = { ...updated[idx], isolatedBy: contractor.name };
-                                  setEditData(prev => ({ ...prev, isolations: updated }));
-                                  setShowIsolatedByDropdownActive(prev => ({ ...prev, [idx]: false }));
+                    {/* Locked out by - MULTIPLE PEOPLE */}
+                    <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 8 }]}>People who isolated this:</Text>
+                    {(isolation.locked_out_by && isolation.locked_out_by.length > 0) ? (
+                      <View>
+                        {isolation.locked_out_by.map((person, personIdx) => (
+                          <View key={personIdx} style={{ marginBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, paddingBottom: personIdx === isolation.locked_out_by.length - 1 ? 0 : 12, borderBottomWidth: personIdx === isolation.locked_out_by.length - 1 ? 0 : 1, borderBottomColor: '#E2E8F0' }}>
+                            {/* Person's name field */}
+                            <View style={{ position: 'relative', marginBottom: 8, zIndex: 100 - personIdx }}>
+                              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '500', marginBottom: 4 }}>Person {personIdx + 1}</Text>
+                              <TextInput
+                                style={[styles.input, { position: 'relative', zIndex: 1 }]}
+                                value={person.name || ''}
+                                onChangeText={text => {
+                                  updatePersonInIsolationActive(idx, personIdx, 'name', text);
+                                  // Filter contractors
+                                  if (text.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(text.toLowerCase())) &&
+                                      (!editData.site_id || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(editData.site_id)))
+                                    );
+                                    setFilteredLockedOutByContractorsActiveEdit(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownActive(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
                                 }}
-                              >
-                                <Text style={[styles.detailText, { color: '#1F2937' }]}>{contractor.name}</Text>
-                                {contractor.company && <Text style={[styles.detailText, { fontSize: 14, color: '#6B7280' }]}>{contractor.company}</Text>}
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
+                                onFocus={() => {
+                                  if (person.name?.trim().length > 0 && contractors && contractors.length > 0) {
+                                    const filtered = contractors.filter(contractor =>
+                                      (contractor.name?.toLowerCase().includes(person.name?.toLowerCase())) &&
+                                      (!editData.site_id || (contractor.siteIds && Array.isArray(contractor.siteIds) && contractor.siteIds.includes(editData.site_id)))
+                                    );
+                                    setFilteredLockedOutByContractorsActiveEdit(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered }));
+                                    setShowLockedOutByDropdownActive(prev => ({ ...prev, [`${idx}-${personIdx}`]: filtered.length > 0 }));
+                                  }
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => setShowLockedOutByDropdownActive(prev => ({ ...prev, [`${idx}-${personIdx}`]: false })), 500);
+                                }}
+                                placeholder="Start typing person name..."
+                              />
+                              {!editData.site && (
+                                <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Tip: Select site for filtering</Text>
+                              )}
+                              {showLockedOutByDropdownActive[`${idx}-${personIdx}`] && filteredLockedOutByContractorsActiveEdit[`${idx}-${personIdx}`] && filteredLockedOutByContractorsActiveEdit[`${idx}-${personIdx}`].length > 0 && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: 55,
+                                  left: 0,
+                                  right: 0,
+                                  backgroundColor: 'white',
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 4,
+                                  maxHeight: 120,
+                                  zIndex: 10001,
+                                  overflow: 'visible',
+                                  shadowColor: '#000',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.15,
+                                  shadowRadius: 4,
+                                  elevation: 5,
+                                }} pointerEvents="auto">
+                                  <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                                    {filteredLockedOutByContractorsActiveEdit[`${idx}-${personIdx}`].map(contractor => (
+                                      <TouchableOpacity
+                                        key={contractor.id}
+                                        style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
+                                        onPress={() => {
+                                          updatePersonInIsolationActive(idx, personIdx, 'name', contractor.name);
+                                          updatePersonInIsolationActive(idx, personIdx, 'company', contractor.companyName || contractor.company || '');
+                                          setShowLockedOutByDropdownActive(prev => ({ ...prev, [`${idx}-${personIdx}`]: false }));
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 13, color: '#374151', fontWeight: '500' }}>{contractor.name}</Text>
+                                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>{contractor.companyName || contractor.company || 'Contractor'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
+                            
+                            {/* Person's company field */}
+                            <TextInput
+                              style={[styles.input, { marginBottom: 8 }]}
+                              value={person.company || ''}
+                              onChangeText={text => updatePersonInIsolationActive(idx, personIdx, 'company', text)}
+                              placeholder="Company (auto-filled)"
+                              editable={true}
+                            />
+                            
+                            {/* Remove this person button */}
+                            <TouchableOpacity
+                              onPress={() => removePersonFromIsolationActive(idx, personIdx)}
+                              style={{ backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center' }}
+                            >
+                              <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 12 }}>✕ Remove this person</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 8 }}>No people added yet</Text>
+                    )}
+                    
+                    {/* Add another person button */}
+                    <TouchableOpacity
+                      onPress={() => addPersonToIsolationActive(idx)}
+                      style={{ backgroundColor: '#DBEAFE', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 4, marginBottom: 12, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#0284C7', fontWeight: '600', fontSize: 13 }}>➕ Add Another Person's Lock</Text>
+                    </TouchableOpacity>
                     <Text style={[styles.detailText, { fontWeight: 'bold', marginBottom: 4 }]}>Date:</Text>
                     <TextInput 
                       style={styles.input} 
