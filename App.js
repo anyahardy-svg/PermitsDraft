@@ -2178,6 +2178,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       // Prepare permit data for Supabase
       // NOTE: jseas and attachments columns don't exist in schema yet, so only send jsea
+      // Include unsaved JSEA data if present (similar to draft save logic)
+      let jseaArray = [...(formData.jseas || [])];
+      if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
+        // Check if this JSEA is already in the array
+        const isAlreadyAdded = jseaArray.some(jsea => jsea.id === currentJseaData.id || (jsea.title === currentJseaData.title && jsea.taskSteps?.length === currentJseaData.taskSteps?.length));
+        if (!isAlreadyAdded) {
+          jseaArray.push(currentJseaData);
+          console.log('📝 [APPROVAL SAVE] Added unsaved currentJseaData to jseas array:', currentJseaData);
+        }
+      }
+      
       const permitData = {
         permit_type: formData.id || 'general',
         description: formData.description,
@@ -2199,7 +2210,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         controls_summary: '',
         specialized_permits: formData.specializedPermits,
         single_hazards: formData.singleHazards,
-        jsea: formData.jseas && formData.jseas.length > 0 ? formData.jseas[0] : {},
+        jsea: jseaArray && jseaArray.length > 0 ? jseaArray[0] : {},
         isolations: formData.isolations,
         sign_ons: formData.signOns,
         requester_signature: signatureData
