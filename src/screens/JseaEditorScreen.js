@@ -93,13 +93,17 @@ const JseaEditorScreen = forwardRef(({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#F9FAFB' }]}>
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: '#F9FAFB',
+      ...(styles?.container || {})
+    }}>
       {!isInModal && (
-        <View style={styles.header}>
+        <View style={styles?.header || { padding: 16 }}>
           <TouchableOpacity onPress={onCancel}>
-            <Text style={styles.backButton}>←</Text>
+            <Text style={styles?.backButton || { fontSize: 24, color: '#3B82F6' }}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>JSEA - Job Safety & Environmental Analysis</Text>
+          <Text style={styles?.title || { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12 }}>JSEA - Job Safety & Environmental Analysis</Text>
         </View>
       )}
 
@@ -194,8 +198,8 @@ const JseaEditorScreen = forwardRef(({
           </View>
         ) : (
           // DESKTOP TABLE LAYOUT - Let outer ScrollView handle all vertical scrolling naturally
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'visible' }}>
+          <View style={{ marginBottom: 16, width: '100%' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'visible', width: '100%' }}>
                 {/* Header Row */}
                 <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 16 }}>
                 <Text style={{ flex: 0.8, fontWeight: 'bold', color: 'white', fontSize: 14, minWidth: 60 }}>Step</Text>
