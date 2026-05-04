@@ -6893,6 +6893,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     contractorSelected: permit.contractor_selected || false,
     specializedPermits: mergedSpecializedPermits,
     singleHazards: permit.singleHazards || initialSingleHazards,
+    jsea: permit.jsea || initialJSEA,
     jseas: permit.jseas || [],
     isolations: permit.isolations || initialIsolations,
     signOns: permit.signOns || initialSignOns,
@@ -7368,7 +7369,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
 
         {/* CONTROLS SUMMARY - Show all controls in one place */}
-        {(editData.specializedPermits || editData.singleHazards || (editData.jseas && editData.jseas.length > 0)) && (
+        {(editData.specializedPermits || editData.singleHazards || editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
           <View style={{ marginTop: 20, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
             <Text style={[styles.label, { marginBottom: 8, color: '#D97706' }]}>CONTROLS SUMMARY</Text>
             
@@ -7509,6 +7510,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     )}
                   </View>
                 ))}
+              </View>
+            )}
+
+            {/* JSEA from jsea field (single JSEA, not array) */}
+            {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
+                <View style={{ marginBottom: 8, marginLeft: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>JSEA: {editData.jsea.title || 'Untitled'}</Text>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
+                    {editData.jsea.taskSteps.map((step, idx) => (
+                      <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
+                        <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.description || step.step}</Text>
+                        {step.hazards && (
+                          <View style={{ marginBottom: 3 }}>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Hazards:</Text>
+                            <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.hazards}</Text>
+                          </View>
+                        )}
+                        {step.controls && (
+                          <View style={{ marginBottom: 3 }}>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Controls:</Text>
+                            <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.controls}</Text>
+                          </View>
+                        )}
+                        {step.riskLevel && (
+                          <View>
+                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Risk Level:</Text>
+                            <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', fontSize: 14, marginLeft: 4 }]}>{step.riskLevel}</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                  {editData.jsea.additionalPrecautions && (
+                    <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                      <Text style={[styles.detailText, { fontWeight: '500', color: '#6B7280', fontSize: 14, marginBottom: 3 }]}>Additional Precautions:</Text>
+                      <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
+                        <Text style={[styles.detailText, { color: '#1F2937', fontWeight: '500', fontSize: 11 }]}>{editData.jsea.additionalPrecautions}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
               </View>
             )}
 
