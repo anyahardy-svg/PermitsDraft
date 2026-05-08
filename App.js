@@ -19359,6 +19359,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [filteredJseaTemplatesDraft, setFilteredJseaTemplatesDraft] = React.useState([]);
     const [jseaTemplateSearchDraft, setJseaTemplateSearchDraft] = React.useState('');
     
+    // Risk matrix modal state for active permit
+    const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
+    const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
+    const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
+    
     // Safety watch dropdown state for active permit screen
     const [showHwSafetyWatchDropdownActive, setShowHwSafetyWatchDropdownActive] = React.useState(false);
     const [filteredHwSafetyWatchContractorsActive, setFilteredHwSafetyWatchContractorsActive] = React.useState([]);
