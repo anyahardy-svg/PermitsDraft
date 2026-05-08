@@ -21669,87 +21669,90 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </View>
 
             <ScrollView>
-              {/* Likelihood Selection */}
-              <View style={{ marginBottom: 24 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
-                <View style={{ flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { key: 'rare', label: 'RARE', desc: 'Will only occur in exceptional circumstances' },
-                    { key: 'unlikely', label: 'UNLIKELY', desc: 'Could occur' },
-                    { key: 'possible', label: 'POSSIBLE', desc: 'Might occur' },
-                    { key: 'likely', label: 'LIKELY', desc: 'Will probably occur' },
-                    { key: 'almost_certain', label: 'ALMOST CERTAIN', desc: 'Will occur most of the time' }
-                  ].map(item => (
-                    <TouchableOpacity
-                      key={item.key}
-                      style={{
-                        borderRadius: 8,
-                        borderWidth: 2,
-                        borderColor: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#E5E7EB',
-                        backgroundColor: selectedLikelihoodDraft === item.key ? '#EFF6FF' : 'white',
-                        padding: 12
-                      }}
-                      onPress={() => setSelectedLikelihoodDraft(item.key)}
-                    >
-                      <Text style={{
-                        color: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#374151',
-                        fontWeight: '600',
-                        fontSize: 13,
-                        marginBottom: 4
-                      }}>
-                        {item.label}
-                      </Text>
-                      <Text style={{
-                        color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 14,
-                        fontStyle: 'italic'
-                      }}>
-                        {item.desc}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              {/* Likelihood and Severity - Side by side on desktop, stacked on mobile */}
+              <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
+                {/* Likelihood Selection */}
+                <View style={{ flex: 1, minWidth: 250 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>1. Select Likelihood</Text>
+                  <View style={{ flexDirection: 'column', gap: 12 }}>
+                    {[
+                      { key: 'rare', label: 'RARE', desc: 'Will only occur in exceptional circumstances' },
+                      { key: 'unlikely', label: 'UNLIKELY', desc: 'Could occur' },
+                      { key: 'possible', label: 'POSSIBLE', desc: 'Might occur' },
+                      { key: 'likely', label: 'LIKELY', desc: 'Will probably occur' },
+                      { key: 'almost_certain', label: 'ALMOST CERTAIN', desc: 'Will occur most of the time' }
+                    ].map(item => (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={{
+                          borderRadius: 8,
+                          borderWidth: 2,
+                          borderColor: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedLikelihoodDraft === item.key ? '#EFF6FF' : 'white',
+                          padding: 12
+                        }}
+                        onPress={() => setSelectedLikelihoodDraft(item.key)}
+                      >
+                        <Text style={{
+                          color: selectedLikelihoodDraft === item.key ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
+                        }}>
+                          {item.label}
+                        </Text>
+                        <Text style={{
+                          color: selectedLikelihoodDraft === item.key ? '#1E40AF' : '#6B7280',
+                          fontSize: 14,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
 
-              {/* Severity Selection */}
-              <View style={{ marginBottom: 24 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
-                <View style={{ flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { key: 'insignificant', label: 'INSIGNIFICANT', desc: 'Report Only Incidents' },
-                    { key: 'minor', label: 'MINOR', desc: 'First Aid' },
-                    { key: 'moderate', label: 'MODERATE', desc: 'MTI, LTI' },
-                    { key: 'major', label: 'MAJOR', desc: 'Serious Injury' },
-                    { key: 'catastrophic', label: 'CATASTROPHIC', desc: 'Fatality' }
-                  ].map(item => (
-                    <TouchableOpacity
-                      key={item.key}
-                      style={{
-                        borderRadius: 8,
-                        borderWidth: 2,
-                        borderColor: selectedSeverityDraft === item.key ? '#3B82F6' : '#E5E7EB',
-                        backgroundColor: selectedSeverityDraft === item.key ? '#EFF6FF' : 'white',
-                        padding: 12
-                      }}
-                      onPress={() => setSelectedSeverityDraft(item.key)}
-                    >
-                      <Text style={{
-                        color: selectedSeverityDraft === item.key ? '#3B82F6' : '#374151',
-                        fontWeight: '600',
-                        fontSize: 13,
-                        marginBottom: 4
-                      }}>
-                        {item.label}
-                      </Text>
-                      <Text style={{
-                        color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
-                        fontSize: 14,
-                        fontStyle: 'italic'
-                      }}>
-                        {item.desc}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                {/* Severity Selection */}
+                <View style={{ flex: 1, minWidth: 250 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>2. Select Severity</Text>
+                  <View style={{ flexDirection: 'column', gap: 12 }}>
+                    {[
+                      { key: 'insignificant', label: 'INSIGNIFICANT', desc: 'Report Only Incidents' },
+                      { key: 'minor', label: 'MINOR', desc: 'First Aid' },
+                      { key: 'moderate', label: 'MODERATE', desc: 'MTI, LTI' },
+                      { key: 'major', label: 'MAJOR', desc: 'Serious Injury' },
+                      { key: 'catastrophic', label: 'CATASTROPHIC', desc: 'Fatality' }
+                    ].map(item => (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={{
+                          borderRadius: 8,
+                          borderWidth: 2,
+                          borderColor: selectedSeverityDraft === item.key ? '#3B82F6' : '#E5E7EB',
+                          backgroundColor: selectedSeverityDraft === item.key ? '#EFF6FF' : 'white',
+                          padding: 12
+                        }}
+                        onPress={() => setSelectedSeverityDraft(item.key)}
+                      >
+                        <Text style={{
+                          color: selectedSeverityDraft === item.key ? '#3B82F6' : '#374151',
+                          fontWeight: '600',
+                          fontSize: 13,
+                          marginBottom: 4
+                        }}>
+                          {item.label}
+                        </Text>
+                        <Text style={{
+                          color: selectedSeverityDraft === item.key ? '#1E40AF' : '#6B7280',
+                          fontSize: 14,
+                          fontStyle: 'italic'
+                        }}>
+                          {item.desc}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
               </View>
 
