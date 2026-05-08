@@ -21606,6 +21606,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
       </Modal>
 
+      {/* JSEA EDITOR MODAL */}
+      <Modal 
+        visible={showJseaEditorDraft} 
+        animationType="slide"
+        onRequestClose={() => setShowJseaEditorDraft(false)}
+        transparent
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <JseaEditorScreen
+            initialJsea={editData.jsea?.taskSteps || []}
+            onSave={(steps) => {
+              console.log('✅ JseaEditorScreen onSave called with steps:', steps);
+              setEditData(prev => ({
+                ...prev,
+                jsea: {
+                  ...prev.jsea,
+                  taskSteps: steps
+                }
+              }));
+              setShowJseaEditorDraft(false);
+            }}
+            onCancel={() => setShowJseaEditorDraft(false)}
+            styles={styles}
+          />
+        </View>
+      </Modal>
+
       {/* ATTACHMENT PREVIEW MODAL */}
       <Modal
         visible={previewModalVisible}
