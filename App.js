@@ -19318,6 +19318,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       contractorSelected: latestPermit.contractor_selected || false,
       specializedPermits: mergedSpecializedPermits,
       singleHazards: latestPermit.singleHazards || initialSingleHazards,
+      jsea: latestPermit.jsea || { taskSteps: [], overallRiskRating: '', additionalPrecautions: '' },
       jseas: latestPermit.jseas || [],
       isolations: latestPermit.isolations || initialIsolations,
       signOns: latestPermit.signOns || initialSignOns,
@@ -19586,6 +19587,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       setShowJseaSaveTemplateDraft(true);
     }, [editData.jsea]);
+
+    const handleSelectRiskLevel = useCallback(() => {
+      console.log('[DEBUG] Opening Risk Matrix modal for active JSEA');
+      setSelectedLikelihoodDraft('');
+      setSelectedSeverityDraft('');
+      setShowRiskMatrixDraft(true);
+    }, []);
     
     const updateJSEAStep = (idx, field, value) => {
       setEditData(prev => {
