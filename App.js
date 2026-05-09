@@ -6736,7 +6736,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#7F1D1D', marginBottom: 14 }}>🔒 ISOLATIONS (Locked Out Equipment)</Text>
             {permit.isolations.map((isolation, idx) => (
               <View key={idx} style={{ marginBottom: 16, paddingBottom: 16, borderBottomWidth: idx < permit.isolations.length - 1 ? 1 : 0, borderBottomColor: '#FECACA' }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B91C1C' }}>Equipment: {isolation.equipment || 'N/A'}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B91C1C' }}>Equipment: {isolation.what || isolation.main_lockout_item || 'N/A'}</Text>
                 {isolation.date && <Text style={{ fontSize: 13, color: '#991B1B', marginTop: 4 }}>Date: {isolation.date}</Text>}
                 
                 {isolation.locked_out_by && isolation.locked_out_by.length > 0 ? (
@@ -6780,12 +6780,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E' }}>• {permitType?.label || key}</Text>
                         {Object.entries(val.questionnaire).map(([qid, qval]) => {
                           const question = questionnaire.find(q => q.id === qid);
-                          return qval.controls ? (
+                          return (
                             <View key={qid} style={{ marginLeft: 16, marginTop: 8 }}>
                               <Text style={{ fontSize: 13, color: '#B45309' }}>Q: {question?.text || qid}</Text>
-                              <Text style={{ fontSize: 14, color: '#78350F', fontWeight: '600', marginTop: 4 }}>→ Control: {qval.controls}</Text>
+                              {(qval.answer || qval.text) && <Text style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>Answer: {qval.answer || qval.text}</Text>}
+                              {qval.controls && <Text style={{ fontSize: 14, color: '#78350F', fontWeight: '600', marginTop: 4 }}>→ Control: {qval.controls}</Text>}
                             </View>
-                          ) : null;
+                          );
                         })}
                       </View>
                     ) : null;
@@ -6794,15 +6795,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             )}
 
             {/* Single Hazards Controls */}
-            {permit.singleHazards && Object.entries(permit.singleHazards).some(([_, val]) => val.present && val.controls) && (
+            {permit.singleHazards && Object.entries(permit.singleHazards).some(([_, val]) => val.present) && (
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>Single Hazards:</Text>
                 {Object.entries(permit.singleHazards).map(([key, val]) => {
                   const hazardType = singleHazardTypes.find(h => h.key === key);
-                  return val.present && val.controls ? (
+                  return val.present ? (
                     <View key={key} style={{ marginLeft: 12, marginBottom: 10 }}>
                       <Text style={{ fontSize: 15, fontWeight: '600', color: '#78350F' }}>• {hazardType?.label || key}</Text>
-                      <Text style={{ fontSize: 14, color: '#B45309', marginLeft: 12, marginTop: 4 }}>→ {val.controls}</Text>
+                      {val.controls && <Text style={{ fontSize: 14, color: '#B45309', marginLeft: 12, marginTop: 4 }}>→ {val.controls}</Text>}
                     </View>
                   ) : null;
                 })}
