@@ -18606,6 +18606,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const freshPermits = await listPermits();
               setPermits(freshPermits);
               
+              // Update the selected permit with fresh data so verification check recalculates
+              const updatedPermit = freshPermits.find(p => p.id === editData.id);
+              if (updatedPermit) {
+                setSelectedPermit(updatedPermit);
+              }
+              
               setCurrentScreen('dashboard');
               Alert.alert('Inspection Complete', 'Permit has been inspected and is now Active.');
             } catch (error) {
