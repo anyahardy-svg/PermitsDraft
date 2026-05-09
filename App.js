@@ -15717,54 +15717,56 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       ))}
                     </View>
                   )}
-                  <TouchableOpacity 
-                    style={[styles.submitButton, { marginRight: 8, flex: 1, backgroundColor: '#3B82F6' }]} 
-                    onPress={async () => {
-                      try {
-                        const permitUpdate = {
-                          description: editData.description,
-                          location: editData.location,
-                          requested_by: editData.requestedBy,
-                          request_name: editData.requestedBy,
-                          permitted_issuer: editData.permitIssuer,
-                          start_date: editData.startDate || editData.start_date,
-                          start_time: editData.startTime || editData.start_time,
-                          end_date: editData.endDate || editData.end_date,
-                          end_time: editData.endTime || editData.end_time,
-                          site_id: editData.site_id || siteNameToIdMap[editData.site],
-                          priority: editData.priority,
-                          controls_summary: editData.controlsSummary
-                        };
-                        await updatePermit(editData.id, permitUpdate);
-                        const freshPermits = await listPermits();
-                        setPermits(freshPermits);
-                        Alert.alert('Success', 'Permit details saved successfully');
-                      } catch (error) {
-                        Alert.alert('Error', 'Failed to save details: ' + error.message);
-                      }
-                    }}
-                  >
-                    <Text style={styles.submitButtonText}>💾 Save Details</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.submitButton, { flex: 1, opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#10B981' : '#9CA3AF' }]} 
-                    onPress={() => {
-                      if (!canApprove) {
-                        Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
-                        return;
-                      }
-                      // Show issuer signature modal instead of directly approving
-                      setShowIssuerSignatureApproval(true);
-                    }}
-                    disabled={!canApprove}
-                  >
-                    <Text style={[styles.submitButtonText, { opacity: canApprove ? 1 : 0.6 }]}>Approve</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity 
+                      style={[styles.submitButton, { flex: 1, backgroundColor: '#3B82F6' }]} 
+                      onPress={async () => {
+                        try {
+                          const permitUpdate = {
+                            description: editData.description,
+                            location: editData.location,
+                            requested_by: editData.requestedBy,
+                            request_name: editData.requestedBy,
+                            permitted_issuer: editData.permitIssuer,
+                            start_date: editData.startDate || editData.start_date,
+                            start_time: editData.startTime || editData.start_time,
+                            end_date: editData.endDate || editData.end_date,
+                            end_time: editData.endTime || editData.end_time,
+                            site_id: editData.site_id || siteNameToIdMap[editData.site],
+                            priority: editData.priority,
+                            controls_summary: editData.controlsSummary
+                          };
+                          await updatePermit(editData.id, permitUpdate);
+                          const freshPermits = await listPermits();
+                          setPermits(freshPermits);
+                          Alert.alert('Success', 'Permit details saved successfully');
+                        } catch (error) {
+                          Alert.alert('Error', 'Failed to save details: ' + error.message);
+                        }
+                      }}
+                    >
+                      <Text style={styles.submitButtonText}>💾 Save Details</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.submitButton, { flex: 1, opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#10B981' : '#9CA3AF' }]} 
+                      onPress={() => {
+                        if (!canApprove) {
+                          Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
+                          return;
+                        }
+                        // Show issuer signature modal instead of directly approving
+                        setShowIssuerSignatureApproval(true);
+                      }}
+                      disabled={!canApprove}
+                    >
+                      <Text style={[styles.submitButtonText, { opacity: canApprove ? 1 : 0.6 }]}>Approve</Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
               );
             })()
           )}
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444', marginLeft: 8 }]} onPress={async () => {
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444' }]} onPress={async () => {
             // Reject: send back to draft or reject pending approval
             try {
               const updateData = {
