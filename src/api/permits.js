@@ -57,7 +57,9 @@ const transformPermit = (dbPermit) => {
     lastVerifiedAt: dbPermit.last_verified_at,
     last_verified_at: dbPermit.last_verified_at,
     verifiedBy: dbPermit.verified_by,
-    verified_by: dbPermit.verified_by
+    verified_by: dbPermit.verified_by,
+    lastModifiedAt: dbPermit.last_modified_at,
+    last_modified_at: dbPermit.last_modified_at
   };
 };
 
@@ -138,9 +140,14 @@ export const listPermits = async (filters = {}) => {
 // Update a permit
 export const updatePermit = async (permitId, updates) => {
   try {
+    // Automatically add last_modified_at timestamp to all updates
+    const updatesWithTimestamp = {
+      ...updates,
+      last_modified_at: new Date().toISOString()
+    };
     const { data, error } = await supabase
       .from('permits')
-      .update(updates)
+      .update(updatesWithTimestamp)
       .eq('id', permitId)
       .select();
     

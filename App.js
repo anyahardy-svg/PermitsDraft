@@ -3754,11 +3754,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Check if permit needs daily verification (>24 hours since last verification)
   const needsVerification = (permit) => {
+    const now = new Date();
+    
+    // If permit was modified recently (within 12 hours), don't flag for verification
+    // This allows users to edit permits without constant re-verification nags
+    if (permit.last_modified_at) {
+      const lastModified = new Date(permit.last_modified_at);
+      const hoursSinceModification = (now - lastModified) / (1000 * 60 * 60);
+      if (hoursSinceModification < 12) {
+        return false; // Permit was recently modified, don't require verification yet
+      }
+    }
+    
     // First, determine when the permit was created
     const createdDate = new Date(permit.created_at || permit.submittedDate || permit.approvedDate);
     if (isNaN(createdDate.getTime())) return false; // Invalid date, don't flag
     
-    const now = new Date();
     const hoursSinceCreation = (now - createdDate) / (1000 * 60 * 60);
     
     // Only start checking verification after 24 hours from creation
@@ -18495,9 +18506,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   {permit.verified_by && ` by ${permit.verified_by}`}
                 </Text>
               )}
+              {permit.last_modified_at && (
+                <Text style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 12 }}>
+                  Last modified: {formatDateNZ(permit.last_modified_at)}
+                </Text>
+              )}
               <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => setShowVerificationModal(true)}>
                 <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* RECENT CHANGES - Show if permit was recently modified but doesn't need verification yet */}
+        {permit.last_modified_at && !needsVerification(permit) && (
+          <View style={[styles.section, { backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6' }]}>
+            <View style={{ padding: 12 }}>
+              <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600', marginBottom: 4 }}>
+                📝 Recently Modified
+              </Text>
+              <Text style={{ fontSize: 14, color: '#1E40AF' }}>
+                Changes made: {formatDateNZ(permit.last_modified_at)}
+              </Text>
             </View>
           </View>
         )}
@@ -21391,9 +21421,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       {latestPermit.verified_by && ` by ${latestPermit.verified_by}`}
                     </Text>
                   )}
+                  {latestPermit.last_modified_at && (
+                    <Text style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 12 }}>
+                      Last modified: {formatDateNZ(latestPermit.last_modified_at)}
+                    </Text>
+                  )}
                   <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#DC2626' }]} onPress={() => setShowVerificationModal(true)}>
                     <Text style={styles.submitButtonText}>✓ Verify Permit Now</Text>
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {/* RECENT CHANGES - inside completion section */}
+              {latestPermit.last_modified_at && !needsVerification(latestPermit) && (
+                <View style={{ backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginTop: 16 }}>
+                  <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600', marginBottom: 4 }}>
+                    📝 Recently Modified
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#1E40AF' }}>
+                    Changes made: {formatDateNZ(latestPermit.last_modified_at)}
+                  </Text>
                 </View>
               )}
 
