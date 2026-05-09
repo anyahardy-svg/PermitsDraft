@@ -692,7 +692,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             { id: 'grinder_safety', text:  'Is the guard fitted and side handle in position?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
             { id: '9inch', text: 'Are 9 inch grinders being used?', type: 'yesno', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?', note: 'Only qualified tradesmen are allowed to use 9" grinders', dependsOn: 'grinders', dependsOnValue: 'yes' },
       
-      { id: 'alarm_plan', text: 'Is there a plan to raise the alarm if needed?', type: 'yesno_text', required: true, yesLabel: 'Describe the emergency plan details', noLabel: 'Describe how this will be controlled' },
+      { id: 'alarm_plan', text: 'Is there a plan to raise the alarm if needed?', type: 'yesno_text', required: true, yesLabel: 'Describe the emergency plan details', noLabel: 'Describe how this will be controlled', noControls: true },
       { id: 'hw_safety_watch', text: 'Who is the safety watch person?', type: 'text', required: true },
       { id: 'hw_safety_period', text: 'What is the safety watch period?', type: 'radio', options: ['30 minutes (low risk)', '60 minutes (high risk)'], required: true },
       ],
