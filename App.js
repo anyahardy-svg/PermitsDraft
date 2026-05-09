@@ -19978,6 +19978,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 mode="time"
                 currentValue={editData.endTime}
               />
+              
+              {/* Save Details Button */}
+              <TouchableOpacity 
+                style={[styles.submitButton, { marginTop: 16, backgroundColor: '#3B82F6' }]} 
+                onPress={async () => {
+                  try {
+                    const permitUpdate = {
+                      description: editData.description,
+                      location: editData.location,
+                      requested_by: editData.requestedBy,
+                      request_name: editData.requestedBy,
+                      permitted_issuer: editData.permitted_issuer,
+                      start_date: editData.startDate || editData.start_date,
+                      start_time: editData.startTime || editData.start_time,
+                      end_date: editData.endDate || editData.end_date,
+                      end_time: editData.endTime || editData.end_time,
+                      site_id: editData.site_id,
+                      priority: editData.priority
+                    };
+                    
+                    await updatePermit(editData.id, permitUpdate);
+                    
+                    // Reload permits to get fresh data
+                    const freshPermits = await listPermits();
+                    setPermits(freshPermits);
+                    
+                    Alert.alert('Success', 'Permit details saved successfully');
+                  } catch (error) {
+                    console.error('Error saving permit details:', error);
+                    Alert.alert('Error', 'Failed to save details: ' + error.message);
+                  }
+                }}
+              >
+                <Text style={styles.submitButtonText}>💾 Save Details</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
