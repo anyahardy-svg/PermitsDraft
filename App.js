@@ -3768,7 +3768,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     // If permit was modified recently (within 12 hours), don't flag for verification
     // This allows users to edit permits without constant re-verification nags
     if (permit.last_modified_at) {
-      const lastModified = new Date(permit.last_modified_at);
+      let lastModified = new Date(permit.last_modified_at);
+      // Ensure proper timezone handling - if no timezone indicator, treat as UTC
+      if (typeof permit.last_modified_at === 'string' && !permit.last_modified_at.includes('+') && !permit.last_modified_at.includes('Z')) {
+        lastModified = new Date(permit.last_modified_at + 'Z');
+      }
       const hoursSinceModification = (now - lastModified) / (1000 * 60 * 60);
       console.log('   Hours since last modification:', hoursSinceModification);
       if (hoursSinceModification < 12) {
