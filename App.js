@@ -19977,7 +19977,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <Text style={styles.label}>Location:</Text>
               <TextInput style={styles.input} value={editData.location || ''} onChangeText={text => setEditData({ ...editData, location: text })} />
               <Text style={styles.label}>Requested By:</Text>
-              <TextInput style={styles.input} value={editData.requestedBy || ''} onChangeText={text => setEditData({ ...editData, requestedBy: text, contractorSelected: false })} />
+              <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.requestedBy || ''} editable={false} />
               <Text style={styles.label}>Company:</Text>
               {editData.contractorSelected ? (
                 <TextInput style={[styles.input, { backgroundColor: '#F3F4F6', color: '#6B7280' }]} value={editData.contractorCompany || ''} placeholder="Auto-populated from contractor" editable={false} />
