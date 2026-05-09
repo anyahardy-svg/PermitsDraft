@@ -3756,15 +3756,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const needsVerification = (permit) => {
     const now = new Date();
     
-    // Debug: Log verification check details
-    console.log('🔍 [Verification Check]', {
-      permitId: permit.id,
-      last_modified_at: permit.last_modified_at,
-      last_verified_at: permit.last_verified_at,
-      created_at: permit.created_at,
-      now: now.toISOString()
-    });
-    
     // If permit was modified recently (within 12 hours), don't flag for verification
     // This allows users to edit permits without constant re-verification nags
     if (permit.last_modified_at) {
@@ -3774,9 +3765,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         lastModified = new Date(permit.last_modified_at + 'Z');
       }
       const hoursSinceModification = (now - lastModified) / (1000 * 60 * 60);
-      console.log('   Hours since last modification:', hoursSinceModification);
       if (hoursSinceModification < 12) {
-        console.log('   ✓ Recently modified (< 12h) - Verification NOT required');
         return false; // Permit was recently modified, don't require verification yet
       }
     }
@@ -3786,27 +3775,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (isNaN(createdDate.getTime())) return false; // Invalid date, don't flag
     
     const hoursSinceCreation = (now - createdDate) / (1000 * 60 * 60);
-    console.log('   Hours since creation:', hoursSinceCreation);
     
     // Only start checking verification after 24 hours from creation
     if (hoursSinceCreation < 24) {
-      console.log('   ✓ Created recently (< 24h) - Verification NOT required');
       return false; // Too soon, don't show as needing verification
     }
     
     // If never verified, show after 24 hours
-    if (!permit.last_verified_at) {
-      console.log('   ✗ Never verified - Verification REQUIRED');
-      return true;
-    }
+    if (!permit.last_verified_at) return true;
     
     // If verified before, check if 24 hours have passed since last verification
     const lastVerified = new Date(permit.last_verified_at);
     const hoursSinceVerification = (now - lastVerified) / (1000 * 60 * 60);
-    console.log('   Hours since verification:', hoursSinceVerification);
-    const needsVer = hoursSinceVerification > 24;
-    console.log('   ' + (needsVer ? '✗' : '✓'), needsVer ? 'Verification REQUIRED' : 'Verification NOT required');
-    return needsVer;
+    return hoursSinceVerification > 24;
   };
 
   // Handle permit verification - update last_verified_at and verified_by
@@ -6927,6 +6908,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             )}
           </View>
         </View>
+
+        {/* CHANGES MADE SECTION */}
+        {permit.permit_changes_log && (
+          <View style={[styles.section, { marginBottom: 20, backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E42', padding: 14, borderRadius: 8 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#92400E', marginBottom: 14 }}>📝 CHANGES MADE</Text>
+            <View style={{ gap: 10 }}>
+              {permit.permit_changes_log.split(', ').map((entry, idx) => {
+                // Each entry is like "Risk Level: High→Medium (2026-05-09 00:15)"
+                const match = entry.match(/^(.+?)\s*\((.+?)\)$/);
+                const changes = match ? match[1] : entry;
+                const timestamp = match ? match[2] : '';
+                
+                return (
+                  <View key={idx} style={{ paddingBottom: 10, borderBottomWidth: idx < permit.permit_changes_log.split(', ').length - 1 ? 1 : 0, borderBottomColor: '#FCD34D' }}>
+                    <Text style={{ fontSize: 14, color: '#B45309', fontWeight: '600' }}>• {changes}</Text>
+                    {timestamp && (
+                      <Text style={{ fontSize: 13, color: '#92400E', marginTop: 4, fontStyle: 'italic' }}>  {timestamp}</Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* ACTION BUTTONS */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>

@@ -1,5 +1,63 @@
 import { supabase } from '../supabaseClient';
 
+// Helper function to detect what changed between two permits
+const detectChanges = (oldPermit, newPermit) => {
+  const changes = [];
+  
+  if (!oldPermit || !newPermit) return changes;
+  
+  // Risk Level changes
+  const oldRisk = oldPermit.jsea?.overallRiskRating || oldPermit.jsea?.riskRating || '';
+  const newRisk = newPermit.jsea?.overallRiskRating || newPermit.jsea?.riskRating || '';
+  if (oldRisk !== newRisk && (oldRisk || newRisk)) {
+    changes.push(`Risk Level: ${oldRisk || 'none'}→${newRisk || 'none'}`);
+  }
+  
+  // Contractor/Company changes
+  const oldCompany = oldPermit.contractor_company || oldPermit.manual_company || '';
+  const newCompany = newPermit.contractor_company || newPermit.manual_company || '';
+  if (oldCompany !== newCompany && (oldCompany || newCompany)) {
+    changes.push(`Contractor: ${oldCompany || 'none'}→${newCompany || 'none'}`);
+  }
+  
+  // Isolations changes
+  const oldIsolationCount = oldPermit.isolations?.length || 0;
+  const newIsolationCount = newPermit.isolations?.length || 0;
+  if (oldIsolationCount !== newIsolationCount) {
+    changes.push(`Isolations: ${oldIsolationCount} items→${newIsolationCount} items`);
+  }
+  
+  // Additional Precautions changes
+  const oldPrecautions = oldPermit.jsea?.additionalPrecautions || '';
+  const newPrecautions = newPermit.jsea?.additionalPrecautions || '';
+  if (oldPrecautions !== newPrecautions && (oldPrecautions || newPrecautions)) {
+    changes.push(`Precautions: Updated`);
+  }
+  
+  // Permit Type changes
+  if (oldPermit.permit_type !== newPermit.permit_type && (oldPermit.permit_type || newPermit.permit_type)) {
+    changes.push(`Permit Type: ${oldPermit.permit_type || 'none'}→${newPermit.permit_type || 'none'}`);
+  }
+  
+  // Priority changes
+  if (oldPermit.priority !== newPermit.priority && (oldPermit.priority || newPermit.priority)) {
+    changes.push(`Priority: ${oldPermit.priority || 'none'}→${newPermit.priority || 'none'}`);
+  }
+  
+  return changes;
+};
+
+// Format changes as log entry similar to handovers
+const createChangeLogEntry = (changes) => {
+  if (!changes || changes.length === 0) return null;
+  
+  const now = new Date().toISOString();
+  const timestamp = now.split('T')[0] + ' ' + now.split('T')[1].substring(0, 8);
+  
+  // Format: "Change1, Change2 (timestamp)"
+  return `${changes.join(', ')} (${timestamp})`;
+};
+
 // Helper function to transform Supabase data to app format
 const transformPermit = (dbPermit) => {
   return {
@@ -59,7 +117,9 @@ const transformPermit = (dbPermit) => {
     verifiedBy: dbPermit.verified_by,
     verified_by: dbPermit.verified_by,
     lastModifiedAt: dbPermit.last_modified_at,
-    last_modified_at: dbPermit.last_modified_at
+    last_modified_at: dbPermit.last_modified_at,
+    changesLog: dbPermit.permit_changes_log,
+    permit_changes_log: dbPermit.permit_changes_log
   };
 };
 
@@ -140,11 +200,42 @@ export const listPermits = async (filters = {}) => {
 // Update a permit
 export const updatePermit = async (permitId, updates) => {
   try {
+    // Fetch current permit to detect changes
+    const { data: currentPermit, error: fetchError } = await supabase
+      .from('permits')
+      .select('*')
+      .eq('id', permitId)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
     // Automatically add last_modified_at timestamp to all updates
     const updatesWithTimestamp = {
       ...updates,
       last_modified_at: new Date().toISOString()
     };
+    
+    // Detect what changed
+    const newPermitData = { ...currentPermit, ...updates };
+    const changes = detectChanges(currentPermit, newPermitData);
+    
+    // If there are changes, append to the change log
+    if (changes.length > 0) {
+      const newEntry = createChangeLogEntry(changes);
+      const existingLog = currentPermit.permit_changes_log;
+      
+      updatesWithTimestamp.permit_changes_log = existingLog
+        ? `${existingLog}, ${newEntry}`
+        : newEntry;
+      
+      console.log('📝 [Permit Changes]', {
+        permitId,
+        changes,
+        newEntry,
+        updatedLog: updatesWithTimestamp.permit_changes_log
+      });
+    }
+    
     const { data, error } = await supabase
       .from('permits')
       .update(updatesWithTimestamp)
