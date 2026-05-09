@@ -13665,6 +13665,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [selectedIsolationId, setSelectedIsolationId] = React.useState(null);
     const [isolationDropdownOpen, setIsolationDropdownOpen] = React.useState(false);
     const [rejectionComment, setRejectionComment] = React.useState('');
+    const [showRejectionModal, setShowRejectionModal] = React.useState(false);
     const [showIsolatedByDropdownDraft, setShowIsolatedByDropdownDraft] = React.useState({});
     const [filteredIsolatedByContractorsDraft, setFilteredIsolatedByContractorsDraft] = React.useState({});
     const [showLockedOutByDropdownDraft, setShowLockedOutByDropdownDraft] = React.useState({});
@@ -15609,23 +15610,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           )}
         </View>
 
-        {/* REJECTION COMMENT FIELD - shown before buttons for approval review */}
-        {!isDraft && (
-          <View style={{ backgroundColor: '#FEF2F2', padding: 16, borderRadius: 8, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#7F1D1D', marginBottom: 8 }}>If Rejecting: Add Feedback (Optional)</Text>
-            <TextInput
-              style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-              placeholder="Enter reason for rejection so the permit requester can address the issues..."
-              value={rejectionComment}
-              onChangeText={setRejectionComment}
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-        )}
-
         <View style={styles.submitSection}>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#10B981', marginRight: 8 }]} onPress={() => handlePrintPermit(editData)}>
+          <TouchableOpacity style={[styles.submitButton, { flex: 1, backgroundColor: '#10B981' }]} onPress={() => handlePrintPermit(editData)}>
             <Text style={styles.submitButtonText}>🖨 Print</Text>
           </TouchableOpacity>
           {isDraft ? (
@@ -15717,85 +15703,132 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       ))}
                     </View>
                   )}
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TouchableOpacity 
-                      style={[styles.submitButton, { flex: 1, backgroundColor: '#3B82F6' }]} 
-                      onPress={async () => {
-                        try {
-                          const permitUpdate = {
-                            description: editData.description,
-                            location: editData.location,
-                            requested_by: editData.requestedBy,
-                            request_name: editData.requestedBy,
-                            permitted_issuer: editData.permitIssuer,
-                            start_date: editData.startDate || editData.start_date,
-                            start_time: editData.startTime || editData.start_time,
-                            end_date: editData.endDate || editData.end_date,
-                            end_time: editData.endTime || editData.end_time,
-                            site_id: editData.site_id || siteNameToIdMap[editData.site],
-                            priority: editData.priority,
-                            controls_summary: editData.controlsSummary
-                          };
-                          await updatePermit(editData.id, permitUpdate);
-                          const freshPermits = await listPermits();
-                          setPermits(freshPermits);
-                          Alert.alert('Success', 'Permit details saved successfully');
-                        } catch (error) {
-                          Alert.alert('Error', 'Failed to save details: ' + error.message);
-                        }
-                      }}
-                    >
-                      <Text style={styles.submitButtonText}>💾 Save Details</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.submitButton, { flex: 1, opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#10B981' : '#9CA3AF' }]} 
-                      onPress={() => {
-                        if (!canApprove) {
-                          Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
-                          return;
-                        }
-                        // Show issuer signature modal instead of directly approving
-                        setShowIssuerSignatureApproval(true);
-                      }}
-                      disabled={!canApprove}
-                    >
-                      <Text style={[styles.submitButtonText, { opacity: canApprove ? 1 : 0.6 }]}>Approve</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity 
+                    style={[styles.submitButton, { flex: 1, backgroundColor: '#3B82F6' }]} 
+                    onPress={async () => {
+                      try {
+                        const permitUpdate = {
+                          description: editData.description,
+                          location: editData.location,
+                          requested_by: editData.requestedBy,
+                          request_name: editData.requestedBy,
+                          permitted_issuer: editData.permitIssuer,
+                          start_date: editData.startDate || editData.start_date,
+                          start_time: editData.startTime || editData.start_time,
+                          end_date: editData.endDate || editData.end_date,
+                          end_time: editData.endTime || editData.end_time,
+                          site_id: editData.site_id || siteNameToIdMap[editData.site],
+                          priority: editData.priority,
+                          controls_summary: editData.controlsSummary
+                        };
+                        await updatePermit(editData.id, permitUpdate);
+                        const freshPermits = await listPermits();
+                        setPermits(freshPermits);
+                        Alert.alert('Success', 'Permit details saved successfully');
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to save details: ' + error.message);
+                      }
+                    }}
+                  >
+                    <Text style={styles.submitButtonText}>💾 Save Details</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.submitButton, { flex: 1, opacity: canApprove ? 1 : 0.5, backgroundColor: canApprove ? '#10B981' : '#9CA3AF' }]} 
+                    onPress={() => {
+                      if (!canApprove) {
+                        Alert.alert('Cannot Approve', 'This permit cannot be approved due to critical blocking conditions. Please review the red warning box above.');
+                        return;
+                      }
+                      // Show issuer signature modal instead of directly approving
+                      setShowIssuerSignatureApproval(true);
+                    }}
+                    disabled={!canApprove}
+                  >
+                    <Text style={[styles.submitButtonText, { opacity: canApprove ? 1 : 0.6 }]}>Approve</Text>
+                  </TouchableOpacity>
                 </>
               );
             })()
           )}
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#EF4444' }]} onPress={async () => {
-            // Reject: send back to draft or reject pending approval
-            try {
-              const updateData = {
-                status: isDraft ? 'rejected' : 'draft'
-              };
-              
-              // Only add rejection_comment if not a draft (i.e., it's a pending approval being sent back)
-              if (!isDraft && rejectionComment.trim()) {
-                updateData.rejection_comment = rejectionComment.trim();
-              }
-              
-              await updatePermit(editData.id, updateData);
-              
-              const freshPermits = await listPermits();
-              setPermits(freshPermits);
-              setCurrentScreen('dashboard');
-              if (isDraft) {
-                Alert.alert('Permit Rejected', 'Draft permit has been deleted.');
-              } else {
-                Alert.alert('Permit Sent Back to Draft', 'Permit has been sent back to draft with feedback for revision.');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reject permit: ' + error.message);
-            }
+          <TouchableOpacity style={[styles.submitButton, { flex: 1, backgroundColor: '#EF4444' }]} onPress={() => {
+            setShowRejectionModal(true);
           }}>
             <Text style={styles.submitButtonText}>Reject</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* REJECTION MODAL */}
+      <Modal
+        visible={showRejectionModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRejectionModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, width: '100%', maxWidth: 500, padding: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 16, color: '#1F2937' }}>Reject Permit</Text>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
+              {isDraft ? 'Are you sure you want to delete this draft?' : 'Are you sure you want to send this permit back to draft for revision?'}
+            </Text>
+            
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#7F1D1D', marginBottom: 8, marginTop: 16 }}>Feedback (Optional)</Text>
+            <TextInput
+              style={[styles.input, { height: 100, textAlignVertical: 'top', marginBottom: 16 }]}
+              placeholder="Enter reason for rejection so the permit requester can address the issues..."
+              value={rejectionComment}
+              onChangeText={setRejectionComment}
+              multiline
+              numberOfLines={4}
+            />
+            
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity 
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#9CA3AF' }]} 
+                onPress={() => {
+                  setShowRejectionModal(false);
+                  setRejectionComment('');
+                }}
+              >
+                <Text style={styles.submitButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#EF4444' }]} 
+                onPress={async () => {
+                  try {
+                    const updateData = {
+                      status: isDraft ? 'rejected' : 'draft'
+                    };
+                    
+                    if (!isDraft && rejectionComment.trim()) {
+                      updateData.rejection_comment = rejectionComment.trim();
+                    }
+                    
+                    await updatePermit(editData.id, updateData);
+                    
+                    const freshPermits = await listPermits();
+                    setPermits(freshPermits);
+                    setCurrentScreen('dashboard');
+                    setShowRejectionModal(false);
+                    setRejectionComment('');
+                    
+                    if (isDraft) {
+                      Alert.alert('Permit Rejected', 'Draft permit has been deleted.');
+                    } else {
+                      Alert.alert('Permit Sent Back to Draft', 'Permit has been sent back to draft with feedback for revision.');
+                    }
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to reject permit: ' + error.message);
+                  }
+                }}
+              >
+                <Text style={styles.submitButtonText}>Confirm Reject</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ATTACHMENT PREVIEW MODAL */}
       <Modal
@@ -23512,7 +23545,8 @@ const styles = StyleSheet.create({
   },
   submitSection: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-start',
+    gap: 8,
     padding: 16,
     backgroundColor: 'white',
     margin: 16,
