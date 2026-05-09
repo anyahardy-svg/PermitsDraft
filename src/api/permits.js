@@ -6,6 +6,34 @@ const detectChanges = (oldPermit, newPermit) => {
   
   if (!oldPermit || !newPermit) return changes;
   
+  // Fields to track for changes
+  const fieldsToCheck = [
+    { key: 'description', label: 'Description' },
+    { key: 'location', label: 'Location' },
+    { key: 'requested_by', label: 'Requested By' },
+    { key: 'request_name', label: 'Requested By' },
+    { key: 'contractor_company', label: 'Contractor' },
+    { key: 'manual_company', label: 'Company' },
+    { key: 'permitted_issuer', label: 'Permit Issuer' },
+    { key: 'permit_type', label: 'Permit Type' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'start_date', label: 'Start Date' },
+    { key: 'start_time', label: 'Start Time' },
+    { key: 'end_date', label: 'End Date' },
+    { key: 'end_time', label: 'End Time' }
+  ];
+  
+  // Check each field for changes
+  fieldsToCheck.forEach(({ key, label }) => {
+    const oldVal = oldPermit[key];
+    const newVal = newPermit[key];
+    
+    // Only record changes if values are different and at least one is not empty
+    if (oldVal !== newVal && (oldVal || newVal)) {
+      changes.push(`${label}: ${oldVal || 'empty'}→${newVal || 'empty'}`);
+    }
+  });
+  
   // Risk Level changes
   const oldRisk = oldPermit.jsea?.overallRiskRating || oldPermit.jsea?.riskRating || '';
   const newRisk = newPermit.jsea?.overallRiskRating || newPermit.jsea?.riskRating || '';
@@ -13,18 +41,11 @@ const detectChanges = (oldPermit, newPermit) => {
     changes.push(`Risk Level: ${oldRisk || 'none'}→${newRisk || 'none'}`);
   }
   
-  // Contractor/Company changes
-  const oldCompany = oldPermit.contractor_company || oldPermit.manual_company || '';
-  const newCompany = newPermit.contractor_company || newPermit.manual_company || '';
-  if (oldCompany !== newCompany && (oldCompany || newCompany)) {
-    changes.push(`Contractor: ${oldCompany || 'none'}→${newCompany || 'none'}`);
-  }
-  
   // Isolations changes
   const oldIsolationCount = oldPermit.isolations?.length || 0;
   const newIsolationCount = newPermit.isolations?.length || 0;
   if (oldIsolationCount !== newIsolationCount) {
-    changes.push(`Isolations: ${oldIsolationCount} items→${newIsolationCount} items`);
+    changes.push(`Isolations: ${oldIsolationCount}→${newIsolationCount}`);
   }
   
   // Additional Precautions changes
@@ -32,16 +53,6 @@ const detectChanges = (oldPermit, newPermit) => {
   const newPrecautions = newPermit.jsea?.additionalPrecautions || '';
   if (oldPrecautions !== newPrecautions && (oldPrecautions || newPrecautions)) {
     changes.push(`Precautions: Updated`);
-  }
-  
-  // Permit Type changes
-  if (oldPermit.permit_type !== newPermit.permit_type && (oldPermit.permit_type || newPermit.permit_type)) {
-    changes.push(`Permit Type: ${oldPermit.permit_type || 'none'}→${newPermit.permit_type || 'none'}`);
-  }
-  
-  // Priority changes
-  if (oldPermit.priority !== newPermit.priority && (oldPermit.priority || newPermit.priority)) {
-    changes.push(`Priority: ${oldPermit.priority || 'none'}→${newPermit.priority || 'none'}`);
   }
   
   return changes;
