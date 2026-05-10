@@ -361,8 +361,16 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId) return;
     
+    console.log('📋 Section 26 state changed:', {
+      has_signature: !!section26.hs_agreement_signature,
+      signature_size: section26.hs_agreement_signature?.length || 0,
+      accepted_by: section26.hs_agreement_accepted_by,
+      acknowledged: section26.hs_agreement_acknowledged
+    });
+    
     // Only auto-save if signature exists
     if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
+      console.log('⏱️ Setting auto-save timer for Section 26...');
       const timer = setTimeout(() => {
         console.log('💾 Auto-saving Section 26 signature data...');
         autoSave();
@@ -1774,8 +1782,13 @@ export default function CompanyAccreditationScreen({
         });
       }
       
-      await updateCompanyAccreditation(currentCompanyId, updateData);
-      console.log('✨ Auto-saved accreditation data');
+      const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+      
+      if (result.success) {
+        console.log('✨ Auto-saved successfully!', result);
+      } else {
+        console.error('❌ Auto-save failed:', result.error);
+      }
     } catch (error) {
       console.error('❌ Auto-save error:', error);
     } finally {
