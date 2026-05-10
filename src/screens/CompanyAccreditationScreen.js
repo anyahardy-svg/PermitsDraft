@@ -19,6 +19,7 @@ import { listCompanies } from '../api/companies';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 /**
  * CompanyAccreditationScreen
@@ -47,7 +48,7 @@ export default function CompanyAccreditationScreen({
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false, 25: false }); // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false, 25: false, 26: false }); // Track which sections are expanded
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -266,6 +267,15 @@ export default function CompanyAccreditationScreen({
     }
   });
 
+  // Section 26 state (H&S Agreement - digital signature)
+  const [section26, setSection26] = useState({
+    hs_agreement_document: null,
+    hs_agreement_signature: null,
+    hs_agreement_accepted_by: '',
+    hs_agreement_acknowledged: false,
+    hs_agreement_loading: false
+  });
+
   // Company information state (for verification/updates)
   const [companyDetails, setCompanyDetails] = useState({
     companyName: '',
@@ -320,6 +330,22 @@ export default function CompanyAccreditationScreen({
       }
     };
     loadData();
+  }, []);
+
+  // Load H&S Agreement document
+  useEffect(() => {
+    const loadHSAgreement = async () => {
+      try {
+        const doc = await getLegalDocument('h_s_agreement');
+        setSection26(prev => ({
+          ...prev,
+          hs_agreement_document: doc
+        }));
+      } catch (error) {
+        console.error('Failed to load H&S agreement:', error);
+      }
+    };
+    loadHSAgreement();
   }, []);
 
   // Format date to NZ format (dd/mm/yyyy)
@@ -2978,6 +3004,193 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  // Section 26: H&S Agreement
+  const renderSection26HSAgreement = () => {
+    const canvasRef = useRef(null);
+    const [hasSignature, setHasSignature] = useState(!!section26.hs_agreement_signature);
+    const [isDrawing, setIsDrawing] = useState(false);
+
+    const startDrawing = (e) => {
+      if (!canvasRef.current || hasSignature) return;
+      setIsDrawing(true);
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    const draw = (e) => {
+      if (!isDrawing || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1F2937';
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+    };
+
+    const endDrawing = () => {
+      if (!isDrawing) return;
+      setIsDrawing(false);
+      if (canvasRef.current) {
+        const signatureData = canvasRef.current.toDataURL('image/png');
+        setSection26(prev => ({
+          ...prev,
+          hs_agreement_signature: signatureData
+        }));
+        setHasSignature(true);
+      }
+    };
+
+    const clearSignature = () => {
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        setSection26(prev => ({
+          ...prev,
+          hs_agreement_signature: null
+        }));
+        setHasSignature(false);
+      }
+    };
+
+    return (
+      <View style={{ marginBottom: 24 }}>
+        <TouchableOpacity
+          onPress={() => toggleSection(26)}
+          style={{
+            marginHorizontal: 12,
+            marginBottom: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 16,
+            backgroundColor: '#FFFFFF',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#10B981',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#10B981' }}>
+            Section 26: Health & Safety Agreement
+          </Text>
+          <Text style={{ fontSize: 18, color: '#10B981' }}>
+            {expandedSections[26] ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {expandedSections[26] && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#F0FDF4', borderRadius: 8, padding: 12 }}>
+            {/* Display Agreement Document */}
+            {section26.hs_agreement_document && (
+              <View style={{ marginBottom: 16, maxHeight: 300, backgroundColor: '#FFFFFF', borderRadius: 6, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                <ScrollView>
+                  <MarkdownRenderer text={section26.hs_agreement_document.document_content} />
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Name Input */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+                Full Name *
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: section26.hs_agreement_accepted_by ? '#10B981' : '#E5E7EB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                  backgroundColor: '#F9FAFB'
+                }}
+                placeholder="Enter your full name"
+                value={section26.hs_agreement_accepted_by}
+                onChangeText={(text) => setSection26(prev => ({
+                  ...prev,
+                  hs_agreement_accepted_by: text
+                }))}
+              />
+            </View>
+
+            {/* Digital Signature */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+                Digital Signature *
+              </Text>
+              <View style={{
+                borderWidth: 2,
+                borderColor: '#D1D5DB',
+                borderRadius: 6,
+                backgroundColor: '#FFFFFF',
+                overflow: 'hidden'
+              }}>
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={150}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={endDrawing}
+                  onMouseLeave={endDrawing}
+                  style={{
+                    cursor: hasSignature ? 'default' : 'crosshair',
+                    display: 'block',
+                    width: '100%',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+              </View>
+              {hasSignature && (
+                <TouchableOpacity
+                  onPress={clearSignature}
+                  style={{
+                    marginTop: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: '#FEE2E2',
+                    borderRadius: 4,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>
+                    Clear Signature
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Acknowledgement Checkbox */}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+              <CheckBox
+                value={section26.hs_agreement_acknowledged}
+                onValueChange={(val) => setSection26(prev => ({
+                  ...prev,
+                  hs_agreement_acknowledged: val
+                }))}
+                style={{ marginRight: 12 }}
+              />
+              <Text style={{ fontSize: 13, color: '#374151', flex: 1, paddingTop: 2 }}>
+                I acknowledge that I have read and understood the Health & Safety Agreement and undertake to comply with all requirements
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -3455,6 +3668,9 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 25: Contact Information */}
               {renderContactInfoSection()}
+
+              {/* Section 26: H&S Agreement */}
+              {renderSection26HSAgreement()}
         </View>
       </ScrollView>
 
