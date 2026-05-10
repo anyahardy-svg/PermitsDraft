@@ -50,6 +50,7 @@ import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
+import HSAgreementModal from './src/components/HSAgreementModal';
 import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
@@ -2339,9 +2340,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   
-  // Password reset state
-  const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
-  const [passwordResetToken, setPasswordResetToken] = useState(null);
+  // H&S Agreement Modal state
+  const [showHSAgreementModal, setShowHSAgreementModal] = useState(false);
+  const [hsAgreementCompanyId, setHsAgreementCompanyId] = useState(null);
+  const [hsAgreementCompanyName, setHsAgreementCompanyName] = useState(null);
 
   // Admin handler functions
   const handleAdminLogout = () => {
@@ -22614,6 +22616,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }}
         />
       )}
+
+      {/* H&S AGREEMENT MODAL */}
+      <HSAgreementModal
+        visible={showHSAgreementModal}
+        companyId={hsAgreementCompanyId}
+        companyName={hsAgreementCompanyName}
+        onAccept={() => {
+          setShowHSAgreementModal(false);
+          // Navigate back to dashboard or previous screen
+          setCurrentScreen('dashboard');
+        }}
+        onCancel={() => {
+          setShowHSAgreementModal(false);
+        }}
+      />
 
       {/* ADD ADMIN MODAL */}
       <Modal
