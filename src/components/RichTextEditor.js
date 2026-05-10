@@ -90,16 +90,26 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
 
     // If there's a selection (start !== end), wrap the selected text
     if (start !== end && start >= 0 && end > start) {
-      const selectedText = value.substring(start, end);
+      let selectedText = value.substring(start, end);
+      
+      // Trim whitespace and newlines from selection to prevent bracket wrapping
+      const trimmedStart = selectedText.match(/^\s*/)[0].length;
+      const trimmedEnd = selectedText.match(/\s*$/)[0].length;
+      const trimmedText = selectedText.trim();
+      
+      // Calculate new start/end after trimming
+      const newStart = start + trimmedStart;
+      const newEnd = end - trimmedEnd;
+      
       const newValue = 
-        value.substring(0, start) + 
+        value.substring(0, newStart) + 
         before + 
-        selectedText + 
+        trimmedText + 
         after + 
-        value.substring(end);
+        value.substring(newEnd);
       onChange(newValue);
       // Move cursor to end of wrapped text
-      setCursorPos(start + before.length + selectedText.length + after.length);
+      setCursorPos(newStart + before.length + trimmedText.length + after.length);
     } else {
       // No selection, insert at cursor position
       const insertPos = current.start || cursorPos;

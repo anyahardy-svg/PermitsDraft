@@ -3019,9 +3019,19 @@ export default function CompanyAccreditationScreen({
   // Initialize canvas - runs once on mount
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    console.log('🎨 Canvas init - canvas:', canvas, 'ref:', canvasRef);
+    if (!canvas) {
+      console.error('❌ Canvas ref is null!');
+      return;
+    }
 
+    console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('❌ Failed to get 2D context!');
+      return;
+    }
+
     ctx.strokeStyle = '#1F2937';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
@@ -3030,16 +3040,26 @@ export default function CompanyAccreditationScreen({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     contextRef.current = ctx;
+    console.log('✅ Canvas context initialized:', ctx);
   }, []);
 
   // Setup canvas event listeners - runs once on mount
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !contextRef.current) return;
+    console.log('🖱️ Event listeners setup - canvas:', canvas, 'context:', contextRef.current);
+    if (!canvas) {
+      console.error('❌ Canvas not available for event setup');
+      return;
+    }
+    if (!contextRef.current) {
+      console.error('❌ Context not available for event setup');
+      return;
+    }
 
     const ctx = contextRef.current;
 
     const handleMouseDown = (e) => {
+      console.log('🖱️ Mouse down - hasSignature:', hasSignature);
       if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
