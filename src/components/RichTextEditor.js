@@ -59,17 +59,37 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
   const [cursorPos, setCursorPos] = useState(0);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
 
+  // Get current selection from TextInput - supports both React Native and web
+  const getSelection = () => {
+    if (!textInputRef.current) {
+      return { start: cursorPos, end: cursorPos };
+    }
+
+    // Try React Native selection (via ref)
+    if (textInputRef.current.selectionStart !== undefined) {
+      return {
+        start: textInputRef.current.selectionStart || cursorPos,
+        end: textInputRef.current.selectionEnd || cursorPos,
+      };
+    }
+
+    // Fallback to state tracking
+    return selection;
+  };
+
   const insertMarkdown = (before, after = '') => {
     if (!value) {
       onChange(before + after);
       return;
     }
 
-    let start = selection.start;
-    let end = selection.end;
+    // Get current selection at time of button press
+    const current = getSelection();
+    let start = current.start;
+    let end = current.end;
 
     // If there's a selection (start !== end), wrap the selected text
-    if (start !== end) {
+    if (start !== end && start >= 0 && end > start) {
       const selectedText = value.substring(start, end);
       const newValue = 
         value.substring(0, start) + 
@@ -82,9 +102,10 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
       setCursorPos(start + before.length + selectedText.length + after.length);
     } else {
       // No selection, insert at cursor position
-      const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
+      const insertPos = current.start || cursorPos;
+      const newValue = value.substring(0, insertPos) + before + after + value.substring(insertPos);
       onChange(newValue);
-      setCursorPos(cursorPos + before.length + after.length);
+      setCursorPos(insertPos + before.length + after.length);
     }
   };
 
