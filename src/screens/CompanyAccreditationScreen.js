@@ -907,6 +907,16 @@ export default function CompanyAccreditationScreen({
       if (data.hs_agreement_signature) {
         setHasSignature(true);
       }
+      // Log what was loaded
+      if (data.hs_agreement_signature) {
+        console.log('📥 Loaded Section 26 from database:', {
+          has_signature: true,
+          signature_length: data.hs_agreement_signature.length,
+          accepted_by: data.hs_agreement_accepted_by,
+          signed_date: data.hs_agreement_signed_date,
+          is_accepted: data.hs_agreement_accepted
+        });
+      }
 
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
@@ -1756,7 +1766,8 @@ export default function CompanyAccreditationScreen({
     updateData.hs_agreement_acknowledged = section26.hs_agreement_acknowledged;
     // Record when they signed if they have a signature now
     if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
-      updateData.hs_agreement_accepted_at = new Date().toISOString();
+      updateData.hs_agreement_signed_date = new Date().toISOString();
+      updateData.hs_agreement_accepted = true;
     }
 
     return updateData;
@@ -1777,7 +1788,8 @@ export default function CompanyAccreditationScreen({
           signature_length: updateData.hs_agreement_signature?.length || 0,
           accepted_by: updateData.hs_agreement_accepted_by,
           acknowledged: updateData.hs_agreement_acknowledged,
-          accepted_at: updateData.hs_agreement_accepted_at,
+          signed_date: updateData.hs_agreement_signed_date,
+          is_accepted: updateData.hs_agreement_accepted,
           company_id: currentCompanyId
         });
       }

@@ -282,7 +282,12 @@ export const getCompanyAccreditation = async (companyId) => {
         safety_objectives_evidence_url,
         management_review_exists,
         management_review_score,
-        management_review_evidence_url
+        management_review_evidence_url,
+        hs_agreement_signature,
+        hs_agreement_accepted_by,
+        hs_agreement_acknowledged,
+        hs_agreement_signed_date,
+        hs_agreement_accepted
       `)
       .eq('id', companyId)
       .single();
