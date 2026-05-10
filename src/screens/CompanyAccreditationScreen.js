@@ -872,6 +872,19 @@ export default function CompanyAccreditationScreen({
           evidence: data.management_review_evidence_url || null
         }
       });
+
+      // Load section 26 (H&S Agreement)
+      setSection26(prev => ({
+        ...prev,
+        hs_agreement_signature: data.hs_agreement_signature || null,
+        hs_agreement_accepted_by: data.hs_agreement_accepted_by || '',
+        hs_agreement_acknowledged: data.hs_agreement_acknowledged || false
+      }));
+      // Set hasSignature if signature exists
+      if (data.hs_agreement_signature) {
+        setHasSignature(true);
+      }
+
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
@@ -1709,6 +1722,19 @@ export default function CompanyAccreditationScreen({
         updateData[`${key}_evidence_url`] = value.evidence;
       }
     });
+
+    // Add Section 26 data (Health & Safety Agreement)
+    if (section26.hs_agreement_signature) {
+      updateData.hs_agreement_signature = section26.hs_agreement_signature;
+    }
+    if (section26.hs_agreement_accepted_by) {
+      updateData.hs_agreement_accepted_by = section26.hs_agreement_accepted_by;
+    }
+    updateData.hs_agreement_acknowledged = section26.hs_agreement_acknowledged;
+    // Record when they signed if they have a signature now
+    if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
+      updateData.hs_agreement_accepted_at = new Date().toISOString();
+    }
 
     return updateData;
   };
