@@ -3062,21 +3062,21 @@ export default function CompanyAccreditationScreen({
     };
 
     return (
-      <View style={{ marginBottom: 24 }}>
+      <View key={26}>
         <TouchableOpacity
-          onPress={() => toggleSection(26)}
+          onPress={() => setExpandedSections(prev => ({ ...prev, 26: !prev[26] }))}
           style={{
-            marginHorizontal: 12,
-            marginBottom: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 16,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: '#F0F9FF',
+            borderWidth: 2,
+            borderColor: '#0284C7',
+            borderRadius: 8,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            marginBottom: 12,
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderRadius: 8,
-            borderWidth: 2,
-            borderColor: '#0284C7',
+            marginTop: 16,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.15,

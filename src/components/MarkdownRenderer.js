@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
   },
   code: {
     fontFamily: 'Courier New',
+    fontSize: 14,
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 4,
     borderRadius: 3,
@@ -206,7 +207,7 @@ function parseInlineMarkdown(text) {
 
   while (remaining.length > 0) {
     // Check for <b>text</b> (HTML bold)
-    const htmlBoldMatch = remaining.match(/<b>(.+?)<\/b>/);
+    const htmlBoldMatch = remaining.match(/<b>([\s\S]+?)<\/b>/);
     if (htmlBoldMatch) {
       const beforeMatch = remaining.substring(0, htmlBoldMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -220,7 +221,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for <strong>text</strong> (HTML strong)
-    const strongMatch = remaining.match(/<strong>(.+?)<\/strong>/);
+    const strongMatch = remaining.match(/<strong>([\s\S]+?)<\/strong>/);
     if (strongMatch) {
       const beforeMatch = remaining.substring(0, strongMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -234,7 +235,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for bold (**text**)
-    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+    const boldMatch = remaining.match(/\*\*([\s\S]+?)\*\*/);
     if (boldMatch) {
       const beforeMatch = remaining.substring(0, boldMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -248,7 +249,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for <i>text</i> (HTML italic)
-    const htmlItalicMatch = remaining.match(/<i>(.+?)<\/i>/);
+    const htmlItalicMatch = remaining.match(/<i>([\s\S]+?)<\/i>/);
     if (htmlItalicMatch) {
       const beforeMatch = remaining.substring(0, htmlItalicMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -262,7 +263,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for <em>text</em> (HTML emphasis)
-    const emMatch = remaining.match(/<em>(.+?)<\/em>/);
+    const emMatch = remaining.match(/<em>([\s\S]+?)<\/em>/);
     if (emMatch) {
       const beforeMatch = remaining.substring(0, emMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -276,7 +277,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for italic (*text*)
-    const italicMatch = remaining.match(/\*(.+?)\*/);
+    const italicMatch = remaining.match(/\*([\s\S]+?)\*/);
     if (italicMatch) {
       const beforeMatch = remaining.substring(0, italicMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
@@ -290,12 +291,12 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for code (`text`)
-    const codeMatch = remaining.match(/`(.+?)`/);
+    const codeMatch = remaining.match(/`([\s\S]+?)`/);
     if (codeMatch) {
       const beforeMatch = remaining.substring(0, codeMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
       parts.push(
-        <Text key={`c-${key++}`} style={[styles.text, styles.code]}>
+        <Text key={`c-${key++}`} style={[styles.code]}>
           {codeMatch[1]}
         </Text>
       );
@@ -304,7 +305,7 @@ function parseInlineMarkdown(text) {
     }
 
     // Check for underline (<u>text</u>)
-    const underlineMatch = remaining.match(/<u>(.+?)<\/u>/);
+    const underlineMatch = remaining.match(/<u>([\s\S]+?)<\/u>/)
     if (underlineMatch) {
       const beforeMatch = remaining.substring(0, underlineMatch.index);
       if (beforeMatch) parts.push(beforeMatch);
