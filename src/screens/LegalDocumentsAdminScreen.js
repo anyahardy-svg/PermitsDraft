@@ -18,22 +18,7 @@ import {
   getAllLegalDocuments,
   createLegalDocument 
 } from '../api/legal-documents';
-
-// Lexical imports for web editor
-let LexicalComposer, RichTextPlugin, ContentEditable, LexicalErrorBoundary, ListPlugin, ListItemNode, ListNode, HeadingNode, QuoteNode;
-try {
-  LexicalComposer = require('@lexical/react/LexicalComposer').LexicalComposer;
-  RichTextPlugin = require('@lexical/react/LexicalRichTextPlugin').RichTextPlugin;
-  ContentEditable = require('@lexical/react/LexicalContentEditable').ContentEditable;
-  LexicalErrorBoundary = require('@lexical/react/LexicalErrorBoundary').LexicalErrorBoundary;
-  ListPlugin = require('@lexical/react/LexicalListPlugin').ListPlugin;
-  ListItemNode = require('@lexical/list').ListItemNode;
-  ListNode = require('@lexical/list').ListNode;
-  HeadingNode = require('@lexical/rich-text').HeadingNode;
-  QuoteNode = require('@lexical/rich-text').QuoteNode;
-} catch (e) {
-  console.warn('Lexical not available, will use plain textarea');
-}
+import RichTextEditor from '../components/RichTextEditor';
 
 const styles = StyleSheet.create({
   container: {
@@ -133,23 +118,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-  },
-  editorContent: {
-    minHeight: 320,
-    padding: 12,
-  },
-  plainTextInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: '#1F2937',
-    marginBottom: 12,
-    minHeight: 300,
-    textAlignVertical: 'top',
-    fontFamily: 'System',
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -567,20 +535,11 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
               />
 
               <Text style={styles.label}>Document Content</Text>
-              <View style={styles.formattingTip}>
-                <Text style={styles.formattingTipText}>
-                  💡 Type your content here. Support for bold, headers, lists, and more coming soon.
-                </Text>
-              </View>
-
-              <TextInput
-                style={styles.plainTextInput}
-                placeholder="Enter document content here"
+              <RichTextEditor
                 value={newDocumentContent}
-                onChangeText={setNewDocumentContent}
-                multiline={true}
-                editable={!creatingDocument}
-                textAlignVertical="top"
+                onChange={setNewDocumentContent}
+                disabled={creatingDocument}
+                placeholder="Enter document content here"
               />
 
               <View style={styles.buttonGroup}>
@@ -636,14 +595,11 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
         />
 
         <Text style={styles.label}>Document Content</Text>
-        <TextInput
-          style={styles.plainTextInput}
-          placeholder="Enter document content here"
+        <RichTextEditor
           value={editedContent}
-          onChangeText={setEditedContent}
-          multiline={true}
-          editable={!saving}
-          textAlignVertical="top"
+          onChange={setEditedContent}
+          disabled={saving}
+          placeholder="Enter document content here"
         />
 
         <View style={styles.buttonGroup}>
