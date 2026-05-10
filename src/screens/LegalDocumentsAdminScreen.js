@@ -19,16 +19,11 @@ import {
   createLegalDocument 
 } from '../api/legal-documents';
 
-// Import React Quill dynamically (web only)
+// Import React Quill (web only)
+// Note: CSS will be automatically loaded by the bundler
 let ReactQuill = null;
-let quillCssLoaded = false;
 try {
   ReactQuill = require('react-quill').default;
-  // Try to load Quill CSS
-  if (!quillCssLoaded) {
-    require('react-quill/dist/quill.snow.css');
-    quillCssLoaded = true;
-  }
 } catch (e) {
   console.warn('ReactQuill not available, falling back to textarea');
 }
