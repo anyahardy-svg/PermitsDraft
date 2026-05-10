@@ -3075,8 +3075,8 @@ export default function CompanyAccreditationScreen({
             justifyContent: 'space-between',
             alignItems: 'center',
             borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#10B981',
+            borderWidth: 2,
+            borderColor: '#0284C7',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.15,
@@ -3084,16 +3084,16 @@ export default function CompanyAccreditationScreen({
             elevation: 4
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#10B981' }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
             Section 26: Health & Safety Agreement
           </Text>
-          <Text style={{ fontSize: 18, color: '#10B981' }}>
+          <Text style={{ fontSize: 18, color: '#0284C7' }}>
             {expandedSections[26] ? '▼' : '▶'}
           </Text>
         </TouchableOpacity>
 
         {expandedSections[26] && (
-          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#F0FDF4', borderRadius: 8, padding: 12 }}>
+          <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
             {/* Display Agreement Document */}
             {section26.hs_agreement_document && (
               <View style={{ marginBottom: 16, maxHeight: 300, backgroundColor: '#FFFFFF', borderRadius: 6, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
@@ -3111,7 +3111,7 @@ export default function CompanyAccreditationScreen({
               <TextInput
                 style={{
                   borderWidth: 1,
-                  borderColor: section26.hs_agreement_accepted_by ? '#10B981' : '#E5E7EB',
+                  borderColor: section26.hs_agreement_accepted_by ? '#0284C7' : '#E5E7EB',
                   borderRadius: 6,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
@@ -3138,12 +3138,13 @@ export default function CompanyAccreditationScreen({
                 borderColor: '#D1D5DB',
                 borderRadius: 6,
                 backgroundColor: '#FFFFFF',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                aspectRatio: 3 / 1
               }}>
                 <canvas
                   ref={canvasRef}
-                  width={400}
-                  height={150}
+                  width={300}
+                  height={100}
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
                   onMouseUp={endDrawing}
@@ -3152,6 +3153,7 @@ export default function CompanyAccreditationScreen({
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
                     width: '100%',
+                    height: '100%',
                     backgroundColor: '#F9FAFB'
                   }}
                 />
