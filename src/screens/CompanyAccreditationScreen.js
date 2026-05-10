@@ -357,6 +357,21 @@ export default function CompanyAccreditationScreen({
     loadHSAgreement();
   }, []);
 
+  // Auto-save Section 26 signature when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    // Only auto-save if signature exists
+    if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
+      const timer = setTimeout(() => {
+        console.log('💾 Auto-saving Section 26 signature data...');
+        autoSave();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId]);
+
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
     if (!date) return '';
@@ -1746,10 +1761,23 @@ export default function CompanyAccreditationScreen({
     try {
       setAutoSaving(true);
       const updateData = buildUpdateData();
+      
+      // Log section26 data being saved
+      if (updateData.hs_agreement_signature || updateData.hs_agreement_accepted_by) {
+        console.log('💾 Saving Section 26:', {
+          has_signature: !!updateData.hs_agreement_signature,
+          signature_length: updateData.hs_agreement_signature?.length || 0,
+          accepted_by: updateData.hs_agreement_accepted_by,
+          acknowledged: updateData.hs_agreement_acknowledged,
+          accepted_at: updateData.hs_agreement_accepted_at,
+          company_id: currentCompanyId
+        });
+      }
+      
       await updateCompanyAccreditation(currentCompanyId, updateData);
       console.log('✨ Auto-saved accreditation data');
     } catch (error) {
-      console.error('Auto-save error:', error);
+      console.error('❌ Auto-save error:', error);
     } finally {
       setAutoSaving(false);
     }
