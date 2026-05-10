@@ -278,7 +278,8 @@ export default function CompanyAccreditationScreen({
   });
 
   const [hasSignature, setHasSignature] = useState(false);
-  const [isDrawing, setIsDrawing] = useState(false);
+  // Track isDrawing with useRef like HSAgreementModal (not useState)
+  const isDrawingRef = useRef(false);
 
   // Company information state (for verification/updates)
   const [companyDetails, setCompanyDetails] = useState({
@@ -3012,33 +3013,61 @@ export default function CompanyAccreditationScreen({
     );
   };
 
-  // Section 26: H&S Agreement
-  const renderSection26HSAgreement = () => {
-    const startDrawing = (e) => {
-      if (!canvasRef.current || hasSignature) return;
-      setIsDrawing(true);
-      const canvas = canvasRef.current;
+  // Canvas context tracking for Section 26 signature
+  const contextRef = useRef(null);
+
+  // Initialize canvas - runs once on mount
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.width = 600;
+    canvas.height = 150;
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#1F2937';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    contextRef.current = ctx;
+  }, []);
+
+  // Setup canvas event listeners
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+
+    const ctx = contextRef.current;
+
+    const handleMouseDown = (e) => {
+      if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
-      const ctx = canvas.getContext('2d');
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      isDrawingRef.current = true;
       ctx.beginPath();
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.moveTo(x, y);
     };
 
-    const draw = (e) => {
-      if (!isDrawing || !canvasRef.current) return;
-      const canvas = canvasRef.current;
+    const handleMouseMove = (e) => {
+      if (!isDrawingRef.current) return;
+
       const rect = canvas.getBoundingClientRect();
-      const ctx = canvas.getContext('2d');
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#1F2937';
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      ctx.lineTo(x, y);
       ctx.stroke();
     };
 
-    const endDrawing = () => {
-      if (!isDrawing) return;
-      setIsDrawing(false);
+    const handleMouseUp = () => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      ctx.closePath();
       if (canvasRef.current) {
         const signatureData = canvasRef.current.toDataURL('image/png');
         setSection26(prev => ({
@@ -3049,18 +3078,81 @@ export default function CompanyAccreditationScreen({
       }
     };
 
-    const clearSignature = () => {
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      if (hasSignature) return;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+      isDrawingRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      if (!isDrawingRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      ctx.closePath();
       if (canvasRef.current) {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        const signatureData = canvasRef.current.toDataURL('image/png');
         setSection26(prev => ({
           ...prev,
-          hs_agreement_signature: null
+          hs_agreement_signature: signatureData
         }));
-        setHasSignature(false);
+        setHasSignature(true);
       }
     };
 
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseUp);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [hasSignature]);
+
+  const handleClearSignature = () => {
+    if (canvasRef.current && contextRef.current) {
+      const ctx = contextRef.current;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      setSection26(prev => ({
+        ...prev,
+        hs_agreement_signature: null
+      }));
+      setHasSignature(false);
+    }
+  };
+
+  // Section 26: H&S Agreement
+  const renderSection26HSAgreement = () => {
     return (
       <View key={26}>
         <TouchableOpacity
@@ -3139,28 +3231,23 @@ export default function CompanyAccreditationScreen({
                 borderRadius: 6,
                 backgroundColor: '#FFFFFF',
                 overflow: 'hidden',
-                aspectRatio: 3 / 1
+                height: 150
               }}>
                 <canvas
                   ref={canvasRef}
-                  width={300}
-                  height={100}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={endDrawing}
-                  onMouseLeave={endDrawing}
                   style={{
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
                     width: '100%',
                     height: '100%',
-                    backgroundColor: '#F9FAFB'
+                    backgroundColor: '#F9FAFB',
+                    touchAction: 'none'
                   }}
                 />
               </View>
               {hasSignature && (
                 <TouchableOpacity
-                  onPress={clearSignature}
+                  onPress={handleClearSignature}
                   style={{
                     marginTop: 8,
                     paddingHorizontal: 12,
