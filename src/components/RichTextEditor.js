@@ -57,16 +57,35 @@ const styles = StyleSheet.create({
 export default function RichTextEditor({ value = '', onChange, disabled = false, placeholder = 'Enter content...' }) {
   const textInputRef = useRef(null);
   const [cursorPos, setCursorPos] = useState(0);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
 
   const insertMarkdown = (before, after = '') => {
     if (!value) {
       onChange(before + after);
       return;
     }
-    const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
-    onChange(newValue);
-    // Move cursor past the inserted text
-    setCursorPos(cursorPos + before.length + after.length);
+
+    let start = selection.start;
+    let end = selection.end;
+
+    // If there's a selection (start !== end), wrap the selected text
+    if (start !== end) {
+      const selectedText = value.substring(start, end);
+      const newValue = 
+        value.substring(0, start) + 
+        before + 
+        selectedText + 
+        after + 
+        value.substring(end);
+      onChange(newValue);
+      // Move cursor to end of wrapped text
+      setCursorPos(start + before.length + selectedText.length + after.length);
+    } else {
+      // No selection, insert at cursor position
+      const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
+      onChange(newValue);
+      setCursorPos(cursorPos + before.length + after.length);
+    }
   };
 
   const formatBold = () => insertMarkdown('<b>', '</b>');
@@ -186,7 +205,11 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
           placeholder={placeholder}
           value={value}
           onChangeText={onChange}
-          onSelectionChange={(e) => setCursorPos(e.nativeEvent.selection.start)}
+          onSelectionChange={(e) => {
+            const { start, end } = e.nativeEvent.selection;
+            setCursorPos(start);
+            setSelection({ start, end });
+          }}
           multiline={true}
           editable={!disabled}
           textAlignVertical="top"
