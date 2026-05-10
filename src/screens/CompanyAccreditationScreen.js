@@ -3125,12 +3125,26 @@ export default function CompanyAccreditationScreen({
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // If there's an existing signature, draw it on the canvas
+      if (section26.hs_agreement_signature) {
+        console.log('🖼️ Drawing existing signature from database');
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          console.log('✅ Existing signature drawn on canvas');
+        };
+        img.onerror = (e) => {
+          console.error('❌ Failed to load signature image:', e);
+        };
+        img.src = section26.hs_agreement_signature;
+      }
+
       contextRef.current = ctx;
       console.log('✅ Canvas context initialized:', ctx);
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [expandedSections[26]]);
+  }, [expandedSections[26], section26.hs_agreement_signature]);
 
   // Setup canvas event listeners - runs when section expands or state changes
   useEffect(() => {
