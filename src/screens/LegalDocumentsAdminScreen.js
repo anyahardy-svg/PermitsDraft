@@ -19,6 +19,7 @@ import {
   createLegalDocument 
 } from '../api/legal-documents';
 import RichTextEditor from '../components/RichTextEditor';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 const styles = StyleSheet.create({
   container: {
@@ -309,6 +310,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newDocumentType, setNewDocumentType] = useState('');
   const [newDocumentTitle, setNewDocumentTitle] = useState('');
   const [newDocumentContent, setNewDocumentContent] = useState('');
@@ -545,6 +547,15 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
               <View style={styles.buttonGroup}>
                 <TouchableOpacity
                   style={[styles.button, styles.secondaryButton]}
+                  onPress={() => setShowCreatePreview(!showCreatePreview)}
+                  disabled={creatingDocument}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {showCreatePreview ? 'Hide Preview' : 'Preview'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton]}
                   onPress={() => !creatingDocument && setShowCreateModal(false)}
                   disabled={creatingDocument}
                 >
@@ -560,6 +571,17 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {showCreatePreview && (
+                <View>
+                  <Text style={styles.sectionTitle}>Formatted Preview</Text>
+                  <View style={styles.previewBox}>
+                    <ScrollView style={{ maxHeight: 400 }}>
+                      <MarkdownRenderer text={newDocumentContent} />
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
             </ScrollView>
           </View>
         </Modal>
@@ -632,9 +654,11 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
 
         {showPreview && (
           <View>
-            <Text style={styles.sectionTitle}>Preview</Text>
+            <Text style={styles.sectionTitle}>Formatted Preview</Text>
             <View style={styles.previewBox}>
-              <Text style={styles.previewText}>{editedContent}</Text>
+              <ScrollView style={{ maxHeight: 400 }}>
+                <MarkdownRenderer text={editedContent} />
+              </ScrollView>
             </View>
           </View>
         )}

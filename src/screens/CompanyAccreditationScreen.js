@@ -18,6 +18,7 @@ import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, u
 import { listCompanies } from '../api/companies';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
+import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 
 /**
  * CompanyAccreditationScreen
