@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, TextInput } from 'react-native';
 
 const styles = StyleSheet.create({
@@ -56,19 +56,21 @@ const styles = StyleSheet.create({
 
 export default function RichTextEditor({ value = '', onChange, disabled = false, placeholder = 'Enter content...' }) {
   const textInputRef = useRef(null);
+  const [cursorPos, setCursorPos] = useState(0);
 
   const insertMarkdown = (before, after = '') => {
     if (!value) {
       onChange(before + after);
       return;
     }
-    const cursorPos = value.length; // Approximate cursor position at end
     const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
     onChange(newValue);
+    // Move cursor past the inserted text
+    setCursorPos(cursorPos + before.length + after.length);
   };
 
-  const formatBold = () => insertMarkdown('**', '**');
-  const formatItalic = () => insertMarkdown('*', '*');
+  const formatBold = () => insertMarkdown('<b>', '</b>');
+  const formatItalic = () => insertMarkdown('<i>', '</i>');
   const formatUnderline = () => insertMarkdown('<u>', '</u>');
   const formatCode = () => insertMarkdown('`', '`');
   const formatH1 = () => insertMarkdown('# ');
@@ -184,6 +186,7 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
           placeholder={placeholder}
           value={value}
           onChangeText={onChange}
+          onSelectionChange={(e) => setCursorPos(e.nativeEvent.selection.start)}
           multiline={true}
           editable={!disabled}
           textAlignVertical="top"

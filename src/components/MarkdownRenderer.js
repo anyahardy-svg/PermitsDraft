@@ -205,6 +205,34 @@ function parseInlineMarkdown(text) {
   let key = 0;
 
   while (remaining.length > 0) {
+    // Check for <b>text</b> (HTML bold)
+    const htmlBoldMatch = remaining.match(/<b>(.+?)<\/b>/);
+    if (htmlBoldMatch) {
+      const beforeMatch = remaining.substring(0, htmlBoldMatch.index);
+      if (beforeMatch) parts.push(beforeMatch);
+      parts.push(
+        <Text key={`b-${key++}`} style={[styles.text, styles.bold]}>
+          {htmlBoldMatch[1]}
+        </Text>
+      );
+      remaining = remaining.substring(htmlBoldMatch.index + htmlBoldMatch[0].length);
+      continue;
+    }
+
+    // Check for <strong>text</strong> (HTML strong)
+    const strongMatch = remaining.match(/<strong>(.+?)<\/strong>/);
+    if (strongMatch) {
+      const beforeMatch = remaining.substring(0, strongMatch.index);
+      if (beforeMatch) parts.push(beforeMatch);
+      parts.push(
+        <Text key={`strong-${key++}`} style={[styles.text, styles.bold]}>
+          {strongMatch[1]}
+        </Text>
+      );
+      remaining = remaining.substring(strongMatch.index + strongMatch[0].length);
+      continue;
+    }
+
     // Check for bold (**text**)
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
     if (boldMatch) {
@@ -216,6 +244,34 @@ function parseInlineMarkdown(text) {
         </Text>
       );
       remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+      continue;
+    }
+
+    // Check for <i>text</i> (HTML italic)
+    const htmlItalicMatch = remaining.match(/<i>(.+?)<\/i>/);
+    if (htmlItalicMatch) {
+      const beforeMatch = remaining.substring(0, htmlItalicMatch.index);
+      if (beforeMatch) parts.push(beforeMatch);
+      parts.push(
+        <Text key={`i-${key++}`} style={[styles.text, styles.italic]}>
+          {htmlItalicMatch[1]}
+        </Text>
+      );
+      remaining = remaining.substring(htmlItalicMatch.index + htmlItalicMatch[0].length);
+      continue;
+    }
+
+    // Check for <em>text</em> (HTML emphasis)
+    const emMatch = remaining.match(/<em>(.+?)<\/em>/);
+    if (emMatch) {
+      const beforeMatch = remaining.substring(0, emMatch.index);
+      if (beforeMatch) parts.push(beforeMatch);
+      parts.push(
+        <Text key={`em-${key++}`} style={[styles.text, styles.italic]}>
+          {emMatch[1]}
+        </Text>
+      );
+      remaining = remaining.substring(emMatch.index + emMatch[0].length);
       continue;
     }
 
