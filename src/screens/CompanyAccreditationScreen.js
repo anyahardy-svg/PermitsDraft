@@ -39,6 +39,7 @@ export default function CompanyAccreditationScreen({
   onNavigateToTrainingRecords
 }) {
   const scrollViewRef = useRef(null);
+  const canvasRef = useRef(null);
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // If companyId is provided (logged-in contractor), use it directly
@@ -276,6 +277,9 @@ export default function CompanyAccreditationScreen({
     hs_agreement_loading: false
   });
 
+  const [hasSignature, setHasSignature] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+
   // Company information state (for verification/updates)
   const [companyDetails, setCompanyDetails] = useState({
     companyName: '',
@@ -341,6 +345,10 @@ export default function CompanyAccreditationScreen({
           ...prev,
           hs_agreement_document: doc
         }));
+        // Update hasSignature based on whether signature exists
+        if (doc?.signature || section26.hs_agreement_signature) {
+          setHasSignature(true);
+        }
       } catch (error) {
         console.error('Failed to load H&S agreement:', error);
       }
@@ -3006,10 +3014,6 @@ export default function CompanyAccreditationScreen({
 
   // Section 26: H&S Agreement
   const renderSection26HSAgreement = () => {
-    const canvasRef = useRef(null);
-    const [hasSignature, setHasSignature] = useState(!!section26.hs_agreement_signature);
-    const [isDrawing, setIsDrawing] = useState(false);
-
     const startDrawing = (e) => {
       if (!canvasRef.current || hasSignature) return;
       setIsDrawing(true);
