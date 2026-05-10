@@ -36,3 +36,25 @@ VALUES (
   1,
   true
 );
+
+-- Enable Row Level Security on legal_documents table
+ALTER TABLE legal_documents ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policy to allow public read access
+CREATE POLICY "Allow public read access to legal_documents"
+ON legal_documents
+FOR SELECT
+USING (true);
+
+-- Create RLS policy to allow authenticated users to update
+CREATE POLICY "Allow authenticated users to update legal_documents"
+ON legal_documents
+FOR INSERT
+WITH CHECK (true);
+
+-- Create RLS policy for updates
+CREATE POLICY "Allow authenticated users to modify legal_documents"
+ON legal_documents
+FOR UPDATE
+USING (true)
+WITH CHECK (true);

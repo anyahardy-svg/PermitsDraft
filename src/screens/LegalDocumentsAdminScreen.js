@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
-  Modal,
   TextInput,
   ActivityIndicator,
   FlatList
@@ -23,11 +22,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
+    flex: 1,
   },
   content: {
     paddingHorizontal: 16,
@@ -101,14 +103,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  warningButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  warningButtonText: {
-    color: '#991B1B',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   versionHistory: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -129,11 +123,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     marginBottom: 4,
-  },
-  versionLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
   },
   activeVersionBadge: {
     backgroundColor: '#DBEAFE',
@@ -187,37 +176,93 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     lineHeight: 20,
   },
+  documentListItem: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  documentListItemContent: {
+    flex: 1,
+  },
+  documentListItemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  documentListItemSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  documentListItemNotCreated: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
 });
 
 export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: parentStyles }) {
-  const [currentDocument, setCurrentDocument] = useState(null);
+  const [documents, setDocuments] = useState([]);
+  const [editingDocument, setEditingDocument] = useState(null);
   const [editedContent, setEditedContent] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [documentType] = useState('h_s_agreement');
+
+  // Available document types that can be managed
+  const AVAILABLE_DOCUMENTS = [
+    { type: 'h_s_agreement', title: 'Health & Safety Agreement', icon: '🛡️' },
+    { type: 'induction_terms', title: 'Induction Terms', icon: '📚' },
+    { type: 'contractor_code_of_conduct', title: 'Contractor Code of Conduct', icon: '📋' },
+  ];
 
   useEffect(() => {
-    loadDocument();
+    loadAllDocuments();
   }, []);
 
-  const loadDocument = async () => {
+  const loadAllDocuments = async () => {
     try {
       setLoading(true);
+      const docs = [];
+      
+      for (const docDef of AVAILABLE_DOCUMENTS) {
+        const doc = await getLegalDocument(docDef.type);
+        docs.push({
+          ...docDef,
+          ...doc,
+          loaded: !!doc,
+        });
+      }
+      
+      setDocuments(docs);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      Alert.alert('Error', 'Failed to load legal documents');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditDocument = async (documentType) => {
+    try {
       const doc = await getLegalDocument(documentType);
       const versionHistory = await getLegalDocumentVersions(documentType);
       
-      setCurrentDocument(doc);
+      setEditingDocument(documentType);
       setEditedContent(doc?.document_content || '');
       setEditedTitle(doc?.document_title || '');
       setVersions(versionHistory);
     } catch (error) {
-      console.error('Error loading document:', error);
+      console.error('Error loading document for edit:', error);
       Alert.alert('Error', 'Failed to load legal document');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -229,14 +274,17 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
 
     try {
       setSaving(true);
-      await updateLegalDocument(documentType, {
+      await updateLegalDocument(editingDocument, {
         document_title: editedTitle,
         document_content: editedContent,
       });
       
       Alert.alert('Success', 'Legal document updated successfully');
-      await loadDocument();
-      setShowPreview(false);
+      setEditingDocument(null);
+      setEditedContent('');
+      setEditedTitle('');
+      setVersions([]);
+      await loadAllDocuments();
     } catch (error) {
       console.error('Error saving document:', error);
       Alert.alert('Error', 'Failed to save legal document');
@@ -246,41 +294,99 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
   };
 
   const handleDiscard = () => {
-    if (currentDocument) {
-      setEditedContent(currentDocument.document_content);
-      setEditedTitle(currentDocument.document_title);
-      Alert.alert('Discarded', 'Changes have been discarded');
+    const doc = documents.find(d => d.type === editingDocument);
+    if (doc) {
+      setEditedContent(doc.document_content || '');
+      setEditedTitle(doc.document_title || '');
+      setShowPreview(false);
     }
   };
 
-  if (loading) {
+  const handleCancel = () => {
+    setEditingDocument(null);
+    setEditedContent('');
+    setEditedTitle('');
+    setVersions([]);
+    setShowPreview(false);
+  };
+
+  // ===== LIST VIEW =====
+  if (!editingDocument) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading legal documents...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Legal Documents Management</Text>
+        </View>
+
+        <ScrollView style={styles.content}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
+              Click on any document below to view, edit, and manage versions.
+            </Text>
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading documents...</Text>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.sectionTitle}>Available Documents</Text>
+              {documents.map((doc) => (
+                <TouchableOpacity
+                  key={doc.type}
+                  style={styles.documentListItem}
+                  onPress={() => handleEditDocument(doc.type)}
+                >
+                  <View style={styles.documentListItemContent}>
+                    <Text style={styles.documentListItemTitle}>
+                      {doc.icon} {doc.title}
+                    </Text>
+                    {doc.loaded ? (
+                      <Text style={styles.documentListItemSubtitle}>
+                        v{doc.version_number || 1} · Last updated:{' '}
+                        {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
+                      </Text>
+                    ) : (
+                      <Text style={styles.documentListItemNotCreated}>Not created yet</Text>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton, { marginTop: 24 }]}
+            onPress={onNavigateBack}
+          >
+            <Text style={styles.secondaryButtonText}>Back to Admin</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   }
 
-  const hasChanges = 
-    editedContent !== currentDocument?.document_content ||
-    editedTitle !== currentDocument?.document_title;
+  // ===== EDIT VIEW =====
+  const currentDoc = documents.find(d => d.type === editingDocument);
+  const hasChanges =
+    editedContent !== currentDoc?.document_content ||
+    editedTitle !== currentDoc?.document_title;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Legal Documents Management</Text>
+        <TouchableOpacity onPress={handleCancel} disabled={saving}>
+          <Text style={{ fontSize: 24, color: '#FFFFFF', marginRight: 12 }}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          Edit {currentDoc?.title || 'Document'}
+        </Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            Edit the Health & Safety Agreement text below. Changes are automatically versioned and can be rolled back if needed.
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>H&S Agreement Content</Text>
-
         <Text style={styles.label}>Document Title</Text>
         <TextInput
           style={styles.textInput}
@@ -364,14 +470,6 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
             </View>
           </View>
         )}
-
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton, { marginTop: 24 }]}
-          onPress={onNavigateBack}
-          disabled={saving}
-        >
-          <Text style={styles.secondaryButtonText}>Back to Admin</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
