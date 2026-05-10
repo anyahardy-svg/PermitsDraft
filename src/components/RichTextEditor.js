@@ -58,20 +58,9 @@ export default function RichTextEditor({ value, onChange, disabled = false, plac
   const textInputRef = useRef(null);
 
   const insertMarkdown = (before, after = '') => {
-    if (!textInputRef.current) return;
-
-    const cursorPos = value.length; // Approximate cursor position
+    const cursorPos = value.length; // Approximate cursor position at end
     const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
     onChange(newValue);
-
-    // Set cursor position after inserted text
-    setTimeout(() => {
-      if (textInputRef.current) {
-        textInputRef.current.setNativeProps({
-          selection: { start: cursorPos + before.length, end: cursorPos + before.length },
-        });
-      }
-    }, 0);
   };
 
   const formatBold = () => insertMarkdown('**', '**');
