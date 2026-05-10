@@ -2799,7 +2799,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // New Company Invitation States
   const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
-  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({ companyName: '', email: '', deadline: '' });
+  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
   const [creatingAndSendingInvitation, setCreatingAndSendingInvitation] = useState(false);
   
   const [selectedSite, setSelectedSite] = useState(null);
@@ -9958,7 +9958,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
                 
                 setShowNewCompanyInvitationModal(true); 
-                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: deadlineStr }); 
+                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: deadlineStr, contractor_type: 'D' }); 
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
@@ -10714,6 +10714,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={!creatingAndSendingInvitation}
                 />
 
+                {/* Contractor Type Field */}
+                <Text style={styles.label}>Contractor Type</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select 
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }} 
+                    value={newCompanyInvitationForm.contractor_type || 'D'}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, contractor_type: e.target.value })}
+                  >
+                    <option value="A">A - Major Work</option>
+                    <option value="B">B - High Risk</option>
+                    <option value="C">C - Medium Risk</option>
+                    <option value="D">D - Low Risk</option>
+                  </select>
+                </View>
+
                 {/* Deadline Field */}
                 <Text style={styles.label}>Accreditation Deadline</Text>
                 <TextInput
@@ -10749,7 +10764,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       try {
                         // Step 1: Create the new company
                         const newCompany = await createCompany({ 
-                          name: newCompanyInvitationForm.companyName 
+                          name: newCompanyInvitationForm.companyName,
+                          contractor_type: newCompanyInvitationForm.contractor_type || 'D'
                         });
 
                         if (!newCompany || !newCompany.id) {
@@ -10777,7 +10793,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         if (result.success) {
                           Alert.alert('Success', 'Company created and invitation sent successfully!');
                           setShowNewCompanyInvitationModal(false);
-                          setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '' });
+                          setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
                           
                           // Refresh companies to show the new company
                           const freshCompanies = await listCompanies();
