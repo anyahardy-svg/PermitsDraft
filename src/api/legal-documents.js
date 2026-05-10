@@ -1,4 +1,4 @@
-import supabase from './supabaseClient';
+import { supabase } from '../supabaseClient';
 
 /**
  * Fetch a legal document by type (gets the active version)

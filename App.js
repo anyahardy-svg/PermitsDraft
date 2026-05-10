@@ -49,7 +49,9 @@ import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
+import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
 import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
+import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 
 // List of all available sites
@@ -2327,7 +2329,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Admin session state
   const [adminSessionActive, setAdminSessionActive] = useState(false);
   const [loggedInAdmin, setLoggedInAdmin] = useState(null);
-  const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard' or 'admin-users'
+  const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard', 'admin-users', 'legal-documents'
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
   const [newAdminForm, setNewAdminForm] = useState({ email: '', name: '', role: 'manager' });
@@ -8549,6 +8551,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => setCurrentScreen('manage_business_units')}>
             <Text style={styles.cardNumber}>{businessUnits.length}</Text>
             <Text style={styles.cardLabel}>Business Units</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('legal_documents')}>
+            <Text style={styles.cardNumber}>📋</Text>
+            <Text style={styles.cardLabel}>Legal Documents</Text>
           </TouchableOpacity>
           {loggedInAdmin?.role === 'super_admin' && (
             <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={() => setShowAddAdminModal(true)}>
@@ -22555,6 +22561,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <RequestAccreditationScreen
           styles={styles}
           onClose={() => setCurrentScreen('kiosk')}
+        />
+      );
+    case 'legal_documents':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Legal documents accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <LegalDocumentsAdminScreen
+          onNavigateBack={() => setCurrentScreen('admin')}
+          styles={styles}
         />
       );
     default:
