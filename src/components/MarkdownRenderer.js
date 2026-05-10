@@ -201,7 +201,7 @@ export default function MarkdownRenderer({ text }) {
 function parseInlineMarkdown(text) {
   if (!text) return text;
 
-  const parts = [];
+  const children = [];
   let remaining = text;
   let key = 0;
 
@@ -210,9 +210,9 @@ function parseInlineMarkdown(text) {
     const htmlBoldMatch = remaining.match(/<b>([\s\S]+?)<\/b>/);
     if (htmlBoldMatch) {
       const beforeMatch = remaining.substring(0, htmlBoldMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`b-${key++}`} style={[styles.text, styles.bold]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`b-${key++}`} style={styles.bold}>
           {htmlBoldMatch[1]}
         </Text>
       );
@@ -224,9 +224,9 @@ function parseInlineMarkdown(text) {
     const strongMatch = remaining.match(/<strong>([\s\S]+?)<\/strong>/);
     if (strongMatch) {
       const beforeMatch = remaining.substring(0, strongMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`strong-${key++}`} style={[styles.text, styles.bold]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`strong-${key++}`} style={styles.bold}>
           {strongMatch[1]}
         </Text>
       );
@@ -238,9 +238,9 @@ function parseInlineMarkdown(text) {
     const boldMatch = remaining.match(/\*\*([\s\S]+?)\*\*/);
     if (boldMatch) {
       const beforeMatch = remaining.substring(0, boldMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`b-${key++}`} style={[styles.text, styles.bold]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`b-${key++}`} style={styles.bold}>
           {boldMatch[1]}
         </Text>
       );
@@ -252,9 +252,9 @@ function parseInlineMarkdown(text) {
     const htmlItalicMatch = remaining.match(/<i>([\s\S]+?)<\/i>/);
     if (htmlItalicMatch) {
       const beforeMatch = remaining.substring(0, htmlItalicMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`i-${key++}`} style={[styles.text, styles.italic]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`i-${key++}`} style={styles.italic}>
           {htmlItalicMatch[1]}
         </Text>
       );
@@ -266,9 +266,9 @@ function parseInlineMarkdown(text) {
     const emMatch = remaining.match(/<em>([\s\S]+?)<\/em>/);
     if (emMatch) {
       const beforeMatch = remaining.substring(0, emMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`em-${key++}`} style={[styles.text, styles.italic]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`em-${key++}`} style={styles.italic}>
           {emMatch[1]}
         </Text>
       );
@@ -280,9 +280,9 @@ function parseInlineMarkdown(text) {
     const italicMatch = remaining.match(/\*([\s\S]+?)\*/);
     if (italicMatch) {
       const beforeMatch = remaining.substring(0, italicMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`i-${key++}`} style={[styles.text, styles.italic]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`i-${key++}`} style={styles.italic}>
           {italicMatch[1]}
         </Text>
       );
@@ -294,9 +294,9 @@ function parseInlineMarkdown(text) {
     const codeMatch = remaining.match(/`([\s\S]+?)`/);
     if (codeMatch) {
       const beforeMatch = remaining.substring(0, codeMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`c-${key++}`} style={[styles.code]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`c-${key++}`} style={styles.code}>
           {codeMatch[1]}
         </Text>
       );
@@ -308,9 +308,9 @@ function parseInlineMarkdown(text) {
     const underlineMatch = remaining.match(/<u>([\s\S]+?)<\/u>/)
     if (underlineMatch) {
       const beforeMatch = remaining.substring(0, underlineMatch.index);
-      if (beforeMatch) parts.push(beforeMatch);
-      parts.push(
-        <Text key={`u-${key++}`} style={[styles.text, styles.underline]}>
+      if (beforeMatch) children.push(beforeMatch);
+      children.push(
+        <Text key={`u-${key++}`} style={styles.underline}>
           {underlineMatch[1]}
         </Text>
       );
@@ -319,9 +319,10 @@ function parseInlineMarkdown(text) {
     }
 
     // No more formatting found, add remaining text
-    parts.push(remaining);
+    children.push(remaining);
     break;
   }
 
-  return parts;
+  // Wrap all children in a single Text element to prevent wrapping issues between styled elements
+  return <Text style={styles.text}>{children}</Text>;
 }
