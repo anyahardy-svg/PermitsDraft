@@ -124,3 +124,51 @@ export async function getHSAgreementStatus(companyId) {
     throw err;
   }
 }
+
+/**
+ * Get all legal documents (active versions only, grouped by document_type)
+ */
+export async function getAllLegalDocuments() {
+  try {
+    const { data, error } = await supabase
+      .from('legal_documents')
+      .select('*')
+      .eq('is_active', true)
+      .order('document_type', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching all legal documents:', err);
+    throw err;
+  }
+}
+
+/**
+ * Create a new legal document (v1)
+ */
+export async function createLegalDocument(documentType, documentTitle, documentContent) {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('legal_documents')
+      .insert([
+        {
+          document_type: documentType,
+          document_title: documentTitle,
+          document_content: documentContent,
+          version_number: 1,
+          is_active: true,
+          updated_by: user?.user?.id,
+        },
+      ])
+      .select();
+
+    if (error) throw error;
+    return data?.[0] || null;
+  } catch (err) {
+    console.error('Error creating legal document:', err);
+    throw err;
+  }
+}

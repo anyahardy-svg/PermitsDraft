@@ -8,9 +8,16 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
-  FlatList
+  FlatList,
+  Modal,
 } from 'react-native';
-import { getLegalDocument, getLegalDocumentVersions, updateLegalDocument } from '../api/legal-documents';
+import { 
+  getLegalDocument, 
+  getLegalDocumentVersions, 
+  updateLegalDocument,
+  getAllLegalDocuments,
+  createLegalDocument 
+} from '../api/legal-documents';
 
 const styles = StyleSheet.create({
   container: {
@@ -30,6 +37,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     flex: 1,
+  },
+  backButton: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    marginRight: 12,
   },
   content: {
     paddingHorizontal: 16,
@@ -100,6 +112,14 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#1F2937',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  successButton: {
+    backgroundColor: '#10B981',
+  },
+  successButtonText: {
+    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -201,13 +221,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
   },
-  documentListItemNotCreated: {
-    fontSize: 13,
-    color: '#9CA3AF',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  modalCloseButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 12,
+  },
+  modalCloseButtonText: {
+    fontSize: 24,
+    color: '#6B7280',
   },
 });
 
-export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: parentStyles }) {
+export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin = false }) {
   const [documents, setDocuments] = useState([]);
   const [editingDocument, setEditingDocument] = useState(null);
   const [editedContent, setEditedContent] = useState('');
@@ -216,13 +259,11 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-
-  // Available document types that can be managed
-  const AVAILABLE_DOCUMENTS = [
-    { type: 'h_s_agreement', title: 'Health & Safety Agreement', icon: '🛡️' },
-    { type: 'induction_terms', title: 'Induction Terms', icon: '📚' },
-    { type: 'contractor_code_of_conduct', title: 'Contractor Code of Conduct', icon: '📋' },
-  ];
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newDocumentType, setNewDocumentType] = useState('');
+  const [newDocumentTitle, setNewDocumentTitle] = useState('');
+  const [newDocumentContent, setNewDocumentContent] = useState('');
+  const [creatingDocument, setCreatingDocument] = useState(false);
 
   useEffect(() => {
     loadAllDocuments();
@@ -231,17 +272,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
   const loadAllDocuments = async () => {
     try {
       setLoading(true);
-      const docs = [];
-      
-      for (const docDef of AVAILABLE_DOCUMENTS) {
-        const doc = await getLegalDocument(docDef.type);
-        docs.push({
-          ...docDef,
-          ...doc,
-          loaded: !!doc,
-        });
-      }
-      
+      const docs = await getAllLegalDocuments();
       setDocuments(docs);
     } catch (error) {
       console.error('Error loading documents:', error);
@@ -263,6 +294,38 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
     } catch (error) {
       console.error('Error loading document for edit:', error);
       Alert.alert('Error', 'Failed to load legal document');
+    }
+  };
+
+  const handleCreateDocument = async () => {
+    if (!newDocumentType.trim()) {
+      Alert.alert('Validation Error', 'Document type is required');
+      return;
+    }
+    if (!newDocumentTitle.trim()) {
+      Alert.alert('Validation Error', 'Document title is required');
+      return;
+    }
+    if (!newDocumentContent.trim()) {
+      Alert.alert('Validation Error', 'Document content is required');
+      return;
+    }
+
+    try {
+      setCreatingDocument(true);
+      await createLegalDocument(newDocumentType, newDocumentTitle, newDocumentContent);
+      
+      Alert.alert('Success', 'Legal document created successfully');
+      setNewDocumentType('');
+      setNewDocumentTitle('');
+      setNewDocumentContent('');
+      setShowCreateModal(false);
+      await loadAllDocuments();
+    } catch (error) {
+      console.error('Error creating document:', error);
+      Alert.alert('Error', 'Failed to create legal document');
+    } finally {
+      setCreatingDocument(false);
     }
   };
 
@@ -294,7 +357,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
   };
 
   const handleDiscard = () => {
-    const doc = documents.find(d => d.type === editingDocument);
+    const doc = documents.find(d => d.document_type === editingDocument);
     if (doc) {
       setEditedContent(doc.document_content || '');
       setEditedTitle(doc.document_title || '');
@@ -321,7 +384,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
         <ScrollView style={styles.content}>
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              Click on any document below to view, edit, and manage versions.
+              Click on any document to edit and manage versions.
             </Text>
           </View>
 
@@ -332,29 +395,41 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
             </View>
           ) : (
             <View>
-              <Text style={styles.sectionTitle}>Available Documents</Text>
-              {documents.map((doc) => (
-                <TouchableOpacity
-                  key={doc.type}
-                  style={styles.documentListItem}
-                  onPress={() => handleEditDocument(doc.type)}
-                >
-                  <View style={styles.documentListItemContent}>
-                    <Text style={styles.documentListItemTitle}>
-                      {doc.icon} {doc.title}
-                    </Text>
-                    {doc.loaded ? (
-                      <Text style={styles.documentListItemSubtitle}>
-                        v{doc.version_number || 1} · Last updated:{' '}
-                        {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={styles.sectionTitle}>Documents</Text>
+                {isSuperAdmin && (
+                  <TouchableOpacity
+                    style={[styles.button, styles.successButton, { flex: 0, width: 'auto', paddingHorizontal: 12 }]}
+                    onPress={() => setShowCreateModal(true)}
+                  >
+                    <Text style={styles.successButtonText}>+ New</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {documents.length === 0 ? (
+                <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginVertical: 24 }}>
+                  No documents yet. {isSuperAdmin ? 'Create one to get started.' : 'Contact admin to create documents.'}
+                </Text>
+              ) : (
+                documents.map((doc) => (
+                  <TouchableOpacity
+                    key={doc.document_type}
+                    style={styles.documentListItem}
+                    onPress={() => handleEditDocument(doc.document_type)}
+                  >
+                    <View style={styles.documentListItemContent}>
+                      <Text style={styles.documentListItemTitle}>
+                        {doc.document_title}
                       </Text>
-                    ) : (
-                      <Text style={styles.documentListItemNotCreated}>Not created yet</Text>
-                    )}
-                  </View>
-                  <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
-                </TouchableOpacity>
-              ))}
+                      <Text style={styles.documentListItemSubtitle}>
+                        v{doc.version_number || 1} · Updated {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
+                  </TouchableOpacity>
+                ))
+              )}
             </View>
           )}
 
@@ -365,12 +440,82 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
             <Text style={styles.secondaryButtonText}>Back to Admin</Text>
           </TouchableOpacity>
         </ScrollView>
+
+        {/* CREATE DOCUMENT MODAL */}
+        <Modal
+          visible={showCreateModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => !creatingDocument && setShowCreateModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => !creatingDocument && setShowCreateModal(false)}
+                disabled={creatingDocument}
+              >
+                <Text style={styles.modalCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.modalTitle}>Create New Document</Text>
+
+              <Text style={styles.label}>Document Type (Identifier)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g., h_s_agreement, induction_terms"
+                value={newDocumentType}
+                onChangeText={setNewDocumentType}
+                editable={!creatingDocument}
+              />
+
+              <Text style={styles.label}>Document Title (Display Name)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g., Health & Safety Agreement"
+                value={newDocumentTitle}
+                onChangeText={setNewDocumentTitle}
+                editable={!creatingDocument}
+              />
+
+              <Text style={styles.label}>Document Content</Text>
+              <TextInput
+                style={styles.richTextInput}
+                placeholder="Enter document content here"
+                value={newDocumentContent}
+                onChangeText={setNewDocumentContent}
+                multiline={true}
+                editable={!creatingDocument}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton]}
+                  onPress={() => !creatingDocument && setShowCreateModal(false)}
+                  disabled={creatingDocument}
+                >
+                  <Text style={styles.secondaryButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.primaryButton]}
+                  onPress={handleCreateDocument}
+                  disabled={creatingDocument}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {creatingDocument ? 'Creating...' : 'Create'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   }
 
   // ===== EDIT VIEW =====
-  const currentDoc = documents.find(d => d.type === editingDocument);
+  const currentDoc = documents.find(d => d.document_type === editingDocument);
   const hasChanges =
     editedContent !== currentDoc?.document_content ||
     editedTitle !== currentDoc?.document_title;
@@ -379,10 +524,10 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleCancel} disabled={saving}>
-          <Text style={{ fontSize: 24, color: '#FFFFFF', marginRight: 12 }}>←</Text>
+          <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          Edit {currentDoc?.title || 'Document'}
+          {currentDoc?.document_title || 'Document'}
         </Text>
       </View>
 
@@ -399,7 +544,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, styles: pare
         <Text style={styles.label}>Document Content</Text>
         <TextInput
           style={styles.richTextInput}
-          placeholder="Enter full agreement text here"
+          placeholder="Enter document content here"
           value={editedContent}
           onChangeText={setEditedContent}
           multiline={true}

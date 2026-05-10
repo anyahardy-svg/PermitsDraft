@@ -9,8 +9,7 @@ CREATE TABLE legal_documents (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_by UUID REFERENCES auth.users(id),
-  UNIQUE(document_type, version_number),
-  CHECK (document_type IN ('h_s_agreement', 'induction_terms', 'contractor_code_of_conduct'))
+  UNIQUE(document_type, version_number)
 );
 
 -- Create index for efficient lookups

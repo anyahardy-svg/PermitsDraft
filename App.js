@@ -22578,6 +22578,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return (
         <LegalDocumentsAdminScreen
           onNavigateBack={() => setCurrentScreen('admin')}
+          isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
           styles={styles}
         />
       );
