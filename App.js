@@ -9551,7 +9551,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '' });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D' });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -9853,6 +9853,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })}
               </View>
 
+              <Text style={styles.label}>Contractor Type</Text>
+              <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                <select 
+                  style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }} 
+                  value={currentCompany.contractor_type || 'D'}
+                  onChange={(e) => setCurrentCompany({ ...currentCompany, contractor_type: e.target.value })}
+                >
+                  <option value="A">A - Major Work</option>
+                  <option value="B">B - High Risk</option>
+                  <option value="C">C - Medium Risk</option>
+                  <option value="D">D - Low Risk</option>
+                </select>
+              </View>
+
               <Text style={styles.label}>Contact Name</Text>
               <TextInput 
                 style={styles.input} 
@@ -9923,7 +9937,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [] }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contractor_type: 'D' }); setSelectedCompany(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -10003,6 +10017,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       {/* Table Header */}
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+                        <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Type</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
@@ -10031,6 +10046,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             <Text style={{ width: 250, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                               {company.name}
                             </Text>
+                            <View style={{ width: 100, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 4,
+                                backgroundColor: company.contractor_type === 'A' ? '#FED7AA' : company.contractor_type === 'B' ? '#FCA5A5' : company.contractor_type === 'C' ? '#C7D2FE' : '#DBEAFE'
+                              }}>
+                                <Text style={{
+                                  fontSize: 12,
+                                  fontWeight: '600',
+                                  color: company.contractor_type === 'A' ? '#92400E' : company.contractor_type === 'B' ? '#7F1D1D' : company.contractor_type === 'C' ? '#3730A3' : '#0C4A6E'
+                                }}>
+                                  {company.contractor_type === 'A' ? 'A - Major' : company.contractor_type === 'B' ? 'B - High' : company.contractor_type === 'C' ? 'C - Medium' : 'D - Low'}
+                                </Text>
+                              </View>
+                            </View>
                             <Text style={{ width: 300, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               {companyBUs}
                             </Text>

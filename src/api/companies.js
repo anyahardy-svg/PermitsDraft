@@ -54,6 +54,8 @@ const transformCompany = (dbCompany) => {
     training_records_total: dbCompany.training_records_total || 0,
     trainingRecordsApproved: dbCompany.training_records_approved || 0,
     training_records_approved: dbCompany.training_records_approved || 0,
+    contractorType: dbCompany.contractor_type || 'D',
+    contractor_type: dbCompany.contractor_type || 'D',
   };
 };
 
@@ -80,6 +82,7 @@ export const createCompany = async (companyData) => {
       address_1: companyData.address_1 || companyData.address1 || null,
       address_city: companyData.address_city || companyData.addressCity || null,
       address_postcode: companyData.address_postcode || companyData.addressPostcode || null,
+      contractor_type: companyData.contractor_type || companyData.contractorType || 'D',
     };
 
     const { data, error } = await supabase
@@ -132,7 +135,7 @@ export const getCompany = async (companyId) => {
 export const updateCompany = async (companyId, updates) => {
   try {
     // Only allow updating fields that exist in the companies table
-    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       // Support both camelCase and snake_case
