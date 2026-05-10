@@ -2340,6 +2340,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   
+  // Password reset state
+  const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
+  const [passwordResetToken, setPasswordResetToken] = useState(null);
+  
   // H&S Agreement Modal state
   const [showHSAgreementModal, setShowHSAgreementModal] = useState(false);
   const [hsAgreementCompanyId, setHsAgreementCompanyId] = useState(null);
