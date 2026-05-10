@@ -19,6 +19,20 @@ import {
   createLegalDocument 
 } from '../api/legal-documents';
 
+// Import React Quill dynamically (web only)
+let ReactQuill = null;
+let quillCssLoaded = false;
+try {
+  ReactQuill = require('react-quill').default;
+  // Try to load Quill CSS
+  if (!quillCssLoaded) {
+    require('react-quill/dist/quill.snow.css');
+    quillCssLoaded = true;
+  }
+} catch (e) {
+  console.warn('ReactQuill not available, falling back to textarea');
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -46,6 +60,46 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingBottom: 32,
+  },
+  // Prominent New Document Section
+  heroSection: {
+    backgroundColor: '#EFF6FF',
+    borderLeftWidth: 5,
+    borderLeftColor: '#0EA5E9',
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  heroTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  prominentButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  prominentButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  prominentButtonIcon: {
+    fontSize: 20,
   },
   sectionTitle: {
     fontSize: 14,
@@ -83,6 +137,17 @@ const styles = StyleSheet.create({
     minHeight: 300,
     textAlignVertical: 'top',
     fontFamily: 'System',
+  },
+  quillEditorContainer: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    marginBottom: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  quillEditor: {
+    minHeight: 320,
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -232,7 +297,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    maxHeight: '80%',
+    maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 18,
@@ -248,7 +313,40 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#6B7280',
   },
+  formattingTip: {
+    backgroundColor: '#FEF3C7',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  formattingTipText: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 16,
+  },
 });
+
+// Quill modules and formats
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    ['blockquote', 'code-block'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'indent': '-1'}, { 'indent': '+1' }],
+    ['clean'],
+  ],
+};
+
+const quillFormats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'blockquote', 'code-block',
+  'list', 'indent',
+];
 
 export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin = false }) {
   const [documents, setDocuments] = useState([]);
@@ -382,6 +480,23 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
         </View>
 
         <ScrollView style={styles.content}>
+          {/* PROMINENT HERO SECTION FOR CREATING NEW DOCUMENTS */}
+          {isSuperAdmin && (
+            <View style={styles.heroSection}>
+              <Text style={styles.heroTitle}>📄 Create New Document</Text>
+              <Text style={styles.heroSubtitle}>
+                Add a new legal document that contractors must accept. You can update it anytime without code changes.
+              </Text>
+              <TouchableOpacity
+                style={styles.prominentButton}
+                onPress={() => setShowCreateModal(true)}
+              >
+                <Text style={styles.prominentButtonIcon}>➕</Text>
+                <Text style={styles.prominentButtonText}>New Document</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
               Click on any document to edit and manage versions.
@@ -395,17 +510,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
             </View>
           ) : (
             <View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={styles.sectionTitle}>Documents</Text>
-                {isSuperAdmin && (
-                  <TouchableOpacity
-                    style={[styles.button, styles.successButton, { flex: 0, width: 'auto', paddingHorizontal: 12 }]}
-                    onPress={() => setShowCreateModal(true)}
-                  >
-                    <Text style={styles.successButtonText}>+ New</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Text style={styles.sectionTitle}>All Documents</Text>
 
               {documents.length === 0 ? (
                 <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginVertical: 24 }}>
@@ -478,16 +583,36 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
                 editable={!creatingDocument}
               />
 
-              <Text style={styles.label}>Document Content</Text>
-              <TextInput
-                style={styles.richTextInput}
-                placeholder="Enter document content here"
-                value={newDocumentContent}
-                onChangeText={setNewDocumentContent}
-                multiline={true}
-                editable={!creatingDocument}
-                textAlignVertical="top"
-              />
+              <Text style={styles.label}>Document Content (Formatted)</Text>
+              <View style={styles.formattingTip}>
+                <Text style={styles.formattingTipText}>
+                  💡 Use the toolbar above to format: headers, bold, italic, lists, etc.
+                </Text>
+              </View>
+
+              {ReactQuill ? (
+                <View style={styles.quillEditorContainer}>
+                  <ReactQuill
+                    value={newDocumentContent}
+                    onChange={setNewDocumentContent}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    theme="snow"
+                    readOnly={creatingDocument}
+                    style={styles.quillEditor}
+                  />
+                </View>
+              ) : (
+                <TextInput
+                  style={styles.richTextInput}
+                  placeholder="Enter document content here"
+                  value={newDocumentContent}
+                  onChangeText={setNewDocumentContent}
+                  multiline={true}
+                  editable={!creatingDocument}
+                  textAlignVertical="top"
+                />
+              )}
 
               <View style={styles.buttonGroup}>
                 <TouchableOpacity
@@ -541,16 +666,36 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
           editable={!saving}
         />
 
-        <Text style={styles.label}>Document Content</Text>
-        <TextInput
-          style={styles.richTextInput}
-          placeholder="Enter document content here"
-          value={editedContent}
-          onChangeText={setEditedContent}
-          multiline={true}
-          editable={!saving}
-          textAlignVertical="top"
-        />
+        <Text style={styles.label}>Document Content (Formatted)</Text>
+        <View style={styles.formattingTip}>
+          <Text style={styles.formattingTipText}>
+            💡 Use the toolbar above to format: headers, bold, italic, lists, etc.
+          </Text>
+        </View>
+
+        {ReactQuill ? (
+          <View style={styles.quillEditorContainer}>
+            <ReactQuill
+              value={editedContent}
+              onChange={setEditedContent}
+              modules={quillModules}
+              formats={quillFormats}
+              theme="snow"
+              readOnly={saving}
+              style={styles.quillEditor}
+            />
+          </View>
+        ) : (
+          <TextInput
+            style={styles.richTextInput}
+            placeholder="Enter document content here"
+            value={editedContent}
+            onChangeText={setEditedContent}
+            multiline={true}
+            editable={!saving}
+            textAlignVertical="top"
+          />
+        )}
 
         <View style={styles.buttonGroup}>
           <TouchableOpacity
