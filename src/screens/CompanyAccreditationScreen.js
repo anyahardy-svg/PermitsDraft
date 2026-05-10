@@ -3021,9 +3021,6 @@ export default function CompanyAccreditationScreen({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = 600;
-    canvas.height = 150;
-
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#1F2937';
     ctx.lineWidth = 2.5;
@@ -3035,7 +3032,7 @@ export default function CompanyAccreditationScreen({
     contextRef.current = ctx;
   }, []);
 
-  // Setup canvas event listeners
+  // Setup canvas event listeners - runs once on mount
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !contextRef.current) return;
@@ -3136,7 +3133,7 @@ export default function CompanyAccreditationScreen({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [hasSignature]);
+  }, []);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
@@ -3235,6 +3232,8 @@ export default function CompanyAccreditationScreen({
               }}>
                 <canvas
                   ref={canvasRef}
+                  width={600}
+                  height={150}
                   style={{
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
