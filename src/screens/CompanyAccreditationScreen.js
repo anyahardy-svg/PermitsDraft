@@ -3016,47 +3016,64 @@ export default function CompanyAccreditationScreen({
   // Canvas context tracking for Section 26 signature
   const contextRef = useRef(null);
 
-  // Initialize canvas - runs once on mount
+  // Initialize canvas - runs when section expands
   useEffect(() => {
-    const canvas = canvasRef.current;
-    console.log('🎨 Canvas init - canvas:', canvas, 'ref:', canvasRef);
-    if (!canvas) {
-      console.error('❌ Canvas ref is null!');
+    if (!expandedSections[26]) {
+      console.log('📦 Section 26 collapsed, skipping canvas init');
       return;
     }
 
-    console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('❌ Failed to get 2D context!');
-      return;
-    }
+    // Give DOM time to render the canvas element
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      console.log('🎨 Canvas init - canvas:', canvas, 'ref:', canvasRef);
+      if (!canvas) {
+        console.error('❌ Canvas ref is null!');
+        return;
+      }
 
-    ctx.strokeStyle = '#1F2937';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+      console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('❌ Failed to get 2D context!');
+        return;
+      }
 
-    contextRef.current = ctx;
-    console.log('✅ Canvas context initialized:', ctx);
-  }, []);
+      ctx.strokeStyle = '#1F2937';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Setup canvas event listeners - runs once on mount
+      contextRef.current = ctx;
+      console.log('✅ Canvas context initialized:', ctx);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [expandedSections[26]]);
+
+  // Setup canvas event listeners - runs when section expands or state changes
   useEffect(() => {
-    const canvas = canvasRef.current;
-    console.log('🖱️ Event listeners setup - canvas:', canvas, 'context:', contextRef.current);
-    if (!canvas) {
-      console.error('❌ Canvas not available for event setup');
-      return;
-    }
-    if (!contextRef.current) {
-      console.error('❌ Context not available for event setup');
+    if (!expandedSections[26]) {
+      console.log('📦 Section 26 collapsed, skipping listener setup');
       return;
     }
 
-    const ctx = contextRef.current;
+    // Give DOM time to render the canvas element
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      console.log('🖱️ Event listeners setup - canvas:', canvas, 'context:', contextRef.current);
+      if (!canvas) {
+        console.error('❌ Canvas not available for event setup');
+        return;
+      }
+      if (!contextRef.current) {
+        console.error('❌ Context not available for event setup');
+        return;
+      }
+
+      const ctx = contextRef.current;
 
     const handleMouseDown = (e) => {
       console.log('🖱️ Mouse down - hasSignature:', hasSignature);
@@ -3144,6 +3161,7 @@ export default function CompanyAccreditationScreen({
     canvas.addEventListener('touchmove', handleTouchMove);
     canvas.addEventListener('touchend', handleTouchEnd);
 
+    // Cleanup on unmount or section collapse
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
@@ -3153,7 +3171,10 @@ export default function CompanyAccreditationScreen({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [expandedSections[26], hasSignature]);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
