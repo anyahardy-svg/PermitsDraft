@@ -54,10 +54,14 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function RichTextEditor({ value, onChange, disabled = false, placeholder = 'Enter content...' }) {
+export default function RichTextEditor({ value = '', onChange, disabled = false, placeholder = 'Enter content...' }) {
   const textInputRef = useRef(null);
 
   const insertMarkdown = (before, after = '') => {
+    if (!value) {
+      onChange(before + after);
+      return;
+    }
     const cursorPos = value.length; // Approximate cursor position at end
     const newValue = value.substring(0, cursorPos) + before + after + value.substring(cursorPos);
     onChange(newValue);
