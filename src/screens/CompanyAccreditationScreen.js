@@ -3242,28 +3242,32 @@ export default function CompanyAccreditationScreen({
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature *
               </Text>
-              <View style={{
-                borderWidth: 2,
-                borderColor: '#D1D5DB',
-                borderRadius: 6,
-                backgroundColor: '#FFFFFF',
-                overflow: 'hidden',
-                height: 150
-              }}>
-                <canvas
-                  ref={canvasRef}
-                  width={600}
-                  height={150}
-                  style={{
+              {React.createElement('div', {
+                style: {
+                  borderWidth: '2px',
+                  borderColor: '#D1D5DB',
+                  borderStyle: 'solid',
+                  borderRadius: '6px',
+                  backgroundColor: '#FFFFFF',
+                  overflow: 'hidden',
+                  height: '150px',
+                  width: '100%'
+                }
+              },
+                React.createElement('canvas', {
+                  ref: canvasRef,
+                  width: 600,
+                  height: 150,
+                  style: {
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
                     width: '100%',
                     height: '100%',
                     backgroundColor: '#F9FAFB',
                     touchAction: 'none'
-                  }}
-                />
-              </View>
+                  }
+                })
+              )}
               {hasSignature && (
                 <TouchableOpacity
                   onPress={handleClearSignature}
