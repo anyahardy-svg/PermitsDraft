@@ -288,6 +288,7 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     // STEP 1: Create USER in Authentication (for both contractor and admin_staff)
     console.log('👤 Creating auth user for:', request.email);
+    let authUserId = null;
     try {
       const authResponse = await fetch('/api/create-auth-user', {
         method: 'POST',
@@ -305,14 +306,23 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
       console.log('📡 Auth endpoint response status:', authResponse.status);
       
+      const authText = await authResponse.text();
+      console.log('📄 Auth endpoint response body:', authText);
+      
       if (!authResponse.ok) {
-        const error = await authResponse.json();
-        console.error('❌ Auth user creation failed:', authResponse.status, error);
-        return { success: false, error: 'Failed to create auth user: ' + error.error };
+        console.error('❌ Auth user creation failed:', authResponse.status);
+        let errorMsg = 'Failed to create auth user';
+        try {
+          const errorJson = JSON.parse(authText);
+          errorMsg = errorJson.error || errorMsg;
+        } catch (e) {}
+        return { success: false, error: errorMsg };
       }
 
-      const authData = await authResponse.json();
-      console.log('✅ Auth user created:', authData.userId);
+      const authData = JSON.parse(authText);
+      authUserId = authData.userId;
+      console.log('✅ Auth user created/verified:', authUserId);
+      console.log('📊 Full auth response:', authData);
     } catch (authErr) {
       console.error('❌ Error creating auth user:', authErr.message);
       return { success: false, error: 'Failed to create auth user: ' + authErr.message };
