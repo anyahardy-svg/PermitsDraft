@@ -1,9 +1,5 @@
-/**
- * Contractor Join Requests API
- * Handles contractor requests to join companies
- */
-
 import { supabase } from '../supabaseClient';
+import { inviteContractor } from './contractorAuth';
 
 /**
  * Submit a request to join a company
@@ -179,11 +175,21 @@ export async function approveJoinRequest(requestId, adminId) {
 
     console.log('✅ Join request approved, contractor created');
 
-    // TODO: Send invitation email to contractor
+    // Send invitation email to contractor
+    console.log('📧 Sending invitation email to:', request.email);
+    const inviteResult = await inviteContractor(request.email);
+
+    if (!inviteResult.success) {
+      console.warn('⚠️ Invitation email failed:', inviteResult.error);
+      // Still return success since contractor record was created
+      // Admin can manually resend invitation if needed
+    }
 
     return {
       success: true,
-      message: `Approved! Invitation email will be sent to ${request.email}`,
+      message: inviteResult.success 
+        ? `Approved! Invitation email sent to ${request.email}`
+        : `Approved! Contractor created, but invitation email failed. They can sign up manually.`,
       contractorId: contractor[0]?.id
     };
   } catch (error) {
