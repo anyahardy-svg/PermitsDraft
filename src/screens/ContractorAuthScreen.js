@@ -374,9 +374,9 @@ export default function ContractorAuthScreen({
             const error = await passwordResponse.json();
             console.error('❌ Password set failed:', error);
             
-            // If endpoint doesn't exist, fall back to password recovery email
-            if (passwordResponse.status === 404) {
-              console.log('📧 Endpoint not found, using password recovery email instead');
+            // If endpoint doesn't exist or is misconfigured, fall back to password recovery email
+            if (passwordResponse.status === 404 || passwordResponse.status === 500) {
+              console.log('📧 API unavailable, using password recovery email instead');
               const recoveryResult = await sendPasswordResetEmail(setupEmail);
               if (recoveryResult.success) {
                 Alert.alert(

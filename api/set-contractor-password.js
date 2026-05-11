@@ -7,7 +7,7 @@
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,9 +25,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing password' });
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ Missing Supabase config');
-      return res.status(500).json({ error: 'Server configuration error' });
+    if (!SUPABASE_URL) {
+      console.error('❌ Missing SUPABASE_URL');
+      return res.status(500).json({ error: 'Server configuration error: SUPABASE_URL not set' });
+    }
+
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY');
+      console.error('Available env keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('KEY')).slice(0, 10));
+      return res.status(500).json({ error: 'Server configuration error: Service role key not configured' });
     }
 
     console.log(`🔐 Setting password for contractor: ${email}`);

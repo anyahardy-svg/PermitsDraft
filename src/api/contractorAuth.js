@@ -211,19 +211,10 @@ export async function inviteContractor(email) {
 export async function sendPasswordResetCode(email) {
   try {
     console.log('🔑 Sending password reset code to:', email);
-    const { data: contractorData, error: contractorError } = await supabase
-      .from('contractors')
-      .select('id, email, name')
-      .eq('email', email)
-      .single();
-
-    if (contractorError || !contractorData) {
-      return { 
-        success: false, 
-        error: 'Email not found in our system. Please contact your administrator.' 
-      };
-    }
-
+    
+    // Don't require contractor record to exist - just send the email
+    // This supports newly approved contractors who may not be fully set up yet
+    
     // Send password reset code via Supabase (sends 6-digit OTP)
     console.log('📧 Sending password reset code via Supabase');
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
