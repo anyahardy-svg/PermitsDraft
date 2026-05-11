@@ -1135,33 +1135,51 @@ export default function ContractorAdminScreen({
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
+                    console.log('🗑️ Delete button clicked for:', contractor.name, contractor.id);
                     Alert.alert(
                       'Delete Contractor',
                       `Are you sure you want to delete ${contractor.name}?`,
                       [
-                        { text: 'Cancel', onPress: () => {} },
+                        { text: 'Cancel', onPress: () => console.log('❌ Delete cancelled') },
                         {
                           text: 'Delete',
                           onPress: async () => {
+                            console.log('🗑️ Delete confirmed, starting cascade delete...');
                             try {
-                              // First delete any contractor_inductions records for this contractor
-                              await supabase
+                              // First delete from contractor_inductions
+                              console.log('🗑️ Deleting contractor_inductions records...');
+                              const del1 = await supabase
                                 .from('contractor_inductions')
                                 .delete()
                                 .eq('contractor_id', contractor.id);
+                              console.log('✅ contractor_inductions deleted:', del1);
                               
-                              // Then delete the contractor
+                              // Then delete from contractor_induction_progress
+                              console.log('🗑️ Deleting contractor_induction_progress records...');
+                              const del2 = await supabase
+                                .from('contractor_induction_progress')
+                                .delete()
+                                .eq('contractor_id', contractor.id);
+                              console.log('✅ contractor_induction_progress deleted:', del2);
+                              
+                              // Finally delete the contractor
+                              console.log('🗑️ Deleting contractor record...');
                               const { error } = await supabase
                                 .from('contractors')
                                 .delete()
                                 .eq('id', contractor.id);
+                              
                               if (error) {
-                                Alert.alert('Error', 'Failed to delete contractor');
+                                console.error('❌ Contractor delete error:', error);
+                                Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
                               } else {
+                                console.log('✅ Contractor deleted successfully');
+                                Alert.alert('Success', 'Contractor deleted');
                                 loadInductions();
                               }
                             } catch (err) {
-                              Alert.alert('Error', 'Failed to delete contractor');
+                              console.error('❌ Delete error:', err);
+                              Alert.alert('Error', 'Failed to delete contractor: ' + err.message);
                             }
                           },
                           style: 'destructive'
