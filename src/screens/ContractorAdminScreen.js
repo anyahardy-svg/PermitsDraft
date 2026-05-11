@@ -1144,9 +1144,9 @@ export default function ContractorAdminScreen({
                           text: 'Delete',
                           onPress: async () => {
                             try {
-                              // First delete any induction records for this contractor
+                              // First delete any induction progress records for this contractor
                               await supabase
-                                .from('inductions')
+                                .from('contractor_induction_progress')
                                 .delete()
                                 .eq('contractor_id', contractor.id);
                               
