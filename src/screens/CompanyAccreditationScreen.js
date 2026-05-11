@@ -1411,6 +1411,17 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
 
+    // Debug logging
+    console.log(`[renderDocumentToggle] ${documentKey}:`, {
+      hasDocument,
+      evidence: itemData?.evidence,
+      url: itemData?.url,
+      certificateUrl: itemData?.certificateUrl,
+      itemData,
+      showOnlyIcon,
+      isUploading
+    });
+
     // Show loading indicator when uploading
     if (isUploading) {
       return (
