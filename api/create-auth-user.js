@@ -1,18 +1,13 @@
 /**
  * Backend endpoint to create auth users
- * Required because auth.admin methods only work with service role key
+ * Uses Supabase REST API to create users
  * 
  * Usage: POST /api/create-auth-user
  * Body: { email, name, companyId, companyName, userType }
  */
 
-const { createClient } = require('@supabase/supabase-js');
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Create Supabase client with service role (has admin capabilities)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,6 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error('❌ Missing Supabase config');
+      console.error('SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'NOT SET');
+      console.error('SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+      return res.status(500).json({ error: 'Supabase not configured' });
+    }
+
     const { email, name, companyId, companyName, userType } = req.body;
 
     if (!email) {
@@ -28,29 +30,45 @@ export default async function handler(req, res) {
 
     console.log(`👤 Creating auth user: ${email} (${userType})`);
 
-    // Create user in Supabase Auth with service role
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: email,
-      email_confirm: true,  // Auto-confirm so they don't need email verification
-      user_metadata: {
-        name: name || email,
-        company_name: companyName,
-        company_id: companyId,
-        user_type: userType
-      }
+    // Create user via Supabase Auth REST API
+    const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        email: email,
+        email_confirm: true,  // Auto-confirm so they don't need email verification
+        user_metadata: {
+          name: name || email,
+          company_name: companyName,
+          company_id: companyId,
+          user_type: userType
+        }
+      })
     });
 
-    if (error) {
-      console.error('❌ Failed to create auth user:', error);
-      return res.status(400).json({ error: error.message });
+    const authData = await authResponse.text();
+    
+    if (!authResponse.ok) {
+      console.error('❌ Auth API error:', authResponse.status, authData);
+      let errorMsg = 'Failed to create user';
+      try {
+        const parsed = JSON.parse(authData);
+        errorMsg = parsed.message || parsed.error || errorMsg;
+      } catch (e) {}
+      return res.status(authResponse.status).json({ error: errorMsg });
     }
 
-    console.log(`✅ Auth user created: ${data.user.id}`);
+    const user = JSON.parse(authData);
+    console.log(`✅ Auth user created: ${user.id}`);
 
     return res.status(200).json({
       success: true,
-      userId: data.user.id,
-      email: data.user.email,
+      userId: user.id,
+      email: user.email,
       message: `User ${email} created successfully`
     });
 
