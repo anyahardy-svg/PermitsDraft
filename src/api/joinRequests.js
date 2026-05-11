@@ -1,5 +1,48 @@
 import { supabase } from '../supabaseClient';
-import { inviteContractor } from './contractorAuth';
+
+/**
+ * Send email via Brevo API
+ * @param {Object} options - Email options
+ * @returns {Object} { success: boolean, message: string, error: string }
+ */
+async function sendEmailViaBrevo(options) {
+  try {
+    const { toEmail, toName, subject, htmlContent } = options;
+
+    const brevoKey = import.meta.env.VITE_BREVO_API_KEY;
+    if (!brevoKey) {
+      console.error('❌ BREVO_API_KEY not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': brevoKey
+      },
+      body: JSON.stringify({
+        to: [{ email: toEmail, name: toName }],
+        sender: { email: 'noreply@contractorhq.co.nz', name: 'Contractor Hub' },
+        subject,
+        htmlContent
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Brevo error:', errorData);
+      return { success: false, error: 'Failed to send email' };
+    }
+
+    console.log('✅ Email sent successfully to:', toEmail);
+    return { success: true, message: 'Email sent' };
+  } catch (error) {
+    console.error('❌ Email error:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * Submit a request to join a company
@@ -51,6 +94,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
     }
 
     console.log('✅ Join request submitted:', data[0]);
+
     return {
       success: true,
       message: `Your request to join ${companyName} has been submitted. An admin will review it within 24 hours.`,
@@ -184,21 +228,67 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     console.log('✅ Join request approved, contractor created');
 
-    // Send invitation email to contractor
-    console.log('📧 Sending invitation email to:', request.email);
-    const inviteResult = await inviteContractor(request.email);
+    // Send approval email to contractor
+    console.log('📧 Sending approval email to:', request.email);
+    const htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>Your Request Has Been Approved! 🎉</h2>
+            
+            <p>Hi ${request.name},</p>
+            
+            <p>Great news! Your request to join <strong>${request.company_name}</strong> has been <strong>approved</strong>.</p>
+            
+            <p>Your account is now ready to use. To get started:</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="https://contractorhq.co.nz/sign-in-contractor" 
+                 style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
+                Go to Login
+              </a>
+            </p>
+            
+            <p><strong>Next steps:</strong></p>
+            <ol>
+              <li>Click the button above to go to the login page</li>
+              <li>Click "Create Your Password" to set up your account</li>
+              <li>Enter your email (${request.email}) and create a password</li>
+              <li>You'll receive a verification code via email</li>
+              <li>Log in and start using Contractor Hub!</li>
+            </ol>
+            
+            <p><strong>Your company:</strong> ${request.company_name}</p>
+            
+            <p>If you have any questions or need assistance, please contact support at support@contractorhq.co.nz</p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="font-size: 12px; color: #999;">
+              This is an automated message from Contractor Hub. Please do not reply to this email.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const emailResult = await sendEmailViaBrevo({
+      toEmail: request.email,
+      toName: request.name,
+      subject: `Your Access to ${request.company_name} Has Been Approved!`,
+      htmlContent
+    });
 
-    if (!inviteResult.success) {
-      console.warn('⚠️ Invitation email failed:', inviteResult.error);
+    if (!emailResult.success) {
+      console.warn('⚠️ Approval email failed:', emailResult.error);
       // Still return success since contractor record was created
-      // Admin can manually resend invitation if needed
     }
 
     return {
       success: true,
-      message: inviteResult.success 
-        ? `Approved! Invitation email sent to ${request.email}`
-        : `Approved! Contractor created, but invitation email failed. They can sign up manually.`,
+      message: emailResult.success 
+        ? `Approved! Approval email sent to ${request.email}`
+        : `Approved! Contractor created, but approval email failed to send.`,
       contractorId: contractor[0]?.id
     };
   } catch (error) {
