@@ -1519,16 +1519,6 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
 
-    if (showOnlyIcon) {
-      console.log(`🎨 Rendering inline ${documentKey}:`, {
-        itemData,
-        hasDocument: !!hasDocument,
-        evidence: itemData?.evidence,
-        url: itemData?.url,
-        needsDocument
-      });
-    }
-
     // Show loading indicator when uploading
     if (isUploading) {
       return (
