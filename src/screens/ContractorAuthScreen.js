@@ -128,6 +128,11 @@ export default function ContractorAuthScreen({
       // If this is an invitation link from email, show password setup immediately
       if (queryType === 'invited') {
         console.log('✅ Invitation link detected - showing password form');
+        const emailParam = queryParams.get('email');
+        if (emailParam) {
+          console.log('✅ Pre-filling email from link:', emailParam);
+          setSetupEmail(emailParam);
+        }
         setPasswordFlowType('newUser'); 
         setPasswordResetStage('password'); 
         setShowPasswordSetup(true);

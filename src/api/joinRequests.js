@@ -361,10 +361,13 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     console.log('✅ Join request approved');
 
-    // Send approval email
+    // Send approval email with password setup link
     console.log('📧 Sending approval email to:', request.email);
     
     const userTypeLabel = request.will_work_on_site ? 'Contractor' : 'Admin Staff';
+    
+    // Generate password setup URL - user will be taken directly to password setup screen
+    const setupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(request.email)}`;
     
     const htmlContent = `
       <html>
@@ -378,25 +381,28 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
             
             <p><strong>Your role:</strong> ${userTypeLabel}</p>
             
-            <p>Your account is now ready to use. To get started:</p>
+            <p>Your account is now ready to use. To get started, please set your password:</p>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="https://contractorhq.co.nz/sign-in-contractor" 
+              <a href="${setupUrl}" 
                  style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
-                Go to Login
+                Set Up Your Password
               </a>
             </p>
             
             <p><strong>Next steps:</strong></p>
             <ol>
-              <li>Click the button above to go to the login page</li>
-              <li>Click "Create Your Password" to set up your account</li>
-              <li>Enter your email (${request.email}) and create a password</li>
-              <li>You'll receive a verification code via email</li>
-              <li>Log in and start using Contractor Hub!</li>
+              <li>Click the button above to set up your password</li>
+              <li>Create a secure password for your account</li>
+              <li>Log in with your email (${request.email}) and password</li>
+              <li>Start using Contractor Hub!</li>
             </ol>
             
             <p><strong>Your company:</strong> ${request.company_name}</p>
+            
+            <p style="padding: 12px; background-color: #EFF6FF; border-left: 3px solid #3B82F6; font-size: 13px;">
+              <strong>💡 Tip:</strong> If the password setup link doesn't work, you can visit the login page and click "Forgot Password?" to set up your password.
+            </p>
             
             <p>If you have any questions or need assistance, please contact support at support@contractorhq.co.nz</p>
             
