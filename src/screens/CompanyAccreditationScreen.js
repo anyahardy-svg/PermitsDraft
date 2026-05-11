@@ -1418,6 +1418,34 @@ export default function CompanyAccreditationScreen({
   // Handle evidence upload for sections 4 & 5
   const handleUploadEvidence = async (section, itemKey, itemLabel) => {
     console.log('🔴 handleUploadEvidence called!', { section, itemKey, itemLabel });
+    
+    // Map section names to their setState functions
+    const sectionStateMap = {
+      'section4': { get: () => section4, set: setSection4 },
+      'section5': { get: () => section5, set: setSection5 },
+      'section6': { get: () => section6, set: setSection6 },
+      'section7': { get: () => section7, set: setSection7 },
+      'section8': { get: () => section8, set: setSection8 },
+      'section9': { get: () => section9, set: setSection9 },
+      'section10': { get: () => section10, set: setSection10 },
+      'section11': { get: () => section11, set: setSection11 },
+      'section12': { get: () => section12, set: setSection12 },
+      'section13': { get: () => section13, set: setSection13 },
+      'section14': { get: () => section14, set: setSection14 },
+      'section15': { get: () => section15, set: setSection15 },
+      'section16': { get: () => section16, set: setSection16 },
+      'section17': { get: () => section17, set: setSection17 },
+      'section18': { get: () => section18, set: setSection18 },
+      'section19': { get: () => section19, set: setSection19 },
+      'section20': { get: () => section20, set: setSection20 },
+      'section21': { get: () => section21, set: setSection21 },
+      'section22': { get: () => section22, set: setSection22 },
+      'section23': { get: () => section23, set: setSection23 },
+      'section24': { get: () => section24, set: setSection24 },
+      'section25': { get: () => section25, set: setSection25 },
+      'section26': { get: () => section26, set: setSection26 }
+    };
+    
     try {
       console.log('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
@@ -1464,9 +1492,10 @@ export default function CompanyAccreditationScreen({
         console.log(`✅ Upload successful, URL: ${uploadResult.url}`);
         console.log(`📝 Setting ${section}.${itemKey} to:`, { evidence: uploadResult.url });
         
-        // Update state with the new URL
-        if (section === 'section4') {
-          setSection4(prev => {
+        // Update state with the new URL using the section map
+        const sectionUpdater = sectionStateMap[section];
+        if (sectionUpdater) {
+          sectionUpdater.set(prev => {
             const updated = {
               ...prev,
               [itemKey]: {
@@ -1474,21 +1503,11 @@ export default function CompanyAccreditationScreen({
                 evidence: uploadResult.url
               }
             };
-            console.log('🔄 Updated section4 state:', updated);
+            console.log(`🔄 Updated ${section} state:`, updated);
             return updated;
           });
-        } else if (section === 'section5') {
-          setSection5(prev => {
-            const updated = {
-              ...prev,
-              [itemKey]: {
-                ...prev[itemKey],
-                evidence: uploadResult.url
-              }
-            };
-            console.log('🔄 Updated section5 state:', updated);
-            return updated;
-          });
+        } else {
+          console.warn(`⚠️ Unknown section: ${section}`);
         }
         
         // Immediately save to database after upload (don't wait 30 seconds!)
