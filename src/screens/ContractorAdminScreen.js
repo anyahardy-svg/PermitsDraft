@@ -1144,6 +1144,13 @@ export default function ContractorAdminScreen({
                           text: 'Delete',
                           onPress: async () => {
                             try {
+                              // First delete any induction records for this contractor
+                              await supabase
+                                .from('inductions')
+                                .delete()
+                                .eq('contractor_id', contractor.id);
+                              
+                              // Then delete the contractor
                               const { error } = await supabase
                                 .from('contractors')
                                 .delete()
