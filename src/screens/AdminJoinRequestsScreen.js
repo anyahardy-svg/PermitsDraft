@@ -86,19 +86,34 @@ export default function AdminJoinRequestsScreen({
 
     setIsApproving(true);
     try {
+      console.log('🔍 Approving request:', { 
+        requestId: selectedRequest.id, 
+        adminId: adminUser.id, 
+        companyId: selectedCompanyId 
+      });
+      
       const result = await approveJoinRequest(selectedRequest.id, adminUser.id, selectedCompanyId);
+      
+      console.log('📋 Approval result:', result);
+      
       if (result.success) {
-        Alert.alert('Success', result.message);
+        Alert.alert('Success', 'Request approved! ✅\n\nThe request has been marked as approved and the contractor has been notified.');
         setShowApprovalModal(false);
         setSelectedRequest(null);
         setSelectedCompanyId(null);
-        loadJoinRequests();
+        setCompanySearchText('');
+        
+        // Reload after a short delay to ensure DB is updated
+        setTimeout(() => {
+          loadJoinRequests();
+        }, 500);
       } else {
+        console.error('❌ Approval failed:', result);
         Alert.alert('Error', result.error || 'Failed to approve request');
       }
     } catch (error) {
-      console.error('Error approving request:', error);
-      Alert.alert('Error', 'Failed to approve request');
+      console.error('❌ Error approving request:', error);
+      Alert.alert('Error', error.message || 'Failed to approve request');
     } finally {
       setIsApproving(false);
     }
@@ -113,19 +128,33 @@ export default function AdminJoinRequestsScreen({
 
     setIsRejecting(true);
     try {
+      console.log('🔍 Rejecting request:', { 
+        requestId: selectedRequest.id, 
+        adminId: adminUser.id, 
+        reason: rejectionReason 
+      });
+      
       const result = await rejectJoinRequest(selectedRequest.id, adminUser.id, rejectionReason);
+      
+      console.log('📋 Rejection result:', result);
+      
       if (result.success) {
-        Alert.alert('Success', 'Request rejected');
+        Alert.alert('Success', 'Request rejected! ✗\n\nThe contractor has been notified of the rejection.');
         setShowRejectionModal(false);
         setSelectedRequest(null);
         setRejectionReason('');
-        loadJoinRequests();
+        
+        // Reload after a short delay to ensure DB is updated
+        setTimeout(() => {
+          loadJoinRequests();
+        }, 500);
       } else {
+        console.error('❌ Rejection failed:', result);
         Alert.alert('Error', result.error || 'Failed to reject request');
       }
     } catch (error) {
-      console.error('Error rejecting request:', error);
-      Alert.alert('Error', 'Failed to reject request');
+      console.error('❌ Error rejecting request:', error);
+      Alert.alert('Error', error.message || 'Failed to reject request');
     } finally {
       setIsRejecting(false);
     }
