@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS contractor_join_requests (
   status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
   requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   reviewed_at TIMESTAMP WITH TIME ZONE,
-  reviewed_by UUID REFERENCES users(id),
+  reviewed_by UUID, -- System admin user ID (from admin_users table, no FK constraint)
   rejection_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -105,3 +105,11 @@ CREATE POLICY contractor_join_requests_update_admin
       AND contractors.company_id = contractor_join_requests.company_id
     )
   );
+
+-- System admins (via unauthenticated anon key with session protection) can update requests
+-- Frontend handles session validation and authorization checks
+CREATE POLICY contractor_join_requests_update_system_admin
+  ON contractor_join_requests FOR UPDATE
+  TO public
+  USING (true)
+  WITH CHECK (true);

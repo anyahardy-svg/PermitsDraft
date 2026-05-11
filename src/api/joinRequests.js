@@ -286,7 +286,37 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     let contractorId = null;
 
-    // Only create contractor record if they'll work on site
+    // STEP 1: Create USER in Authentication (for both contractor and admin_staff)
+    console.log('👤 Creating auth user for:', request.email);
+    try {
+      const authResponse = await fetch('/api/create-auth-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: request.email,
+          name: request.name,
+          companyId: companyIdToUse,
+          companyName: request.company_name,
+          userType: request.user_type
+        })
+      });
+
+      if (!authResponse.ok) {
+        const error = await authResponse.json();
+        console.error('❌ Auth user creation failed:', error);
+        return { success: false, error: 'Failed to create auth user: ' + error.error };
+      }
+
+      const authData = await authResponse.json();
+      console.log('✅ Auth user created:', authData.userId);
+    } catch (authErr) {
+      console.error('❌ Error creating auth user:', authErr);
+      return { success: false, error: 'Failed to create auth user: ' + authErr.message };
+    }
+
+    // STEP 2: Create contractor record if they'll work on site
     if (request.will_work_on_site) {
       const { data: contractor, error: contractorError } = await supabase
         .from('contractors')
@@ -308,7 +338,7 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       contractorId = contractor[0]?.id;
       console.log('✅ Contractor record created:', contractorId);
     } else {
-      console.log('ℹ️ Admin staff - not creating contractor record');
+      console.log('ℹ️ Admin staff - no contractor record needed');
     }
 
     // Update request status
