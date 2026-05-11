@@ -32,8 +32,15 @@ export default async function handler(req, res) {
 
     if (!SUPABASE_SERVICE_ROLE_KEY) {
       console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY');
-      console.error('Available env keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('KEY')).slice(0, 10));
-      return res.status(500).json({ error: 'Server configuration error: Service role key not configured' });
+      // Log all available environment variables that might be the service role key
+      const supabaseEnv = Object.keys(process.env)
+        .filter(k => k.toUpperCase().includes('SUPABASE') || k.toUpperCase().includes('SERVICE') || k.toUpperCase().includes('ROLE'))
+        .map(k => ({ name: k, exists: !!process.env[k], length: process.env[k]?.length || 0 }));
+      console.error('🔍 Available Supabase-related env vars:', JSON.stringify(supabaseEnv, null, 2));
+      return res.status(500).json({ 
+        error: 'Service role key not configured',
+        debug: 'Check server logs for available environment variables'
+      });
     }
 
     console.log(`🔐 Setting password for contractor: ${email}`);
@@ -53,8 +60,9 @@ export default async function handler(req, res) {
     );
 
     if (!getUserResponse.ok) {
-      console.error('❌ Failed to get user:', getUserResponse.status);
-      return res.status(400).json({ error: 'User not found' });
+      const errorText = await getUserResponse.text();
+      console.error('❌ Failed to get user:', getUserResponse.status, errorText);
+      return res.status(400).json({ error: 'User not found or invalid credentials' });
     }
 
     const usersData = await getUserResponse.json();
