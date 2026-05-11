@@ -345,6 +345,8 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
     const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${companyId}/${certificationType}/${timestamp}.${fileExt}`;
 
+    console.log('📤 Uploading accreditation file:', { fileName, fileType: file.type, fileSize: file.size });
+
     const { data, error } = await supabase.storage
       .from('accreditations')
       .upload(fileName, file, {
@@ -352,19 +354,26 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
         upsert: false,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Storage upload error:', error);
+      throw error;
+    }
+
+    console.log('✅ File uploaded successfully:', data);
 
     // Get public URL
     const { data: publicUrl } = supabase.storage
       .from('accreditations')
       .getPublicUrl(fileName);
 
+    console.log('📍 Public URL:', publicUrl.publicUrl);
+
     return {
       success: true,
       url: publicUrl.publicUrl
     };
   } catch (error) {
-    console.error('Error uploading certificate:', error.message);
+    console.error('❌ Error uploading certificate:', error.message);
     return {
       success: false,
       error: error.message
@@ -388,18 +397,25 @@ export const deleteAccreditationCertificate = async (certificateUrl) => {
     
     const filePath = urlParts[1];
 
+    console.log('🗑️ Deleting accreditation file:', filePath);
+
     const { error } = await supabase.storage
       .from('accreditations')
       .remove([filePath]);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Storage deletion error:', error);
+      throw error;
+    }
+
+    console.log('✅ File deleted successfully:', filePath);
 
     return {
       success: true,
       message: 'Certificate deleted successfully'
     };
   } catch (error) {
-    console.error('Error deleting certificate:', error.message);
+    console.error('❌ Error deleting certificate:', error.message);
     return {
       success: false,
       error: error.message
