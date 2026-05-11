@@ -61,6 +61,7 @@ export default function CompanyAccreditationScreen({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
+  const [uploadingDocumentKey, setUploadingDocumentKey] = useState(null); // Track which document is uploading
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
   
   // Restore expanded sections from localStorage or use defaults
@@ -1040,6 +1041,9 @@ export default function CompanyAccreditationScreen({
       const file = result.assets[0];
       if (!file) return;
 
+      // Set uploading state
+      setUploadingDocumentKey(`system-${systemKey}`);
+
       // Convert the file URI to a blob
       const response = await fetch(file.uri);
       const blob = await response.blob();
@@ -1070,13 +1074,14 @@ export default function CompanyAccreditationScreen({
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
-        Alert.alert('Success', `${systemLabel} certificate uploaded successfully`);
+        Alert.alert('Success ✅', `${systemLabel} certificate uploaded successfully!`);
       } else {
         Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult?.error || 'Unknown error'));
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      setUploadingDocumentKey(null);
       setLoading(false);
     }
   };
@@ -1140,6 +1145,9 @@ export default function CompanyAccreditationScreen({
       const file = result.assets[0];
       if (!file) return;
 
+      // Set uploading state
+      setUploadingDocumentKey(`policy-${policyKey}`);
+
       // Convert the file URI to a blob
       const response = await fetch(file.uri);
       const blob = await response.blob();
@@ -1170,13 +1178,14 @@ export default function CompanyAccreditationScreen({
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
-        Alert.alert('Success', `${policyLabel} document uploaded successfully`);
+        Alert.alert('Success ✅', `${policyLabel} document uploaded successfully!`);
       } else {
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      setUploadingDocumentKey(null);
       setLoading(false);
     }
   };
@@ -1246,6 +1255,9 @@ export default function CompanyAccreditationScreen({
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
 
+      // Set uploading state
+      setUploadingDocumentKey(`insurance-${insuranceType}`);
+
       // Upload to Supabase Storage (accreditations bucket, same as other docs)
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
@@ -1272,13 +1284,14 @@ export default function CompanyAccreditationScreen({
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
-        Alert.alert('Success', `${insuranceLabel} certificate uploaded successfully`);
+        Alert.alert('Success ✅', `${insuranceLabel} certificate uploaded successfully!`);
       } else {
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      setUploadingDocumentKey(null);
       setLoading(false);
     }
   };
@@ -1344,6 +1357,9 @@ export default function CompanyAccreditationScreen({
       const file = result.assets[0];
       if (!file) return;
 
+      // Set uploading state
+      setUploadingDocumentKey(`${section}-${itemKey}-evidence`);
+
       // Convert the file URI to a blob
       const response = await fetch(file.uri);
       const blob = await response.blob();
@@ -1378,13 +1394,14 @@ export default function CompanyAccreditationScreen({
             }
           }));
         }
-        Alert.alert('Success', `${itemLabel} evidence uploaded successfully`);
+        Alert.alert('Success ✅', `${itemLabel} evidence uploaded successfully!`);
       } else {
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      setUploadingDocumentKey(null);
       setLoading(false);
     }
   };
@@ -1394,6 +1411,17 @@ export default function CompanyAccreditationScreen({
     const isDocUIExpanded = expandedEvidenceUI === documentKey;
     const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
     const needsDocument = itemData?.score > 1 && !hasDocument;
+    const isUploading = uploadingDocumentKey === documentKey;
+
+    // Show loading indicator when uploading
+    if (isUploading) {
+      return (
+        <View style={{ paddingTop: 12, paddingBottom: 12, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3B82F6" style={{ marginBottom: 8 }} />
+          <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>⏳ Uploading {itemLabel}...</Text>
+        </View>
+      );
+    }
 
     // If showOnlyIcon is true, only render the paperclip button (for inline use in the row)
     if (showOnlyIcon) {
