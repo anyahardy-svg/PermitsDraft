@@ -1,34 +1,37 @@
 import { supabase } from '../supabaseClient';
 
 /**
- * Send email via Supabase Edge Function (secure backend)
+ * Send email via backend API (secure - API key never exposed to browser)
+ * Uses the same backend route as all other emails in the system
  * @param {Object} options - Email options
  * @returns {Object} { success: boolean, message: string, error: string }
  */
-async function sendEmailViaBrevo(options) {
+async function sendEmailViaBackend(options) {
   try {
     const { toEmail, toName, subject, htmlContent } = options;
 
-    // Call Supabase Edge Function instead of calling Brevo directly
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: {
+    // Call backend API route - same secure approach used by admin setup, password resets, etc.
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'join-request',  // Custom type for join requests
         toEmail,
         toName,
         subject,
         htmlContent
-      }
+      })
     });
 
-    if (error) {
-      console.error('❌ Edge Function error:', error);
-      return { success: false, error: error.message || 'Failed to send email' };
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Backend API error:', error);
+      return { success: false, error: error.error || 'Failed to send email' };
     }
 
-    if (!data?.success) {
-      console.error('❌ Email send failed:', data?.error);
-      return { success: false, error: data?.error || 'Failed to send email' };
-    }
-
+    const data = await response.json();
     console.log('✅ Email sent successfully to:', toEmail);
     return { success: true, message: 'Email sent' };
   } catch (error) {
@@ -114,7 +117,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
       </html>
     `;
 
-    await sendEmailViaBrevo({
+    await sendEmailViaBackend({
       toEmail: email,
       toName: name,
       subject: 'Your Request to Join ' + companyName,
@@ -150,7 +153,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
       </html>
     `;
 
-    await sendEmailViaBrevo({
+    await sendEmailViaBackend({
       toEmail: 'support@contractorhq.co.nz',
       toName: 'Support',
       subject: `New Join Request: ${name} wants to join ${companyName}`,
@@ -348,7 +351,7 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       </html>
     `;
     
-    const emailResult = await sendEmailViaBrevo({
+    const emailResult = await sendEmailViaBackend({
       toEmail: request.email,
       toName: request.name,
       subject: `Your Access to ${request.company_name} Has Been Approved!`,

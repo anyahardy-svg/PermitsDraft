@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
-    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl } = req.body;
+    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent } = req.body;
 
     if (!toEmail) {
       return res.status(400).json({ error: 'Missing toEmail' });
@@ -81,6 +81,11 @@ export default async function handler(req, res) {
     } else if (type === 'admin-password-reset') {
       if (!adminName || !resetUrl) {
         return res.status(400).json({ error: 'Missing adminName or resetUrl for password reset' });
+      }
+    } else if (type === 'join-request') {
+      // Custom email for join requests - uses provided subject and htmlContent
+      if (!subject || !htmlContent) {
+        return res.status(400).json({ error: 'Missing subject or htmlContent for join-request' });
       }
     }
 
@@ -111,9 +116,14 @@ export default async function handler(req, res) {
       }
     }
 
-    let subject, htmlContent;
+    let actualSubject, actualHtmlContent;
 
-    if (type === 'invitation') {
+    // Handle different email types
+    if (type === 'join-request') {
+      // Custom email for join requests - use provided subject and htmlContent
+      actualSubject = subject;
+      actualHtmlContent = htmlContent;
+    } else if (type === 'invitation') {
       const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
         weekday: 'long', 
         year: 'numeric', 
@@ -121,11 +131,11 @@ export default async function handler(req, res) {
         day: 'numeric' 
       }) : 'As soon as possible';
 
-      subject = actuallyNewUser 
+      actualSubject = actuallyNewUser 
         ? `${companyName} - Complete Your Company Accreditation`
         : `Request to Complete ${companyName} Accreditation`;
 
-      htmlContent = actuallyNewUser 
+      actualHtmlContent = actuallyNewUser 
         ? `
           <h2>Complete Your Company Accreditation</h2>
           <p>Hello,</p>
@@ -150,8 +160,8 @@ export default async function handler(req, res) {
         `;
     } else if (type === 'request') {
       const { name, email: senderEmail } = req.body;
-      subject = `[Accreditation Request] ${companyName} - ${name}`;
-      htmlContent = `
+      actualSubject = `[Accreditation Request] ${companyName} - ${name}`;
+      actualHtmlContent = `
         <h2>New Accreditation Invitation Request</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${senderEmail}</p>
@@ -160,8 +170,8 @@ export default async function handler(req, res) {
       `;
     } else if (type === 'admin-setup') {
       const { adminName, setupUrl } = req.body;
-      subject = 'Welcome to Admin Panel - Set Your Password';
-      htmlContent = `
+      actualSubject = 'Welcome to Admin Panel - Set Your Password';
+      actualHtmlContent = `
         <h2>Welcome to the Admin Panel</h2>
         <p>Hello ${adminName},</p>
         <p>Your admin account has been successfully created. To get started, please set your password:</p>
@@ -175,8 +185,8 @@ export default async function handler(req, res) {
       `;
     } else if (type === 'admin-password-reset') {
       const { adminName, resetUrl } = req.body;
-      subject = 'Admin Panel - Password Reset Request';
-      htmlContent = `
+      actualSubject = 'Admin Panel - Password Reset Request';
+      actualHtmlContent = `
         <h2>Password Reset Request</h2>
         <p>Hello ${adminName},</p>
         <p>You have requested to reset your admin password. Click the link below to proceed:</p>
@@ -199,10 +209,10 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        to: [{ email: type === 'request' ? SUPPORT_EMAIL : toEmail }],
-        subject: subject,
+        to: [{ email: type === 'request' ? SUPPORT_EMAIL : toEmail, name: type === 'join-request' ? toName : undefined }],
+        subject: actualSubject,
         sender: { email: FROM_EMAIL, name: FROM_NAME },
-        htmlContent: htmlContent,
+        htmlContent: actualHtmlContent,
       }),
     });
 
