@@ -61,7 +61,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
       .eq('email', email)
       .is('company_id', null)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (!checkError && existingRequest) {
       return {
