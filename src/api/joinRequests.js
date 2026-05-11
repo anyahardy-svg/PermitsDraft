@@ -19,7 +19,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
       .from('contractor_join_requests')
       .select('id, status')
       .eq('email', email)
-      .isNull('company_id')
+      .is('company_id', null)
       .eq('status', 'pending')
       .single();
 
