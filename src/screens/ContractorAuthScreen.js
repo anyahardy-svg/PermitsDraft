@@ -330,8 +330,6 @@ export default function ContractorAuthScreen({
       return;
     }
 
-    Alert.alert('Starting', 'Beginning password setup for: ' + setupEmail);
-
     if (!newPassword.trim()) {
       Alert.alert('Validation', 'Please enter a password');
       return;
@@ -355,73 +353,54 @@ export default function ContractorAuthScreen({
     setSetupLoading(true);
     try {
       if (passwordFlowType === 'newUser') {
-        // NEW USER: Sign up directly with email and password
-        console.log('🆕 Signing up new contractor:', setupEmail);
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: setupEmail,
-          password: newPassword,
-          options: {
-            emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : 'https://contractorhq.co.nz'
-          }
-        });
+        // NEW USER: Try to update password directly via API endpoint
+        // Since user was already created during approval (with no password),
+        // we need to set their password for them via backend
+        console.log('🔐 Setting password for new contractor:', setupEmail);
+        
+        try {
+          const passwordResponse = await fetch('/api/set-contractor-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: setupEmail,
+              password: newPassword
+            })
+          });
 
-        if (signUpError) {
-          console.error('❌ Signup error:', signUpError);
-          
-          // Handle specific rate limit error
-          if (signUpError.message && signUpError.message.includes('50 seconds')) {
-            Alert.alert(
-              '⏳ Too Many Attempts',
-              'For security reasons, please wait 50 seconds before trying again. This prevents unauthorized account creation attempts.',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => {
+          if (!passwordResponse.ok) {
+            const error = await passwordResponse.json();
+            console.error('❌ Password set failed:', error);
+            
+            // If endpoint doesn't exist, fall back to password recovery email
+            if (passwordResponse.status === 404) {
+              console.log('📧 Endpoint not found, using password recovery email instead');
+              const recoveryResult = await sendPasswordResetEmail(setupEmail);
+              if (recoveryResult.success) {
+                Alert.alert(
+                  'Verify Your Email',
+                  'A password recovery link has been sent to ' + setupEmail + '. Please check your email and click the link to set your password.',
+                  [{ text: 'OK', onPress: () => {
                     setSetupLoading(false);
-                  }
-                }
-              ]
-            );
-          } else {
-            Alert.alert('Error', signUpError.message || 'Failed to create account');
-            setSetupLoading(false);
+                    setShowPasswordSetup(false);
+                  }}]
+                );
+              } else {
+                throw new Error(recoveryResult.error || 'Failed to send recovery email');
+              }
+              return;
+            }
+            
+            throw new Error(error.error || 'Failed to set password');
           }
-          return;
-        }
 
-        // Success! Account created
-        console.log('✅ Account created successfully');
-        console.log('📋 Full signUpData:', JSON.stringify(signUpData, null, 2));
-        console.log('📋 signUpData.user:', signUpData.user);
-        
-        if (!signUpData.user) {
-          console.error('❌ No user data returned from signup');
-          Alert.alert('Error', 'Account creation failed - no user data returned');
+          const result = await passwordResponse.json();
+          console.log('✅ Password set successfully');
+          
+          // Reset form and show success
           setSetupLoading(false);
-          return;
-        }
-
-        console.log('📋 user.id:', signUpData.user.id);
-        console.log('📋 user.email:', signUpData.user.email);
-        console.log('📋 user.confirmed_at:', signUpData.user.confirmed_at);
-        console.log('📋 user.email_confirmed_at:', signUpData.user.email_confirmed_at);
-        
-        // Check if email confirmation is required (confirmed_at will be null if email not confirmed)
-        const emailNeedsConfirmation = !signUpData.user.confirmed_at && !signUpData.user.email_confirmed_at;
-        console.log('📧 emailNeedsConfirmation:', emailNeedsConfirmation);
-        
-        setSetupLoading(false);
-        
-        if (emailNeedsConfirmation) {
-          console.log('📧 EMAIL NEEDS CONFIRMATION - showing verification screen');
-          setShowPasswordSetup(false);
-          setVerificationEmail(setupEmail);
-          setShowVerificationMessage(true);
-          console.log('📧 showVerificationMessage set to true, showPasswordSetup set to false');
-          return;
-        } else {
-          console.log('✅ Account created, no email confirmation required - logging user in');
-          // Reset form
           setShowPasswordSetup(false);
           setPasswordResetStage('email');
           setPasswordFlowType('reset');
@@ -431,20 +410,23 @@ export default function ContractorAuthScreen({
           setOtpCode('');
           setOtpError(null);
           
-          // No email confirmation required, user can login immediately
-          if (onLoginSuccess && signUpData.user) {
-            console.log('📞 Calling onLoginSuccess with email:', setupEmail);
-            onLoginSuccess({
-              contractorId: setupEmail,
-              contractorName: setupEmail,
-              companyId: null,
-              email: setupEmail
-            });
-          }
+          Alert.alert(
+            'Password Set Successfully!',
+            'Your account is ready. You can now log in with your email and password.',
+            [{ text: 'OK', onPress: () => {
+              // Refresh page to show login form
+              window.location.reload();
+            }}]
+          );
+          return;
+        } catch (apiError) {
+          console.error('❌ Error:', apiError);
+          Alert.alert('Error', apiError.message || 'Failed to set password');
+          setSetupLoading(false);
+          return;
         }
-        return; // Exit early, don't run the finally block's setSetupLoading(false)
       } else {
-        // PASSWORD RESET: Update password for existing user
+        // PASSWORD RESET: Update password for existing user (already authenticated)
         const { error } = await supabase.auth.updateUser({
           password: newPassword
         });
