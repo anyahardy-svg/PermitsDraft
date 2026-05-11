@@ -303,16 +303,18 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
         })
       });
 
+      console.log('📡 Auth endpoint response status:', authResponse.status);
+      
       if (!authResponse.ok) {
         const error = await authResponse.json();
-        console.error('❌ Auth user creation failed:', error);
+        console.error('❌ Auth user creation failed:', authResponse.status, error);
         return { success: false, error: 'Failed to create auth user: ' + error.error };
       }
 
       const authData = await authResponse.json();
       console.log('✅ Auth user created:', authData.userId);
     } catch (authErr) {
-      console.error('❌ Error creating auth user:', authErr);
+      console.error('❌ Error creating auth user:', authErr.message);
       return { success: false, error: 'Failed to create auth user: ' + authErr.message };
     }
 
