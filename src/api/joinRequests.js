@@ -45,31 +45,6 @@ async function sendEmailViaBrevo(options) {
 }
 
 /**
- * Get admin email for a company (from companies table admin_email field)
- * @param {string} companyId - UUID of company
- * @returns {Promise<Object>} { email: string, companyName: string } or null
- */
-async function getCompanyAdminEmail(companyId) {
-  try {
-    const { data: company, error } = await supabase
-      .from('companies')
-      .select('admin_email, company_name')
-      .eq('id', companyId)
-      .single();
-
-    if (error || !company?.admin_email) {
-      console.warn('Could not find admin email for company:', companyId);
-      return null;
-    }
-
-    return { email: company.admin_email, companyName: company.company_name };
-  } catch (error) {
-    console.error('Exception fetching company admin:', error);
-    return null;
-  }
-}
-
-/**
  * Submit a request to join a company
  * @param {string} email - Contractor email
  * @param {string} name - Contractor name
@@ -119,63 +94,6 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
     }
 
     console.log('✅ Join request submitted:', data[0]);
-
-    // Try to send admin notification email
-    // First try to find company by name to get admin email
-    if (companyName) {
-      try {
-        const { data: companies } = await supabase
-          .from('companies')
-          .select('id, admin_email, company_name')
-          .ilike('company_name', companyName)
-          .limit(1);
-
-        if (companies && companies.length > 0) {
-          const company = companies[0];
-          if (company.admin_email) {
-            const htmlContent = `
-              <html>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>New Join Request - Pending Review 📋</h2>
-                    <p>Hi Admin,</p>
-                    <p><strong>${name}</strong> has requested to join <strong>${companyName}</strong>.</p>
-                    <p><strong>Their details:</strong></p>
-                    <ul>
-                      <li><strong>Name:</strong> ${name}</li>
-                      <li><strong>Email:</strong> ${email}</li>
-                      <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
-                      <li><strong>Company:</strong> ${companyName}</li>
-                    </ul>
-                    <p style="text-align: center; margin: 30px 0;">
-                      <a href="https://contractorhq.co.nz/contractor-admin?tab=join-requests" 
-                         style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
-                        Review Request in Admin Panel
-                      </a>
-                    </p>
-                    <p><strong>Next steps:</strong></p>
-                    <ol>
-                      <li>Log in to your admin panel</li>
-                      <li>Go to the "Join Requests" tab</li>
-                      <li>Review and approve or reject the request</li>
-                    </ol>
-                  </div>
-                </body>
-              </html>
-            `;
-            await sendEmailViaBrevo({
-              toEmail: company.admin_email,
-              toName: 'Admin',
-              subject: `New Join Request: ${name} wants to join ${companyName}`,
-              htmlContent
-            });
-          }
-        }
-      } catch (adminEmailError) {
-        console.warn('⚠️ Could not send admin notification:', adminEmailError.message);
-        // Don't fail the operation - user request was created successfully
-      }
-    }
 
     return {
       success: true,
