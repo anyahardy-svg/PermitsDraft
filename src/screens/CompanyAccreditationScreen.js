@@ -1669,11 +1669,6 @@ export default function CompanyAccreditationScreen({
           </>
         ) : (
           <>
-            {needsDocument && (
-              <View style={{ marginBottom: 10, padding: 10, backgroundColor: '#FEE2E2', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required for Score {itemData?.score}</Text>
-              </View>
-            )}
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
               onPress={() => handleUploadFn()}
