@@ -1411,15 +1411,13 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
 
-    // Debug logging
     console.log(`[renderDocumentToggle] ${documentKey}:`, {
-      hasDocument,
+      hasDocument: !!hasDocument,
       evidence: itemData?.evidence,
       url: itemData?.url,
       certificateUrl: itemData?.certificateUrl,
-      itemData,
-      showOnlyIcon,
-      isUploading
+      fullItemData: itemData,
+      showOnlyIcon
     });
 
     // Show loading indicator when uploading
@@ -1434,27 +1432,27 @@ export default function CompanyAccreditationScreen({
 
     // If showOnlyIcon is true, render paperclip button PLUS full document status with view/download
     if (showOnlyIcon) {
-      return (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
-          <TouchableOpacity
-            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 5,
-              backgroundColor: hasDocument ? '#D1FAE5' : needsDocument ? '#FEE2E2' : '#F3F4F6',
-              borderWidth: 1,
-              borderColor: hasDocument ? '#10B981' : needsDocument ? '#FCA5A5' : '#D1D5DB',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: 2
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>📎</Text>
-          </TouchableOpacity>
-          
-          {/* Document Status - visible even when collapsed */}
-          {hasDocument ? (
+      // ALWAYS show document info if hasDocument, regardless of any other conditions
+      if (hasDocument && itemData?.evidence) {
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#D1FAE5',
+                borderWidth: 1,
+                borderColor: '#10B981',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>📎</Text>
+            </TouchableOpacity>
+            
             <View style={{ flex: 1 }}>
               <View style={{
                 paddingHorizontal: 10,
@@ -1465,12 +1463,36 @@ export default function CompanyAccreditationScreen({
                 borderLeftColor: '#10B981'
               }}>
                 <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(itemData?.url || itemData?.evidence || itemData?.certificateUrl)}>
+                <TouchableOpacity onPress={() => Linking.openURL(itemData.evidence)}>
                   <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          ) : needsDocument ? (
+          </View>
+        );
+      }
+      
+      // Show needs document warning if applicable
+      if (needsDocument) {
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#FEE2E2',
+                borderWidth: 1,
+                borderColor: '#FCA5A5',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>📎</Text>
+            </TouchableOpacity>
+            
             <View style={{ flex: 1 }}>
               <View style={{
                 paddingHorizontal: 10,
@@ -1483,8 +1505,28 @@ export default function CompanyAccreditationScreen({
                 <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
               </View>
             </View>
-          ) : null}
-        </View>
+          </View>
+        );
+      }
+
+      // No document, not needed
+      return (
+        <TouchableOpacity
+          onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 5,
+            backgroundColor: '#F3F4F6',
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginTop: 2
+          }}
+        >
+          <Text style={{ fontSize: 14 }}>📎</Text>
+        </TouchableOpacity>
       );
     }
 
