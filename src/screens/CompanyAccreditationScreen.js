@@ -1029,35 +1029,48 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleUploadCertificate = async (systemKey, systemLabel) => {
+    console.log('🔴 handleUploadCertificate called!', { systemKey, systemLabel });
     try {
+      console.log('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
+      console.log('📂 DocumentPicker result:', result);
       if (result.canceled) {
+        console.log('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      if (!file) return;
+      console.log('📄 Selected file:', file);
+      if (!file) {
+        console.log('❌ No file');
+        return;
+      }
 
       // Set uploading state
       setUploadingDocumentKey(`system-${systemKey}`);
 
       // Convert the file URI to a blob
+      console.log('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
+      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Upload to Supabase Storage
+      console.log('📤 Starting certificate upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         systemKey,
         fileObject
       );
+      console.log('📤 Upload result:', uploadResult);
 
       if (uploadResult?.success) {
         // Update state with the new URL
@@ -1083,11 +1096,15 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${systemLabel} certificate uploaded successfully!`);
       } else {
+        console.log('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult?.error || 'Unknown error'));
       }
     } catch (error) {
+      console.error('🔥 Upload exception:', error);
+      console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      console.log('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1140,35 +1157,48 @@ export default function CompanyAccreditationScreen({
 
   // Handle uploading policy document
   const handleUploadPolicy = async (policyKey, policyLabel) => {
+    console.log('🔴 handleUploadPolicy called!', { policyKey, policyLabel });
     try {
+      console.log('📂 Opening document picker for policy...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
+      console.log('📂 DocumentPicker result:', result);
       if (result.canceled) {
+        console.log('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      if (!file) return;
+      console.log('📄 Selected file:', file);
+      if (!file) {
+        console.log('❌ No file');
+        return;
+      }
 
       // Set uploading state
       setUploadingDocumentKey(`policy-${policyKey}`);
 
       // Convert the file URI to a blob
+      console.log('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
+      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Upload to Supabase Storage
+      console.log('📤 Starting policy upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `policy_${policyKey}`,
         fileObject
       );
+      console.log('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
         // Update state with the new URL
@@ -1194,11 +1224,15 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${policyLabel} document uploaded successfully!`);
       } else {
+        console.log('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
+      console.error('🔥 Upload exception:', error);
+      console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      console.log('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1250,35 +1284,48 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
+    console.log('🔴 handleUploadInsuranceDocument called!', { insuranceType, insuranceLabel });
     try {
+      console.log('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
+      console.log('📂 DocumentPicker result:', result);
       if (result.canceled) {
+        console.log('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      if (!file) return;
+      console.log('📄 Selected file:', file);
+      if (!file) {
+        console.log('❌ No file');
+        return;
+      }
 
       // Convert the file URI to a blob
+      console.log('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
+      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Set uploading state
       setUploadingDocumentKey(`insurance-${insuranceType}`);
 
       // Upload to Supabase Storage (accreditations bucket, same as other docs)
+      console.log('📤 Starting insurance upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `insurance_${insuranceType}`,
         fileObject
       );
+      console.log('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
         // Update state with the new URL and timestamp
@@ -1307,11 +1354,15 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${insuranceLabel} certificate uploaded successfully!`);
       } else {
+        console.log('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
+      console.error('🔥 Upload exception:', error);
+      console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      console.log('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1366,34 +1417,48 @@ export default function CompanyAccreditationScreen({
 
   // Handle evidence upload for sections 4 & 5
   const handleUploadEvidence = async (section, itemKey, itemLabel) => {
+    console.log('🔴 handleUploadEvidence called!', { section, itemKey, itemLabel });
     try {
+      console.log('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
+      console.log('📂 DocumentPicker result:', result);
+      
       if (result.canceled) {
+        console.log('❌ User canceled document picker');
         return;
       }
 
       const file = result.assets[0];
-      if (!file) return;
+      console.log('📄 Selected file:', file);
+      if (!file) {
+        console.log('❌ No file selected');
+        return;
+      }
 
       // Set uploading state (but don't show global loading to avoid scroll reset)
       setUploadingDocumentKey(`${section}-${itemKey}-evidence`);
 
       // Convert the file URI to a blob
+      console.log('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
+      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
+      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size, type: fileObject.type });
 
       // Upload to Supabase Storage (don't set loading to prevent page scrolling)
+      console.log('📤 Starting upload to Supabase...');
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `${section}_${itemKey}_evidence`,
         fileObject
       );
+      console.log('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
         console.log(`✅ Upload successful, URL: ${uploadResult.url}`);
@@ -1434,11 +1499,15 @@ export default function CompanyAccreditationScreen({
         
         Alert.alert('Success ✅', `${itemLabel} evidence uploaded successfully!`);
       } else {
+        console.log('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
+      console.error('🔥 Upload exception:', error);
+      console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
+      console.log('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
     }
   };
