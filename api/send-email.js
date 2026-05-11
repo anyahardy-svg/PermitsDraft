@@ -202,18 +202,87 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid email type' });
     }
 
+    // Convert HTML to plain text for better deliverability
+    const stripHtmlTags = (html) => {
+      return html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const plainTextContent = stripHtmlTags(actualHtmlContent);
+
+    // Wrap HTML with better formatting for spam filter compliance
+    const wrappedHtmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    a { color: #3B82F6; text-decoration: none; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 1px solid #ddd; }
+    .content { padding: 20px; }
+    .footer { background-color: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; color: #1F2937;">Contractor HQ</h1>
+    </div>
+    <div class="content">
+      ${actualHtmlContent}
+    </div>
+    <div class="footer">
+      <p style="margin: 0;">Contractor HQ Limited</p>
+      <p style="margin: 5px 0 0 0;">
+        <a href="https://contractorhq.co.nz">Visit Website</a> | 
+        <a href="mailto:support@contractorhq.co.nz">Support</a>
+      </p>
+      <p style="margin: 10px 0 0 0; font-size: 11px;">
+        This is an automated email. Please do not reply directly to this address.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const emailPayload = {
+      to: [{ email: type === 'request' ? SUPPORT_EMAIL : toEmail, name: type === 'join-request' ? toName : undefined }],
+      subject: actualSubject,
+      sender: { email: FROM_EMAIL, name: FROM_NAME },
+      replyTo: { email: SUPPORT_EMAIL, name: 'Support' },
+      htmlContent: wrappedHtmlContent,
+      textContent: plainTextContent,
+      headers: {
+        'List-Unsubscribe': `<mailto:${SUPPORT_EMAIL}?subject=unsubscribe>`,
+        'X-Priority': '3',
+        'X-Mailer': 'Contractor HQ',
+      },
+      params: {
+        // These are Brevo template variables
+        type: type,
+        timestamp: new Date().toISOString(),
+      },
+    };
+
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        to: [{ email: type === 'request' ? SUPPORT_EMAIL : toEmail, name: type === 'join-request' ? toName : undefined }],
-        subject: actualSubject,
-        sender: { email: FROM_EMAIL, name: FROM_NAME },
-        htmlContent: actualHtmlContent,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     if (!response.ok) {
