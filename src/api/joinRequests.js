@@ -19,14 +19,14 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
       .from('contractor_join_requests')
       .select('id, status')
       .eq('email', email)
-      .eq('company_id', companyId)
+      .isNull('company_id')
       .eq('status', 'pending')
       .single();
 
     if (!checkError && existingRequest) {
       return {
         success: false,
-        error: 'You already have a pending request for this company. Please wait for admin review.'
+        error: 'You already have a pending request. Please wait for admin review.'
       };
     }
 

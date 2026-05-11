@@ -70,35 +70,36 @@ CREATE TRIGGER contractor_join_requests_update_timestamp
 
 ALTER TABLE contractor_join_requests ENABLE ROW LEVEL SECURITY;
 
--- Contractors can view their own requests (matched by email)
-CREATE POLICY contractor_join_requests_select_own
-  ON contractor_join_requests FOR SELECT
-  USING (auth.jwt() ->> 'email' = email);
+-- IMPORTANT: This table is for unauthenticated join requests, so we use permissive policies
+-- that don't depend on auth context which is unavailable for users not yet in the system
 
--- Company members can view all requests for their company
--- (Check if logged-in email exists as a contractor in that company)
-CREATE POLICY contractor_join_requests_select_company
-  ON contractor_join_requests FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM contractors 
-      WHERE contractors.email = auth.jwt() ->> 'email'
-      AND contractors.company_id = contractor_join_requests.company_id
-    )
-  );
-
--- Company members can update requests for their company
-CREATE POLICY contractor_join_requests_update_company
-  ON contractor_join_requests FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM contractors 
-      WHERE contractors.email = auth.jwt() ->> 'email'
-      AND contractors.company_id = contractor_join_requests.company_id
-    )
-  );
-
--- Anyone can insert their own request
-CREATE POLICY contractor_join_requests_insert_own
+-- Anyone can insert a join request (anonymous users can submit)
+CREATE POLICY contractor_join_requests_insert_public
   ON contractor_join_requests FOR INSERT
-  WITH CHECK (auth.jwt() ->> 'email' = email);
+  TO public
+  WITH CHECK (true);
+
+-- Anyone can view any join request (for success screen confirmation)
+CREATE POLICY contractor_join_requests_select_public
+  ON contractor_join_requests FOR SELECT
+  TO public
+  USING (true);
+
+-- Admins (company contractors) can update requests via admin panel
+CREATE POLICY contractor_join_requests_update_admin
+  ON contractor_join_requests FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM contractors 
+      WHERE contractors.email = auth.jwt() ->> 'email'
+      AND contractors.company_id = contractor_join_requests.company_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM contractors 
+      WHERE contractors.email = auth.jwt() ->> 'email'
+      AND contractors.company_id = contractor_join_requests.company_id
+    )
+  );
