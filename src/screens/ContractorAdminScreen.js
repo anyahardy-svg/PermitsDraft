@@ -112,6 +112,11 @@ export default function ContractorAdminScreen({
   const [editContractorEmail, setEditContractorEmail] = useState('');
   const [editContractorPhone, setEditContractorPhone] = useState('');
   const [savingContractor, setSavingContractor] = useState(false);
+  
+  // Contractor deletion states
+  const [contractorToDelete, setContractorToDelete] = useState(null);
+  const [showContractorDeleteModal, setShowContractorDeleteModal] = useState(false);
+  const [isDeletingContractor, setIsDeletingContractor] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -1136,56 +1141,8 @@ export default function ContractorAdminScreen({
                 <TouchableOpacity
                   onPress={() => {
                     console.log('🗑️ Delete button clicked for:', contractor.name, contractor.id);
-                    Alert.alert(
-                      'Delete Contractor',
-                      `Are you sure you want to delete ${contractor.name}?`,
-                      [
-                        { text: 'Cancel', onPress: () => console.log('❌ Delete cancelled') },
-                        {
-                          text: 'Delete',
-                          onPress: async () => {
-                            console.log('🗑️ Delete confirmed, starting cascade delete...');
-                            try {
-                              // First delete from contractor_inductions
-                              console.log('🗑️ Deleting contractor_inductions records...');
-                              const del1 = await supabase
-                                .from('contractor_inductions')
-                                .delete()
-                                .eq('contractor_id', contractor.id);
-                              console.log('✅ contractor_inductions deleted:', del1);
-                              
-                              // Then delete from contractor_induction_progress
-                              console.log('🗑️ Deleting contractor_induction_progress records...');
-                              const del2 = await supabase
-                                .from('contractor_induction_progress')
-                                .delete()
-                                .eq('contractor_id', contractor.id);
-                              console.log('✅ contractor_induction_progress deleted:', del2);
-                              
-                              // Finally delete the contractor
-                              console.log('🗑️ Deleting contractor record...');
-                              const { error } = await supabase
-                                .from('contractors')
-                                .delete()
-                                .eq('id', contractor.id);
-                              
-                              if (error) {
-                                console.error('❌ Contractor delete error:', error);
-                                Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
-                              } else {
-                                console.log('✅ Contractor deleted successfully');
-                                Alert.alert('Success', 'Contractor deleted');
-                                loadInductions();
-                              }
-                            } catch (err) {
-                              console.error('❌ Delete error:', err);
-                              Alert.alert('Error', 'Failed to delete contractor: ' + err.message);
-                            }
-                          },
-                          style: 'destructive'
-                        }
-                      ]
-                    );
+                    setContractorToDelete(contractor);
+                    setShowContractorDeleteModal(true);
                   }}
                   style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 4 }}
                 >
@@ -1434,6 +1391,55 @@ export default function ContractorAdminScreen({
         }
       ]
     );
+  };
+
+  // Handle confirming contractor deletion
+  const handleConfirmContractorDelete = async () => {
+    if (!contractorToDelete) return;
+    
+    setIsDeletingContractor(true);
+    console.log('🗑️ Delete confirmed, starting cascade delete...');
+    
+    try {
+      // First delete from contractor_inductions
+      console.log('🗑️ Deleting contractor_inductions records for:', contractorToDelete.id);
+      const del1 = await supabase
+        .from('contractor_inductions')
+        .delete()
+        .eq('contractor_id', contractorToDelete.id);
+      console.log('✅ contractor_inductions deleted:', del1);
+      
+      // Then delete from contractor_induction_progress
+      console.log('🗑️ Deleting contractor_induction_progress records for:', contractorToDelete.id);
+      const del2 = await supabase
+        .from('contractor_induction_progress')
+        .delete()
+        .eq('contractor_id', contractorToDelete.id);
+      console.log('✅ contractor_induction_progress deleted:', del2);
+      
+      // Finally delete the contractor
+      console.log('🗑️ Deleting contractor record:', contractorToDelete.id);
+      const { error } = await supabase
+        .from('contractors')
+        .delete()
+        .eq('id', contractorToDelete.id);
+      
+      if (error) {
+        console.error('❌ Contractor delete error:', error);
+        Alert.alert('Error', 'Failed to delete contractor: ' + error.message);
+      } else {
+        console.log('✅ Contractor deleted successfully:', contractorToDelete.name);
+        Alert.alert('Success', 'Contractor deleted');
+        setShowContractorDeleteModal(false);
+        setContractorToDelete(null);
+        loadInductions();
+      }
+    } catch (err) {
+      console.error('❌ Delete error:', err);
+      Alert.alert('Error', 'Failed to delete contractor: ' + err.message);
+    } finally {
+      setIsDeletingContractor(false);
+    }
   };
 
   // Render my draft permits
@@ -2639,6 +2645,75 @@ export default function ContractorAdminScreen({
           </View>
         </Modal>
       )}
+
+      {/* Contractor Delete Confirmation Modal */}
+      <Modal
+        visible={showContractorDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowContractorDeleteModal(false);
+          setContractorToDelete(null);
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 24,
+            width: '85%',
+            maxWidth: 400,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+              Delete Contractor
+            </Text>
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 24 }}>
+              Are you sure you want to delete {contractorToDelete?.name}? This will also remove all associated induction records.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('❌ Delete cancelled');
+                  setShowContractorDeleteModal(false);
+                  setContractorToDelete(null);
+                }}
+                disabled={isDeletingContractor}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  backgroundColor: 'white'
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmContractorDelete}
+                disabled={isDeletingContractor}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: 6,
+                  backgroundColor: isDeletingContractor ? '#FCA5A5' : '#DC2626'
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                  {isDeletingContractor ? 'Deleting...' : 'Delete'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Edit Contractor Modal */}
       {renderEditContractorModal()}
