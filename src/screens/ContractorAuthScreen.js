@@ -377,18 +377,16 @@ export default function ContractorAuthScreen({
             // If endpoint doesn't exist or is misconfigured, fall back to password recovery email
             if (passwordResponse.status === 404 || passwordResponse.status === 500) {
               console.log('📧 API unavailable, using password recovery email instead');
+              setSetupLoading(false);
               const recoveryResult = await sendPasswordResetEmail(setupEmail);
               if (recoveryResult.success) {
                 Alert.alert(
-                  'Verify Your Email',
-                  'A password recovery link has been sent to ' + setupEmail + '. Please check your email and click the link to set your password.',
-                  [{ text: 'OK', onPress: () => {
-                    setSetupLoading(false);
-                    setShowPasswordSetup(false);
-                  }}]
+                  'Password Recovery Email Sent',
+                  `A password recovery code has been sent to ${setupEmail}. Please check your email and enter the 6-digit code.`,
+                  [{ text: 'OK' }]
                 );
               } else {
-                throw new Error(recoveryResult.error || 'Failed to send recovery email');
+                Alert.alert('Error', recoveryResult.error || 'Failed to send recovery email');
               }
               return;
             }
