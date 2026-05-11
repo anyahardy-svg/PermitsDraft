@@ -1440,7 +1440,6 @@ export default function CompanyAccreditationScreen({
       'section20': { get: () => section20, set: setSection20 },
       'section21': { get: () => section21, set: setSection21 },
       'section22': { get: () => section22, set: setSection22 },
-      'section23': { get: () => section23, set: setSection23 },
       'section24': { get: () => section24, set: setSection24 },
       'section25': { get: () => section25, set: setSection25 },
       'section26': { get: () => section26, set: setSection26 }
