@@ -43,13 +43,40 @@ export default function CompanyAccreditationScreen({
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // If companyId is provided (logged-in contractor), use it directly
-  const [currentCompanyId, setCurrentCompanyId] = useState(companyId);
+  // Otherwise (admin mode), restore from localStorage or start empty
+  const [currentCompanyId, setCurrentCompanyId] = useState(() => {
+    if (companyId) return companyId;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        return localStorage.getItem('accreditation_selected_company') || null;
+      } catch (e) {
+        console.warn('localStorage not available');
+        return null;
+      }
+    }
+    return null;
+  });
+
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
-  const [expandedSections, setExpandedSections] = useState({ 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false, 25: false, 26: false }); // Track which sections are expanded
+  
+  // Restore expanded sections from localStorage or use defaults
+  const [expandedSections, setExpandedSections] = useState(() => {
+    const defaults = { 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false, 16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false, 24: false, 25: false, 26: false };
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const stored = localStorage.getItem('accreditation_expanded_sections');
+        return stored ? JSON.parse(stored) : defaults;
+      } catch (e) {
+        console.warn('localStorage not available');
+        return defaults;
+      }
+    }
+    return defaults;
+  });
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
@@ -313,6 +340,28 @@ export default function CompanyAccreditationScreen({
     3: 'Formal systems in place; consistent application; structured communication',
     4: 'Comprehensive systems embedded; proactive & collaborative; continuous improvement'
   };
+
+  // Save selected company to localStorage (admin mode only)
+  useEffect(() => {
+    if (!companyId && currentCompanyId && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem('accreditation_selected_company', currentCompanyId);
+      } catch (e) {
+        console.warn('Failed to save to localStorage:', e);
+      }
+    }
+  }, [currentCompanyId, companyId]);
+
+  // Save expanded sections to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem('accreditation_expanded_sections', JSON.stringify(expandedSections));
+      } catch (e) {
+        console.warn('Failed to save to localStorage:', e);
+      }
+    }
+  }, [expandedSections]);
 
   // Load company data
   useEffect(() => {
