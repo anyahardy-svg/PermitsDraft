@@ -9,7 +9,7 @@ async function sendEmailViaBrevo(options) {
   try {
     const { toEmail, toName, subject, htmlContent } = options;
 
-    const brevoKey = import.meta.env.VITE_BREVO_API_KEY;
+    const brevoKey = process.env.VITE_BREVO_API_KEY;
     if (!brevoKey) {
       console.error('❌ BREVO_API_KEY not configured');
       return { success: false, error: 'Email service not configured' };
