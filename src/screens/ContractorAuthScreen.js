@@ -1724,7 +1724,7 @@ export default function ContractorAuthScreen({
                 fontWeight: '600', 
                 fontSize: 15 
               }}>
-                📋 Request to Join a Company
+                📋 Request to Join Contractor HQ
               </Text>
             </TouchableOpacity>
 
@@ -1743,10 +1743,11 @@ export default function ContractorAuthScreen({
                 lineHeight: 18,
                 fontWeight: '500'
               }}>
-                💡 <Text style={{ fontWeight: '700' }}>Three ways to access your account:</Text>{'\n'}
+                💡 <Text style={{ fontWeight: '700' }}>Ways to access your account:</Text>{'\n'}
                 • <Text style={{ fontWeight: '600' }}>Sign In</Text> - if you know your password{'\n'}
                 • <Text style={{ fontWeight: '600' }}>Forgot Password</Text> - reset your password if you forgot it{'\n'}
-                • <Text style={{ fontWeight: '600' }}>Create Your Password</Text> - set up a new account
+                • <Text style={{ fontWeight: '600' }}>Create Your Password</Text> - set up a password if you are already an inducted contractor{'\n'}
+                • <Text style={{ fontWeight: '600' }}>Request to Join Contractor HQ</Text> - set up a new account
               </Text>
             </View>
           </View>
