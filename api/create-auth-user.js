@@ -16,11 +16,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.error('❌ Missing Supabase config');
-      console.error('SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'NOT SET');
-      console.error('SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+    if (!SUPABASE_URL) {
+      console.error('❌ Missing SUPABASE_URL');
       return res.status(500).json({ error: 'Supabase not configured' });
+    }
+
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY - required for creating auth users');
+      return res.status(500).json({ 
+        error: 'Service role key not configured. Admin must set SUPABASE_SERVICE_ROLE_KEY environment variable.' 
+      });
     }
 
     const { email, name, companyId, companyName, userType } = req.body;
@@ -34,16 +39,12 @@ export default async function handler(req, res) {
     // First check if user already exists
     let existingUser = null;
     
-    // Try to get the user using service role if available, otherwise use anon key
     const checkUrl = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`;
     const checkHeaders = {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     };
-    
-    if (SUPABASE_SERVICE_ROLE_KEY) {
-      checkHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
-    }
 
     try {
       const checkResponse = await fetch(checkUrl, {
@@ -57,13 +58,17 @@ export default async function handler(req, res) {
           existingUser = checkData.users[0];
           console.log(`✅ User already exists: ${existingUser.id}`);
         }
+      } else if (checkResponse.status !== 401) {
+        const errorText = await checkResponse.text();
+        console.warn('⚠️ Could not check for existing user:', checkResponse.status, errorText);
       }
     } catch (checkErr) {
-      console.log('⚠️ Could not check for existing user:', checkErr.message);
+      console.warn('⚠️ Could not check for existing user:', checkErr.message);
     }
 
     // If user exists, just return their info
     if (existingUser) {
+      console.log('📋 Returning existing user info');
       return res.status(200).json({
         success: true,
         userId: existingUser.id,
@@ -73,13 +78,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create user via Supabase Auth REST API
+    // Create user via Supabase Auth REST API using SERVICE ROLE KEY
+    console.log('🔑 Creating new user with service role key');
     const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
-        ...(SUPABASE_SERVICE_ROLE_KEY && { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }),
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({
         email: email,
@@ -98,42 +104,18 @@ export default async function handler(req, res) {
     if (!authResponse.ok) {
       console.error('❌ Auth API error:', authResponse.status, authData);
       
-      // Check if user already exists (409 Conflict)
-      if (authResponse.status === 409 || authResponse.status === 422) {
-        console.log('📋 User likely already exists, attempting to fetch their ID');
-        // Try to get their ID using service role
-        if (SUPABASE_SERVICE_ROLE_KEY) {
-          const retryCheck = await fetch(checkUrl, {
-            method: 'GET',
-            headers: checkHeaders,
-          });
-          if (retryCheck.ok) {
-            const retryData = await retryCheck.json();
-            if (retryData.users && retryData.users.length > 0) {
-              const user = retryData.users[0];
-              console.log(`✅ Found existing user: ${user.id}`);
-              return res.status(200).json({
-                success: true,
-                userId: user.id,
-                email: user.email,
-                message: `User ${email} already exists`,
-                existing: true
-              });
-            }
-          }
-        }
-      }
-      
       let errorMsg = 'Failed to create user';
       try {
         const parsed = JSON.parse(authData);
         errorMsg = parsed.message || parsed.error || errorMsg;
+        console.error('📋 Parsed error:', parsed);
       } catch (e) {}
+      
       return res.status(authResponse.status).json({ error: errorMsg });
     }
 
     const user = JSON.parse(authData);
-    console.log(`✅ Auth user created: ${user.id}`);
+    console.log(`✅ Auth user created successfully: ${user.id}`);
 
     return res.status(200).json({
       success: true,
@@ -145,6 +127,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Server error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Server error' });
   }
 }
