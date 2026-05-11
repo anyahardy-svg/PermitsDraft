@@ -95,6 +95,72 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
 
     console.log('✅ Join request submitted:', data[0]);
 
+    // Send confirmation email to contractor
+    const contractorEmailHtml = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>Request Submitted ✅</h2>
+            <p>Hi ${name},</p>
+            <p>Thank you for requesting to join <strong>${companyName}</strong>.</p>
+            <p>Your request has been received and submitted for review. A system administrator will review your request within 24 hours.</p>
+            <p><strong>What happens next:</strong></p>
+            <ol>
+              <li>Your request is queued for admin review</li>
+              <li>You'll receive an email notification once approved or rejected</li>
+              <li>If approved, you'll get instructions to set up your password and login</li>
+            </ol>
+            <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+              If you have questions, contact support@contractorhq.co.nz
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    await sendEmailViaBrevo({
+      toEmail: email,
+      toName: name,
+      subject: 'Your Request to Join ' + companyName,
+      htmlContent: contractorEmailHtml
+    });
+
+    // Send notification to support@contractorhq.co.nz
+    const supportEmailHtml = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>New Join Request 📋</h2>
+            <p>A contractor has requested to join a company.</p>
+            <p><strong>Request Details:</strong></p>
+            <ul>
+              <li><strong>Name:</strong> ${name}</li>
+              <li><strong>Email:</strong> ${email}</li>
+              <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
+              <li><strong>Company:</strong> ${companyName}</li>
+              <li><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
+            </ul>
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="https://contractorhq.co.nz/contractor-admin?tab=join-requests" 
+                 style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
+                View in Admin Panel
+              </a>
+            </p>
+            <p style="color: #666; font-size: 12px;">
+              The company's administrator will review and approve or reject this request.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    await sendEmailViaBrevo({
+      toEmail: 'support@contractorhq.co.nz',
+      toName: 'Support',
+      subject: `New Join Request: ${name} wants to join ${companyName}`,
+      htmlContent: supportEmailHtml
+    });
+
     return {
       success: true,
       message: `Your request to join ${companyName} has been submitted. An admin will review it within 24 hours.`,
