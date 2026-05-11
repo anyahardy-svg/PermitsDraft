@@ -35,6 +35,7 @@ import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusine
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { handoverPermit } from './src/api/permitHandovers';
+import { getAllPendingJoinRequests } from './src/api/joinRequests';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
@@ -2690,6 +2691,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setContractors(contractorsData);
         console.log('🎯 Contractors state should now be:', contractorsData);
         
+        // Load pending join requests count
+        const joinRequestsResult = await getAllPendingJoinRequests();
+        if (joinRequestsResult.success) {
+          const pendingCount = joinRequestsResult.data?.length || 0;
+          setPendingJoinRequestsCount(pendingCount);
+          console.log('📋 Pending join requests:', pendingCount);
+        }
+        
         // Load isolation registers
         const isolationData = await listIsolationRegisters();
         console.log('Isolation registers fetched:', isolationData?.length || 0, isolationData);
@@ -2751,6 +2760,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Contractors state - stores contractor information
   const [contractors, setContractors] = useState([]);
+  const [pendingJoinRequestsCount, setPendingJoinRequestsCount] = useState(0);
 
   const [newPermitData, setNewPermitData] = useState({
     id: '',
@@ -8522,6 +8532,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E0B' }]} onPress={() => setCurrentScreen('join-requests')}>
+            <Text style={styles.cardNumber}>{pendingJoinRequestsCount}</Text>
+            <Text style={styles.cardLabel}>Join Requests</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_issuers')}>
             <Text style={styles.cardNumber}>{permitIssuers.length}</Text>
             <Text style={styles.cardLabel}>Permit Issuers</Text>

@@ -229,6 +229,33 @@ export async function getAllJoinRequests(companyId) {
 }
 
 /**
+ * Get all pending join requests across the entire system (system admin use)
+ * @returns {Object} { success: boolean, data: Array, error: string }
+ */
+export async function getAllPendingJoinRequests() {
+  try {
+    console.log('🔍 Fetching all pending join requests system-wide');
+
+    const { data, error } = await supabase
+      .from('contractor_join_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching requests:', error);
+      return { success: false, error: error.message, data: [] };
+    }
+
+    console.log('✅ Fetched', data?.length || 0, 'pending requests system-wide');
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('❌ Exception:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
+/**
  * Approve a join request and create contractor or admin staff record
  * @param {string} requestId - UUID of join request
  * @param {string} adminId - UUID of admin approving
