@@ -1068,6 +1068,13 @@ export default function CompanyAccreditationScreen({
             certificateUrl: uploadResult.url
           }
         }));
+        
+        // Immediately save to database after upload
+        setTimeout(async () => {
+          console.log('💾 Auto-saving certificate upload immediately...');
+          await autoSave();
+        }, 100);
+        
         // Restore scroll position after state update
         setTimeout(() => {
           if (scrollOffset > 0) {
@@ -1172,6 +1179,13 @@ export default function CompanyAccreditationScreen({
             url: uploadResult.url
           }
         }));
+        
+        // Immediately save to database after upload
+        setTimeout(async () => {
+          console.log('💾 Auto-saving policy upload immediately...');
+          await autoSave();
+        }, 100);
+        
         // Restore scroll position after state update
         setTimeout(() => {
           if (scrollOffset > 0) {
@@ -1278,6 +1292,13 @@ export default function CompanyAccreditationScreen({
             has_document: true
           }
         }));
+        
+        // Immediately save to database after upload
+        setTimeout(async () => {
+          console.log('💾 Auto-saving insurance document upload immediately...');
+          await autoSave();
+        }, 100);
+        
         // Restore scroll position after state update
         setTimeout(() => {
           if (scrollOffset > 0) {
@@ -1404,6 +1425,13 @@ export default function CompanyAccreditationScreen({
             return updated;
           });
         }
+        
+        // Immediately save to database after upload (don't wait 30 seconds!)
+        setTimeout(async () => {
+          console.log('💾 Auto-saving evidence upload immediately...');
+          await autoSave();
+        }, 100);
+        
         Alert.alert('Success ✅', `${itemLabel} evidence uploaded successfully!`);
       } else {
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
