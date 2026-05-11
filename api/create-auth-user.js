@@ -8,6 +8,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,15 +29,57 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing email' });
     }
 
-    console.log(`👤 Creating auth user: ${email} (${userType})`);
+    console.log(`👤 Creating or checking auth user: ${email} (${userType})`);
+
+    // First check if user already exists
+    let existingUser = null;
+    
+    // Try to get the user using service role if available, otherwise use anon key
+    const checkUrl = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`;
+    const checkHeaders = {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+    };
+    
+    if (SUPABASE_SERVICE_ROLE_KEY) {
+      checkHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+    }
+
+    try {
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: checkHeaders,
+      });
+
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json();
+        if (checkData.users && checkData.users.length > 0) {
+          existingUser = checkData.users[0];
+          console.log(`✅ User already exists: ${existingUser.id}`);
+        }
+      }
+    } catch (checkErr) {
+      console.log('⚠️ Could not check for existing user:', checkErr.message);
+    }
+
+    // If user exists, just return their info
+    if (existingUser) {
+      return res.status(200).json({
+        success: true,
+        userId: existingUser.id,
+        email: existingUser.email,
+        message: `User ${email} already exists`,
+        existing: true
+      });
+    }
 
     // Create user via Supabase Auth REST API
     const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+        ...(SUPABASE_SERVICE_ROLE_KEY && { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }),
       },
       body: JSON.stringify({
         email: email,
@@ -54,6 +97,33 @@ export default async function handler(req, res) {
     
     if (!authResponse.ok) {
       console.error('❌ Auth API error:', authResponse.status, authData);
+      
+      // Check if user already exists (409 Conflict)
+      if (authResponse.status === 409 || authResponse.status === 422) {
+        console.log('📋 User likely already exists, attempting to fetch their ID');
+        // Try to get their ID using service role
+        if (SUPABASE_SERVICE_ROLE_KEY) {
+          const retryCheck = await fetch(checkUrl, {
+            method: 'GET',
+            headers: checkHeaders,
+          });
+          if (retryCheck.ok) {
+            const retryData = await retryCheck.json();
+            if (retryData.users && retryData.users.length > 0) {
+              const user = retryData.users[0];
+              console.log(`✅ Found existing user: ${user.id}`);
+              return res.status(200).json({
+                success: true,
+                userId: user.id,
+                email: user.email,
+                message: `User ${email} already exists`,
+                existing: true
+              });
+            }
+          }
+        }
+      }
+      
       let errorMsg = 'Failed to create user';
       try {
         const parsed = JSON.parse(authData);
@@ -69,7 +139,8 @@ export default async function handler(req, res) {
       success: true,
       userId: user.id,
       email: user.email,
-      message: `User ${email} created successfully`
+      message: `User ${email} created successfully`,
+      existing: false
     });
 
   } catch (error) {
