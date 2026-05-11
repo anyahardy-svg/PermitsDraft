@@ -510,13 +510,9 @@ export default function ContractorAuthScreen({
 
       if (response.success) {
         console.log('✅ Join request submitted');
+        // Save email before showing success (don't clear yet)
+        // Show success first, then clear form
         setJoinRequestSuccess(true);
-        // Reset form
-        setJoinRequestName('');
-        setJoinRequestEmail('');
-        setJoinRequestPhone('');
-        setJoinRequestCompany('');
-        setJoinRequestCompanyId(null);
       } else {
         Alert.alert('Error', response.error || 'Failed to submit request');
       }
@@ -620,6 +616,12 @@ export default function ContractorAuthScreen({
                 onPress={() => {
                   setJoinRequestSuccess(false);
                   setShowJoinRequest(false);
+                  // Clear form
+                  setJoinRequestName('');
+                  setJoinRequestEmail('');
+                  setJoinRequestPhone('');
+                  setJoinRequestCompany('');
+                  setJoinRequestCompanyId(null);
                   // Reset to login screen
                   setEmail('');
                   setPassword('');
