@@ -1375,23 +1375,34 @@ export default function CompanyAccreditationScreen({
       );
 
       if (uploadResult.success) {
+        console.log(`✅ Upload successful, URL: ${uploadResult.url}`);
+        console.log(`📝 Setting ${section}.${itemKey} to:`, { evidence: uploadResult.url });
+        
         // Update state with the new URL
         if (section === 'section4') {
-          setSection4(prev => ({
-            ...prev,
-            [itemKey]: {
-              ...prev[itemKey],
-              evidence: uploadResult.url
-            }
-          }));
+          setSection4(prev => {
+            const updated = {
+              ...prev,
+              [itemKey]: {
+                ...prev[itemKey],
+                evidence: uploadResult.url
+              }
+            };
+            console.log('🔄 Updated section4 state:', updated);
+            return updated;
+          });
         } else if (section === 'section5') {
-          setSection5(prev => ({
-            ...prev,
-            [itemKey]: {
-              ...prev[itemKey],
-              evidence: uploadResult.url
-            }
-          }));
+          setSection5(prev => {
+            const updated = {
+              ...prev,
+              [itemKey]: {
+                ...prev[itemKey],
+                evidence: uploadResult.url
+              }
+            };
+            console.log('🔄 Updated section5 state:', updated);
+            return updated;
+          });
         }
         Alert.alert('Success ✅', `${itemLabel} evidence uploaded successfully!`);
       } else {
@@ -1411,14 +1422,15 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
 
-    console.log(`[renderDocumentToggle] ${documentKey}:`, {
-      hasDocument: !!hasDocument,
-      evidence: itemData?.evidence,
-      url: itemData?.url,
-      certificateUrl: itemData?.certificateUrl,
-      fullItemData: itemData,
-      showOnlyIcon
-    });
+    if (showOnlyIcon) {
+      console.log(`🎨 Rendering inline ${documentKey}:`, {
+        itemData,
+        hasDocument: !!hasDocument,
+        evidence: itemData?.evidence,
+        url: itemData?.url,
+        needsDocument
+      });
+    }
 
     // Show loading indicator when uploading
     if (isUploading) {
