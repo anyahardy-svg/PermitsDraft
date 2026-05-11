@@ -1357,7 +1357,7 @@ export default function CompanyAccreditationScreen({
       const file = result.assets[0];
       if (!file) return;
 
-      // Set uploading state
+      // Set uploading state (but don't show global loading to avoid scroll reset)
       setUploadingDocumentKey(`${section}-${itemKey}-evidence`);
 
       // Convert the file URI to a blob
@@ -1367,8 +1367,7 @@ export default function CompanyAccreditationScreen({
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
 
-      // Upload to Supabase Storage
-      setLoading(true);
+      // Upload to Supabase Storage (don't set loading to prevent page scrolling)
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `${section}_${itemKey}_evidence`,
@@ -1402,7 +1401,6 @@ export default function CompanyAccreditationScreen({
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
       setUploadingDocumentKey(null);
-      setLoading(false);
     }
   };
 
