@@ -19,11 +19,13 @@ CREATE TABLE IF NOT EXISTS contractor_join_requests (
   reviewed_by UUID REFERENCES users(id),
   rejection_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  
-  -- Ensure unique pending requests per email/company combination
-  CONSTRAINT unique_pending_request UNIQUE (email, company_id) WHERE status = 'pending'
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ensure unique pending requests per email/company combination
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_pending_request 
+  ON contractor_join_requests(email, company_id) 
+  WHERE status = 'pending';
 
 -- ============================================================================
 -- CREATE INDEXES FOR COMMON QUERIES
@@ -68,37 +70,31 @@ CREATE TRIGGER contractor_join_requests_update_timestamp
 
 ALTER TABLE contractor_join_requests ENABLE ROW LEVEL SECURITY;
 
--- Contractors can view their own requests
+-- Contractors can view their own requests (matched by email)
 CREATE POLICY contractor_join_requests_select_own
   ON contractor_join_requests FOR SELECT
   USING (auth.jwt() ->> 'email' = email);
 
--- Admins can view all requests for their company
--- (Assuming admin has a company_id in their profile or via company membership)
-CREATE POLICY contractor_join_requests_select_admin
+-- Company members can view all requests for their company
+-- (Check if logged-in email exists as a contractor in that company)
+CREATE POLICY contractor_join_requests_select_company
   ON contractor_join_requests FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.id IN (
-        SELECT admin_id FROM company_admins 
-        WHERE company_admins.company_id = contractor_join_requests.company_id
-      )
+      SELECT 1 FROM contractors 
+      WHERE contractors.email = auth.jwt() ->> 'email'
+      AND contractors.company_id = contractor_join_requests.company_id
     )
   );
 
--- Only admins can update requests
-CREATE POLICY contractor_join_requests_update_admin
+-- Company members can update requests for their company
+CREATE POLICY contractor_join_requests_update_company
   ON contractor_join_requests FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.id IN (
-        SELECT admin_id FROM company_admins 
-        WHERE company_admins.company_id = contractor_join_requests.company_id
-      )
+      SELECT 1 FROM contractors 
+      WHERE contractors.email = auth.jwt() ->> 'email'
+      AND contractors.company_id = contractor_join_requests.company_id
     )
   );
 
