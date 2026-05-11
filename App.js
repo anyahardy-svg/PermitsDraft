@@ -22347,6 +22347,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return renderDashboard();
       }
       return renderAdminDashboard();
+    case 'join-requests':
+      // CRITICAL: Prevent join requests screen from rendering without auth
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Join requests screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <ContractorAdminScreen
+          onNavigateBack={() => setCurrentScreen('admin')}
+          activeTab="join-requests"
+          setActiveTab={() => {}}
+          styles={styles}
+        />
+      );
     case 'manage_issuers':
       // CRITICAL: Prevent manage screens from rendering without auth
       if (!adminSessionActive) {

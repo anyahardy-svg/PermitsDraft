@@ -18,6 +18,13 @@ export default function AdminDashboard({
   // Menu items available to all admin roles
   const commonMenuItems = [
     {
+      id: 'join-requests',
+      title: 'Join Requests',
+      description: 'Approve or reject contractor join requests',
+      icon: '📝',
+      color: '#F59E0B',
+    },
+    {
       id: 'contractors',
       title: 'Contractors',
       description: 'View and manage contractor profiles',
