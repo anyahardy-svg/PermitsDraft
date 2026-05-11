@@ -1,8 +1,7 @@
 import { supabase } from '../supabaseClient';
-import { config } from '../config/env';
 
 /**
- * Send email via Brevo API
+ * Send email via Supabase Edge Function (secure backend)
  * @param {Object} options - Email options
  * @returns {Object} { success: boolean, message: string, error: string }
  */
@@ -10,31 +9,24 @@ async function sendEmailViaBrevo(options) {
   try {
     const { toEmail, toName, subject, htmlContent } = options;
 
-    const brevoKey = config.brevoApiKey;
-    if (!brevoKey) {
-      console.error('❌ BREVO_API_KEY not configured');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'api-key': brevoKey
-      },
-      body: JSON.stringify({
-        to: [{ email: toEmail, name: toName }],
-        sender: { email: 'noreply@contractorhq.co.nz', name: 'Contractor Hub' },
+    // Call Supabase Edge Function instead of calling Brevo directly
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        toEmail,
+        toName,
         subject,
         htmlContent
-      })
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ Brevo error:', errorData);
-      return { success: false, error: 'Failed to send email' };
+    if (error) {
+      console.error('❌ Edge Function error:', error);
+      return { success: false, error: error.message || 'Failed to send email' };
+    }
+
+    if (!data?.success) {
+      console.error('❌ Email send failed:', data?.error);
+      return { success: false, error: data?.error || 'Failed to send email' };
     }
 
     console.log('✅ Email sent successfully to:', toEmail);
