@@ -20,6 +20,7 @@ import {
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
 } from '../api/contractorAuth';
+import { submitJoinRequest } from '../api/joinRequests';
 
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
@@ -48,6 +49,16 @@ export default function ContractorAuthScreen({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+
+  // Join request states
+  const [showJoinRequest, setShowJoinRequest] = useState(false);
+  const [joinRequestName, setJoinRequestName] = useState('');
+  const [joinRequestEmail, setJoinRequestEmail] = useState('');
+  const [joinRequestPhone, setJoinRequestPhone] = useState('');
+  const [joinRequestCompany, setJoinRequestCompany] = useState('');
+  const [joinRequestCompanyId, setJoinRequestCompanyId] = useState(null);
+  const [joinRequestLoading, setJoinRequestLoading] = useState(false);
+  const [joinRequestSuccess, setJoinRequestSuccess] = useState(false);
 
   // Sync showPasswordReset prop with local state
   useEffect(() => {
@@ -462,6 +473,395 @@ export default function ContractorAuthScreen({
       setSetupLoading(false);
     }
   };
+
+  const handleSubmitJoinRequest = async () => {
+    if (joinRequestLoading) return;
+
+    if (!joinRequestName.trim()) {
+      Alert.alert('Validation', 'Please enter your name');
+      return;
+    }
+
+    if (!joinRequestEmail.trim()) {
+      Alert.alert('Validation', 'Please enter your email');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(joinRequestEmail)) {
+      Alert.alert('Validation', 'Please enter a valid email address');
+      return;
+    }
+
+    if (!joinRequestCompany.trim()) {
+      Alert.alert('Validation', 'Please enter your company name');
+      return;
+    }
+
+    setJoinRequestLoading(true);
+    try {
+      const response = await submitJoinRequest(
+        joinRequestEmail,
+        joinRequestName,
+        joinRequestPhone,
+        joinRequestCompanyId,
+        joinRequestCompany
+      );
+
+      if (response.success) {
+        console.log('✅ Join request submitted');
+        setJoinRequestSuccess(true);
+        // Reset form
+        setJoinRequestName('');
+        setJoinRequestEmail('');
+        setJoinRequestPhone('');
+        setJoinRequestCompany('');
+        setJoinRequestCompanyId(null);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to submit request');
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      Alert.alert('Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setJoinRequestLoading(false);
+    }
+  };
+
+  // Show join request success screen
+  if (joinRequestSuccess) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+        <View style={{ 
+          backgroundColor: '#1F2937',
+          paddingVertical: 50, 
+          paddingHorizontal: 16,
+          paddingTop: 80,
+          alignItems: 'center'
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 56, 
+            marginBottom: 16
+          }}>
+            📋
+          </Text>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 28, 
+            fontWeight: '800',
+            textAlign: 'center'
+          }}>
+            Request Submitted!
+          </Text>
+          <Text style={{ 
+            color: '#9CA3AF', 
+            fontSize: 15, 
+            marginTop: 12,
+            textAlign: 'center'
+          }}>
+            We'll review your request soon
+          </Text>
+        </View>
+
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3
+            }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 16,
+                lineHeight: 24
+              }}>
+                Your request to join {joinRequestCompany} has been submitted!
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: '#6B7280',
+                marginBottom: 20,
+                lineHeight: 22
+              }}>
+                An administrator from {joinRequestCompany} will review your request within 24 hours. You'll receive an email confirmation once your request is approved.
+              </Text>
+
+              <View style={{
+                backgroundColor: '#F0FDF4',
+                borderRadius: 8,
+                padding: 12,
+                borderLeftWidth: 3,
+                borderLeftColor: '#10B981',
+                marginBottom: 24
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  color: '#166534',
+                  lineHeight: 18
+                }}>
+                  ✅ Keep an eye on your email ({joinRequestEmail}) for updates
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setJoinRequestSuccess(false);
+                  setShowJoinRequest(false);
+                  // Reset to login screen
+                  setEmail('');
+                  setPassword('');
+                }}
+                style={{
+                  backgroundColor: '#3B82F6',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                  Back to Login
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Show join request form
+  if (showJoinRequest) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+        <View style={{ 
+          backgroundColor: '#1F2937',
+          paddingVertical: 50, 
+          paddingHorizontal: 16,
+          paddingTop: 80
+        }}>
+          <TouchableOpacity
+            onPress={() => setShowJoinRequest(false)}
+            style={{ marginBottom: 16 }}
+          >
+            <Text style={{ color: '#9CA3AF', fontSize: 18, fontWeight: '600' }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 28, 
+            fontWeight: '800',
+          }}>
+            Request to Join
+          </Text>
+          <Text style={{ 
+            color: '#9CA3AF', 
+            fontSize: 14, 
+            marginTop: 8
+          }}>
+            Fill in your information and select your company
+          </Text>
+        </View>
+
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingTop: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3
+            }}>
+              {/* Full Name */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 8 
+                }}>
+                  Full Name *
+                </Text>
+                <TextInput
+                  placeholder="John Doe"
+                  value={joinRequestName}
+                  onChangeText={setJoinRequestName}
+                  editable={!joinRequestLoading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+              </View>
+
+              {/* Email */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 8 
+                }}>
+                  Email Address *
+                </Text>
+                <TextInput
+                  placeholder="john@example.com"
+                  value={joinRequestEmail}
+                  onChangeText={setJoinRequestEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!joinRequestLoading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+              </View>
+
+              {/* Phone */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 8 
+                }}>
+                  Phone Number (optional)
+                </Text>
+                <TextInput
+                  placeholder="021 123 4567"
+                  value={joinRequestPhone}
+                  onChangeText={setJoinRequestPhone}
+                  keyboardType="phone-pad"
+                  editable={!joinRequestLoading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+              </View>
+
+              {/* Company */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 8 
+                }}>
+                  Company Name *
+                </Text>
+                <TextInput
+                  placeholder="e.g., Acme Contractors Ltd"
+                  value={joinRequestCompany}
+                  onChangeText={setJoinRequestCompany}
+                  editable={!joinRequestLoading}
+                  placeholderTextColor="#D1D5DB"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    fontSize: 15,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+                <Text style={{
+                  fontSize: 12,
+                  color: '#9CA3AF',
+                  marginTop: 6
+                }}>
+                  Enter the name of your company
+                </Text>
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                onPress={handleSubmitJoinRequest}
+                disabled={joinRequestLoading}
+                style={{
+                  backgroundColor: joinRequestLoading ? '#9CA3AF' : '#10B981',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
+                {joinRequestLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={{ 
+                    color: 'white', 
+                    fontWeight: '700', 
+                    fontSize: 16 
+                  }}>
+                    Submit Request
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={{
+                backgroundColor: '#FEF3C7',
+                borderRadius: 8,
+                padding: 12,
+                borderLeftWidth: 3,
+                borderLeftColor: '#F59E0B'
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  color: '#92400E',
+                  lineHeight: 18
+                }}>
+                  📝 A company administrator will review your request and send you an invitation email if approved.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   // Show verification message screen
   if (showVerificationMessage) {
@@ -1241,7 +1641,8 @@ export default function ContractorAuthScreen({
                 borderRadius: 8,
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: '#93C5FD'
+                borderColor: '#93C5FD',
+                marginBottom: 12
               }}
             >
               <Text style={{ 
@@ -1250,6 +1651,30 @@ export default function ContractorAuthScreen({
                 fontSize: 15 
               }}>
                 🎉 Create Your Password
+              </Text>
+            </TouchableOpacity>
+
+            {/* Request to Join Button */}
+            <TouchableOpacity
+              onPress={() => {
+                console.log('📝 Request to Join flow selected');
+                setShowJoinRequest(true);
+              }}
+              style={{
+                backgroundColor: '#F0FDF4',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#86EFAC'
+              }}
+            >
+              <Text style={{ 
+                color: '#166534', 
+                fontWeight: '600', 
+                fontSize: 15 
+              }}>
+                📋 Request to Join a Company
               </Text>
             </TouchableOpacity>
 

@@ -17,6 +17,7 @@ import { listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
+import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
 import { logout } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
@@ -117,6 +118,13 @@ export default function ContractorAdminScreen({
   const [contractorToDelete, setContractorToDelete] = useState(null);
   const [showContractorDeleteModal, setShowContractorDeleteModal] = useState(false);
   const [isDeletingContractor, setIsDeletingContractor] = useState(false);
+
+  // Join requests states
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [loadingJoinRequests, setLoadingJoinRequests] = useState(false);
+  const [joinRequestToReview, setJoinRequestToReview] = useState(null);
+  const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -464,6 +472,31 @@ export default function ContractorAdminScreen({
     }
   };
 
+  const loadJoinRequests = async () => {
+    // Use logged in company if contractor is logged in, otherwise use selected company
+    const companyToUse = isLoggedIn && loggedInCompanyId ? loggedInCompanyId : selectedCompanyId;
+    
+    if (!companyToUse) {
+      setJoinRequests([]);
+      return;
+    }
+    setLoadingJoinRequests(true);
+    try {
+      const response = await getAllJoinRequests(companyToUse);
+      if (response.success) {
+        setJoinRequests(response.data || []);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to load join requests');
+        setJoinRequests([]);
+      }
+    } catch (error) {
+      console.error('Error loading join requests:', error);
+      setJoinRequests([]);
+    } finally {
+      setLoadingJoinRequests(false);
+    }
+  };
+
   useEffect(() => {
     loadCompanies();
     // Load JSEA templates on mount for dashboard count
@@ -489,6 +522,12 @@ export default function ContractorAdminScreen({
   useEffect(() => {
     if (activeTab === 'inductions') {
       loadInductions();
+    }
+  }, [activeTab, selectedCompanyId]);
+
+  useEffect(() => {
+    if (activeTab === 'join-requests') {
+      loadJoinRequests();
     }
   }, [activeTab, selectedCompanyId]);
 
@@ -1159,6 +1198,283 @@ export default function ContractorAdminScreen({
     );
   };
 
+  const renderJoinRequests = () => {
+    if (loadingJoinRequests) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={{ marginTop: 12, color: '#6B7280' }}>Loading requests...</Text>
+        </View>
+      );
+    }
+
+    const pendingRequests = joinRequests.filter(r => r.status === 'pending');
+    const resolvedRequests = joinRequests.filter(r => r.status !== 'pending');
+
+    return (
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }}>
+          {/* Pending Requests Section */}
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+              Pending Requests ({pendingRequests.length})
+            </Text>
+
+            {pendingRequests.length === 0 ? (
+              <View style={{
+                backgroundColor: '#F0FDF4',
+                borderRadius: 8,
+                padding: 16,
+                borderLeftWidth: 3,
+                borderLeftColor: '#10B981',
+                marginBottom: 16
+              }}>
+                <Text style={{ color: '#166534', fontSize: 14 }}>
+                  ✅ No pending requests
+                </Text>
+              </View>
+            ) : (
+              pendingRequests.map(request => (
+                <View
+                  key={request.id}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#F59E0B',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2
+                  }}
+                >
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2937' }}>
+                      {request.name}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+                      {request.email}
+                    </Text>
+                    {request.phone && (
+                      <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                        {request.phone}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={{ marginBottom: 12, backgroundColor: '#F9FAFB', padding: 8, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}>
+                      Requested: {new Date(request.requested_at).toLocaleDateString('en-NZ', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setJoinRequestToReview(request);
+                        setRejectionReason('');
+                        setShowJoinRequestModal(true);
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#DBEAFE',
+                        paddingVertical: 10,
+                        borderRadius: 6,
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#0369A1' }}>
+                        Review
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+
+            {/* Resolved Requests Section */}
+            {resolvedRequests.length > 0 && (
+              <>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginTop: 24, marginBottom: 12 }}>
+                  Request History
+                </Text>
+
+                {resolvedRequests.map(request => (
+                  <View
+                    key={request.id}
+                    style={{
+                      backgroundColor: request.status === 'approved' ? '#F0FDF4' : '#FEF2F2',
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 8,
+                      borderLeftWidth: 3,
+                      borderLeftColor: request.status === 'approved' ? '#10B981' : '#DC2626'
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: request.status === 'approved' ? '#166534' : '#991B1B'
+                        }}>
+                          {request.name}
+                        </Text>
+                        <Text style={{
+                          fontSize: 12,
+                          color: request.status === 'approved' ? '#4B7C0F' : '#7F1D1D',
+                          marginTop: 2
+                        }}>
+                          {request.email}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: '600',
+                          color: request.status === 'approved' ? '#15803D' : '#DC2626',
+                          textTransform: 'uppercase'
+                        }}>
+                          {request.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
+                        </Text>
+                        {request.reviewed_at && (
+                          <Text style={{
+                            fontSize: 10,
+                            color: request.status === 'approved' ? '#4B7C0F' : '#7F1D1D',
+                            marginTop: 2
+                          }}>
+                            {new Date(request.reviewed_at).toLocaleDateString('en-NZ')}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {request.rejection_reason && (
+                      <Text style={{
+                        fontSize: 11,
+                        color: '#7F1D1D',
+                        marginTop: 6,
+                        fontStyle: 'italic'
+                      }}>
+                        Reason: {request.rejection_reason}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Review Modal */}
+        {showJoinRequestModal && joinRequestToReview && (
+          <Modal visible={showJoinRequestModal} transparent={true} animationType="fade">
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16
+            }}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 12,
+                padding: 24,
+                width: '100%',
+                maxWidth: 500,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 5
+              }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+                  Review Request
+                </Text>
+
+                <View style={{ marginBottom: 20, backgroundColor: '#F9FAFB', padding: 16, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
+                    {joinRequestToReview.name}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>
+                    Email: {joinRequestToReview.email}
+                  </Text>
+                  {joinRequestToReview.phone && (
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>
+                      Phone: {joinRequestToReview.phone}
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                    Company: {joinRequestToReview.company_name}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowJoinRequestModal(false);
+                      setJoinRequestToReview(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleApproveJoinRequest(joinRequestToReview.id)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      backgroundColor: '#10B981',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      ✅ Approve
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleRejectJoinRequest(joinRequestToReview.id)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 8,
+                      backgroundColor: '#DC2626',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      ❌ Reject
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+      </View>
+    );
+  };
+
   // Render contractor edit modal
   const renderEditContractorModal = () => {
     const handleSaveContractor = async () => {
@@ -1439,6 +1755,52 @@ export default function ContractorAdminScreen({
       Alert.alert('Error', 'Failed to delete contractor: ' + err.message);
     } finally {
       setIsDeletingContractor(false);
+    }
+  };
+
+  // Handle approving a join request
+  const handleApproveJoinRequest = async (requestId) => {
+    try {
+      console.log('✅ Approving join request:', requestId);
+      const response = await approveJoinRequest(requestId, loggedInContractorId);
+      
+      if (response.success) {
+        Alert.alert('Success', response.message);
+        setShowJoinRequestModal(false);
+        setJoinRequestToReview(null);
+        loadJoinRequests();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to approve request');
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      Alert.alert('Error', 'Failed to approve request: ' + error.message);
+    }
+  };
+
+  // Handle rejecting a join request
+  const handleRejectJoinRequest = async (requestId) => {
+    if (!rejectionReason.trim()) {
+      Alert.alert('Validation', 'Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      console.log('❌ Rejecting join request:', requestId);
+      const response = await rejectJoinRequest(requestId, loggedInContractorId, rejectionReason);
+      
+      if (response.success) {
+        Alert.alert('Success', response.message);
+        setShowJoinRequestModal(false);
+        setJoinRequestToReview(null);
+        setRejectionReason('');
+        loadJoinRequests();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to reject request');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      Alert.alert('Error', 'Failed to reject request: ' + error.message);
     }
   };
 
@@ -1809,7 +2171,7 @@ export default function ContractorAdminScreen({
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>
-              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : 'Accreditation'}
+              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : activeTab === 'join-requests' ? 'Join Requests' : 'Accreditation'}
             </Text>
             <TouchableOpacity onPress={() => setActiveTab(null)}>
               <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
@@ -1871,11 +2233,18 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>{draftPermits.length}</Text>
               <Text style={styles.cardLabel}>My Drafts</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('join-requests')}
+              style={[styles.dashboardCard, { borderLeftColor: '#6366F1', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>{joinRequests.filter(r => r.status === 'pending').length}</Text>
+              <Text style={styles.cardLabel}>Join Requests</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
         /* Content View - Show selected section */
-        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' ? (
+        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' && activeTab !== 'join-requests' ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
               No business units available. Please contact your administrator.
@@ -1905,6 +2274,8 @@ export default function ContractorAdminScreen({
           renderProfileEdit()
         ) : activeTab === 'my-permits' ? (
           renderMyPermits()
+        ) : activeTab === 'join-requests' ? (
+          renderJoinRequests()
         ) : (
           activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
         )
