@@ -48,6 +48,7 @@ import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
+import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
@@ -22369,10 +22370,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return renderDashboard();
       }
       return (
-        <ContractorAdminScreen
+        <AdminJoinRequestsScreen
           onNavigateBack={() => setCurrentScreen('admin')}
-          activeTab="join-requests"
-          setActiveTab={() => {}}
+          adminUser={loggedInAdmin}
           styles={styles}
         />
       );
