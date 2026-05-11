@@ -4,6 +4,8 @@
  * 
  * Usage: POST /api/set-contractor-password
  * Body: { email, password }
+ * 
+ * Requires SUPABASE_SERVICE_ROLE_KEY environment variable to be set
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
