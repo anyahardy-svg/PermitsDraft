@@ -123,9 +123,10 @@ export async function getAllJoinRequests(companyId) {
  * Approve a join request and create contractor record
  * @param {string} requestId - UUID of join request
  * @param {string} adminId - UUID of admin approving
+ * @param {string} companyIdOverride - Optional company_id to use if request doesn't have one
  * @returns {Object} { success: boolean, message: string, error: string, contractorId: string }
  */
-export async function approveJoinRequest(requestId, adminId) {
+export async function approveJoinRequest(requestId, adminId, companyIdOverride) {
   try {
     console.log('✅ Approving join request:', requestId);
 
@@ -140,6 +141,13 @@ export async function approveJoinRequest(requestId, adminId) {
       return { success: false, error: 'Request not found' };
     }
 
+    // Use override company_id if provided, otherwise use request's company_id
+    const companyIdToUse = companyIdOverride || request.company_id;
+
+    if (!companyIdToUse) {
+      return { success: false, error: 'No company specified. Admin must select a company.' };
+    }
+
     // Create contractor record
     const { data: contractor, error: contractorError } = await supabase
       .from('contractors')
@@ -147,7 +155,7 @@ export async function approveJoinRequest(requestId, adminId) {
         {
           name: request.name,
           email: request.email,
-          company_id: request.company_id,
+          company_id: companyIdToUse,
           phone: request.phone
         }
       ])
@@ -164,7 +172,8 @@ export async function approveJoinRequest(requestId, adminId) {
       .update({
         status: 'approved',
         reviewed_at: new Date().toISOString(),
-        reviewed_by: adminId
+        reviewed_by: adminId,
+        company_id: companyIdToUse  // Save the selected company_id
       })
       .eq('id', requestId);
 

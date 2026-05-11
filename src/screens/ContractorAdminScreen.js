@@ -125,6 +125,7 @@ export default function ContractorAdminScreen({
   const [joinRequestToReview, setJoinRequestToReview] = useState(null);
   const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -1413,15 +1414,74 @@ export default function ContractorAdminScreen({
                     </Text>
                   )}
                   <Text style={{ fontSize: 13, color: '#6B7280' }}>
-                    Company: {joinRequestToReview.company_name}
+                    Requested Company: {joinRequestToReview.company_name}
                   </Text>
                 </View>
+
+                {/* Company Selector - if no company_id on request */}
+                {!joinRequestToReview?.company_id && (
+                  <View style={{ marginBottom: 20, backgroundColor: '#FEF3C7', padding: 16, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#92400E', marginBottom: 8 }}>
+                      ⚠️ Select Company to Join
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#B45309', marginBottom: 12 }}>
+                      This request doesn't have a company. Select which company they're joining:
+                    </Text>
+                    <View style={{ 
+                      borderWidth: 1, 
+                      borderColor: '#D1D5DB', 
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      backgroundColor: 'white'
+                    }}>
+                      <TouchableOpacity
+                        style={{
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#E5E7EB'
+                        }}
+                        onPress={() => setSelectedCompanyForApproval(null)}
+                      >
+                        <Text style={{
+                          fontSize: 13,
+                          color: !selectedCompanyForApproval ? '#3B82F6' : '#6B7280',
+                          fontWeight: !selectedCompanyForApproval ? '600' : '400'
+                        }}>
+                          {!selectedCompanyForApproval ? '✓ ' : ''}Select Company...
+                        </Text>
+                      </TouchableOpacity>
+                      {companies.map((company, index) => (
+                        <TouchableOpacity
+                          key={company.id}
+                          onPress={() => setSelectedCompanyForApproval(company.id)}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            borderBottomWidth: index < companies.length - 1 ? 1 : 0,
+                            borderBottomColor: '#E5E7EB',
+                            backgroundColor: selectedCompanyForApproval === company.id ? '#DBEAFE' : 'white'
+                          }}
+                        >
+                          <Text style={{
+                            fontSize: 13,
+                            color: selectedCompanyForApproval === company.id ? '#0369A1' : '#374151',
+                            fontWeight: selectedCompanyForApproval === company.id ? '600' : '400'
+                          }}>
+                            {selectedCompanyForApproval === company.id ? '✓ ' : ''}{company.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
                   <TouchableOpacity
                     onPress={() => {
                       setShowJoinRequestModal(false);
                       setJoinRequestToReview(null);
+                      setSelectedCompanyForApproval(null);
                     }}
                     style={{
                       flex: 1,
@@ -1761,13 +1821,22 @@ export default function ContractorAdminScreen({
   // Handle approving a join request
   const handleApproveJoinRequest = async (requestId) => {
     try {
+      // Check if request has a company_id
+      if (!joinRequestToReview?.company_id && !selectedCompanyForApproval) {
+        Alert.alert('Validation', 'Please select a company for this contractor to join');
+        return;
+      }
+
       console.log('✅ Approving join request:', requestId);
-      const response = await approveJoinRequest(requestId, loggedInContractorId);
+      // Use selectedCompanyForApproval if no company_id on request
+      const companyIdToUse = joinRequestToReview?.company_id || selectedCompanyForApproval;
+      const response = await approveJoinRequest(requestId, loggedInContractorId, companyIdToUse);
       
       if (response.success) {
         Alert.alert('Success', response.message);
         setShowJoinRequestModal(false);
         setJoinRequestToReview(null);
+        setSelectedCompanyForApproval(null);
         loadJoinRequests();
       } else {
         Alert.alert('Error', response.error || 'Failed to approve request');
