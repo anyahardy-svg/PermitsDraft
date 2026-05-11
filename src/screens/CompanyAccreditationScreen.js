@@ -1423,25 +1423,59 @@ export default function CompanyAccreditationScreen({
       );
     }
 
-    // If showOnlyIcon is true, only render the paperclip button (for inline use in the row)
+    // If showOnlyIcon is true, render paperclip button PLUS full document status with view/download
     if (showOnlyIcon) {
       return (
-        <TouchableOpacity
-          onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 5,
-            backgroundColor: hasDocument ? '#D1FAE5' : needsDocument ? '#FEE2E2' : '#F3F4F6',
-            borderWidth: 1,
-            borderColor: hasDocument ? '#10B981' : needsDocument ? '#FCA5A5' : '#D1D5DB',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: 4
-          }}
-        >
-          <Text style={{ fontSize: 14 }}>📎</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+          <TouchableOpacity
+            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 5,
+              backgroundColor: hasDocument ? '#D1FAE5' : needsDocument ? '#FEE2E2' : '#F3F4F6',
+              borderWidth: 1,
+              borderColor: hasDocument ? '#10B981' : needsDocument ? '#FCA5A5' : '#D1D5DB',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 2
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>📎</Text>
+          </TouchableOpacity>
+          
+          {/* Document Status - visible even when collapsed */}
+          {hasDocument ? (
+            <View style={{ flex: 1 }}>
+              <View style={{
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                backgroundColor: '#F0FDF4',
+                borderRadius: 4,
+                borderLeftWidth: 3,
+                borderLeftColor: '#10B981'
+              }}>
+                <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(itemData?.url || itemData?.evidence || itemData?.certificateUrl)}>
+                  <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : needsDocument ? (
+            <View style={{ flex: 1 }}>
+              <View style={{
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                backgroundColor: '#FEE2E2',
+                borderRadius: 4,
+                borderLeftWidth: 3,
+                borderLeftColor: '#EF4444'
+              }}>
+                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
       );
     }
 
