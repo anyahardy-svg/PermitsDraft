@@ -59,6 +59,7 @@ export default function ContractorAuthScreen({
   const [joinRequestCompanyId, setJoinRequestCompanyId] = useState(null);
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
   const [joinRequestSuccess, setJoinRequestSuccess] = useState(false);
+  const [joinRequestOnSite, setJoinRequestOnSite] = useState(true); // true = contractor, false = admin staff
 
   // Sync showPasswordReset prop with local state
   useEffect(() => {
@@ -505,7 +506,8 @@ export default function ContractorAuthScreen({
         joinRequestName,
         joinRequestPhone,
         joinRequestCompanyId,
-        joinRequestCompany
+        joinRequestCompany,
+        joinRequestOnSite
       );
 
       if (response.success) {
@@ -622,6 +624,7 @@ export default function ContractorAuthScreen({
                   setJoinRequestPhone('');
                   setJoinRequestCompany('');
                   setJoinRequestCompanyId(null);
+                  setJoinRequestOnSite(true);
                   // Reset to login screen
                   setEmail('');
                   setPassword('');
@@ -816,6 +819,64 @@ export default function ContractorAuthScreen({
                 }}>
                   Enter the name of your company
                 </Text>
+              </View>
+
+              {/* On-Site Question */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  color: '#374151', 
+                  marginBottom: 12 
+                }}>
+                  Will you be working on site? *
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => setJoinRequestOnSite(true)}
+                    disabled={joinRequestLoading}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      borderWidth: 2,
+                      borderColor: joinRequestOnSite ? '#3B82F6' : '#E5E7EB',
+                      borderRadius: 8,
+                      backgroundColor: joinRequestOnSite ? '#EFF6FF' : '#F9FAFB',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: joinRequestOnSite ? '700' : '500',
+                      color: joinRequestOnSite ? '#3B82F6' : '#6B7280'
+                    }}>
+                      Yes (Contractor)
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setJoinRequestOnSite(false)}
+                    disabled={joinRequestLoading}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      borderWidth: 2,
+                      borderColor: !joinRequestOnSite ? '#3B82F6' : '#E5E7EB',
+                      borderRadius: 8,
+                      backgroundColor: !joinRequestOnSite ? '#EFF6FF' : '#F9FAFB',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: !joinRequestOnSite ? '700' : '500',
+                      color: !joinRequestOnSite ? '#3B82F6' : '#6B7280'
+                    }}>
+                      No (Admin Staff)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Submit Button */}

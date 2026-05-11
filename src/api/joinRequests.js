@@ -51,11 +51,12 @@ async function sendEmailViaBrevo(options) {
  * @param {string} phone - Contractor phone (optional)
  * @param {string} companyId - UUID of company to join
  * @param {string} companyName - Name of company (fallback if company_id not found)
+ * @param {boolean} willWorkOnSite - Whether they'll work on site (true = contractor, false = admin staff)
  * @returns {Object} { success: boolean, message: string, error: string }
  */
-export async function submitJoinRequest(email, name, phone, companyId, companyName) {
+export async function submitJoinRequest(email, name, phone, companyId, companyName, willWorkOnSite = true) {
   try {
-    console.log('📝 Submitting join request:', { email, name, companyId, companyName });
+    console.log('📝 Submitting join request:', { email, name, companyId, companyName, willWorkOnSite });
 
     // Check if request already exists for this email/company
     const { data: existingRequest, error: checkError } = await supabase
@@ -83,6 +84,8 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
           phone: phone || null,
           company_id: companyId || null,
           company_name: companyName,
+          will_work_on_site: willWorkOnSite,
+          user_type: willWorkOnSite ? 'contractor' : 'admin_staff',
           status: 'pending'
         }
       ])
@@ -230,7 +233,7 @@ export async function getAllJoinRequests(companyId) {
 }
 
 /**
- * Approve a join request and create contractor record
+ * Approve a join request and create contractor or admin staff record
  * @param {string} requestId - UUID of join request
  * @param {string} adminId - UUID of admin approving
  * @param {string} companyIdOverride - Optional company_id to use if request doesn't have one
@@ -258,22 +261,31 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       return { success: false, error: 'No company specified. Admin must select a company.' };
     }
 
-    // Create contractor record
-    const { data: contractor, error: contractorError } = await supabase
-      .from('contractors')
-      .insert([
-        {
-          name: request.name,
-          email: request.email,
-          company_id: companyIdToUse,
-          phone: request.phone
-        }
-      ])
-      .select();
+    let contractorId = null;
 
-    if (contractorError) {
-      console.error('❌ Error creating contractor:', contractorError);
-      return { success: false, error: 'Failed to create contractor record: ' + contractorError.message };
+    // Only create contractor record if they'll work on site
+    if (request.will_work_on_site) {
+      const { data: contractor, error: contractorError } = await supabase
+        .from('contractors')
+        .insert([
+          {
+            name: request.name,
+            email: request.email,
+            company_id: companyIdToUse,
+            phone: request.phone
+          }
+        ])
+        .select();
+
+      if (contractorError) {
+        console.error('❌ Error creating contractor:', contractorError);
+        return { success: false, error: 'Failed to create contractor record: ' + contractorError.message };
+      }
+
+      contractorId = contractor[0]?.id;
+      console.log('✅ Contractor record created:', contractorId);
+    } else {
+      console.log('ℹ️ Admin staff - not creating contractor record');
     }
 
     // Update request status
@@ -292,10 +304,13 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       return { success: false, error: 'Failed to update request status' };
     }
 
-    console.log('✅ Join request approved, contractor created');
+    console.log('✅ Join request approved');
 
-    // Send approval email to contractor
+    // Send approval email
     console.log('📧 Sending approval email to:', request.email);
+    
+    const userTypeLabel = request.will_work_on_site ? 'Contractor' : 'Admin Staff';
+    
     const htmlContent = `
       <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -305,6 +320,8 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
             <p>Hi ${request.name},</p>
             
             <p>Great news! Your request to join <strong>${request.company_name}</strong> has been <strong>approved</strong>.</p>
+            
+            <p><strong>Your role:</strong> ${userTypeLabel}</p>
             
             <p>Your account is now ready to use. To get started:</p>
             
@@ -347,15 +364,15 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     if (!emailResult.success) {
       console.warn('⚠️ Approval email failed:', emailResult.error);
-      // Still return success since contractor record was created
+      // Still return success since records were created
     }
 
     return {
       success: true,
       message: emailResult.success 
         ? `Approved! Approval email sent to ${request.email}`
-        : `Approved! Contractor created, but approval email failed to send.`,
-      contractorId: contractor[0]?.id
+        : `Approved! ${userTypeLabel} created, but approval email failed to send.`,
+      contractorId: contractorId
     };
   } catch (error) {
     console.error('❌ Exception:', error);

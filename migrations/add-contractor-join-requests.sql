@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS contractor_join_requests (
   phone TEXT,
   company_id UUID REFERENCES companies(id),
   company_name TEXT,
+  user_type TEXT DEFAULT 'contractor', -- 'contractor' or 'admin_staff'
+  will_work_on_site BOOLEAN DEFAULT true, -- true = contractor, false = admin staff
   status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
   requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   reviewed_at TIMESTAMP WITH TIME ZONE,
