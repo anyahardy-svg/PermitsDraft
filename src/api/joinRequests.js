@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { config } from '../config/env';
 
 /**
  * Send email via Brevo API
@@ -9,7 +10,7 @@ async function sendEmailViaBrevo(options) {
   try {
     const { toEmail, toName, subject, htmlContent } = options;
 
-    const brevoKey = process.env.VITE_BREVO_API_KEY;
+    const brevoKey = config.brevoApiKey;
     if (!brevoKey) {
       console.error('❌ BREVO_API_KEY not configured');
       return { success: false, error: 'Email service not configured' };
