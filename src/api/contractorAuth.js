@@ -27,19 +27,42 @@ export async function loginWithEmailPassword(email, password) {
       return { success: false, error: 'Login failed' };
     }
 
-    // Get contractor info from contractors table using the user's email
+    console.log('✅ Auth sign in successful for:', email);
+
+    // Try to get contractor info from contractors table using the user's email
+    // Use maybeSingle() instead of single() to allow no rows (for admin_staff users)
     const { data: contractorData, error: contractorError } = await supabase
       .from('contractors')
       .select('id, name, company_id, email')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
-    if (contractorError) {
-      // User exists in auth but not in contractors table
-      console.error('Contractor record not found:', contractorError);
+    // Check if this is an admin_staff user (from metadata)
+    const userType = authData.user.user_metadata?.user_type;
+    console.log('👤 User type from metadata:', userType);
+
+    if (!contractorData && userType !== 'admin_staff') {
+      // Contractor user without a record - that's an error
+      console.error('❌ Contractor record not found for contractor user:', email);
       return { 
         success: false, 
         error: 'Your contractor account is not set up. Please contact your administrator.' 
+      };
+    }
+
+    if (!contractorData && userType === 'admin_staff') {
+      // Admin staff user without contractor record - that's OK
+      console.log('ℹ️ Admin staff user without contractor record - this is expected');
+      return { 
+        success: true, 
+        data: {
+          user: authData.user,
+          contractorId: null,
+          contractorName: null,
+          companyId: null,
+          email: email,
+          userType: 'admin_staff'
+        }
       };
     }
 
