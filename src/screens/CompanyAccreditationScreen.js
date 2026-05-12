@@ -1447,8 +1447,8 @@ export default function CompanyAccreditationScreen({
       'section18': { get: () => section17, set: setSection17 }, // UI Section 18 → section17
       'section19': { get: () => section18, set: setSection18 }, // UI Section 19 → section18
       'section20': { get: () => section19, set: setSection19 }, // UI Section 20 → section19
-      'section21': { get: () => section20, set: setSection20 }, // UI Section 21 → section20
-      'section22': { get: () => section21, set: setSection21 }, // UI Section 22 → section21
+      'section21': { get: () => section21, set: setSection21 }, // UI Section 21 → section21 (DIRECT, no offset!)
+      'section22': { get: () => section22, set: setSection22 }, // UI Section 22 → section22 (DIRECT, no offset!)
       'section23': { get: () => section22, set: setSection22 }, // UI Section 23 → section22
       'section24': { get: () => section24, set: setSection24 }, // Direct mapping
       'section25': { get: () => section25, set: setSection25 }, // Direct mapping
