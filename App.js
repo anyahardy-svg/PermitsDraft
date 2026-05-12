@@ -10164,7 +10164,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     company.training_records_total > 0 ? '#92400E' :
                                     '#6B7280'
                                 }}>
-                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'added' ? '📝 Added' : company.training_records_total > 0 ? '📝 Added' : '○ None'}
+                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'added' ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : company.training_records_total > 0 ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
