@@ -2464,23 +2464,34 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const sessionData = JSON.parse(savedAdminSession);
         const adminData = JSON.parse(savedAdminData);
         
-        // Only restore session on laptops, not tablets (security for shared devices)
-        if (sessionData.deviceType === 'laptop') {
-          // Check if session hasn't timed out (optional: can add additional validation)
+        // Check CURRENT device type to determine if we should restore
+        // This way, even if saved session doesn't have device info, we check current device
+        const currentDeviceType = getDeviceType();
+        console.log('🔍 Checking session restore: current device =', currentDeviceType, ', saved device =', sessionData.deviceType);
+        
+        // Only restore session if CURRENTLY on a laptop (not if user moved to tablet)
+        if (currentDeviceType === 'laptop') {
+          // Restore the session
           setAdminSessionActive(sessionData.active);
           setLoggedInAdmin(adminData);
           setLastActivityTime(sessionData.lastActivity || Date.now());
+          setDeviceType('laptop');
           console.log('✅ Admin session restored from localStorage (laptop detected)');
         } else {
-          console.log('🔒 Session not restored - tablet detected (security measure)');
+          console.log('🔒 Session not restored - currently on tablet (security measure)');
           localStorage.removeItem('adminSession');
           localStorage.removeItem('adminData');
+          setDeviceType('tablet');
         }
+      } else {
+        // No saved session, just detect and set device type
+        setDeviceType(getDeviceType());
       }
     } catch (e) {
       console.warn('⚠️ Could not restore admin session from localStorage:', e);
+      setDeviceType(getDeviceType());
     }
-  }, [deviceType]);
+  }, []);
 
   const handleAddAdmin = async () => {
     if (!newAdminForm.email || !newAdminForm.name) {
@@ -8595,24 +8606,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TouchableOpacity 
-              onPress={() => {
-                console.log('🔒 Locking account immediately');
-                handleAdminLogout();
-                Alert.alert('Account Locked', 'Your admin session has been locked. Please log in again.');
-              }}
-              style={{ paddingHorizontal: 12, paddingVertical: 8 }}
-            >
-              <Text style={{ fontSize: 13, color: 'white', fontWeight: '600' }}>LOCK</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => handleAdminLogout()}
-              style={{ paddingHorizontal: 12, paddingVertical: 8 }}
-            >
-              <Text style={{ fontSize: 13, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            onPress={() => handleAdminLogout()}
+            style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
+          </TouchableOpacity>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
