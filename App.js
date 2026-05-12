@@ -10126,14 +10126,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 paddingHorizontal: 8,
                                 paddingVertical: 4,
                                 borderRadius: 4,
-                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : company.accreditation_status === 'pending' ? '#E0E7FF' : '#FEF3C7',
+                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : company.accreditation_status === 'pending' ? '#E0E7FF' : company.accreditation_status === 'in-progress' ? '#FEF3C7' : '#FEF3C7',
                               }}>
                                 <Text style={{
                                   fontSize: 13,
                                   fontWeight: '600',
-                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : company.accreditation_status === 'pending' ? '#3730A3' : '#92400E'
+                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : company.accreditation_status === 'pending' ? '#3730A3' : company.accreditation_status === 'in-progress' ? '#92400E' : '#92400E'
                                 }}>
-                                  {company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : company.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : company.accreditation_status === 'started' || company.accredited_date ? '→ Started' : '○ None'}
+                                  {company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'pending' ? '⟳ Pending' : company.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : company.accreditation_status === 'in-progress' ? '→ In Progress' : company.accreditation_status === 'started' || company.accredited_date ? '→ Started' : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
