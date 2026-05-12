@@ -52,14 +52,24 @@ export async function loginWithEmailPassword(email, password) {
 
     if (!contractorData && userType === 'admin_staff') {
       // Admin staff user without contractor record - that's OK
-      console.log('ℹ️ Admin staff user without contractor record - this is expected');
+      // Get company_id from contractor_join_requests table
+      const { data: joinRequest, error: joinRequestError } = await supabase
+        .from('contractor_join_requests')
+        .select('company_id')
+        .eq('email', email)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      const companyId = joinRequest?.company_id || null;
+      console.log('ℹ️ Admin staff user - company_id from join request:', companyId);
+      
       return { 
         success: true, 
         data: {
           user: authData.user,
           contractorId: null,
           contractorName: null,
-          companyId: null,
+          companyId: companyId,
           email: email,
           userType: 'admin_staff'
         }
@@ -73,7 +83,8 @@ export async function loginWithEmailPassword(email, password) {
         contractorId: contractorData.id,
         contractorName: contractorData.name,
         companyId: contractorData.company_id,
-        email: contractorData.email
+        email: contractorData.email,
+        userType: userType
       }
     };
   } catch (error) {

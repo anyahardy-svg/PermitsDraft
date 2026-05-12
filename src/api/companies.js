@@ -317,7 +317,9 @@ export const upsertCompany = async (companyData) => {
 };
 
 // Get company accreditation data
-// N// Handle null company_id
+export const getCompanyAccreditation = async (companyId) => {
+  try {
+    // Handle null company_id
     if (!companyId) {
       console.warn('⚠️ getCompanyAccreditation called with null/undefined companyId');
       return null;
@@ -340,9 +342,6 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
-// Approve company accreditation
-export const approveCompanyAccreditation = async (companyId, approvedBy) => {
-  try {
     const now = new Date().toISOString();
     
     const { data, error } = await supabase
