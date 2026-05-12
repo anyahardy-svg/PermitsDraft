@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`👤 Creating or checking auth user: ${email} (${userType})`);
+    console.log('📋 Request body:', { email, name, companyId, companyName, userType });
 
     // First check if user already exists
     let existingUser = null;
@@ -80,6 +81,29 @@ export default async function handler(req, res) {
 
     // Create user via Supabase Auth REST API using SERVICE ROLE KEY
     console.log('🔑 Creating new user with service role key');
+    
+    // Generate a temporary password (user will set their own)
+    const tempPassword = Math.random().toString(36).slice(-16) + 'TempPass123!';
+    
+    const createBody = {
+      email: email,
+      password: tempPassword,  // Required by Supabase
+      email_confirm: true,  // Auto-confirm so they don't need email verification
+      user_metadata: {
+        name: name || email,
+        company_name: companyName,
+        company_id: companyId,
+        user_type: userType
+      }
+    };
+    
+    console.log('📤 Sending to Supabase Auth:', { 
+      email, 
+      passwordLength: tempPassword.length,
+      email_confirm: true,
+      user_metadata: createBody.user_metadata
+    });
+    
     const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: 'POST',
       headers: {
@@ -87,19 +111,13 @@ export default async function handler(req, res) {
         'apikey': SUPABASE_SERVICE_ROLE_KEY,
         'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       },
-      body: JSON.stringify({
-        email: email,
-        email_confirm: true,  // Auto-confirm so they don't need email verification
-        user_metadata: {
-          name: name || email,
-          company_name: companyName,
-          company_id: companyId,
-          user_type: userType
-        }
-      })
+      body: JSON.stringify(createBody)
     });
 
     const authData = await authResponse.text();
+    
+    console.log('📥 Supabase response status:', authResponse.status);
+    console.log('📥 Supabase response body:', authData);
     
     if (!authResponse.ok) {
       console.error('❌ Auth API error:', authResponse.status, authData);
