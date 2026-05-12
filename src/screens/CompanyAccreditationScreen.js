@@ -36,7 +36,8 @@ export default function CompanyAccreditationScreen({
   isAdmin = false, 
   styles,
   onClose,
-  onNavigateToTrainingRecords
+  onNavigateToTrainingRecords,
+  onStatusUpdate
 }) {
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
@@ -525,7 +526,13 @@ export default function CompanyAccreditationScreen({
       setAccreditedSystems(systems);
       
       // Set accreditation status
-      setAccreditationStatus(data.accreditation_status || 'in-progress');
+      const status = data.accreditation_status || 'in-progress';
+      setAccreditationStatus(status);
+      
+      // Notify parent component of the actual status
+      if (onStatusUpdate) {
+        onStatusUpdate(status);
+      }
 
       // Load policies (Section 3)
       setPolicies({

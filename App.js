@@ -2793,6 +2793,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
+  const [displayedAccreditationStatus, setDisplayedAccreditationStatus] = useState('Not Submitted');
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
   const [selectedCompanyAccreditationId, setSelectedCompanyAccreditationId] = useState(null);
@@ -9394,6 +9395,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const accredData = await getCompanyAccreditation(company.id);
       setSelectedCompanyForAccreditation(company);
       setCompanyAccreditationData(accredData);
+      setDisplayedAccreditationStatus(accredData?.accreditation_status || 'Not Submitted');
       setSelectedCompanyAccreditationId(company.id);
       setShowAccreditationModal(true);
     } catch (error) {
@@ -9515,6 +9517,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       setCompanyAccreditationData(updatedAccred);
+      setDisplayedAccreditationStatus(updatedAccred?.accreditation_status || 'approved');
       
       Alert.alert('Success', 'Accreditation approved successfully', [
         { text: 'OK', onPress: () => {
@@ -9546,6 +9549,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       setCompanyAccreditationData(updatedAccred);
+      setDisplayedAccreditationStatus(updatedAccred?.accreditation_status || 'needs_revision');
       
       Alert.alert('Success', 'Accreditation marked as needing revision', [
         { text: 'OK', onPress: () => {
@@ -10267,7 +10271,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     {selectedCompanyForAccreditation.name}
                   </Text>
                   <Text style={{ fontSize: 14, color: '#DBEAFE' }}>
-                    Accreditation Status: {companyAccreditationData?.accreditation_status === 'approved' ? '✓ Approved' : companyAccreditationData?.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : companyAccreditationData?.accreditation_status === 'pending' ? '⟳ Pending' : '○ Not Submitted'}
+                    Accreditation Status: {displayedAccreditationStatus === 'approved' ? '✓ Approved' : displayedAccreditationStatus === 'needs_revision' ? '⚠ Needs Revision' : displayedAccreditationStatus === 'pending' ? '⟳ Pending' : displayedAccreditationStatus === 'in-progress' ? '⏳ In Progress' : '○ Not Submitted'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => {
@@ -10287,6 +10291,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     setShowAccreditationModal(false);
                     setSelectedCompanyAccreditationId(null);
                   }}
+                  onStatusUpdate={setDisplayedAccreditationStatus}
                 />
               </View>
 
