@@ -255,13 +255,6 @@ export async function getAllPendingJoinRequests() {
   }
 }
 
-/**
- * Approve a join request and create contractor or admin staff record
- * @param {string} requestId - UUID of join request
- * @param {string} adminId - UUID of admin approving
- * @param {string} companyIdOverride - Optional company_id to use if request doesn't have one
- * @returns {Object} { success: boolean, message: string, error: string, contractorId: string }
- */
 export async function approveJoinRequest(requestId, adminId, companyIdOverride) {
   try {
     console.log('✅ Approving join request:', requestId);
@@ -286,8 +279,8 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     let contractorId = null;
 
-    // STEP 1: Create USER in Authentication (for both contractor and admin_staff)
-    console.log('👤 Creating auth user for:', request.email);
+    // STEP 1: Create USER in Authentication
+    console.log('👤 STEP 1: Creating auth user for:', request.email);
     let authUserId = null;
     try {
       const authResponse = await fetch('/api/create-auth-user', {
@@ -321,14 +314,14 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
       const authData = JSON.parse(authText);
       authUserId = authData.userId;
-      console.log('✅ Auth user created/verified:', authUserId);
-      console.log('📊 Full auth response:', authData);
+      console.log('✅ Auth user created:', authUserId);
     } catch (authErr) {
       console.error('❌ Error creating auth user:', authErr.message);
       return { success: false, error: 'Failed to create auth user: ' + authErr.message };
     }
 
     // STEP 2: Create contractor record if they'll work on site
+    console.log('👤 STEP 2: Creating contractor record if needed');
     if (request.will_work_on_site) {
       const { data: contractor, error: contractorError } = await supabase
         .from('contractors')
@@ -353,14 +346,42 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       console.log('ℹ️ Admin staff - no contractor record needed');
     }
 
-    // Update request status
+    // STEP 3: Set password for the user (backend generates temporary password)
+    console.log('🔐 STEP 3: Setting password for user');
+    const tempPassword = Math.random().toString(36).slice(-16) + 'TempPass123!';
+    try {
+      const passwordResponse = await fetch('/api/set-contractor-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: request.email,
+          password: tempPassword
+        })
+      });
+
+      if (!passwordResponse.ok) {
+        const passwordError = await passwordResponse.text();
+        console.error('❌ Password set failed:', passwordResponse.status, passwordError);
+        return { success: false, error: 'Failed to set password: ' + passwordError };
+      }
+
+      console.log('✅ Password set successfully');
+    } catch (passwordErr) {
+      console.error('❌ Error setting password:', passwordErr.message);
+      return { success: false, error: 'Failed to set password: ' + passwordErr.message };
+    }
+
+    // STEP 4: Update request status
+    console.log('📋 STEP 4: Updating request status');
     const { error: updateError } = await supabase
       .from('contractor_join_requests')
       .update({
         status: 'approved',
         reviewed_at: new Date().toISOString(),
         reviewed_by: adminId,
-        company_id: companyIdToUse  // Save the selected company_id
+        company_id: companyIdToUse
       })
       .eq('id', requestId);
 
@@ -369,15 +390,13 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       return { success: false, error: 'Failed to update request status' };
     }
 
-    console.log('✅ Join request approved');
+    console.log('✅ Join request status updated');
 
-    // Send approval email with password setup link
-    console.log('📧 Sending approval email to:', request.email);
+    // STEP 5: Send approval confirmation email
+    console.log('📧 STEP 5: Sending approval confirmation email');
     
     const userTypeLabel = request.will_work_on_site ? 'Contractor' : 'Admin Staff';
-    
-    // Generate password setup URL - user will be taken directly to password setup screen
-    const setupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(request.email)}`;
+    const loginUrl = 'https://contractorhq.co.nz/sign-in-contractor';
     
     const htmlContent = `
       <html>
@@ -391,28 +410,30 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
             
             <p><strong>Your role:</strong> ${userTypeLabel}</p>
             
-            <p>Your account is now ready to use. To get started, please set your password:</p>
+            <p><strong>Your account is ready to use!</strong></p>
+            
+            <p>You can now log in immediately with:</p>
+            <ul>
+              <li><strong>Email:</strong> ${request.email}</li>
+              <li><strong>Password:</strong> The temporary password sent to you separately</li>
+            </ul>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="${setupUrl}" 
+              <a href="${loginUrl}" 
                  style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
-                Set Up Your Password
+                Log In Now
               </a>
             </p>
             
             <p><strong>Next steps:</strong></p>
             <ol>
-              <li>Click the button above to set up your password</li>
-              <li>Create a secure password for your account</li>
-              <li>Log in with your email (${request.email}) and password</li>
+              <li>Go to the login page (button above)</li>
+              <li>Enter your email and the temporary password provided</li>
+              <li>You can change your password after logging in</li>
               <li>Start using Contractor Hub!</li>
             </ol>
             
             <p><strong>Your company:</strong> ${request.company_name}</p>
-            
-            <p style="padding: 12px; background-color: #EFF6FF; border-left: 3px solid #3B82F6; font-size: 13px;">
-              <strong>💡 Tip:</strong> If the password setup link doesn't work, you can visit the login page and click "Forgot Password?" to set up your password.
-            </p>
             
             <p>If you have any questions or need assistance, please contact support at support@contractorhq.co.nz</p>
             
@@ -435,14 +456,12 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     if (!emailResult.success) {
       console.warn('⚠️ Approval email failed:', emailResult.error);
-      // Still return success since records were created
     }
 
+    console.log('✅ Approval complete - user fully set up and ready to login');
     return {
       success: true,
-      message: emailResult.success 
-        ? `Approved! Approval email sent to ${request.email}`
-        : `Approved! ${userTypeLabel} created, but approval email failed to send.`,
+      message: `✅ Approved! User account created. ${emailResult.success ? 'Confirmation email sent.' : 'Note: Could not send confirmation email.'}`,
       contractorId: contractorId
     };
   } catch (error) {
