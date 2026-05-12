@@ -431,6 +431,79 @@ export default function CompanyAccreditationScreen({
     }
   }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId]);
 
+  // Auto-save Section 8 (PPE) yes/no answer when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    console.log('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
+    
+    const timer = setTimeout(() => {
+      console.log('💾 Auto-saving Section 8 PPE compliance answer...');
+      autoSave();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [section8.ppe_compliance_yesno, currentCompanyId]);
+
+  // Auto-save Section 9 (Plant & Equipment) yes/no answer when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    console.log('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
+    
+    const timer = setTimeout(() => {
+      console.log('💾 Auto-saving Section 9 Plant & Equipment answer...');
+      autoSave();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [section9.plant_equipment_onsite_yesno, currentCompanyId]);
+
+  // Auto-save Section 10 (Electrical Equipment) yes/no answer when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    console.log('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
+    
+    const timer = setTimeout(() => {
+      console.log('💾 Auto-saving Section 10 Electrical Equipment answer...');
+      autoSave();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [section10.electrical_equipment_onsite_yesno, currentCompanyId]);
+
+  // Auto-save Section 11 (Emergency) yes/no answer when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    console.log('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
+    
+    const timer = setTimeout(() => {
+      console.log('💾 Auto-saving Section 11 Emergency First Aid answer...');
+      autoSave();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [section11.emergency_first_aid_yesno, currentCompanyId]);
+
+  // Auto-save Section 11 First Aid Equipment text when it changes
+  useEffect(() => {
+    if (!currentCompanyId) return;
+    
+    // Only auto-save if there's equipment text to save
+    if (section11.emergency_first_aid_equipment) {
+      console.log('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
+      
+      const timer = setTimeout(() => {
+        console.log('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
+        autoSave();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [section11.emergency_first_aid_equipment, currentCompanyId]);
+
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
     if (!date) return '';
