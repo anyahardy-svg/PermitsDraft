@@ -10150,8 +10150,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 paddingVertical: 4,
                                 borderRadius: 4,
                                 backgroundColor: 
-                                  trainingRecordsStatuses[company.id] === 'approved' ? '#D1FAE5' :
-                                  trainingRecordsStatuses[company.id] === 'added' ? '#FEF3C7' :
+                                  company.training_records_total > 0 && (company.training_records_approved || 0) === company.training_records_total ? '#D1FAE5' :
                                   company.training_records_total > 0 ? '#FEF3C7' :
                                   '#F3F4F6'
                               }}>
@@ -10159,12 +10158,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   fontSize: 13,
                                   fontWeight: '600',
                                   color:
-                                    trainingRecordsStatuses[company.id] === 'approved' ? '#065F46' :
-                                    trainingRecordsStatuses[company.id] === 'added' ? '#92400E' :
+                                    company.training_records_total > 0 && (company.training_records_approved || 0) === company.training_records_total ? '#065F46' :
                                     company.training_records_total > 0 ? '#92400E' :
                                     '#6B7280'
                                 }}>
-                                  {trainingRecordsStatuses[company.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[company.id] === 'added' ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : company.training_records_total > 0 ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : '○ None'}
+                                  {company.training_records_total > 0 && (company.training_records_approved || 0) === company.training_records_total ? '✓ Approved' : company.training_records_total > 0 ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
