@@ -433,7 +433,7 @@ export default function CompanyAccreditationScreen({
 
   // Auto-save Section 8 (PPE) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !section8.ppe_compliance_yesno) return;
     
     console.log('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
     
@@ -443,11 +443,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section8.ppe_compliance_yesno, currentCompanyId]);
+  }, [section8, currentCompanyId]);
 
   // Auto-save Section 9 (Plant & Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !section9.plant_equipment_onsite_yesno) return;
     
     console.log('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
     
@@ -457,11 +457,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section9.plant_equipment_onsite_yesno, currentCompanyId]);
+  }, [section9, currentCompanyId]);
 
   // Auto-save Section 10 (Electrical Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !section10.electrical_equipment_onsite_yesno) return;
     
     console.log('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
     
@@ -471,11 +471,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section10.electrical_equipment_onsite_yesno, currentCompanyId]);
+  }, [section10, currentCompanyId]);
 
   // Auto-save Section 11 (Emergency) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !section11.emergency_first_aid_yesno) return;
     
     console.log('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
     
@@ -485,24 +485,21 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section11.emergency_first_aid_yesno, currentCompanyId]);
+  }, [section11, currentCompanyId]);
 
   // Auto-save Section 11 First Aid Equipment text when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !section11.emergency_first_aid_equipment) return;
     
-    // Only auto-save if there's equipment text to save
-    if (section11.emergency_first_aid_equipment) {
-      console.log('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
-      
-      const timer = setTimeout(() => {
-        console.log('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
-        autoSave();
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [section11.emergency_first_aid_equipment, currentCompanyId]);
+    console.log('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
+    
+    const timer = setTimeout(() => {
+      console.log('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
+      autoSave();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [section11, currentCompanyId]);
 
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
