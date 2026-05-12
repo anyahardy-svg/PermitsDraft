@@ -342,50 +342,6 @@ export default function TrainingRecordsScreen({
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
-          {/* Pending Records Section - Highlighted for Easy Approval */}
-          {trainingRecords.filter(r => r.status === 'pending').length > 0 && (
-            <View style={{ padding: 16, backgroundColor: '#FEF3C7', borderBottomWidth: 2, borderBottomColor: '#F59E0B' }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 12 }}>
-                📋 Pending Approval ({trainingRecords.filter(r => r.status === 'pending').length} records)
-              </Text>
-              <View style={{ gap: 10 }}>
-                {trainingRecords.filter(r => r.status === 'pending').map(record => (
-                  <View key={record.id} style={{ backgroundColor: 'white', borderRadius: 8, padding: 12, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937' }}>{record.training_type}</Text>
-                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                          {record.contractor_name} • Expires: {formatDateNZ(record.expiry_date)}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => handleApproveRecord(record.id)}
-                          disabled={approvingRecordId === record.id}
-                          style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: approvingRecordId === record.id ? '#D1D5DB' : '#10B981', borderRadius: 6 }}
-                        >
-                          <Text style={{ fontSize: 12, color: 'white', fontWeight: '600' }}>
-                            {approvingRecordId === record.id ? '...' : '✓ Approve'}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setEditingRecordId(record.id);
-                            setUpdateSelectedFile(null);
-                            setUpdateExpiryDate('');
-                          }}
-                          style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#E5E7EB', borderRadius: 6 }}
-                        >
-                          <Text style={{ fontSize: 12, color: '#374151', fontWeight: '600' }}>Update</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-          
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <View style={{ padding: 16 }}>
               {/* Table Header */}

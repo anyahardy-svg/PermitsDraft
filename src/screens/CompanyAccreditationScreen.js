@@ -456,20 +456,13 @@ export default function CompanyAccreditationScreen({
   const loadCompanyData = async () => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
-      console.log('❌ No currentCompanyId set, cannot load accreditation data');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      console.log('📥 Loading accreditation data for company:', currentCompanyId);
       const data = await getCompanyAccreditation(currentCompanyId);
-      console.log('✅ Accreditation data loaded:', { 
-        company: data.name,
-        status: data.accreditation_status,
-        hasData: !!data 
-      });
       setCompany(data);
       
       // Populate company details from the fetched company data
@@ -534,17 +527,10 @@ export default function CompanyAccreditationScreen({
       
       // Set accreditation status
       const status = data.accreditation_status || 'in-progress';
-      console.log('📋 Loaded accreditation status from database:', {
-        raw_status: data.accreditation_status,
-        final_status: status,
-        company_id: companyId,
-        company_name: data.name
-      });
       setAccreditationStatus(status);
       
       // Notify parent component of the actual status
       if (onStatusUpdate) {
-        console.log('📞 Calling onStatusUpdate with status:', status);
         onStatusUpdate(status);
       }
 
