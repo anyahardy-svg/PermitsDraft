@@ -456,13 +456,20 @@ export default function CompanyAccreditationScreen({
   const loadCompanyData = async () => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
+      console.log('❌ No currentCompanyId set, cannot load accreditation data');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
+      console.log('📥 Loading accreditation data for company:', currentCompanyId);
       const data = await getCompanyAccreditation(currentCompanyId);
+      console.log('✅ Accreditation data loaded:', { 
+        company: data.name,
+        status: data.accreditation_status,
+        hasData: !!data 
+      });
       setCompany(data);
       
       // Populate company details from the fetched company data
