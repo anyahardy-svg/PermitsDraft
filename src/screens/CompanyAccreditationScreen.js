@@ -1599,12 +1599,12 @@ export default function CompanyAccreditationScreen({
         );
       }
       
-      // Show needs document warning if applicable
+      // Show needs document warning if applicable - click to directly upload
       if (needsDocument) {
         return (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
             <TouchableOpacity
-              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              onPress={() => handleUploadFn()}
               style={{
                 width: 30,
                 height: 30,
@@ -1636,10 +1636,10 @@ export default function CompanyAccreditationScreen({
         );
       }
 
-      // No document, not needed
+      // No document, not needed - click paperclip to directly upload
       return (
         <TouchableOpacity
-          onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+          onPress={() => handleUploadFn()}
           style={{
             width: 30,
             height: 30,
