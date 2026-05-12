@@ -117,6 +117,12 @@ export const listCompanies = async () => {
 // Get a single company
 export const getCompany = async (companyId) => {
   try {
+    // Handle null company_id (e.g., for admin_staff users without a company)
+    if (!companyId) {
+      console.warn('⚠️ getCompany called with null/undefined companyId');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved')
@@ -134,7 +140,11 @@ export const getCompany = async (companyId) => {
 // Update a company
 export const updateCompany = async (companyId, updates) => {
   try {
-    // Only allow updating fields that exist in the companies table
+    // Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ updateCompany called with null/undefined companyId');
+      return null;
+    }
     const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
@@ -164,6 +174,12 @@ export const updateCompany = async (companyId, updates) => {
 // Get contractors linked to a company
 export const getContractorsByCompany = async (companyId) => {
   try {
+    // Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ getContractorsByCompany called with null/undefined companyId');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('contractors')
       .select('id, name, email')
@@ -182,7 +198,11 @@ export const deleteCompany = async (companyId, options = {}) => {
   const { deleteContractors = false } = options;
   
   try {
-    // First, get all contractors for this company
+    // Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ deleteCompany called with null/undefined companyId');
+      return null;
+    }
     const { data: companyContractors, error: fetchError } = await supabase
       .from('contractors')
       .select('id')
@@ -297,10 +317,12 @@ export const upsertCompany = async (companyData) => {
 };
 
 // Get company accreditation data
-// NOTE: Use getCompanyAccreditation from accreditations.js instead
-// This is kept for backwards compatibility but delegates to accreditations
-export const getCompanyAccreditation = async (companyId) => {
-  try {
+// N// Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ getCompanyAccreditation called with null/undefined companyId');
+      return null;
+    }
+
     const { getCompanyAccreditation: getAccred } = await import('./accreditations.js');
     return await getAccred(companyId);
   } catch (error) {
@@ -308,6 +330,15 @@ export const getCompanyAccreditation = async (companyId) => {
     return null;
   }
 };
+
+// Approve company accreditation
+export const approveCompanyAccreditation = async (companyId, approvedBy) => {
+  try {
+    // Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ approveCompanyAccreditation called with null/undefined companyId');
+      return null;
+    }
 
 // Approve company accreditation
 export const approveCompanyAccreditation = async (companyId, approvedBy) => {
@@ -343,6 +374,12 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
 // Reject company accreditation
 export const rejectCompanyAccreditation = async (companyId, reason) => {
   try {
+    // Handle null company_id
+    if (!companyId) {
+      console.warn('⚠️ rejectCompanyAccreditation called with null/undefined companyId');
+      return null;
+    }
+
     const now = new Date().toISOString();
     
     const { data, error } = await supabase
