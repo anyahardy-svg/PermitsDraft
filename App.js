@@ -2351,6 +2351,62 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [hsAgreementCompanyId, setHsAgreementCompanyId] = useState(null);
   const [hsAgreementCompanyName, setHsAgreementCompanyName] = useState(null);
 
+  // Device detection & inactivity tracking
+  const [deviceType, setDeviceType] = useState(null); // 'laptop' or 'tablet'
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const inactivityTimeoutRef = useRef(null);
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+  // Helper function to detect device type based on screen width
+  const getDeviceType = () => {
+    if (typeof window === 'undefined') return 'laptop';
+    return window.innerWidth >= 1024 ? 'laptop' : 'tablet';
+  };
+
+  // Initialize device type on mount
+  useEffect(() => {
+    const type = getDeviceType();
+    setDeviceType(type);
+    console.log(`📱 Device detected as: ${type} (width: ${window.innerWidth})`);
+  }, []);
+
+  // Track user activity (mouse, keyboard, touch)
+  useEffect(() => {
+    const updateActivity = () => {
+      setLastActivityTime(Date.now());
+      // Reset inactivity timeout
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+      // Set new timeout for inactivity logout (only for laptops)
+      if (adminSessionActive && deviceType === 'laptop') {
+        inactivityTimeoutRef.current = setTimeout(() => {
+          console.log('⏱️ Admin session expired due to inactivity');
+          Alert.alert('Session Expired', 'Your session has expired due to inactivity. Please log in again.');
+          handleAdminLogout();
+        }, INACTIVITY_TIMEOUT);
+      }
+    };
+
+    if (adminSessionActive) {
+      // Add event listeners for activity tracking
+      window.addEventListener('mousemove', updateActivity);
+      window.addEventListener('keypress', updateActivity);
+      window.addEventListener('click', updateActivity);
+      window.addEventListener('touch', updateActivity);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keypress', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('touch', updateActivity);
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+    };
+  }, [adminSessionActive, deviceType]);
+
   // Admin handler functions
   const handleAdminLogout = () => {
     setAdminSessionActive(false);
@@ -2371,13 +2427,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
     setCurrentScreen('admin');
-    // Persist admin session to localStorage
+    setLastActivityTime(Date.now()); // Reset activity timer
+    
+    // Persist admin session to localStorage (device-aware)
     try {
-      localStorage.setItem('adminSession', JSON.stringify({
+      const sessionData = {
         active: true,
-        timestamp: new Date().toISOString()
-      }));
+        timestamp: new Date().toISOString(),
+        deviceType: deviceType || getDeviceType(),
+        lastActivity: Date.now()
+      };
+      localStorage.setItem('adminSession', JSON.stringify(sessionData));
       localStorage.setItem('adminData', JSON.stringify(adminData));
+      console.log(`✅ Admin session saved for ${sessionData.deviceType}`);
     } catch (e) {
       console.warn('Could not save admin session to localStorage:', e);
     }
@@ -2402,15 +2464,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const sessionData = JSON.parse(savedAdminSession);
         const adminData = JSON.parse(savedAdminData);
         
-        // Restore the session
-        setAdminSessionActive(sessionData.active);
-        setLoggedInAdmin(adminData);
-        console.log('✅ Admin session restored from localStorage');
+        // Only restore session on laptops, not tablets (security for shared devices)
+        if (sessionData.deviceType === 'laptop') {
+          // Check if session hasn't timed out (optional: can add additional validation)
+          setAdminSessionActive(sessionData.active);
+          setLoggedInAdmin(adminData);
+          setLastActivityTime(sessionData.lastActivity || Date.now());
+          console.log('✅ Admin session restored from localStorage (laptop detected)');
+        } else {
+          console.log('🔒 Session not restored - tablet detected (security measure)');
+          localStorage.removeItem('adminSession');
+          localStorage.removeItem('adminData');
+        }
       }
     } catch (e) {
       console.warn('⚠️ Could not restore admin session from localStorage:', e);
     }
-  }, []);
+  }, [deviceType]);
 
   const handleAddAdmin = async () => {
     if (!newAdminForm.email || !newAdminForm.name) {
@@ -8525,12 +8595,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Admin Panel</Text>
-          <TouchableOpacity 
-            onPress={() => handleAdminLogout()}
-            style={{ paddingHorizontal: 16, paddingVertical: 8 }}
-          >
-            <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('🔒 Locking account immediately');
+                handleAdminLogout();
+                Alert.alert('Account Locked', 'Your admin session has been locked. Please log in again.');
+              }}
+              style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+            >
+              <Text style={{ fontSize: 13, color: 'white', fontWeight: '600' }}>LOCK</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => handleAdminLogout()}
+              style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+            >
+              <Text style={{ fontSize: 13, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View style={styles.dashboardGrid}>
