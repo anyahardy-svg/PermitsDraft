@@ -15,6 +15,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  console.log('🔧 create-auth-user endpoint called');
+  console.log('📋 Environment check:');
+  console.log('  SUPABASE_URL:', !!process.env.SUPABASE_URL);
+  console.log('  SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY || !!process.env.VITE_SUPABASE_SERVICE_ROLE_KEY);
+  
   try {
     if (!SUPABASE_URL) {
       console.error('❌ Missing SUPABASE_URL');
@@ -117,23 +122,39 @@ export default async function handler(req, res) {
     const authData = await authResponse.text();
     
     console.log('📥 Supabase response status:', authResponse.status);
-    console.log('📥 Supabase response body:', authData);
+    console.log('📥 Supabase response length:', authData.length);
+    console.log('📥 Supabase response preview:', authData.substring(0, 500));
     
     if (!authResponse.ok) {
-      console.error('❌ Auth API error:', authResponse.status, authData);
+      console.error('❌ Auth API error:', authResponse.status);
+      console.error('❌ Full response body:', authData);
       
       let errorMsg = 'Failed to create user';
+      let errorDetails = {};
       try {
         const parsed = JSON.parse(authData);
         errorMsg = parsed.message || parsed.error || errorMsg;
-        console.error('📋 Parsed error:', parsed);
-      } catch (e) {}
+        errorDetails = parsed;
+        console.error('📋 Parsed error object:', parsed);
+      } catch (e) {
+        console.error('📋 Could not parse response as JSON:', e.message);
+      }
       
-      return res.status(authResponse.status).json({ error: errorMsg });
+      return res.status(authResponse.status).json({ 
+        error: errorMsg,
+        details: errorDetails,
+        statusCode: authResponse.status
+      });
     }
 
     const user = JSON.parse(authData);
     console.log(`✅ Auth user created successfully: ${user.id}`);
+    console.log('📊 New user object:', {
+      id: user.id,
+      email: user.email,
+      email_confirmed_at: user.email_confirmed_at,
+      user_metadata: user.user_metadata
+    });
 
     return res.status(200).json({
       success: true,
