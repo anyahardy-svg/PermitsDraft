@@ -9393,9 +9393,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       console.log('🔍 Loading accreditation for:', company.name);
       const accredData = await getCompanyAccreditation(company.id);
+      console.log('📊 Accreditation data loaded:', {
+        company: company.name,
+        status_from_api: accredData?.accreditation_status
+      });
       setSelectedCompanyForAccreditation(company);
       setCompanyAccreditationData(accredData);
-      setDisplayedAccreditationStatus(accredData?.accreditation_status || 'Not Submitted');
+      // Use same default as form: 'in-progress' for empty/null status
+      setDisplayedAccreditationStatus(accredData?.accreditation_status || 'in-progress');
       setSelectedCompanyAccreditationId(company.id);
       setShowAccreditationModal(true);
     } catch (error) {
@@ -10291,7 +10296,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     setShowAccreditationModal(false);
                     setSelectedCompanyAccreditationId(null);
                   }}
-                  onStatusUpdate={setDisplayedAccreditationStatus}
+                  onStatusUpdate={(status) => {
+                    console.log('🔄 Status update received from form:', status);
+                    setDisplayedAccreditationStatus(status);
+                  }}
                 />
               </View>
 

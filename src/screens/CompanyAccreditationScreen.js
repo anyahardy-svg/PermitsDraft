@@ -527,10 +527,17 @@ export default function CompanyAccreditationScreen({
       
       // Set accreditation status
       const status = data.accreditation_status || 'in-progress';
+      console.log('📋 Loaded accreditation status from database:', {
+        raw_status: data.accreditation_status,
+        final_status: status,
+        company_id: companyId,
+        company_name: data.name
+      });
       setAccreditationStatus(status);
       
       // Notify parent component of the actual status
       if (onStatusUpdate) {
+        console.log('📞 Calling onStatusUpdate with status:', status);
         onStatusUpdate(status);
       }
 
