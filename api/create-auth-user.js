@@ -89,6 +89,7 @@ export default async function handler(req, res) {
     
     // Generate a temporary password (user will set their own)
     const tempPassword = Math.random().toString(36).slice(-16) + 'TempPass123!';
+    console.log('🔐 Generated temp password length:', tempPassword.length);
     
     const createBody = {
       email: email,
@@ -109,7 +110,12 @@ export default async function handler(req, res) {
       user_metadata: createBody.user_metadata
     });
     
-    const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
+    console.log('📍 URL:', authUrl);
+    console.log('🔑 Headers - apikey present:', !!SUPABASE_SERVICE_ROLE_KEY);
+    console.log('🔑 Service role key length:', SUPABASE_SERVICE_ROLE_KEY?.length);
+    
+    const authResponse = await fetch(authUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -122,11 +128,19 @@ export default async function handler(req, res) {
     const authData = await authResponse.text();
     
     console.log('📥 Supabase response status:', authResponse.status);
+    console.log('📥 Supabase response headers:', {
+      'content-type': authResponse.headers.get('content-type'),
+      'content-length': authResponse.headers.get('content-length')
+    });
     console.log('📥 Supabase response length:', authData.length);
-    console.log('📥 Supabase response preview:', authData.substring(0, 500));
+    if (authData.length < 1000) {
+      console.log('📥 Full response body:', authData);
+    } else {
+      console.log('📥 Response preview (first 500 chars):', authData.substring(0, 500));
+    }
     
     if (!authResponse.ok) {
-      console.error('❌ Auth API error:', authResponse.status);
+      console.error('❌ Auth API error - Status:', authResponse.status);
       console.error('❌ Full response body:', authData);
       
       let errorMsg = 'Failed to create user';
@@ -135,7 +149,7 @@ export default async function handler(req, res) {
         const parsed = JSON.parse(authData);
         errorMsg = parsed.message || parsed.error || errorMsg;
         errorDetails = parsed;
-        console.error('📋 Parsed error object:', parsed);
+        console.error('📋 Parsed error object:', JSON.stringify(parsed, null, 2));
       } catch (e) {
         console.error('📋 Could not parse response as JSON:', e.message);
       }
