@@ -9430,14 +9430,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const result = await approveAllCompanyTrainingRecords(selectedCompanyForTrainingRecords.id, 'admin');
       
       if (result.success) {
-        Alert.alert('Success', result.message || 'Training records approved successfully');
-        
         // Refresh the status
         await refreshTrainingRecordsStatus(selectedCompanyForTrainingRecords.id);
         
         // Refresh companies list
         const updatedCompanies = await listCompanies();
         setCompanies(updatedCompanies);
+        
+        Alert.alert('Success', result.message || 'Training records approved successfully', [
+          { text: 'OK', onPress: () => {
+            // Close the modal after user confirms
+            setShowTrainingRecordsModal(false);
+          }}
+        ]);
       } else {
         Alert.alert('Info', result.message || 'No pending records to approve');
       }
@@ -9474,14 +9479,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
       if (updateError) throw updateError;
 
-      Alert.alert('Success', 'Company marked for training records review. Feedback noted.');
-      
       // Refresh the status
       await refreshTrainingRecordsStatus(selectedCompanyForTrainingRecords.id);
       
       // Refresh companies list
       const updatedCompanies = await listCompanies();
       setCompanies(updatedCompanies);
+      
+      Alert.alert('Success', 'Company marked for training records review. Feedback noted.', [
+        { text: 'OK', onPress: () => {
+          // Close the modal after user confirms
+          setShowTrainingRecordsModal(false);
+        }}
+      ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to request changes: ' + error.message);
     } finally {
@@ -9498,15 +9508,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('✅ Approving accreditation for:', selectedCompanyForAccreditation.name);
       const result = await approveCompanyAccreditation(selectedCompanyForAccreditation.id, 'admin');
       
-      Alert.alert('Success', 'Accreditation approved successfully');
+      // Refresh companies list and wait for it to complete
+      const updatedCompanies = await listCompanies();
+      setCompanies(updatedCompanies);
       
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       setCompanyAccreditationData(updatedAccred);
       
-      // Refresh companies list
-      const updatedCompanies = await listCompanies();
-      setCompanies(updatedCompanies);
+      Alert.alert('Success', 'Accreditation approved successfully', [
+        { text: 'OK', onPress: () => {
+          // Close the modal after user confirms
+          setShowAccreditationModal(false);
+          setSelectedCompanyAccreditationId(null);
+        }}
+      ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to approve accreditation: ' + error.message);
     } finally {
@@ -9523,15 +9539,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('❌ Rejecting accreditation for:', selectedCompanyForAccreditation.name);
       const result = await rejectCompanyAccreditation(selectedCompanyForAccreditation.id, reason || '');
       
-      Alert.alert('Success', 'Accreditation marked as needing revision');
+      // Refresh companies list and wait for it to complete
+      const updatedCompanies = await listCompanies();
+      setCompanies(updatedCompanies);
       
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       setCompanyAccreditationData(updatedAccred);
       
-      // Refresh companies list
-      const updatedCompanies = await listCompanies();
-      setCompanies(updatedCompanies);
+      Alert.alert('Success', 'Accreditation marked as needing revision', [
+        { text: 'OK', onPress: () => {
+          // Close the modal after user confirms
+          setShowAccreditationModal(false);
+          setSelectedCompanyAccreditationId(null);
+        }}
+      ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to reject accreditation: ' + error.message);
     } finally {
