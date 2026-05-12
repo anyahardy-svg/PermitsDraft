@@ -2325,10 +2325,10 @@ export default function CompanyAccreditationScreen({
         conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
         conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
-          { key: 'ppe_compliance', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?', type: 'yes_no' },
-          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
-          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance' },
-          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance' }
+          { key: 'ppe_compliance_yesno', question: 'Do you supply your workers with PPE that complies with the AS/NZS Standards?', type: 'yes_no' },
+          { key: 'ppe_training_maintenance', question: 'Are staff trained in its correct use, maintenance & storage of their PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
+          { key: 'ppe_job_assessment', question: 'Has your organisation assessed the jobs & tasks that require PPE?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' },
+          { key: 'ppe_maintenance_schedule', question: 'Do you have a maintenance schedule and register of specialised PPE, i.e., gas detectors?', type: 'scoring', showIfKey: 'ppe_compliance_yesno' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
@@ -2346,10 +2346,10 @@ export default function CompanyAccreditationScreen({
         conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
         conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
-          { key: 'plant_equipment_onsite', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?', type: 'yes_no' },
-          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
-          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite' },
-          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite' }
+          { key: 'plant_equipment_onsite_yesno', question: 'Will you be bringing any plant / equipment onto our sites or use heavy vehicles to transport goods on our behalf?', type: 'yes_no' },
+          { key: 'plant_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the plant and equipment they use?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
+          { key: 'plant_equipment_safety_provisions', question: 'Do you ensure that all plant and equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' },
+          { key: 'plant_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'plant_equipment_onsite_yesno' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
@@ -2367,11 +2367,11 @@ export default function CompanyAccreditationScreen({
         conditionalKeys: ['aep_accredited', 'iso_45001_certified', 'totika_prequalified', 'she_prequal_qualified', 'impac_prequalified', 'sitewise_prequalified', 'rapid_prequalified'],
         conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
-          { key: 'electrical_equipment_onsite', question: 'Will you be bringing any electrical equipment on site?', type: 'yes_no' },
-          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
-          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
-          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' },
-          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite' }
+          { key: 'electrical_equipment_onsite_yesno', question: 'Will you be bringing any electrical equipment on site?', type: 'yes_no' },
+          { key: 'electrical_equipment_testing', question: 'Does your organisation check and test equipment to ensure it is fit for purpose (e.g. tagging of electrical devices)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_licenses', question: 'Do you ensure your workers receive training and have the correct licences and/or certificates to operate the electrical equipment they use?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_safety_provisions', question: 'Do you ensure that all electrical equipment are fitted with the correct and legal safety provisions (e.g. rollover protection or seat belts)?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' },
+          { key: 'electrical_equipment_maintenance', question: 'Is equipment well maintained and are records kept of equipment maintenance, calibration and service?', type: 'scoring', showIfKey: 'electrical_equipment_onsite_yesno' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
@@ -2390,7 +2390,7 @@ export default function CompanyAccreditationScreen({
         conditionalShowWhen: false, // Hide when any of these accreditations are checked
         items: [
           { key: 'emergency_procedures', question: 'Does your organisation have emergency response procedures to deal with work-site emergencies?', type: 'scoring' },
-          { key: 'emergency_first_aid', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
+          { key: 'emergency_first_aid_yesno', question: 'Will your company provide the necessary first aid equipment to deal with emergencies on site?', type: 'yes_no' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
@@ -2772,7 +2772,7 @@ export default function CompanyAccreditationScreen({
                     </View>
                     
                     {/* Special cases: Section 11 Q2 - text input for first aid equipment */}
-                    {section.number === 11 && item.key === 'emergency_first_aid' && section.state[item.key] === 'yes' && (
+                    {section.number === 12 && item.key === 'emergency_first_aid_yesno' && section.state[item.key] === 'yes' && (
                       <View style={{ marginTop: 12 }}>
                         <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Please specify the first aid equipment you will provide:</Text>
                         <TextInput
