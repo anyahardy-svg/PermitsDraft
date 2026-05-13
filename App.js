@@ -2370,19 +2370,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     // If it's explicitly a tablet in user agent, it's a tablet
     if (isTabletUA) {
-      console.log('🎯 Device detected as TABLET via user agent:', { userAgent: userAgent.slice(0, 100), width });
       return 'tablet';
     }
     
     // If it's mobile, it's definitely not a laptop
     if (isMobileUA) {
-      console.log('🎯 Device detected as MOBILE via user agent');
       return 'tablet';
     }
     
-    // Fallback to width for unknown devices (default to laptop for wide screens)
+    // Fallback to width for unknown devices (≥1280px = laptop, <1280px = tablet)
     const type = width >= 1280 ? 'laptop' : 'tablet';
-    console.log(`🎯 Device detected as ${type} via width: ${width}px`);
     return type;
   };
 
@@ -2390,7 +2387,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   useEffect(() => {
     const type = getDeviceType();
     setDeviceType(type);
-    console.log(`📱 Initial device type set: ${type}`);
+    console.clear();
+    console.log('%c╔════════════════════════════════════════════╗', 'color: #3B82F6; font-weight: bold;');
+    console.log('%c║      PERMIT APP INITIALIZED                ║', 'color: #3B82F6; font-weight: bold;');
+    console.log('%c╚════════════════════════════════════════════╝', 'color: #3B82F6; font-weight: bold;');
+    console.log(`%cDevice Type: ${type.toUpperCase()}`, `color: ${type === 'laptop' ? '#10B981' : '#F59E0B'}; font-weight: bold;`);
   }, []);
 
   // Track user activity (mouse, keyboard, touch)
@@ -2404,7 +2405,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       // Set new timeout for inactivity logout (only for laptops)
       if (adminSessionActive && deviceType === 'laptop') {
         inactivityTimeoutRef.current = setTimeout(() => {
-          console.log('⏱️ Admin session expired due to inactivity');
+          console.log('⏱️ Admin session expired due to inactivity (30 min timeout)');
           Alert.alert('Session Expired', 'Your session has expired due to inactivity. Please log in again.');
           handleAdminLogout();
         }, INACTIVITY_TIMEOUT);
@@ -2412,7 +2413,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     if (adminSessionActive) {
-      // Add event listeners for activity tracking
+      // Add event listeners for activity tracking (silent - just update activity time)
       window.addEventListener('mousemove', updateActivity);
       window.addEventListener('keypress', updateActivity);
       window.addEventListener('click', updateActivity);
@@ -2462,7 +2463,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       };
       localStorage.setItem('adminSession', JSON.stringify(sessionData));
       localStorage.setItem('adminData', JSON.stringify(adminData));
-      console.log(`✅ Admin session saved for ${sessionData.deviceType}`);
+      const detectedDevice = sessionData.deviceType.toUpperCase();
+      console.log(`%c✅ ADMIN SESSION SAVED (${detectedDevice})`, 'color: #10B981; font-weight: bold; font-size: 14px;');
+      console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
+      console.log(`   ${detectedDevice === 'LAPTOP' ? 'Session persists for 30 min inactivity' : 'Session will not persist (tablet requires fresh login)'}`);
     } catch (e) {
       console.warn('Could not save admin session to localStorage:', e);
     }
@@ -2490,7 +2494,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         // Check CURRENT device type to determine if we should restore
         // This way, even if saved session doesn't have device info, we check current device
         const currentDeviceType = getDeviceType();
-        console.log('🔍 Checking session restore: current device =', currentDeviceType, ', saved device =', sessionData.deviceType);
         
         // Only restore session if CURRENTLY on a laptop (not if user moved to tablet)
         if (currentDeviceType === 'laptop') {
@@ -2499,9 +2502,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setLoggedInAdmin(adminData);
           setLastActivityTime(sessionData.lastActivity || Date.now());
           setDeviceType('laptop');
-          console.log('✅ Admin session restored from localStorage (laptop detected)');
+          console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
+          console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
         } else {
-          console.log('🔒 Session not restored - currently on tablet (security measure)');
+          console.log('%c🔒 SESSION NOT RESTORED (TABLET)', 'color: #F59E0B; font-weight: bold; font-size: 14px;');
+          console.log('   Security measure: tablets always require fresh login');
           localStorage.removeItem('adminSession');
           localStorage.removeItem('adminData');
           setDeviceType('tablet');
