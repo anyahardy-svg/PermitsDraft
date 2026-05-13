@@ -3575,6 +3575,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
       console.log('📍 Initial pathname on mount:', pathname);
+      console.log('   adminSessionActive:', adminSessionActive);
+      
+      // If admin session was restored from localStorage, navigate to admin route
+      if (adminSessionActive && (pathname === '/permits' || pathname === '/permits/')) {
+        console.log('✅ Admin session restored - redirecting from /permits/ to /admin/');
+        window.history.pushState({}, '', '/admin/');
+        setCurrentScreen('admin');
+        return;
+      }
       
       // Check for permits dashboard
       if (pathname === '/permits' || pathname === '/permits/') {
