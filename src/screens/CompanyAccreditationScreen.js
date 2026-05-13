@@ -46,10 +46,15 @@ export default function CompanyAccreditationScreen({
   // If companyId is provided (logged-in contractor), use it directly
   // Otherwise (admin mode), restore from localStorage or start empty
   const [currentCompanyId, setCurrentCompanyId] = useState(() => {
-    if (companyId) return companyId;
+    if (companyId) {
+      console.log('✅ [ACCREDITATION INIT] Set currentCompanyId from prop:', companyId);
+      return companyId;
+    }
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        return localStorage.getItem('accreditation_selected_company') || null;
+        const stored = localStorage.getItem('accreditation_selected_company') || null;
+        if (stored) console.log('✅ [ACCREDITATION INIT] Restored currentCompanyId from localStorage:', stored);
+        return stored;
       } catch (e) {
         console.warn('localStorage not available');
         return null;
@@ -367,6 +372,7 @@ export default function CompanyAccreditationScreen({
 
   // Load company data
   useEffect(() => {
+    console.log('🔄 [ACCREDITATION] currentCompanyId changed:', currentCompanyId);
     loadCompanyData();
     if (isAdmin) loadAllCompanies();
   }, [currentCompanyId]);
@@ -532,10 +538,19 @@ export default function CompanyAccreditationScreen({
 
     setLoading(true);
     try {
+      // Load accreditation data
       const data = await getCompanyAccreditation(currentCompanyId);
+      console.log('📋 [ACCREDITATION LOAD] Company data loaded:', {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        contact_name: data.contact_name,
+        contact_email: data.contact_email
+      });
       setCompany(data);
       
-      // Populate company details from the fetched company data
+      // Load company details from the company data (which has name, email, contact info)
+      // These fields are not accreditation-specific, they're company management fields
       setCompanyDetails(prev => ({
         ...prev,
         companyName: data.name || '',
@@ -1782,10 +1797,11 @@ export default function CompanyAccreditationScreen({
     const updateData = {
       // NOTE: Do NOT include 'name' or 'email' - these are company details, not accreditation details
       // Only update accreditation-specific fields to avoid overwriting company information
-      contact_name: companyDetails.contactName,
-      contact_surname: companyDetails.contactSurname,
-      contact_email: companyDetails.contactEmail,
-      contact_phone: companyDetails.contactPhone,
+      // Only include contact fields if they have actual values (not empty strings from form initialization)
+      ...(companyDetails.contactName && { contact_name: companyDetails.contactName }),
+      ...(companyDetails.contactSurname && { contact_surname: companyDetails.contactSurname }),
+      ...(companyDetails.contactEmail && { contact_email: companyDetails.contactEmail }),
+      ...(companyDetails.contactPhone && { contact_phone: companyDetails.contactPhone }),
       approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
       fletcher_business_units: selectedBusinessUnitIds,
       business_unit_ids: selectedBusinessUnitIds,
