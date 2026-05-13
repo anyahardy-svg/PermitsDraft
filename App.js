@@ -2357,17 +2357,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const inactivityTimeoutRef = useRef(null);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
-  // Helper function to detect device type based on screen width
+  // Helper function to detect device type - checks user agent first, then falls back to width
   const getDeviceType = () => {
     if (typeof window === 'undefined') return 'laptop';
-    return window.innerWidth >= 1024 ? 'laptop' : 'tablet';
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    const width = window.innerWidth;
+    
+    // Check user agent for explicit tablet/mobile indicators
+    const isTabletUA = /ipad|android(?!.*mobile)|kindle|playbook|silk|windows phone/.test(userAgent);
+    const isMobileUA = /mobile|iphone|ipod|android(?=.*mobile)|webos|blackberry/.test(userAgent);
+    
+    // If it's explicitly a tablet in user agent, it's a tablet
+    if (isTabletUA) {
+      console.log('🎯 Device detected as TABLET via user agent:', { userAgent: userAgent.slice(0, 100), width });
+      return 'tablet';
+    }
+    
+    // If it's mobile, it's definitely not a laptop
+    if (isMobileUA) {
+      console.log('🎯 Device detected as MOBILE via user agent');
+      return 'tablet';
+    }
+    
+    // Fallback to width for unknown devices (default to laptop for wide screens)
+    const type = width >= 1280 ? 'laptop' : 'tablet';
+    console.log(`🎯 Device detected as ${type} via width: ${width}px`);
+    return type;
   };
 
   // Initialize device type on mount
   useEffect(() => {
     const type = getDeviceType();
     setDeviceType(type);
-    console.log(`📱 Device detected as: ${type} (width: ${window.innerWidth})`);
+    console.log(`📱 Initial device type set: ${type}`);
   }, []);
 
   // Track user activity (mouse, keyboard, touch)
