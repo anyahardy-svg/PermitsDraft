@@ -2331,13 +2331,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       const savedSession = localStorage.getItem('adminSession');
       const savedData = localStorage.getItem('adminData');
-      if (savedSession && savedData) {
-        const session = JSON.parse(savedSession);
-        // Only initialize as true if session exists AND we're on a laptop
-        const currentDeviceType = typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'laptop' : 'tablet';
-        return session.active && currentDeviceType === 'laptop';
-      }
-      return false;
+      // Just check if both exist - device type validation will happen in useEffect
+      return !!(savedSession && savedData);
     } catch (e) {
       return false;
     }
