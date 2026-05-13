@@ -1126,13 +1126,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [loadingRequesterSignatureNewPermit, setLoadingRequesterSignatureNewPermit] = useState(false);
   const signatureRefNewPermit = useRef(null);
 
-  // Debug effect for new permit signature modal state
-  useEffect(() => {
-    console.log('🔍 NEW PERMIT SIGNATURE MODAL STATE CHANGED:');
-    console.log('   showRequesterSignatureNewPermit:', showRequesterSignatureNewPermit);
-    console.log('   agreeToStatementNewPermit:', agreeToStatementNewPermit);
-    console.log('   requesterSignatureNewPermit:', requesterSignatureNewPermit ? '✓ exists' : '✗ null');
-  }, [showRequesterSignatureNewPermit, agreeToStatementNewPermit, requesterSignatureNewPermit]);
+  // Debug effect for new permit signature modal state (disabled - too noisy)
+  // useEffect(() => {
+  //   console.log('🔍 NEW PERMIT SIGNATURE MODAL STATE CHANGED:');
+  // }, [showRequesterSignatureNewPermit, agreeToStatementNewPermit, requesterSignatureNewPermit]);
   
   // --- Handlers for advanced form ---
   const toggleSection = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -2483,20 +2480,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Restore admin session from localStorage on mount
   useEffect(() => {
+    console.log('%c🔄 SESSION RESTORATION EFFECT RUNNING', 'color: #3B82F6; font-weight: bold; font-size: 12px;');
     try {
       const savedAdminSession = localStorage.getItem('adminSession');
       const savedAdminData = localStorage.getItem('adminData');
+      
+      console.log(`   localStorage adminSession: ${savedAdminSession ? '✓ exists' : '✗ missing'}`);
+      console.log(`   localStorage adminData: ${savedAdminData ? '✓ exists' : '✗ missing'}`);
       
       if (savedAdminSession && savedAdminData) {
         const sessionData = JSON.parse(savedAdminSession);
         const adminData = JSON.parse(savedAdminData);
         
+        console.log(`   Parsed sessionData: device=${sessionData.deviceType}, active=${sessionData.active}`);
+        console.log(`   Parsed adminData: name=${adminData?.name}`);
+        
         // Check CURRENT device type to determine if we should restore
-        // This way, even if saved session doesn't have device info, we check current device
         const currentDeviceType = getDeviceType();
+        console.log(`   Current device type detected: ${currentDeviceType}`);
         
         // Only restore session if CURRENTLY on a laptop (not if user moved to tablet)
         if (currentDeviceType === 'laptop') {
+          console.log('   ✅ DEVICE IS LAPTOP - RESTORING SESSION');
           // Restore the session
           setAdminSessionActive(sessionData.active);
           setLoggedInAdmin(adminData);
@@ -2505,6 +2510,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
           console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
         } else {
+          console.log('   ❌ DEVICE IS NOT LAPTOP - CLEARING SESSION (security measure)');
           console.log('%c🔒 SESSION NOT RESTORED (TABLET)', 'color: #F59E0B; font-weight: bold; font-size: 14px;');
           console.log('   Security measure: tablets always require fresh login');
           localStorage.removeItem('adminSession');
@@ -2512,6 +2518,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setDeviceType('tablet');
         }
       } else {
+        console.log('   ℹ️ No saved session found - setting device type only');
         // No saved session, just detect and set device type
         setDeviceType(getDeviceType());
       }
@@ -3290,14 +3297,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Restore contractor context from localStorage on app mount
   useEffect(() => {
-    console.log('🔄 [MOUNT] Restoration effect running');
     const stored = localStorage.getItem('_contractorContext');
-    console.log('🔄 Checking localStorage for contractor context:', stored ? '✅ Found' : '❌ Not found');
     if (stored) {
-      console.log('📍 Raw localStorage value:', stored);
       try {
         const ctx = JSON.parse(stored);
-        console.log('📍 Restoring contractor from localStorage:', ctx);
         setCurrentContractor({
           id: ctx.id || '',
           name: ctx.name || '',
@@ -3447,12 +3450,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     if (pathname === '/admin' || pathname === '/admin/') {
-      console.log('🔒 [ADMIN PROTECTION] /admin route detected on load');
       if (!adminSessionActive) {
-        console.log('❌ [ADMIN PROTECTION] No admin session - SHOWING LOGIN MODAL');
         setShowAdminLoginModal(true);
       } else {
-        console.log('✅ [ADMIN PROTECTION] Admin session active - setting admin screen');
         setCurrentScreen('admin');
       }
       return;
@@ -3460,9 +3460,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     
     // Check for other admin sub-routes
     if (pathname.startsWith('/admin/')) {
-      console.log('🔒 [ADMIN PROTECTION] /admin/* route detected on load');
       if (!adminSessionActive) {
-        console.log('❌ [ADMIN PROTECTION] No admin session - SHOWING LOGIN MODAL');
         setShowAdminLoginModal(true);
         return;
       }
@@ -3496,8 +3494,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (typeof window === 'undefined') return;
       
       const pathname = window.location.pathname;
-      console.log('🔗 Current path:', pathname);
-      
+
       // Check if we're on the auth callback route
       if (pathname === '/auth/callback') {
         console.log('✅ Auth callback detected - showing password setup screen');
@@ -9694,6 +9691,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry || null,
             review_date: currentCompany.reviewDate || null,
             accredited_date: currentCompany.accreditedDate || null,
+            contractor_type: currentCompany.contractor_type || 'D',
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -10326,7 +10324,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               <TouchableOpacity 
                                 style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#3B82F6', borderRadius: 4 }}
                                 onPress={() => {
-                                  setCurrentCompany(company);
+                                  // Transform snake_case to camelCase for form
+                                  const formattedCompany = {
+                                    id: company.id,
+                                    name: company.name,
+                                    businessUnitIds: company.business_unit_ids || [],
+                                    contactName: company.contact_name || '',
+                                    contactSurname: company.contact_surname || '',
+                                    contactEmail: company.contact_email || '',
+                                    contactPhone: company.contact_phone || '',
+                                    publicLiabilityExpiry: company.public_liability_expiry || '',
+                                    motorVehicleInsuranceExpiry: company.motor_vehicle_insurance_expiry || '',
+                                    reviewDate: company.review_date || '',
+                                    accreditedDate: company.accredited_date || '',
+                                    contractor_type: company.contractor_type || 'D',
+                                  };
+                                  setCurrentCompany(formattedCompany);
                                   setEditingCompany(true);
                                 }}
                               >
@@ -22279,7 +22292,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const isAdminRoute = pathname.startsWith('/admin');
           const isContractorRoute = pathname.startsWith('/contractor-admin');
           
-          console.log('🔒 [AUTH GUARD] Checking path:', pathname, { isAdminRoute, isContractorRoute, adminSessionActive, selectedCompanyId });
+          // AUTH GUARD - check permissions silently
           
           // Block admin routes without admin session
           if (isAdminRoute && !adminSessionActive && !showAdminLoginModal) {
@@ -22322,7 +22335,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           
           // Block contractor routes without contractor session
           if (isContractorRoute && !selectedCompanyId) {
-            console.log('🔒 [AUTH GUARD - CONTRACTOR] Blocking - selectedCompanyId is:', selectedCompanyId);
+            // Contractor route requires company selection
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
                 <View style={{ alignItems: 'center' }}>
