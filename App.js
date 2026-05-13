@@ -2326,9 +2326,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sites, setSites] = useState([]);
   const [isLoadingPermits, setIsLoadingPermits] = useState(true);
   
-  // Admin session state
-  const [adminSessionActive, setAdminSessionActive] = useState(false);
-  const [loggedInAdmin, setLoggedInAdmin] = useState(null);
+  // Admin session state - initialize from localStorage if available
+  const [adminSessionActive, setAdminSessionActive] = useState(() => {
+    try {
+      const savedSession = localStorage.getItem('adminSession');
+      const savedData = localStorage.getItem('adminData');
+      if (savedSession && savedData) {
+        const session = JSON.parse(savedSession);
+        // Only initialize as true if session exists AND we're on a laptop
+        const currentDeviceType = typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'laptop' : 'tablet';
+        return session.active && currentDeviceType === 'laptop';
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  });
+  const [loggedInAdmin, setLoggedInAdmin] = useState(() => {
+    try {
+      const savedData = localStorage.getItem('adminData');
+      if (savedData) {
+        return JSON.parse(savedData);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard', 'admin-users', 'legal-documents'
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
