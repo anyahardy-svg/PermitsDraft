@@ -9,9 +9,10 @@ const BUCKET_NAME = 'permit-attachments';
  * @param {Blob|object} fileData - Blob object or file object with { uri, name, type }
  * @param {string} fileName - Optional filename (used when passing a blob)
  * @param {object} compressionOptions - Optional compression settings { width, height, compress }
+ * @param {string} companyName - Optional company name for better file organization
  * @returns {Promise<object>} - Object with { url, name, uploadedAt, path, compressionInfo }
  */
-export const uploadAttachment = async (permitId, fileData, fileName, compressionOptions = {}) => {
+export const uploadAttachment = async (permitId, fileData, fileName, compressionOptions = {}, companyName = null) => {
   try {
     let blob = fileData;
     let name = fileName;
@@ -53,8 +54,12 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
     }
     
     // Create a unique filename: permit_id/timestamp_originalname
+    // If company name provided, organize by company: company_permit_id/timestamp_originalname
     const timestamp = Date.now();
-    const filePath = `${permitId}/${timestamp}_${name}`;
+    const sanitizedCompanyName = companyName 
+      ? companyName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') + '_'
+      : '';
+    const filePath = `${sanitizedCompanyName}${permitId}/${timestamp}_${name}`;
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
@@ -91,15 +96,16 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
  * @param {string} permitId - The permit ID
  * @param {array} files - Array of file objects
  * @param {object} compressionOptions - Optional compression settings
+ * @param {string} companyName - Optional company name for better file organization
  * @returns {Promise<array>} - Array of uploaded attachment metadata
  */
-export const uploadMultipleAttachments = async (permitId, files, compressionOptions = {}) => {
+export const uploadMultipleAttachments = async (permitId, files, compressionOptions = {}, companyName = null) => {
   if (!files || files.length === 0) return [];
   
   try {
     const uploaded = [];
     for (const file of files) {
-      const result = await uploadAttachment(permitId, file, null, compressionOptions);
+      const result = await uploadAttachment(permitId, file, null, compressionOptions, companyName);
       uploaded.push(result);
     }
     return uploaded;

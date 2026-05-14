@@ -341,11 +341,33 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
   try {
     if (!file || !file.name) throw new Error('No file provided');
 
+    // Fetch company name for more readable file paths
+    let companyName = 'unknown-company';
+    try {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+      
+      if (company && company.name) {
+        // Sanitize company name: remove special chars, replace spaces with underscores
+        companyName = company.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '_')
+          .replace(/_+/g, '_')
+          .replace(/^_|_$/g, '');
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch company name, using ID:', err.message);
+    }
+
     const timestamp = Date.now();
     const fileExt = file.name.split('.').pop() || 'pdf';
-    const fileName = `${companyId}/${certificationType}/${timestamp}.${fileExt}`;
+    // Include company name in path for easier identification: companyName_companyId/certificationType/timestamp.ext
+    const fileName = `${companyName}_${companyId}/${certificationType}/${timestamp}.${fileExt}`;
 
-    console.log('📤 Uploading accreditation file:', { fileName, fileType: file.type, fileSize: file.size });
+    console.log('📤 Uploading accreditation file:', { fileName, fileType: file.type, fileSize: file.size, companyName, companyId });
 
     const { data, error } = await supabase.storage
       .from('accreditations')
