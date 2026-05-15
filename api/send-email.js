@@ -46,6 +46,49 @@ const supabaseRequest = async (table, method, data = null, filter = null) => {
   return response.json();
 };
 
+/**
+ * Helper to fetch email template from database
+ */
+const getEmailTemplate = async (type) => {
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/email_templates?type=eq.${type}&is_active=eq.true&select=*`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        return data[0];
+      }
+    }
+  } catch (err) {
+    console.warn(`⚠️ Could not fetch email template (${type}):`, err.message);
+  }
+  return null;
+};
+
+/**
+ * Render template with variables (replaces {{variableName}} with values)
+ */
+const renderTemplate = (template, variables = {}) => {
+  let subject = template.subject;
+  let content = template.html_content;
+
+  Object.entries(variables).forEach(([key, value]) => {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    subject = subject.replace(regex, value || '');
+    content = content.replace(regex, value || '');
+  });
+
+  return { subject, content };
+};
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -118,46 +161,73 @@ export default async function handler(req, res) {
 
     let actualSubject, actualHtmlContent;
 
+    // Try to fetch template from database first
+    let dbTemplate = null;
+    if (type !== 'join-request') {
+      dbTemplate = await getEmailTemplate(type);
+    }
+
     // Handle different email types
     if (type === 'join-request') {
       // Custom email for join requests - use provided subject and htmlContent
       actualSubject = subject;
       actualHtmlContent = htmlContent;
     } else if (type === 'invitation') {
-      const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }) : 'As soon as possible';
+      if (dbTemplate) {
+        // Use database template
+        const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'As soon as possible';
+        
+        const signupUrl = 'https://contractorhq.co.nz/sign-in-contractor?type=invited';
+        const rendered = renderTemplate(dbTemplate, {
+          companyName,
+          deadline: deadlineStr,
+          signupUrl,
+          supportEmail: SUPPORT_EMAIL,
+        });
+        actualSubject = rendered.subject;
+        actualHtmlContent = rendered.content;
+      } else {
+        // Fall back to hard-coded template
+        const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'As soon as possible';
 
-      actualSubject = actuallyNewUser 
-        ? `${companyName} - Complete Your Company Accreditation`
-        : `Request to Complete ${companyName} Accreditation`;
+        actualSubject = actuallyNewUser 
+          ? `${companyName} - Complete Your Company Accreditation`
+          : `Request to Complete ${companyName} Accreditation`;
 
-      actualHtmlContent = actuallyNewUser 
-        ? `
-          <h2>Complete Your Company Accreditation</h2>
-          <p>Hello,</p>
-          <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
-          <p><strong>Deadline:</strong> ${deadlineStr}</p>
-          <p>To get started, you'll need to create a password and access our portal:</p>
-          <p><a href="https://contractorhq.co.nz/sign-in-contractor?type=invited" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Create Your Password</a></p>
-          <p style="margin-top: 16px; padding: 12px; background-color: #F0F9FF; border-left: 3px solid #3B82F6; font-size: 13px;">
-            <strong>Already have an account?</strong> If you've already registered before, please use the "Forgot Password" option to reset your password instead of creating a new account.
-          </p>
-          <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
-        `
-        : `
-          <h2>Complete Your Company Accreditation Return</h2>
-          <p>Hello,</p>
-          <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
-          <p><strong>Deadline:</strong> ${deadlineStr}</p>
-          <p>To complete the accreditation, please log in to your account:</p>
-          <p><a href="https://contractorhq.co.nz/sign-in-contractor" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Login to Contractor Hub</a></p>
-          <p>If you've forgotten your password, click "Forgot?" on the login page to reset it.</p>
-          <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
-        `;
+        actualHtmlContent = actuallyNewUser 
+          ? `
+            <h2>Complete Your Company Accreditation</h2>
+            <p>Hello,</p>
+            <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
+            <p><strong>Deadline:</strong> ${deadlineStr}</p>
+            <p>To get started, you'll need to create a password and access our portal:</p>
+            <p><a href="https://contractorhq.co.nz/sign-in-contractor?type=invited" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Create Your Password</a></p>
+            <p style="margin-top: 16px; padding: 12px; background-color: #F0F9FF; border-left: 3px solid #3B82F6; font-size: 13px;">
+              <strong>Already have an account?</strong> If you've already registered before, please use the "Forgot Password" option to reset your password instead of creating a new account.
+            </p>
+            <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
+          `
+          : `
+            <h2>Complete Your Company Accreditation Return</h2>
+            <p>Hello,</p>
+            <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
+            <p><strong>Deadline:</strong> ${deadlineStr}</p>
+            <p>To complete the accreditation, please log in to your account:</p>
+            <p><a href="https://contractorhq.co.nz/sign-in-contractor" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Login to Contractor Hub</a></p>
+            <p>If you've forgotten your password, click "Forgot?" on the login page to reset it.</p>
+            <p>If you have any questions, please contact us at ${SUPPORT_EMAIL}</p>
+          `;
+      }
     } else if (type === 'request') {
       const { name, email: senderEmail } = req.body;
       actualSubject = `[Accreditation Request] ${companyName} - ${name}`;
@@ -169,35 +239,59 @@ export default async function handler(req, res) {
         <p><a href="mailto:${senderEmail}">Reply to ${name}</a></p>
       `;
     } else if (type === 'admin-setup') {
-      const { adminName, setupUrl } = req.body;
-      actualSubject = 'Welcome to Admin Panel - Set Your Password';
-      actualHtmlContent = `
-        <h2>Welcome to the Admin Panel</h2>
-        <p>Hello ${adminName},</p>
-        <p>Your admin account has been successfully created. To get started, please set your password:</p>
-        <p><a href="${setupUrl}" style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Set Your Password</a></p>
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${setupUrl}</p>
-        <p style="margin-top: 16px; padding: 12px; background-color: #EFF6FF; border-left: 3px solid #3B82F6; font-size: 13px;">
-          <strong>Note:</strong> This link expires in 24 hours. If you don't set your password within that time, please contact your administrator.
-        </p>
-        <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request admin access or have any questions, please contact your administrator.</p>
-      `;
+      if (dbTemplate) {
+        // Use database template
+        const rendered = renderTemplate(dbTemplate, {
+          adminName,
+          setupUrl,
+          supportEmail: SUPPORT_EMAIL,
+        });
+        actualSubject = rendered.subject;
+        actualHtmlContent = rendered.content;
+      } else {
+        // Fall back to hard-coded template
+        const { adminName, setupUrl } = req.body;
+        actualSubject = 'Welcome to Admin Panel - Set Your Password';
+        actualHtmlContent = `
+          <h2>Welcome to the Admin Panel</h2>
+          <p>Hello ${adminName},</p>
+          <p>Your admin account has been successfully created. To get started, please set your password:</p>
+          <p><a href="${setupUrl}" style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Set Your Password</a></p>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${setupUrl}</p>
+          <p style="margin-top: 16px; padding: 12px; background-color: #EFF6FF; border-left: 3px solid #3B82F6; font-size: 13px;">
+            <strong>Note:</strong> This link expires in 24 hours. If you don't set your password within that time, please contact your administrator.
+          </p>
+          <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request admin access or have any questions, please contact your administrator.</p>
+        `;
+      }
     } else if (type === 'admin-password-reset') {
-      const { adminName, resetUrl } = req.body;
-      actualSubject = 'Admin Panel - Password Reset Request';
-      actualHtmlContent = `
-        <h2>Password Reset Request</h2>
-        <p>Hello ${adminName},</p>
-        <p>You have requested to reset your admin password. Click the link below to proceed:</p>
-        <p><a href="${resetUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Reset Your Password</a></p>
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${resetUrl}</p>
-        <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
-          <strong>Security Note:</strong> This link expires in 24 hours. Never share this link with anyone.
-        </p>
-        <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request a password reset, you can ignore this email. Your password remains unchanged.</p>
-      `;
+      if (dbTemplate) {
+        // Use database template
+        const rendered = renderTemplate(dbTemplate, {
+          adminName,
+          resetUrl,
+          supportEmail: SUPPORT_EMAIL,
+        });
+        actualSubject = rendered.subject;
+        actualHtmlContent = rendered.content;
+      } else {
+        // Fall back to hard-coded template
+        const { adminName, resetUrl } = req.body;
+        actualSubject = 'Admin Panel - Password Reset Request';
+        actualHtmlContent = `
+          <h2>Password Reset Request</h2>
+          <p>Hello ${adminName},</p>
+          <p>You have requested to reset your admin password. Click the link below to proceed:</p>
+          <p><a href="${resetUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Reset Your Password</a></p>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${resetUrl}</p>
+          <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
+            <strong>Security Note:</strong> This link expires in 24 hours. Never share this link with anyone.
+          </p>
+          <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request a password reset, you can ignore this email. Your password remains unchanged.</p>
+        `;
+      }
     } else {
       return res.status(400).json({ error: 'Invalid email type' });
     }

@@ -48,6 +48,7 @@ import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
+import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
@@ -8711,6 +8712,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('legal_documents')}>
             <Text style={styles.cardNumber}>📋</Text>
             <Text style={styles.cardLabel}>Legal Documents</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => setCurrentScreen('manage_email_templates')}>
+            <Text style={styles.cardNumber}>📧</Text>
+            <Text style={styles.cardLabel}>Email Templates</Text>
           </TouchableOpacity>
           {loggedInAdmin?.role === 'super_admin' && (
             <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={() => setShowAddAdminModal(true)}>
@@ -22787,6 +22792,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
           styles={styles}
         />
+      );
+    case 'manage_email_templates':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Email templates accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <View style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Email Templates</Text>
+          </View>
+          <EmailTemplatesScreen />
+        </View>
       );
     default:
       return renderDashboard();
