@@ -66,7 +66,7 @@ INSERT INTO email_templates (type, name, subject, html_content, description, var
 <p>A password reset has been requested for your admin account.</p>
 <p><a href="{{resetUrl}}" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Reset Password</a></p>
 <p>This link will expire in 1 hour. If you didn''t request this, please ignore this email.</p>
-<p>{{supportEmail}}</p>',
+<p>If you have any questions, please contact support at {{supportEmail}}</p>',
   'Sent when admin requests a password reset',
   '["adminName", "resetUrl", "supportEmail"]'::jsonb,
   true
