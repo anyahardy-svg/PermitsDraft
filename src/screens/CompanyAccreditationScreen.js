@@ -276,6 +276,12 @@ export default function CompanyAccreditationScreen({
       url: null,
       uploaded_at: null,
       has_document: false
+    },
+    professional_indemnity_insurance: {
+      expiry_date: '',
+      url: null,
+      uploaded_at: null,
+      has_document: false
     }
   });
 
@@ -942,6 +948,12 @@ export default function CompanyAccreditationScreen({
           url: data.motor_vehicle_insurance_url || null,
           uploaded_at: data.motor_vehicle_insurance_uploaded_at || null,
           has_document: !!data.motor_vehicle_insurance_url
+        },
+        professional_indemnity_insurance: {
+          expiry_date: data.professional_indemnity_insurance_expiry || '',
+          url: data.professional_indemnity_insurance_url || null,
+          uploaded_at: data.professional_indemnity_insurance_uploaded_at || null,
+          has_document: !!data.professional_indemnity_insurance_url
         }
       });
 
@@ -1422,7 +1434,14 @@ export default function CompanyAccreditationScreen({
 
       if (uploadResult.success) {
         // Update state with the new URL and timestamp
-        const insuranceKey = insuranceType === 'pli' ? 'public_liability_insurance' : 'motor_vehicle_insurance';
+        let insuranceKey;
+        if (insuranceType === 'pli') {
+          insuranceKey = 'public_liability_insurance';
+        } else if (insuranceType === 'mvi') {
+          insuranceKey = 'motor_vehicle_insurance';
+        } else if (insuranceType === 'pii') {
+          insuranceKey = 'professional_indemnity_insurance';
+        }
         setSection24(prev => ({
           ...prev,
           [insuranceKey]: {
@@ -1462,7 +1481,14 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleDeleteInsuranceDocument = async (insuranceType, insuranceLabel) => {
-    const insuranceKey = insuranceType === 'pli' ? 'public_liability_insurance' : 'motor_vehicle_insurance';
+    let insuranceKey;
+    if (insuranceType === 'pli') {
+      insuranceKey = 'public_liability_insurance';
+    } else if (insuranceType === 'mvi') {
+      insuranceKey = 'motor_vehicle_insurance';
+    } else if (insuranceType === 'pii') {
+      insuranceKey = 'professional_indemnity_insurance';
+    }
     
     Alert.alert(
       'Delete Document',
@@ -2038,6 +2064,14 @@ export default function CompanyAccreditationScreen({
     if (section24.motor_vehicle_insurance.url) {
       updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url;
       updateData.motor_vehicle_insurance_uploaded_at = section24.motor_vehicle_insurance.uploaded_at;
+    }
+
+    if (section24.professional_indemnity_insurance.expiry_date) {
+      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
+    }
+    if (section24.professional_indemnity_insurance.url) {
+      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
+      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
     }
 
     // Add Section 25 data (Contact Information)
@@ -3326,6 +3360,83 @@ export default function CompanyAccreditationScreen({
                   <TouchableOpacity
                     style={{ marginTop: 8, paddingVertical: 6 }}
                     onPress={() => handleDeleteInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
+                  >
+                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                      🗑️ Remove Document
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Professional Indemnity Insurance (Optional) */}
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                  Professional Indemnity Insurance
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                  OPTIONAL
+                </Text>
+              </View>
+
+              {/* Expiry Date */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Expiry Date (dd/mm/yyyy)
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: section24.professional_indemnity_insurance.expiry_date ? '#10B981' : '#E5E7EB',
+                    borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                  placeholder="dd/mm/yyyy (optional)"
+                  value={section24.professional_indemnity_insurance.expiry_date}
+                  onChangeText={(text) => setSection24(prev => ({
+                    ...prev,
+                    professional_indemnity_insurance: {
+                      ...prev.professional_indemnity_insurance,
+                      expiry_date: text
+                    }
+                  }))}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Document Upload */}
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                  Insurance Certificate
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 2,
+                    borderColor: section24.professional_indemnity_insurance.has_document ? '#10B981' : '#D1D5DB',
+                    borderStyle: 'dashed',
+                    borderRadius: 6,
+                    padding: 16,
+                    alignItems: 'center',
+                    backgroundColor: section24.professional_indemnity_insurance.has_document ? '#F0FDF4' : '#F9FAFB'
+                  }}
+                  onPress={() => handleUploadInsuranceDocument('pii', 'Professional Indemnity Insurance')}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                    {section24.professional_indemnity_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                    PDF or image file (optional)
+                  </Text>
+                </TouchableOpacity>
+                {section24.professional_indemnity_insurance.has_document && (
+                  <TouchableOpacity
+                    style={{ marginTop: 8, paddingVertical: 6 }}
+                    onPress={() => handleDeleteInsuranceDocument('pii', 'Professional Indemnity Insurance')}
                   >
                     <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
                       🗑️ Remove Document

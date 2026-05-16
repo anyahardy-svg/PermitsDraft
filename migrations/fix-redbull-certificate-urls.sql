@@ -12,6 +12,15 @@ ADD COLUMN IF NOT EXISTS motor_vehicle_insurance_evidence_url TEXT;
 ALTER TABLE companies
 ADD COLUMN IF NOT EXISTS public_liability_insurance_evidence_url TEXT;
 
+ALTER TABLE companies
+ADD COLUMN IF NOT EXISTS professional_indemnity_insurance_expiry TEXT;
+
+ALTER TABLE companies
+ADD COLUMN IF NOT EXISTS professional_indemnity_insurance_url TEXT;
+
+ALTER TABLE companies
+ADD COLUMN IF NOT EXISTS professional_indemnity_insurance_uploaded_at TIMESTAMP WITH TIME ZONE;
+
 -- ============================================================================
 -- STEP 2: Fix Certificate URLs with Correct Folder Structure
 -- ============================================================================
