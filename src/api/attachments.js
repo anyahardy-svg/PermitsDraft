@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { compressImage, compressMultipleImages } from '../utils/imageCompression';
+import { validateFile } from '../utils/fileValidation';
 
 const BUCKET_NAME = 'permit-attachments';
 
@@ -20,6 +21,19 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
     let fileToUpload = fileData;
     let compressionInfo = null;
     
+    // Validate file type and size
+    let fileForValidation = fileData;
+    if (fileData instanceof Blob && fileName) {
+      // For Blob objects, create a minimal file object for validation
+      fileForValidation = { name: fileName, type: contentType, size: fileData.size };
+    }
+    
+    const validation = validateFile(fileForValidation, 50); // Max 50MB
+    if (!validation.valid) {
+      console.warn('❌ File validation failed:', validation.error);
+      throw new Error(validation.error);
+    }
+    
     // If it's a file object with uri, convert to blob and optionally compress
     if (fileData.uri) {
       console.log('📁 Uploading file:', {
@@ -30,18 +44,26 @@ export const uploadAttachment = async (permitId, fileData, fileName, compression
       });
       
       // Compress image if it's an image file
-      if (fileData.type && fileData.type.startsWith('image/')) {
+      if (validation.isImage) {
         console.log('🖼️  Image detected - starting compression...');
-        fileToUpload = await compressImage(fileData, compressionOptions);
-        compressionInfo = {
-          originalSize: fileData.size,
-          compressedSize: fileToUpload.size,
-          compressionRatio: fileToUpload.compressionRatio,
-          compressed: true
-        };
-        console.log('✅ Compression complete:', compressionInfo);
+        try {
+          const compOptions = compressionOptions && Object.keys(compressionOptions).length > 0 
+            ? compressionOptions 
+            : { width: 2000, height: 2000, compress: true };
+          fileToUpload = await compressImage(fileData, compOptions);
+          compressionInfo = {
+            originalSize: fileData.size,
+            compressedSize: fileToUpload.size,
+            compressionRatio: fileToUpload.compressionRatio,
+            compressed: true
+          };
+          console.log('✅ Compression complete:', compressionInfo);
+        } catch (compressionError) {
+          console.warn('⚠️ Image compression failed, using original:', compressionError.message);
+          fileToUpload = fileData;
+        }
       } else {
-        console.log('⏭️  Skipping compression - not an image, type:', fileData.type);
+        console.log('📄 PDF file detected - skipping compression');
       }
 
       const response = await fetch(fileToUpload.uri);

@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient';
+import { validateFile } from '../utils/fileValidation';
+import { compressImage } from '../utils/imageCompression';
 
 /**
  * Update company accreditation - Sections 2 & 3
@@ -341,6 +343,34 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
   try {
     if (!file || !file.name) throw new Error('No file provided');
 
+    // Validate file type and size
+    const validation = validateFile(file, 50); // Max 50MB
+    if (!validation.valid) {
+      console.warn('❌ File validation failed:', validation.error);
+      return { success: false, error: validation.error };
+    }
+
+    let fileToUpload = file;
+    let compressionInfo = null;
+
+    // Automatically compress images
+    if (validation.isImage && file.uri) {
+      console.log('🖼️ Image detected - starting compression...');
+      try {
+        fileToUpload = await compressImage(file, { width: 2000, height: 2000, compress: true });
+        compressionInfo = {
+          originalSize: file.size,
+          compressedSize: fileToUpload.size,
+          compressionRatio: fileToUpload.compressionRatio,
+          compressed: true
+        };
+        console.log('✅ Image compression complete:', compressionInfo);
+      } catch (compressionError) {
+        console.warn('⚠️ Image compression failed, using original:', compressionError.message);
+        fileToUpload = file;
+      }
+    }
+
     // Fetch company name for more readable file paths
     let companyName = 'unknown-company';
     try {
@@ -363,15 +393,15 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
     }
 
     const timestamp = Date.now();
-    const fileExt = file.name.split('.').pop() || 'pdf';
+    const fileExt = fileToUpload.name.split('.').pop() || 'pdf';
     // Include company name in path for easier identification: companyName_companyId/certificationType/timestamp.ext
     const fileName = `${companyName}_${companyId}/${certificationType}/${timestamp}.${fileExt}`;
 
-    console.log('📤 Uploading accreditation file:', { fileName, fileType: file.type, fileSize: file.size, companyName, companyId });
+    console.log('📤 Uploading accreditation file:', { fileName, fileType: fileToUpload.type, fileSize: fileToUpload.size, compressionInfo, companyName, companyId });
 
     const { data, error } = await supabase.storage
       .from('accreditations')
-      .upload(fileName, file, {
+      .upload(fileName, fileToUpload, {
         cacheControl: '3600',
         upsert: false,
       });
@@ -392,7 +422,8 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 
     return {
       success: true,
-      url: publicUrl.publicUrl
+      url: publicUrl.publicUrl,
+      compressionInfo
     };
   } catch (error) {
     console.error('❌ Error uploading certificate:', error.message);
