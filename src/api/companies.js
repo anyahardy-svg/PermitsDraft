@@ -342,10 +342,14 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
+    // Set accredited_date to today when approving
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
     const { data, error } = await supabase
       .from('companies')
       .update({
-        accreditation_status: 'approved'
+        accreditation_status: 'approved',
+        accredited_date: today
       })
       .eq('id', companyId)
       .select();
@@ -356,7 +360,8 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
     return {
       id: company.id,
       name: company.name,
-      status: company.accreditation_status
+      status: company.accreditation_status,
+      accreditedDate: company.accredited_date
     };
   } catch (error) {
     console.error('Error approving company accreditation:', error.message);
