@@ -242,7 +242,7 @@ export default function CompanyAccreditationScreen({
 
    // Section 21 state (Quality Management - shown when ISO 9001 is NOT certified)
   const [section21, setSection21] = useState({
-    quality_manager_and_plan: { exists: false, score: 0, evidence: null },
+    quality_manager_and_plan: 'no', // Yes/No question
     roles_and_responsibilities: { exists: false, score: 0, evidence: null },
     purchasing_procedures: { exists: false, score: 0, evidence: null },
     subcontractor_evaluation: { exists: false, score: 0, evidence: null },
@@ -859,11 +859,7 @@ export default function CompanyAccreditationScreen({
 
       // Load section 21 (Quality Management)
       setSection21({
-        quality_manager_and_plan: {
-          exists: data.quality_manager_and_plan_exists || false,
-          score: data.quality_manager_and_plan_score || 0,
-          evidence: data.quality_manager_and_plan_evidence_url || null
-        },
+        quality_manager_and_plan: data.quality_manager_and_plan_exists ? 'yes' : 'no',
         roles_and_responsibilities: {
           exists: data.roles_and_responsibilities_exists || false,
           score: data.roles_and_responsibilities_score || 0,
@@ -2039,10 +2035,16 @@ export default function CompanyAccreditationScreen({
 
     // Add Section 21 data (Quality Management)
     Object.entries(section21).forEach(([key, value]) => {
-      updateData[`${key}_exists`] = value.exists;
-      updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
+      if (key === 'quality_manager_and_plan') {
+        // First question is yes/no, convert to boolean
+        updateData[`${key}_exists`] = value === 'yes';
+      } else {
+        // Other questions are scored
+        updateData[`${key}_exists`] = value.exists;
+        updateData[`${key}_score`] = value.score;
+        if (value.evidence) {
+          updateData[`${key}_evidence_url`] = value.evidence;
+        }
       }
     });
 
@@ -2641,16 +2643,16 @@ export default function CompanyAccreditationScreen({
         conditionalKey: 'iso_9001_certified',
         conditionalShowWhen: false,
         items: [
-          { key: 'quality_manager_and_plan', question: 'Does your organisation have a dedicated Quality Manager, if not who in your company is responsible for Quality Assurance? (provide name and role). Does your organisation have a Quality Management Plan?' },
-          { key: 'roles_and_responsibilities', question: 'Are roles and responsibilities (i.e. who, when, how and review) identified?' },
-          { key: 'purchasing_procedures', question: 'Are procedures for purchasing adequately identified, including: Sources of materials, Procedures for inspection and test of incoming materials, Compliance with suppliers recommendations, Provision of SDS and safety information, Evidence and verification of quality control checks' },
-          { key: 'subcontractor_evaluation', question: 'Are procedures for evaluation of subcontractor\'s ability to meet specification requirements and for monitoring quality of subcontract works defined?' },
-          { key: 'process_control_plan', question: 'Is there a process control plan for your company\'s activities that identifies: The process steps, Factors affecting quality, Methods to monitor process, Acceptability criteria and verification procedure, Activities requiring independent inspection or witness points' },
-          { key: 'nonconformance_procedure', question: 'Is there a procedure for nonconformances and tests in accordance with defined acceptance criteria, including recording and follow-up analysis and improvement?' },
-          { key: 'product_rejection', question: 'Have you ever had product/project rejected that required significant rework or programme impact? (if yes, please explain)' },
-          { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?' },
-          { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?' },
-          { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)' }
+          { key: 'quality_manager_and_plan', type: 'yes_no', question: 'Does your organisation have a Quality management plan?' },
+          { key: 'roles_and_responsibilities', question: 'Are roles and responsibilities (i.e. who, when, how and review) identified?', showIfKey: 'quality_manager_and_plan' },
+          { key: 'purchasing_procedures', question: 'Are procedures for purchasing adequately identified, including: Sources of materials, Procedures for inspection and test of incoming materials, Compliance with suppliers recommendations, Provision of SDS and safety information, Evidence and verification of quality control checks', showIfKey: 'quality_manager_and_plan' },
+          { key: 'subcontractor_evaluation', question: 'Are procedures for evaluation of subcontractor\'s ability to meet specification requirements and for monitoring quality of subcontract works defined?', showIfKey: 'quality_manager_and_plan' },
+          { key: 'process_control_plan', question: 'Is there a process control plan for your company\'s activities that identifies: The process steps, Factors affecting quality, Methods to monitor process, Acceptability criteria and verification procedure, Activities requiring independent inspection or witness points', showIfKey: 'quality_manager_and_plan' },
+          { key: 'nonconformance_procedure', question: 'Is there a procedure for nonconformances and tests in accordance with defined acceptance criteria, including recording and follow-up analysis and improvement?', showIfKey: 'quality_manager_and_plan' },
+          { key: 'product_rejection', question: 'Have you ever had product/project rejected that required significant rework or programme impact? (if yes, please explain)', showIfKey: 'quality_manager_and_plan' },
+          { key: 'personnel_induction', question: 'Is there a process for ensuring that all personnel have undergone appropriate induction and training to deliver agreed customer requirements?', showIfKey: 'quality_manager_and_plan' },
+          { key: 'internal_audits', question: 'Does your organisation undertake regular internal work site, health, safety, environmental and quality inspections and audits?', showIfKey: 'quality_manager_and_plan' },
+          { key: 'continuous_improvement', question: 'Do you implement continuous improvement in your quality processes? (if yes, please provide evidence)', showIfKey: 'quality_manager_and_plan' }
         ],
         scoringCriteria: {
           1: 'Minimal/informal processes; no written procedures',
