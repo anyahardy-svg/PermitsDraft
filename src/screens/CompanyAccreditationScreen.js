@@ -1672,7 +1672,7 @@ export default function CompanyAccreditationScreen({
     // If showOnlyIcon is true, render paperclip button PLUS full document status with view/download
     if (showOnlyIcon) {
       // ALWAYS show document info if hasDocument, regardless of any other conditions
-      if (hasDocument && itemData?.evidence) {
+      if (hasDocument && (itemData?.evidence || itemData?.certificateUrl)) {
         return (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
             <TouchableOpacity
@@ -1702,7 +1702,7 @@ export default function CompanyAccreditationScreen({
                 borderLeftColor: '#10B981'
               }}>
                 <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(itemData.evidence)}>
+                <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
                   <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                 </TouchableOpacity>
               </View>
