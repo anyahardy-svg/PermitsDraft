@@ -69,6 +69,7 @@ export default function CompanyAccreditationScreen({
   const [autoSaving, setAutoSaving] = useState(false);
   const [uploadingDocumentKey, setUploadingDocumentKey] = useState(null); // Track which document is uploading
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
+  const [confirmationModal, setConfirmationModal] = useState({ visible: false, title: '', message: '', onConfirm: null, onCancel: null });
   
   // Restore expanded sections from localStorage or use defaults
   const [expandedSections, setExpandedSections] = useState(() => {
@@ -2207,43 +2208,40 @@ export default function CompanyAccreditationScreen({
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
     console.log('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
-    console.log('🟢 About to show Alert.alert confirmation dialog...');
-    Alert.alert(
-      'Submit Accreditation',
-      'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
-      [
-        { text: 'Cancel', onPress: () => console.log('🟡 User cancelled submission') },
-        {
-          text: 'Submit',
-          onPress: async () => {
-            console.log('🟢 User confirmed submission');
-            setSaving(true);
-            try {
-              const updateData = buildUpdateData('completed');
-              console.log('🟢 Update data built, status will be: completed');
-              const result = await updateCompanyAccreditation(currentCompanyId, updateData);
-              console.log('🟢 API result:', result);
-              
-              if (result.success) {
-                console.log('🟢 Update successful, setting status to completed');
-                setAccreditationStatus('completed');
-                console.log('🟢 Status set to completed, showing success alert');
-                Alert.alert('Success ✅', 'Accreditation submitted successfully!');
-                loadCompanyData();
-              } else {
-                Alert.alert('Error', 'Failed to submit: ' + result.error);
-              }
-            } catch (error) {
-              console.error('🔥 Submit error:', error);
-              Alert.alert('Error', 'Submit failed: ' + error.message);
-            } finally {
-              setSaving(false);
-            }
+    console.log('🟢 Showing confirmation modal...');
+    setConfirmationModal({
+      visible: true,
+      title: 'Submit Accreditation',
+      message: 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
+      onConfirm: async () => {
+        console.log('🟢 User confirmed submission');
+        setConfirmationModal({ ...confirmationModal, visible: false });
+        setSaving(true);
+        try {
+          const updateData = buildUpdateData('completed');
+          console.log('🟢 Update data built, status will be: completed');
+          const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+          console.log('🟢 API result:', result);
+          
+          if (result.success) {
+            console.log('🟢 Update successful, setting status to completed');
+            setAccreditationStatus('completed');
+            console.log('🟢 Status set to completed - accreditation is now complete!');
+            loadCompanyData();
+          } else {
+            console.error('🔥 Failed to submit:', result.error);
           }
+        } catch (error) {
+          console.error('🔥 Submit error:', error);
+        } finally {
+          setSaving(false);
         }
-      ]
-    );
-    console.log('🟢 Alert.alert() call completed');
+      },
+      onCancel: () => {
+        console.log('🟡 User cancelled submission');
+        setConfirmationModal({ ...confirmationModal, visible: false });
+      }
+    });
   };
 
   // Auto-save when data changes (debounced)
@@ -4377,6 +4375,95 @@ export default function CompanyAccreditationScreen({
             )}
           </View>
         )}
+
+        {/* Confirmation Modal */}
+        <Modal
+          visible={confirmationModal.visible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setConfirmationModal({ ...confirmationModal, visible: false })}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              maxWidth: 400,
+              width: '100%',
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '700',
+                marginBottom: 12,
+                color: '#1F2937'
+              }}>
+                {confirmationModal.title}
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: '#4B5563',
+                marginBottom: 24,
+                lineHeight: 20
+              }}>
+                {confirmationModal.message}
+              </Text>
+              <View style={{
+                flexDirection: 'row',
+                gap: 12,
+                justifyContent: 'flex-end'
+              }}>
+                <TouchableOpacity
+                  onPress={() => confirmationModal.onCancel && confirmationModal.onCancel()}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 6,
+                    backgroundColor: '#E5E7EB',
+                    minWidth: 80,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => confirmationModal.onConfirm && confirmationModal.onConfirm()}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 6,
+                    backgroundColor: '#10B981',
+                    minWidth: 80,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: 'white'
+                  }}>
+                    Submit
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
