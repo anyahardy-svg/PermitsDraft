@@ -342,15 +342,23 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
-    // Set accredited_date to today when approving
+    // Fetch current accredited_date to check if already approved
+    const { data: currentData } = await supabase
+      .from('companies')
+      .select('accredited_date')
+      .eq('id', companyId)
+      .single();
+
+    // Only set accredited_date if this is the first approval
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const updateData = {
+      accreditation_status: 'approved',
+      ...(currentData && !currentData.accredited_date && { accredited_date: today })
+    };
 
     const { data, error } = await supabase
       .from('companies')
-      .update({
-        accreditation_status: 'approved',
-        accredited_date: today
-      })
+      .update(updateData)
       .eq('id', companyId)
       .select();
 
