@@ -342,14 +342,10 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
-    const now = new Date().toISOString();
-    
     const { data, error } = await supabase
       .from('companies')
       .update({
-        accreditation_status: 'approved',
-        accreditation_approved_by: approvedBy,
-        accreditation_approved_at: now
+        accreditation_status: 'approved'
       })
       .eq('id', companyId)
       .select();
@@ -360,9 +356,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
     return {
       id: company.id,
       name: company.name,
-      status: company.accreditation_status,
-      approvedBy: company.accreditation_approved_by,
-      approvedAt: company.accreditation_approved_at
+      status: company.accreditation_status
     };
   } catch (error) {
     console.error('Error approving company accreditation:', error.message);
@@ -379,14 +373,10 @@ export const rejectCompanyAccreditation = async (companyId, reason) => {
       return null;
     }
 
-    const now = new Date().toISOString();
-    
     const { data, error } = await supabase
       .from('companies')
       .update({
-        accreditation_status: 'rejected',
-        accreditation_rejection_reason: reason,
-        accreditation_approved_at: now
+        accreditation_status: 'needs_revision'
       })
       .eq('id', companyId)
       .select();
@@ -397,8 +387,7 @@ export const rejectCompanyAccreditation = async (companyId, reason) => {
     return {
       id: company.id,
       name: company.name,
-      status: company.accreditation_status,
-      rejectionReason: company.accreditation_rejection_reason
+      status: company.accreditation_status
     };
   } catch (error) {
     console.error('Error rejecting company accreditation:', error.message);
