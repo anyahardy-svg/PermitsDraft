@@ -2233,8 +2233,8 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 12, color: '#D1D5DB' }}>{loggedInContractor}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 8 }}>
-                <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>?</Text>
+              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#374151', borderRadius: 6 }}>
+                <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>📚 Help</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 8 }}>
                 <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>Logout</Text>
@@ -2250,8 +2250,8 @@ export default function ContractorAdminScreen({
               {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : activeTab === 'join-requests' ? 'Join Requests' : 'Accreditation'}
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 8 }}>
-                <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>?</Text>
+              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#374151', borderRadius: 6 }}>
+                <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>📚 Help</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setActiveTab(null)}>
                 <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
