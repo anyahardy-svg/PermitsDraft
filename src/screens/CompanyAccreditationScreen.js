@@ -2207,11 +2207,12 @@ export default function CompanyAccreditationScreen({
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
     console.log('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
+    console.log('🟢 About to show Alert.alert confirmation dialog...');
     Alert.alert(
       'Submit Accreditation',
       'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       [
-        { text: 'Cancel' },
+        { text: 'Cancel', onPress: () => console.log('🟡 User cancelled submission') },
         {
           text: 'Submit',
           onPress: async () => {
@@ -2224,7 +2225,9 @@ export default function CompanyAccreditationScreen({
               console.log('🟢 API result:', result);
               
               if (result.success) {
+                console.log('🟢 Update successful, setting status to completed');
                 setAccreditationStatus('completed');
+                console.log('🟢 Status set to completed, showing success alert');
                 Alert.alert('Success ✅', 'Accreditation submitted successfully!');
                 loadCompanyData();
               } else {
@@ -2240,6 +2243,7 @@ export default function CompanyAccreditationScreen({
         }
       ]
     );
+    console.log('🟢 Alert.alert() call completed');
   };
 
   // Auto-save when data changes (debounced)
