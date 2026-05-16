@@ -1057,7 +1057,7 @@ export default function ContractorAuthScreen({
           }}>
             {passwordFlowType === 'newUser' ? (
               <>
-                {passwordResetStage === 'email' && '🎉 Welcome to Contractor Hub!'}
+                {passwordResetStage === 'email' && '🎉 Welcome to Contractor HQ!'}
                 {passwordResetStage === 'password' && '🔐 Create Your Password'}
               </>
             ) : (
@@ -1453,7 +1453,7 @@ export default function ContractorAuthScreen({
             fontWeight: '800',
             textAlign: 'center'
           }}>
-            Contractor Hub
+            Contractor HQ
           </Text>
           <Text style={{ 
             color: '#9CA3AF', 
@@ -1461,7 +1461,16 @@ export default function ContractorAuthScreen({
             marginTop: 8,
             textAlign: 'center'
           }}>
-            Manage permits and administration
+            Manage your company profile
+          </Text>
+          <Text style={{ 
+            color: '#6B7280', 
+            fontSize: 13, 
+            marginTop: 12,
+            textAlign: 'center',
+            lineHeight: 20
+          }}>
+            Firth Industries • Winstone Aggregates • Rodney Aggregates Supply • Rangitikei Aggregates • Roys Hill Aggregates
           </Text>
         </View>
       </View>
@@ -1758,7 +1767,7 @@ export default function ContractorAuthScreen({
             marginTop: 24,
             fontWeight: '500'
           }}>
-            © 2026 Contractor Hub. All rights reserved.
+            © 2026 Contractor HQ. All rights reserved.
           </Text>
         </View>
       </ScrollView>
