@@ -2179,21 +2179,25 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
+    console.log('💾 handleSave called, current status:', accreditationStatus);
     setSaving(true);
     try {
-      const updateData = buildUpdateData();
+      // Preserve the 'completed' status if already submitted - only save edits without changing status
+      const updateData = buildUpdateData(accreditationStatus);
+      console.log('💾 Update data built with status:', accreditationStatus);
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       console.log('📊 Update result:', result);
       
       
       if (result.success) {
-        Alert.alert('Success', 'Accreditation saved successfully');
+        Alert.alert('Success ✅', 'Accreditation saved successfully');
         loadCompanyData();
       } else {
         Alert.alert('Error', 'Failed to save: ' + result.error);
       }
     } catch (error) {
+      console.error('🔥 Save error:', error);
       Alert.alert('Error', 'Save failed: ' + error.message);
     } finally {
       setSaving(false);
@@ -2202,6 +2206,7 @@ export default function CompanyAccreditationScreen({
 
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
+    console.log('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
     Alert.alert(
       'Submit Accreditation',
       'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
@@ -2210,19 +2215,23 @@ export default function CompanyAccreditationScreen({
         {
           text: 'Submit',
           onPress: async () => {
+            console.log('🟢 User confirmed submission');
             setSaving(true);
             try {
               const updateData = buildUpdateData('completed');
+              console.log('🟢 Update data built, status will be: completed');
               const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+              console.log('🟢 API result:', result);
               
               if (result.success) {
                 setAccreditationStatus('completed');
-                Alert.alert('Success', 'Accreditation submitted successfully');
+                Alert.alert('Success ✅', 'Accreditation submitted successfully!');
                 loadCompanyData();
               } else {
                 Alert.alert('Error', 'Failed to submit: ' + result.error);
               }
             } catch (error) {
+              console.error('🔥 Submit error:', error);
               Alert.alert('Error', 'Submit failed: ' + error.message);
             } finally {
               setSaving(false);
