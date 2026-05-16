@@ -6,10 +6,20 @@
  * To format: {companyName}/{certificationType}/{timestamp}.{ext}
  */
 
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env file
+dotenv.config({ path: `${__dirname}/../.env` });
+
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables');
@@ -39,13 +49,25 @@ async function migrateAccreditationPaths() {
 
     console.log(`✅ Found ${files.length} items in bucket\n`);
 
+    if (files.length === 0) {
+      console.log('✓ No folders to migrate\n');
+    }
+
+    // Log what we found
+    files.forEach(file => {
+      console.log(`  📁 ${file.name}${file.id ? ' (folder)' : ' (file)'}`);
+    });
+    console.log('');
+
     const fileUpdates = [];
     const urlUpdates = [];
 
     // Step 2: Process each item (folder or file)
     for (const item of files) {
-      if (item.id) {
-        // It's a folder
+      // At root level, items without extensions are folders (company IDs)
+      const isFolder = !item.name.includes('.');
+      
+      if (isFolder) {
         const companyId = item.name;
         console.log(`📁 Processing folder: ${companyId}`);
 
@@ -78,7 +100,7 @@ async function migrateAccreditationPaths() {
 
           // If folder name is already in new format, skip it
           if (item.name.includes('_')) {
-            console.log(`✓ Already migrated: ${item.name}\n`);
+            console.log(`✓ Already migrated: ${item.name}`);
             continue;
           }
 
@@ -95,11 +117,16 @@ async function migrateAccreditationPaths() {
             continue;
           }
 
+          console.log(`    Found ${certFiles.length} items in folder`);
+
           // Process each certificate type folder
           for (const certFolder of certFiles) {
-            if (certFolder.id) {
+            const isCertFolder = !certFolder.name.includes('.');
+            
+            if (isCertFolder) {
               // It's a certificate type folder
               const certificationType = certFolder.name;
+              console.log(`    📂 Certificate type: ${certificationType}`);
 
               // List actual files in certificate folder
               const { data: actualFiles, error: filesError } = await supabase.storage
@@ -111,15 +138,19 @@ async function migrateAccreditationPaths() {
                 continue;
               }
 
+              console.log(`      Found ${actualFiles.length} files in ${certificationType}`);
+
               // Move each file
               for (const file of actualFiles) {
-                if (!file.id) {
+                const isFile = file.name.includes('.');
+                
+                if (isFile) {
                   // It's a file, not a folder
                   const oldPath = `${companyId}/${certificationType}/${file.name}`;
                   const newPath = `${newFolderName}/${certificationType}/${file.name}`;
 
-                  console.log(`    Moving: ${oldPath}`);
-                  console.log(`         → ${newPath}`);
+                  console.log(`        Moving: ${oldPath}`);
+                  console.log(`             → ${newPath}`);
 
                   // Download the file
                   const { data: fileData, error: downloadError } = await supabase.storage
@@ -151,7 +182,7 @@ async function migrateAccreditationPaths() {
                     continue;
                   }
 
-                  console.log(`    ✅ Moved successfully`);
+                  console.log(`        ✅ Moved successfully`);
 
                   // Track old and new URLs for database updates
                   const oldUrl = `${supabaseUrl}/storage/v1/object/public/accreditations/${oldPath}`;

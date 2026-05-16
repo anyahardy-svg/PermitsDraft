@@ -1793,6 +1793,7 @@ export default function CompanyAccreditationScreen({
 
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
+    const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     
     const updateData = {
@@ -1803,9 +1804,10 @@ export default function CompanyAccreditationScreen({
       ...(companyDetails.contactSurname && { contact_surname: companyDetails.contactSurname }),
       ...(companyDetails.contactEmail && { contact_email: companyDetails.contactEmail }),
       ...(companyDetails.contactPhone && { contact_phone: companyDetails.contactPhone }),
-      approved_services: Object.keys(selectedServices).filter(s => selectedServices[s]),
-      fletcher_business_units: selectedBusinessUnitIds,
-      business_unit_ids: selectedBusinessUnitIds,
+      // Only include services and business units if they have been populated from the database
+      ...(selectedServiceIds.length > 0 && { approved_services: selectedServiceIds }),
+      ...(selectedBusinessUnitIds.length > 0 && { fletcher_business_units: selectedBusinessUnitIds }),
+      ...(selectedBusinessUnitIds.length > 0 && { business_unit_ids: selectedBusinessUnitIds }),
       accreditation_status: status
     };
 
