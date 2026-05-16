@@ -394,8 +394,8 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 
     const timestamp = Date.now();
     const fileExt = fileToUpload.name.split('.').pop() || 'pdf';
-    // Include company name in path for easier identification: companyName_companyId/certificationType/timestamp.ext
-    const fileName = `${companyName}_${companyId}/${certificationType}/${timestamp}.${fileExt}`;
+    // Include company name in path for easier identification: companyName/certificationType/timestamp.ext
+    const fileName = `${companyName}/${certificationType}/${timestamp}.${fileExt}`;
 
     console.log('📤 Uploading accreditation file:', { fileName, fileType: fileToUpload.type, fileSize: fileToUpload.size, compressionInfo, companyName, companyId });
 
