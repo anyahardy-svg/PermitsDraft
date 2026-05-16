@@ -23,6 +23,7 @@ import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
 import ContractorAuthScreen from './ContractorAuthScreen';
+import HelpModal from '../components/HelpModal';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack,
@@ -95,6 +96,7 @@ export default function ContractorAdminScreen({
   const [isDeleting, setIsDeleting] = useState(false);
   const [logoutConfirmModal, setLogoutConfirmModal] = useState(false);
   const [logoutDestination, setLogoutDestination] = useState(null); // 'kiosk' or 'dashboard'
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Permit template editing states
   const [editingPermitTemplate, setEditingPermitTemplate] = useState(null);
@@ -2230,9 +2232,14 @@ export default function ContractorAdminScreen({
               <Text style={styles.title}>Contractor Admin</Text>
               <Text style={{ fontSize: 12, color: '#D1D5DB' }}>{loggedInContractor}</Text>
             </View>
-            <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 8 }}>
-              <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>Logout</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 8 }}>
+                <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>?</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 8 }}>
+                <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -2242,9 +2249,14 @@ export default function ContractorAdminScreen({
             <Text style={styles.title}>
               {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : activeTab === 'join-requests' ? 'Join Requests' : 'Accreditation'}
             </Text>
-            <TouchableOpacity onPress={() => setActiveTab(null)}>
-              <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 8 }}>
+                <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>?</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setActiveTab(null)}>
+                <Text style={{ fontSize: 16, color: 'white', fontWeight: '600' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -3157,6 +3169,14 @@ export default function ContractorAdminScreen({
 
       {/* Edit Contractor Modal */}
       {renderEditContractorModal()}
+
+      {/* Help Modal */}
+      <HelpModal 
+        visible={showHelpModal} 
+        onClose={() => setShowHelpModal(false)} 
+        documentType="contractor_manual"
+        title="📖 Help & Documentation"
+      />
     </View>
   );
 }
