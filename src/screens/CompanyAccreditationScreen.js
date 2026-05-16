@@ -536,6 +536,24 @@ export default function CompanyAccreditationScreen({
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
+  // Format ISO date (yyyy-mm-dd) to NZ display format (dd/mm/yyyy)
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    
+    // If already in NZ format, return as-is
+    if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      return dateString;
+    }
+    
+    // If in ISO format (yyyy-mm-dd), convert to NZ
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateString.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    
+    return dateString;
+  };
+
   const loadCompanyData = async () => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
@@ -594,21 +612,8 @@ export default function CompanyAccreditationScreen({
 
         const expiryKeyName = `${baseName}_certificate_expiry`;
         const isoDate = data[expiryKeyName] || null;
-        // Convert ISO date (yyyy-mm-dd) to NZ format (dd/mm/yyyy)
-        let nzDate = null;
-        if (isoDate) {
-          try {
-            // Parse ISO date string directly to avoid timezone issues
-            const [year, month, day] = isoDate.split('-');
-            if (year && month && day) {
-              nzDate = `${day}/${month}/${year}`;
-            } else {
-              nzDate = isoDate;
-            }
-          } catch (e) {
-            nzDate = isoDate;
-          }
-        }
+        // Convert ISO date (yyyy-mm-dd) to NZ format (dd/mm/yyyy) for display
+        const nzDate = formatDateForDisplay(isoDate);
         systems[sys.key] = {
           checked: data[sys.key] || false,
           expiryDate: nzDate,
@@ -3243,7 +3248,7 @@ export default function CompanyAccreditationScreen({
                     backgroundColor: '#F9FAFB'
                   }}
                   placeholder="dd/mm/yyyy (e.g., 25/12/2026)"
-                  value={section24.public_liability_insurance.expiry_date}
+                  value={formatDateForDisplay(section24.public_liability_insurance.expiry_date)}
                   onChangeText={(text) => setSection24(prev => ({
                     ...prev,
                     public_liability_insurance: {
@@ -3320,7 +3325,7 @@ export default function CompanyAccreditationScreen({
                     backgroundColor: '#F9FAFB'
                   }}
                   placeholder="dd/mm/yyyy (optional)"
-                  value={section24.motor_vehicle_insurance.expiry_date}
+                  value={formatDateForDisplay(section24.motor_vehicle_insurance.expiry_date)}
                   onChangeText={(text) => setSection24(prev => ({
                     ...prev,
                     motor_vehicle_insurance: {
@@ -3397,7 +3402,7 @@ export default function CompanyAccreditationScreen({
                     backgroundColor: '#F9FAFB'
                   }}
                   placeholder="dd/mm/yyyy (optional)"
-                  value={section24.professional_indemnity_insurance.expiry_date}
+                  value={formatDateForDisplay(section24.professional_indemnity_insurance.expiry_date)}
                   onChangeText={(text) => setSection24(prev => ({
                     ...prev,
                     professional_indemnity_insurance: {
@@ -4173,12 +4178,12 @@ export default function CompanyAccreditationScreen({
                         style={styles.input}
                         placeholder="dd/mm/yyyy (e.g., 25/12/2025)"
                         placeholderTextColor="#9CA3AF"
-                        value={accreditedSystems[system.key]?.expiryDate || ''}
+                        value={formatDateForDisplay(accreditedSystems[system.key]?.expiryDate || '')}
                         onChangeText={(text) => handleExpiryDateInput(system.key, text)}
                         onBlur={() => {
                           // Convert and validate when user leaves the field
                           const rawDate = accreditedSystems[system.key]?.expiryDate || '';
-                          if (rawDate && rawDate.length === 10 && rawDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                          if (rawDate && rawDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                             const isoDate = parseNZDate(rawDate);
                             setAccreditedSystems(prev => ({
                               ...prev,
