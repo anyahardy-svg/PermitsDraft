@@ -4083,14 +4083,15 @@ export default function CompanyAccreditationScreen({
                         keyboardType="numeric"
                       />
                       
-                      {/* Certificate Management - Using unified toggle */}
+                      {/* Certificate Management - Inline view/replace */}
                       {renderDocumentToggle(
                         `certificate-${system.key}`,
                         accreditedSystems[system.key],
                         system.label,
                         () => handleUploadCertificate(system.key, system.label),
                         () => handleDeleteCertificate(system.key, system.label),
-                        'Certificate'
+                        'Certificate',
+                        true
                       )}
                     </View>
                   )}
