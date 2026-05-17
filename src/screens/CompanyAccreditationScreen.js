@@ -564,12 +564,14 @@ export default function CompanyAccreditationScreen({
   const loadCompanyData = async () => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
+      console.log('⚠️ [ACCREDITATION] No currentCompanyId set, skipping load');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
+      console.log('🔄 [ACCREDITATION LOAD] Starting load for company:', currentCompanyId);
       // Load accreditation data
       const data = await getCompanyAccreditation(currentCompanyId);
       console.log('📋 [ACCREDITATION LOAD] Company data loaded:', {
@@ -577,7 +579,9 @@ export default function CompanyAccreditationScreen({
         name: data.name,
         email: data.email,
         contact_name: data.contact_name,
-        contact_email: data.contact_email
+        near_miss_reporting_exists: data.near_miss_reporting_exists,
+        safety_communication_exists: data.safety_communication_exists,
+        quality_manager_and_plan_exists: data.quality_manager_and_plan_exists
       });
       setCompany(data);
       
