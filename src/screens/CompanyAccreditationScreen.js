@@ -1988,7 +1988,7 @@ export default function CompanyAccreditationScreen({
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
         {/* Show library dropdown if items exist (even if document already selected) */}
-        {evidenceLibrary.length > 0 && (
+        {evidenceLibrary.length > 0 && documentKey.startsWith('section') && (
           <View style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
             <ScrollView 
@@ -2010,8 +2010,8 @@ export default function CompanyAccreditationScreen({
                   }}
                   onPress={() => {
                     // Apply library item to current question
-                    const sectionKey = documentKey.split('-')[0];
-                    const itemKey = documentKey.substring(sectionKey.length + 1);
+                    const sectionKey = documentKey.split('-')[0]; // e.g., "section5"
+                    const itemKey = documentKey.substring(sectionKey.length + 1); // e.g., "field_name"
                     const sectionUpdater = sectionStateMap[sectionKey];
                     if (sectionUpdater) {
                       sectionUpdater.set(prev => {
