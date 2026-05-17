@@ -1663,42 +1663,6 @@ export default function CompanyAccreditationScreen({
     'section26': { get: () => section26, set: setSection26 }  // Direct mapping
   };
 
-  // Helper to render library selector UI
-  const renderLibrarySelector = (documentKey) => {
-    if (evidenceLibrary.length === 0 || !documentKey.startsWith('section')) {
-      return null;
-    }
-    
-    return (
-      <View style={{ marginBottom: 12 }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={{ marginBottom: 8 }}
-        >
-          {evidenceLibrary.map(item => (
-            <TouchableOpacity
-              key={item.id}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                backgroundColor: '#DBEAFE',
-                borderRadius: 6,
-                borderWidth: 1,
-                borderColor: '#0284C7',
-                marginRight: 8
-              }}
-              onPress={() => applyLibraryItem(documentKey, item)}
-            >
-              <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
-
   // Helper to apply library item to a question
   const applyLibraryItem = (documentKey, libraryItem) => {
     try {
@@ -1924,8 +1888,6 @@ export default function CompanyAccreditationScreen({
     // Otherwise render the full expanded UI (when showOnlyIcon=false)
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
-        {renderLibrarySelector(documentKey)}
-
         {hasDocument ? (
           <>
             {handleDeleteFn && (
