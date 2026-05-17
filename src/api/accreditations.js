@@ -423,6 +423,7 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
     return {
       success: true,
       url: publicUrl.publicUrl,
+      path: fileName,
       compressionInfo
     };
   } catch (error) {
