@@ -1678,7 +1678,6 @@ export default function CompanyAccreditationScreen({
 
   // Unified helper function to render document toggle button and UI
   const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence', showOnlyIcon = false) => {
-    const isDocUIExpanded = expandedEvidenceUI === documentKey;
     const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
@@ -1693,294 +1692,103 @@ export default function CompanyAccreditationScreen({
       );
     }
 
-    // If showOnlyIcon is true, render paperclip button PLUS full document status with view/download
+    // If showOnlyIcon is true, just show simple paperclip icon with status - NO DROPDOWN
     if (showOnlyIcon) {
-      // ALWAYS show document info if hasDocument, regardless of any other conditions
+      // Show uploaded document
       if (hasDocument && (itemData?.evidence || itemData?.certificateUrl)) {
         return (
-          <View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
             <TouchableOpacity
-              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              onPress={() => handleUploadFn()}
               style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 8,
-                flex: 1
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#D1FAE5',
+                borderWidth: 1,
+                borderColor: '#10B981',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2
               }}
             >
-              <View
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 5,
-                  backgroundColor: '#D1FAE5',
-                  borderWidth: 1,
-                  borderColor: '#10B981',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginTop: 2
-                }}
-              >
-                <Text style={{ fontSize: 14 }}>📎</Text>
-              </View>
-              
-              <View style={{ flex: 1 }}>
-                <View style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  backgroundColor: '#F0FDF4',
-                  borderRadius: 4,
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#10B981'
-                }}>
-                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
-                    <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <Text style={{ fontSize: 14 }}>📎</Text>
             </TouchableOpacity>
             
-            {/* Show library dropdown when expanded */}
-            {isDocUIExpanded && evidenceLibrary.length > 0 && documentKey.startsWith('section') && (
-              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginBottom: 8 }}
-                >
-                  {evidenceLibrary.map(item => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        backgroundColor: '#DBEAFE',
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: '#0284C7',
-                        marginRight: 8
-                      }}
-                      onPress={() => {
-                        // Apply library item to current question
-                        const sectionKey = documentKey.split('-')[0]; // e.g., "section5"
-                        const itemKey = documentKey.substring(sectionKey.length + 1); // e.g., "field_name"
-                        const sectionUpdater = sectionStateMap[sectionKey];
-                        if (sectionUpdater) {
-                          sectionUpdater.set(prev => {
-                            const updated = {
-                              ...prev,
-                              [itemKey]: {
-                                ...prev[itemKey],
-                                evidence: item.storage_path
-                              }
-                            };
-                            return updated;
-                          });
-                          setTimeout(() => autoSave(), 100);
-                          Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
-                          setExpandedEvidenceUI(null);
-                        }
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            <View style={{ flex: 1 }}>
+              <View style={{
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                backgroundColor: '#F0FDF4',
+                borderRadius: 4,
+                borderLeftWidth: 3,
+                borderLeftColor: '#10B981'
+              }}>
+                <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
+                  <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
           </View>
         );
       }
       
-      // Show needs document warning if applicable - click to directly upload
+      // Show needs document warning
       if (needsDocument) {
         return (
-          <View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
             <TouchableOpacity
-              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              onPress={() => handleUploadFn()}
               style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 8,
-                flex: 1
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#FEE2E2',
+                borderWidth: 1,
+                borderColor: '#FCA5A5',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2
               }}
             >
-              <View
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 5,
-                  backgroundColor: '#FEE2E2',
-                  borderWidth: 1,
-                  borderColor: '#FCA5A5',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginTop: 2
-                }}
-              >
-                <Text style={{ fontSize: 14 }}>📎</Text>
-              </View>
-              
-              <View style={{ flex: 1 }}>
-                <View style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  backgroundColor: '#FEE2E2',
-                  borderRadius: 4,
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#EF4444'
-                }}>
-                  <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
-                </View>
-              </View>
+              <Text style={{ fontSize: 14 }}>📎</Text>
             </TouchableOpacity>
             
-            {/* Show library dropdown when expanded */}
-            {isDocUIExpanded && evidenceLibrary.length > 0 && (
-              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginBottom: 8 }}
-                >
-                  {evidenceLibrary.map(item => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        backgroundColor: '#DBEAFE',
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: '#0284C7',
-                        marginRight: 8
-                      }}
-                      onPress={() => {
-                        // Apply library item to current question
-                        const sectionKey = documentKey.split('-')[0];
-                        const itemKey = documentKey.substring(sectionKey.length + 1);
-                        const sectionUpdater = sectionStateMap[sectionKey];
-                        if (sectionUpdater) {
-                          sectionUpdater.set(prev => {
-                            const updated = {
-                              ...prev,
-                              [itemKey]: {
-                                ...prev[itemKey],
-                                evidence: item.storage_path
-                              }
-                            };
-                            return updated;
-                          });
-                          setTimeout(() => autoSave(), 100);
-                          Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
-                          setExpandedEvidenceUI(null);
-                        }
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            <View style={{ flex: 1 }}>
+              <View style={{
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                backgroundColor: '#FEE2E2',
+                borderRadius: 4,
+                borderLeftWidth: 3,
+                borderLeftColor: '#EF4444'
+              }}>
+                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
               </View>
-            )}
+            </View>
           </View>
         );
       }
 
-      // No document, not needed - click paperclip to directly upload
+      // Simple icon - click to upload
       return (
-        <View>
-          <TouchableOpacity
-            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 5,
-              backgroundColor: '#F3F4F6',
-              borderWidth: 1,
-              borderColor: '#D1D5DB',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: 2
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>📎</Text>
-          </TouchableOpacity>
-          
-            {/* Show options when expanded */}
-            {isDocUIExpanded && (
-              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
-                {/* Upload button */}
-                <TouchableOpacity
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    backgroundColor: '#3B82F6',
-                    borderRadius: 6,
-                    marginBottom: 8
-                  }}
-                  onPress={() => {
-                    handleUploadFn();
-                    setExpandedEvidenceUI(null);
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: 'white', fontWeight: '600' }}>📤 Upload Evidence</Text>
-                </TouchableOpacity>
-                
-                {/* Show library dropdown if items exist AND this is a section item */}
-                {evidenceLibrary.length > 0 && documentKey.startsWith('section') && (
-                  <View>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Or select from library:</Text>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                    >
-                      {evidenceLibrary.map(item => (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            backgroundColor: '#DBEAFE',
-                            borderRadius: 6,
-                            borderWidth: 1,
-                            borderColor: '#0284C7',
-                            marginRight: 8
-                          }}
-                          onPress={() => {
-                            // Apply library item to current question
-                            const sectionKey = documentKey.split('-')[0]; // e.g., "section5"
-                            const itemKey = documentKey.substring(sectionKey.length + 1); // e.g., "field_name"
-                            const sectionUpdater = sectionStateMap[sectionKey];
-                            if (sectionUpdater) {
-                              sectionUpdater.set(prev => {
-                                const updated = {
-                                  ...prev,
-                                  [itemKey]: {
-                                    ...prev[itemKey],
-                                    evidence: item.storage_path
-                                  }
-                                };
-                                return updated;
-                              });
-                              setTimeout(() => autoSave(), 100);
-                              Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
-                              setExpandedEvidenceUI(null);
-                            }
-                          }}
-                        >
-                          <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            )}
-        </View>
+        <TouchableOpacity
+          onPress={() => handleUploadFn()}
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 5,
+            backgroundColor: '#F3F4F6',
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginTop: 2
+          }}
+        >
+          <Text style={{ fontSize: 14 }}>📎</Text>
+        </TouchableOpacity>
       );
     }
 
