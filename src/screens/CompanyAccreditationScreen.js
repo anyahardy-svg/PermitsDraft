@@ -19,6 +19,7 @@ import { listCompanies } from '../api/companies';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
+import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
 /**
@@ -86,6 +87,12 @@ export default function CompanyAccreditationScreen({
     return defaults;
   });
   const [expandedEvidenceUI, setExpandedEvidenceUI] = useState(null); // Track which evidence UI is expanded (format: 'section-itemkey')
+  const [evidenceLibrary, setEvidenceLibrary] = useState([]); // Company's reusable evidence items
+  const [showEvidenceLibraryModal, setShowEvidenceLibraryModal] = useState(false); // Modal for selecting evidence
+  const [selectedEvidenceForUpload, setSelectedEvidenceForUpload] = useState(null); // Selected library item to use
+  const [lastUploadedFile, setLastUploadedFile] = useState(null); // Track file just uploaded to offer save to library
+  const [saveToLibraryModal, setShowSaveToLibraryModal] = useState(false); // Modal to name and save to library
+  const [librarySaveName, setLibrarySaveName] = useState('');
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
@@ -1074,6 +1081,13 @@ export default function CompanyAccreditationScreen({
         });
       }
 
+      // Load evidence library for this company
+      const { data: libraryItems, error: libError } = await getEvidenceLibrary(currentCompanyId);
+      if (!libError && libraryItems) {
+        setEvidenceLibrary(libraryItems);
+        console.log('📚 Loaded evidence library:', libraryItems.length, 'items');
+      }
+
     } catch (error) {
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
@@ -1632,13 +1646,22 @@ export default function CompanyAccreditationScreen({
           console.warn(`⚠️ Unknown section: ${section}`);
         }
         
+        // Store the uploaded file info to offer saving to library
+        setLastUploadedFile({
+          storagePath: uploadResult.path,
+          fileName: file.name,
+          fileSize: blob.size,
+          itemLabel: itemLabel
+        });
+        setShowSaveToLibraryModal(true);
+        setLibrarySaveName(`${itemLabel} - ${new Date().toLocaleDateString()}`);
+        
         // Immediately save to database after upload (don't wait 30 seconds!)
         setTimeout(async () => {
           console.log('💾 Auto-saving evidence upload immediately...');
           await autoSave();
         }, 100);
         
-        Alert.alert('Success ✅', `${itemLabel} evidence uploaded successfully!`);
       } else {
         console.log('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
@@ -4580,6 +4603,86 @@ export default function CompanyAccreditationScreen({
                   }}>
                     Submit
                   </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal: Save Evidence to Library */}
+        <Modal visible={saveToLibraryModal} transparent animationType="fade" onRequestClose={() => setShowSaveToLibraryModal(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#1F2937' }}>💾 Save to Evidence Library?</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+                This evidence can be reused for other questions. Give it a name:
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  marginBottom: 16
+                }}
+                placeholder="Evidence name"
+                value={librarySaveName}
+                onChangeText={setLibrarySaveName}
+              />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 10, backgroundColor: '#E5E7EB', borderRadius: 6, alignItems: 'center' }}
+                  onPress={() => {
+                    setShowSaveToLibraryModal(false);
+                    setLastUploadedFile(null);
+                    Alert.alert('Success ✅', `${lastUploadedFile?.itemLabel} evidence uploaded successfully!`);
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Skip</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 10, backgroundColor: '#3B82F6', borderRadius: 6, alignItems: 'center' }}
+                  onPress={async () => {
+                    if (!librarySaveName.trim()) {
+                      Alert.alert('Please enter a name for this evidence');
+                      return;
+                    }
+                    if (!lastUploadedFile) {
+                      Alert.alert('Error', 'No file information available');
+                      return;
+                    }
+
+                    try {
+                      const result = await addToEvidenceLibrary(
+                        currentCompanyId,
+                        librarySaveName,
+                        lastUploadedFile.storagePath,
+                        lastUploadedFile.fileName,
+                        lastUploadedFile.fileSize
+                      );
+                      
+                      if (result.error) {
+                        Alert.alert('Error', 'Failed to save to library: ' + result.error);
+                      } else {
+                        // Reload evidence library
+                        const { data: libraryItems } = await getEvidenceLibrary(currentCompanyId);
+                        if (libraryItems) {
+                          setEvidenceLibrary(libraryItems);
+                        }
+                        Alert.alert('Success ✅', `Added to Evidence Library!\n\n${lastUploadedFile?.itemLabel} uploaded and saved.`);
+                      }
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to save to library: ' + error.message);
+                    } finally {
+                      setShowSaveToLibraryModal(false);
+                      setLastUploadedFile(null);
+                      setLibrarySaveName('');
+                    }
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
