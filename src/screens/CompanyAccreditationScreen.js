@@ -4281,7 +4281,7 @@ export default function CompanyAccreditationScreen({
                         () => handleUploadCertificate(system.key, system.label),
                         () => handleDeleteCertificate(system.key, system.label),
                         'Certificate',
-                        true
+                        false
                       )}
                     </View>
                   )}
