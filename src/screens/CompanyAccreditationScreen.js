@@ -1680,6 +1680,44 @@ export default function CompanyAccreditationScreen({
     }
   };
 
+  // Helper to render library selector UI
+  const renderLibrarySelector = (documentKey) => {
+    if (evidenceLibrary.length === 0 || !documentKey.startsWith('section')) {
+      return null;
+    }
+    
+    console.log(`📚 [LIBRARY SELECTOR] Rendering for ${documentKey}`);
+    
+    return (
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 8 }}
+        >
+          {evidenceLibrary.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                backgroundColor: '#DBEAFE',
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: '#0284C7',
+                marginRight: 8
+              }}
+              onPress={() => applyLibraryItem(documentKey, item)}
+            >
+              <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   // Helper to apply library item to a question
   const applyLibraryItem = (documentKey, libraryItem) => {
     try {
@@ -1709,6 +1747,8 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
     const isSection = documentKey.startsWith('section');
+    
+    console.log(`🔍 [renderDocumentToggle] key=${documentKey}, showOnlyIcon=${showOnlyIcon}, hasDoc=${hasDocument}, isSection=${isSection}, libraryCount=${evidenceLibrary.length}`);
 
     // Show loading indicator when uploading
     if (isUploading) {
@@ -1905,54 +1945,7 @@ export default function CompanyAccreditationScreen({
     // Otherwise render the full expanded UI (when showOnlyIcon=false)
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
-        {/* Show library dropdown if items exist (even if document already selected) */}
-        {evidenceLibrary.length > 0 && documentKey.startsWith('section') && (
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 8 }}
-            >
-              {evidenceLibrary.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    backgroundColor: '#DBEAFE',
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: '#0284C7',
-                    marginRight: 8
-                  }}
-                  onPress={() => {
-                    // Apply library item to current question
-                    const sectionKey = documentKey.split('-')[0]; // e.g., "section5"
-                    const itemKey = documentKey.substring(sectionKey.length + 1); // e.g., "field_name"
-                    const sectionUpdater = sectionStateMap[sectionKey];
-                    if (sectionUpdater) {
-                      sectionUpdater.set(prev => {
-                        const updated = {
-                          ...prev,
-                          [itemKey]: {
-                            ...prev[itemKey],
-                            evidence: item.storage_path
-                          }
-                        };
-                        return updated;
-                      });
-                      setTimeout(() => autoSave(), 100);
-                      Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
-                    }
-                  }}
-                >
-                  <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+        {renderLibrarySelector(documentKey)}
 
         {hasDocument ? (
           <>
