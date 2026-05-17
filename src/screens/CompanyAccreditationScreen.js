@@ -1557,42 +1557,10 @@ export default function CompanyAccreditationScreen({
   const handleUploadEvidence = async (section, itemKey, itemLabel) => {
     console.log('🔴 handleUploadEvidence called!', { section, itemKey, itemLabel });
     
-    // Map section names to their setState functions
-    // Pattern: UI sections 5-22 are offset by 1 from state variables
-    // UI Section 5 → section4, UI Section 6 → section5, etc.
-    // Sections 24-26 map directly (section24, section25, section26)
-    const sectionStateMap = {
-      'section5': { get: () => section4, set: setSection4 },   // UI Section 5 → section4
-      'section6': { get: () => section5, set: setSection5 },   // UI Section 6 → section5
-      'section7': { get: () => section6, set: setSection6 },   // UI Section 7 → section6
-      'section8': { get: () => section7, set: setSection7 },   // UI Section 8 → section7
-      'section9': { get: () => section8, set: setSection8 },   // UI Section 9 → section8
-      'section10': { get: () => section9, set: setSection9 },  // UI Section 10 → section9
-      'section11': { get: () => section10, set: setSection10 }, // UI Section 11 → section10
-      'section12': { get: () => section11, set: setSection11 }, // UI Section 12 → section11
-      'section13': { get: () => section12, set: setSection12 }, // UI Section 13 → section12
-      'section14': { get: () => section13, set: setSection13 }, // UI Section 14 → section13
-      'section15': { get: () => section14, set: setSection14 }, // UI Section 15 → section14
-      'section16': { get: () => section15, set: setSection15 }, // UI Section 16 → section15
-      'section17': { get: () => section16, set: setSection16 }, // UI Section 17 → section16
-      'section18': { get: () => section17, set: setSection17 }, // UI Section 18 → section17
-      'section19': { get: () => section18, set: setSection18 }, // UI Section 19 → section18
-      'section20': { get: () => section19, set: setSection19 }, // UI Section 20 → section19
-      'section21': { get: () => section21, set: setSection21 }, // UI Section 21 → section21 (DIRECT, no offset!)
-      'section22': { get: () => section22, set: setSection22 }, // UI Section 22 → section22 (DIRECT, no offset!)
-      'section23': { get: () => section22, set: setSection22 }, // UI Section 23 → section22
-      'section24': { get: () => section24, set: setSection24 }, // Direct mapping
-      'section25': { get: () => section25, set: setSection25 }, // Direct mapping
-      'section26': { get: () => section26, set: setSection26 }  // Direct mapping
-    };
-    
     try {
-      console.log('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
-
-      console.log('📂 DocumentPicker result:', result);
       
       if (result.canceled) {
         console.log('❌ User canceled document picker');
@@ -1600,7 +1568,6 @@ export default function CompanyAccreditationScreen({
       }
 
       const file = result.assets[0];
-      console.log('📄 Selected file:', file);
       if (!file) {
         console.log('❌ No file selected');
         return;
@@ -1610,42 +1577,32 @@ export default function CompanyAccreditationScreen({
       setUploadingDocumentKey(`${section}-${itemKey}-evidence`);
 
       // Convert the file URI to a blob
-      console.log('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
-      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
-      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size, type: fileObject.type });
 
       // Upload to Supabase Storage (don't set loading to prevent page scrolling)
-      console.log('📤 Starting upload to Supabase...');
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `${section}_${itemKey}_evidence`,
         fileObject
       );
-      console.log('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
-        console.log(`✅ Upload successful, URL: ${uploadResult.url}`);
-        console.log(`📝 Setting ${section}.${itemKey} to:`, { evidence: uploadResult.url });
+        console.log(`✅ Upload successful`);
         
         // Update state with the new URL using the section map
         const sectionUpdater = sectionStateMap[section];
         if (sectionUpdater) {
-          sectionUpdater.set(prev => {
-            const updated = {
-              ...prev,
-              [itemKey]: {
-                ...prev[itemKey],
-                evidence: uploadResult.url
-              }
-            };
-            console.log(`🔄 Updated ${section} state:`, updated);
-            return updated;
-          });
+          sectionUpdater.set(prev => ({
+            ...prev,
+            [itemKey]: {
+              ...prev[itemKey],
+              evidence: uploadResult.url
+            }
+          }));
         } else {
           console.warn(`⚠️ Unknown section: ${section}`);
         }
@@ -1662,7 +1619,6 @@ export default function CompanyAccreditationScreen({
         
         // Immediately save to database after upload (don't wait 30 seconds!)
         setTimeout(async () => {
-          console.log('💾 Auto-saving evidence upload immediately...');
           await autoSave();
         }, 100);
         
@@ -1672,12 +1628,39 @@ export default function CompanyAccreditationScreen({
       }
     } catch (error) {
       console.error('🔥 Upload exception:', error);
-      console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
-      console.log('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
     }
+  };
+
+  // Map section names to their setState functions (component level for accessibility)
+  // Pattern: UI sections 5-22 are offset by 1 from state variables
+  // UI Section 5 → section4, UI Section 6 → section5, etc.
+  // Sections 24-26 map directly (section24, section25, section26)
+  const sectionStateMap = {
+    'section5': { get: () => section4, set: setSection4 },   // UI Section 5 → section4
+    'section6': { get: () => section5, set: setSection5 },   // UI Section 6 → section5
+    'section7': { get: () => section6, set: setSection6 },   // UI Section 7 → section6
+    'section8': { get: () => section7, set: setSection7 },   // UI Section 8 → section7
+    'section9': { get: () => section8, set: setSection8 },   // UI Section 9 → section8
+    'section10': { get: () => section9, set: setSection9 },  // UI Section 10 → section9
+    'section11': { get: () => section10, set: setSection10 }, // UI Section 11 → section10
+    'section12': { get: () => section11, set: setSection11 }, // UI Section 12 → section11
+    'section13': { get: () => section12, set: setSection12 }, // UI Section 13 → section12
+    'section14': { get: () => section13, set: setSection13 }, // UI Section 14 → section13
+    'section15': { get: () => section14, set: setSection14 }, // UI Section 15 → section14
+    'section16': { get: () => section15, set: setSection15 }, // UI Section 16 → section15
+    'section17': { get: () => section16, set: setSection16 }, // UI Section 17 → section16
+    'section18': { get: () => section17, set: setSection17 }, // UI Section 18 → section17
+    'section19': { get: () => section18, set: setSection18 }, // UI Section 19 → section18
+    'section20': { get: () => section19, set: setSection19 }, // UI Section 20 → section19
+    'section21': { get: () => section21, set: setSection21 }, // UI Section 21 → section21 (DIRECT, no offset!)
+    'section22': { get: () => section22, set: setSection22 }, // UI Section 22 → section22 (DIRECT, no offset!)
+    'section23': { get: () => section22, set: setSection22 }, // UI Section 23 → section22
+    'section24': { get: () => section24, set: setSection24 }, // Direct mapping
+    'section25': { get: () => section25, set: setSection25 }, // Direct mapping
+    'section26': { get: () => section26, set: setSection26 }  // Direct mapping
   };
 
   // Helper to render library selector UI
@@ -1685,8 +1668,6 @@ export default function CompanyAccreditationScreen({
     if (evidenceLibrary.length === 0 || !documentKey.startsWith('section')) {
       return null;
     }
-    
-    console.log(`📚 [LIBRARY SELECTOR] Rendering for ${documentKey}`);
     
     return (
       <View style={{ marginBottom: 12 }}>
@@ -1747,8 +1728,6 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
     const isSection = documentKey.startsWith('section');
-    
-    console.log(`🔍 [renderDocumentToggle] key=${documentKey}, showOnlyIcon=${showOnlyIcon}, hasDoc=${hasDocument}, isSection=${isSection}, libraryCount=${evidenceLibrary.length}`);
 
     // Show loading indicator when uploading
     if (isUploading) {
