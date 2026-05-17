@@ -23,6 +23,12 @@ CREATE INDEX IF NOT EXISTS evidence_library_items_active_idx ON evidence_library
 -- Enable RLS
 ALTER TABLE evidence_library_items ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their company's evidence library" ON evidence_library_items;
+DROP POLICY IF EXISTS "Authenticated users can add evidence to their company" ON evidence_library_items;
+DROP POLICY IF EXISTS "Users can update evidence names" ON evidence_library_items;
+DROP POLICY IF EXISTS "Users can delete evidence" ON evidence_library_items;
+
 -- Policy: Companies can view their own evidence library
 CREATE POLICY "Users can view their company's evidence library"
 ON evidence_library_items
