@@ -1678,9 +1678,11 @@ export default function CompanyAccreditationScreen({
 
   // Unified helper function to render document toggle button and UI
   const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence', showOnlyIcon = false) => {
+    const isDocUIExpanded = expandedEvidenceUI === documentKey;
     const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
+    const isSection = documentKey.startsWith('section');
 
     // Show loading indicator when uploading
     if (isUploading) {
@@ -1692,44 +1694,88 @@ export default function CompanyAccreditationScreen({
       );
     }
 
-    // If showOnlyIcon is true, just show simple paperclip icon with status - NO DROPDOWN
+    // If showOnlyIcon is true, show simple paperclip icon with status
     if (showOnlyIcon) {
       // Show uploaded document
       if (hasDocument && (itemData?.evidence || itemData?.certificateUrl)) {
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+          <View>
             <TouchableOpacity
-              onPress={() => handleUploadFn()}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 5,
-                backgroundColor: '#D1FAE5',
-                borderWidth: 1,
-                borderColor: '#10B981',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 2
-              }}
+              onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : null}
+              style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
+              <TouchableOpacity
+                onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : handleUploadFn()}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 5,
+                  backgroundColor: '#D1FAE5',
+                  borderWidth: 1,
+                  borderColor: '#10B981',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 2
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>📎</Text>
+              </TouchableOpacity>
+              
+              <View style={{ flex: 1 }}>
+                <View style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  backgroundColor: '#F0FDF4',
+                  borderRadius: 4,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#10B981'
+                }}>
+                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
+                    <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </TouchableOpacity>
             
-            <View style={{ flex: 1 }}>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                backgroundColor: '#F0FDF4',
-                borderRadius: 4,
-                borderLeftWidth: 3,
-                borderLeftColor: '#10B981'
-              }}>
-                <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
-                  <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
-                </TouchableOpacity>
+            {/* Show library dropdown when expanded (section items only) */}
+            {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && (
+              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from library:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {evidenceLibrary.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        backgroundColor: '#DBEAFE',
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: '#0284C7',
+                        marginRight: 8
+                      }}
+                      onPress={() => {
+                        const sectionKey = documentKey.split('-')[0];
+                        const itemKey = documentKey.substring(sectionKey.length + 1);
+                        const sectionUpdater = sectionStateMap[sectionKey];
+                        if (sectionUpdater) {
+                          sectionUpdater.set(prev => ({
+                            ...prev,
+                            [itemKey]: { ...prev[itemKey], evidence: item.storage_path }
+                          }));
+                          setTimeout(() => autoSave(), 100);
+                          Alert.alert('Success ✅', `Applied "${item.item_name}"`);
+                          setExpandedEvidenceUI(null);
+                        }
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
-            </View>
+            )}
           </View>
         );
       }
@@ -1737,9 +1783,11 @@ export default function CompanyAccreditationScreen({
       // Show needs document warning
       if (needsDocument) {
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
-            <TouchableOpacity
-              onPress={() => handleUploadFn()}
+          <TouchableOpacity
+            onPress={() => handleUploadFn()}
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
+          >
+            <View
               style={{
                 width: 30,
                 height: 30,
@@ -1753,7 +1801,7 @@ export default function CompanyAccreditationScreen({
               }}
             >
               <Text style={{ fontSize: 14 }}>📎</Text>
-            </TouchableOpacity>
+            </View>
             
             <View style={{ flex: 1 }}>
               <View style={{
@@ -1767,7 +1815,7 @@ export default function CompanyAccreditationScreen({
                 <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         );
       }
 
