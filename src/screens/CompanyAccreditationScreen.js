@@ -1698,39 +1698,98 @@ export default function CompanyAccreditationScreen({
       // ALWAYS show document info if hasDocument, regardless of any other conditions
       if (hasDocument && (itemData?.evidence || itemData?.certificateUrl)) {
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+          <View>
             <TouchableOpacity
               onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 5,
-                backgroundColor: '#D1FAE5',
-                borderWidth: 1,
-                borderColor: '#10B981',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 2
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 8,
+                flex: 1
               }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
+              <View
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 5,
+                  backgroundColor: '#D1FAE5',
+                  borderWidth: 1,
+                  borderColor: '#10B981',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 2
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>📎</Text>
+              </View>
+              
+              <View style={{ flex: 1 }}>
+                <View style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  backgroundColor: '#F0FDF4',
+                  borderRadius: 4,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#10B981'
+                }}>
+                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
+                    <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </TouchableOpacity>
             
-            <View style={{ flex: 1 }}>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                backgroundColor: '#F0FDF4',
-                borderRadius: 4,
-                borderLeftWidth: 3,
-                borderLeftColor: '#10B981'
-              }}>
-                <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
-                  <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
-                </TouchableOpacity>
+            {/* Show library dropdown when expanded */}
+            {isDocUIExpanded && evidenceLibrary.length > 0 && (
+              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: 8 }}
+                >
+                  {evidenceLibrary.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        backgroundColor: '#DBEAFE',
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: '#0284C7',
+                        marginRight: 8
+                      }}
+                      onPress={() => {
+                        // Apply library item to current question
+                        const sectionKey = documentKey.split('-')[0];
+                        const itemKey = documentKey.substring(sectionKey.length + 1);
+                        const sectionUpdater = sectionStateMap[sectionKey];
+                        if (sectionUpdater) {
+                          sectionUpdater.set(prev => {
+                            const updated = {
+                              ...prev,
+                              [itemKey]: {
+                                ...prev[itemKey],
+                                evidence: item.storage_path
+                              }
+                            };
+                            return updated;
+                          });
+                          setTimeout(() => autoSave(), 100);
+                          Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
+                          setExpandedEvidenceUI(null);
+                        }
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
-            </View>
+            )}
           </View>
         );
       }
@@ -1738,62 +1797,194 @@ export default function CompanyAccreditationScreen({
       // Show needs document warning if applicable - click to directly upload
       if (needsDocument) {
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+          <View>
             <TouchableOpacity
-              onPress={() => handleUploadFn()}
+              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 5,
-                backgroundColor: '#FEE2E2',
-                borderWidth: 1,
-                borderColor: '#FCA5A5',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 2
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 8,
+                flex: 1
               }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
+              <View
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 5,
+                  backgroundColor: '#FEE2E2',
+                  borderWidth: 1,
+                  borderColor: '#FCA5A5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 2
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>📎</Text>
+              </View>
+              
+              <View style={{ flex: 1 }}>
+                <View style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  backgroundColor: '#FEE2E2',
+                  borderRadius: 4,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#EF4444'
+                }}>
+                  <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
+                </View>
+              </View>
             </TouchableOpacity>
             
-            <View style={{ flex: 1 }}>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                backgroundColor: '#FEE2E2',
-                borderRadius: 4,
-                borderLeftWidth: 3,
-                borderLeftColor: '#EF4444'
-              }}>
-                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
+            {/* Show library dropdown when expanded */}
+            {isDocUIExpanded && evidenceLibrary.length > 0 && (
+              <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: 8 }}
+                >
+                  {evidenceLibrary.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        backgroundColor: '#DBEAFE',
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: '#0284C7',
+                        marginRight: 8
+                      }}
+                      onPress={() => {
+                        // Apply library item to current question
+                        const sectionKey = documentKey.split('-')[0];
+                        const itemKey = documentKey.substring(sectionKey.length + 1);
+                        const sectionUpdater = sectionStateMap[sectionKey];
+                        if (sectionUpdater) {
+                          sectionUpdater.set(prev => {
+                            const updated = {
+                              ...prev,
+                              [itemKey]: {
+                                ...prev[itemKey],
+                                evidence: item.storage_path
+                              }
+                            };
+                            return updated;
+                          });
+                          setTimeout(() => autoSave(), 100);
+                          Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
+                          setExpandedEvidenceUI(null);
+                        }
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
-            </View>
+            )}
           </View>
         );
       }
 
       // No document, not needed - click paperclip to directly upload
       return (
-        <TouchableOpacity
-          onPress={() => handleUploadFn()}
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 5,
-            backgroundColor: '#F3F4F6',
-            borderWidth: 1,
-            borderColor: '#D1D5DB',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginTop: 2
-          }}
-        >
-          <Text style={{ fontSize: 14 }}>📎</Text>
-        </TouchableOpacity>
+        <View>
+          <TouchableOpacity
+            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 5,
+              backgroundColor: '#F3F4F6',
+              borderWidth: 1,
+              borderColor: '#D1D5DB',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 2
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>📎</Text>
+          </TouchableOpacity>
+          
+          {/* Show options when expanded */}
+          {isDocUIExpanded && (
+            <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
+              {/* Upload button */}
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  backgroundColor: '#3B82F6',
+                  borderRadius: 6,
+                  marginBottom: 8
+                }}
+                onPress={() => {
+                  handleUploadFn();
+                  setExpandedEvidenceUI(null);
+                }}
+              >
+                <Text style={{ fontSize: 11, color: 'white', fontWeight: '600' }}>📤 Upload Evidence</Text>
+              </TouchableOpacity>
+              
+              {/* Show library dropdown if items exist */}
+              {evidenceLibrary.length > 0 && (
+                <View>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>Or select from library:</Text>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                  >
+                    {evidenceLibrary.map(item => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          backgroundColor: '#DBEAFE',
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: '#0284C7',
+                          marginRight: 8
+                        }}
+                        onPress={() => {
+                          // Apply library item to current question
+                          const sectionKey = documentKey.split('-')[0];
+                          const itemKey = documentKey.substring(sectionKey.length + 1);
+                          const sectionUpdater = sectionStateMap[sectionKey];
+                          if (sectionUpdater) {
+                            sectionUpdater.set(prev => {
+                              const updated = {
+                                ...prev,
+                                [itemKey]: {
+                                  ...prev[itemKey],
+                                  evidence: item.storage_path
+                                }
+                              };
+                              return updated;
+                            });
+                            setTimeout(() => autoSave(), 100);
+                            Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
+                            setExpandedEvidenceUI(null);
+                          }
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
       );
     }
 
-    // Otherwise render the full expanded UI
+    // Otherwise render the full expanded UI (when showOnlyIcon=false)
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
         {/* Show library dropdown if items exist (even if document already selected) */}
@@ -1886,7 +2077,7 @@ export default function CompanyAccreditationScreen({
       () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
       null,
       'Evidence',
-      false // Show evidence library dropdown
+      true // showOnlyIcon = true to only show paperclip in the row
     );
   };
 
@@ -4281,7 +4472,7 @@ export default function CompanyAccreditationScreen({
                         () => handleUploadCertificate(system.key, system.label),
                         () => handleDeleteCertificate(system.key, system.label),
                         'Certificate',
-                        false
+                        true
                       )}
                     </View>
                   )}
