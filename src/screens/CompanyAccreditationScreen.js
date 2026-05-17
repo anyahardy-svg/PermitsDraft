@@ -1886,7 +1886,7 @@ export default function CompanyAccreditationScreen({
       () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
       null,
       'Evidence',
-      true // showOnlyIcon = true to only show paperclip in the row
+      false // Show evidence library dropdown
     );
   };
 
