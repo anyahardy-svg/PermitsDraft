@@ -1701,11 +1701,10 @@ export default function CompanyAccreditationScreen({
         return (
           <View>
             <TouchableOpacity
-              onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : null}
+              onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : handleUploadFn()}
               style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
             >
-              <TouchableOpacity
-                onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : handleUploadFn()}
+              <View
                 style={{
                   width: 30,
                   height: 30,
@@ -1719,7 +1718,7 @@ export default function CompanyAccreditationScreen({
                 }}
               >
                 <Text style={{ fontSize: 14 }}>📎</Text>
-              </TouchableOpacity>
+              </View>
               
               <View style={{ flex: 1 }}>
                 <View style={{
