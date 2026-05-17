@@ -1796,10 +1796,10 @@ export default function CompanyAccreditationScreen({
     // Otherwise render the full expanded UI
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
-        {/* Show library dropdown if items exist and no document selected */}
-        {!hasDocument && evidenceLibrary.length > 0 && (
+        {/* Show library dropdown if items exist (even if document already selected) */}
+        {evidenceLibrary.length > 0 && (
           <View style={{ marginBottom: 12 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Or select from Evidence Library:</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from Evidence Library:</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
