@@ -1815,25 +1815,40 @@ export default function CompanyAccreditationScreen({
       }
 
       // Simple icon - click to show library or upload
-      return (
-        <View>
+      // If no library items, just show upload button directly
+      if (!isSection || evidenceLibrary.length === 0) {
+        return (
           <TouchableOpacity
-            onPress={() => {
-              // If library has items and this is a section, toggle dropdown
-              // Otherwise upload
-              if (isSection && evidenceLibrary.length > 0) {
-                setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey);
-              } else {
-                handleUploadFn();
-              }
-            }}
+            onPress={() => handleUploadFn()}
             style={{
               width: 30,
               height: 30,
               borderRadius: 5,
-              backgroundColor: isSection && evidenceLibrary.length > 0 ? '#DBEAFE' : '#F3F4F6',
+              backgroundColor: '#F3F4F6',
               borderWidth: 1,
-              borderColor: isSection && evidenceLibrary.length > 0 ? '#0284C7' : '#D1D5DB',
+              borderColor: '#D1D5DB',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 2
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>📎</Text>
+          </TouchableOpacity>
+        );
+      }
+
+      // If section with library, show clickable icon to toggle dropdown
+      return (
+        <View>
+          <TouchableOpacity
+            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 5,
+              backgroundColor: '#DBEAFE',
+              borderWidth: 1,
+              borderColor: '#0284C7',
               justifyContent: 'center',
               alignItems: 'center',
               marginTop: 2
@@ -1844,40 +1859,40 @@ export default function CompanyAccreditationScreen({
 
           {/* Show library dropdown when expanded - no existing document yet */}
           {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && !hasDocument && (
-            <View style={{ paddingTop: 12, paddingBottom: 12 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from library:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {evidenceLibrary.map(item => (
+            <View style={{ paddingTop: 8, paddingBottom: 0 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginLeft: 38 }}>📚 From Library:</Text>
+              <View style={{ marginLeft: 38 }}>
+                {evidenceLibrary.map((item, idx) => (
                   <TouchableOpacity
                     key={item.id}
                     style={{
                       paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      paddingVertical: 10,
                       backgroundColor: '#DBEAFE',
                       borderRadius: 6,
                       borderWidth: 1,
                       borderColor: '#0284C7',
-                      marginRight: 8
+                      marginBottom: idx < evidenceLibrary.length - 1 ? 6 : 12
                     }}
                     onPress={() => applyLibraryItem(documentKey, item)}
                   >
-                    <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
               <TouchableOpacity
                 onPress={() => handleUploadFn()}
                 style={{
-                  marginTop: 12,
+                  marginLeft: 38,
                   paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  backgroundColor: '#E5E7EB',
+                  paddingVertical: 10,
+                  backgroundColor: '#3B82F6',
                   borderRadius: 6,
                   borderWidth: 1,
-                  borderColor: '#9CA3AF'
+                  borderColor: '#1D4ED8'
                 }}
               >
-                <Text style={{ fontSize: 11, color: '#374151', fontWeight: '600', textAlign: 'center' }}>+ Upload New</Text>
+                <Text style={{ fontSize: 12, color: 'white', fontWeight: '600', textAlign: 'center' }}>+ Upload New</Text>
               </TouchableOpacity>
             </View>
           )}
