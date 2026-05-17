@@ -1680,6 +1680,28 @@ export default function CompanyAccreditationScreen({
     }
   };
 
+  // Helper to apply library item to a question
+  const applyLibraryItem = (documentKey, libraryItem) => {
+    try {
+      const sectionKey = documentKey.split('-')[0];
+      const itemKey = documentKey.substring(sectionKey.length + 1);
+      const sectionUpdater = sectionStateMap?.[sectionKey];
+      
+      if (sectionUpdater) {
+        sectionUpdater.set(prev => ({
+          ...prev,
+          [itemKey]: { ...prev[itemKey], evidence: libraryItem.storage_path }
+        }));
+        setTimeout(() => autoSave(), 100);
+        Alert.alert('Success ✅', `Applied "${libraryItem.item_name}"`);
+        setExpandedEvidenceUI(null);
+      }
+    } catch (e) {
+      console.error('❌ Error applying library item:', e);
+      Alert.alert('Error', 'Failed to apply library item');
+    }
+  };
+
   // Unified helper function to render document toggle button and UI
   const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence', showOnlyIcon = false) => {
     const isDocUIExpanded = expandedEvidenceUI === documentKey;
@@ -1758,20 +1780,7 @@ export default function CompanyAccreditationScreen({
                         borderColor: '#0284C7',
                         marginRight: 8
                       }}
-                      onPress={() => {
-                        const sectionKey = documentKey.split('-')[0];
-                        const itemKey = documentKey.substring(sectionKey.length + 1);
-                        const sectionUpdater = sectionStateMap[sectionKey];
-                        if (sectionUpdater) {
-                          sectionUpdater.set(prev => ({
-                            ...prev,
-                            [itemKey]: { ...prev[itemKey], evidence: item.storage_path }
-                          }));
-                          setTimeout(() => autoSave(), 100);
-                          Alert.alert('Success ✅', `Applied "${item.item_name}"`);
-                          setExpandedEvidenceUI(null);
-                        }
-                      }}
+                      onPress={() => applyLibraryItem(documentKey, item)}
                     >
                       <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                     </TouchableOpacity>
@@ -1867,20 +1876,7 @@ export default function CompanyAccreditationScreen({
                       borderColor: '#0284C7',
                       marginRight: 8
                     }}
-                    onPress={() => {
-                      const sectionKey = documentKey.split('-')[0];
-                      const itemKey = documentKey.substring(sectionKey.length + 1);
-                      const sectionUpdater = sectionStateMap[sectionKey];
-                      if (sectionUpdater) {
-                        sectionUpdater.set(prev => ({
-                          ...prev,
-                          [itemKey]: { ...prev[itemKey], evidence: item.storage_path }
-                        }));
-                        setTimeout(() => autoSave(), 100);
-                        Alert.alert('Success ✅', `Applied "${item.item_name}"`);
-                        setExpandedEvidenceUI(null);
-                      }
-                    }}
+                    onPress={() => applyLibraryItem(documentKey, item)}
                   >
                     <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                   </TouchableOpacity>
