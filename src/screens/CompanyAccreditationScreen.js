@@ -1796,6 +1796,55 @@ export default function CompanyAccreditationScreen({
     // Otherwise render the full expanded UI
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
+        {/* Show library dropdown if items exist and no document selected */}
+        {!hasDocument && evidenceLibrary.length > 0 && (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Or select from Evidence Library:</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 8 }}
+            >
+              {evidenceLibrary.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: '#DBEAFE',
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    borderColor: '#0284C7',
+                    marginRight: 8
+                  }}
+                  onPress={() => {
+                    // Apply library item to current question
+                    const sectionKey = documentKey.split('-')[0];
+                    const itemKey = documentKey.substring(sectionKey.length + 1);
+                    const sectionUpdater = sectionStateMap[sectionKey];
+                    if (sectionUpdater) {
+                      sectionUpdater.set(prev => {
+                        const updated = {
+                          ...prev,
+                          [itemKey]: {
+                            ...prev[itemKey],
+                            evidence: item.storage_path
+                          }
+                        };
+                        return updated;
+                      });
+                      setTimeout(() => autoSave(), 100);
+                      Alert.alert('Success ✅', `Applied "${item.item_name}" to this question`);
+                    }
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {hasDocument ? (
           <>
             {handleDeleteFn && (
