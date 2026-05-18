@@ -11847,86 +11847,89 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
                 <TouchableOpacity 
-                  style={[styles.button, { flex: 1, backgroundColor: '#3B82F6' }]} 
+                  style={styles.addButton} 
                   onPress={handleAddService}
                 >
-                  <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+                  <Text style={styles.addButtonText}>
                     {editingService ? 'Update Service' : 'Add Service'}
                   </Text>
                 </TouchableOpacity>
-                {editingService && (
+                {(editingService || currentService.name || currentService.businessUnitId || currentService.description) && (
                   <TouchableOpacity 
-                    style={[styles.button, { flex: 1, backgroundColor: '#9CA3AF' }]} 
+                    style={[styles.addButton, { backgroundColor: '#EF4444' }]} 
                     onPress={() => {
                       setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
                       setEditingService(false);
                     }}
                   >
-                    <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>Cancel</Text>
+                    <Text style={styles.addButtonText}>Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
               
               <TouchableOpacity 
-                style={[styles.button, { marginTop: 12, backgroundColor: '#10B981' }]} 
+                style={[styles.addButton, { marginTop: 12, backgroundColor: '#10B981' }]} 
                 onPress={handleImportServicesCSV}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>📥 Import from CSV</Text>
+                <Text style={styles.addButtonText}>📥 Import from CSV</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Services List */}
-          {Object.keys(servicesByBU).length === 0 ? (
-            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No services yet. Add one to get started!</Text>
+          {/* Services List Section */}
+          <View style={{ marginTop: 24 }}>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Services Database</Text>
             </View>
-          ) : (
-            Object.entries(servicesByBU).map(([buId, services]) => {
-              const buName = businessUnits.find(bu => bu.id === buId)?.name || 'Unknown';
-              return (
-                <View key={buId} style={{ marginBottom: 20 }}>
-                  <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 10 }]}>
-                    {buName} - {services.length} service(s)
-                  </Text>
-                  {services.map(service => (
-                    <View key={service.id} style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {servicesFromDb.length} services</Text>
+
+            {Object.keys(servicesByBU).length === 0 ? (
+              <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No services yet. Add one to get started!</Text>
+              </View>
+            ) : (
+              Object.entries(servicesByBU).map(([buId, services]) => {
+                const buName = businessUnits.find(bu => bu.id === buId)?.name || 'Unknown';
+                return (
+                  <View key={buId} style={{ marginBottom: 20 }}>
+                    <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#1F2937' }]}>
+                      {buName} ({services.length})
+                    </Text>
+                    {services.map(service => (
+                      <TouchableOpacity 
+                        key={service.id}
+                        style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                        onPress={() => {
+                          setCurrentService({
+                            id: service.id,
+                            name: service.name,
+                            businessUnitId: service.business_unit_id,
+                            description: service.description || ''
+                          });
+                          setEditingService(true);
+                        }}
+                      >
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1F2937' }}>{service.name}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{service.name}</Text>
                           {service.description && (
                             <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
                           )}
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                          <TouchableOpacity 
-                            onPress={() => {
-                              setCurrentService({
-                                id: service.id,
-                                name: service.name,
-                                businessUnitId: service.business_unit_id,
-                                description: service.description || ''
-                              });
-                              setEditingService(true);
-                            }}
-                            style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
-                          >
-                            <Text style={{ fontSize: 14 }}>✏️</Text>
-                          </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 8, marginLeft: 12 }}>
                           <TouchableOpacity 
                             onPress={() => handleDeleteService(service.id)}
-                            style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                            style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 6 }}
                           >
-                            <Text style={{ fontSize: 14 }}>🗑️</Text>
+                            <Text style={{ fontSize: 16 }}>🗑️</Text>
                           </TouchableOpacity>
                         </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              );
-            })
-          )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                );
+              })
+            )}
+          </View>
         </ScrollView>
       </View>
     );
