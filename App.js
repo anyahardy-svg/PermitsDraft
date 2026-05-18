@@ -30,7 +30,7 @@ import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/send
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
-import { listServicesByBusinessUnit, listAllServices } from './src/api/services';
+import { listServicesByBusinessUnit, listAllServices, createService, updateService, deleteService } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
@@ -2974,6 +2974,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [editingBusinessUnit, setEditingBusinessUnit] = useState(false);
   const [currentBusinessUnit, setCurrentBusinessUnit] = useState({ id: '', name: '', description: '' });
   
+  // Service management states
+  const [currentService, setCurrentService] = useState({ id: '', name: '', businessUnitId: '', description: '' });
+  const [editingService, setEditingService] = useState(false);
+  const [serviceImportStatus, setServiceImportStatus] = useState('idle');
+  const [serviceImportMessage, setServiceImportMessage] = useState('');
+  
   // Filter states for contractors and permit issuers
   const [contractorSearchText, setContractorSearchText] = useState('');
   const [siteImportStatus, setSiteImportStatus] = useState('idle');
@@ -3534,7 +3540,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_companies': '/admin/companies/',
         'manage_contractors': '/admin/contractors/',
         'manage_sites': '/admin/sites/',
-        'services_directory': '/admin/services/',
+        'manage_services': '/admin/services/',
         'manage_isolations': '/admin/isolation-register/',
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
@@ -3703,7 +3709,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'companies': 'manage_companies',
             'contractors': 'manage_contractors',
             'sites': 'manage_sites',
-            'services': 'services_directory',
+            'services': 'manage_services',
             'isolation-register': 'manage_isolations',
             'visitor-inductions': 'manage_visitor_inductions',
             'inductions': 'manage_inductions',
@@ -8689,7 +8695,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <Text style={styles.cardNumber}>{sites.length}</Text>
             <Text style={styles.cardLabel}>Sites</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('services_directory')}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('manage_services')}>
             <Text style={styles.cardNumber}>{servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb.length : ALL_SERVICES.length}</Text>
             <Text style={styles.cardLabel}>Services</Text>
           </TouchableOpacity>
@@ -11540,6 +11546,387 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </ScrollView>
             )}
           </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Manage Services Screen
+  const renderManageServices = () => {
+    const handleAddService = async () => {
+      if (!currentService.name || !currentService.businessUnitId) {
+        Alert.alert('Missing Info', 'Please fill in Service Name and select a Business Unit.');
+        return;
+      }
+      try {
+        if (editingService) {
+          await updateService(currentService.id, {
+            name: currentService.name,
+            description: currentService.description || ''
+          });
+          const freshServices = await listAllServices();
+          setServicesFromDb(freshServices);
+          setEditingService(false);
+          Alert.alert('Service Updated', 'Service has been updated successfully.');
+        } else {
+          await createService({
+            name: currentService.name,
+            business_unit_id: currentService.businessUnitId,
+            description: currentService.description || ''
+          });
+          const freshServices = await listAllServices();
+          setServicesFromDb(freshServices);
+          Alert.alert('Service Added', 'New service has been added successfully.');
+        }
+        setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+        setEditingService(false);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save service: ' + error.message);
+      }
+    };
+
+    const handleDeleteService = (id) => {
+      if (window.confirm('Delete Service?\n\nAre you sure? This action cannot be undone.')) {
+        (async () => {
+          try {
+            await deleteService(id);
+            const freshServices = await listAllServices();
+            setServicesFromDb(freshServices);
+            setEditingService(false);
+            Alert.alert('Success', 'Service has been deleted.');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete service: ' + error.message);
+          }
+        })();
+      }
+    };
+
+    const handleImportServicesCSV = () => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.csv';
+      
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            setServiceImportStatus('importing');
+            setServiceImportMessage('Reading CSV file...');
+
+            const csvText = event.target.result;
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+              setServiceImportStatus('error');
+              setServiceImportMessage('Error: CSV must have header row and at least one data row');
+              setTimeout(() => setServiceImportStatus('idle'), 3000);
+              return;
+            }
+
+            const newServices = [];
+            let newCount = 0;
+            let duplicateCount = 0;
+            const processedNames = new Set();
+
+            // Parse header row
+            setServiceImportMessage('Parsing CSV file...');
+            const headerLine = lines[0];
+            const headerValues = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < headerLine.length; j++) {
+              const char = headerLine[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            // Find column indices
+            const nameIdx = headerValues.findIndex(h => h.includes('name') || h.includes('service'));
+            const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
+            const descIdx = headerValues.findIndex(h => h.includes('description') || h.includes('desc'));
+
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              
+              // Simple CSV parsing
+              const values = [];
+              current = '';
+              inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  values.push(current.trim().replace(/^"|"$/g, ''));
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              
+              if (nameIdx >= 0 && buIdx >= 0) {
+                const name = values[nameIdx] || '';
+                const buName = values[buIdx] || '';
+                const description = descIdx >= 0 ? values[descIdx] : '';
+                
+                if (name && buName) {
+                  // Skip if already processed in this CSV
+                  if (processedNames.has(name.toLowerCase())) {
+                    duplicateCount++;
+                    continue;
+                  }
+                  
+                  // Check if service already exists for this business unit
+                  const buMatch = businessUnits.find(bu => bu.name.toLowerCase() === buName.toLowerCase());
+                  if (buMatch && servicesFromDb.find(s => s.business_unit_id === buMatch.id && s.name.toLowerCase() === name.toLowerCase())) {
+                    duplicateCount++;
+                    continue;
+                  }
+                  
+                  newServices.push({
+                    name,
+                    buName,
+                    description
+                  });
+                  processedNames.add(name.toLowerCase());
+                }
+              }
+            }
+
+            // Save all services to Supabase
+            for (let idx = 0; idx < newServices.length; idx++) {
+              const serviceData = newServices[idx];
+              setServiceImportMessage(`Importing ${idx + 1} of ${newServices.length}: ${serviceData.name}...`);
+              try {
+                // Find business unit by name
+                const bu = businessUnits.find(u => u.name.toLowerCase() === serviceData.buName.toLowerCase());
+                if (!bu) {
+                  console.warn(`Business unit not found: ${serviceData.buName}`);
+                  continue;
+                }
+
+                await createService({
+                  name: serviceData.name,
+                  business_unit_id: bu.id,
+                  description: serviceData.description || ''
+                });
+                newCount++;
+              } catch (err) {
+                console.error(`Failed to import ${serviceData.name}:`, err);
+                setServiceImportStatus('error');
+                setServiceImportMessage(`Error importing ${serviceData.name}: ${err.message}`);
+                setTimeout(() => setServiceImportStatus('idle'), 4000);
+                return;
+              }
+            }
+
+            // Reload services from database
+            setServiceImportMessage('Refreshing data...');
+            const freshServices = await listAllServices();
+            setServicesFromDb(freshServices);
+            
+            let message = `✓ Successfully imported ${newCount} service(s)!`;
+            if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
+            
+            setServiceImportStatus('success');
+            setServiceImportMessage(message);
+            setTimeout(() => setServiceImportStatus('idle'), 3000);
+          } catch (error) {
+            console.error('Import error:', error);
+            setServiceImportStatus('error');
+            setServiceImportMessage('Failed to parse file: ' + error.message);
+            setTimeout(() => setServiceImportStatus('idle'), 4000);
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      fileInput.click();
+    };
+
+    // Group services by business unit
+    const servicesByBU = {};
+    (servicesFromDb || []).forEach(service => {
+      if (!servicesByBU[service.business_unit_id]) {
+        servicesByBU[service.business_unit_id] = [];
+      }
+      servicesByBU[service.business_unit_id].push(service);
+    });
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingService(false); }}>
+            <Text style={styles.backButton}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{editingService ? 'Edit Service' : 'Manage Services'}</Text>
+        </View>
+        
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+          {/* Import Status Message */}
+          {serviceImportStatus !== 'idle' && (
+            <View style={{
+              backgroundColor: serviceImportStatus === 'importing' ? '#DBEAFE' : serviceImportStatus === 'success' ? '#DCFCE7' : '#FEE2E2',
+              borderBottomWidth: 1,
+              borderBottomColor: serviceImportStatus === 'importing' ? '#93C5FD' : serviceImportStatus === 'success' ? '#86EFAC' : '#FECACA',
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 6
+            }}>
+              <Text style={{
+                color: serviceImportStatus === 'importing' ? '#1E40AF' : serviceImportStatus === 'success' ? '#166534' : '#991B1B',
+                fontSize: 13,
+                fontWeight: '500',
+                textAlign: 'center'
+              }}>
+                {serviceImportStatus === 'importing' && '⏳ ' }
+                {serviceImportStatus === 'success' && '✓ ' }
+                {serviceImportStatus === 'error' && '✕ ' }
+                {serviceImportMessage}
+              </Text>
+            </View>
+          )}
+          
+          {/* Form Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionContent}>
+              <Text style={styles.label}>Service Name *</Text>
+              <TextInput 
+                style={styles.input} 
+                value={currentService.name} 
+                onChangeText={text => setCurrentService({ ...currentService, name: text })} 
+                placeholder="Enter service name (e.g., Hot Work)" 
+              />
+              
+              <Text style={styles.label}>Business Unit *</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                {businessUnits.map(unit => {
+                  const isSelected = currentService.businessUnitId === unit.id;
+                  return (
+                    <TouchableOpacity
+                      key={unit.id}
+                      style={[
+                        { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
+                        isSelected
+                          ? { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
+                          : { borderColor: '#D1D5DB', backgroundColor: 'white' }
+                      ]}
+                      onPress={() => {
+                        setCurrentService({ ...currentService, businessUnitId: unit.id });
+                      }}
+                    >
+                      <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              
+              <Text style={styles.label}>Description (Optional)</Text>
+              <TextInput 
+                style={[styles.input, { height: 80 }]} 
+                value={currentService.description} 
+                onChangeText={text => setCurrentService({ ...currentService, description: text })} 
+                placeholder="Enter service description" 
+                multiline
+              />
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                <TouchableOpacity 
+                  style={[styles.button, { flex: 1, backgroundColor: '#3B82F6' }]} 
+                  onPress={handleAddService}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+                    {editingService ? 'Update Service' : 'Add Service'}
+                  </Text>
+                </TouchableOpacity>
+                {editingService && (
+                  <TouchableOpacity 
+                    style={[styles.button, { flex: 1, backgroundColor: '#9CA3AF' }]} 
+                    onPress={() => {
+                      setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+                      setEditingService(false);
+                    }}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <TouchableOpacity 
+                style={[styles.button, { marginTop: 12, backgroundColor: '#10B981' }]} 
+                onPress={handleImportServicesCSV}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>📥 Import from CSV</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Services List */}
+          {Object.keys(servicesByBU).length === 0 ? (
+            <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No services yet. Add one to get started!</Text>
+            </View>
+          ) : (
+            Object.entries(servicesByBU).map(([buId, services]) => {
+              const buName = businessUnits.find(bu => bu.id === buId)?.name || 'Unknown';
+              return (
+                <View key={buId} style={{ marginBottom: 20 }}>
+                  <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 10 }]}>
+                    {buName} - {services.length} service(s)
+                  </Text>
+                  {services.map(service => (
+                    <View key={service.id} style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1F2937' }}>{service.name}</Text>
+                          {service.description && (
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
+                          )}
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              setCurrentService({
+                                id: service.id,
+                                name: service.name,
+                                businessUnitId: service.business_unit_id,
+                                description: service.description || ''
+                              });
+                              setEditingService(true);
+                            }}
+                            style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
+                          >
+                            <Text style={{ fontSize: 14 }}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            onPress={() => handleDeleteService(service.id)}
+                            style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                          >
+                            <Text style={{ fontSize: 14 }}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              );
+            })
+          )}
         </ScrollView>
       </View>
     );
@@ -22752,13 +23139,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setActiveTab={setContractorAdminTab}
         />
       );
-    case 'services_directory':
+    case 'manage_services':
       if (!adminSessionActive) {
-        console.log('🔒 [SECURITY] Services directory accessed without session - showing login');
+        console.log('🔒 [SECURITY] Services management accessed without session - showing login');
         setShowAdminLoginModal(true);
         return renderDashboard();
       }
-      return renderServicesDirectory();
+      return renderManageServices();
     case 'company_accreditation':
       if (!adminSessionActive) {
         console.log('🔒 [SECURITY] Company accreditation accessed without session - showing login');
@@ -24178,7 +24565,7 @@ const AppRouter = ({ initialRoute }) => {
           'companies': 'manage_companies',
           'contractors': 'manage_contractors',
           'sites': 'manage_sites',
-          'services': 'services_directory',
+          'services': 'manage_services',
           'isolation-register': 'manage_isolations',
           'visitor-inductions': 'manage_visitor_inductions',
           'inductions': 'manage_inductions',
