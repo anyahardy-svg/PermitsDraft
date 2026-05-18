@@ -496,10 +496,10 @@ export default function InductionAdminScreen({ onBack, styles }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <TouchableOpacity 
                 onPress={handlePickPDF} 
-                disabled={uploadingPDF || !formData.id}
+                disabled={uploadingPDF}
                 style={{ flex: 1 }}
               >
-                <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#D1D5DB', justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#3B82F6', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
                     {pdfFileName ? '📄 ' + pdfFileName.substring(0, 20) : uploadingPDF ? 'Uploading...' : 'Choose PDF'}
                   </Text>
