@@ -277,6 +277,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const handleUploadPDF = async () => {
+    console.log('🚀 handleUploadPDF called');
+    console.log('  - pdfFile:', pdfFile ? `${pdfFile.name} (${pdfFile.size} bytes)` : 'null');
+    console.log('  - formData.id:', formData.id);
+    console.log('  - uploadingPDF:', uploadingPDF);
+    
     if (!pdfFile || !formData.id) {
       Alert.alert('Error', 'Please save the induction first before uploading PDF');
       return;
@@ -284,7 +289,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
     try {
       setUploadingPDF(true);
+      console.log('📤 Starting PDF upload...');
       const { success, data, message } = await uploadInductionPDF(formData.id, pdfFile);
+      console.log('📤 Upload response:', { success, message });
       
       if (success) {
         // Update formData with PDF filename
@@ -486,11 +493,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
             <TextInput style={styles.input} placeholder="5" keyboardType="number-pad" value={formData.video_duration} onChangeText={(text) => setFormData({ ...formData, video_duration: text })} />
 
             <Text style={[styles.label, { marginTop: 16, marginBottom: 8 }]}>PDF Presentation (Alternative to Video)</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <TouchableOpacity 
                 onPress={handlePickPDF} 
                 disabled={uploadingPDF || !formData.id}
-                style={{ flex: 1, marginRight: 8 }}
+                style={{ flex: 1 }}
               >
                 <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#D1D5DB', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
@@ -499,14 +506,23 @@ export default function InductionAdminScreen({ onBack, styles }) {
                 </View>
               </TouchableOpacity>
               
-              {pdfFile && (
+              {pdfFile && !uploadingPDF && (
                 <TouchableOpacity 
-                  onPress={handleUploadPDF} 
-                  disabled={uploadingPDF}
-                  style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#10B981', borderRadius: 6 }}
+                  onPress={() => {
+                    console.log('🎯 Upload button pressed!');
+                    handleUploadPDF();
+                  }}
+                  activeOpacity={0.7}
+                  style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#10B981', borderRadius: 6, minWidth: 80 }}
                 >
-                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>Upload</Text>
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 13, textAlign: 'center' }}>Upload</Text>
                 </TouchableOpacity>
+              )}
+              
+              {uploadingPDF && (
+                <View style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#9CA3AF', borderRadius: 6, minWidth: 80, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="white" />
+                </View>
               )}
             </View>
 
