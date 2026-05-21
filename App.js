@@ -9910,8 +9910,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
             const nameIdx = headerValues.findIndex(h => h.includes('name'));
-            const emailIdx = headerValues.findIndex(h => h.includes('email'));
-            const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
+            const emailIdx = headerValues.findIndex(h => h.includes('email') && !h.includes('contact'));
+            const businessUnitIdx = headerValues.findIndex(h => h.includes('business'));
+            const contactNameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('name') && !h.includes('surname'));
+            const contactSurnameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('surname'));
+            const contactEmailIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('email'));
+            const contactPhoneIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('phone'));
+            const contractorTypeIdx = headerValues.findIndex(h => h.includes('contractor') && h.includes('type'));
+            const publicLiabilityIdx = headerValues.findIndex(h => h.includes('public') && h.includes('liability'));
+            const motorVehicleIdx = headerValues.findIndex(h => h.includes('motor') || h.includes('vehicle'));
+            const reviewDateIdx = headerValues.findIndex(h => h.includes('review'));
+            const accreditedDateIdx = headerValues.findIndex(h => h.includes('accredited'));
 
             let newCount = 0;
             let updatedCount = 0;
@@ -9946,6 +9955,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] 
                   ? values[businessUnitIdx].split(';').map(s => s.trim()) 
                   : [];
+                const contactName = contactNameIdx >= 0 ? values[contactNameIdx] : '';
+                const contactSurname = contactSurnameIdx >= 0 ? values[contactSurnameIdx] : '';
+                const contactEmail = contactEmailIdx >= 0 ? values[contactEmailIdx] : '';
+                const contactPhone = contactPhoneIdx >= 0 ? values[contactPhoneIdx] : '';
+                const contractorType = contractorTypeIdx >= 0 ? values[contractorTypeIdx] : 'D';
+                const publicLiabilityExpiry = publicLiabilityIdx >= 0 ? values[publicLiabilityIdx] : '';
+                const motorVehicleExpiry = motorVehicleIdx >= 0 ? values[motorVehicleIdx] : '';
+                const reviewDate = reviewDateIdx >= 0 ? values[reviewDateIdx] : '';
+                const accreditedDate = accreditedDateIdx >= 0 ? values[accreditedDateIdx] : '';
                 
                 // Skip if already processed in this CSV
                 if (processedNames.has(companyName.toLowerCase())) {
@@ -9973,6 +9991,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   const updateData = {};
                   if (email) updateData.email = email;
                   if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
+                  if (contactName) updateData.contact_name = contactName;
+                  if (contactSurname) updateData.contact_surname = contactSurname;
+                  if (contactEmail) updateData.contact_email = contactEmail;
+                  if (contactPhone) updateData.contact_phone = contactPhone;
+                  if (contractorType) updateData.contractor_type = contractorType;
+                  if (publicLiabilityExpiry) updateData.public_liability_expiry = parseDateToISO(publicLiabilityExpiry) || null;
+                  if (motorVehicleExpiry) updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
+                  if (reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
+                  if (accreditedDate) updateData.accredited_date = parseDateToISO(accreditedDate) || null;
                   
                   if (Object.keys(updateData).length > 0) {
                     await updateCompany(existingCompany.id, updateData);
@@ -9982,6 +10009,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   // Create new company
                   const createData = { name: companyName };
                   if (email) createData.email = email;
+                  if (contactName) createData.contact_name = contactName;
+                  if (contactSurname) createData.contact_surname = contactSurname;
+                  if (contactEmail) createData.contact_email = contactEmail;
+                  if (contactPhone) createData.contact_phone = contactPhone;
+                  if (contractorType) createData.contractor_type = contractorType;
+                  if (publicLiabilityExpiry) createData.public_liability_expiry = parseDateToISO(publicLiabilityExpiry) || null;
+                  if (motorVehicleExpiry) createData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
+                  if (reviewDate) createData.review_date = parseDateToISO(reviewDate) || null;
+                  if (accreditedDate) createData.accredited_date = parseDateToISO(accreditedDate) || null;
                   
                   await createCompany(createData);
                   
