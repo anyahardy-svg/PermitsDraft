@@ -203,6 +203,71 @@ function CustomDropdown({ label, options, selectedValue, onValueChange, style })
   );
 }
 
+// ============================================================================
+// DATE FORMATTING UTILITIES
+// ============================================================================
+
+/**
+ * Convert date string to dd/mm/yyyy format
+ * Accepts: ISO (yyyy-mm-dd), dd/mm/yyyy, or Date object
+ */
+const formatDateToDDMMYYYY = (dateInput) => {
+  if (!dateInput) return '';
+  
+  let date;
+  if (dateInput instanceof Date) {
+    date = dateInput;
+  } else if (typeof dateInput === 'string') {
+    // Already in dd/mm/yyyy format
+    if (dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      return dateInput;
+    }
+    // ISO format (yyyy-mm-dd)
+    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateInput.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    return '';
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+/**
+ * Convert dd/mm/yyyy to yyyy-mm-dd (ISO) format for database storage
+ */
+const parseDateToISO = (dateString) => {
+  if (!dateString) return null;
+  
+  const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) {
+    console.warn(`Invalid date format: "${dateString}". Expected dd/mm/yyyy`);
+    return null;
+  }
+  
+  const [, day, month, year] = match;
+  const dateObj = new Date(year, month - 1, day);
+  
+  // Validate date
+  if (isNaN(dateObj.getTime())) {
+    console.warn(`Invalid date: ${day}/${month}/${year}`);
+    return null;
+  }
+  
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Validate dd/mm/yyyy date format
+ */
+const isValidDateFormat = (dateString) => {
+  if (!dateString) return true; // Allow empty
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(dateString);
+};
+
 // Custom DateTimePicker Component
 const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValue }) => {
   const formatDate = (date) => {
@@ -9726,10 +9791,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             contact_surname: currentCompany.contactSurname || null,
             contact_email: currentCompany.contactEmail || null,
             contact_phone: currentCompany.contactPhone || null,
-            public_liability_expiry: currentCompany.publicLiabilityExpiry || null,
-            motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry || null,
-            review_date: currentCompany.reviewDate || null,
-            accredited_date: currentCompany.accreditedDate || null,
+            public_liability_expiry: parseDateToISO(currentCompany.publicLiabilityExpiry) || null,
+            motor_vehicle_insurance_expiry: parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) || null,
+            review_date: parseDateToISO(currentCompany.reviewDate) || null,
+            accredited_date: parseDateToISO(currentCompany.accreditedDate) || null,
             contractor_type: currentCompany.contractor_type || 'D',
           });
           const freshCompanies = await listCompanies();
@@ -10105,7 +10170,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={styles.input} 
                 value={currentCompany.publicLiabilityExpiry || ''} 
                 onChangeText={text => setCurrentCompany({ ...currentCompany, publicLiabilityExpiry: text })} 
-                placeholder="DD/MM/YYYY" 
+                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                keyboardType="numeric"
               />
 
               <Text style={styles.label}>Motor Vehicle Insurance Expiry</Text>
@@ -10113,7 +10179,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={styles.input} 
                 value={currentCompany.motorVehicleInsuranceExpiry || ''} 
                 onChangeText={text => setCurrentCompany({ ...currentCompany, motorVehicleInsuranceExpiry: text })} 
-                placeholder="DD/MM/YYYY" 
+                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                keyboardType="numeric"
               />
 
               <Text style={styles.label}>Review Date</Text>
@@ -10121,7 +10188,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={styles.input} 
                 value={currentCompany.reviewDate || ''} 
                 onChangeText={text => setCurrentCompany({ ...currentCompany, reviewDate: text })} 
-                placeholder="DD/MM/YYYY" 
+                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                keyboardType="numeric"
               />
 
               <Text style={styles.label}>Accredited Date</Text>
@@ -10129,7 +10197,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={styles.input} 
                 value={currentCompany.accreditedDate || ''} 
                 onChangeText={text => setCurrentCompany({ ...currentCompany, accreditedDate: text })} 
-                placeholder="DD/MM/YYYY" 
+                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                keyboardType="numeric"
               />
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
@@ -10372,10 +10441,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     contactSurname: company.contact_surname || '',
                                     contactEmail: company.contact_email || '',
                                     contactPhone: company.contact_phone || '',
-                                    publicLiabilityExpiry: company.public_liability_expiry || '',
-                                    motorVehicleInsuranceExpiry: company.motor_vehicle_insurance_expiry || '',
-                                    reviewDate: company.review_date || '',
-                                    accreditedDate: company.accredited_date || '',
+                                    publicLiabilityExpiry: formatDateToDDMMYYYY(company.public_liability_expiry) || '',
+                                    motorVehicleInsuranceExpiry: formatDateToDDMMYYYY(company.motor_vehicle_insurance_expiry) || '',
+                                    reviewDate: formatDateToDDMMYYYY(company.review_date) || '',
+                                    accreditedDate: formatDateToDDMMYYYY(company.accredited_date) || '',
                                     contractor_type: company.contractor_type || 'D',
                                   };
                                   setCurrentCompany(formattedCompany);
