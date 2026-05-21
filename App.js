@@ -11257,6 +11257,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
             const subdomainIdx = headerValues.findIndex(h => h.includes('subdomain') || h.includes('kiosk'));
 
+            let updatedCount = 0;
+
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
               if (!line) continue;
@@ -11292,48 +11294,64 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     continue;
                   }
                   
-                  // Check if site already exists in database
-                  if (sites.find(s => s.name.toLowerCase() === name.toLowerCase())) {
-                    duplicateCount++;
+                  // Find business unit by name
+                  const bu = businessUnits.find(u => u.name.toLowerCase() === buName.toLowerCase());
+                  if (!bu) {
+                    console.warn(`Business unit not found: ${buName}`);
                     continue;
                   }
+
+                  // Check if site already exists in database
+                  const existingSite = sites.find(s => s.name.toLowerCase() === name.toLowerCase());
                   
-                  newSites.push({
-                    name,
-                    location,
-                    buName,
-                    subdomain
-                  });
+                  if (existingSite) {
+                    // Site exists - check if any data changed and update if needed
+                    const updateData = {};
+                    if (location && location !== existingSite.location) {
+                      updateData.location = location;
+                    }
+                    if (bu.id !== existingSite.business_unit_id) {
+                      updateData.business_unit_id = bu.id;
+                    }
+                    if (subdomain && subdomain !== existingSite.kiosk_subdomain) {
+                      updateData.kiosk_subdomain = subdomain;
+                    }
+                    
+                    if (Object.keys(updateData).length > 0) {
+                      setSiteImportMessage(`Updating ${name}...`);
+                      try {
+                        await updateSite(existingSite.id, updateData);
+                        updatedCount++;
+                      } catch (err) {
+                        console.error(`Failed to update ${name}:`, err);
+                        setSiteImportStatus('error');
+                        setSiteImportMessage(`Error updating ${name}: ${err.message}`);
+                        setTimeout(() => setSiteImportStatus('idle'), 4000);
+                        return;
+                      }
+                    }
+                  } else {
+                    // Site doesn't exist - create it
+                    setSiteImportMessage(`Creating ${name}...`);
+                    try {
+                      await createSite({
+                        name,
+                        location,
+                        business_unit_id: bu.id,
+                        kiosk_subdomain: subdomain || null
+                      });
+                      newCount++;
+                    } catch (err) {
+                      console.error(`Failed to create ${name}:`, err);
+                      setSiteImportStatus('error');
+                      setSiteImportMessage(`Error creating ${name}: ${err.message}`);
+                      setTimeout(() => setSiteImportStatus('idle'), 4000);
+                      return;
+                    }
+                  }
+                  
                   processedNames.add(name.toLowerCase());
                 }
-              }
-            }
-
-            // Save all sites to Supabase
-            for (let idx = 0; idx < newSites.length; idx++) {
-              const siteData = newSites[idx];
-              setSiteImportMessage(`Importing ${idx + 1} of ${newSites.length}: ${siteData.name}...`);
-              try {
-                // Find business unit by name
-                const bu = businessUnits.find(u => u.name.toLowerCase() === siteData.buName.toLowerCase());
-                if (!bu) {
-                  console.warn(`Business unit not found: ${siteData.buName}`);
-                  continue;
-                }
-
-                await createSite({
-                  name: siteData.name,
-                  location: siteData.location,
-                  business_unit_id: bu.id,
-                  kiosk_subdomain: siteData.subdomain || null
-                });
-                newCount++;
-              } catch (err) {
-                console.error(`Failed to import ${siteData.name}:`, err);
-                setSiteImportStatus('error');
-                setSiteImportMessage(`Error importing ${siteData.name}: ${err.message}`);
-                setTimeout(() => setSiteImportStatus('idle'), 4000);
-                return;
               }
             }
 
@@ -11342,8 +11360,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const freshSites = await listSites();
             setSites(freshSites);
             
-            let message = `✓ Successfully imported ${newCount} site(s)!`;
-            if (duplicateCount > 0) message += ` ${duplicateCount} duplicate(s) skipped.`;
+            let message = '';
+            if (newCount > 0) {
+              message += `✓ ${newCount} new site(s) created.`;
+            }
+            if (updatedCount > 0) {
+              if (message) message += ' ';
+              message += `${updatedCount} site(s) updated.`;
+            }
+            if (duplicateCount > 0) {
+              if (message) message += ' ';
+              message += `${duplicateCount} duplicate(s) in file skipped.`;
+            }
+            if (newCount === 0 && updatedCount === 0) {
+              message = 'No changes - all sites already up to date.';
+            }
             
             setSiteImportStatus('success');
             setSiteImportMessage(message);
