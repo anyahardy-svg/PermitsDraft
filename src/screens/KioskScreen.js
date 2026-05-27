@@ -334,10 +334,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const handleContractorSearch = (text) => {
     setContractorSearch(text);
     if (text.trim().length > 0) {
-      const filtered = contractors.filter(c => 
-        c.name.toLowerCase().includes(text.toLowerCase()) ||
-        c.email.toLowerCase().includes(text.toLowerCase())
-      );
+      const filtered = contractors.filter(c => {
+        // Filter by business unit - contractor must have businessUnitId in their business_unit_ids array
+        const hasBusinessUnit = (c.business_unit_ids || []).includes(businessUnitId);
+        
+        // Also filter by search text (name or email)
+        const matchesSearch = c.name.toLowerCase().includes(text.toLowerCase()) ||
+                             c.email.toLowerCase().includes(text.toLowerCase());
+        
+        return hasBusinessUnit && matchesSearch;
+      });
       setFilteredContractors(filtered);
     } else {
       setFilteredContractors([]);
