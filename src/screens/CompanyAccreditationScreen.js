@@ -338,7 +338,11 @@ export default function CompanyAccreditationScreen({
     contactEmail: '',
     contactPhone: '',
     contractorName: '',
-    contractorEmail: ''
+    contractorEmail: '',
+    nzbn: '',
+    address1: '',
+    addressCity: '',
+    addressPostcode: ''
   });
 
 
@@ -594,7 +598,11 @@ export default function CompanyAccreditationScreen({
         contactName: data.contact_name || '',
         contactSurname: data.contact_surname || '',
         contactEmail: data.contact_email || '',
-        contactPhone: data.contact_phone || ''
+        contactPhone: data.contact_phone || '',
+        nzbn: data.nzbn || '',
+        address1: data.address_1 || '',
+        addressCity: data.address_city || '',
+        addressPostcode: data.address_postcode || ''
       }));
       
       // Populate approved services (now using service IDs from database)
@@ -4131,7 +4139,7 @@ export default function CompanyAccreditationScreen({
               />
             </View>
 
-            <View style={{ marginBottom: 0 }}>
+            <View style={{ marginBottom: 16 }}>
               <Text style={styles.label}>Primary Contact Phone</Text>
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
@@ -4142,7 +4150,62 @@ export default function CompanyAccreditationScreen({
                 editable={true}
                 pointerEvents="auto"
               />
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Please verify or update the above information as needed</Text>
+            </View>
+
+            <View style={{ marginBottom: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Company Registration & Address</Text>
+              
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.label}>NZBN</Text>
+                <TextInput
+                  style={[styles.input, { marginTop: 8 }]}
+                  value={companyDetails.nzbn}
+                  onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, nzbn: text }))}
+                  placeholder="New Zealand Business Number"
+                  editable={true}
+                  pointerEvents="auto"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.label}>Street Address</Text>
+                <TextInput
+                  style={[styles.input, { marginTop: 8 }]}
+                  value={companyDetails.address1}
+                  onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, address1: text }))}
+                  placeholder="Street address"
+                  editable={true}
+                  pointerEvents="auto"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16, flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>City</Text>
+                  <TextInput
+                    style={[styles.input, { marginTop: 8 }]}
+                    value={companyDetails.addressCity}
+                    onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, addressCity: text }))}
+                    placeholder="City"
+                    editable={true}
+                    pointerEvents="auto"
+                  />
+                </View>
+                <View style={{ flex: 0.8 }}>
+                  <Text style={styles.label}>Postcode</Text>
+                  <TextInput
+                    style={[styles.input, { marginTop: 8 }]}
+                    value={companyDetails.addressPostcode}
+                    onChangeText={(text) => setCompanyDetails(prev => ({ ...prev, addressPostcode: text }))}
+                    placeholder="Postcode"
+                    keyboardType="numeric"
+                    editable={true}
+                    pointerEvents="auto"
+                  />
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 12, color: '#6B7280' }}>Please verify or update the above information as needed</Text>
             </View>
           </View>
 
