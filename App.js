@@ -3050,6 +3050,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [siteImportStatus, setSiteImportStatus] = useState('idle');
   const [siteImportMessage, setSiteImportMessage] = useState('');
   const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
+  const [contractorBusinessUnitFilter, setContractorBusinessUnitFilter] = useState('All');
   const [companySearchText, setCompanySearchText] = useState('');
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
   const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
@@ -12867,6 +12868,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Business Unit:</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  <TouchableOpacity
+                    style={[
+                      { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+                      contractorBusinessUnitFilter === 'All'
+                        ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                        : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                    ]}
+                    onPress={() => setContractorBusinessUnitFilter('All')}
+                  >
+                    <Text style={{ color: contractorBusinessUnitFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
+                  </TouchableOpacity>
+                  {businessUnits.map(bu => (
+                    <TouchableOpacity
+                      key={bu.id}
+                      style={[
+                        { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+                        contractorBusinessUnitFilter === bu.id
+                          ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                          : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+                      ]}
+                      onPress={() => setContractorBusinessUnitFilter(bu.id)}
+                    >
+                      <Text style={{ color: contractorBusinessUnitFilter === bu.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{bu.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             )}
 
@@ -12883,7 +12913,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   const matchesCompanyFilter = contractorCompanyFilter === 'All' || (contractor.companyName || contractor.company) === contractorCompanyFilter;
                   
-                  return matchesSearch && matchesCompanyFilter;
+                  const matchesBusinessUnitFilter = contractorBusinessUnitFilter === 'All' || 
+                    (contractor.businessUnitIds || contractor.business_unit_ids || []).includes(contractorBusinessUnitFilter);
+                  
+                  return matchesSearch && matchesCompanyFilter && matchesBusinessUnitFilter;
                 });
 
                 if (filteredContractors.length === 0) {
