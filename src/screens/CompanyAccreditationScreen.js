@@ -434,7 +434,7 @@ export default function CompanyAccreditationScreen({
 
   // Auto-save Section 26 signature when it changes
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || loading) return;
     
     console.log('📋 Section 26 state changed:', {
       has_signature: !!section26.hs_agreement_signature,
@@ -453,11 +453,11 @@ export default function CompanyAccreditationScreen({
       
       return () => clearTimeout(timer);
     }
-  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId]);
+  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId, loading]);
 
   // Auto-save Section 8 (PPE) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || !section8.ppe_compliance_yesno) return;
+    if (!currentCompanyId || loading || !section8.ppe_compliance_yesno) return;
     
     console.log('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
     
@@ -467,11 +467,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section8, currentCompanyId]);
+  }, [section8, currentCompanyId, loading]);
 
   // Auto-save Section 9 (Plant & Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || !section9.plant_equipment_onsite_yesno) return;
+    if (!currentCompanyId || loading || !section9.plant_equipment_onsite_yesno) return;
     
     console.log('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
     
@@ -481,11 +481,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section9, currentCompanyId]);
+  }, [section9, currentCompanyId, loading]);
 
   // Auto-save Section 10 (Electrical Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || !section10.electrical_equipment_onsite_yesno) return;
+    if (!currentCompanyId || loading || !section10.electrical_equipment_onsite_yesno) return;
     
     console.log('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
     
@@ -495,11 +495,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section10, currentCompanyId]);
+  }, [section10, currentCompanyId, loading]);
 
   // Auto-save Section 11 (Emergency) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || !section11.emergency_first_aid_yesno) return;
+    if (!currentCompanyId || loading || !section11.emergency_first_aid_yesno) return;
     
     console.log('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
     
@@ -509,11 +509,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section11, currentCompanyId]);
+  }, [section11, currentCompanyId, loading]);
 
   // Auto-save Section 11 First Aid Equipment text when it changes
   useEffect(() => {
-    if (!currentCompanyId || !section11.emergency_first_aid_equipment) return;
+    if (!currentCompanyId || loading || !section11.emergency_first_aid_equipment) return;
     
     console.log('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
     
@@ -523,7 +523,7 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section11, currentCompanyId]);
+  }, [section11, currentCompanyId, loading]);
 
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
@@ -583,6 +583,9 @@ export default function CompanyAccreditationScreen({
         name: data.name,
         email: data.email,
         contact_name: data.contact_name,
+        nzbn: data.nzbn,
+        address_1: data.address_1,
+        address_city: data.address_city,
         near_miss_reporting_exists: data.near_miss_reporting_exists,
         safety_communication_exists: data.safety_communication_exists,
         quality_manager_and_plan_exists: data.quality_manager_and_plan_exists
@@ -591,19 +594,23 @@ export default function CompanyAccreditationScreen({
       
       // Load company details from the company data (which has name, email, contact info)
       // These fields are not accreditation-specific, they're company management fields
-      setCompanyDetails(prev => ({
-        ...prev,
-        companyName: data.name || '',
-        companyEmail: data.email || '',
-        contactName: data.contact_name || '',
-        contactSurname: data.contact_surname || '',
-        contactEmail: data.contact_email || '',
-        contactPhone: data.contact_phone || '',
-        nzbn: data.nzbn || '',
-        address1: data.address_1 || '',
-        addressCity: data.address_city || '',
-        addressPostcode: data.address_postcode || ''
-      }));
+      setCompanyDetails(prev => {
+        const updated = {
+          ...prev,
+          companyName: data.name || '',
+          companyEmail: data.email || '',
+          contactName: data.contact_name || '',
+          contactSurname: data.contact_surname || '',
+          contactEmail: data.contact_email || '',
+          contactPhone: data.contact_phone || '',
+          nzbn: data.nzbn || '',
+          address1: data.address_1 || '',
+          addressCity: data.address_city || '',
+          addressPostcode: data.address_postcode || ''
+        };
+        console.log('🔍 [DEBUG] Setting companyDetails:', updated);
+        return updated;
+      });
       
       // Populate approved services (now using service IDs from database)
       setApprovedServices(data.approved_services || []);
@@ -2426,15 +2433,16 @@ export default function CompanyAccreditationScreen({
   };
 
   // Auto-save when data changes (debounced)
+  // IMPORTANT: Skip autosave while loading to prevent saving empty state before data loads
   useEffect(() => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || loading) return;
     
     const timer = setTimeout(() => {
       autoSave();
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, currentCompanyId]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, currentCompanyId, loading]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -4061,6 +4069,8 @@ export default function CompanyAccreditationScreen({
       </View>
     );
   }
+
+  console.log('🔍 [DEBUG] Rendering form with companyDetails:', companyDetails);
 
   return (
     <View style={[styles.container, { flex: 1 }]}>
