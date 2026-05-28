@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     maxHeight: screenHeight * 0.95,
     overflow: 'hidden',
+    flex: 1,
+    flexDirection: 'column',
   },
   header: {
     backgroundColor: '#1F2937',
@@ -112,6 +114,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     marginBottom: 12,
     overflow: 'hidden',
+    height: 160,
   },
   signaturePad: {
     width: '100%',
@@ -173,6 +176,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   button: {
     flex: 1,
@@ -293,11 +299,6 @@ export default function HSAgreementModal({
     }
   };
 
-  const handleSignatureStart = () => {
-    // Called when user starts drawing
-    setHasSignature(true);
-  };
-
   const handleSignatureEnd = (signature) => {
     // Called when signature is completed
     if (signature) {
@@ -359,7 +360,7 @@ export default function HSAgreementModal({
             </Text>
           </View>
 
-          {/* Content */}
+          {/* Content - Document + Name in ScrollView */}
           <ScrollView style={styles.content}>
             {loading ? (
               <View style={styles.loadingContainer}>
@@ -410,77 +411,6 @@ export default function HSAgreementModal({
                     placeholderTextColor="#9CA3AF"
                   />
                 </View>
-
-                {/* Signature Pad */}
-                <View style={styles.section}>
-                  <Text style={styles.label}>Signature *</Text>
-                  <View style={styles.signaturePadContainer}>
-                    <SignatureScreen
-                      ref={signatureRef}
-                      onOK={(signature) => {
-                        setSignatureData(signature);
-                        setHasSignature(true);
-                      }}
-                      onEmpty={() => {
-                        setHasSignature(false);
-                        setSignatureData(null);
-                      }}
-                      onBegin={handleSignatureStart}
-                      descriptionText=""
-                      clearText="Clear Signature"
-                      confirmText="Accept Signature"
-                      webStyle={`
-                        .m-signature-pad {
-                          box-shadow: none;
-                          border: none;
-                          background-color: #FFFFFF;
-                        }
-                        .m-signature-pad--body {
-                          border: none;
-                          background-color: #FFFFFF;
-                          height: 150px;
-                        }
-                        .m-signature-pad--footer {
-                          display: none;
-                        }
-                      `}
-                    />
-                    <Text style={styles.signatureInstructions}>
-                      Sign above with your mouse or trackpad
-                    </Text>
-                  </View>
-                  {hasSignature && (
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={clearSignature}
-                      disabled={saving}
-                    >
-                      <Text style={styles.clearButtonText}>Clear Signature</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Acknowledgement Checkbox */}
-                <View style={styles.section}>
-                  <View style={styles.checkboxContainer}>
-                    <TouchableOpacity
-                      style={[styles.checkbox, agreed && styles.checkboxChecked]}
-                      onPress={() => setAgreed(!agreed)}
-                      disabled={saving}
-                    >
-                      {agreed && (
-                        <Text style={{ fontSize: 16, color: '#FFFFFF' }}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                    <Text style={styles.checkboxText}>
-                      I/We acknowledge that I/we have read and understood the foregoing
-                      Health, Safety and Environmental information and undertake that
-                      my/our workers will at all times comply with relevant legislation
-                      and with all applicable health, safety and environmental procedures,
-                      requirements, and instructions.
-                    </Text>
-                  </View>
-                </View>
               </>
             ) : (
               <View style={styles.errorBox}>
@@ -490,6 +420,79 @@ export default function HSAgreementModal({
               </View>
             )}
           </ScrollView>
+
+          {/* Signature Pad - OUTSIDE ScrollView */}
+          {!loading && document && (
+            <>
+              <View style={styles.section}>
+                <Text style={[styles.label, { paddingHorizontal: 16 }]}>Signature *</Text>
+                <View style={styles.signaturePadContainer}>
+                  <SignatureScreen
+                    ref={signatureRef}
+                    onOK={(signature) => {
+                      setSignatureData(signature);
+                      setHasSignature(true);
+                    }}
+                    onEmpty={() => {
+                      setHasSignature(false);
+                      setSignatureData(null);
+                    }}
+                    descriptionText=""
+                    webStyle={`
+                      .m-signature-pad {
+                        box-shadow: none;
+                        border: none;
+                        background-color: #FFFFFF;
+                        margin: 0;
+                      }
+                      .m-signature-pad--body {
+                        border: none;
+                        background-color: #FFFFFF;
+                        height: 120px;
+                      }
+                      .m-signature-pad--footer {
+                        display: none;
+                      }
+                    `}
+                  />
+                  <Text style={styles.signatureInstructions}>
+                    Sign above with your mouse or trackpad
+                  </Text>
+                </View>
+                {hasSignature && (
+                  <TouchableOpacity
+                    style={[styles.clearButton, { marginHorizontal: 16 }]}
+                    onPress={clearSignature}
+                    disabled={saving}
+                  >
+                    <Text style={styles.clearButtonText}>Clear Signature</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Acknowledgement Checkbox - OUTSIDE ScrollView */}
+              <View style={[styles.section, { paddingHorizontal: 16 }]}>
+                <View style={styles.checkboxContainer}>
+                  <TouchableOpacity
+                    style={[styles.checkbox, agreed && styles.checkboxChecked]}
+                    onPress={() => setAgreed(!agreed)}
+                    disabled={saving}
+                  >
+                    {agreed && (
+                      <Text style={{ fontSize: 16, color: '#FFFFFF' }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                  <Text style={styles.checkboxText}>
+                    I/We acknowledge that I/we have read and understood the foregoing
+                    Health, Safety and Environmental information and undertake that
+                    my/our workers will at all times comply with relevant legislation
+                    and with all applicable health, safety and environmental procedures,
+                    requirements, and instructions.
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
 
           {/* Footer Buttons */}
           {!loading && (
