@@ -3785,10 +3785,10 @@ export default function CompanyAccreditationScreen({
 
       contextRef.current = ctx;
       console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
-    }, 0);
+    }, 100);
 
     return () => clearTimeout(timer);
-  }, [expandedSections[26], section26.hs_agreement_signature]);
+  }, [expandedSections[26]]);
 
   // Setup canvas event listeners
   useEffect(() => {
