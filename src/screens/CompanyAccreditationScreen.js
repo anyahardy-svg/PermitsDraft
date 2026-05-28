@@ -3824,85 +3824,101 @@ export default function CompanyAccreditationScreen({
         return;
       }
 
-      console.log('📝 Attaching event listeners to canvas');
+      console.log('✅ Event listeners attached to canvas');
 
+      const handleMouseDown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-    const handleMouseDown = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        isDrawingRef.current = true;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      };
 
-      isDrawingRef.current = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    };
+      const handleMouseMove = (e) => {
+        if (!isDrawingRef.current) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      };
 
-    const handleMouseMove = (e) => {
-      if (!isDrawingRef.current) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    };
+      const handleMouseUp = () => {
+        if (!isDrawingRef.current) return;
+        isDrawingRef.current = false;
+        ctx.closePath();
+        const signatureData = canvas.toDataURL('image/png');
+        setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
+        setHasSignature(true);
+      };
 
-    const handleMouseUp = () => {
-      if (!isDrawingRef.current) return;
-      isDrawingRef.current = false;
-      ctx.closePath();
-      const signatureData = canvas.toDataURL('image/png');
-      setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
-      setHasSignature(true);
-    };
+      const handleTouchStart = (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+        isDrawingRef.current = true;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      };
 
-    const handleTouchStart = (e) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      isDrawingRef.current = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    };
+      const handleTouchMove = (e) => {
+        e.preventDefault();
+        if (!isDrawingRef.current) return;
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      };
 
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      if (!isDrawingRef.current) return;
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    };
+      const handleTouchEnd = (e) => {
+        e.preventDefault();
+        if (!isDrawingRef.current) return;
+        isDrawingRef.current = false;
+        ctx.closePath();
+        const signatureData = canvas.toDataURL('image/png');
+        setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
+        setHasSignature(true);
+      };
 
-    const handleTouchEnd = (e) => {
-      e.preventDefault();
-      if (!isDrawingRef.current) return;
-      isDrawingRef.current = false;
-      ctx.closePath();
-      const signatureData = canvas.toDataURL('image/png');
-      setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
-      setHasSignature(true);
-    };
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      canvas.addEventListener('mouseleave', handleMouseUp);
+      canvas.addEventListener('touchstart', handleTouchStart);
+      canvas.addEventListener('touchmove', handleTouchMove);
+      canvas.addEventListener('touchend', handleTouchEnd);
 
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', handleTouchEnd);
+      // Store handlers for cleanup
+      canvasRef.current._handlers = {
+        handleMouseDown,
+        handleMouseMove,
+        handleMouseUp,
+        handleTouchStart,
+        handleTouchMove,
+        handleTouchEnd
+      };
+    }, 50);
 
     return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseUp);
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
+      clearTimeout(timer);
+      const canvas = canvasRef.current;
+      if (canvas && canvas._handlers) {
+        const h = canvas._handlers;
+        canvas.removeEventListener('mousedown', h.handleMouseDown);
+        canvas.removeEventListener('mousemove', h.handleMouseMove);
+        canvas.removeEventListener('mouseup', h.handleMouseUp);
+        canvas.removeEventListener('mouseleave', h.handleMouseUp);
+        canvas.removeEventListener('touchstart', h.handleTouchStart);
+        canvas.removeEventListener('touchmove', h.handleTouchMove);
+        canvas.removeEventListener('touchend', h.handleTouchEnd);
+        canvas._handlers = null;
+      }
     };
   }, [expandedSections[26]]);
 
