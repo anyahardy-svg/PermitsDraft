@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import SignatureScreen from 'react-native-signature-canvas';
 import { getLegalDocument } from '../api/legal-documents';
 import { recordHSAgreementAcceptance } from '../api/legal-documents';
 
@@ -251,10 +252,9 @@ export default function HSAgreementModal({
   const [saving, setSaving] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [signatureCanvas, setSignatureCanvas] = useState(null);
   const [hasSignature, setHasSignature] = useState(false);
-  const canvasRef = useRef(null);
-  const isDrawing = useRef(false);
+  const [signatureData, setSignatureData] = useState(null);
+  const signatureRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -280,62 +280,29 @@ export default function HSAgreementModal({
     setSignedName('');
     setAgreed(false);
     setHasSignature(false);
-    clearSignature();
+    setSignatureData(null);
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature();
+    }
   };
 
   const clearSignature = () => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      setSignatureCanvas(null);
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature();
       setHasSignature(false);
     }
   };
 
-  const startDrawing = (e) => {
-    if (!canvasRef.current) return;
-    isDrawing.current = true;
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(
-      e.clientX - rect.left || e.nativeEvent?.pageX - rect.left,
-      e.clientY - rect.top || e.nativeEvent?.pageY - rect.top
-    );
-  };
-
-  const draw = (e) => {
-    if (!isDrawing.current || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1F2937';
-    ctx.lineTo(
-      e.clientX - rect.left || e.nativeEvent?.pageX - rect.left,
-      e.clientY - rect.top || e.nativeEvent?.pageY - rect.top
-    );
-    ctx.stroke();
+  const handleSignatureStart = () => {
+    // Called when user starts drawing
     setHasSignature(true);
   };
 
-  const stopDrawing = () => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.closePath();
+  const handleSignatureEnd = (signature) => {
+    // Called when signature is completed
+    if (signature) {
+      setHasSignature(true);
     }
-    isDrawing.current = false;
-  };
-
-  const captureSignature = () => {
-    if (canvasRef.current) {
-      return canvasRef.current.toDataURL('image/png');
-    }
-    return null;
   };
 
   const handleAccept = async () => {
@@ -345,7 +312,7 @@ export default function HSAgreementModal({
       return;
     }
 
-    if (!hasSignature) {
+    if (!hasSignature || !signatureData) {
       Alert.alert('Required', 'Please sign the document');
       return;
     }
@@ -357,10 +324,9 @@ export default function HSAgreementModal({
 
     try {
       setSaving(true);
-      const signature = captureSignature();
 
       await recordHSAgreementAcceptance(companyId, {
-        signature: signature,
+        signature: signatureData,
         acceptedBy: signedName.trim(),
       });
 
@@ -449,15 +415,35 @@ export default function HSAgreementModal({
                 <View style={styles.section}>
                   <Text style={styles.label}>Signature *</Text>
                   <View style={styles.signaturePadContainer}>
-                    <canvas
-                      ref={canvasRef}
-                      style={styles.signaturePad}
-                      width={300}
-                      height={150}
-                      onMouseDown={startDrawing}
-                      onMouseMove={draw}
-                      onMouseUp={stopDrawing}
-                      onMouseLeave={stopDrawing}
+                    <SignatureScreen
+                      ref={signatureRef}
+                      onOK={(signature) => {
+                        setSignatureData(signature);
+                        setHasSignature(true);
+                      }}
+                      onEmpty={() => {
+                        setHasSignature(false);
+                        setSignatureData(null);
+                      }}
+                      onBegin={handleSignatureStart}
+                      descriptionText=""
+                      clearText="Clear Signature"
+                      confirmText="Accept Signature"
+                      webStyle={`
+                        .m-signature-pad {
+                          box-shadow: none;
+                          border: none;
+                          background-color: #FFFFFF;
+                        }
+                        .m-signature-pad--body {
+                          border: none;
+                          background-color: #FFFFFF;
+                          height: 150px;
+                        }
+                        .m-signature-pad--footer {
+                          display: none;
+                        }
+                      `}
                     />
                     <Text style={styles.signatureInstructions}>
                       Sign above with your mouse or trackpad
