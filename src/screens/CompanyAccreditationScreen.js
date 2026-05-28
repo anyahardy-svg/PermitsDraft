@@ -3788,7 +3788,7 @@ export default function CompanyAccreditationScreen({
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [expandedSections[26]]);
+  }, [expandedSections[26], section26.hs_agreement_signature]);
 
   // Setup canvas event listeners
   useEffect(() => {
@@ -3802,7 +3802,6 @@ export default function CompanyAccreditationScreen({
     if (!canvas || !ctx) return;
 
     const handleMouseDown = (e) => {
-      if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -3832,7 +3831,6 @@ export default function CompanyAccreditationScreen({
 
     const handleTouchStart = (e) => {
       e.preventDefault();
-      if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
@@ -3880,7 +3878,7 @@ export default function CompanyAccreditationScreen({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [expandedSections[26], hasSignature]);
+  }, [expandedSections[26]]);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
