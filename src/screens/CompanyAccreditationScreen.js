@@ -4005,7 +4005,7 @@ export default function CompanyAccreditationScreen({
             </View>
 
             {/* Digital Signature */}
-            <View style={{ marginBottom: 16, pointerEvents: 'box-none' }}>
+            <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature * {hasSignature && '✍️'}
               </Text>
@@ -4020,7 +4020,10 @@ export default function CompanyAccreditationScreen({
                   overflow: 'hidden',
                   height: '150px',
                   width: '100%',
-                  pointerEvents: 'auto'
+                  pointerEvents: 'auto',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column'
                 }
               },
                 React.createElement('canvas', {
@@ -4031,7 +4034,8 @@ export default function CompanyAccreditationScreen({
                     touchAction: 'none',
                     pointerEvents: 'auto',
                     width: '100%',
-                    height: '100%'
+                    height: '100%',
+                    flexGrow: 1
                   }
                 })
               )}
