@@ -17229,7 +17229,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             backgroundColor: 'white',
             borderRadius: 12,
             padding: 20,
-            maxHeight: '95%'
+            maxHeight: '95%',
+            flex: 1,
+            flexDirection: 'column'
           }}>
             <ScrollView showsVerticalScrollIndicator={true}>
               <View style={{
@@ -17309,116 +17311,116 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   I agree to the above statement
                 </Text>
               </View>
+            </ScrollView>
 
-              {/* Signature Pad */}
-              <View style={{
-                marginBottom: 20
+            {/* Signature Pad - OUTSIDE ScrollView */}
+            <View style={{
+              marginVertical: 16
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 8
               }}>
+                Your Signature *
+              </Text>
+              <View style={{
+                borderWidth: 2,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: '#FAFAFA',
+                overflow: 'hidden'
+              }}>
+                <WebSignaturePad
+                  signatureRef={signatureRefDraft}
+                  onSignatureChange={() => {
+                    if (signatureRefDraft.current && !signatureRefDraft.current.isEmpty()) {
+                      setRequesterSignatureDraft(signatureRefDraft.current.toDataURL('image/png'));
+                    }
+                  }}
+                  width={300}
+                  height={250}
+                />
+              </View>
+              {requesterSignatureDraft && (
                 <Text style={{
                   fontSize: 14,
-                  fontWeight: '600',
-                  color: '#1F2937',
-                  marginBottom: 8
+                  color: '#10B981',
+                  marginTop: 8,
+                  fontWeight: '600'
                 }}>
-                  Your Signature *
+                  ✓ Signature captured
                 </Text>
-                <View style={{
-                  borderWidth: 2,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: '#FAFAFA',
-                  overflow: 'hidden'
-                }}>
-                  <WebSignaturePad
-                    signatureRef={signatureRefDraft}
-                    onSignatureChange={() => {
-                      if (signatureRefDraft.current && !signatureRefDraft.current.isEmpty()) {
-                        setRequesterSignatureDraft(signatureRefDraft.current.toDataURL('image/png'));
-                      }
-                    }}
-                    width={300}
-                    height={250}
-                  />
-                </View>
-                {requesterSignatureDraft && (
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#10B981',
-                    marginTop: 8,
-                    fontWeight: '600'
-                  }}>
-                    ✓ Signature captured
-                  </Text>
-                )}
-              </View>
-
-              {/* Clear Signature Button */}
-              {requesterSignatureDraft && (
-                <TouchableOpacity
-                  style={{
-                    padding: 10,
-                    marginBottom: 16,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: '#F3E8FF',
-                    backgroundColor: '#FEF5FF',
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    if (signatureRefDraft.current) {
-                      signatureRefDraft.current.clear();
-                    }
-                    setRequesterSignatureDraft(null);
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#8B5CF6',
-                    fontWeight: '600'
-                  }}>
-                    Clear Signature
-                  </Text>
-                </TouchableOpacity>
               )}
+            </View>
 
-              {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: 12,
-                    backgroundColor: '#E5E7EB',
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    setShowRequesterSignatureDraft(false);
-                    setRequesterSignatureDraft(null);
-                    setAgreeToStatementDraft(false);
-                  }}
-                  disabled={loadingRequesterSignatureDraft}
-                >
-                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: loadingRequesterSignatureDraft ? '#D8BFD8' : '#3B82F6',
-                    padding: 12,
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={handleSubmitPermitWithSignature}
-                  disabled={loadingRequesterSignatureDraft || !agreeToStatementDraft || !requesterSignatureDraft}
-                >
-                  {loadingRequesterSignatureDraft ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+            {/* Clear Signature Button */}
+            {requesterSignatureDraft && (
+              <TouchableOpacity
+                style={{
+                  padding: 10,
+                  marginBottom: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#F3E8FF',
+                  backgroundColor: '#FEF5FF',
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  if (signatureRefDraft.current) {
+                    signatureRefDraft.current.clear();
+                  }
+                  setRequesterSignatureDraft(null);
+                }}
+              >
+                <Text style={{
+                  fontSize: 14,
+                  color: '#8B5CF6',
+                  fontWeight: '600'
+                }}>
+                  Clear Signature
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  setShowRequesterSignatureDraft(false);
+                  setRequesterSignatureDraft(null);
+                  setAgreeToStatementDraft(false);
+                }}
+                disabled={loadingRequesterSignatureDraft}
+              >
+                <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: loadingRequesterSignatureDraft ? '#D8BFD8' : '#3B82F6',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleSubmitPermitWithSignature}
+                disabled={loadingRequesterSignatureDraft || !agreeToStatementDraft || !requesterSignatureDraft}
+              >
+                {loadingRequesterSignatureDraft ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontWeight: '600', color: 'white' }}>Submit Permit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -17444,7 +17446,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             backgroundColor: 'white',
             borderRadius: 12,
             padding: 20,
-            maxHeight: '95%'
+            maxHeight: '95%',
+            flex: 1,
+            flexDirection: 'column'
           }}>
             <ScrollView showsVerticalScrollIndicator={true}>
               <View style={{
@@ -17524,116 +17528,116 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   I agree to the above statement
                 </Text>
               </View>
+            </ScrollView>
 
-              {/* Signature Pad */}
-              <View style={{
-                marginBottom: 20
+            {/* Signature Pad - OUTSIDE ScrollView */}
+            <View style={{
+              marginVertical: 16
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 8
               }}>
+                Issuer Signature *
+              </Text>
+              <View style={{
+                borderWidth: 2,
+                borderColor: '#E5E7EB',
+                borderRadius: 8,
+                backgroundColor: '#FAFAFA',
+                overflow: 'hidden'
+              }}>
+                <WebSignaturePad
+                  signatureRef={signatureRefApproval}
+                  onSignatureChange={() => {
+                    if (signatureRefApproval.current && !signatureRefApproval.current.isEmpty()) {
+                      setIssuerSignatureApproval(signatureRefApproval.current.toDataURL('image/png'));
+                    }
+                  }}
+                  width={300}
+                  height={250}
+                />
+              </View>
+              {issuerSignatureApproval && (
                 <Text style={{
                   fontSize: 14,
-                  fontWeight: '600',
-                  color: '#1F2937',
-                  marginBottom: 8
+                  color: '#10B981',
+                  marginTop: 8,
+                  fontWeight: '600'
                 }}>
-                  Issuer Signature *
+                  ✓ Signature captured
                 </Text>
-                <View style={{
-                  borderWidth: 2,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  backgroundColor: '#FAFAFA',
-                  overflow: 'hidden'
-                }}>
-                  <WebSignaturePad
-                    signatureRef={signatureRefApproval}
-                    onSignatureChange={() => {
-                      if (signatureRefApproval.current && !signatureRefApproval.current.isEmpty()) {
-                        setIssuerSignatureApproval(signatureRefApproval.current.toDataURL('image/png'));
-                      }
-                    }}
-                    width={300}
-                    height={250}
-                  />
-                </View>
-                {issuerSignatureApproval && (
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#10B981',
-                    marginTop: 8,
-                    fontWeight: '600'
-                  }}>
-                    ✓ Signature captured
-                  </Text>
-                )}
-              </View>
-
-              {/* Clear Signature Button */}
-              {issuerSignatureApproval && (
-                <TouchableOpacity
-                  style={{
-                    padding: 10,
-                    marginBottom: 16,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: '#DCFCE7',
-                    backgroundColor: '#F0FDF0',
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    if (signatureRefApproval.current) {
-                      signatureRefApproval.current.clear();
-                    }
-                    setIssuerSignatureApproval(null);
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#16A34A',
-                    fontWeight: '600'
-                  }}>
-                    Clear Signature
-                  </Text>
-                </TouchableOpacity>
               )}
+            </View>
 
-              {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: 12,
-                    backgroundColor: '#E5E7EB',
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    setShowIssuerSignatureApproval(false);
-                    setIssuerSignatureApproval(null);
-                    setAgreeToIssuerStatementApproval(false);
-                  }}
-                  disabled={loadingIssuerSignatureApproval}
-                >
-                  <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: loadingIssuerSignatureApproval ? '#D1D5DB' : '#10B981',
-                    padding: 12,
-                    borderRadius: 8,
-                    alignItems: 'center'
-                  }}
-                  onPress={handleApprovePermitWithSignature}
-                  disabled={loadingIssuerSignatureApproval || !agreeToIssuerStatementApproval || !issuerSignatureApproval}
-                >
-                  {loadingIssuerSignatureApproval ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Text style={{ fontWeight: '600', color: 'white' }}>Approve Permit</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+            {/* Clear Signature Button */}
+            {issuerSignatureApproval && (
+              <TouchableOpacity
+                style={{
+                  padding: 10,
+                  marginBottom: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#DCFCE7',
+                  backgroundColor: '#F0FDF0',
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  if (signatureRefApproval.current) {
+                    signatureRefApproval.current.clear();
+                  }
+                  setIssuerSignatureApproval(null);
+                }}
+              >
+                <Text style={{
+                  fontSize: 14,
+                  color: '#16A34A',
+                  fontWeight: '600'
+                }}>
+                  Clear Signature
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  setShowIssuerSignatureApproval(false);
+                  setIssuerSignatureApproval(null);
+                  setAgreeToIssuerStatementApproval(false);
+                }}
+                disabled={loadingIssuerSignatureApproval}
+              >
+                <Text style={{ fontWeight: '600', color: '#1F2937' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: loadingIssuerSignatureApproval ? '#D1D5DB' : '#10B981',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={handleApprovePermitWithSignature}
+                disabled={loadingIssuerSignatureApproval || !agreeToIssuerStatementApproval || !issuerSignatureApproval}
+              >
+                {loadingIssuerSignatureApproval ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontWeight: '600', color: 'white' }}>Approve Permit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
