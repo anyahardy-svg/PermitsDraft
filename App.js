@@ -9883,13 +9883,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
+            setImportStatus('importing');
+            setImportMessage('📂 Reading CSV file...');
+            console.log('📂 Starting CSV import for companies');
+            
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
             
             if (lines.length < 2) {
-              Alert.alert('Error', 'File must have header row and at least one data row');
+              setImportStatus('error');
+              setImportMessage('❌ File must have header row and at least one data row');
+              setTimeout(() => setImportStatus('idle'), 5000);
+              console.error('❌ CSV file too short:', lines.length, 'lines');
               return;
             }
+            
+            setImportMessage('📋 Parsing CSV columns...');
 
             // Parse header to find column indices
             const headerLine = lines[0];
@@ -9922,6 +9931,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const motorVehicleIdx = headerValues.findIndex(h => h.includes('motor') || h.includes('vehicle'));
             const reviewDateIdx = headerValues.findIndex(h => h.includes('review'));
             const accreditedDateIdx = headerValues.findIndex(h => h.includes('accredited'));
+            const nzbnIdx = headerValues.findIndex(h => h.includes('nzbn') || h.includes('abn'));
+            const address1Idx = headerValues.findIndex(h => h.includes('address') && h.includes('1'));
+            const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
+            const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
+            
+            console.log('📊 CSV Headers found:', headerValues);
+            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx });
 
             let newCount = 0;
             let updatedCount = 0;
@@ -9965,6 +9981,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const motorVehicleExpiry = motorVehicleIdx >= 0 ? values[motorVehicleIdx] : '';
                 const reviewDate = reviewDateIdx >= 0 ? values[reviewDateIdx] : '';
                 const accreditedDate = accreditedDateIdx >= 0 ? values[accreditedDateIdx] : '';
+                const nzbn = nzbnIdx >= 0 ? values[nzbnIdx] : '';
+                const address1 = address1Idx >= 0 ? values[address1Idx] : '';
+                const addressCity = addressCityIdx >= 0 ? values[addressCityIdx] : '';
+                const addressPostcode = addressPostcodeIdx >= 0 ? values[addressPostcodeIdx] : '';
                 
                 // Skip if already processed in this CSV
                 if (processedNames.has(companyName.toLowerCase())) {
@@ -10001,8 +10021,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) updateData.accredited_date = parseDateToISO(accreditedDate) || null;
+                  if (nzbn) updateData.nzbn = nzbn;
+                  if (address1) updateData.address_1 = address1;
+                  if (addressCity) updateData.address_city = addressCity;
+                  if (addressPostcode) updateData.address_postcode = addressPostcode;
                   
                   if (Object.keys(updateData).length > 0) {
+                    console.log('📝 Updating existing company:', existingCompany.name, 'with fields:', Object.keys(updateData));
                     await updateCompany(existingCompany.id, updateData);
                     updatedCount++;
                   }
@@ -10019,7 +10044,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) createData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) createData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) createData.accredited_date = parseDateToISO(accreditedDate) || null;
+                  if (nzbn) createData.nzbn = nzbn;
+                  if (address1) createData.address_1 = address1;
+                  if (addressCity) createData.address_city = addressCity;
+                  if (addressPostcode) createData.address_postcode = addressPostcode;
                   
+                  console.log('✨ Creating new company:', companyName, 'with data:', createData);
                   await createCompany(createData);
                   
                   // If business units provided, update the created company
@@ -10036,30 +10066,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
 
             if (newCount === 0 && updatedCount === 0 && duplicateCount === 0) {
-              Alert.alert('Info', 'No valid companies found in the CSV file.');
+              setImportStatus('error');
+              setImportMessage('❌ No valid companies found in the CSV file.');
+              setTimeout(() => setImportStatus('idle'), 5000);
+              console.warn('⚠️ No valid companies found in CSV');
               return;
             }
+
+            setImportMessage('🔄 Saving to database...');
 
             // Reload companies from database
             const freshCompanies = await listCompanies();
             setCompanies(freshCompanies);
             
-            let message = '';
+            let message = '✅ Import complete!\n';
             if (newCount > 0) {
-              message += `${newCount} new company/companies imported.`;
+              message += `✨ ${newCount} new company(ies) created\n`;
             }
             if (updatedCount > 0) {
-              if (message) message += ' ';
-              message += `${updatedCount} company(ies) updated.`;
+              message += `📝 ${updatedCount} company(ies) updated\n`;
             }
             if (duplicateCount > 0) {
-              if (message) message += ' ';
-              message += `${duplicateCount} duplicate(s) in this file.`;
+              message += `⏭️ ${duplicateCount} duplicate(s) skipped`;
             }
             
-            Alert.alert('Import Complete', message);
+            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount });
+            setImportStatus('success');
+            setImportMessage(message.trim());
+            setTimeout(() => setImportStatus('idle'), 5000);
           } catch (error) {
-            Alert.alert('Error', 'Failed to parse file: ' + error.message);
+            console.error('🔥 CSV Import Error:', error);
+            setImportStatus('error');
+            setImportMessage(`❌ Failed to parse file: ${error.message}`);
+            setTimeout(() => setImportStatus('idle'), 5000);
           }
         };
         reader.readAsText(file);
