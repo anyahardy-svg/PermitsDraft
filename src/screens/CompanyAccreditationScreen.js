@@ -3814,10 +3814,18 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    const canvas = canvasRef.current;
-    const ctx = contextRef.current;
-    
-    if (!canvas || !ctx) return;
+    // Wait a moment for canvas initialization to complete
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      const ctx = contextRef.current;
+      
+      if (!canvas || !ctx) {
+        console.error('❌ Canvas or context not ready for event listeners');
+        return;
+      }
+
+      console.log('📝 Attaching event listeners to canvas');
+
 
     const handleMouseDown = (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -3981,7 +3989,7 @@ export default function CompanyAccreditationScreen({
             </View>
 
             {/* Digital Signature */}
-            <View style={{ marginBottom: 16 }}>
+            <View style={{ marginBottom: 16, pointerEvents: 'box-none' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature *
               </Text>
@@ -3995,7 +4003,8 @@ export default function CompanyAccreditationScreen({
                   backgroundColor: '#FFFFFF',
                   overflow: 'hidden',
                   height: '150px',
-                  width: '100%'
+                  width: '100%',
+                  pointerEvents: 'auto'
                 }
               },
                 React.createElement('canvas', {
@@ -4003,7 +4012,8 @@ export default function CompanyAccreditationScreen({
                   style: {
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
-                    touchAction: 'none'
+                    touchAction: 'none',
+                    pointerEvents: 'auto'
                   }
                 })
               )}
