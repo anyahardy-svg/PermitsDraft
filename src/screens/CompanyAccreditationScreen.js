@@ -2444,7 +2444,7 @@ export default function CompanyAccreditationScreen({
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, currentCompanyId, loading]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -3739,7 +3739,7 @@ export default function CompanyAccreditationScreen({
   const contextRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  // Initialize canvas - runs when section expands
+  // Initialize canvas - runs when section expands or signature data changes
   useEffect(() => {
     if (!expandedSections[26]) {
       return;
@@ -3792,12 +3792,13 @@ export default function CompanyAccreditationScreen({
         const img = new Image();
         img.onload = () => {
           ctx.drawImage(img, 0, 0, actualWidth, actualHeight);
+          console.log('✅ Signature redrawn from saved data');
         };
         img.src = section26.hs_agreement_signature;
       }
 
       contextRef.current = ctx;
-      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
+      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight, hasSignature: !!section26.hs_agreement_signature });
     };
 
     // Start the initialization
@@ -3808,7 +3809,7 @@ export default function CompanyAccreditationScreen({
         cancelAnimationFrame(animFrameId);
       }
     };
-  }, [expandedSections[26]]);
+  }, [expandedSections[26], section26.hs_agreement_signature]);
 
   // Setup canvas event listeners
   useEffect(() => {
@@ -4019,7 +4020,7 @@ export default function CompanyAccreditationScreen({
             </View>
 
             {/* Digital Signature */}
-            <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%' }}>
+            <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%', position: 'relative' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature * {hasSignature && '✍️'}
               </Text>
@@ -4036,8 +4037,8 @@ export default function CompanyAccreditationScreen({
                   width: '100%',
                   pointerEvents: 'auto',
                   boxSizing: 'border-box',
-                  display: 'flex',
-                  flexDirection: 'column'
+                  display: 'block',
+                  position: 'relative'
                 }
               },
                 React.createElement('canvas', {
