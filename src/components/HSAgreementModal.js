@@ -271,53 +271,49 @@ export default function HSAgreementModal({
     }
   }, [visible]);
 
-  // Initialize canvas when modal opens
+  // Initialize canvas once on mount only
   useEffect(() => {
-    if (!visible) return;
+    const canvas = canvasRef.current;
+    if (!canvas || contextRef.current) return; // Only init once
 
-    const timer = setTimeout(() => {
-      const canvas = canvasRef.current;
-      const container = canvasContainerRef.current;
-      
-      if (!canvas || !container) return;
-
-      // Get actual rendered container size
+    const container = canvasContainerRef.current;
+    let actualWidth = 300;
+    let actualHeight = 160;
+    
+    if (container) {
       const rect = container.getBoundingClientRect();
-      const actualWidth = Math.max(rect.width, 300);
-      const actualHeight = 120;
+      actualWidth = Math.max(rect.width, 300);
+      actualHeight = Math.max(rect.height, 160);
+    }
 
-      // Set canvas resolution (drawing surface)
-      canvas.width = actualWidth;
-      canvas.height = actualHeight;
+    // Set canvas resolution (actual drawing surface)
+    canvas.width = actualWidth;
+    canvas.height = actualHeight;
 
-      // Set canvas display size to match exactly
-      canvas.style.width = `${actualWidth}px`;
-      canvas.style.height = `${actualHeight}px`;
+    // Set canvas display size to match
+    canvas.style.width = `${actualWidth}px`;
+    canvas.style.height = `${actualHeight}px`;
 
-      // Get context and set it up
-      const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, actualWidth, actualHeight);
+    // Get context and set it up for drawing
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, actualWidth, actualHeight);
 
-      contextRef.current = ctx;
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [visible]);
+    contextRef.current = ctx;
+  }, []); // Only run once on mount
 
   // Setup canvas event listeners
   useEffect(() => {
-    if (!visible) return;
-
     const canvas = canvasRef.current;
-    const ctx = contextRef.current;
-    
-    if (!canvas || !ctx) return;
+    if (!canvas || !contextRef.current) return;
 
+    const ctx = contextRef.current;
+
+    // Mouse down
     const handleMouseDown = (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -328,6 +324,7 @@ export default function HSAgreementModal({
       ctx.moveTo(x, y);
     };
 
+    // Mouse move
     const handleMouseMove = (e) => {
       if (!isDrawingRef.current) return;
       const rect = canvas.getBoundingClientRect();
@@ -337,6 +334,7 @@ export default function HSAgreementModal({
       ctx.stroke();
     };
 
+    // Mouse up
     const handleMouseUp = () => {
       if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
@@ -346,12 +344,14 @@ export default function HSAgreementModal({
       setHasSignature(true);
     };
 
+    // Touch events for mobile
     const handleTouchStart = (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
       isDrawingRef.current = true;
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -395,7 +395,7 @@ export default function HSAgreementModal({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [visible]);
+  }, []);
 
   const loadDocument = async () => {
     try {
@@ -552,26 +552,26 @@ export default function HSAgreementModal({
               <View style={styles.section}>
                 <Text style={[styles.label, { paddingHorizontal: 16 }]}>Signature *</Text>
                 <div style={{
-                  borderWidth: 2,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 6,
-                  backgroundColor: '#F9FAFB',
-                  marginBottom: 12,
-                  marginLeft: 16,
-                  marginRight: 16,
-                  overflow: 'hidden',
-                  height: 160,
-                  position: 'relative'
+                  width: '100%',
+                  height: '160px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 0,
+                  marginRight: 0,
+                  marginBottom: '12px'
                 }} ref={canvasContainerRef}>
                   <canvas
                     ref={canvasRef}
                     style={{
+                      border: '2px solid #E5E7EB',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
                       cursor: hasSignature ? 'default' : 'crosshair',
                       display: 'block',
                       touchAction: 'none',
-                      width: '100%',
-                      height: '100%',
-                      backgroundColor: '#FFFFFF'
+                      maxWidth: '100%',
+                      height: '100%'
                     }}
                   />
                 </div>
