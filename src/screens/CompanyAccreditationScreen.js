@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import {
   View,
   Text,
@@ -21,6 +22,72 @@ import { listBusinessUnits } from '../api/business_units';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+
+/**
+ * CanvasPortal - Renders canvas outside React Native tree to receive events properly
+ */
+function CanvasPortal({ canvasRef, canvasContainerRef, hasSignature, handleClearSignature }) {
+  const [isVisible, setIsVisible] = useState(true);
+  const containerIdRef = useRef('canvas-container-' + Math.random().toString(36).substr(2, 9));
+  
+  // Find the placeholder and position canvas above it
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    const placeholder = document.querySelector('[data-canvas-placeholder="true"]');
+    if (!placeholder) {
+      console.warn('Canvas placeholder not found');
+      return;
+    }
+    
+    // Position canvas container over the placeholder
+    setTimeout(() => {
+      const rect = placeholder.getBoundingClientRect();
+      const portalDiv = document.querySelector(`#${containerIdRef.current}`);
+      if (portalDiv) {
+        portalDiv.style.position = 'fixed';
+        portalDiv.style.top = rect.top + 'px';
+        portalDiv.style.left = rect.left + 'px';
+        portalDiv.style.width = rect.width + 'px';
+        portalDiv.style.height = rect.height + 'px';
+        portalDiv.style.zIndex = '9999';
+        console.log('✅ Canvas portal positioned:', { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      }
+    }, 50);
+  }, [isVisible]);
+
+  return ReactDOM.createPortal(
+    <div id={containerIdRef.current} style={{
+      borderWidth: '2px',
+      borderColor: '#D1D5DB',
+      borderStyle: 'solid',
+      borderRadius: '6px',
+      backgroundColor: '#FFFFFF',
+      overflow: 'hidden',
+      pointerEvents: 'auto',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div ref={canvasContainerRef} style={{
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'auto'
+      }}>
+        <canvas
+          ref={canvasRef}
+          style={{
+            cursor: hasSignature ? 'default' : 'crosshair',
+            display: 'block',
+            touchAction: 'none',
+            pointerEvents: 'auto',
+            width: '100%',
+            height: '100%'
+          }}
+        />
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 /**
  * CompanyAccreditationScreen
@@ -3989,34 +4056,27 @@ export default function CompanyAccreditationScreen({
             </View>
 
             {/* Digital Signature */}
-            <View style={{ marginBottom: 16, pointerEvents: 'box-none' }}>
+            <View 
+              style={{ marginBottom: 16, pointerEvents: 'box-none', minHeight: 200 }}
+              data-canvas-placeholder="true"
+            >
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
-                Digital Signature *
+                Digital Signature * {hasSignature && '✍️'}
               </Text>
-              {React.createElement('div', {
-                ref: canvasContainerRef,
-                style: {
-                  borderWidth: '2px',
-                  borderColor: '#D1D5DB',
-                  borderStyle: 'solid',
-                  borderRadius: '6px',
-                  backgroundColor: '#FFFFFF',
-                  overflow: 'hidden',
-                  height: '150px',
-                  width: '100%',
-                  pointerEvents: 'auto'
-                }
-              },
-                React.createElement('canvas', {
-                  ref: canvasRef,
-                  style: {
-                    cursor: hasSignature ? 'default' : 'crosshair',
-                    display: 'block',
-                    touchAction: 'none',
-                    pointerEvents: 'auto'
-                  }
-                })
-              )}
+              <View style={{
+                borderWidth: 2,
+                borderColor: '#D1D5DB',
+                borderRadius: 6,
+                backgroundColor: '#F9FAFB',
+                height: 160,
+                justifyContent: 'center',
+                alignItems: 'center',
+                pointerEvents: 'none'
+              }}>
+                <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+                  {hasSignature ? 'Signature captured' : 'Canvas renders separately'}
+                </Text>
+              </View>
               {hasSignature && (
                 <TouchableOpacity
                   onPress={handleClearSignature}
@@ -4861,6 +4921,13 @@ export default function CompanyAccreditationScreen({
           </View>
         </Modal>
       </View>
+      
+      {/* Canvas Portal - Renders canvas outside React Native tree */}
+      <CanvasPortal 
+        canvasRef={canvasRef} 
+        canvasContainerRef={canvasContainerRef}
+        hasSignature={hasSignature}
+      />
     </View>
   );
 }
