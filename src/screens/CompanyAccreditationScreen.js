@@ -3742,6 +3742,7 @@ export default function CompanyAccreditationScreen({
   // Initialize canvas - runs when section expands or signature data changes
   useEffect(() => {
     if (!expandedSections[26]) {
+      console.log('📋 Section 26 not expanded, skipping canvas init');
       return;
     }
 
@@ -3770,6 +3771,8 @@ export default function CompanyAccreditationScreen({
       const actualWidth = Math.max(rect.width, 300);
       const actualHeight = 150;
 
+      console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight, hasSignatureData: !!section26.hs_agreement_signature });
+
       // Set canvas resolution (drawing surface)
       canvas.width = actualWidth;
       canvas.height = actualHeight;
@@ -3787,18 +3790,28 @@ export default function CompanyAccreditationScreen({
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, actualWidth, actualHeight);
 
-      // If there's an existing signature, draw it
+      contextRef.current = ctx;
+
+      // If there's an existing signature, draw it - this happens AFTER context is set
       if (section26.hs_agreement_signature) {
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, actualWidth, actualHeight);
-          console.log('✅ Signature redrawn from saved data');
+          // Re-get context in case it was reset
+          const currentCtx = canvasRef.current?.getContext('2d');
+          if (currentCtx) {
+            currentCtx.drawImage(img, 0, 0, actualWidth, actualHeight);
+            console.log('✅ Existing signature redrawn on canvas');
+          }
+        };
+        img.onerror = () => {
+          console.error('❌ Failed to load signature image');
         };
         img.src = section26.hs_agreement_signature;
+      } else {
+        console.log('ℹ️ No signature data to redraw');
       }
 
-      contextRef.current = ctx;
-      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight, hasSignature: !!section26.hs_agreement_signature });
+      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
     };
 
     // Start the initialization
@@ -4020,7 +4033,7 @@ export default function CompanyAccreditationScreen({
             </View>
 
             {/* Digital Signature */}
-            <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%', position: 'relative' }}>
+            <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%', height: 160 }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature * {hasSignature && '✍️'}
               </Text>
@@ -4033,12 +4046,10 @@ export default function CompanyAccreditationScreen({
                   borderRadius: '6px',
                   backgroundColor: '#FFFFFF',
                   overflow: 'hidden',
-                  height: '150px',
-                  width: '100%',
                   pointerEvents: 'auto',
                   boxSizing: 'border-box',
-                  display: 'block',
-                  position: 'relative'
+                  width: '100%',
+                  height: '100%'
                 }
               },
                 React.createElement('canvas', {
@@ -4049,8 +4060,7 @@ export default function CompanyAccreditationScreen({
                     touchAction: 'none',
                     pointerEvents: 'auto',
                     width: '100%',
-                    height: '100%',
-                    flexGrow: 1
+                    height: '100%'
                   }
                 })
               )}
