@@ -1,22 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  TextInput,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import { Alert } from 'react-native';
 import { getLegalDocument } from '../api/legal-documents';
 import { recordHSAgreementAcceptance } from '../api/legal-documents';
 
-const { height: screenHeight } = Dimensions.get('window');
-
-// Canvas signature pad component - same as WebSignaturePad but for this modal
+// Canvas signature pad component - matches WebSignaturePad exactly
 function CanvasSignaturePad({ signatureRef, onSignatureChange }) {
   const canvasRef = React.useRef(null);
   const containerRef = React.useRef(null);
@@ -173,235 +160,6 @@ function CanvasSignaturePad({ signatureRef, onSignatureChange }) {
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modal: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    maxHeight: screenHeight * 0.95,
-    overflow: 'hidden',
-    flex: 1,
-    flexDirection: 'column',
-  },
-  header: {
-    backgroundColor: '#1F2937',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  documentBox: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    maxHeight: 200,
-    marginBottom: 12,
-  },
-  documentText: {
-    fontSize: 12,
-    color: '#374151',
-    lineHeight: 18,
-    fontFamily: 'System',
-  },
-  readMoreButton: {
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    marginHorizontal: -12,
-    marginBottom: -12,
-  },
-  readMoreText: {
-    fontSize: 12,
-    color: '#2563EB',
-    fontWeight: '600',
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 6,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  signaturePadContainer: {
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 6,
-    backgroundColor: '#F9FAFB',
-    marginBottom: 12,
-    overflow: 'hidden',
-    height: 160,
-  },
-  signaturePad: {
-    width: '100%',
-    height: 150,
-    backgroundColor: '#FFFFFF',
-  },
-  signatureInstructions: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontStyle: 'italic',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
-    textAlign: 'center',
-  },
-  clearButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 4,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  clearButtonText: {
-    fontSize: 12,
-    color: '#991B1B',
-    fontWeight: '600',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    paddingHorizontal: 0,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    borderRadius: 4,
-    marginRight: 10,
-    marginTop: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  checkboxChecked: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
-  },
-  checkboxText: {
-    fontSize: 12,
-    color: '#374151',
-    lineHeight: 18,
-    flex: 1,
-  },
-  footerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#E5E7EB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    color: '#1F2937',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  acceptButton: {
-    backgroundColor: '#2563EB',
-  },
-  acceptButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-  },
-  acceptButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  errorBox: {
-    backgroundColor: '#FEE2E2',
-    borderLeftWidth: 4,
-    borderLeftColor: '#DC2626',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 4,
-    marginBottom: 16,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#991B1B',
-  },
-  warningBox: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 4,
-    marginBottom: 16,
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#92400E',
-  },
-});
-
 export default function HSAgreementModal({
   visible,
   companyId,
@@ -415,7 +173,6 @@ export default function HSAgreementModal({
   const [signedName, setSignedName] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-  const [signatureData, setSignatureData] = useState(null);
   const signaturePadRef = useRef(null);
 
   useEffect(() => {
@@ -442,8 +199,6 @@ export default function HSAgreementModal({
     setSignedName('');
     setAgreed(false);
     setHasSignature(false);
-    setSignatureData(null);
-    // Clear canvas
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();
     }
@@ -454,11 +209,9 @@ export default function HSAgreementModal({
       signaturePadRef.current.clear();
     }
     setHasSignature(false);
-    setSignatureData(null);
   };
 
   const handleAccept = async () => {
-    // Validation
     if (!signedName.trim()) {
       Alert.alert('Required', 'Please enter your name');
       return;
@@ -476,15 +229,11 @@ export default function HSAgreementModal({
 
     try {
       setSaving(true);
-
-      // Get signature from the canvas pad
       const sig = signaturePadRef.current.toDataURL();
-
       await recordHSAgreementAcceptance(companyId, {
         signature: sig,
         acceptedBy: signedName.trim(),
       });
-
       Alert.alert('Success', 'Health & Safety Agreement accepted');
       onAccept?.();
     } catch (error) {
@@ -498,163 +247,296 @@ export default function HSAgreementModal({
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onCancel}
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        zIndex: 9999,
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel?.();
+      }}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Health & Safety Agreement</Text>
-            <Text style={styles.headerSubtitle}>
-              {companyName || 'Company Name'}
-            </Text>
-          </View>
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          width: '100%',
+          maxHeight: '95vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            backgroundColor: '#1F2937',
+            paddingLeft: 16,
+            paddingRight: 16,
+            paddingTop: 12,
+            paddingBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+            Health & Safety Agreement
+          </div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
+            {companyName || 'Company Name'}
+          </div>
+        </div>
 
-          {/* Content - Document + Name in ScrollView */}
-          <ScrollView style={styles.content}>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#2563EB" />
-                <Text style={styles.loadingText}>Loading agreement...</Text>
-              </View>
-            ) : document ? (
-              <>
-                {/* Warning */}
-                <View style={styles.warningBox}>
-                  <Text style={styles.warningText}>
-                    ⚠️ This is a required agreement. You must review, sign, and accept before proceeding.
-                  </Text>
-                </View>
-
-                {/* Document Preview */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Agreement</Text>
-                  <View style={styles.documentBox}>
-                    <Text style={styles.documentText}>
-                      {document.document_content.substring(0, 400)}...
-                    </Text>
-                    <TouchableOpacity style={styles.readMoreButton}>
-                      <Text style={styles.readMoreText}>Read Full Document</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Full Document in Modal (for reference) */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Full Text</Text>
-                  <View style={styles.documentBox}>
-                    <Text style={styles.documentText}>
-                      {document.document_content}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Name Field */}
-                <View style={styles.section}>
-                  <Text style={styles.label}>Full Name *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter your full name"
-                    value={signedName}
-                    onChangeText={setSignedName}
-                    editable={!saving}
-                    placeholderTextColor="#9CA3AF"
-                  />
-                </View>
-              </>
-            ) : (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>
-                  ❌ Failed to load agreement document
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Signature Pad - OUTSIDE ScrollView */}
-          {!loading && document && (
+        {/* Content */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            paddingLeft: 16,
+            paddingRight: 16,
+            paddingTop: 12,
+            paddingBottom: 12,
+          }}
+        >
+          {loading ? (
+            <div style={{ textAlign: 'center', paddingVertical: 32 }}>
+              <div style={{ fontSize: 14, color: '#6B7280' }}>Loading agreement...</div>
+            </div>
+          ) : document ? (
             <>
-              <div style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
-                  Signature *
+              {/* Warning */}
+              <div
+                style={{
+                  backgroundColor: '#FEF3C7',
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#F59E0B',
+                  borderLeftStyle: 'solid',
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  borderRadius: 4,
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ fontSize: 12, color: '#92400E' }}>
+                  ⚠️ This is a required agreement. You must review, sign, and accept before proceeding.
                 </div>
-                <CanvasSignaturePad 
-                  signatureRef={signaturePadRef}
-                  onSignatureChange={() => {
-                    if (signaturePadRef.current) {
-                      setHasSignature(true);
-                    }
-                  }}
-                />
-                <div style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#F3F4F6', textAlign: 'center' }}>
-                  Sign above with your mouse or trackpad
-                </div>
-                {hasSignature && (
-                  <button 
-                    onClick={clearSignature}
-                    disabled={saving}
-                    style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#FEE2E2', borderRadius: 4, alignItems: 'center', marginBottom: 12, border: 'none', cursor: 'pointer', width: '100%', fontSize: 12, color: '#991B1B', fontWeight: '600' }}
-                  >
-                    Clear Signature
-                  </button>
-                )}
               </div>
 
-              {/* Acknowledgement Checkbox - OUTSIDE ScrollView */}
-              <View style={[styles.section, { paddingHorizontal: 16 }]}>
-                <View style={styles.checkboxContainer}>
-                  <TouchableOpacity
-                    style={[styles.checkbox, agreed && styles.checkboxChecked]}
-                    onPress={() => setAgreed(!agreed)}
-                    disabled={saving}
-                  >
-                    {agreed && (
-                      <Text style={{ fontSize: 16, color: '#FFFFFF' }}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                  <Text style={styles.checkboxText}>
-                    I/We acknowledge that I/we have read and understood the foregoing
-                    Health, Safety and Environmental information and undertake that
-                    my/our workers will at all times comply with relevant legislation
-                    and with all applicable health, safety and environmental procedures,
-                    requirements, and instructions.
-                  </Text>
-                </View>
-              </View>
-            </>
-          )}
+              {/* Document */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
+                  Agreement
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#F9FAFB',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: 8,
+                    padding: 12,
+                    maxHeight: 300,
+                    overflowY: 'auto',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
+                    {document.document_content}
+                  </div>
+                </div>
+              </div>
 
-          {/* Footer Buttons */}
-          {!loading && (
-            <View style={styles.footerButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onCancel}
-                disabled={saving}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.acceptButton,
-                  saving && styles.acceptButtonDisabled,
-                ]}
-                onPress={handleAccept}
-                disabled={saving || !hasSignature || !agreed || !signedName.trim()}
-              >
-                <Text style={styles.acceptButtonText}>
-                  {saving ? 'Saving...' : 'Accept & Sign'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              {/* Name Input */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+                  Full Name *
+                </div>
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={signedName}
+                  onChange={(e) => setSignedName(e.target.value)}
+                  disabled={saving}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderStyle: 'solid',
+                    borderRadius: 6,
+                    paddingLeft: 12,
+                    paddingRight: 12,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                backgroundColor: '#FEE2E2',
+                borderLeftWidth: 4,
+                borderLeftColor: '#DC2626',
+                borderLeftStyle: 'solid',
+                paddingLeft: 12,
+                paddingRight: 12,
+                paddingTop: 10,
+                paddingBottom: 10,
+                borderRadius: 4,
+              }}
+            >
+              <div style={{ fontSize: 12, color: '#991B1B' }}>
+                ❌ Failed to load agreement document
+              </div>
+            </div>
           )}
-        </View>
-      </View>
-    </Modal>
+        </div>
+
+        {/* Signature Section - OUTSIDE scrollable area */}
+        {!loading && document && (
+          <div style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', borderTopStyle: 'solid' }}>
+            <div style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+              Signature *
+            </div>
+            <CanvasSignaturePad 
+              signatureRef={signaturePadRef}
+              onSignatureChange={() => {
+                if (signaturePadRef.current) {
+                  setHasSignature(true);
+                }
+              }}
+            />
+            <div style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8, backgroundColor: '#F3F4F6', textAlign: 'center', borderRadius: 4, marginBottom: 12 }}>
+              Sign above with your mouse or trackpad
+            </div>
+            {hasSignature && (
+              <button 
+                onClick={clearSignature}
+                disabled={saving}
+                style={{ 
+                  paddingTop: 8, 
+                  paddingBottom: 8, 
+                  paddingLeft: 12, 
+                  paddingRight: 12, 
+                  backgroundColor: '#FEE2E2', 
+                  borderRadius: 4, 
+                  border: 'none', 
+                  cursor: saving ? 'not-allowed' : 'pointer', 
+                  width: '100%', 
+                  fontSize: 12, 
+                  color: '#991B1B', 
+                  fontWeight: '600',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                Clear Signature
+              </button>
+            )}
+
+            {/* Acknowledgement Checkbox */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 16 }}>
+              <button
+                onClick={() => setAgreed(!agreed)}
+                disabled={saving}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderWidth: 2,
+                  borderColor: '#D1D5DB',
+                  borderStyle: 'solid',
+                  borderRadius: 4,
+                  marginRight: 10,
+                  marginTop: 2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: agreed ? '#2563EB' : '#FFFFFF',
+                  color: '#FFFFFF',
+                  fontSize: 14,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {agreed ? '✓' : ''}
+              </button>
+              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, flex: 1 }}>
+                I/We acknowledge that I/we have read and understood the foregoing
+                Health, Safety and Environmental information and undertake that
+                my/our workers will at all times comply with relevant legislation
+                and with all applicable health, safety and environmental procedures,
+                requirements, and instructions.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer Buttons */}
+        {!loading && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              paddingLeft: 16,
+              paddingRight: 16,
+              paddingBottom: 16,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: '#E5E7EB',
+              borderTopStyle: 'solid',
+            }}
+          >
+            <button
+              onClick={onCancel}
+              disabled={saving}
+              style={{
+                flex: 1,
+                paddingTop: 12,
+                paddingBottom: 12,
+                borderRadius: 6,
+                backgroundColor: '#E5E7EB',
+                border: '1px solid #D1D5DB',
+                borderStyle: 'solid',
+                color: '#1F2937',
+                fontWeight: '600',
+                fontSize: 14,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAccept}
+              disabled={saving || !hasSignature || !agreed || !signedName.trim()}
+              style={{
+                flex: 1,
+                paddingTop: 12,
+                paddingBottom: 12,
+                borderRadius: 6,
+                backgroundColor: (saving || !hasSignature || !agreed || !signedName.trim()) ? '#D1D5DB' : '#2563EB',
+                border: 'none',
+                color: '#FFFFFF',
+                fontWeight: '600',
+                fontSize: 14,
+                cursor: (saving || !hasSignature || !agreed || !signedName.trim()) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {saving ? 'Saving...' : 'Accept & Sign'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
