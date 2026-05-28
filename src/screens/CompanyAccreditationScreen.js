@@ -3743,12 +3743,23 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    const timer = setTimeout(() => {
+    // Use requestAnimationFrame to wait for DOM to be painted
+    let animFrameId;
+    let checkAttempts = 0;
+    const maxAttempts = 10;
+
+    const initCanvas = () => {
       const canvas = canvasRef.current;
       const container = canvasContainerRef.current;
       
       if (!canvas || !container) {
-        console.error('❌ Canvas or container not found');
+        checkAttempts++;
+        if (checkAttempts < maxAttempts) {
+          // Retry
+          animFrameId = requestAnimationFrame(initCanvas);
+        } else {
+          console.error('❌ Canvas or container not found after', maxAttempts, 'attempts');
+        }
         return;
       }
 
@@ -3785,9 +3796,16 @@ export default function CompanyAccreditationScreen({
 
       contextRef.current = ctx;
       console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
-    }, 100);
+    };
 
-    return () => clearTimeout(timer);
+    // Start the initialization
+    animFrameId = requestAnimationFrame(initCanvas);
+
+    return () => {
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+      }
+    };
   }, [expandedSections[26]]);
 
   // Setup canvas event listeners
