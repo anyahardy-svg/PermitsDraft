@@ -4070,8 +4070,6 @@ export default function CompanyAccreditationScreen({
     );
   }
 
-  console.log('🔍 [DEBUG] Rendering form with companyDetails:', companyDetails);
-
   return (
     <View style={[styles.container, { flex: 1 }]}>
       <ScrollView 
