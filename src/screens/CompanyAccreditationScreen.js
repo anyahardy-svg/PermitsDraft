@@ -3736,6 +3736,37 @@ export default function CompanyAccreditationScreen({
   // Canvas context tracking for Section 26 signature
   const contextRef = useRef(null);
 
+  // Sync canvas size with actual DOM size for proper event handling
+  useEffect(() => {
+    const syncCanvasSize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Set canvas resolution to match actual display size
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      
+      // Scale context for high DPI
+      if (contextRef.current) {
+        contextRef.current.scale(dpr, dpr);
+      }
+      
+      console.log('🎨 Canvas synced to:', { displayWidth: rect.width, displayHeight: rect.height, actualWidth: canvas.width, actualHeight: canvas.height });
+    };
+
+    if (expandedSections[26]) {
+      // Initial sync
+      setTimeout(syncCanvasSize, 100);
+      
+      // Sync on window resize
+      window.addEventListener('resize', syncCanvasSize);
+      return () => window.removeEventListener('resize', syncCanvasSize);
+    }
+  }, [expandedSections[26]]);
+
   // Initialize canvas - runs when section expands
   useEffect(() => {
     if (!expandedSections[26]) {
@@ -4011,8 +4042,6 @@ export default function CompanyAccreditationScreen({
               },
                 React.createElement('canvas', {
                   ref: canvasRef,
-                  width: 600,
-                  height: 150,
                   style: {
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
@@ -4595,11 +4624,11 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 25: Contact Information */}
               {renderContactInfoSection()}
-
-              {/* Section 26: H&S Agreement */}
-              {renderSection26HSAgreement()}
         </View>
       </ScrollView>
+
+      {/* Section 26: H&S Agreement - OUTSIDE ScrollView to capture signature input */}
+      {renderSection26HSAgreement()}
 
       {/* Status Badge and Buttons */}
       <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}>
