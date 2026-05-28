@@ -16,6 +16,163 @@ import { recordHSAgreementAcceptance } from '../api/legal-documents';
 
 const { height: screenHeight } = Dimensions.get('window');
 
+// Canvas signature pad component - same as WebSignaturePad but for this modal
+function CanvasSignaturePad({ signatureRef, onSignatureChange }) {
+  const canvasRef = React.useRef(null);
+  const containerRef = React.useRef(null);
+  const isDrawingRef = React.useRef(false);
+  const contextRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || contextRef.current) return;
+
+    const container = containerRef.current;
+    let actualWidth = 300;
+    let actualHeight = 160;
+    
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      actualWidth = Math.max(rect.width, 300);
+      actualHeight = Math.max(rect.height, 160);
+    }
+
+    canvas.width = actualWidth;
+    canvas.height = actualHeight;
+    canvas.style.width = `${actualWidth}px`;
+    canvas.style.height = `${actualHeight}px`;
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, actualWidth, actualHeight);
+
+    contextRef.current = ctx;
+
+    if (signatureRef) {
+      signatureRef.current = {
+        canvas: canvas,
+        toDataURL: () => canvas.toDataURL('image/png'),
+        clear: () => {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      };
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+
+    const ctx = contextRef.current;
+
+    const handleMouseDown = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      isDrawingRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDrawingRef.current) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    const handleMouseUp = () => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      ctx.closePath();
+      if (onSignatureChange) onSignatureChange();
+    };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+      isDrawingRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      if (!isDrawingRef.current) return;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      ctx.closePath();
+      if (onSignatureChange) onSignatureChange();
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseUp);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: '160px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '12px'
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          border: '2px solid #E5E7EB',
+          borderRadius: '8px',
+          backgroundColor: 'white',
+          cursor: 'crosshair',
+          display: 'block',
+          touchAction: 'none',
+          maxWidth: '100%',
+          height: '100%'
+        }}
+      />
+    </div>
+  );
+}
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -259,10 +416,7 @@ export default function HSAgreementModal({
   const [agreed, setAgreed] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
   const [signatureData, setSignatureData] = useState(null);
-  const canvasRef = useRef(null);
-  const canvasContainerRef = useRef(null);
-  const contextRef = useRef(null);
-  const isDrawingRef = useRef(false);
+  const signaturePadRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -270,132 +424,6 @@ export default function HSAgreementModal({
       resetForm();
     }
   }, [visible]);
-
-  // Initialize canvas once on mount only
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || contextRef.current) return; // Only init once
-
-    const container = canvasContainerRef.current;
-    let actualWidth = 300;
-    let actualHeight = 160;
-    
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      actualWidth = Math.max(rect.width, 300);
-      actualHeight = Math.max(rect.height, 160);
-    }
-
-    // Set canvas resolution (actual drawing surface)
-    canvas.width = actualWidth;
-    canvas.height = actualHeight;
-
-    // Set canvas display size to match
-    canvas.style.width = `${actualWidth}px`;
-    canvas.style.height = `${actualHeight}px`;
-
-    // Get context and set it up for drawing
-    const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, actualWidth, actualHeight);
-
-    contextRef.current = ctx;
-  }, []); // Only run once on mount
-
-  // Setup canvas event listeners
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !contextRef.current) return;
-
-    const ctx = contextRef.current;
-
-    // Mouse down
-    const handleMouseDown = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-      isDrawingRef.current = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    };
-
-    // Mouse move
-    const handleMouseMove = (e) => {
-      if (!isDrawingRef.current) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    };
-
-    // Mouse up
-    const handleMouseUp = () => {
-      if (!isDrawingRef.current) return;
-      isDrawingRef.current = false;
-      ctx.closePath();
-      const signatureDataUrl = canvas.toDataURL('image/png');
-      setSignatureData(signatureDataUrl);
-      setHasSignature(true);
-    };
-
-    // Touch events for mobile
-    const handleTouchStart = (e) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-
-      isDrawingRef.current = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    };
-
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      if (!isDrawingRef.current) return;
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    };
-
-    const handleTouchEnd = (e) => {
-      e.preventDefault();
-      if (!isDrawingRef.current) return;
-      isDrawingRef.current = false;
-      ctx.closePath();
-      const signatureDataUrl = canvas.toDataURL('image/png');
-      setSignatureData(signatureDataUrl);
-      setHasSignature(true);
-    };
-
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseUp);
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, []);
 
   const loadDocument = async () => {
     try {
@@ -416,19 +444,17 @@ export default function HSAgreementModal({
     setHasSignature(false);
     setSignatureData(null);
     // Clear canvas
-    if (canvasRef.current && contextRef.current) {
-      contextRef.current.fillStyle = 'white';
-      contextRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
     }
   };
 
   const clearSignature = () => {
-    if (canvasRef.current && contextRef.current) {
-      contextRef.current.fillStyle = 'white';
-      contextRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      setHasSignature(false);
-      setSignatureData(null);
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
     }
+    setHasSignature(false);
+    setSignatureData(null);
   };
 
   const handleAccept = async () => {
@@ -438,7 +464,7 @@ export default function HSAgreementModal({
       return;
     }
 
-    if (!hasSignature || !signatureData) {
+    if (!hasSignature || !signaturePadRef.current) {
       Alert.alert('Required', 'Please sign the document');
       return;
     }
@@ -451,8 +477,11 @@ export default function HSAgreementModal({
     try {
       setSaving(true);
 
+      // Get signature from the canvas pad
+      const sig = signaturePadRef.current.toDataURL();
+
       await recordHSAgreementAcceptance(companyId, {
-        signature: signatureData,
+        signature: sig,
         acceptedBy: signedName.trim(),
       });
 
@@ -549,45 +578,31 @@ export default function HSAgreementModal({
           {/* Signature Pad - OUTSIDE ScrollView */}
           {!loading && document && (
             <>
-              <View style={styles.section}>
-                <Text style={[styles.label, { paddingHorizontal: 16 }]}>Signature *</Text>
-                <div style={{
-                  width: '100%',
-                  height: '160px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginLeft: 0,
-                  marginRight: 0,
-                  marginBottom: '12px'
-                }} ref={canvasContainerRef}>
-                  <canvas
-                    ref={canvasRef}
-                    style={{
-                      border: '2px solid #E5E7EB',
-                      borderRadius: '8px',
-                      backgroundColor: 'white',
-                      cursor: hasSignature ? 'default' : 'crosshair',
-                      display: 'block',
-                      touchAction: 'none',
-                      maxWidth: '100%',
-                      height: '100%'
-                    }}
-                  />
+              <div style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+                  Signature *
                 </div>
-                <Text style={styles.signatureInstructions}>
+                <CanvasSignaturePad 
+                  signatureRef={signaturePadRef}
+                  onSignatureChange={() => {
+                    if (signaturePadRef.current) {
+                      setHasSignature(true);
+                    }
+                  }}
+                />
+                <div style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#F3F4F6', textAlign: 'center' }}>
                   Sign above with your mouse or trackpad
-                </Text>
+                </div>
                 {hasSignature && (
-                  <TouchableOpacity
-                    style={[styles.clearButton, { marginHorizontal: 16 }]}
-                    onPress={clearSignature}
+                  <button 
+                    onClick={clearSignature}
                     disabled={saving}
+                    style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#FEE2E2', borderRadius: 4, alignItems: 'center', marginBottom: 12, border: 'none', cursor: 'pointer', width: '100%', fontSize: 12, color: '#991B1B', fontWeight: '600' }}
                   >
-                    <Text style={styles.clearButtonText}>Clear Signature</Text>
-                  </TouchableOpacity>
+                    Clear Signature
+                  </button>
                 )}
-              </View>
+              </div>
 
               {/* Acknowledgement Checkbox - OUTSIDE ScrollView */}
               <View style={[styles.section, { paddingHorizontal: 16 }]}>
