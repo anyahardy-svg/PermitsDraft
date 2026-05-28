@@ -1090,6 +1090,9 @@ export default function CompanyAccreditationScreen({
       // Set hasSignature if signature exists
       if (data.hs_agreement_signature) {
         setHasSignature(true);
+        console.log('🔄 [LOAD] Section 26 signature loaded from DB - size:', data.hs_agreement_signature.length, 'bytes');
+      } else {
+        console.log('🔄 [LOAD] Section 26: No signature in database');
       }
       // Log what was loaded
       if (data.hs_agreement_signature) {
@@ -2314,15 +2317,21 @@ export default function CompanyAccreditationScreen({
     // Add Section 26 data (Health & Safety Agreement)
     if (section26.hs_agreement_signature) {
       updateData.hs_agreement_signature = section26.hs_agreement_signature;
+      console.log('📝 Section 26: Signature included in update - size:', section26.hs_agreement_signature.length, 'bytes');
+    } else {
+      console.warn('⚠️ Section 26: NO SIGNATURE - signature data is missing!');
     }
     if (section26.hs_agreement_accepted_by) {
       updateData.hs_agreement_accepted_by = section26.hs_agreement_accepted_by;
+      console.log('📝 Section 26: Name included -', section26.hs_agreement_accepted_by);
     }
     updateData.hs_agreement_acknowledged = section26.hs_agreement_acknowledged;
+    console.log('📝 Section 26: Acknowledged -', section26.hs_agreement_acknowledged);
     // Record when they signed if they have a signature now
     if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
       updateData.hs_agreement_signed_date = new Date().toISOString();
       updateData.hs_agreement_accepted = true;
+      console.log('✅ Section 26: All required fields present - marking as signed');
     }
 
     return updateData;
@@ -2371,11 +2380,13 @@ export default function CompanyAccreditationScreen({
     }
 
     console.log('💾 handleSave called, current status:', accreditationStatus);
+    console.log('💾 Current section26 state:', { hasSignature: !!section26.hs_agreement_signature, signatureLength: section26.hs_agreement_signature?.length, name: section26.hs_agreement_accepted_by });
     setSaving(true);
     try {
       // Preserve the 'completed' status if already submitted - only save edits without changing status
       const updateData = buildUpdateData(accreditationStatus);
       console.log('💾 Update data built with status:', accreditationStatus);
+      console.log('💾 Section 26 in updateData:', { hasSignature: !!updateData.hs_agreement_signature, signatureLength: updateData.hs_agreement_signature?.length });
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       console.log('📊 Update result:', result);
@@ -3746,6 +3757,9 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
+    console.log('🖼️ CANVAS INIT TRIGGERED - expandedSections[26] or section26.hs_agreement_signature changed');
+    console.log('🖼️ section26 state at init:', { hasSignature: !!section26.hs_agreement_signature, signatureLength: section26.hs_agreement_signature?.length, name: section26.hs_agreement_accepted_by });
+
     // Use requestAnimationFrame to wait for DOM to be painted
     let animFrameId;
     let checkAttempts = 0;
@@ -3794,18 +3808,26 @@ export default function CompanyAccreditationScreen({
 
       // If there's an existing signature, draw it - this happens AFTER context is set
       if (section26.hs_agreement_signature) {
+        console.log('🖼️ ATTEMPTING TO REDRAW EXISTING SIGNATURE - Creating Image object');
         const img = new Image();
         img.onload = () => {
           // Re-get context in case it was reset
           const currentCtx = canvasRef.current?.getContext('2d');
           if (currentCtx) {
+            console.log('🖼️ IMAGE LOADED - Drawing signature to canvas');
             currentCtx.drawImage(img, 0, 0, actualWidth, actualHeight);
-            console.log('✅ Existing signature redrawn on canvas');
+            console.log('✅ Existing signature redrawn on canvas successfully');
+          } else {
+            console.error('❌ Could not get canvas context when drawing signature');
           }
         };
-        img.onerror = () => {
-          console.error('❌ Failed to load signature image');
+        img.onerror = (err) => {
+          console.error('❌ Failed to load signature image:', err);
         };
+        img.onprogress = (e) => {
+          console.log('🖼️ Image loading progress...');
+        };
+        console.log('🖼️ Setting Image.src to signature data...');
         img.src = section26.hs_agreement_signature;
       } else {
         console.log('ℹ️ No signature data to redraw');
