@@ -3735,113 +3735,73 @@ export default function CompanyAccreditationScreen({
 
   // Canvas context tracking for Section 26 signature
   const contextRef = useRef(null);
-
-  // Sync canvas size with actual DOM size for proper event handling
-  useEffect(() => {
-    const syncCanvasSize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      
-      // Set canvas resolution to match actual display size
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      
-      // Scale context for high DPI
-      if (contextRef.current) {
-        contextRef.current.scale(dpr, dpr);
-      }
-      
-      console.log('🎨 Canvas synced to:', { displayWidth: rect.width, displayHeight: rect.height, actualWidth: canvas.width, actualHeight: canvas.height });
-    };
-
-    if (expandedSections[26]) {
-      // Initial sync
-      setTimeout(syncCanvasSize, 100);
-      
-      // Sync on window resize
-      window.addEventListener('resize', syncCanvasSize);
-      return () => window.removeEventListener('resize', syncCanvasSize);
-    }
-  }, [expandedSections[26]]);
+  const canvasContainerRef = useRef(null);
 
   // Initialize canvas - runs when section expands
   useEffect(() => {
     if (!expandedSections[26]) {
-      console.log('📦 Section 26 collapsed, skipping canvas init');
       return;
     }
 
-    // Give DOM time to render the canvas element
     const timer = setTimeout(() => {
       const canvas = canvasRef.current;
-      console.log('🎨 Canvas init - canvas:', canvas, 'ref:', canvasRef);
-      if (!canvas) {
-        console.error('❌ Canvas ref is null!');
+      const container = canvasContainerRef.current;
+      
+      if (!canvas || !container) {
+        console.error('❌ Canvas or container not found');
         return;
       }
 
-      console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
+      // Get actual rendered container size
+      const rect = container.getBoundingClientRect();
+      const actualWidth = Math.max(rect.width, 300);
+      const actualHeight = 150;
+
+      // Set canvas resolution (drawing surface)
+      canvas.width = actualWidth;
+      canvas.height = actualHeight;
+
+      // Set canvas display size to match exactly
+      canvas.style.width = `${actualWidth}px`;
+      canvas.style.height = `${actualHeight}px`;
+
+      // Get context and set it up
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        console.error('❌ Failed to get 2D context!');
-        return;
-      }
-
       ctx.strokeStyle = '#1F2937';
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, actualWidth, actualHeight);
 
-      // If there's an existing signature, draw it on the canvas
+      // If there's an existing signature, draw it
       if (section26.hs_agreement_signature) {
-        console.log('🖼️ Drawing existing signature from database');
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          console.log('✅ Existing signature drawn on canvas');
-        };
-        img.onerror = (e) => {
-          console.error('❌ Failed to load signature image:', e);
+          ctx.drawImage(img, 0, 0, actualWidth, actualHeight);
         };
         img.src = section26.hs_agreement_signature;
       }
 
       contextRef.current = ctx;
-      console.log('✅ Canvas context initialized:', ctx);
+      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [expandedSections[26], section26.hs_agreement_signature]);
+  }, [expandedSections[26]]);
 
-  // Setup canvas event listeners - runs when section expands or state changes
+  // Setup canvas event listeners
   useEffect(() => {
     if (!expandedSections[26]) {
-      console.log('📦 Section 26 collapsed, skipping listener setup');
       return;
     }
 
-    // Give DOM time to render the canvas element
-    const timer = setTimeout(() => {
-      const canvas = canvasRef.current;
-      console.log('🖱️ Event listeners setup - canvas:', canvas, 'context:', contextRef.current);
-      if (!canvas) {
-        console.error('❌ Canvas not available for event setup');
-        return;
-      }
-      if (!contextRef.current) {
-        console.error('❌ Context not available for event setup');
-        return;
-      }
-
-      const ctx = contextRef.current;
+    const canvas = canvasRef.current;
+    const ctx = contextRef.current;
+    
+    if (!canvas || !ctx) return;
 
     const handleMouseDown = (e) => {
-      console.log('🖱️ Mouse down - hasSignature:', hasSignature);
       if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -3854,11 +3814,9 @@ export default function CompanyAccreditationScreen({
 
     const handleMouseMove = (e) => {
       if (!isDrawingRef.current) return;
-
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
       ctx.lineTo(x, y);
       ctx.stroke();
     };
@@ -3867,14 +3825,9 @@ export default function CompanyAccreditationScreen({
       if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
       ctx.closePath();
-      if (canvasRef.current) {
-        const signatureData = canvasRef.current.toDataURL('image/png');
-        setSection26(prev => ({
-          ...prev,
-          hs_agreement_signature: signatureData
-        }));
-        setHasSignature(true);
-      }
+      const signatureData = canvas.toDataURL('image/png');
+      setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
+      setHasSignature(true);
     };
 
     const handleTouchStart = (e) => {
@@ -3884,7 +3837,6 @@ export default function CompanyAccreditationScreen({
       const touch = e.touches[0];
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-
       isDrawingRef.current = true;
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -3893,12 +3845,10 @@ export default function CompanyAccreditationScreen({
     const handleTouchMove = (e) => {
       e.preventDefault();
       if (!isDrawingRef.current) return;
-
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-
       ctx.lineTo(x, y);
       ctx.stroke();
     };
@@ -3908,14 +3858,9 @@ export default function CompanyAccreditationScreen({
       if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
       ctx.closePath();
-      if (canvasRef.current) {
-        const signatureData = canvasRef.current.toDataURL('image/png');
-        setSection26(prev => ({
-          ...prev,
-          hs_agreement_signature: signatureData
-        }));
-        setHasSignature(true);
-      }
+      const signatureData = canvas.toDataURL('image/png');
+      setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
+      setHasSignature(true);
     };
 
     canvas.addEventListener('mousedown', handleMouseDown);
@@ -3926,7 +3871,6 @@ export default function CompanyAccreditationScreen({
     canvas.addEventListener('touchmove', handleTouchMove);
     canvas.addEventListener('touchend', handleTouchEnd);
 
-    // Cleanup on unmount or section collapse
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
@@ -3936,9 +3880,6 @@ export default function CompanyAccreditationScreen({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-    }, 0);
-
-    return () => clearTimeout(timer);
   }, [expandedSections[26], hasSignature]);
 
   const handleClearSignature = () => {
@@ -4029,6 +3970,7 @@ export default function CompanyAccreditationScreen({
                 Digital Signature *
               </Text>
               {React.createElement('div', {
+                ref: canvasContainerRef,
                 style: {
                   borderWidth: '2px',
                   borderColor: '#D1D5DB',
@@ -4045,9 +3987,6 @@ export default function CompanyAccreditationScreen({
                   style: {
                     cursor: hasSignature ? 'default' : 'crosshair',
                     display: 'block',
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: '#F9FAFB',
                     touchAction: 'none'
                   }
                 })
