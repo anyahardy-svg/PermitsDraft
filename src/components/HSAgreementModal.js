@@ -551,30 +551,30 @@ export default function HSAgreementModal({
             <>
               <View style={styles.section}>
                 <Text style={[styles.label, { paddingHorizontal: 16 }]}>Signature *</Text>
-                {React.createElement('div', {
-                  ref: canvasContainerRef,
-                  style: {
-                    borderWidth: '2px',
-                    borderColor: '#E5E7EB',
-                    borderRadius: '6px',
-                    backgroundColor: '#F9FAFB',
-                    marginBottom: '12px',
-                    overflow: 'hidden',
-                    height: '160px',
-                    width: '100%'
-                  }
-                },
-                  React.createElement('canvas', {
-                    ref: canvasRef,
-                    style: {
+                <div style={{
+                  borderWidth: 2,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 6,
+                  backgroundColor: '#F9FAFB',
+                  marginBottom: 12,
+                  marginLeft: 16,
+                  marginRight: 16,
+                  overflow: 'hidden',
+                  height: 160,
+                  position: 'relative'
+                }} ref={canvasContainerRef}>
+                  <canvas
+                    ref={canvasRef}
+                    style={{
                       cursor: hasSignature ? 'default' : 'crosshair',
                       display: 'block',
                       touchAction: 'none',
                       width: '100%',
-                      height: '100%'
-                    }
-                  })
-                )}
+                      height: '100%',
+                      backgroundColor: '#FFFFFF'
+                    }}
+                  />
+                </div>
                 <Text style={styles.signatureInstructions}>
                   Sign above with your mouse or trackpad
                 </Text>
