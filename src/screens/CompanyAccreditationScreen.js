@@ -78,7 +78,9 @@ export default function CompanyAccreditationScreen({
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const stored = localStorage.getItem('accreditation_expanded_sections');
-        return stored ? JSON.parse(stored) : defaults;
+        const loaded = stored ? JSON.parse(stored) : defaults;
+        // Always keep Section 26 closed on load to avoid confusion and long load times
+        return { ...loaded, 26: false };
       } catch (e) {
         console.warn('localStorage not available');
         return defaults;
@@ -3814,47 +3816,38 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    // Wait a moment for canvas initialization to complete
-    const timer = setTimeout(() => {
-      const canvas = canvasRef.current;
-      const ctx = contextRef.current;
-      
-      if (!canvas || !ctx) {
-        console.error('❌ Canvas or context not ready for event listeners');
-        return;
-      }
-
+    // Define event handlers first (hoisting)
+    const attachEventListeners = (canvas, ctx) => {
       console.log('✅ Event listeners attached to canvas');
 
-      const handleMouseDown = (e) => {
+      function handleMouseDown(e) {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
         isDrawingRef.current = true;
         ctx.beginPath();
         ctx.moveTo(x, y);
-      };
+      }
 
-      const handleMouseMove = (e) => {
+      function handleMouseMove(e) {
         if (!isDrawingRef.current) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
         ctx.lineTo(x, y);
         ctx.stroke();
-      };
+      }
 
-      const handleMouseUp = () => {
+      function handleMouseUp() {
         if (!isDrawingRef.current) return;
         isDrawingRef.current = false;
         ctx.closePath();
         const signatureData = canvas.toDataURL('image/png');
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
         setHasSignature(true);
-      };
+      }
 
-      const handleTouchStart = (e) => {
+      function handleTouchStart(e) {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
@@ -3863,9 +3856,9 @@ export default function CompanyAccreditationScreen({
         isDrawingRef.current = true;
         ctx.beginPath();
         ctx.moveTo(x, y);
-      };
+      }
 
-      const handleTouchMove = (e) => {
+      function handleTouchMove(e) {
         e.preventDefault();
         if (!isDrawingRef.current) return;
         const rect = canvas.getBoundingClientRect();
@@ -3874,9 +3867,9 @@ export default function CompanyAccreditationScreen({
         const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
         ctx.lineTo(x, y);
         ctx.stroke();
-      };
+      }
 
-      const handleTouchEnd = (e) => {
+      function handleTouchEnd(e) {
         e.preventDefault();
         if (!isDrawingRef.current) return;
         isDrawingRef.current = false;
@@ -3884,7 +3877,7 @@ export default function CompanyAccreditationScreen({
         const signatureData = canvas.toDataURL('image/png');
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
         setHasSignature(true);
-      };
+      }
 
       canvas.addEventListener('mousedown', handleMouseDown);
       canvas.addEventListener('mousemove', handleMouseMove);
@@ -3894,7 +3887,6 @@ export default function CompanyAccreditationScreen({
       canvas.addEventListener('touchmove', handleTouchMove);
       canvas.addEventListener('touchend', handleTouchEnd);
 
-      // Store handlers for cleanup
       canvasRef.current._handlers = {
         handleMouseDown,
         handleMouseMove,
@@ -3903,7 +3895,29 @@ export default function CompanyAccreditationScreen({
         handleTouchMove,
         handleTouchEnd
       };
-    }, 50);
+    };
+
+    // Wait longer for canvas initialization to complete (requestAnimationFrame + context setup)
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      const ctx = contextRef.current;
+      
+      if (!canvas || !ctx) {
+        console.warn('⏳ Canvas or context not yet ready, retrying in 100ms...');
+        // Retry with longer delay
+        const retryTimer = setTimeout(() => {
+          const canvas2 = canvasRef.current;
+          const ctx2 = contextRef.current;
+          if (!canvas2 || !ctx2) {
+            console.error('❌ Canvas initialization failed after retry');
+            return;
+          }
+          attachEventListeners(canvas2, ctx2);
+        }, 100);
+        return;
+      }
+      attachEventListeners(canvas, ctx);
+    }, 150);
 
     return () => {
       clearTimeout(timer);
