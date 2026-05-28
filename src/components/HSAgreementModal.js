@@ -319,7 +319,6 @@ export default function HSAgreementModal({
     if (!canvas || !ctx) return;
 
     const handleMouseDown = (e) => {
-      if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -349,7 +348,6 @@ export default function HSAgreementModal({
 
     const handleTouchStart = (e) => {
       e.preventDefault();
-      if (hasSignature) return;
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
@@ -397,7 +395,7 @@ export default function HSAgreementModal({
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [visible, hasSignature]);
+  }, [visible]);
 
   const loadDocument = async () => {
     try {
