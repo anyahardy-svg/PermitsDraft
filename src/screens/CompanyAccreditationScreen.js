@@ -3757,7 +3757,7 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    console.log('🖼️ CANVAS INIT - Section opened/closed');
+    console.log('🖼️ CANVAS INIT - Section opened');
 
     // Use requestAnimationFrame to wait for DOM to be painted
     let animFrameId;
@@ -3785,31 +3785,25 @@ export default function CompanyAccreditationScreen({
 
       console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight });
 
-      // Only initialize if this is first time (context not set yet)
-      if (!contextRef.current) {
-        console.log('🖼️ First initialization - setting up canvas');
-        // Set canvas resolution (drawing surface)
-        canvas.width = actualWidth;
-        canvas.height = actualHeight;
+      // Set canvas resolution (drawing surface)
+      canvas.width = actualWidth;
+      canvas.height = actualHeight;
 
-        // Set canvas display size
-        canvas.style.width = `${actualWidth}px`;
-        canvas.style.height = `${actualHeight}px`;
+      // Set canvas display size
+      canvas.style.width = `${actualWidth}px`;
+      canvas.style.height = `${actualHeight}px`;
 
-        // Get context and set it up
-        const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#1F2937';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, actualWidth, actualHeight);
+      // Get context and set it up
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#1F2937';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, actualWidth, actualHeight);
 
-        contextRef.current = ctx;
-        console.log('✅ Canvas initialized');
-      } else {
-        console.log('ℹ️ Canvas already initialized, skipping setup');
-      }
+      contextRef.current = ctx;
+      console.log('✅ Canvas initialized');
     };
 
     // Start the initialization
@@ -3820,25 +3814,55 @@ export default function CompanyAccreditationScreen({
         cancelAnimationFrame(animFrameId);
       }
     };
-  }, [expandedSections[26]]);  // ONLY depends on section visibility, NOT signature data
+  }, [expandedSections[26]]);  // ONLY depends on section visibility
 
   // Separate effect to redraw signature when it changes
   useEffect(() => {
     if (!expandedSections[26]) return;
     if (!section26.hs_agreement_signature) return;
-    if (!contextRef.current) return;
 
     console.log('🖼️ REDRAW TRIGGERED - Signature data changed');
     
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = canvasContainerRef.current;
+    
+    if (!canvas || !container) {
+      console.warn('⏳ Canvas or container not ready for redraw');
+      return;
+    }
+
+    // Ensure context is initialized if not already
+    if (!contextRef.current) {
+      console.log('🖼️ Context not set yet, initializing...');
+      const rect = container.getBoundingClientRect();
+      const actualWidth = Math.max(rect.width, 300);
+      const actualHeight = 150;
+
+      canvas.width = actualWidth;
+      canvas.height = actualHeight;
+      canvas.style.width = `${actualWidth}px`;
+      canvas.style.height = `${actualHeight}px`;
+
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#1F2937';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, actualWidth, actualHeight);
+      contextRef.current = ctx;
+    }
+
+    const ctx = contextRef.current;
+    if (!ctx) return;
 
     const img = new Image();
     img.onload = () => {
-      const ctx = contextRef.current;
-      if (ctx && canvas) {
+      const currentCtx = contextRef.current;
+      if (currentCtx && canvasRef.current) {
         console.log('🖼️ Drawing signature to canvas');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        currentCtx.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        setHasSignature(true);
         console.log('✅ Signature redrawn successfully');
       }
     };
