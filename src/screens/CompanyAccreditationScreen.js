@@ -3854,23 +3854,38 @@ export default function CompanyAccreditationScreen({
     }
 
     const ctx = contextRef.current;
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('❌ Could not get or create canvas context');
+      return;
+    }
 
-    const img = new Image();
-    img.onload = () => {
-      const currentCtx = contextRef.current;
-      if (currentCtx && canvasRef.current) {
-        console.log('🖼️ Drawing signature to canvas');
-        currentCtx.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
-        setHasSignature(true);
-        console.log('✅ Signature redrawn successfully');
-      }
+    // Use requestAnimationFrame to ensure canvas is ready
+    let rafId = requestAnimationFrame(() => {
+      const img = new Image();
+      img.onload = () => {
+        const currentCtx = contextRef.current;
+        const currentCanvas = canvasRef.current;
+        if (currentCtx && currentCanvas) {
+          console.log('🖼️ Drawing signature to canvas, size:', {width: currentCanvas.width, height: currentCanvas.height});
+          // Clear canvas first to ensure clean draw
+          currentCtx.fillStyle = 'white';
+          currentCtx.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
+          // Then draw signature
+          currentCtx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
+          setHasSignature(true);
+          console.log('✅ Signature drawn successfully to canvas');
+        }
+      };
+      img.onerror = (err) => {
+        console.error('❌ Failed to load signature image:', err);
+      };
+      console.log('🖼️ Loading signature image from state, size:', section26.hs_agreement_signature.length);
+      img.src = section26.hs_agreement_signature;
+    });
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
     };
-    img.onerror = (err) => {
-      console.error('❌ Failed to load signature image:', err);
-    };
-    console.log('🖼️ Loading signature image from state');
-    img.src = section26.hs_agreement_signature;
   }, [expandedSections[26], section26.hs_agreement_signature]);  // Redraw when signature changes
 
   // Setup canvas event listeners
