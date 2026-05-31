@@ -3787,26 +3787,43 @@ export default function CompanyAccreditationScreen({
 
       console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight, hasSignatureData: !!section26.hs_agreement_signature });
 
-      // Set canvas resolution (drawing surface)
-      canvas.width = actualWidth;
-      canvas.height = actualHeight;
+      // Only fully initialize canvas if width/height don't match (avoid clearing unnecessarily)
+      const needsResize = canvas.width !== actualWidth || canvas.height !== actualHeight;
+      
+      if (needsResize) {
+        console.log('🖼️ REINITIALIZING CANVAS - size changed');
+        // Set canvas resolution (drawing surface) - this clears the canvas
+        canvas.width = actualWidth;
+        canvas.height = actualHeight;
 
-      // Set canvas display size to match exactly
-      canvas.style.width = `${actualWidth}px`;
-      canvas.style.height = `${actualHeight}px`;
+        // Set canvas display size to match exactly
+        canvas.style.width = `${actualWidth}px`;
+        canvas.style.height = `${actualHeight}px`;
 
-      // Get context and set it up
-      const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#1F2937';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, actualWidth, actualHeight);
+        // Get context and set it up
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#1F2937';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, actualWidth, actualHeight);
 
-      contextRef.current = ctx;
+        contextRef.current = ctx;
+      } else {
+        console.log('🖼️ CANVAS SIZE UNCHANGED - skipping full reinitialization');
+        // Just ensure context is set
+        if (!contextRef.current) {
+          const ctx = canvas.getContext('2d');
+          ctx.strokeStyle = '#1F2937';
+          ctx.lineWidth = 2.5;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          contextRef.current = ctx;
+        }
+      }
 
-      // If there's an existing signature, draw it - this happens AFTER context is set
+      // If there's an existing signature, draw it
       if (section26.hs_agreement_signature) {
         console.log('🖼️ ATTEMPTING TO REDRAW EXISTING SIGNATURE - Creating Image object');
         const img = new Image();
