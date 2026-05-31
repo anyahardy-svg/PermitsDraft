@@ -3750,15 +3750,14 @@ export default function CompanyAccreditationScreen({
   const contextRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  // Initialize canvas - runs when section expands or signature data changes
+  // Initialize canvas - runs ONLY when section is opened/closed, NOT when signature data changes
   useEffect(() => {
     if (!expandedSections[26]) {
       console.log('📋 Section 26 not expanded, skipping canvas init');
       return;
     }
 
-    console.log('🖼️ CANVAS INIT TRIGGERED - expandedSections[26] or section26.hs_agreement_signature changed');
-    console.log('🖼️ section26 state at init:', { hasSignature: !!section26.hs_agreement_signature, signatureLength: section26.hs_agreement_signature?.length, name: section26.hs_agreement_accepted_by });
+    console.log('🖼️ CANVAS INIT - Section opened/closed');
 
     // Use requestAnimationFrame to wait for DOM to be painted
     let animFrameId;
@@ -3772,7 +3771,6 @@ export default function CompanyAccreditationScreen({
       if (!canvas || !container) {
         checkAttempts++;
         if (checkAttempts < maxAttempts) {
-          // Retry
           animFrameId = requestAnimationFrame(initCanvas);
         } else {
           console.error('❌ Canvas or container not found after', maxAttempts, 'attempts');
@@ -3785,18 +3783,16 @@ export default function CompanyAccreditationScreen({
       const actualWidth = Math.max(rect.width, 300);
       const actualHeight = 150;
 
-      console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight, hasSignatureData: !!section26.hs_agreement_signature });
+      console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight });
 
-      // Only fully initialize canvas if width/height don't match (avoid clearing unnecessarily)
-      const needsResize = canvas.width !== actualWidth || canvas.height !== actualHeight;
-      
-      if (needsResize) {
-        console.log('🖼️ REINITIALIZING CANVAS - size changed');
-        // Set canvas resolution (drawing surface) - this clears the canvas
+      // Only initialize if this is first time (context not set yet)
+      if (!contextRef.current) {
+        console.log('🖼️ First initialization - setting up canvas');
+        // Set canvas resolution (drawing surface)
         canvas.width = actualWidth;
         canvas.height = actualHeight;
 
-        // Set canvas display size to match exactly
+        // Set canvas display size
         canvas.style.width = `${actualWidth}px`;
         canvas.style.height = `${actualHeight}px`;
 
@@ -3810,47 +3806,10 @@ export default function CompanyAccreditationScreen({
         ctx.fillRect(0, 0, actualWidth, actualHeight);
 
         contextRef.current = ctx;
+        console.log('✅ Canvas initialized');
       } else {
-        console.log('🖼️ CANVAS SIZE UNCHANGED - skipping full reinitialization');
-        // Just ensure context is set
-        if (!contextRef.current) {
-          const ctx = canvas.getContext('2d');
-          ctx.strokeStyle = '#1F2937';
-          ctx.lineWidth = 2.5;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          contextRef.current = ctx;
-        }
+        console.log('ℹ️ Canvas already initialized, skipping setup');
       }
-
-      // If there's an existing signature, draw it
-      if (section26.hs_agreement_signature) {
-        console.log('🖼️ ATTEMPTING TO REDRAW EXISTING SIGNATURE - Creating Image object');
-        const img = new Image();
-        img.onload = () => {
-          // Re-get context in case it was reset
-          const currentCtx = canvasRef.current?.getContext('2d');
-          if (currentCtx) {
-            console.log('🖼️ IMAGE LOADED - Drawing signature to canvas');
-            currentCtx.drawImage(img, 0, 0, actualWidth, actualHeight);
-            console.log('✅ Existing signature redrawn on canvas successfully');
-          } else {
-            console.error('❌ Could not get canvas context when drawing signature');
-          }
-        };
-        img.onerror = (err) => {
-          console.error('❌ Failed to load signature image:', err);
-        };
-        img.onprogress = (e) => {
-          console.log('🖼️ Image loading progress...');
-        };
-        console.log('🖼️ Setting Image.src to signature data...');
-        img.src = section26.hs_agreement_signature;
-      } else {
-        console.log('ℹ️ No signature data to redraw');
-      }
-
-      console.log('✅ Canvas initialized:', { width: actualWidth, height: actualHeight });
     };
 
     // Start the initialization
@@ -3861,7 +3820,34 @@ export default function CompanyAccreditationScreen({
         cancelAnimationFrame(animFrameId);
       }
     };
-  }, [expandedSections[26], section26.hs_agreement_signature]);
+  }, [expandedSections[26]]);  // ONLY depends on section visibility, NOT signature data
+
+  // Separate effect to redraw signature when it changes
+  useEffect(() => {
+    if (!expandedSections[26]) return;
+    if (!section26.hs_agreement_signature) return;
+    if (!contextRef.current) return;
+
+    console.log('🖼️ REDRAW TRIGGERED - Signature data changed');
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const ctx = contextRef.current;
+      if (ctx && canvas) {
+        console.log('🖼️ Drawing signature to canvas');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        console.log('✅ Signature redrawn successfully');
+      }
+    };
+    img.onerror = (err) => {
+      console.error('❌ Failed to load signature image:', err);
+    };
+    console.log('🖼️ Loading signature image from state');
+    img.src = section26.hs_agreement_signature;
+  }, [expandedSections[26], section26.hs_agreement_signature]);  // Redraw when signature changes
 
   // Setup canvas event listeners
   useEffect(() => {
@@ -4675,11 +4661,11 @@ export default function CompanyAccreditationScreen({
               
               {/* Section 25: Contact Information */}
               {renderContactInfoSection()}
+              
+              {/* Section 26: H&S Agreement - INSIDE ScrollView now */}
+              {renderSection26HSAgreement()}
         </View>
       </ScrollView>
-
-      {/* Section 26: H&S Agreement - OUTSIDE ScrollView to capture signature input */}
-      {renderSection26HSAgreement()}
 
       {/* Status Badge and Buttons */}
       <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}>
