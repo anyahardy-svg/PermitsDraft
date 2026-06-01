@@ -3839,34 +3839,35 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    // Ensure context is initialized if not already
-    if (!contextRef.current) {
-      console.log('🖼️ Context not set yet, initializing...');
-      const rect = container.getBoundingClientRect();
-      const actualWidth = Math.max(rect.width, 300);
-      const actualHeight = 150;
+    console.log('🖼️ Canvas and container exist, proceeding with redraw');
 
-      canvas.width = actualWidth;
-      canvas.height = actualHeight;
-      canvas.style.width = `${actualWidth}px`;
-      canvas.style.height = `${actualHeight}px`;
+    // ALWAYS reset and reinitialize context - component re-render may have invalidated it
+    const rect = container.getBoundingClientRect();
+    const actualWidth = Math.max(rect.width, 300);
+    const actualHeight = 150;
 
-      const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#1F2937';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, actualWidth, actualHeight);
-      contextRef.current = ctx;
-      console.log('🖼️ Context initialized with canvas size:', {w: actualWidth, h: actualHeight});
-    }
+    canvas.width = actualWidth;
+    canvas.height = actualHeight;
+    canvas.style.width = `${actualWidth}px`;
+    canvas.style.height = `${actualHeight}px`;
 
-    const ctx = contextRef.current;
+    const ctx = canvas.getContext('2d');
     if (!ctx) {
-      console.error('❌ Could not get or create canvas context');
+      console.error('❌ Could not get canvas context');
       return;
     }
+    
+    // Reconfigure context styles
+    ctx.strokeStyle = '#1F2937';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, actualWidth, actualHeight);
+    
+    // IMPORTANT: Update the ref to ensure we have the fresh context
+    contextRef.current = ctx;
+    console.log('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
 
     // Get current canvas dimensions before drawing
     const canvasDimensions = { w: canvas.width, h: canvas.height, clientW: container.clientWidth };
@@ -3893,7 +3894,7 @@ export default function CompanyAccreditationScreen({
           setHasSignature(true);
           console.log('✅ Signature drawn successfully to canvas');
         } else {
-          console.error('❌ Missing context or canvas in img.onload');
+          console.error('❌ Missing context or canvas in img.onload - currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
         }
       };
       
