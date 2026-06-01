@@ -3820,16 +3820,22 @@ export default function CompanyAccreditationScreen({
 
   // Separate effect to redraw signature when it changes
   useEffect(() => {
-    if (!expandedSections[26]) return;
-    if (!section26.hs_agreement_signature) return;
+    if (!expandedSections[26]) {
+      console.log('🖼️ REDRAW: Section 26 is collapsed, skipping');
+      return;
+    }
+    if (!section26.hs_agreement_signature) {
+      console.log('🖼️ REDRAW: No signature data, skipping');
+      return;
+    }
 
-    console.log('🖼️ REDRAW TRIGGERED - Signature data changed');
+    console.log('🖼️ REDRAW TRIGGERED - Signature data changed, length:', section26.hs_agreement_signature.length);
     
     const canvas = canvasRef.current;
     const container = canvasContainerRef.current;
     
     if (!canvas || !container) {
-      console.warn('⏳ Canvas or container not ready for redraw');
+      console.warn('⏳ Canvas or container not ready for redraw - canvas:', !!canvas, 'container:', !!container);
       return;
     }
 
@@ -3853,6 +3859,7 @@ export default function CompanyAccreditationScreen({
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, actualWidth, actualHeight);
       contextRef.current = ctx;
+      console.log('🖼️ Context initialized with canvas size:', {w: actualWidth, h: actualHeight});
     }
 
     const ctx = contextRef.current;
@@ -3861,31 +3868,46 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
+    // Get current canvas dimensions before drawing
+    const canvasDimensions = { w: canvas.width, h: canvas.height, clientW: container.clientWidth };
+    console.log('🖼️ About to draw, canvas dimensions:', canvasDimensions);
+
     // Use requestAnimationFrame to ensure canvas is ready
     let rafId = requestAnimationFrame(() => {
+      console.log('🖼️ RAF callback - creating Image object');
       const img = new Image();
+      
       img.onload = () => {
         const currentCtx = contextRef.current;
         const currentCanvas = canvasRef.current;
+        console.log('📸 Image loaded, currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
+        console.log('📸 Canvas dimensions now:', {w: currentCanvas?.width, h: currentCanvas?.height});
         if (currentCtx && currentCanvas) {
-          console.log('🖼️ Drawing signature to canvas, size:', {width: currentCanvas.width, height: currentCanvas.height});
+          console.log('🖼️ Clearing canvas and drawing signature');
           // Clear canvas first to ensure clean draw
           currentCtx.fillStyle = 'white';
           currentCtx.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
+          console.log('🖼️ Canvas cleared');
           // Then draw signature
           currentCtx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
           setHasSignature(true);
           console.log('✅ Signature drawn successfully to canvas');
+        } else {
+          console.error('❌ Missing context or canvas in img.onload');
         }
       };
+      
       img.onerror = (err) => {
-        console.error('❌ Failed to load signature image:', err);
+        console.error('❌ Failed to load signature image, error:', err);
+        console.error('❌ Image src first 50 chars:', section26.hs_agreement_signature.substring(0, 50));
       };
-      console.log('🖼️ Loading signature image from state, size:', section26.hs_agreement_signature.length);
+      
+      console.log('🖼️ Setting img.src, signature length:', section26.hs_agreement_signature.length);
       img.src = section26.hs_agreement_signature;
     });
 
     return () => {
+      console.log('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [expandedSections[26], section26.hs_agreement_signature]);  // Redraw when signature changes
