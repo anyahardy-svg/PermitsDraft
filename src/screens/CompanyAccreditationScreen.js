@@ -3820,16 +3820,17 @@ export default function CompanyAccreditationScreen({
 
   // Separate effect to redraw signature when it changes
   useEffect(() => {
-    if (!expandedSections[26]) {
-      console.log('🖼️ REDRAW: Section 26 is collapsed, skipping');
-      return;
-    }
+    // IMPORTANT: Do NOT skip redraw based on expandedSections
+    // Keep canvas in sync even if section is collapsed
+    // When user expands section later, the signature will already be drawn
+    
     if (!section26.hs_agreement_signature) {
       console.log('🖼️ REDRAW: No signature data, skipping');
       return;
     }
 
     console.log('🖼️ REDRAW TRIGGERED - Signature data changed, length:', section26.hs_agreement_signature.length);
+    console.log('🖼️ Section 26 expanded?:', expandedSections[26], '(will redraw regardless)');
     
     const canvas = canvasRef.current;
     const container = canvasContainerRef.current;
@@ -3911,7 +3912,7 @@ export default function CompanyAccreditationScreen({
       console.log('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [expandedSections[26], section26.hs_agreement_signature]);  // Redraw when signature changes
+  }, [section26.hs_agreement_signature]);  // ONLY depend on signature data, not expandedSections
 
   // Setup canvas event listeners
   useEffect(() => {
