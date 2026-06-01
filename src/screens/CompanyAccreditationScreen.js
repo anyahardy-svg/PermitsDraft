@@ -2393,8 +2393,9 @@ export default function CompanyAccreditationScreen({
       
       
       if (result.success) {
+        // Wait for data to reload before showing success - ensures signature is visible after save
+        await loadCompanyData();
         Alert.alert('Success ✅', 'Accreditation saved successfully');
-        loadCompanyData();
       } else {
         Alert.alert('Error', 'Failed to save: ' + result.error);
       }
@@ -2428,7 +2429,8 @@ export default function CompanyAccreditationScreen({
             console.log('🟢 Update successful, setting status to completed');
             setAccreditationStatus('completed');
             console.log('🟢 Status set to completed - accreditation is now complete!');
-            loadCompanyData();
+            // Wait for data to reload before considering operation fully complete
+            await loadCompanyData();
           } else {
             console.error('🔥 Failed to submit:', result.error);
           }
