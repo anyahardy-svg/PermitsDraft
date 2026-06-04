@@ -1427,6 +1427,141 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
+    Alert.alert(
+      'Delete Evidence',
+      `Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`,
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const sectionKey = `section${sectionNum}`;
+              const sectionState = eval(sectionKey);
+              const evidenceUrl = sectionState[itemKey]?.evidence;
+              
+              if (!evidenceUrl) {
+                Alert.alert('Error', 'No evidence URL found');
+                return;
+              }
+
+              const result = await deleteAccreditationCertificate(evidenceUrl);
+
+              if (result.success) {
+                // Clear from state based on section number
+                if (sectionNum === 4) {
+                  setSection4(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 5) {
+                  setSection5(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 6) {
+                  setSection6(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 7) {
+                  setSection7(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 8) {
+                  setSection8(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 9) {
+                  setSection9(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 10) {
+                  setSection10(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 11) {
+                  setSection11(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 12) {
+                  setSection12(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 13) {
+                  setSection13(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 14) {
+                  setSection14(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 15) {
+                  setSection15(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 16) {
+                  setSection16(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 17) {
+                  setSection17(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 18) {
+                  setSection18(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 19) {
+                  setSection19(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 20) {
+                  setSection20(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 21) {
+                  setSection21(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                } else if (sectionNum === 22) {
+                  setSection22(prev => ({
+                    ...prev,
+                    [itemKey]: { ...prev[itemKey], evidence: null }
+                  }));
+                }
+                Alert.alert('Success', `${itemLabel} evidence deleted`);
+              } else {
+                Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
     console.log('🔴 handleUploadInsuranceDocument called!', { insuranceType, insuranceLabel });
     try {
@@ -1966,9 +2101,9 @@ export default function CompanyAccreditationScreen({
       itemData,
       itemLabel,
       () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
-      null,
+      () => handleDeleteEvidence(sectionNum, itemKey, itemLabel),
       'Evidence',
-      true // showOnlyIcon = true to only show paperclip in the row
+      false // showOnlyIcon = false to show full UI with View/Delete/Replace buttons
     );
   };
 
