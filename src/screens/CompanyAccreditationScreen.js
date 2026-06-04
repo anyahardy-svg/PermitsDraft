@@ -95,6 +95,7 @@ export default function CompanyAccreditationScreen({
   const [lastUploadedFile, setLastUploadedFile] = useState(null); // Track file just uploaded to offer save to library
   const [saveToLibraryModal, setShowSaveToLibraryModal] = useState(false); // Modal to name and save to library
   const [librarySaveName, setLibrarySaveName] = useState('');
+  const [hoveredRequiredTooltip, setHoveredRequiredTooltip] = useState(null); // Track which "required" warning is hovered
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
@@ -1962,6 +1963,8 @@ export default function CompanyAccreditationScreen({
             style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
           >
             <View
+              onMouseEnter={() => setHoveredRequiredTooltip(documentKey)}
+              onMouseLeave={() => setHoveredRequiredTooltip(null)}
               style={{
                 width: 30,
                 height: 30,
@@ -1971,10 +1974,33 @@ export default function CompanyAccreditationScreen({
                 borderColor: '#FCA5A5',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginTop: 2
+                marginTop: 2,
+                position: 'relative'
               }}
             >
               <Text style={{ fontSize: 14 }}>📎</Text>
+              
+              {/* Tooltip on hover */}
+              {hoveredRequiredTooltip === documentKey && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: 0,
+                    backgroundColor: '#1F2937',
+                    color: 'white',
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                    borderRadius: 4,
+                    marginBottom: 8,
+                    whiteSpace: 'nowrap',
+                    zIndex: 1000,
+                    width: 'auto'
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: 'white', fontWeight: '600', whiteSpace: 'nowrap' }}>Upload required to proceed</Text>
+                </View>
+              )}
             </View>
             
             <View style={{ flex: 1 }}>
