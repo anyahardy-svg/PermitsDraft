@@ -1929,21 +1929,21 @@ export default function CompanyAccreditationScreen({
               style={{ flex: 1, minWidth: 100, backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => Linking.openURL(itemData.url || itemData.certificateUrl || itemData.evidence)}
             >
-              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
+              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
             </TouchableOpacity>
             {handleDeleteFn && (
               <TouchableOpacity
                 style={{ flex: 1, minWidth: 100, backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
                 onPress={() => handleDeleteFn()}
               >
-                <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
+                <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={{ flex: 1, minWidth: 100, backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => handleUploadFn()}
             >
-              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
+              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -1951,7 +1951,7 @@ export default function CompanyAccreditationScreen({
             style={{ backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
             onPress={() => handleUploadFn()}
           >
-            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
+            <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
           </TouchableOpacity>
         )}
       </View>
