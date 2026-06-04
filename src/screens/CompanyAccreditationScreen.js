@@ -1925,6 +1925,12 @@ export default function CompanyAccreditationScreen({
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
         {hasDocument ? (
           <>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: '#10B981', marginBottom: 8 }]}
+              onPress={() => Linking.openURL(itemData.url || itemData.certificateUrl || itemData.evidence)}
+            >
+              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 View / Download {documentType}</Text>
+            </TouchableOpacity>
             {handleDeleteFn && (
               <TouchableOpacity
                 style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
