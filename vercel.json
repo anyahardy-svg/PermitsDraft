@@ -227,19 +227,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/admin/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/permits/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/inductions/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/contractor-admin/:path*",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
