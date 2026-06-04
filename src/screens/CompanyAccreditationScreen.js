@@ -1284,6 +1284,12 @@ export default function CompanyAccreditationScreen({
                     certificateUrl: null
                   }
                 }));
+                
+                // Save to database
+                setTimeout(async () => {
+                  await autoSave();
+                }, 100);
+                
                 Alert.alert('Success', `${systemLabel} certificate deleted`);
               } else {
                 Alert.alert('Error', 'Failed to delete certificate: ' + (result.error || 'Unknown error'));
@@ -1412,6 +1418,12 @@ export default function CompanyAccreditationScreen({
                     url: null
                   }
                 }));
+                
+                // Save to database
+                setTimeout(async () => {
+                  await autoSave();
+                }, 100);
+                
                 Alert.alert('Success', `${policyLabel} document deleted`);
               } else {
                 Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
@@ -1547,6 +1559,12 @@ export default function CompanyAccreditationScreen({
                     [itemKey]: { ...prev[itemKey], evidence: null }
                   }));
                 }
+                
+                // Save to database
+                setTimeout(async () => {
+                  await autoSave();
+                }, 100);
+                
                 Alert.alert('Success', `${itemLabel} evidence deleted`);
               } else {
                 Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
@@ -1693,6 +1711,12 @@ export default function CompanyAccreditationScreen({
                     has_document: false
                   }
                 }));
+                
+                // Save to database
+                setTimeout(async () => {
+                  await autoSave();
+                }, 100);
+                
                 Alert.alert('Success', `${insuranceLabel} certificate deleted`);
               } else {
                 Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
