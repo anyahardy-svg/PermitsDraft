@@ -1770,7 +1770,7 @@ export default function CompanyAccreditationScreen({
           itemLabel: itemLabel
         });
         setShowSaveToLibraryModal(true);
-        setLibrarySaveName(`${itemLabel} - ${new Date().toLocaleDateString()}`);
+        setLibrarySaveName(file.name);
         
         // Immediately save to database after upload (don't wait 30 seconds!)
         setTimeout(async () => {
