@@ -1195,7 +1195,7 @@ export default function CompanyAccreditationScreen({
       }
 
       // Set uploading state
-      setUploadingDocumentKey(`system-${systemKey}`);
+      setUploadingDocumentKey(`certificate-${systemKey}`);
 
       // Convert the file URI to a blob
       console.log('🔄 Converting file to blob...');
@@ -1754,7 +1754,7 @@ export default function CompanyAccreditationScreen({
       }
 
       // Set uploading state (but don't show global loading to avoid scroll reset)
-      setUploadingDocumentKey(`${section}-${itemKey}-evidence`);
+      setUploadingDocumentKey(`${section}-${itemKey}`);
 
       // Convert the file URI to a blob
       const response = await fetch(file.uri);
