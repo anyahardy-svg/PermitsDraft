@@ -1924,37 +1924,35 @@ export default function CompanyAccreditationScreen({
     return (
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
         {hasDocument ? (
-          <>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: '#10B981', marginBottom: 8 }]}
+              style={{ flex: 1, minWidth: 100, backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => Linking.openURL(itemData.url || itemData.certificateUrl || itemData.evidence)}
             >
-              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 View / Download {documentType}</Text>
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
             </TouchableOpacity>
             {handleDeleteFn && (
               <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: '#EF4444', marginBottom: 8 }]}
+                style={{ flex: 1, minWidth: 100, backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
                 onPress={() => handleDeleteFn()}
               >
-                <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>🗑 Delete {documentType}</Text>
+                <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
+              style={{ flex: 1, minWidth: 100, backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => handleUploadFn()}
             >
-              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Replace {documentType}</Text>
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
             </TouchableOpacity>
-          </>
+          </View>
         ) : (
-          <>
-            <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: '#3B82F6' }]}
-              onPress={() => handleUploadFn()}
-            >
-              <Text style={{ color: 'white', flexWrap: 'wrap', textAlign: 'center' }}>📄 Upload {documentType}</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={{ backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
+            onPress={() => handleUploadFn()}
+          >
+            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
+          </TouchableOpacity>
         )}
       </View>
     );
