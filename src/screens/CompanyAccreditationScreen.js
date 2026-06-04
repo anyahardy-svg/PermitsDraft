@@ -2106,12 +2106,39 @@ export default function CompanyAccreditationScreen({
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity
-            style={{ backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
-            onPress={() => handleUploadFn()}
-          >
-            <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
-          </TouchableOpacity>
+          <View>
+            {/* Show library dropdown if available (section items only) */}
+            {isSection && evidenceLibrary.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 From Library:</Text>
+                <View>
+                  {evidenceLibrary.map((item, idx) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        backgroundColor: '#DBEAFE',
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: '#0284C7',
+                        marginBottom: idx < evidenceLibrary.length - 1 ? 6 : 12
+                      }}
+                      onPress={() => applyLibraryItem(documentKey, item)}
+                    >
+                      <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+            <TouchableOpacity
+              style={{ backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => handleUploadFn()}
+            >
+              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     );
