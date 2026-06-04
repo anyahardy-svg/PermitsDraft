@@ -623,7 +623,7 @@ export default function CompanyAccreditationScreen({
       setSelectedServices(serviceMap);
 
       const buMap = {};
-      (data.fletcher_business_units || []).forEach(unitId => {
+      (data.business_unit_ids || data.fletcher_business_units || []).forEach(unitId => {
         buMap[unitId] = true;
       });
       setSelectedBusinessUnits(buMap);
