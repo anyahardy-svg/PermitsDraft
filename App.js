@@ -9797,6 +9797,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
       try {
+        console.log('🏢 [COMPANY] handleAddCompany - editingCompany:', editingCompany);
+        console.log('🏢 [COMPANY] currentCompany state:', currentCompany);
+        console.log('🏢 [COMPANY] businessUnitIds being sent:', currentCompany.businessUnitIds);
+        
         if (editingCompany) {
           await updateCompany(currentCompany.id, { 
             name: currentCompany.name,
@@ -9805,10 +9809,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             contact_surname: currentCompany.contactSurname || null,
             contact_email: currentCompany.contactEmail || null,
             contact_phone: currentCompany.contactPhone || null,
-            public_liability_expiry: parseDateToISO(currentCompany.publicLiabilityExpiry) || null,
-            motor_vehicle_insurance_expiry: parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) || null,
-            review_date: parseDateToISO(currentCompany.reviewDate) || null,
-            accredited_date: parseDateToISO(currentCompany.accreditedDate) || null,
+            public_liability_expiry: currentCompany.publicLiabilityExpiry ? parseDateToISO(currentCompany.publicLiabilityExpiry) : null,
+            motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry ? parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) : null,
+            review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
+            accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
           });
           const freshCompanies = await listCompanies();
@@ -9827,10 +9831,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             contact_surname: currentCompany.contactSurname || null,
             contact_email: currentCompany.contactEmail || null,
             contact_phone: currentCompany.contactPhone || null,
-            public_liability_expiry: parseDateToISO(currentCompany.publicLiabilityExpiry) || null,
-            motor_vehicle_insurance_expiry: parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) || null,
-            review_date: parseDateToISO(currentCompany.reviewDate) || null,
-            accredited_date: parseDateToISO(currentCompany.accreditedDate) || null,
+            public_liability_expiry: currentCompany.publicLiabilityExpiry ? parseDateToISO(currentCompany.publicLiabilityExpiry) : null,
+            motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry ? parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) : null,
+            review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
+            accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
           });
           const freshCompanies = await listCompanies();
@@ -9839,6 +9843,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           // Add training records status for new company
           await refreshTrainingRecordsStatus(newCompany.id);
           
+          console.log('✅ [COMPANY] New company created successfully:', newCompany);
+          console.log('✅ [COMPANY] New company business_unit_ids:', newCompany.business_unit_ids);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
         setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D' });
