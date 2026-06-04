@@ -2990,7 +2990,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForContractors, setSitesForContractors] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
-  const [currentCompany, setCurrentCompany] = useState({ id: '', name: '' });
+  const [currentCompany, setCurrentCompany] = useState({ 
+    id: '', 
+    name: '', 
+    businessUnitIds: [], 
+    contactName: '', 
+    contactSurname: '', 
+    contactEmail: '', 
+    contactPhone: '', 
+    publicLiabilityExpiry: '', 
+    motorVehicleInsuranceExpiry: '', 
+    reviewDate: '', 
+    accreditedDate: '', 
+    contractor_type: 'D' 
+  });
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
@@ -10293,7 +10306,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contractor_type: 'D' }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D' }); setSelectedCompany(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
