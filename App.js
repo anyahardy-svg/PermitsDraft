@@ -9807,7 +9807,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setEditingCompany(false);
           Alert.alert('Company Updated', 'Company has been updated successfully.');
         } else {
-          const newCompany = await createCompany({ name: currentCompany.name });
+          const newCompany = await createCompany({ 
+            name: currentCompany.name,
+            business_unit_ids: currentCompany.businessUnitIds || [],
+            contact_name: currentCompany.contactName || null,
+            contact_surname: currentCompany.contactSurname || null,
+            contact_email: currentCompany.contactEmail || null,
+            contact_phone: currentCompany.contactPhone || null,
+            public_liability_expiry: parseDateToISO(currentCompany.publicLiabilityExpiry) || null,
+            motor_vehicle_insurance_expiry: parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) || null,
+            review_date: parseDateToISO(currentCompany.reviewDate) || null,
+            accredited_date: parseDateToISO(currentCompany.accreditedDate) || null,
+            contractor_type: currentCompany.contractor_type || 'D',
+          });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
           

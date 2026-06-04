@@ -72,6 +72,7 @@ export const createCompany = async (companyData) => {
       contact_email: companyData.contact_email || companyData.contactEmail || null,
       contact_phone: companyData.contact_phone || companyData.contactPhone || null,
       contact_manager: companyData.contact_manager || companyData.contactManager || null,
+      business_unit_ids: companyData.business_unit_ids || companyData.businessUnitIds || [],
       public_liability_expiry: companyData.public_liability_expiry || companyData.publicLiabilityExpiry || null,
       motor_vehicle_insurance_expiry: companyData.motor_vehicle_insurance_expiry || companyData.motorVehicleInsuranceExpiry || null,
       review_date: companyData.review_date || companyData.reviewDate || null,
