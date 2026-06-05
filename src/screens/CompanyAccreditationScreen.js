@@ -1921,6 +1921,47 @@ export default function CompanyAccreditationScreen({
                 </ScrollView>
               </View>
             )}
+            
+            {/* Show action buttons when expanded */}
+            {isDocUIExpanded && isSection && (
+              <View style={{ paddingTop: 8, marginLeft: 38, flexDirection: 'row', gap: 8, paddingBottom: 8 }}>
+                {handleDeleteFn && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert('Delete Document', `Remove this ${documentType}?`, [
+                        { text: 'Cancel', onPress: () => {} },
+                        { text: 'Delete', onPress: () => { handleDeleteFn(); setExpandedEvidenceUI(null); }, style: 'destructive' }
+                      ]);
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: '#FEE2E2',
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: '#FECACA'
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: '#991B1B', fontWeight: '600' }}>🗑️ Delete</Text>
+                  </TouchableOpacity>
+                )}
+                {handleUploadFn && (
+                  <TouchableOpacity
+                    onPress={() => handleUploadFn()}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: '#DBEAFE',
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: '#0284C7'
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>📄 Replace</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         );
       }
