@@ -1539,6 +1539,7 @@ export default function CompanyAccreditationScreen({
               // Save to database
               setTimeout(async () => {
                 await autoSave();
+                setExpandedEvidenceUI(null);
               }, 100);
               
               const deleteType = libraryItemId ? 'removed' : 'deleted';
@@ -1951,15 +1952,8 @@ export default function CompanyAccreditationScreen({
                 {handleDeleteFn && (
                   <TouchableOpacity
                     onPress={() => {
-                      Alert.alert('Delete Document', `Remove this ${documentType}?`, [
-                        { text: 'Cancel', onPress: () => {} },
-                        { text: 'Delete', onPress: () => {
-                          console.log('🗑️ Deleting document...');
-                          handleDeleteFn();
-                          setExpandedEvidenceUI(null);
-                          setTimeout(() => autoSave(), 100);
-                        }, style: 'destructive' }
-                      ]);
+                      console.log('🗑️ Delete button pressed, calling handler');
+                      handleDeleteFn();
                     }}
                     style={{
                       paddingHorizontal: 12,
