@@ -1928,13 +1928,9 @@ export default function CompanyAccreditationScreen({
       // Show needs document warning
       if (needsDocument) {
         return (
-          <TouchableOpacity
-            onPress={() => handleUploadFn()}
-            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
-          >
-            <View
-              onMouseEnter={() => setHoveredRequiredTooltip(documentKey)}
-              onMouseLeave={() => setHoveredRequiredTooltip(null)}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => handleUploadFn()}
               style={{
                 width: 30,
                 height: 30,
@@ -1945,33 +1941,12 @@ export default function CompanyAccreditationScreen({
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginTop: 2,
-                position: 'relative'
+                position: 'relative',
+                cursor: 'pointer'
               }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
-              
-              {/* Tooltip on hover */}
-              {hoveredRequiredTooltip === documentKey && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: 0,
-                    backgroundColor: '#1F2937',
-                    color: 'white',
-                    paddingHorizontal: 8,
-                    paddingVertical: 6,
-                    borderRadius: 4,
-                    marginBottom: 8,
-                    whiteSpace: 'nowrap',
-                    zIndex: 1000,
-                    width: 'auto'
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: 'white', fontWeight: '600', whiteSpace: 'nowrap' }}>Upload required to proceed</Text>
-                </View>
-              )}
-            </View>
+              <Text style={{ fontSize: 18 }}>📎</Text>
+            </TouchableOpacity>
             
             <View style={{ flex: 1 }}>
               <View style={{
@@ -1982,10 +1957,10 @@ export default function CompanyAccreditationScreen({
                 borderLeftWidth: 3,
                 borderLeftColor: '#EF4444'
               }}>
-                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>⚠️ {documentType} Required</Text>
+                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>Evidence Required - Click the clip to upload</Text>
               </View>
             </View>
-          </TouchableOpacity>
+          </View>
         );
       }
 
@@ -1993,44 +1968,52 @@ export default function CompanyAccreditationScreen({
       // If no library items, just show upload button directly
       if (!isSection || evidenceLibrary.length === 0) {
         return (
-          <TouchableOpacity
-            onPress={() => handleUploadFn()}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 5,
-              backgroundColor: '#F3F4F6',
-              borderWidth: 1,
-              borderColor: '#D1D5DB',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: 2
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>📎</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => handleUploadFn()}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#F3F4F6',
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2,
+                cursor: 'pointer'
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>📎</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 11, color: '#6B7280' }}>Click to upload</Text>
+          </View>
         );
       }
 
       // If section with library, show clickable icon to toggle dropdown
       return (
         <View>
-          <TouchableOpacity
-            onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 5,
-              backgroundColor: '#DBEAFE',
-              borderWidth: 1,
-              borderColor: '#0284C7',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: 2
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>📎</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                backgroundColor: '#DBEAFE',
+                borderWidth: 1,
+                borderColor: '#0284C7',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 2,
+                cursor: 'pointer'
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>📎</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>Click to {isDocUIExpanded ? 'close' : 'open'}</Text>
+          </View>
 
           {/* Show library dropdown when expanded - no existing document yet */}
           {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && !hasDocument && (
