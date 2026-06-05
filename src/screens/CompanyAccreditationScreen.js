@@ -2265,9 +2265,7 @@ export default function CompanyAccreditationScreen({
       
       // Save certificate URL with correct column name pattern
       const urlKeyName = `${baseName}_certificate_url`;
-      if (accreditedSystems[sys.key]?.certificateUrl) {
-        updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
-      }
+      updateData[urlKeyName] = accreditedSystems[sys.key]?.certificateUrl || null;
       
       // Save expiry date with correct column name pattern
       const expiryKeyName = `${baseName}_certificate_expiry`;
@@ -2283,92 +2281,68 @@ export default function CompanyAccreditationScreen({
           const isoDate = parseNZDate(expiryValue);
           updateData[expiryKeyName] = isoDate;
         }
+      } else {
+        updateData[expiryKeyName] = null;
       }
     });
 
     // Add policies (Section 4)
     updateData.health_safety_policy_exists = policies.health_safety.exists;
-    if (policies.health_safety.url) {
-      updateData.health_safety_policy_url = policies.health_safety.url;
-    }
+    updateData.health_safety_policy_url = policies.health_safety.url || null;
     
     updateData.environmental_policy_exists = policies.environmental.exists;
-    if (policies.environmental.url) {
-      updateData.environmental_policy_url = policies.environmental.url;
-    }
+    updateData.environmental_policy_url = policies.environmental.url || null;
     
     updateData.drug_alcohol_policy_exists = policies.drug_alcohol.exists;
-    if (policies.drug_alcohol.url) {
-      updateData.drug_alcohol_policy_url = policies.drug_alcohol.url;
-    }
+    updateData.drug_alcohol_policy_url = policies.drug_alcohol.url || null;
     
     updateData.quality_policy_exists = policies.quality.exists;
-    if (policies.quality.url) {
-      updateData.quality_policy_url = policies.quality.url;
-    }
+    updateData.quality_policy_url = policies.quality.url || null;
 
     // Add Section 4 data (Accident, Incident & Investigation)
     updateData.accident_reporting_exists = section4.accident_reporting.exists;
     updateData.accident_reporting_score = section4.accident_reporting.score;
-    if (section4.accident_reporting.evidence) {
-      updateData.accident_reporting_evidence_url = section4.accident_reporting.evidence;
-    }
+    updateData.accident_reporting_evidence_url = section4.accident_reporting.evidence || null;
 
     updateData.accident_investigation_exists = section4.accident_investigation.exists;
     updateData.accident_investigation_score = section4.accident_investigation.score;
-    if (section4.accident_investigation.evidence) {
-      updateData.accident_investigation_evidence_url = section4.accident_investigation.evidence;
-    }
+    updateData.accident_investigation_evidence_url = section4.accident_investigation.evidence || null;
 
     // Add Section 5 data (Health Hazard Management)
     updateData.health_hazard_plan_exists = section5.health_hazard_plan.exists;
     updateData.health_hazard_plan_score = section5.health_hazard_plan.score;
-    if (section5.health_hazard_plan.evidence) {
-      updateData.health_hazard_plan_evidence_url = section5.health_hazard_plan.evidence;
-    }
+    updateData.health_hazard_plan_evidence_url = section5.health_hazard_plan.evidence || null;
 
     updateData.exposure_monitoring_exists = section5.exposure_monitoring.exists;
     updateData.exposure_monitoring_frequency = section5.exposure_monitoring.frequency;
     updateData.exposure_monitoring_score = section5.exposure_monitoring.score;
-    if (section5.exposure_monitoring.evidence) {
-      updateData.exposure_monitoring_evidence_url = section5.exposure_monitoring.evidence;
-    }
+    updateData.exposure_monitoring_evidence_url = section5.exposure_monitoring.evidence || null;
 
     updateData.respiratory_training_exists = section5.respiratory_training.exists;
     updateData.respiratory_training_score = section5.respiratory_training.score;
-    if (section5.respiratory_training.evidence) {
-      updateData.respiratory_training_evidence_url = section5.respiratory_training.evidence;
-    }
+    updateData.respiratory_training_evidence_url = section5.respiratory_training.evidence || null;
 
     updateData.exhaust_ventilation_exists = section5.exhaust_ventilation.exists;
     updateData.exhaust_ventilation_score = section5.exhaust_ventilation.score;
-    if (section5.exhaust_ventilation.evidence) {
-      updateData.exhaust_ventilation_evidence_url = section5.exhaust_ventilation.evidence;
-    }
+    updateData.exhaust_ventilation_evidence_url = section5.exhaust_ventilation.evidence || null;
 
     updateData.health_monitoring_exists = section5.health_monitoring.exists;
     updateData.health_monitoring_frequency = section5.health_monitoring.frequency;
     updateData.health_monitoring_score = section5.health_monitoring.score;
-    if (section5.health_monitoring.evidence) {
-      updateData.health_monitoring_evidence_url = section5.health_monitoring.evidence;
-    }
+    updateData.health_monitoring_evidence_url = section5.health_monitoring.evidence || null;
 
     // Add Section 6 data (Induction & Training)
     Object.entries(section6).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 7 data (Hazard Identification & Management)
     Object.entries(section7).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 8 data (PPE)
@@ -2377,9 +2351,7 @@ export default function CompanyAccreditationScreen({
       if (key !== 'ppe_compliance_yesno' && typeof value === 'object' && value !== null) {
         updateData[`${key}_exists`] = value.exists;
         updateData[`${key}_score`] = value.score;
-        if (value.evidence) {
-          updateData[`${key}_evidence_url`] = value.evidence;
-        }
+        updateData[`${key}_evidence_url`] = value.evidence || null;
       }
     });
 
@@ -2389,9 +2361,7 @@ export default function CompanyAccreditationScreen({
       if (key !== 'plant_equipment_onsite_yesno' && typeof value === 'object' && value !== null) {
         updateData[`${key}_exists`] = value.exists;
         updateData[`${key}_score`] = value.score;
-        if (value.evidence) {
-          updateData[`${key}_evidence_url`] = value.evidence;
-        }
+        updateData[`${key}_evidence_url`] = value.evidence || null;
       }
     });
 
@@ -2401,9 +2371,7 @@ export default function CompanyAccreditationScreen({
       if (key !== 'electrical_equipment_onsite_yesno' && typeof value === 'object' && value !== null) {
         updateData[`${key}_exists`] = value.exists;
         updateData[`${key}_score`] = value.score;
-        if (value.evidence) {
-          updateData[`${key}_evidence_url`] = value.evidence;
-        }
+        updateData[`${key}_evidence_url`] = value.evidence || null;
       }
     });
 
@@ -2414,9 +2382,7 @@ export default function CompanyAccreditationScreen({
       if (key !== 'emergency_first_aid_yesno' && key !== 'emergency_first_aid_equipment' && typeof value === 'object' && value !== null) {
         updateData[`${key}_exists`] = value.exists;
         updateData[`${key}_score`] = value.score;
-        if (value.evidence) {
-          updateData[`${key}_evidence_url`] = value.evidence;
-        }
+        updateData[`${key}_evidence_url`] = value.evidence || null;
       }
     });
 
@@ -2424,27 +2390,21 @@ export default function CompanyAccreditationScreen({
     Object.entries(section12).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 13 data (Contractor Management)
     Object.entries(section13).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 14 data (Health & Wellbeing)
     Object.entries(section14).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 21 data (Quality Management)
@@ -2456,9 +2416,7 @@ export default function CompanyAccreditationScreen({
         // Other questions are scored
         updateData[`${key}_exists`] = value.exists;
         updateData[`${key}_score`] = value.score;
-        if (value.evidence) {
-          updateData[`${key}_evidence_url`] = value.evidence;
-        }
+        updateData[`${key}_evidence_url`] = value.evidence || null;
       }
     });
 
@@ -2466,32 +2424,25 @@ export default function CompanyAccreditationScreen({
     Object.entries(section22).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 24 data (Insurance Documents)
-    if (section24.public_liability_insurance.expiry_date) {
-      updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
-    }
-    if (section24.public_liability_insurance.url) {
-      updateData.public_liability_insurance_url = section24.public_liability_insurance.url;
+    updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date || null;
+    updateData.public_liability_insurance_url = section24.public_liability_insurance.url || null;
+    if (section24.public_liability_insurance.uploaded_at) {
       updateData.public_liability_insurance_uploaded_at = section24.public_liability_insurance.uploaded_at;
     }
-    if (section24.motor_vehicle_insurance.expiry_date) {
-      updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
-    }
-    if (section24.motor_vehicle_insurance.url) {
-      updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url;
+    
+    updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date || null;
+    updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url || null;
+    if (section24.motor_vehicle_insurance.uploaded_at) {
       updateData.motor_vehicle_insurance_uploaded_at = section24.motor_vehicle_insurance.uploaded_at;
     }
 
-    if (section24.professional_indemnity_insurance.expiry_date) {
-      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
-    }
-    if (section24.professional_indemnity_insurance.url) {
-      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
+    updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date || null;
+    updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
+    if (section24.professional_indemnity_insurance.uploaded_at) {
       updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
     }
 
@@ -2537,45 +2488,35 @@ export default function CompanyAccreditationScreen({
     Object.entries(section15).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 16 data (Communication & Reporting)
     Object.entries(section16).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 17 data (Performance & Review)
     Object.entries(section17).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 18 data (Incident Analysis & Learning)
     Object.entries(section18).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 19 data (Continuous Improvement)
     Object.entries(section19).forEach(([key, value]) => {
       updateData[`${key}_exists`] = value.exists;
       updateData[`${key}_score`] = value.score;
-      if (value.evidence) {
-        updateData[`${key}_evidence_url`] = value.evidence;
-      }
+      updateData[`${key}_evidence_url`] = value.evidence || null;
     });
 
     // Add Section 26 data (Health & Safety Agreement)
