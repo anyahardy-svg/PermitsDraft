@@ -2180,7 +2180,7 @@ export default function CompanyAccreditationScreen({
       () => handleUploadEvidence(`section${sectionNum}`, itemKey, itemLabel),
       () => handleDeleteEvidence(sectionNum, itemKey, itemLabel),
       'Evidence',
-      false // showOnlyIcon = false to show full UI with View/Delete/Replace buttons
+      true // showOnlyIcon = true to show paperclip icon with library dropdown
     );
   };
 
@@ -3287,7 +3287,7 @@ export default function CompanyAccreditationScreen({
                     {/* Expanded Evidence UI - shown below scores */}
                     {expandedEvidenceUI === `section${section.number}-${item.key}` && (
                       <View style={{ marginBottom: 12, marginTop: 12 }}>
-                        {renderDocumentToggle(`section${section.number}-${item.key}`, section.state[item.key], item.question, () => handleUploadEvidence(`section${section.number}`, item.key, item.question), null, 'Evidence', false)}
+                        {renderDocumentToggle(`section${section.number}-${item.key}`, section.state[item.key], item.question, () => handleUploadEvidence(`section${section.number}`, item.key, item.question), () => handleDeleteEvidence(section.number, item.key, item.question), 'Evidence', false)}
                       </View>
                     )}
 
@@ -4757,7 +4757,8 @@ export default function CompanyAccreditationScreen({
                         () => handleUploadCertificate(system.key, system.label),
                         () => handleDeleteCertificate(system.key, system.label),
                         'Certificate',
-                        false
+                        true
+                      )}
                       )}
                     </View>
                   )}
