@@ -1923,25 +1923,25 @@ export default function CompanyAccreditationScreen({
             {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && (
               <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
                 <Text style={{ fontSize: 15, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from library:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {evidenceLibrary.map(item => (
+                <View>
+                  {evidenceLibrary.map((item, idx) => (
                     <TouchableOpacity
                       key={item.id}
                       style={{
                         paddingHorizontal: 12,
-                        paddingVertical: 8,
+                        paddingVertical: 10,
                         backgroundColor: '#DBEAFE',
                         borderRadius: 6,
                         borderWidth: 1,
                         borderColor: '#0284C7',
-                        marginRight: 8
+                        marginBottom: idx < evidenceLibrary.length - 1 ? 6 : 0
                       }}
                       onPress={() => applyLibraryItem(documentKey, item)}
                     >
                       <Text style={{ fontSize: 15, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             )}
             
@@ -1953,7 +1953,12 @@ export default function CompanyAccreditationScreen({
                     onPress={() => {
                       Alert.alert('Delete Document', `Remove this ${documentType}?`, [
                         { text: 'Cancel', onPress: () => {} },
-                        { text: 'Delete', onPress: () => { handleDeleteFn(); setExpandedEvidenceUI(null); }, style: 'destructive' }
+                        { text: 'Delete', onPress: () => {
+                          console.log('🗑️ Deleting document...');
+                          handleDeleteFn();
+                          setExpandedEvidenceUI(null);
+                          setTimeout(() => autoSave(), 100);
+                        }, style: 'destructive' }
                       ]);
                     }}
                     style={{
