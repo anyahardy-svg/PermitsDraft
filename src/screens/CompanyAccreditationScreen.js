@@ -1848,7 +1848,7 @@ export default function CompanyAccreditationScreen({
       return (
         <View style={{ paddingTop: 12, paddingBottom: 12, alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#3B82F6" style={{ marginBottom: 8 }} />
-          <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>⏳ Uploading {itemLabel}...</Text>
+          <Text style={{ fontSize: 18, color: '#3B82F6', fontWeight: '600' }}>⏳ Uploading {itemLabel}...</Text>
         </View>
       );
     }
@@ -1876,7 +1876,7 @@ export default function CompanyAccreditationScreen({
                   marginTop: 2
                 }}
               >
-                <Text style={{ fontSize: 14 }}>📎</Text>
+                <Text style={{ fontSize: 18 }}>📎</Text>
               </View>
               
               <View style={{ flex: 1 }}>
@@ -1888,9 +1888,9 @@ export default function CompanyAccreditationScreen({
                   borderLeftWidth: 3,
                   borderLeftColor: '#10B981'
                 }}>
-                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
+                  <Text style={{ fontSize: 18, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
                   <TouchableOpacity onPress={() => Linking.openURL(itemData.certificateUrl || itemData.evidence)}>
-                    <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
+                    <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1899,7 +1899,7 @@ export default function CompanyAccreditationScreen({
             {/* Show library dropdown when expanded (section items only) */}
             {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && (
               <View style={{ paddingTop: 12, marginLeft: 38, paddingBottom: 12 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from library:</Text>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 Select from library:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {evidenceLibrary.map(item => (
                     <TouchableOpacity
@@ -1915,7 +1915,7 @@ export default function CompanyAccreditationScreen({
                       }}
                       onPress={() => applyLibraryItem(documentKey, item)}
                     >
-                      <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                      <Text style={{ fontSize: 15, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -1942,7 +1942,7 @@ export default function CompanyAccreditationScreen({
                       borderColor: '#FECACA'
                     }}
                   >
-                    <Text style={{ fontSize: 11, color: '#991B1B', fontWeight: '600' }}>🗑️ Delete</Text>
+                    <Text style={{ fontSize: 15, color: '#991B1B', fontWeight: '600' }}>🗑️ Delete</Text>
                   </TouchableOpacity>
                 )}
                 {handleUploadFn && (
@@ -1957,7 +1957,7 @@ export default function CompanyAccreditationScreen({
                       borderColor: '#0284C7'
                     }}
                   >
-                    <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>📄 Replace</Text>
+                    <Text style={{ fontSize: 15, color: '#0284C7', fontWeight: '600' }}>📄 Replace</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1998,7 +1998,7 @@ export default function CompanyAccreditationScreen({
                 borderLeftWidth: 3,
                 borderLeftColor: '#EF4444'
               }}>
-                <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600' }}>Evidence Required - Click the clip to upload</Text>
+                <Text style={{ fontSize: 18, color: '#991B1B', fontWeight: '600' }}>Evidence Required - Click the clip to upload</Text>
               </View>
             </View>
           </View>
@@ -2025,9 +2025,9 @@ export default function CompanyAccreditationScreen({
                 cursor: 'pointer'
               }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
+              <Text style={{ fontSize: 18 }}>📎</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 11, color: '#6B7280' }}>Click to upload</Text>
+            <Text style={{ fontSize: 15, color: '#6B7280' }}>Click to upload</Text>
           </View>
         );
       }
@@ -2051,15 +2051,15 @@ export default function CompanyAccreditationScreen({
                 cursor: 'pointer'
               }}
             >
-              <Text style={{ fontSize: 14 }}>📎</Text>
+              <Text style={{ fontSize: 18 }}>📎</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 11, color: '#0284C7', fontWeight: '600' }}>Click to {isDocUIExpanded ? 'close' : 'open'}</Text>
+            <Text style={{ fontSize: 15, color: '#0284C7', fontWeight: '600' }}>Click to {isDocUIExpanded ? 'close' : 'open'}</Text>
           </View>
 
           {/* Show library dropdown when expanded - no existing document yet */}
           {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && !hasDocument && (
             <View style={{ paddingTop: 8, paddingBottom: 0 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginLeft: 38 }}>📚 From Library:</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginLeft: 38 }}>📚 From Library:</Text>
               <View style={{ marginLeft: 38 }}>
                 {evidenceLibrary.map((item, idx) => (
                   <TouchableOpacity
@@ -2075,7 +2075,7 @@ export default function CompanyAccreditationScreen({
                     }}
                     onPress={() => applyLibraryItem(documentKey, item)}
                   >
-                    <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    <Text style={{ fontSize: 18, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -2091,7 +2091,7 @@ export default function CompanyAccreditationScreen({
                   borderColor: '#1D4ED8'
                 }}
               >
-                <Text style={{ fontSize: 12, color: 'white', fontWeight: '600', textAlign: 'center' }}>+ Upload New</Text>
+                <Text style={{ fontSize: 18, color: 'white', fontWeight: '600', textAlign: 'center' }}>+ Upload New</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2108,21 +2108,21 @@ export default function CompanyAccreditationScreen({
               style={{ flex: 1, minWidth: 100, backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => Linking.openURL(itemData.url || itemData.certificateUrl || itemData.evidence)}
             >
-              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
+              <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
             </TouchableOpacity>
             {handleDeleteFn && (
               <TouchableOpacity
                 style={{ flex: 1, minWidth: 100, backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
                 onPress={() => handleDeleteFn()}
               >
-                <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
+                <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={{ flex: 1, minWidth: 100, backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => handleUploadFn()}
             >
-              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
+              <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -2130,7 +2130,7 @@ export default function CompanyAccreditationScreen({
             {/* Show library dropdown if available (section items only) */}
             {isSection && evidenceLibrary.length > 0 && (
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 From Library:</Text>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#6B7280', marginBottom: 6 }}>📚 From Library:</Text>
                 <View>
                   {evidenceLibrary.map((item, idx) => (
                     <TouchableOpacity
@@ -2146,7 +2146,7 @@ export default function CompanyAccreditationScreen({
                       }}
                       onPress={() => applyLibraryItem(documentKey, item)}
                     >
-                      <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                      <Text style={{ fontSize: 18, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -2156,7 +2156,7 @@ export default function CompanyAccreditationScreen({
               style={{ backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => handleUploadFn()}
             >
-              <Text style={{ color: 'white', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
+              <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 Upload</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -3170,7 +3170,7 @@ export default function CompanyAccreditationScreen({
                 return (
                   <View key={idx} style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                      <Text style={{ flex: 1, fontSize: 15, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         {item.question}
                       </Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -3188,7 +3188,7 @@ export default function CompanyAccreditationScreen({
                             borderColor: section.state[item.key] === 'yes' ? '#059669' : '#D1D5DB'
                           }}
                         >
-                          <Text style={{ color: section.state[item.key] === 'yes' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 13 }}>Yes</Text>
+                          <Text style={{ color: section.state[item.key] === 'yes' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 15 }}>Yes</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={() => section.setState(prev => ({
@@ -3204,7 +3204,7 @@ export default function CompanyAccreditationScreen({
                             borderColor: section.state[item.key] === 'no' ? '#DC2626' : '#D1D5DB'
                           }}
                         >
-                          <Text style={{ color: section.state[item.key] === 'no' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 13 }}>No</Text>
+                          <Text style={{ color: section.state[item.key] === 'no' ? 'white' : '#1F2937', fontWeight: '600', fontSize: 15 }}>No</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -3212,14 +3212,14 @@ export default function CompanyAccreditationScreen({
                     {/* Special cases: Section 11 Q2 - text input for first aid equipment */}
                     {section.number === 12 && item.key === 'emergency_first_aid_yesno' && section.state[item.key] === 'yes' && (
                       <View style={{ marginTop: 12 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Please specify the first aid equipment you will provide:</Text>
+                        <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Please specify the first aid equipment you will provide:</Text>
                         <TextInput
                           style={{
                             borderWidth: 1,
                             borderColor: '#D1D5DB',
                             borderRadius: 6,
                             padding: 10,
-                            fontSize: 13,
+                            fontSize: 15,
                             minHeight: 100,
                             textAlignVertical: 'top'
                           }}
@@ -3243,7 +3243,7 @@ export default function CompanyAccreditationScreen({
                 return (
                   <View key={idx} style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
+                      <Text style={{ flex: 1, fontSize: 15, fontWeight: '500', color: '#1F2937', marginRight: 12 }}>
                         {item.question}
                       </Text>
                       <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -3266,10 +3266,10 @@ export default function CompanyAccreditationScreen({
                               position: 'relative'
                             }}
                           >
-                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 16 }}>{score}</Text>
+                            <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 18 }}>{score}</Text>
                             {section.state[item.key]?.score === score && score > 1 && (
                               <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
-                                <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>!</Text>
+                                <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>!</Text>
                               </View>
                             )}
                           </TouchableOpacity>
@@ -3288,7 +3288,7 @@ export default function CompanyAccreditationScreen({
                     {/* Frequency selector for exposure_monitoring and health_monitoring */}
                     {item.hasFrequency && section.state[item.key]?.score > 0 && (
                       <View style={{ paddingLeft: 0, marginTop: 12 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Frequency (years):</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Frequency (years):</Text>
                         <View style={{ flexDirection: 'row' }}>
                           {[1, 2, 3, 4, 5].map(freq => (
                             <TouchableOpacity
@@ -3305,7 +3305,7 @@ export default function CompanyAccreditationScreen({
                                 marginRight: 6
                               }}
                             >
-                              <Text style={{ fontSize: 11, fontWeight: '600', color: section.state[item.key]?.frequency === freq ? 'white' : '#374151' }}>
+                              <Text style={{ fontSize: 15, fontWeight: '600', color: section.state[item.key]?.frequency === freq ? 'white' : '#374151' }}>
                                 {freq}
                               </Text>
                             </TouchableOpacity>
@@ -3361,7 +3361,7 @@ export default function CompanyAccreditationScreen({
         {expandedSections[23] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', marginBottom: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: '#1F2937', marginBottom: 12 }}>
                 Has your organisation had any of the following accidents/incidents in the past 12 months?
               </Text>
             </View>
@@ -3370,9 +3370,9 @@ export default function CompanyAccreditationScreen({
             <View style={{ gap: 16 }}>
               {/* Fatalities */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Fatalities, if yes, state how many:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Fatalities, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.fatalities}
@@ -3385,9 +3385,9 @@ export default function CompanyAccreditationScreen({
 
               {/* Serious Harm */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Serious Harm Incidents, if yes, state how many:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Serious Harm Incidents, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.serious_harm}
@@ -3400,9 +3400,9 @@ export default function CompanyAccreditationScreen({
 
               {/* Lost Time Injuries */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Lost Time Injuries, if yes, state how many:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Lost Time Injuries, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.lost_time}
@@ -3415,9 +3415,9 @@ export default function CompanyAccreditationScreen({
 
               {/* Property Damage */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.property_damage}
@@ -3430,7 +3430,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Pending Prosecutions */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Does your organisation have any pending workplace health, safety and environmental prosecutions or improvement notices, issued by the Work, Health and Safety or Environmental regulators?</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
@@ -3451,10 +3451,10 @@ export default function CompanyAccreditationScreen({
                       justifyContent: 'center'
                     }}>
                       {section20.incidents_breaches?.pending_prosecutions === 'yes' && (
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>✓</Text>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: '#1F2937' }}>Yes</Text>
+                    <Text style={{ fontSize: 18, color: '#1F2937' }}>Yes</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
@@ -3475,19 +3475,19 @@ export default function CompanyAccreditationScreen({
                       justifyContent: 'center'
                     }}>
                       {section20.incidents_breaches?.pending_prosecutions === 'no' && (
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>✓</Text>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: '#1F2937' }}>No</Text>
+                    <Text style={{ fontSize: 18, color: '#1F2937' }}>No</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Past 5 Years Prosecutions */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>In the past 5 years, how many workplace, health, safety and environmental prosecutions or improvement notices have been issued to the organisation?</Text>
                 <TextInput
-                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 14, width: 80 }}
+                  style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
                   keyboardType="numeric"
                   value={section20.incidents_breaches.prosecutions_5_years}
@@ -3500,7 +3500,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Environmental Enforcement Notices - adding this question from the image */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Had any infringement, abatement or enforcement notices served on it by an environmental regulator or authority?</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Had any infringement, abatement or enforcement notices served on it by an environmental regulator or authority?</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
@@ -3521,10 +3521,10 @@ export default function CompanyAccreditationScreen({
                       justifyContent: 'center'
                     }}>
                       {section20.incidents_breaches?.environmental_notices === 'yes' && (
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>✓</Text>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: '#1F2937' }}>Yes</Text>
+                    <Text style={{ fontSize: 18, color: '#1F2937' }}>Yes</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setSection20(prev => ({
@@ -3545,10 +3545,10 @@ export default function CompanyAccreditationScreen({
                       justifyContent: 'center'
                     }}>
                       {section20.incidents_breaches?.environmental_notices === 'no' && (
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>✓</Text>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: '#1F2937' }}>No</Text>
+                    <Text style={{ fontSize: 18, color: '#1F2937' }}>No</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -3596,17 +3596,17 @@ export default function CompanyAccreditationScreen({
             {/* Public Liability Insurance (Compulsory) */}
             <View style={{ marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', flex: 1 }}>
                   Public Liability Insurance
                 </Text>
-                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#DC2626', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', backgroundColor: '#DC2626', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
                   COMPULSORY
                 </Text>
               </View>
 
               {/* Expiry Date */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Expiry Date (dd/mm/yyyy)
                 </Text>
                 <TextInput
@@ -3616,7 +3616,7 @@ export default function CompanyAccreditationScreen({
                     borderRadius: 6,
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    fontSize: 14,
+                    fontSize: 18,
                     color: '#1F2937',
                     backgroundColor: '#F9FAFB'
                   }}
@@ -3635,7 +3635,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Document Upload */}
               <View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Insurance Certificate
                 </Text>
                 <TouchableOpacity
@@ -3650,10 +3650,10 @@ export default function CompanyAccreditationScreen({
                   }}
                   onPress={() => handleUploadInsuranceDocument('pli', 'Public Liability Insurance')}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
                     {section24.public_liability_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  <Text style={{ fontSize: 15, color: '#6B7280' }}>
                     PDF or image file
                   </Text>
                 </TouchableOpacity>
@@ -3662,7 +3662,7 @@ export default function CompanyAccreditationScreen({
                     style={{ marginTop: 8, paddingVertical: 6 }}
                     onPress={() => handleDeleteInsuranceDocument('pli', 'Public Liability Insurance')}
                   >
-                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
                       🗑️ Remove Document
                     </Text>
                   </TouchableOpacity>
@@ -3673,17 +3673,17 @@ export default function CompanyAccreditationScreen({
             {/* Motor Vehicle Insurance (Optional) */}
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', flex: 1 }}>
                   Motor Vehicle Insurance
                 </Text>
-                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
                   OPTIONAL
                 </Text>
               </View>
 
               {/* Expiry Date */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Expiry Date (dd/mm/yyyy)
                 </Text>
                 <TextInput
@@ -3693,7 +3693,7 @@ export default function CompanyAccreditationScreen({
                     borderRadius: 6,
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    fontSize: 14,
+                    fontSize: 18,
                     color: '#1F2937',
                     backgroundColor: '#F9FAFB'
                   }}
@@ -3712,7 +3712,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Document Upload */}
               <View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Insurance Certificate
                 </Text>
                 <TouchableOpacity
@@ -3727,10 +3727,10 @@ export default function CompanyAccreditationScreen({
                   }}
                   onPress={() => handleUploadInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
                     {section24.motor_vehicle_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  <Text style={{ fontSize: 15, color: '#6B7280' }}>
                     PDF or image file (optional)
                   </Text>
                 </TouchableOpacity>
@@ -3739,7 +3739,7 @@ export default function CompanyAccreditationScreen({
                     style={{ marginTop: 8, paddingVertical: 6 }}
                     onPress={() => handleDeleteInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
                   >
-                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
                       🗑️ Remove Document
                     </Text>
                   </TouchableOpacity>
@@ -3750,17 +3750,17 @@ export default function CompanyAccreditationScreen({
             {/* Professional Indemnity Insurance (Optional) */}
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', flex: 1 }}>
                   Professional Indemnity Insurance
                 </Text>
-                <Text style={{ fontSize: 11, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', backgroundColor: '#9CA3AF', color: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
                   OPTIONAL
                 </Text>
               </View>
 
               {/* Expiry Date */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Expiry Date (dd/mm/yyyy)
                 </Text>
                 <TextInput
@@ -3770,7 +3770,7 @@ export default function CompanyAccreditationScreen({
                     borderRadius: 6,
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    fontSize: 14,
+                    fontSize: 18,
                     color: '#1F2937',
                     backgroundColor: '#F9FAFB'
                   }}
@@ -3789,7 +3789,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Document Upload */}
               <View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
                   Insurance Certificate
                 </Text>
                 <TouchableOpacity
@@ -3804,10 +3804,10 @@ export default function CompanyAccreditationScreen({
                   }}
                   onPress={() => handleUploadInsuranceDocument('pii', 'Professional Indemnity Insurance')}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#0284C7', marginBottom: 4 }}>
                     {section24.professional_indemnity_insurance.has_document ? '✓ Document Uploaded' : '+ Upload Certificate'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                  <Text style={{ fontSize: 15, color: '#6B7280' }}>
                     PDF or image file (optional)
                   </Text>
                 </TouchableOpacity>
@@ -3816,7 +3816,7 @@ export default function CompanyAccreditationScreen({
                     style={{ marginTop: 8, paddingVertical: 6 }}
                     onPress={() => handleDeleteInsuranceDocument('pii', 'Professional Indemnity Insurance')}
                   >
-                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
                       🗑️ Remove Document
                     </Text>
                   </TouchableOpacity>
@@ -3832,13 +3832,13 @@ export default function CompanyAccreditationScreen({
   const renderContactInfoSection = () => {
     const renderContactFields = (role, roleKey) => (
       <View style={{ marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 12 }}>
           {role}
         </Text>
 
         {/* Name */}
         <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
             Full Name
           </Text>
           <TextInput
@@ -3848,7 +3848,7 @@ export default function CompanyAccreditationScreen({
               borderRadius: 6,
               paddingHorizontal: 12,
               paddingVertical: 10,
-              fontSize: 14,
+              fontSize: 18,
               color: '#1F2937',
               backgroundColor: '#F9FAFB'
             }}
@@ -3863,7 +3863,7 @@ export default function CompanyAccreditationScreen({
 
         {/* Email */}
         <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
             Email Address
           </Text>
           <TextInput
@@ -3873,7 +3873,7 @@ export default function CompanyAccreditationScreen({
               borderRadius: 6,
               paddingHorizontal: 12,
               paddingVertical: 10,
-              fontSize: 14,
+              fontSize: 18,
               color: '#1F2937',
               backgroundColor: '#F9FAFB'
             }}
@@ -3889,7 +3889,7 @@ export default function CompanyAccreditationScreen({
 
         {/* Phone */}
         <View>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 6 }}>
             Telephone Number
           </Text>
           <TextInput
@@ -3899,7 +3899,7 @@ export default function CompanyAccreditationScreen({
               borderRadius: 6,
               paddingHorizontal: 12,
               paddingVertical: 10,
-              fontSize: 14,
+              fontSize: 18,
               color: '#1F2937',
               backgroundColor: '#F9FAFB'
             }}
@@ -4309,7 +4309,7 @@ export default function CompanyAccreditationScreen({
 
             {/* Name Input */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Full Name *
               </Text>
               <TextInput
@@ -4319,7 +4319,7 @@ export default function CompanyAccreditationScreen({
                   borderRadius: 6,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  fontSize: 14,
+                  fontSize: 18,
                   color: '#1F2937',
                   backgroundColor: '#F9FAFB'
                 }}
@@ -4334,7 +4334,7 @@ export default function CompanyAccreditationScreen({
 
             {/* Digital Signature */}
             <View style={{ marginBottom: 16, pointerEvents: 'box-none', width: '100%', height: 160 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>
                 Digital Signature * {hasSignature && '✍️'}
               </Text>
               {React.createElement('div', {
@@ -4376,7 +4376,7 @@ export default function CompanyAccreditationScreen({
                     alignItems: 'center'
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#DC2626' }}>
                     Clear Signature
                   </Text>
                 </TouchableOpacity>
@@ -4393,7 +4393,7 @@ export default function CompanyAccreditationScreen({
                 }))}
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ fontSize: 13, color: '#374151', flex: 1, paddingTop: 2 }}>
+              <Text style={{ fontSize: 15, color: '#374151', flex: 1, paddingTop: 2 }}>
                 I acknowledge that I have read and understood the Health & Safety Agreement and undertake to comply with all requirements
               </Text>
             </View>
@@ -4424,7 +4424,7 @@ export default function CompanyAccreditationScreen({
       >
         {/* Company Information Section */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
             
             <View style={{ marginBottom: 16 }}>
               <Text style={styles.label}>Company Name</Text>
@@ -4502,7 +4502,7 @@ export default function CompanyAccreditationScreen({
             </View>
 
             <View style={{ marginBottom: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Company Registration & Address</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 12 }}>Company Registration & Address</Text>
               
               <View style={{ marginBottom: 16 }}>
                 <Text style={styles.label}>NZBN</Text>
@@ -4554,7 +4554,7 @@ export default function CompanyAccreditationScreen({
                 </View>
               </View>
 
-              <Text style={{ fontSize: 12, color: '#6B7280' }}>Please verify or update the above information as needed</Text>
+              <Text style={{ fontSize: 18, color: '#6B7280' }}>Please verify or update the above information as needed</Text>
             </View>
           </View>
 
@@ -4602,11 +4602,11 @@ export default function CompanyAccreditationScreen({
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{service.name}</Text>
+                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{service.name}</Text>
                   </View>
                 ))
               ) : (
-                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
                   Loading services...
                 </Text>
               )}
@@ -4656,11 +4656,11 @@ export default function CompanyAccreditationScreen({
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 14, color: '#1F2937' }}>{unit.name}</Text>
+                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{unit.name}</Text>
                   </View>
                 ))
               ) : (
-                <Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
                   Loading business units...
                 </Text>
               )}
@@ -4710,7 +4710,7 @@ export default function CompanyAccreditationScreen({
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                    <Text style={{ flex: 1, fontSize: 18, fontWeight: '500', color: '#1F2937' }}>
                       {system.label}
                     </Text>
                   </View>
@@ -4810,7 +4810,7 @@ export default function CompanyAccreditationScreen({
                         style={{ marginRight: 12 }}
                         pointerEvents="auto"
                       />
-                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                      <Text style={{ flex: 1, fontSize: 18, fontWeight: '500', color: '#1F2937' }}>
                         Health and Safety Policy
                       </Text>
                     </View>
@@ -4841,7 +4841,7 @@ export default function CompanyAccreditationScreen({
                         style={{ marginRight: 12 }}
                         pointerEvents="auto"
                       />
-                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                      <Text style={{ flex: 1, fontSize: 18, fontWeight: '500', color: '#1F2937' }}>
                         Environmental Policy
                       </Text>
                     </View>
@@ -4872,7 +4872,7 @@ export default function CompanyAccreditationScreen({
                         style={{ marginRight: 12 }}
                         pointerEvents="auto"
                       />
-                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                      <Text style={{ flex: 1, fontSize: 18, fontWeight: '500', color: '#1F2937' }}>
                         Drug and Alcohol Policy
                       </Text>
                     </View>
@@ -4903,7 +4903,7 @@ export default function CompanyAccreditationScreen({
                         style={{ marginRight: 12 }}
                         pointerEvents="auto"
                       />
-                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                      <Text style={{ flex: 1, fontSize: 18, fontWeight: '500', color: '#1F2937' }}>
                         Quality Policy
                       </Text>
                     </View>
@@ -4956,7 +4956,7 @@ export default function CompanyAccreditationScreen({
           marginBottom: 12
         }}>
           <Text style={{
-            fontSize: 14,
+            fontSize: 18,
             fontWeight: '600',
             color: accreditationStatus === 'completed' ? '#065F46' : '#92400E'
           }}>
@@ -4964,7 +4964,7 @@ export default function CompanyAccreditationScreen({
           </Text>
           {autoSaving && (
             <Text style={{
-              fontSize: 12,
+              fontSize: 18,
               color: '#6B7280',
               marginTop: 4
             }}>
@@ -4979,7 +4979,7 @@ export default function CompanyAccreditationScreen({
           onPress={handleSave}
           disabled={saving}
         >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
             {saving ? 'Saving...' : '✓ Save Accreditation'}
           </Text>
         </TouchableOpacity>
@@ -4991,7 +4991,7 @@ export default function CompanyAccreditationScreen({
             onPress={handleSubmitAsComplete}
             disabled={saving}
           >
-            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
               {saving ? 'Submitting...' : '✓ Submit as Complete'}
             </Text>
           </TouchableOpacity>
@@ -5009,7 +5009,7 @@ export default function CompanyAccreditationScreen({
               borderRadius: 6
             }}>
               <Text style={{
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: '600',
                 color: '#065F46',
                 textAlign: 'center'
@@ -5029,7 +5029,7 @@ export default function CompanyAccreditationScreen({
                 }}
               >
                 <Text style={{
-                  fontSize: 14,
+                  fontSize: 18,
                   fontWeight: '600',
                   color: 'white'
                 }}>
@@ -5074,7 +5074,7 @@ export default function CompanyAccreditationScreen({
                 {confirmationModal.title}
               </Text>
               <Text style={{
-                fontSize: 14,
+                fontSize: 18,
                 color: '#4B5563',
                 marginBottom: 24,
                 lineHeight: 20
@@ -5098,7 +5098,7 @@ export default function CompanyAccreditationScreen({
                   }}
                 >
                   <Text style={{
-                    fontSize: 14,
+                    fontSize: 18,
                     fontWeight: '600',
                     color: '#374151'
                   }}>
@@ -5117,7 +5117,7 @@ export default function CompanyAccreditationScreen({
                   }}
                 >
                   <Text style={{
-                    fontSize: 14,
+                    fontSize: 18,
                     fontWeight: '600',
                     color: 'white'
                   }}>
@@ -5133,8 +5133,8 @@ export default function CompanyAccreditationScreen({
         <Modal visible={saveToLibraryModal} transparent animationType="fade" onRequestClose={() => setShowSaveToLibraryModal(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#1F2937' }}>💾 Save to Evidence Library?</Text>
-              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#1F2937' }}>💾 Save to Evidence Library?</Text>
+              <Text style={{ fontSize: 18, color: '#6B7280', marginBottom: 16 }}>
                 This evidence can be reused for other questions. Give it a name:
               </Text>
               <TextInput
@@ -5144,7 +5144,7 @@ export default function CompanyAccreditationScreen({
                   borderRadius: 6,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  fontSize: 14,
+                  fontSize: 18,
                   marginBottom: 16
                 }}
                 placeholder="Evidence name"
@@ -5160,7 +5160,7 @@ export default function CompanyAccreditationScreen({
                     Alert.alert('Success ✅', `${lastUploadedFile?.itemLabel} evidence uploaded successfully!`);
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>Skip</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151' }}>Skip</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{ flex: 1, paddingVertical: 10, backgroundColor: '#3B82F6', borderRadius: 6, alignItems: 'center' }}
@@ -5202,7 +5202,7 @@ export default function CompanyAccreditationScreen({
                     }
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>Save</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: 'white' }}>Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
