@@ -1477,14 +1477,16 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
+    console.log('🗑️ handleDeleteEvidence called:', { sectionNum, itemKey, itemLabel });
     Alert.alert(
       'Delete Evidence',
       `Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`,
       [
-        { text: 'Cancel' },
+        { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
         {
           text: 'Delete',
           onPress: async () => {
+            console.log('✅ User confirmed delete');
             try {
               setLoading(true);
               const sectionKey = `section${sectionNum}`;
@@ -1493,23 +1495,31 @@ export default function CompanyAccreditationScreen({
               const evidenceUrl = itemData?.evidence;
               const libraryItemId = itemData?.library_item_id;
               
+              console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData });
+              
               if (!evidenceUrl) {
+                console.log('⚠️ No evidence URL found');
                 Alert.alert('Error', 'No evidence URL found');
                 return;
               }
 
               // Only delete file from storage if it's NOT a library item
               if (!libraryItemId) {
+                console.log('🔥 Deleting actual file from storage');
                 const result = await deleteAccreditationCertificate(evidenceUrl);
+                console.log('📦 Delete result:', result);
                 if (!result.success) {
                   Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
                   return;
                 }
+              } else {
+                console.log('📚 This is a library item - removing association only');
               }
 
               // Clear from state based on section number
               // Helper function to clear evidence field
               const clearEvidence = (setter) => {
+                console.log('🧹 Clearing evidence for itemKey:', itemKey);
                 setter(prev => ({
                   ...prev,
                   [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
@@ -1536,15 +1546,19 @@ export default function CompanyAccreditationScreen({
               else if (sectionNum === 21) clearEvidence(setSection21);
               else if (sectionNum === 22) clearEvidence(setSection22);
               
+              console.log('💾 Scheduling autoSave after 100ms');
               // Save to database
               setTimeout(async () => {
+                console.log('🔄 Running autoSave');
                 await autoSave();
+                console.log('✅ autoSave complete, closing expanded UI');
                 setExpandedEvidenceUI(null);
               }, 100);
               
               const deleteType = libraryItemId ? 'removed' : 'deleted';
               Alert.alert('Success', `${itemLabel} evidence ${deleteType}`);
             } catch (error) {
+              console.error('🔥 Delete error:', error);
               Alert.alert('Error', 'Failed to delete: ' + error.message);
             } finally {
               setLoading(false);
