@@ -3321,11 +3321,6 @@ export default function CompanyAccreditationScreen({
                             }}
                           >
                             <Text style={{ fontWeight: '700', color: '#1F2937', fontSize: 18 }}>{score}</Text>
-                            {section.state[item.key]?.score === score && score > 1 && (
-                              <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
-                                <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>!</Text>
-                              </View>
-                            )}
                           </TouchableOpacity>
                         ))}
                         {renderEvidenceToggle(section.number, item.key, section.state[item.key], item.question)}
