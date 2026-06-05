@@ -1477,16 +1477,20 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
-    console.log('🗑️ handleDeleteEvidence called:', { sectionNum, itemKey, itemLabel });
-    Alert.alert(
-      'Delete Evidence',
-      `Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`,
-      [
-        { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            console.log('✅ User confirmed delete');
+    console.log('🗑️🗑️🗑️ handleDeleteEvidence STARTING 🗑️🗑️🗑️');
+    console.log('Parameters:', { sectionNum, itemKey, itemLabel });
+    
+    try {
+      console.log('🗑️ Showing confirmation alert');
+      Alert.alert(
+        'Delete Evidence',
+        `Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`,
+        [
+          { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
+          {
+            text: 'Delete',
+            onPress: async () => {
+              console.log('✅ User confirmed delete');
             try {
               setLoading(true);
               const sectionKey = `section${sectionNum}`;
@@ -1567,6 +1571,10 @@ export default function CompanyAccreditationScreen({
         }
       ]
     );
+    } catch (outerError) {
+      console.error('🔥🔥🔥 OUTER ERROR in handleDeleteEvidence:', outerError);
+      Alert.alert('Error', 'Failed to show delete dialog: ' + outerError.message);
+    }
   };
 
   const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
@@ -1967,7 +1975,12 @@ export default function CompanyAccreditationScreen({
                   <TouchableOpacity
                     onPress={() => {
                       console.log('🗑️ Delete button pressed, calling handler');
-                      handleDeleteFn();
+                      console.log('handleDeleteFn is:', typeof handleDeleteFn, handleDeleteFn.toString().substring(0, 100));
+                      try {
+                        handleDeleteFn();
+                      } catch (btnError) {
+                        console.error('🔴 ERROR calling handleDeleteFn:', btnError);
+                      }
                     }}
                     style={{
                       paddingHorizontal: 12,
