@@ -193,52 +193,52 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS professional_indemnity_insurance_
 -- ============================================================================
 
 -- Reference the evidence_library_items table to ensure referential integrity
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_aep_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_aep_cert_library 
   FOREIGN KEY (aep_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_iso45001_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_iso45001_cert_library 
   FOREIGN KEY (iso_45001_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_totika_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_totika_cert_library 
   FOREIGN KEY (totika_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_sheprequal_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_sheprequal_cert_library 
   FOREIGN KEY (she_prequal_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_impac_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_impac_cert_library 
   FOREIGN KEY (impac_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_sitewise_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_sitewise_cert_library 
   FOREIGN KEY (sitewise_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_rapid_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_rapid_cert_library 
   FOREIGN KEY (rapid_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_iso9001_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_iso9001_cert_library 
   FOREIGN KEY (iso_9001_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_iso14001_cert_library 
+ALTER TABLE companies ADD CONSTRAINT fk_iso14001_cert_library 
   FOREIGN KEY (iso_14001_certificate_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_hs_policy_library 
+ALTER TABLE companies ADD CONSTRAINT fk_hs_policy_library 
   FOREIGN KEY (health_safety_policy_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_env_policy_library 
+ALTER TABLE companies ADD CONSTRAINT fk_env_policy_library 
   FOREIGN KEY (environmental_policy_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_drug_policy_library 
+ALTER TABLE companies ADD CONSTRAINT fk_drug_policy_library 
   FOREIGN KEY (drug_alcohol_policy_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_quality_policy_library 
+ALTER TABLE companies ADD CONSTRAINT fk_quality_policy_library 
   FOREIGN KEY (quality_policy_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_pli_insurance_library 
+ALTER TABLE companies ADD CONSTRAINT fk_pli_insurance_library 
   FOREIGN KEY (public_liability_insurance_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_mvi_insurance_library 
+ALTER TABLE companies ADD CONSTRAINT fk_mvi_insurance_library 
   FOREIGN KEY (motor_vehicle_insurance_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
-ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS fk_pii_insurance_library 
+ALTER TABLE companies ADD CONSTRAINT fk_pii_insurance_library 
   FOREIGN KEY (professional_indemnity_insurance_library_item_id) REFERENCES evidence_library_items(id) ON DELETE SET NULL;
 
 -- Note: Adding foreign key constraints for all 60+ evidence columns would be excessive
