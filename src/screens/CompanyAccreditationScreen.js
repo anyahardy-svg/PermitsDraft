@@ -1481,99 +1481,97 @@ export default function CompanyAccreditationScreen({
     console.log('Parameters:', { sectionNum, itemKey, itemLabel });
     
     try {
-      console.log('🗑️ Showing confirmation alert');
-      Alert.alert(
-        'Delete Evidence',
-        `Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`,
-        [
-          { text: 'Cancel', onPress: () => console.log('❌ User cancelled delete') },
-          {
-            text: 'Delete',
-            onPress: async () => {
-              console.log('✅ User confirmed delete');
-            try {
-              setLoading(true);
-              const sectionKey = `section${sectionNum}`;
-              const sectionState = eval(sectionKey);
-              const itemData = sectionState[itemKey];
-              const evidenceUrl = itemData?.evidence;
-              const libraryItemId = itemData?.library_item_id;
-              
-              console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData });
-              
-              if (!evidenceUrl) {
-                console.log('⚠️ No evidence URL found');
-                Alert.alert('Error', 'No evidence URL found');
-                return;
-              }
-
-              // Only delete file from storage if it's NOT a library item
-              if (!libraryItemId) {
-                console.log('🔥 Deleting actual file from storage');
-                const result = await deleteAccreditationCertificate(evidenceUrl);
-                console.log('📦 Delete result:', result);
-                if (!result.success) {
-                  Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
-                  return;
-                }
-              } else {
-                console.log('📚 This is a library item - removing association only');
-              }
-
-              // Clear from state based on section number
-              // Helper function to clear evidence field
-              const clearEvidence = (setter) => {
-                console.log('🧹 Clearing evidence for itemKey:', itemKey);
-                setter(prev => ({
-                  ...prev,
-                  [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
-                }));
-              };
-
-              if (sectionNum === 4) clearEvidence(setSection4);
-              else if (sectionNum === 5) clearEvidence(setSection5);
-              else if (sectionNum === 6) clearEvidence(setSection6);
-              else if (sectionNum === 7) clearEvidence(setSection7);
-              else if (sectionNum === 8) clearEvidence(setSection8);
-              else if (sectionNum === 9) clearEvidence(setSection9);
-              else if (sectionNum === 10) clearEvidence(setSection10);
-              else if (sectionNum === 11) clearEvidence(setSection11);
-              else if (sectionNum === 12) clearEvidence(setSection12);
-              else if (sectionNum === 13) clearEvidence(setSection13);
-              else if (sectionNum === 14) clearEvidence(setSection14);
-              else if (sectionNum === 15) clearEvidence(setSection15);
-              else if (sectionNum === 16) clearEvidence(setSection16);
-              else if (sectionNum === 17) clearEvidence(setSection17);
-              else if (sectionNum === 18) clearEvidence(setSection18);
-              else if (sectionNum === 19) clearEvidence(setSection19);
-              else if (sectionNum === 20) clearEvidence(setSection20);
-              else if (sectionNum === 21) clearEvidence(setSection21);
-              else if (sectionNum === 22) clearEvidence(setSection22);
-              
-              console.log('💾 Scheduling autoSave after 100ms');
-              // Save to database
-              setTimeout(async () => {
-                console.log('🔄 Running autoSave');
-                await autoSave();
-                console.log('✅ autoSave complete, closing expanded UI');
-                setExpandedEvidenceUI(null);
-              }, 100);
-              
-              const deleteType = libraryItemId ? 'removed' : 'deleted';
-              Alert.alert('Success', `${itemLabel} evidence ${deleteType}`);
-            } catch (error) {
-              console.error('🔥 Delete error:', error);
-              Alert.alert('Error', 'Failed to delete: ' + error.message);
-            } finally {
-              setLoading(false);
-            }
-          }
+      console.log('🗑️ Asking for confirmation');
+      
+      // Use window.confirm for web (Alert.alert doesn't work with buttons on web)
+      const confirmed = window.confirm(`Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`);
+      
+      if (!confirmed) {
+        console.log('❌ User cancelled delete');
+        return;
+      }
+      
+      console.log('✅ User confirmed delete');
+      
+      try {
+        setLoading(true);
+        const sectionKey = `section${sectionNum}`;
+        const sectionState = eval(sectionKey);
+        const itemData = sectionState[itemKey];
+        const evidenceUrl = itemData?.evidence;
+        const libraryItemId = itemData?.library_item_id;
+        
+        console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData });
+        
+        if (!evidenceUrl) {
+          console.log('⚠️ No evidence URL found');
+          alert('Error: No evidence URL found');
+          return;
         }
-      ]
-    );
+
+        // Only delete file from storage if it's NOT a library item
+        if (!libraryItemId) {
+          console.log('🔥 Deleting actual file from storage');
+          const result = await deleteAccreditationCertificate(evidenceUrl);
+          console.log('📦 Delete result:', result);
+          if (!result.success) {
+            alert('Error: Failed to delete evidence: ' + (result.error || 'Unknown error'));
+            return;
+          }
+        } else {
+          console.log('📚 This is a library item - removing association only');
+        }
+
+        // Clear from state based on section number
+        // Helper function to clear evidence field
+        const clearEvidence = (setter) => {
+          console.log('🧹 Clearing evidence for itemKey:', itemKey);
+          setter(prev => ({
+            ...prev,
+            [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
+          }));
+        };
+
+        if (sectionNum === 4) clearEvidence(setSection4);
+        else if (sectionNum === 5) clearEvidence(setSection5);
+        else if (sectionNum === 6) clearEvidence(setSection6);
+        else if (sectionNum === 7) clearEvidence(setSection7);
+        else if (sectionNum === 8) clearEvidence(setSection8);
+        else if (sectionNum === 9) clearEvidence(setSection9);
+        else if (sectionNum === 10) clearEvidence(setSection10);
+        else if (sectionNum === 11) clearEvidence(setSection11);
+        else if (sectionNum === 12) clearEvidence(setSection12);
+        else if (sectionNum === 13) clearEvidence(setSection13);
+        else if (sectionNum === 14) clearEvidence(setSection14);
+        else if (sectionNum === 15) clearEvidence(setSection15);
+        else if (sectionNum === 16) clearEvidence(setSection16);
+        else if (sectionNum === 17) clearEvidence(setSection17);
+        else if (sectionNum === 18) clearEvidence(setSection18);
+        else if (sectionNum === 19) clearEvidence(setSection19);
+        else if (sectionNum === 20) clearEvidence(setSection20);
+        else if (sectionNum === 21) clearEvidence(setSection21);
+        else if (sectionNum === 22) clearEvidence(setSection22);
+        
+        console.log('💾 Scheduling autoSave after 100ms');
+        // Save to database
+        setTimeout(async () => {
+          console.log('🔄 Running autoSave');
+          await autoSave();
+          console.log('✅ autoSave complete, closing expanded UI');
+          setExpandedEvidenceUI(null);
+        }, 100);
+        
+        const deleteType = libraryItemId ? 'removed' : 'deleted';
+        alert(`Success: ${itemLabel} evidence ${deleteType}`);
+      } catch (error) {
+        console.error('🔥 Delete error:', error);
+        alert('Error: Failed to delete: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
     } catch (outerError) {
       console.error('🔥🔥🔥 OUTER ERROR in handleDeleteEvidence:', outerError);
-      Alert.alert('Error', 'Failed to show delete dialog: ' + outerError.message);
+      alert('Error: Failed to process delete: ' + outerError.message);
     }
   };
 
