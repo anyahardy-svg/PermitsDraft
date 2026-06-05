@@ -3307,13 +3307,6 @@ export default function CompanyAccreditationScreen({
                         {renderEvidenceToggle(section.number, item.key, section.state[item.key], item.question)}
                       </View>
                     </View>
-                    
-                    {/* Expanded Evidence UI - shown below scores */}
-                    {expandedEvidenceUI === `section${section.number}-${item.key}` && (
-                      <View style={{ marginBottom: 12, marginTop: 12 }}>
-                        {renderDocumentToggle(`section${section.number}-${item.key}`, section.state[item.key], item.question, () => handleUploadEvidence(`section${section.number}`, item.key, item.question), () => handleDeleteEvidence(section.number, item.key, item.question), 'Evidence', false)}
-                      </View>
-                    )}
 
                     {/* Frequency selector for exposure_monitoring and health_monitoring */}
                     {item.hasFrequency && section.state[item.key]?.score > 0 && (
