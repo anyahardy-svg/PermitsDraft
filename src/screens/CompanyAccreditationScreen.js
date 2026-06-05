@@ -1529,13 +1529,17 @@ export default function CompanyAccreditationScreen({
         }
         const sectionState = sectionData.state;
         const itemData = sectionState[itemKey];
-        const evidenceUrl = itemData?.evidence;
+        
+        console.log('🔍 Full itemData:', itemData);
+        console.log('🔍 itemData keys:', itemData ? Object.keys(itemData) : 'null');
+        
+        const evidenceUrl = itemData?.evidence || itemData?.url || itemData?.evidence_url;
         const libraryItemId = itemData?.library_item_id;
         
-        console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData });
+        console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData, itemKey, sectionNum });
         
         if (!evidenceUrl) {
-          console.log('⚠️ No evidence URL found');
+          console.log('⚠️ No evidence URL found - full data:', { itemData, sectionState });
           alert('Error: No evidence URL found');
           return;
         }
@@ -1555,10 +1559,21 @@ export default function CompanyAccreditationScreen({
 
         // Clear from state based on section number
         console.log('🧹 Clearing evidence for itemKey:', itemKey);
-        sectionData.setter(prev => ({
-          ...prev,
-          [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
-        }));
+        console.log('🧹 Current itemData before clear:', sectionState[itemKey]);
+        sectionData.setter(prev => {
+          const updated = {
+            ...prev,
+            [itemKey]: { 
+              ...prev[itemKey], 
+              evidence: null, 
+              library_item_id: null,
+              // Preserve exists field
+              exists: prev[itemKey]?.exists ?? false
+            }
+          };
+          console.log('🧹 Updated itemData after clear:', updated[itemKey]);
+          return updated;
+        });
         
         console.log('💾 Scheduling autoSave after 100ms');
         // Save to database
