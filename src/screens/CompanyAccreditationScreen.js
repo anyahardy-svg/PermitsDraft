@@ -112,10 +112,10 @@ export default function CompanyAccreditationScreen({
 
   // Section 3 state (Policies)
   const [policies, setPolicies] = useState({
-    health_safety: { exists: false, url: null },
-    environmental: { exists: false, url: null },
-    drug_alcohol: { exists: false, url: null },
-    quality: { exists: false, url: null }
+    health_safety: { exists: false, url: null, library_item_id: null },
+    environmental: { exists: false, url: null, library_item_id: null },
+    drug_alcohol: { exists: false, url: null, library_item_id: null },
+    quality: { exists: false, url: null, library_item_id: null }
   });
 
   // Section 1 state (Services) - No state needed, handled separately
@@ -124,114 +124,114 @@ export default function CompanyAccreditationScreen({
 
   // Section 4 state (Accident, Incident & Investigation)
   const [section4, setSection4] = useState({
-    accident_reporting: { exists: false, score: 0, evidence: null },
-    accident_investigation: { exists: false, score: 0, evidence: null }
+    accident_reporting: { exists: false, score: 0, evidence: null, library_item_id: null },
+    accident_investigation: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 5 state (Health Hazard Management)
   const [section5, setSection5] = useState({
-    health_hazard_plan: { exists: false, score: 0, evidence: null },
-    exposure_monitoring: { exists: false, frequency: 1, score: 0, evidence: null },
-    respiratory_training: { exists: false, score: 0, evidence: null },
-    exhaust_ventilation: { exists: false, score: 0, evidence: null },
-    health_monitoring: { exists: false, frequency: 1, score: 0, evidence: null }
+    health_hazard_plan: { exists: false, score: 0, evidence: null, library_item_id: null },
+    exposure_monitoring: { exists: false, frequency: 1, score: 0, evidence: null, library_item_id: null },
+    respiratory_training: { exists: false, score: 0, evidence: null, library_item_id: null },
+    exhaust_ventilation: { exists: false, score: 0, evidence: null, library_item_id: null },
+    health_monitoring: { exists: false, frequency: 1, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 6 state (Induction & Training)
   const [section6, setSection6] = useState({
-    induction_programme: { exists: false, score: 0, evidence: null },
-    induction_records_process: { exists: false, score: 0, evidence: null },
-    skills_training_list: { exists: false, score: 0, evidence: null },
-    competency_testing_system: { exists: false, score: 0, evidence: null }
+    induction_programme: { exists: false, score: 0, evidence: null, library_item_id: null },
+    induction_records_process: { exists: false, score: 0, evidence: null, library_item_id: null },
+    skills_training_list: { exists: false, score: 0, evidence: null, library_item_id: null },
+    competency_testing_system: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 7 state (Hazard Identification & Management)
   const [section7, setSection7] = useState({
-    hazard_identification_process: { exists: false, score: 0, evidence: null },
-    jha_jsea_system: { exists: false, score: 0, evidence: null },
-    risk_registers: { exists: false, score: 0, evidence: null }
+    hazard_identification_process: { exists: false, score: 0, evidence: null, library_item_id: null },
+    jha_jsea_system: { exists: false, score: 0, evidence: null, library_item_id: null },
+    risk_registers: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 8 state (PPE)
   const [section8, setSection8] = useState({
     ppe_compliance_yesno: 'no',
-    ppe_training_maintenance: { exists: false, score: 0, evidence: null },
-    ppe_job_assessment: { exists: false, score: 0, evidence: null },
-    ppe_maintenance_schedule: { exists: false, score: 0, evidence: null }
+    ppe_training_maintenance: { exists: false, score: 0, evidence: null, library_item_id: null },
+    ppe_job_assessment: { exists: false, score: 0, evidence: null, library_item_id: null },
+    ppe_maintenance_schedule: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 9 state (Plant & Equipment)
   const [section9, setSection9] = useState({
     plant_equipment_onsite_yesno: 'no',
-    plant_equipment_licenses: { exists: false, score: 0, evidence: null },
-    plant_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
-    plant_equipment_maintenance: { exists: false, score: 0, evidence: null }
+    plant_equipment_licenses: { exists: false, score: 0, evidence: null, library_item_id: null },
+    plant_equipment_safety_provisions: { exists: false, score: 0, evidence: null, library_item_id: null },
+    plant_equipment_maintenance: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 10 state (Electrical Equipment)
   const [section10, setSection10] = useState({
     electrical_equipment_onsite_yesno: 'no',
-    electrical_equipment_testing: { exists: false, score: 0, evidence: null },
-    electrical_equipment_licenses: { exists: false, score: 0, evidence: null },
-    electrical_equipment_safety_provisions: { exists: false, score: 0, evidence: null },
-    electrical_equipment_maintenance: { exists: false, score: 0, evidence: null }
+    electrical_equipment_testing: { exists: false, score: 0, evidence: null, library_item_id: null },
+    electrical_equipment_licenses: { exists: false, score: 0, evidence: null, library_item_id: null },
+    electrical_equipment_safety_provisions: { exists: false, score: 0, evidence: null, library_item_id: null },
+    electrical_equipment_maintenance: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 11 state (Emergency Preparedness & Response)
   const [section11, setSection11] = useState({
-    emergency_procedures: { exists: false, score: 0, evidence: null },
+    emergency_procedures: { exists: false, score: 0, evidence: null, library_item_id: null },
     emergency_first_aid_yesno: 'no',
     emergency_first_aid_equipment: ''
   });
 
   // Section 12 state (Site Specific Safety Plans)
   const [section12, setSection12] = useState({
-    site_safety_plans: { exists: false, score: 0, evidence: null },
-    site_induction_process: { exists: false, score: 0, evidence: null }
+    site_safety_plans: { exists: false, score: 0, evidence: null, library_item_id: null },
+    site_induction_process: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 13 state (Contractor Management)
   const [section13, setSection13] = useState({
-    contractor_induction: { exists: false, score: 0, evidence: null },
-    contractor_compliance: { exists: false, score: 0, evidence: null }
+    contractor_induction: { exists: false, score: 0, evidence: null, library_item_id: null },
+    contractor_compliance: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 14 state (Health & Wellbeing)
   const [section14, setSection14] = useState({
-    health_wellbeing_program: { exists: false, score: 0, evidence: null },
-    fatigue_management: { exists: false, score: 0, evidence: null }
+    health_wellbeing_program: { exists: false, score: 0, evidence: null, library_item_id: null },
+    fatigue_management: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
  
 
   // Section 15 state (Competency & Qualifications)
   const [section15, setSection15] = useState({
-    competency_framework: { exists: false, score: 0, evidence: null },
-    training_records: { exists: false, score: 0, evidence: null }
+    competency_framework: { exists: false, score: 0, evidence: null, library_item_id: null },
+    training_records: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 16 state (Communication & Reporting)
   const [section16, setSection16] = useState({
-    safety_communication: { exists: false, score: 0, evidence: null },
-    near_miss_reporting: { exists: false, score: 0, evidence: null }
+    safety_communication: { exists: false, score: 0, evidence: null, library_item_id: null },
+    near_miss_reporting: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 17 state (Performance & Review)
   const [section17, setSection17] = useState({
-    performance_monitoring: { exists: false, score: 0, evidence: null },
-    regular_audits: { exists: false, score: 0, evidence: null }
+    performance_monitoring: { exists: false, score: 0, evidence: null, library_item_id: null },
+    regular_audits: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 18 state (Injury Management)
   const [section18, setSection18] = useState({
-    injury_management: { exists: false, score: 0, evidence: null },
-    early_intervention: { exists: false, score: 0, evidence: null }
+    injury_management: { exists: false, score: 0, evidence: null, library_item_id: null },
+    early_intervention: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 19 state (Continuous Improvement)
   const [section19, setSection19] = useState({
-    safety_objectives: { exists: false, score: 0, evidence: null },
-    management_review: { exists: false, score: 0, evidence: null }
+    safety_objectives: { exists: false, score: 0, evidence: null, library_item_id: null },
+    management_review: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 20 state (Incidents & Breaches)
@@ -246,31 +246,32 @@ export default function CompanyAccreditationScreen({
       environmental_notices: 'no',
       exists: false, 
       score: 0, 
-      evidence: null 
+      evidence: null,
+      library_item_id: null
     }
   });
 
    // Section 21 state (Quality Management - shown when ISO 9001 is NOT certified)
   const [section21, setSection21] = useState({
     quality_manager_and_plan: 'no', // Yes/No question
-    roles_and_responsibilities: { exists: false, score: 0, evidence: null },
-    purchasing_procedures: { exists: false, score: 0, evidence: null },
-    subcontractor_evaluation: { exists: false, score: 0, evidence: null },
-    process_control_plan: { exists: false, score: 0, evidence: null },
-    nonconformance_procedure: { exists: false, score: 0, evidence: null },
-    product_rejection: { exists: false, score: 0, evidence: null },
-    personnel_induction: { exists: false, score: 0, evidence: null },
-    internal_audits: { exists: false, score: 0, evidence: null },
-    continuous_improvement: { exists: false, score: 0, evidence: null }
+    roles_and_responsibilities: { exists: false, score: 0, evidence: null, library_item_id: null },
+    purchasing_procedures: { exists: false, score: 0, evidence: null, library_item_id: null },
+    subcontractor_evaluation: { exists: false, score: 0, evidence: null, library_item_id: null },
+    process_control_plan: { exists: false, score: 0, evidence: null, library_item_id: null },
+    nonconformance_procedure: { exists: false, score: 0, evidence: null, library_item_id: null },
+    product_rejection: { exists: false, score: 0, evidence: null, library_item_id: null },
+    personnel_induction: { exists: false, score: 0, evidence: null, library_item_id: null },
+    internal_audits: { exists: false, score: 0, evidence: null, library_item_id: null },
+    continuous_improvement: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 22 state (Environmental Management - shown when ISO 14001 is NOT certified)
   const [section22, setSection22] = useState({
-    environmental_aspects_assessment: { exists: false, score: 0, evidence: null },
-    environmental_system_and_plans: { exists: false, score: 0, evidence: null },
-    waste_management_policy: { exists: false, score: 0, evidence: null },
-    environmental_improvement_targets: { exists: false, score: 0, evidence: null },
-    environmental_training_programme: { exists: false, score: 0, evidence: null }
+    environmental_aspects_assessment: { exists: false, score: 0, evidence: null, library_item_id: null },
+    environmental_system_and_plans: { exists: false, score: 0, evidence: null, library_item_id: null },
+    waste_management_policy: { exists: false, score: 0, evidence: null, library_item_id: null },
+    environmental_improvement_targets: { exists: false, score: 0, evidence: null, library_item_id: null },
+    environmental_training_programme: { exists: false, score: 0, evidence: null, library_item_id: null }
   });
 
   // Section 24 state (Insurance Documents)
@@ -279,19 +280,22 @@ export default function CompanyAccreditationScreen({
       expiry_date: '',
       url: null,
       uploaded_at: null,
-      has_document: false
+      has_document: false,
+      library_item_id: null
     },
     motor_vehicle_insurance: {
       expiry_date: '',
       url: null,
       uploaded_at: null,
-      has_document: false
+      has_document: false,
+      library_item_id: null
     },
     professional_indemnity_insurance: {
       expiry_date: '',
       url: null,
       uploaded_at: null,
-      has_document: false
+      has_document: false,
+      library_item_id: null
     }
   });
 
@@ -1223,7 +1227,8 @@ export default function CompanyAccreditationScreen({
           ...prev,
           [systemKey]: {
             ...prev[systemKey],
-            certificateUrl: uploadResult.url
+            certificateUrl: uploadResult.url,
+            library_item_id: null  // Clear library reference since this is a direct upload
           }
         }));
         
@@ -1267,34 +1272,41 @@ export default function CompanyAccreditationScreen({
           onPress: async () => {
             try {
               setLoading(true);
-              const certificateUrl = accreditedSystems[systemKey]?.certificateUrl;
+              const systemData = accreditedSystems[systemKey];
+              const certificateUrl = systemData?.certificateUrl;
+              const libraryItemId = systemData?.library_item_id;
               
               if (!certificateUrl) {
                 Alert.alert('Error', 'No certificate URL found');
                 return;
               }
 
-              const result = await deleteAccreditationCertificate(certificateUrl);
-
-              if (result.success) {
-                // Clear from state
-                setAccreditedSystems(prev => ({
-                  ...prev,
-                  [systemKey]: {
-                    ...prev[systemKey],
-                    certificateUrl: null
-                  }
-                }));
-                
-                // Save to database
-                setTimeout(async () => {
-                  await autoSave();
-                }, 100);
-                
-                Alert.alert('Success', `${systemLabel} certificate deleted`);
-              } else {
-                Alert.alert('Error', 'Failed to delete certificate: ' + (result.error || 'Unknown error'));
+              // Only delete file from storage if it's NOT a library item
+              if (!libraryItemId) {
+                const result = await deleteAccreditationCertificate(certificateUrl);
+                if (!result.success) {
+                  Alert.alert('Error', 'Failed to delete certificate: ' + (result.error || 'Unknown error'));
+                  return;
+                }
               }
+
+              // Clear from state
+              setAccreditedSystems(prev => ({
+                ...prev,
+                [systemKey]: {
+                  ...prev[systemKey],
+                  certificateUrl: null,
+                  library_item_id: null
+                }
+              }));
+              
+              // Save to database
+              setTimeout(async () => {
+                await autoSave();
+              }, 100);
+              
+              const deleteType = libraryItemId ? 'removed' : 'deleted';
+              Alert.alert('Success', `${systemLabel} certificate ${deleteType}`);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete: ' + error.message);
             } finally {
@@ -1357,7 +1369,8 @@ export default function CompanyAccreditationScreen({
           ...prev,
           [policyKey]: {
             ...prev[policyKey],
-            url: uploadResult.url
+            url: uploadResult.url,
+            library_item_id: null  // Clear library reference since this is a direct upload
           }
         }));
         
@@ -1401,34 +1414,41 @@ export default function CompanyAccreditationScreen({
           onPress: async () => {
             try {
               setLoading(true);
-              const policyUrl = policies[policyKey]?.url;
+              const policyData = policies[policyKey];
+              const policyUrl = policyData?.url;
+              const libraryItemId = policyData?.library_item_id;
               
               if (!policyUrl) {
                 Alert.alert('Error', 'No document URL found');
                 return;
               }
 
-              const result = await deleteAccreditationCertificate(policyUrl);
-
-              if (result.success) {
-                // Clear from state
-                setPolicies(prev => ({
-                  ...prev,
-                  [policyKey]: {
-                    ...prev[policyKey],
-                    url: null
-                  }
-                }));
-                
-                // Save to database
-                setTimeout(async () => {
-                  await autoSave();
-                }, 100);
-                
-                Alert.alert('Success', `${policyLabel} document deleted`);
-              } else {
-                Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+              // Only delete file from storage if it's NOT a library item
+              if (!libraryItemId) {
+                const result = await deleteAccreditationCertificate(policyUrl);
+                if (!result.success) {
+                  Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+                  return;
+                }
               }
+
+              // Clear from state
+              setPolicies(prev => ({
+                ...prev,
+                [policyKey]: {
+                  ...prev[policyKey],
+                  url: null,
+                  library_item_id: null
+                }
+              }));
+              
+              // Save to database
+              setTimeout(async () => {
+                await autoSave();
+              }, 100);
+              
+              const deleteType = libraryItemId ? 'removed' : 'deleted';
+              Alert.alert('Success', `${policyLabel} document ${deleteType}`);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete: ' + error.message);
             } finally {
@@ -1453,123 +1473,60 @@ export default function CompanyAccreditationScreen({
               setLoading(true);
               const sectionKey = `section${sectionNum}`;
               const sectionState = eval(sectionKey);
-              const evidenceUrl = sectionState[itemKey]?.evidence;
+              const itemData = sectionState[itemKey];
+              const evidenceUrl = itemData?.evidence;
+              const libraryItemId = itemData?.library_item_id;
               
               if (!evidenceUrl) {
                 Alert.alert('Error', 'No evidence URL found');
                 return;
               }
 
-              const result = await deleteAccreditationCertificate(evidenceUrl);
-
-              if (result.success) {
-                // Clear from state based on section number
-                if (sectionNum === 4) {
-                  setSection4(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 5) {
-                  setSection5(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 6) {
-                  setSection6(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 7) {
-                  setSection7(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 8) {
-                  setSection8(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 9) {
-                  setSection9(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 10) {
-                  setSection10(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 11) {
-                  setSection11(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 12) {
-                  setSection12(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 13) {
-                  setSection13(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 14) {
-                  setSection14(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 15) {
-                  setSection15(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 16) {
-                  setSection16(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 17) {
-                  setSection17(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 18) {
-                  setSection18(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 19) {
-                  setSection19(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 20) {
-                  setSection20(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 21) {
-                  setSection21(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
-                } else if (sectionNum === 22) {
-                  setSection22(prev => ({
-                    ...prev,
-                    [itemKey]: { ...prev[itemKey], evidence: null }
-                  }));
+              // Only delete file from storage if it's NOT a library item
+              if (!libraryItemId) {
+                const result = await deleteAccreditationCertificate(evidenceUrl);
+                if (!result.success) {
+                  Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
+                  return;
                 }
-                
-                // Save to database
-                setTimeout(async () => {
-                  await autoSave();
-                }, 100);
-                
-                Alert.alert('Success', `${itemLabel} evidence deleted`);
-              } else {
-                Alert.alert('Error', 'Failed to delete evidence: ' + (result.error || 'Unknown error'));
               }
+
+              // Clear from state based on section number
+              // Helper function to clear evidence field
+              const clearEvidence = (setter) => {
+                setter(prev => ({
+                  ...prev,
+                  [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
+                }));
+              };
+
+              if (sectionNum === 4) clearEvidence(setSection4);
+              else if (sectionNum === 5) clearEvidence(setSection5);
+              else if (sectionNum === 6) clearEvidence(setSection6);
+              else if (sectionNum === 7) clearEvidence(setSection7);
+              else if (sectionNum === 8) clearEvidence(setSection8);
+              else if (sectionNum === 9) clearEvidence(setSection9);
+              else if (sectionNum === 10) clearEvidence(setSection10);
+              else if (sectionNum === 11) clearEvidence(setSection11);
+              else if (sectionNum === 12) clearEvidence(setSection12);
+              else if (sectionNum === 13) clearEvidence(setSection13);
+              else if (sectionNum === 14) clearEvidence(setSection14);
+              else if (sectionNum === 15) clearEvidence(setSection15);
+              else if (sectionNum === 16) clearEvidence(setSection16);
+              else if (sectionNum === 17) clearEvidence(setSection17);
+              else if (sectionNum === 18) clearEvidence(setSection18);
+              else if (sectionNum === 19) clearEvidence(setSection19);
+              else if (sectionNum === 20) clearEvidence(setSection20);
+              else if (sectionNum === 21) clearEvidence(setSection21);
+              else if (sectionNum === 22) clearEvidence(setSection22);
+              
+              // Save to database
+              setTimeout(async () => {
+                await autoSave();
+              }, 100);
+              
+              const deleteType = libraryItemId ? 'removed' : 'deleted';
+              Alert.alert('Success', `${itemLabel} evidence ${deleteType}`);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete: ' + error.message);
             } finally {
@@ -1641,7 +1598,8 @@ export default function CompanyAccreditationScreen({
             ...prev[insuranceKey],
             url: uploadResult.url,
             uploaded_at: new Date().toISOString(),
-            has_document: true
+            has_document: true,
+            library_item_id: null  // Clear library reference since this is a direct upload
           }
         }));
         
@@ -1693,35 +1651,42 @@ export default function CompanyAccreditationScreen({
           onPress: async () => {
             try {
               setLoading(true);
-              const documentUrl = section24[insuranceKey]?.url;
+              const insuranceData = section24[insuranceKey];
+              const documentUrl = insuranceData?.url;
+              const libraryItemId = insuranceData?.library_item_id;
               
               if (!documentUrl) {
                 Alert.alert('Error', 'No document URL found');
                 return;
               }
 
-              const result = await deleteAccreditationCertificate(documentUrl);
-
-              if (result.success) {
-                // Clear from state
-                setSection24(prev => ({
-                  ...prev,
-                  [insuranceKey]: {
-                    ...prev[insuranceKey],
-                    url: null,
-                    has_document: false
-                  }
-                }));
-                
-                // Save to database
-                setTimeout(async () => {
-                  await autoSave();
-                }, 100);
-                
-                Alert.alert('Success', `${insuranceLabel} certificate deleted`);
-              } else {
-                Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+              // Only delete file from storage if it's NOT a library item
+              if (!libraryItemId) {
+                const result = await deleteAccreditationCertificate(documentUrl);
+                if (!result.success) {
+                  Alert.alert('Error', 'Failed to delete: ' + (result.error || 'Unknown error'));
+                  return;
+                }
               }
+
+              // Clear from state
+              setSection24(prev => ({
+                ...prev,
+                [insuranceKey]: {
+                  ...prev[insuranceKey],
+                  url: null,
+                  has_document: false,
+                  library_item_id: null
+                }
+              }));
+              
+              // Save to database
+              setTimeout(async () => {
+                await autoSave();
+              }, 100);
+              
+              const deleteType = libraryItemId ? 'removed' : 'deleted';
+              Alert.alert('Success', `${insuranceLabel} certificate ${deleteType}`);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete: ' + error.message);
             } finally {
@@ -1780,7 +1745,8 @@ export default function CompanyAccreditationScreen({
             ...prev,
             [itemKey]: {
               ...prev[itemKey],
-              evidence: uploadResult.url
+              evidence: uploadResult.url,
+              library_item_id: null  // Clear library reference since this is a direct upload
             }
           }));
         } else {
@@ -1853,7 +1819,11 @@ export default function CompanyAccreditationScreen({
       if (sectionUpdater) {
         sectionUpdater.set(prev => ({
           ...prev,
-          [itemKey]: { ...prev[itemKey], evidence: libraryItem.storage_path }
+          [itemKey]: { 
+            ...prev[itemKey], 
+            evidence: libraryItem.storage_path,
+            library_item_id: libraryItem.id  // Track that this came from library
+          }
         }));
         setTimeout(() => autoSave(), 100);
         Alert.alert('Success ✅', `Applied "${libraryItem.item_name}"`);
