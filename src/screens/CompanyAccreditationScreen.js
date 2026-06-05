@@ -1476,6 +1476,32 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  // Map sections to their state and setters for proper access
+  const getSectionData = (sectionNum) => {
+    const sectionMap = {
+      4: { state: section4, setter: setSection4 },
+      5: { state: section5, setter: setSection5 },
+      6: { state: section6, setter: setSection6 },
+      7: { state: section7, setter: setSection7 },
+      8: { state: section8, setter: setSection8 },
+      9: { state: section9, setter: setSection9 },
+      10: { state: section10, setter: setSection10 },
+      11: { state: section11, setter: setSection11 },
+      12: { state: section12, setter: setSection12 },
+      13: { state: section13, setter: setSection13 },
+      14: { state: section14, setter: setSection14 },
+      15: { state: section15, setter: setSection15 },
+      16: { state: section16, setter: setSection16 },
+      17: { state: section17, setter: setSection17 },
+      18: { state: section18, setter: setSection18 },
+      19: { state: section19, setter: setSection19 },
+      20: { state: section20, setter: setSection20 },
+      21: { state: section21, setter: setSection21 },
+      22: { state: section22, setter: setSection22 }
+    };
+    return sectionMap[sectionNum];
+  };
+
   const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
     console.log('🗑️🗑️🗑️ handleDeleteEvidence STARTING 🗑️🗑️🗑️');
     console.log('Parameters:', { sectionNum, itemKey, itemLabel });
@@ -1495,8 +1521,13 @@ export default function CompanyAccreditationScreen({
       
       try {
         setLoading(true);
-        const sectionKey = `section${sectionNum}`;
-        const sectionState = eval(sectionKey);
+        const sectionData = getSectionData(sectionNum);
+        if (!sectionData) {
+          console.error('❌ Section not found:', sectionNum);
+          alert('Error: Section not found');
+          return;
+        }
+        const sectionState = sectionData.state;
         const itemData = sectionState[itemKey];
         const evidenceUrl = itemData?.evidence;
         const libraryItemId = itemData?.library_item_id;
@@ -1523,34 +1554,11 @@ export default function CompanyAccreditationScreen({
         }
 
         // Clear from state based on section number
-        // Helper function to clear evidence field
-        const clearEvidence = (setter) => {
-          console.log('🧹 Clearing evidence for itemKey:', itemKey);
-          setter(prev => ({
-            ...prev,
-            [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
-          }));
-        };
-
-        if (sectionNum === 4) clearEvidence(setSection4);
-        else if (sectionNum === 5) clearEvidence(setSection5);
-        else if (sectionNum === 6) clearEvidence(setSection6);
-        else if (sectionNum === 7) clearEvidence(setSection7);
-        else if (sectionNum === 8) clearEvidence(setSection8);
-        else if (sectionNum === 9) clearEvidence(setSection9);
-        else if (sectionNum === 10) clearEvidence(setSection10);
-        else if (sectionNum === 11) clearEvidence(setSection11);
-        else if (sectionNum === 12) clearEvidence(setSection12);
-        else if (sectionNum === 13) clearEvidence(setSection13);
-        else if (sectionNum === 14) clearEvidence(setSection14);
-        else if (sectionNum === 15) clearEvidence(setSection15);
-        else if (sectionNum === 16) clearEvidence(setSection16);
-        else if (sectionNum === 17) clearEvidence(setSection17);
-        else if (sectionNum === 18) clearEvidence(setSection18);
-        else if (sectionNum === 19) clearEvidence(setSection19);
-        else if (sectionNum === 20) clearEvidence(setSection20);
-        else if (sectionNum === 21) clearEvidence(setSection21);
-        else if (sectionNum === 22) clearEvidence(setSection22);
+        console.log('🧹 Clearing evidence for itemKey:', itemKey);
+        sectionData.setter(prev => ({
+          ...prev,
+          [itemKey]: { ...prev[itemKey], evidence: null, library_item_id: null }
+        }));
         
         console.log('💾 Scheduling autoSave after 100ms');
         // Save to database
