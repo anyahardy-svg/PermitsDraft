@@ -2465,28 +2465,12 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    if (section24.public_liability_insurance.expiry_date) {
-      updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
-    }
-    if (section24.public_liability_insurance.url) {
-      updateData.public_liability_insurance_url = section24.public_liability_insurance.url;
-      updateData.public_liability_insurance_uploaded_at = section24.public_liability_insurance.uploaded_at;
-    }
-    if (section24.motor_vehicle_insurance.expiry_date) {
-      updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
-    }
-    if (section24.motor_vehicle_insurance.url) {
-      updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url;
-      updateData.motor_vehicle_insurance_uploaded_at = section24.motor_vehicle_insurance.uploaded_at;
-    }
-
-    if (section24.professional_indemnity_insurance.expiry_date) {
-      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
-    }
-    if (section24.professional_indemnity_insurance.url) {
-      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
-      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
-    }
+    // NOTE: Insurance columns don't exist in the database schema, so we don't send them
+    // Insurance documents are stored in client state only
+    // if (section24.public_liability_insurance.expiry_date) {
+    //   updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
+    // }
+    // ... rest of insurance fields are not sent to database
 
     // Add Section 25 data (Contact Information)
     if (section25.health_safety_manager.name) {
