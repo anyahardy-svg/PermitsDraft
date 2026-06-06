@@ -986,6 +986,18 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 24 (Insurance Documents)
+      console.log('📋 [LOAD] Insurance data from DB:', {
+        public_liability_insurance_expiry: data.public_liability_insurance_expiry,
+        public_liability_insurance_evidence_url: data.public_liability_insurance_evidence_url,
+        public_liability_insurance_uploaded_at: data.public_liability_insurance_uploaded_at,
+        motor_vehicle_insurance_expiry: data.motor_vehicle_insurance_expiry,
+        motor_vehicle_insurance_evidence_url: data.motor_vehicle_insurance_evidence_url,
+        motor_vehicle_insurance_uploaded_at: data.motor_vehicle_insurance_uploaded_at,
+        professional_indemnity_insurance_expiry: data.professional_indemnity_insurance_expiry,
+        professional_indemnity_insurance_url: data.professional_indemnity_insurance_url,
+        professional_indemnity_insurance_uploaded_at: data.professional_indemnity_insurance_uploaded_at
+      });
+      
       setSection24({
         public_liability_insurance: {
           expiry_date: data.public_liability_insurance_expiry || '',
@@ -1008,6 +1020,21 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 25 (Contact Information)
+      console.log('📋 [LOAD] Contact information from DB:', {
+        health_safety_manager_name: data.health_safety_manager_name,
+        health_safety_manager_email: data.health_safety_manager_email,
+        health_safety_manager_phone: data.health_safety_manager_phone,
+        environmental_manager_name: data.environmental_manager_name,
+        environmental_manager_email: data.environmental_manager_email,
+        environmental_manager_phone: data.environmental_manager_phone,
+        quality_manager_name: data.quality_manager_name,
+        quality_manager_email: data.quality_manager_email,
+        quality_manager_phone: data.quality_manager_phone,
+        occupational_hygienist_name: data.occupational_hygienist_name,
+        occupational_hygienist_email: data.occupational_hygienist_email,
+        occupational_hygienist_phone: data.occupational_hygienist_phone
+      });
+      
       setSection25({
         health_safety_manager: {
           name: data.health_safety_manager_name || '',
