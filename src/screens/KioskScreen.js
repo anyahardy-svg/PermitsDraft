@@ -1370,7 +1370,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={styles.headerTitle}>Sign In Visitor</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.formContent}>
+        <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
             style={styles.input}
