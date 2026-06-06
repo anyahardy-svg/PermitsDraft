@@ -947,10 +947,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               </View>
               
               <TouchableOpacity 
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  (!contractorInductionExpiry || contractorInductionExpired) && styles.submitButtonDisabled
+                ]}
                 onPress={handleCheckInContractor}
+                disabled={!contractorInductionExpiry || contractorInductionExpired}
               >
-                <Text style={styles.submitButtonText}>✓ Check In</Text>
+                <Text style={styles.submitButtonText}>
+                  {!contractorInductionExpiry || contractorInductionExpired ? 'Complete induction before check-in' : '✓ Check In'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
