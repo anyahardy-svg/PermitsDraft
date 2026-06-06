@@ -309,7 +309,7 @@ export const getCompanyAccreditation = async (companyId) => {
         motor_vehicle_insurance_evidence_url,
         motor_vehicle_insurance_expiry,
         public_liability_insurance_evidence_url,
-        public_liability_insurance_expiry,
+        public_liability_expiry,
         professional_indemnity_insurance_url,
         professional_indemnity_insurance_expiry,
         professional_indemnity_insurance_uploaded_at

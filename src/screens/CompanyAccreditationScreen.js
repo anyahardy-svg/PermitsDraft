@@ -987,7 +987,7 @@ export default function CompanyAccreditationScreen({
 
       // Load section 24 (Insurance Documents)
       console.log('📋 [LOAD] Insurance data from DB:', {
-        public_liability_insurance_expiry: data.public_liability_insurance_expiry,
+        public_liability_expiry: data.public_liability_expiry,
         public_liability_insurance_evidence_url: data.public_liability_insurance_evidence_url,
         motor_vehicle_insurance_expiry: data.motor_vehicle_insurance_expiry,
         motor_vehicle_insurance_evidence_url: data.motor_vehicle_insurance_evidence_url,
@@ -998,7 +998,7 @@ export default function CompanyAccreditationScreen({
       
       setSection24({
         public_liability_insurance: {
-          expiry_date: data.public_liability_insurance_expiry || '',
+          expiry_date: data.public_liability_expiry || '',
           url: data.public_liability_insurance_evidence_url || null,
           uploaded_at: null,
           has_document: !!data.public_liability_insurance_evidence_url
@@ -2502,7 +2502,7 @@ export default function CompanyAccreditationScreen({
     console.log('🔧 buildUpdateData - section24:', section24);
     
     if (section24.public_liability_insurance.expiry_date) {
-      updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
+      updateData.public_liability_expiry = section24.public_liability_insurance.expiry_date;
     }
     updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
     
@@ -2518,6 +2518,7 @@ export default function CompanyAccreditationScreen({
     updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
     
     console.log('🔧 buildUpdateData - insurance fields:', {
+      public_liability_expiry: updateData.public_liability_expiry,
       public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
       motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
       professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
