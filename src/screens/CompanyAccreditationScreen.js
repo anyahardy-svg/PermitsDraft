@@ -1586,8 +1586,8 @@ export default function CompanyAccreditationScreen({
         setTimeout(async () => {
           console.log('🔄 Running autoSave');
           await autoSave();
-          console.log('✅ autoSave complete, closing expanded UI');
-          setExpandedEvidenceUI(null);
+          console.log('✅ autoSave complete');
+          // Don't close the UI - keep user in the same place
         }, 100);
         
         const deleteType = libraryItemId ? 'removed' : 'deleted';

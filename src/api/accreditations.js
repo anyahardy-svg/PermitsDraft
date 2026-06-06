@@ -448,12 +448,18 @@ export const deleteAccreditationCertificate = async (certificateUrl) => {
   try {
     if (!certificateUrl) throw new Error('No certificate URL provided');
 
-    // Extract the file path from the URL
-    // URL format: https://...supabase.co/storage/v1/object/public/accreditations/[filePath]
-    const urlParts = certificateUrl.split('/accreditations/');
-    if (urlParts.length !== 2) throw new Error('Invalid certificate URL format');
-    
-    const filePath = urlParts[1];
+    let filePath;
+
+    // Handle both full URLs and relative paths
+    if (certificateUrl.includes('/accreditations/')) {
+      // Full URL format: https://...supabase.co/storage/v1/object/public/accreditations/[filePath]
+      const urlParts = certificateUrl.split('/accreditations/');
+      if (urlParts.length !== 2) throw new Error('Invalid certificate URL format');
+      filePath = urlParts[1];
+    } else {
+      // Just a path: a_test_2/section7_induction_programme_evidence/...
+      filePath = certificateUrl;
+    }
 
     console.log('🗑️ Deleting accreditation file:', filePath);
 
