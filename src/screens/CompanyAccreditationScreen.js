@@ -2606,8 +2606,6 @@ export default function CompanyAccreditationScreen({
       
       if (result.success) {
         console.log('✨ Auto-saved successfully!', result);
-        // Reload data after save to ensure UI is in sync with database
-        await loadCompanyData();
       } else {
         console.error('❌ Auto-save failed:', result.error);
       }
