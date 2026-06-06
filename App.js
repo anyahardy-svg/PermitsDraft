@@ -24617,6 +24617,12 @@ const AppRouter = ({ initialRoute }) => {
       if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
         return 'contractor-signin';
       }
+      if (pathname === '/sign-in-visitor' || pathname === '/sign-in-visitor/') {
+        return 'visitor-induction';
+      }
+      if (pathname === '/sign-out' || pathname === '/sign-out/') {
+        return 'signout';
+      }
       if (pathname === '/inductions' || pathname === '/inductions/') {
         return 'inductions';
       }
@@ -24791,13 +24797,30 @@ const AppRouter = ({ initialRoute }) => {
         } else {
           // Check if subdomain contains "-kiosk" OR if test mode is enabled
           const isKioskSubdomain = hostname.includes('-kiosk.');
+          const kioskRoutePaths = [
+            '/sign-in-contractor',
+            '/sign-in-contractor/',
+            '/sign-in-visitor',
+            '/sign-in-visitor/',
+            '/sign-out',
+            '/sign-out/',
+            '/inductions',
+            '/inductions/',
+            '/inductions/new',
+            '/inductions/new/',
+            '/inductions/returning',
+            '/inductions/returning/',
+            '/inductions/resume',
+            '/inductions/resume/',
+          ];
+          const isKioskRoute = kioskRoutePaths.includes(pathname);
           
           // Check for ?mode=kiosk parameter in URL
           const testMode = fullUrl.includes('mode=kiosk');
           
-          const isKioskMode = isKioskSubdomain || testMode;
+          const isKioskMode = isKioskSubdomain || testMode || isKioskRoute;
           
-          console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}`);
+          console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}, KioskRoute: ${isKioskRoute}`);
           
           setIsKiosk(isKioskMode);
         }

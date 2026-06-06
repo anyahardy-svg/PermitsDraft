@@ -110,6 +110,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   // For contractor induction
   const [showInductionModal, setShowInductionModal] = useState(false);
   const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
+  const [inductionPrefillContractorId, setInductionPrefillContractorId] = useState(null);
+  const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -388,6 +390,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
     
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
+
+    if (!contractorInductionExpiry || contractorInductionExpired) {
+      Alert.alert(
+        contractorInductionExpired ? 'Induction Expired' : 'Induction Required',
+        contractorInductionExpired
+          ? `${selectedContractor.name}'s induction has expired. Please renew the induction before checking in.`
+          : `${selectedContractor.name} is not inducted at ${site.name}. Please complete the contractor induction before checking in.`
+      );
+      return;
+    }
     
     // Refresh site data to get latest flag/rt settings
     let refreshedSite = site; // Default to current site
@@ -726,6 +738,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           }}
           onPress={() => {
             console.log('🎓 Induction button pressed');
+            setInductionPrefillContractorId(null);
+            setInductionReturnScreen('welcome');
             setCurrentScreen('inductions');
           }}
         >
@@ -772,17 +786,25 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     };
     
     const handleBackToSelection = () => {
-      setCurrentScreen('inductions');
+      setCurrentScreen(inductionReturnScreen === 'contractor-signin' ? 'contractor-signin' : 'inductions');
+    };
+
+    const handleExitInductions = () => {
+      const returnScreen = inductionReturnScreen || 'welcome';
+      setInductionPrefillContractorId(null);
+      setInductionReturnScreen('welcome');
+      setCurrentScreen(returnScreen);
     };
     
     return (
       <ContractorInductionScreen
         styles={styles}
         initialRoute={inductionInitialState}
+        initialContractorId={inductionPrefillContractorId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
-        onComplete={() => setCurrentScreen('welcome')}
-        onCancel={() => setCurrentScreen('welcome')}
+        onComplete={handleExitInductions}
+        onCancel={handleExitInductions}
       />
     );
   }
@@ -907,13 +929,38 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                     )}
                   </View>
                 )}
+                {(!contractorInductionExpiry || contractorInductionExpired) && (
+                  <View style={{ marginTop: 12, backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, marginBottom: 10 }}>
+                      Complete or renew this contractor's induction before check-in. This will show the required inductions for their company, business unit, and selected site.
+                    </Text>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
+                      onPress={() => {
+                        setInductionPrefillContractorId(selectedContractor.id);
+                        setInductionReturnScreen('contractor-signin');
+                        setCurrentScreen('inductions-returning');
+                      }}
+                    >
+                      <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                        {contractorInductionExpired ? 'Renew Induction' : 'Complete Induction'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
               
               <TouchableOpacity 
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  (!contractorInductionExpiry || contractorInductionExpired) && styles.submitButtonDisabled
+                ]}
                 onPress={handleCheckInContractor}
+                disabled={!contractorInductionExpiry || contractorInductionExpired}
               >
-                <Text style={styles.submitButtonText}>✓ Check In</Text>
+                <Text style={styles.submitButtonText}>
+                  {!contractorInductionExpiry || contractorInductionExpired ? 'Complete induction before check-in' : '✓ Check In'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
