@@ -791,17 +791,17 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       <ContractorInductionScreen
         styles={styles}
         initialRoute={inductionInitialState}
-          initialContractorId={inductionPrefillContractorId}
+        initialContractorId={inductionPrefillContractorId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
-          onComplete={() => {
-            setInductionPrefillContractorId(null);
-            setCurrentScreen('welcome');
-          }}
-          onCancel={() => {
-            setInductionPrefillContractorId(null);
-            setCurrentScreen('welcome');
-          }}
+        onComplete={() => {
+          setInductionPrefillContractorId(null);
+          setCurrentScreen('welcome');
+        }}
+        onCancel={() => {
+          setInductionPrefillContractorId(null);
+          setCurrentScreen('welcome');
+        }}
       />
     );
   }
