@@ -111,6 +111,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [showInductionModal, setShowInductionModal] = useState(false);
   const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
   const [inductionPrefillContractorId, setInductionPrefillContractorId] = useState(null);
+  const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -738,6 +739,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           onPress={() => {
             console.log('🎓 Induction button pressed');
             setInductionPrefillContractorId(null);
+            setInductionReturnScreen('welcome');
             setCurrentScreen('inductions');
           }}
         >
@@ -784,7 +786,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     };
     
     const handleBackToSelection = () => {
-      setCurrentScreen('inductions');
+      setCurrentScreen(inductionReturnScreen === 'contractor-signin' ? 'contractor-signin' : 'inductions');
+    };
+
+    const handleExitInductions = () => {
+      const returnScreen = inductionReturnScreen || 'welcome';
+      setInductionPrefillContractorId(null);
+      setInductionReturnScreen('welcome');
+      setCurrentScreen(returnScreen);
     };
     
     return (
@@ -794,14 +803,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         initialContractorId={inductionPrefillContractorId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
-        onComplete={() => {
-          setInductionPrefillContractorId(null);
-          setCurrentScreen('welcome');
-        }}
-        onCancel={() => {
-          setInductionPrefillContractorId(null);
-          setCurrentScreen('welcome');
-        }}
+        onComplete={handleExitInductions}
+        onCancel={handleExitInductions}
       />
     );
   }
@@ -935,6 +938,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                       style={{ backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
                       onPress={() => {
                         setInductionPrefillContractorId(selectedContractor.id);
+                        setInductionReturnScreen('contractor-signin');
                         setCurrentScreen('inductions-returning');
                       }}
                     >
