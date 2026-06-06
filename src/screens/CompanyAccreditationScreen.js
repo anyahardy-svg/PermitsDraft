@@ -1785,9 +1785,22 @@ export default function CompanyAccreditationScreen({
                 }
               }));
               
-              // Save to database
+              // Explicitly save the deletion to database
               setTimeout(async () => {
-                await autoSave();
+                const updateData = {};
+                if (insuranceKey === 'public_liability_insurance') {
+                  updateData.public_liability_insurance_evidence_url = null;
+                } else if (insuranceKey === 'motor_vehicle_insurance') {
+                  updateData.motor_vehicle_insurance_evidence_url = null;
+                } else if (insuranceKey === 'professional_indemnity_insurance') {
+                  updateData.professional_indemnity_insurance_url = null;
+                }
+                
+                console.log('🗑️ Saving deletion:', updateData);
+                const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+                if (result.success) {
+                  console.log('✅ Deletion saved to database');
+                }
               }, 100);
               
               const deleteType = libraryItemId ? 'removed' : 'deleted';
@@ -2505,24 +2518,35 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    // Always include insurance URLs so deletions persist
+    // Only include if they have values - don't overwrite database with null
     console.log('🔧 buildUpdateData - section24:', section24);
     
+    // Public Liability Insurance
     if (section24.public_liability_insurance.expiry_date) {
       updateData.public_liability_expiry = section24.public_liability_insurance.expiry_date;
     }
-    updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
+    if (section24.public_liability_insurance.url) {
+      updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url;
+    }
     
+    // Motor Vehicle Insurance
     if (section24.motor_vehicle_insurance.expiry_date) {
       updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
     }
-    updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url || null;
+    if (section24.motor_vehicle_insurance.url) {
+      updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url;
+    }
     
-    // Professional indemnity insurance
+    // Professional Indemnity Insurance
     if (section24.professional_indemnity_insurance.expiry_date) {
       updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
     }
-    updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
+    if (section24.professional_indemnity_insurance.url) {
+      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
+    }
+    if (section24.professional_indemnity_insurance.uploaded_at) {
+      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
+    }
     
     console.log('🔧 buildUpdateData - insurance fields:', {
       public_liability_expiry: updateData.public_liability_expiry,
