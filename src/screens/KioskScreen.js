@@ -22,7 +22,7 @@ import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
-import { loginAdminUser } from '../api/adminAuth';
+import { getAllAdminUsers, loginAdminUser } from '../api/adminAuth';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -84,6 +84,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [contractorInductionExpiry, setContractorInductionExpiry] = useState(null);
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
+  const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
@@ -93,6 +94,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
   const [visitorInductionConfirmed, setVisitorInductionConfirmed] = useState(false);
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [showContractorVisitingDropdown, setShowContractorVisitingDropdown] = useState(false);
+  const [showVisitorVisitingDropdown, setShowVisitorVisitingDropdown] = useState(false);
   
   // For signout list
   const [signedInPeople, setSignedInPeople] = useState([]);
@@ -183,6 +187,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           // Load site-specific data
           const contractorsData = await listContractorsBySite(matchingSite.id);
           setContractors(contractorsData);
+
+          try {
+            const admins = await getAllAdminUsers();
+            setAdminUsers(admins || []);
+          } catch (adminError) {
+            console.warn('Could not load admin users for visiting person lookup:', adminError.message);
+            setAdminUsers([]);
+          }
           
           // Load visitor induction content
           const inductionResult = await getVisitorInduction(matchingSite.id);
@@ -328,6 +340,80 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   };
 
+  const getSiteAdminUsers = (searchText = '') => {
+    const normalizedSearch = searchText.trim().toLowerCase();
+    return (adminUsers || [])
+      .filter(admin => {
+        const siteIds = admin.site_ids || admin.siteIds || [];
+        return Array.isArray(siteIds) && siteIds.includes(siteId);
+      })
+      .filter(admin => {
+        if (!normalizedSearch) return true;
+        return admin.name?.toLowerCase().includes(normalizedSearch) || admin.email?.toLowerCase().includes(normalizedSearch);
+      });
+  };
+
+  const refreshContractorsForCurrentSite = async (selectedContractorId = null) => {
+    if (!siteId) return;
+
+    try {
+      const contractorsData = await listContractorsBySite(siteId);
+      setContractors(contractorsData);
+
+      if (selectedContractorId) {
+        const refreshedContractor = contractorsData.find(contractor => contractor.id === selectedContractorId);
+        if (refreshedContractor) {
+          await handleSelectContractor(refreshedContractor);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not refresh contractor induction status:', error.message);
+    }
+  };
+
+  const renderVisitingPersonLookup = ({ value, onChangeText, showDropdown, setShowDropdown, label = 'Visiting Person (optional)' }) => {
+    const matchingAdmins = getSiteAdminUsers(value);
+
+    return (
+      <View style={{ marginBottom: 12 }}>
+        <Text style={styles.label}>{label}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Who are you visiting?"
+          value={value}
+          onChangeText={(text) => {
+            onChangeText(text);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+        />
+        {showDropdown && (
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginTop: -8, marginBottom: 8, maxHeight: 180 }}>
+            <ScrollView>
+              {matchingAdmins.length > 0 ? matchingAdmins.map(admin => (
+                <TouchableOpacity
+                  key={admin.id}
+                  onPress={() => {
+                    onChangeText(admin.name);
+                    setShowDropdown(false);
+                  }}
+                  style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{admin.name}</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{admin.email}</Text>
+                </TouchableOpacity>
+              )) : (
+                <Text style={{ padding: 12, color: '#6B7280', fontSize: 13 }}>
+                  No admin users assigned to this site
+                </Text>
+              )}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const handleSelectContractor = async (contractor) => {
     setSelectedContractor(contractor);
     setFilteredContractors([]); // Clear the list so it collapses
@@ -391,16 +477,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
-    if (!contractorInductionExpiry || contractorInductionExpired) {
-      Alert.alert(
-        contractorInductionExpired ? 'Induction Expired' : 'Induction Required',
-        contractorInductionExpired
-          ? `${selectedContractor.name}'s induction has expired. Please renew the induction before checking in.`
-          : `${selectedContractor.name} is not inducted at ${site.name}. Please complete the contractor induction before checking in.`
-      );
-      return;
-    }
-    
     // Refresh site data to get latest flag/rt settings
     let refreshedSite = site; // Default to current site
     try {
@@ -458,7 +534,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const performCheckIn = async (contractor, flagData, rtData) => {
     console.log('📞 Calling checkInContractor for:', contractor.name);
     try {
-      const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData);
+      const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData, contractorVisitingPerson || null);
       
       console.log('📊 Check-in result:', result);
       
@@ -471,6 +547,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
         setAllContractorInductions([]);
+        setContractorVisitingPerson('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
         
@@ -505,7 +582,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     
     try {
       const formattedName = formatNameToTitleCase(visitorName);
-      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone);
+      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone, visitingPerson || null);
       
       if (result?.success) {
         Alert.alert('Success', `${formattedName} signed in successfully`);
@@ -656,6 +733,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               setContractorInductionExpiry(null);
               setContractorInductionExpired(false);
               setAllContractorInductions([]);
+              setContractorVisitingPerson('');
             }}
           >
             <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -789,10 +867,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setCurrentScreen(inductionReturnScreen === 'contractor-signin' ? 'contractor-signin' : 'inductions');
     };
 
-    const handleExitInductions = () => {
+    const handleExitInductions = async () => {
       const returnScreen = inductionReturnScreen || 'welcome';
+      const contractorIdToRefresh = inductionPrefillContractorId;
       setInductionPrefillContractorId(null);
       setInductionReturnScreen('welcome');
+      if (returnScreen === 'contractor-signin') {
+        await refreshContractorsForCurrentSite(contractorIdToRefresh);
+      }
       setCurrentScreen(returnScreen);
     };
     
@@ -932,7 +1014,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 {(!contractorInductionExpiry || contractorInductionExpired) && (
                   <View style={{ marginTop: 12, backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8 }}>
                     <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, marginBottom: 10 }}>
-                      Complete or renew this contractor's induction before check-in. This will show the required inductions for their company, business unit, and selected site.
+                      This contractor can still check in during rollout, but should complete or renew their induction as soon as possible. This will show the required inductions for their company, business unit, and selected site.
                     </Text>
                     <TouchableOpacity
                       style={{ backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
@@ -949,17 +1031,22 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   </View>
                 )}
               </View>
+
+              <View style={{ marginTop: 12 }}>
+                {renderVisitingPersonLookup({
+                  value: contractorVisitingPerson,
+                  onChangeText: setContractorVisitingPerson,
+                  showDropdown: showContractorVisitingDropdown,
+                  setShowDropdown: setShowContractorVisitingDropdown,
+                })}
+              </View>
               
               <TouchableOpacity 
-                style={[
-                  styles.submitButton,
-                  (!contractorInductionExpiry || contractorInductionExpired) && styles.submitButtonDisabled
-                ]}
+                style={styles.submitButton}
                 onPress={handleCheckInContractor}
-                disabled={!contractorInductionExpiry || contractorInductionExpired}
               >
                 <Text style={styles.submitButtonText}>
-                  {!contractorInductionExpiry || contractorInductionExpired ? 'Complete induction before check-in' : '✓ Check In'}
+                  ✓ Check In
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1283,7 +1370,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={styles.headerTitle}>Sign In Visitor</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.formContent}>
+        <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
             style={styles.input}
@@ -1309,13 +1396,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>Visiting Person (optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Who are you visiting?"
-            value={visitingPerson}
-            onChangeText={setVisitingPerson}
-          />
+          {renderVisitingPersonLookup({
+            value: visitingPerson,
+            onChangeText: setVisitingPerson,
+            showDropdown: showVisitorVisitingDropdown,
+            setShowDropdown: setShowVisitorVisitingDropdown,
+          })}
 
           <TouchableOpacity 
             style={styles.submitButton}
@@ -1725,6 +1811,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 setContractorInductionExpiry(null);
                 setContractorInductionExpired(false);
                 setAllContractorInductions([]);
+                setContractorVisitingPerson('');
               }}
             >
               <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>

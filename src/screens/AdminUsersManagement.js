@@ -16,9 +16,11 @@ import {
   updateAdminUser,
   deleteAdminUser,
 } from '../api/adminAuth';
+import { listSites } from '../api/sites';
 
 export default function AdminUsersManagement({ onBack, styles }) {
   const [admins, setAdmins] = useState([]);
+  const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -27,6 +29,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
     name: '',
     password: '',
     role: 'manager',
+    siteIds: [],
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,8 +41,12 @@ export default function AdminUsersManagement({ onBack, styles }) {
   const loadAdmins = async () => {
     try {
       setLoading(true);
-      const data = await getAllAdminUsers();
+      const [data, sitesData] = await Promise.all([
+        getAllAdminUsers(),
+        listSites(),
+      ]);
       setAdmins(data);
+      setSites(sitesData || []);
     } catch (err) {
       console.error('❌ Error loading admins:', err);
       Alert.alert('Error', 'Failed to load admin users');
@@ -56,6 +63,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
         name: user.name,
         password: '',
         role: user.role,
+        siteIds: user.site_ids || user.siteIds || [],
       });
     } else {
       setEditingUser(null);
@@ -64,6 +72,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
         name: '',
         password: '',
         role: 'manager',
+        siteIds: [],
       });
     }
     setError('');
@@ -73,7 +82,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
   const handleCloseModal = () => {
     setModalVisible(false);
     setEditingUser(null);
-    setFormData({ email: '', name: '', password: '', role: 'manager' });
+    setFormData({ email: '', name: '', password: '', role: 'manager', siteIds: [] });
     setError('');
   };
 
@@ -97,6 +106,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
         const updatePayload = {
           name: formData.name,
           role: formData.role,
+          siteIds: formData.siteIds || [],
         };
         if (formData.password) {
           updatePayload.password = formData.password;
@@ -116,7 +126,8 @@ export default function AdminUsersManagement({ onBack, styles }) {
           formData.email,
           formData.name,
           formData.password,
-          formData.role
+          formData.role,
+          formData.siteIds || []
         );
         if (result.success) {
           Alert.alert('Success', 'Admin user created');
@@ -132,6 +143,14 @@ export default function AdminUsersManagement({ onBack, styles }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getSiteNames = (siteIds = []) => {
+    if (!siteIds || siteIds.length === 0) return 'No sites assigned';
+    return siteIds
+      .map(siteId => sites.find(site => site.id === siteId)?.name)
+      .filter(Boolean)
+      .join(', ') || 'No matching sites';
   };
 
   const handleDeleteUser = (user) => {
@@ -194,6 +213,9 @@ export default function AdminUsersManagement({ onBack, styles }) {
               }}
             >
               {item.role === 'super_admin' ? 'Super Admin' : 'Manager'}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>
+              Sites: {getSiteNames(item.site_ids || item.siteIds || [])}
             </Text>
           </View>
         </View>
@@ -428,6 +450,55 @@ export default function AdminUsersManagement({ onBack, styles }) {
                       Manager
                     </Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Sites */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                  Sites this admin can be visited at
+                </Text>
+                <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+                  Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
+                </Text>
+                <View style={{ gap: 8 }}>
+                  {sites.map(site => {
+                    const isSelected = (formData.siteIds || []).includes(site.id);
+                    return (
+                      <TouchableOpacity
+                        key={site.id}
+                        onPress={() => {
+                          const nextSiteIds = isSelected
+                            ? formData.siteIds.filter(id => id !== site.id)
+                            : [...(formData.siteIds || []), site.id];
+                          setFormData({ ...formData, siteIds: nextSiteIds });
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 3,
+                          borderWidth: 2,
+                          borderColor: '#3B82F6',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isSelected ? '#3B82F6' : 'white',
+                          marginRight: 10,
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                        </View>
+                        <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: isSelected ? '600' : '400' }}>{site.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
