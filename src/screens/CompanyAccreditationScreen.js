@@ -1477,8 +1477,15 @@ export default function CompanyAccreditationScreen({
   };
 
   // Map sections to their state and setters for proper access
-  const getSectionData = (sectionNum) => {
+  // NOTE: Display section numbers are offset from state variable numbers!
+  // Display section N uses state section(N-1)
+  // Example: Display Section 6 uses section5 state
+  const getSectionData = (displaySectionNum) => {
+    // Convert display number to state number (subtract 1)
+    const stateNum = displaySectionNum - 1;
+    
     const sectionMap = {
+      3: { state: section3, setter: setSection3 },   // If it exists
       4: { state: section4, setter: setSection4 },
       5: { state: section5, setter: setSection5 },
       6: { state: section6, setter: setSection6 },
@@ -1496,10 +1503,10 @@ export default function CompanyAccreditationScreen({
       18: { state: section18, setter: setSection18 },
       19: { state: section19, setter: setSection19 },
       20: { state: section20, setter: setSection20 },
-      21: { state: section21, setter: setSection21 },
-      22: { state: section22, setter: setSection22 }
+      21: { state: section21, setter: setSection21 }
     };
-    return sectionMap[sectionNum];
+    console.log('🔍 getSectionData: displaySectionNum=', displaySectionNum, 'stateNum=', stateNum);
+    return sectionMap[stateNum];
   };
 
   const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
