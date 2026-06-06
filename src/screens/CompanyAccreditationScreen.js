@@ -2645,12 +2645,18 @@ export default function CompanyAccreditationScreen({
     }
 
     console.log('💾 handleSave called, current status:', accreditationStatus);
+    console.log('💾 Current section24 state BEFORE save:', section24);
     console.log('💾 Current section26 state:', { hasSignature: !!section26.hs_agreement_signature, signatureLength: section26.hs_agreement_signature?.length, name: section26.hs_agreement_accepted_by });
     setSaving(true);
     try {
       // Preserve the 'completed' status if already submitted - only save edits without changing status
       const updateData = buildUpdateData(accreditationStatus);
       console.log('💾 Update data built with status:', accreditationStatus);
+      console.log('💾 Insurance fields in updateData:', {
+        public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
+        motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
+        professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
+      });
       console.log('💾 Section 26 in updateData:', { hasSignature: !!updateData.hs_agreement_signature, signatureLength: updateData.hs_agreement_signature?.length });
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
@@ -2658,8 +2664,10 @@ export default function CompanyAccreditationScreen({
       
       
       if (result.success) {
+        console.log('💾 Save successful, reloading data from database...');
         // Wait for data to reload before showing success - ensures signature is visible after save
         await loadCompanyData();
+        console.log('💾 After loadCompanyData, section24:', section24);
         Alert.alert('Success ✅', 'Accreditation saved successfully');
       } else {
         Alert.alert('Error', 'Failed to save: ' + result.error);
