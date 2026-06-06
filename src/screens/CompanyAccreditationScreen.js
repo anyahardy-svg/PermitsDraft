@@ -1658,16 +1658,23 @@ export default function CompanyAccreditationScreen({
         } else if (insuranceType === 'pii') {
           insuranceKey = 'professional_indemnity_insurance';
         }
-        setSection24(prev => ({
-          ...prev,
-          [insuranceKey]: {
-            ...prev[insuranceKey],
-            url: uploadResult.url,
-            uploaded_at: new Date().toISOString(),
-            has_document: true,
-            library_item_id: null  // Clear library reference since this is a direct upload
-          }
-        }));
+        
+        console.log('🔧 Setting section24 state with:', { insuranceKey, url: uploadResult.url });
+        
+        setSection24(prev => {
+          const updated = {
+            ...prev,
+            [insuranceKey]: {
+              ...prev[insuranceKey],
+              url: uploadResult.url,
+              uploaded_at: new Date().toISOString(),
+              has_document: true,
+              library_item_id: null  // Clear library reference since this is a direct upload
+            }
+          };
+          console.log('🔧 New section24 state:', updated);
+          return updated;
+        });
         
         // Immediately save to database after upload
         setTimeout(async () => {
@@ -2263,6 +2270,7 @@ export default function CompanyAccreditationScreen({
 
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
+    console.log('🔧 buildUpdateData called with status:', status, 'section24 current state:', section24);
     const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     
@@ -2466,6 +2474,8 @@ export default function CompanyAccreditationScreen({
 
     // Add Section 24 data (Insurance Documents)
     // Always include insurance URLs so deletions persist
+    console.log('🔧 buildUpdateData - section24:', section24);
+    
     if (section24.public_liability_insurance.expiry_date) {
       updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
     }
@@ -2481,6 +2491,12 @@ export default function CompanyAccreditationScreen({
       updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
     }
     updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
+    
+    console.log('🔧 buildUpdateData - insurance fields:', {
+      public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
+      motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
+      professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
+    });
     if (section24.professional_indemnity_insurance.uploaded_at) {
       updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
     }
@@ -2578,6 +2594,11 @@ export default function CompanyAccreditationScreen({
       console.log('✅ Section 26: All required fields present - marking as signed');
     }
 
+    console.log('🔧 buildUpdateData returning updateData with insurance fields:', {
+      public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
+      motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
+      professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
+    });
     return updateData;
   };
 
