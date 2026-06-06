@@ -1485,7 +1485,6 @@ export default function CompanyAccreditationScreen({
     const stateNum = displaySectionNum - 1;
     
     const sectionMap = {
-      3: { state: section3, setter: setSection3 },   // If it exists
       4: { state: section4, setter: setSection4 },
       5: { state: section5, setter: setSection5 },
       6: { state: section6, setter: setSection6 },
