@@ -306,10 +306,13 @@ export const getCompanyAccreditation = async (companyId) => {
         occupational_hygienist_name,
         occupational_hygienist_email,
         occupational_hygienist_phone,
-        motor_vehicle_insurance_url,
+        motor_vehicle_insurance_evidence_url,
         motor_vehicle_insurance_expiry,
-        public_liability_insurance_url,
-        public_liability_insurance_expiry
+        public_liability_insurance_evidence_url,
+        public_liability_insurance_expiry,
+        professional_indemnity_insurance_url,
+        professional_indemnity_insurance_expiry,
+        professional_indemnity_insurance_uploaded_at
       `)
       .eq('id', companyId)
       .single();
