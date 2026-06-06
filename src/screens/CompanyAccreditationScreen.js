@@ -986,7 +986,7 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 24 (Insurance Documents)
-      console.log('📋 [LOAD] Insurance data from DB:', {
+      console.log('📋 [LOAD] Raw insurance data from DB:', {
         public_liability_expiry: data.public_liability_expiry,
         public_liability_insurance_evidence_url: data.public_liability_insurance_evidence_url,
         motor_vehicle_insurance_expiry: data.motor_vehicle_insurance_expiry,
@@ -994,6 +994,13 @@ export default function CompanyAccreditationScreen({
         professional_indemnity_insurance_expiry: data.professional_indemnity_insurance_expiry,
         professional_indemnity_insurance_url: data.professional_indemnity_insurance_url,
         professional_indemnity_insurance_uploaded_at: data.professional_indemnity_insurance_uploaded_at
+      });
+      
+      console.log('🔍 Checking what will be set for section24:', {
+        pli_url_truthy: !!data.public_liability_insurance_evidence_url,
+        pli_url_value: data.public_liability_insurance_evidence_url,
+        mvi_url_truthy: !!data.motor_vehicle_insurance_evidence_url,
+        mvi_url_value: data.motor_vehicle_insurance_evidence_url
       });
       
       setSection24({
