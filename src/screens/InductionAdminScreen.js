@@ -267,8 +267,9 @@ export default function InductionAdminScreen({ onBack, styles }) {
           Alert.alert('Error', 'PDF file must be smaller than 10MB');
           return;
         }
-        setPdfFile(file);
-        setPdfFileName(file.name);
+        
+        // Auto-upload immediately after selecting
+        await handleUploadPDF(file);
       }
     } catch (err) {
       console.error('Error picking PDF:', err);
@@ -276,13 +277,11 @@ export default function InductionAdminScreen({ onBack, styles }) {
     }
   };
 
-  const handleUploadPDF = async () => {
+  const handleUploadPDF = async (fileToUpload) => {
     console.log('🚀 handleUploadPDF called');
-    console.log('  - pdfFile:', pdfFile ? `${pdfFile.name} (${pdfFile.size} bytes)` : 'null');
-    console.log('  - formData.id:', formData.id);
-    console.log('  - uploadingPDF:', uploadingPDF);
+    const file = fileToUpload || pdfFile;
     
-    if (!pdfFile || !formData.id) {
+    if (!file || !formData.id) {
       Alert.alert('Error', 'Please save the induction first before uploading PDF');
       return;
     }
@@ -290,7 +289,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
     try {
       setUploadingPDF(true);
       console.log('📤 Starting PDF upload...');
-      const { success, data, message } = await uploadInductionPDF(formData.id, pdfFile);
+      const { success, data, message } = await uploadInductionPDF(formData.id, file);
       console.log('📤 Upload response:', { success, message });
       
       if (success) {
@@ -497,38 +496,24 @@ export default function InductionAdminScreen({ onBack, styles }) {
             <TextInput style={styles.input} placeholder="5" keyboardType="number-pad" value={formData.video_duration} onChangeText={(text) => setFormData({ ...formData, video_duration: text })} />
 
             <Text style={[styles.label, { marginTop: 16, marginBottom: 8 }]}>PDF Presentation (Alternative to Video)</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <TouchableOpacity 
-                onPress={handlePickPDF} 
-                disabled={uploadingPDF}
-                style={{ flex: 1 }}
-              >
-                <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#3B82F6', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={handlePickPDF} 
+              disabled={uploadingPDF}
+              style={{ marginBottom: 12 }}
+            >
+              <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: formData.id ? '#3B82F6' : '#3B82F6', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                {uploadingPDF ? (
+                  <>
+                    <ActivityIndicator size="small" color="white" />
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>Uploading...</Text>
+                  </>
+                ) : (
                   <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
-                    {pdfFileName ? '📄 ' + pdfFileName.substring(0, 20) : uploadingPDF ? 'Uploading...' : 'Choose PDF'}
+                    {pdfFileName ? '📄 ' + pdfFileName.substring(0, 25) : '📄 Choose PDF'}
                   </Text>
-                </View>
-              </TouchableOpacity>
-              
-              {pdfFile && !uploadingPDF && (
-                <TouchableOpacity 
-                  onPress={() => {
-                    console.log('🎯 Upload button pressed!');
-                    handleUploadPDF();
-                  }}
-                  activeOpacity={0.7}
-                  style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#10B981', borderRadius: 6, minWidth: 80 }}
-                >
-                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 13, textAlign: 'center' }}>Upload</Text>
-                </TouchableOpacity>
-              )}
-              
-              {uploadingPDF && (
-                <View style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#9CA3AF', borderRadius: 6, minWidth: 80, justifyContent: 'center', alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="white" />
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            </TouchableOpacity>
 
             {formData.pdf_file_name && (
               <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#DBEAFE', borderRadius: 6, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
