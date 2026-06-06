@@ -258,8 +258,10 @@ export default function CompanyAccreditationScreen({
       lost_time: '', 
       property_damage: '', 
       pending_prosecutions: 'no',
+      pending_prosecutions_comments: '',
       prosecutions_5_years: '',
       environmental_notices: 'no',
+      environmental_notices_comments: '',
       exists: false, 
       score: 0, 
       evidence: null,
@@ -1130,6 +1132,25 @@ export default function CompanyAccreditationScreen({
           exists: data.management_review_exists || false,
           score: data.management_review_score || 0,
           evidence: data.management_review_evidence_url || null
+        }
+      });
+
+      // Load section 20 (Incidents & Breaches)
+      setSection20({
+        incidents_breaches: {
+          fatalities: data.fatalities || '',
+          serious_harm: data.serious_harm || '',
+          lost_time: data.lost_time || '',
+          property_damage: data.property_damage || '',
+          pending_prosecutions: data.pending_prosecutions || 'no',
+          pending_prosecutions_comments: data.pending_prosecutions_comments || '',
+          prosecutions_5_years: data.prosecutions_5_years || '',
+          environmental_notices: data.environmental_notices || 'no',
+          environmental_notices_comments: data.environmental_notices_comments || '',
+          exists: false,
+          score: 0,
+          evidence: null,
+          library_item_id: null
         }
       });
 
@@ -2651,6 +2672,21 @@ export default function CompanyAccreditationScreen({
       console.log('✅ Section 26: All required fields present - marking as signed');
     }
 
+    // Add Section 20 data (Incidents & Breaches)
+    updateData.fatalities = section20.incidents_breaches?.fatalities || '';
+    updateData.serious_harm = section20.incidents_breaches?.serious_harm || '';
+    updateData.lost_time = section20.incidents_breaches?.lost_time || '';
+    updateData.property_damage = section20.incidents_breaches?.property_damage || '';
+    updateData.pending_prosecutions = section20.incidents_breaches?.pending_prosecutions || 'no';
+    if (section20.incidents_breaches?.pending_prosecutions_comments) {
+      updateData.pending_prosecutions_comments = section20.incidents_breaches.pending_prosecutions_comments;
+    }
+    updateData.prosecutions_5_years = section20.incidents_breaches?.prosecutions_5_years || '';
+    updateData.environmental_notices = section20.incidents_breaches?.environmental_notices || 'no';
+    if (section20.incidents_breaches?.environmental_notices_comments) {
+      updateData.environmental_notices_comments = section20.incidents_breaches.environmental_notices_comments;
+    }
+
     console.log('🔧 buildUpdateData returning updateData with insurance fields:', {
       public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
       motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
@@ -3523,7 +3559,7 @@ export default function CompanyAccreditationScreen({
 
               {/* Property Damage */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Incidents causing property damage during a contract, if yes, state how many:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', flex: 1, marginRight: 12 }}>Incidents causing significant property damage during a contract, if yes, state how many:</Text>
                 <TextInput
                   style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 8, fontSize: 18, width: 80 }}
                   placeholder="Number"
@@ -3590,6 +3626,32 @@ export default function CompanyAccreditationScreen({
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Pending Prosecutions Comments (shown only when Yes is selected) */}
+              {section20.incidents_breaches?.pending_prosecutions === 'yes' && (
+                <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937', marginBottom: 8 }}>Please explain:</Text>
+                  <TextInput
+                    style={{ 
+                      borderWidth: 1, 
+                      borderColor: '#D1D5DB', 
+                      borderRadius: 4, 
+                      paddingHorizontal: 12, 
+                      paddingVertical: 10, 
+                      fontSize: 16,
+                      minHeight: 80,
+                      textAlignVertical: 'top'
+                    }}
+                    placeholder="Provide details about the pending prosecutions or improvement notices..."
+                    multiline
+                    value={section20.incidents_breaches?.pending_prosecutions_comments || ''}
+                    onChangeText={(text) => setSection20(prev => ({
+                      ...prev,
+                      incidents_breaches: { ...prev.incidents_breaches, pending_prosecutions_comments: text }
+                    }))}
+                  />
+                </View>
+              )}
 
               {/* Past 5 Years Prosecutions */}
               <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -3660,6 +3722,32 @@ export default function CompanyAccreditationScreen({
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Environmental Notices Comments (shown only when Yes is selected) */}
+              {section20.incidents_breaches?.environmental_notices === 'yes' && (
+                <View style={{ backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#D1D5DB', padding: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#1F2937', marginBottom: 8 }}>Please explain:</Text>
+                  <TextInput
+                    style={{ 
+                      borderWidth: 1, 
+                      borderColor: '#D1D5DB', 
+                      borderRadius: 4, 
+                      paddingHorizontal: 12, 
+                      paddingVertical: 10, 
+                      fontSize: 16,
+                      minHeight: 80,
+                      textAlignVertical: 'top'
+                    }}
+                    placeholder="Provide details about the infringement, abatement or enforcement notices..."
+                    multiline
+                    value={section20.incidents_breaches?.environmental_notices_comments || ''}
+                    onChangeText={(text) => setSection20(prev => ({
+                      ...prev,
+                      incidents_breaches: { ...prev.incidents_breaches, environmental_notices_comments: text }
+                    }))}
+                  />
+                </View>
+              )}
             </View>
           </View>
         )}
