@@ -988,34 +988,29 @@ export default function CompanyAccreditationScreen({
       // Load section 24 (Insurance Documents)
       console.log('📋 [LOAD] Insurance data from DB:', {
         public_liability_insurance_expiry: data.public_liability_insurance_expiry,
-        public_liability_insurance_evidence_url: data.public_liability_insurance_evidence_url,
-        public_liability_insurance_uploaded_at: data.public_liability_insurance_uploaded_at,
+        public_liability_insurance_url: data.public_liability_insurance_url,
         motor_vehicle_insurance_expiry: data.motor_vehicle_insurance_expiry,
-        motor_vehicle_insurance_evidence_url: data.motor_vehicle_insurance_evidence_url,
-        motor_vehicle_insurance_uploaded_at: data.motor_vehicle_insurance_uploaded_at,
-        professional_indemnity_insurance_expiry: data.professional_indemnity_insurance_expiry,
-        professional_indemnity_insurance_url: data.professional_indemnity_insurance_url,
-        professional_indemnity_insurance_uploaded_at: data.professional_indemnity_insurance_uploaded_at
+        motor_vehicle_insurance_url: data.motor_vehicle_insurance_url
       });
       
       setSection24({
         public_liability_insurance: {
           expiry_date: data.public_liability_insurance_expiry || '',
-          url: data.public_liability_insurance_evidence_url || null,
-          uploaded_at: data.public_liability_insurance_uploaded_at || null,
-          has_document: !!data.public_liability_insurance_evidence_url
+          url: data.public_liability_insurance_url || null,
+          uploaded_at: null,
+          has_document: !!data.public_liability_insurance_url
         },
         motor_vehicle_insurance: {
           expiry_date: data.motor_vehicle_insurance_expiry || '',
-          url: data.motor_vehicle_insurance_evidence_url || null,
-          uploaded_at: data.motor_vehicle_insurance_uploaded_at || null,
-          has_document: !!data.motor_vehicle_insurance_evidence_url
+          url: data.motor_vehicle_insurance_url || null,
+          uploaded_at: null,
+          has_document: !!data.motor_vehicle_insurance_url
         },
         professional_indemnity_insurance: {
-          expiry_date: data.professional_indemnity_insurance_expiry || '',
-          url: data.professional_indemnity_insurance_url || null,
-          uploaded_at: data.professional_indemnity_insurance_uploaded_at || null,
-          has_document: !!data.professional_indemnity_insurance_url
+          expiry_date: '',
+          url: null,
+          uploaded_at: null,
+          has_document: false
         }
       });
 
@@ -2506,27 +2501,17 @@ export default function CompanyAccreditationScreen({
     if (section24.public_liability_insurance.expiry_date) {
       updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
     }
-    updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
+    updateData.public_liability_insurance_url = section24.public_liability_insurance.url || null;
     
     if (section24.motor_vehicle_insurance.expiry_date) {
       updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
     }
-    updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url || null;
-    
-    // Professional indemnity insurance
-    if (section24.professional_indemnity_insurance.expiry_date) {
-      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
-    }
-    updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
+    updateData.motor_vehicle_insurance_url = section24.motor_vehicle_insurance.url || null;
     
     console.log('🔧 buildUpdateData - insurance fields:', {
-      public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
-      motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
-      professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
+      public_liability_insurance_url: updateData.public_liability_insurance_url,
+      motor_vehicle_insurance_url: updateData.motor_vehicle_insurance_url
     });
-    if (section24.professional_indemnity_insurance.uploaded_at) {
-      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
-    }
 
     // Add Section 25 data (Contact Information)
     if (section25.health_safety_manager.name) {
