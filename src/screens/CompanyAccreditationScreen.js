@@ -2465,19 +2465,22 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    // Map section24 fields to database column names
-    if (section24.motor_vehicle_insurance.url) {
-      updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url;
+    // Always include insurance URLs so deletions persist
+    if (section24.public_liability_insurance.expiry_date) {
+      updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
     }
-    if (section24.public_liability_insurance.url) {
-      updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url;
+    updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
+    
+    if (section24.motor_vehicle_insurance.expiry_date) {
+      updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
     }
+    updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url || null;
+    
+    // Professional indemnity insurance
     if (section24.professional_indemnity_insurance.expiry_date) {
       updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
     }
-    if (section24.professional_indemnity_insurance.url) {
-      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
-    }
+    updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
     if (section24.professional_indemnity_insurance.uploaded_at) {
       updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
     }
@@ -2603,6 +2606,8 @@ export default function CompanyAccreditationScreen({
       
       if (result.success) {
         console.log('✨ Auto-saved successfully!', result);
+        // Reload data after save to ensure UI is in sync with database
+        await loadCompanyData();
       } else {
         console.error('❌ Auto-save failed:', result.error);
       }
