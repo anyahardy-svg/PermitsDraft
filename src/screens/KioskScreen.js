@@ -25,6 +25,8 @@ import { listPermits } from '../api/permits';
 import { loginAdminUser } from '../api/adminAuth';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
+import MarkdownRenderer from '../components/MarkdownRenderer';
+import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -62,21 +64,6 @@ const maskPhoneNumber = (phone) => {
   }
   
   return masked + '-' + last3;
-};
-
-// Helper function to convert structured lines to HTML
-const linesToHtml = (lines) => {
-  return lines.map(line => {
-    if (!line.text) return '';
-    switch (line.type) {
-      case 'h1': return `<h1>${line.text}</h1>`;
-      case 'h2': return `<h2>${line.text}</h2>`;
-      case 'h3': return `<h3>${line.text}</h3>`;
-      case 'bold': return `<p><b>${line.text}</b></p>`;
-      case 'list': return `<ul><li>${line.text}</li></ul>`;
-      default: return `<p>${line.text}</p>`;
-    }
-  }).join('');
 };
 
 const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
@@ -198,18 +185,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           // Load visitor induction content
           const inductionResult = await getVisitorInduction(matchingSite.id);
           if (inductionResult?.success && inductionResult?.data) {
-            let contentToDisplay = inductionResult.data?.content;
-            // Try to parse as JSON structured format
-            try {
-              const parsed = JSON.parse(contentToDisplay);
-              if (Array.isArray(parsed) && parsed[0]?.text !== undefined) {
-                // Convert to HTML
-                contentToDisplay = linesToHtml(parsed);
-              }
-            } catch (e) {
-              // Not JSON, display as-is (plain text will be rendered as HTML)
-            }
-            setVisitorInductionContent(contentToDisplay);
+            setVisitorInductionContent(normalizeVisitorInductionContent(inductionResult.data?.content || ''));
             setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
           }
           
@@ -1216,8 +1192,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   />
                 )
               ) : (
-                // Render as plain text if no HTML tags
-                <Text style={styles.inductionText}>{visitorInductionContent}</Text>
+                // Render markdown/plain text content from the admin editor
+                <MarkdownRenderer text={visitorInductionContent} />
               )}
             </View>
           ) : (

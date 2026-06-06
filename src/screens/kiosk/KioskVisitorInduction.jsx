@@ -7,8 +7,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { KioskContext } from '../KioskScreen';
 import { getVisitorInduction } from '../../api/visitorInductions';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
+import { normalizeVisitorInductionContent } from '../../utils/visitorInductionContent';
 
 const KioskVisitorInduction = () => {
   const navigate = useNavigate();
@@ -21,8 +24,8 @@ const KioskVisitorInduction = () => {
     const loadInductionContent = async () => {
       try {
         const induction = await getVisitorInduction(siteId);
-        if (induction) {
-          setVisitorInductionContent(induction.content || 'No induction content available');
+        if (induction?.success && induction?.data) {
+          setVisitorInductionContent(normalizeVisitorInductionContent(induction.data.content || ''));
         }
       } catch (error) {
         console.error('Failed to load visitor induction:', error);
@@ -46,7 +49,7 @@ const KioskVisitorInduction = () => {
 
       <ScrollView contentContainerStyle={styles.formContent}>
         <View style={styles.inductionBox}>
-          <Text style={styles.inductionText}>{visitorInductionContent}</Text>
+          <MarkdownRenderer text={visitorInductionContent || 'No induction content available'} />
         </View>
 
         <View style={styles.checkboxContainer}>
