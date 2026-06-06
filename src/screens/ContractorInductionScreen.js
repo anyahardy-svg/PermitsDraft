@@ -71,7 +71,7 @@ const getYouTubeEmbedUrl = (url) => {
   return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
 };
 
-export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, onSelectInductionType, onBackToSelection }) {
+export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, initialContractorId, onSelectInductionType, onBackToSelection }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -310,6 +310,17 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     }
   };
 
+  useEffect(() => {
+    if (
+      initialContractorId &&
+      contractors.length > 0 &&
+      !selectedContractorId &&
+      (initialRoute === 'returning' || initialRoute === 'resume')
+    ) {
+      handleSelectExistingContractor(initialContractorId);
+    }
+  }, [initialContractorId, contractors.length, selectedContractorId, initialRoute]);
+
   const handleNewContractor = () => {
     setIsNewContractor(true);
     setContractorInfo({
@@ -527,6 +538,11 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     if (selectedBUs.length === 0) {
       newValidationErrors.businessUnits = '⚠️ Please select at least one business unit';
     }
+
+    const selectedSites = contractorInfo.selectedSiteIds || [];
+    if (sites.length > 0 && selectedSites.length === 0) {
+      newValidationErrors.sites = '⚠️ Please select the site or sites this induction applies to';
+    }
     
     // If there are errors, show them and return
     if (Object.keys(newValidationErrors).length > 0) {
@@ -546,7 +562,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       let contractorId = contractorInfo.id;
       if (isNewContractor && !contractorId) {
         console.log('📝 Creating new contractor...');
-        const selectedSites = contractorInfo.selectedSiteIds || [];
         const formattedName = formatNameToTitleCase(contractorInfo.name);
         const newContractor = await createContractor({
           name: formattedName,
@@ -662,7 +677,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           const completedIds = completedInductions.map(p => p.induction_id);
           
           // Filter to find which optional inductions are in their completed list
-          const preSelectedOptionals = optionalInductions
+          const preSelectedOptionals = optional
             .filter(ind => completedIds.includes(ind.id))
             .map(ind => ind.id);
           
@@ -731,6 +746,32 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
     } finally {
       setLoading(false);
     }
+  };
+
+  const finalizeContractorInductionStatus = async (completedIds = completedInductionIds) => {
+    const completedInductions = inductionQueue.filter(ind => completedIds.includes(ind.id));
+    const earnedServiceIds = completedInductions
+      .filter(ind => !ind.is_compulsory && ind.service_id)
+      .map(ind => ind.service_id);
+
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    const updatedSiteIds = Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
+    const updatedServiceIds = Array.from(new Set([...(contractorInfo.service_ids || []), ...earnedServiceIds]));
+
+    await updateContractor(contractorInfo.id, {
+      service_ids: updatedServiceIds,
+      site_ids: updatedSiteIds,
+      business_unit_ids: contractorInfo.selectedBusinessUnitIds || [],
+      induction_expiry: expiryDate.toISOString(),
+    });
+
+    setContractorInfo(prev => ({
+      ...prev,
+      service_ids: updatedServiceIds,
+      selectedSiteIds: updatedSiteIds,
+    }));
   };
 
   const handleVideoComplete = () => {
@@ -1428,13 +1469,16 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           {sites.length > 0 && (
             <>
               <Text style={[styles.label, { marginTop: 16 }]}>Sites (select one or more)</Text>
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: 8, paddingBottom: validationErrors.sites ? 4 : 0 }}>
                 {sites.map(site => {
                   const isSelected = (contractorInfo.selectedSiteIds || []).includes(site.id);
                   return (
                     <TouchableOpacity
                       key={site.id}
-                      onPress={() => toggleSiteSelection(site.id)}
+                      onPress={() => {
+                        toggleSiteSelection(site.id);
+                        setValidationErrors(prev => ({ ...prev, sites: undefined }));
+                      }}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -1442,6 +1486,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                         paddingHorizontal: 12,
                         borderRadius: 8,
                         backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                        borderWidth: validationErrors.sites ? 1 : 0,
+                        borderColor: validationErrors.sites ? '#DC2626' : 'transparent',
                       }}
                     >
                       <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3B82F6' : 'white', marginRight: 10 }}>
@@ -1452,6 +1498,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                   );
                 })}
               </View>
+              {validationErrors.sites && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.sites}</Text>}
             </>
           )}
 
@@ -1615,11 +1662,20 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   // STEP 2: INDUCTIONS LIST
   if (step === 'inductionsList') {
+    const inductionCount = selectedOptionalIds.length + compulsoryInductions.length;
+    const hasAvailableInductions = compulsoryInductions.length > 0 || optionalInductions.length > 0;
+
     return (
       <View style={styles.container}>
         {renderHeader('Select Inductions', () => setStep('info'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
+              Required inductions are selected automatically. Select any optional inductions that match the work you will do on site.
+            </Text>
+          </View>
+
           {!isNewContractor && selectedOptionalIds.length > 0 && (
             <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
               <Text style={{ fontSize: 13, color: '#166534', fontWeight: '600' }}>
@@ -1706,13 +1762,25 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </>
           )}
 
+          {!hasAvailableInductions && (
+            <View style={{ backgroundColor: '#FEF3C7', borderLeftWidth: 4, borderLeftColor: '#F59E0B', padding: 14, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 }}>
+                No inductions found
+              </Text>
+              <Text style={{ fontSize: 13, color: '#92400E', lineHeight: 18 }}>
+                No contractor inductions are assigned to the selected business unit and site. Please ask the site team to confirm your details.
+              </Text>
+            </View>
+          )}
+
           <View style={{ marginTop: 24, marginBottom: 40 }}>
             <TouchableOpacity 
-              style={{ backgroundColor: '#3B82F6', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }} 
+              style={{ backgroundColor: inductionCount > 0 ? '#3B82F6' : '#9CA3AF', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
               onPress={handleStartInductions}
+              disabled={inductionCount === 0}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Start Inductions ({selectedOptionalIds.length + compulsoryInductions.length})
+                Start Inductions ({inductionCount})
               </Text>
             </TouchableOpacity>
           </View>
@@ -1811,8 +1879,9 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         } else {
           // All done! Close modal and show completion message
           console.log('🎉 All inductions completed!');
+          await finalizeContractorInductionStatus(newCompletedIds);
           setModalVisible(false);
-          Alert.alert('Success', 'All inductions completed!', [
+          Alert.alert('Success', 'All inductions completed. You can now sign in at the kiosk.', [
             {
               text: 'OK',
               onPress: () => {
