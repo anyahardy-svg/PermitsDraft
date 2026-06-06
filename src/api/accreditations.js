@@ -293,7 +293,26 @@ export const getCompanyAccreditation = async (companyId) => {
         hs_agreement_accepted_by,
         hs_agreement_acknowledged,
         hs_agreement_signed_date,
-        hs_agreement_accepted
+        hs_agreement_accepted,
+        health_safety_manager_name,
+        health_safety_manager_email,
+        health_safety_manager_phone,
+        environmental_manager_name,
+        environmental_manager_email,
+        environmental_manager_phone,
+        quality_manager_name,
+        quality_manager_email,
+        quality_manager_phone,
+        occupational_hygienist_name,
+        occupational_hygienist_email,
+        occupational_hygienist_phone,
+        motor_vehicle_insurance_evidence_url,
+        motor_vehicle_insurance_expiry,
+        public_liability_insurance_evidence_url,
+        public_liability_insurance_expiry,
+        professional_indemnity_insurance_url,
+        professional_indemnity_insurance_expiry,
+        professional_indemnity_insurance_uploaded_at
       `)
       .eq('id', companyId)
       .single();
