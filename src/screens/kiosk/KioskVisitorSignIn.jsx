@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 
 import { KioskContext } from '../KioskScreen';
 import { checkInVisitor } from '../../api/signIns';
@@ -39,19 +40,17 @@ const KioskVisitorSignIn = () => {
     }
 
     try {
-      const visitorData = {
-        name: formatNameToTitleCase(visitorName),
-        company: visitorCompany,
-        phone_number: visitorPhone,
-        visiting_person: visitingPerson || null,
-        check_in_time: new Date().toISOString(),
-        site_id: siteId,
-      };
-
-      const { data, error } = await checkInVisitor(visitorData);
+      const result = await checkInVisitor(
+        formatNameToTitleCase(visitorName),
+        visitorCompany,
+        siteId,
+        null,
+        visitorPhone,
+        visitingPerson || null
+      );
       
-      if (error) {
-        Alert.alert('Error', error);
+      if (!result?.success) {
+        Alert.alert('Error', result?.error || 'Failed to check in');
         return;
       }
 

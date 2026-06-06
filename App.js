@@ -2420,7 +2420,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [adminCurrentView, setAdminCurrentView] = useState('dashboard'); // 'dashboard', 'admin-users', 'legal-documents'
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
-  const [newAdminForm, setNewAdminForm] = useState({ email: '', name: '', role: 'manager' });
+  const [newAdminForm, setNewAdminForm] = useState({ email: '', name: '', role: 'manager', siteIds: [] });
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [adminList, setAdminList] = useState([]);
   const [adminListLoading, setAdminListLoading] = useState(false);
@@ -2629,7 +2629,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         newAdminForm.email,
         newAdminForm.name,
         '', // empty password - user will set on first login
-        newAdminForm.role
+        newAdminForm.role,
+        newAdminForm.siteIds || []
       );
       
       console.log('📋 Create admin result:', result);
@@ -2644,7 +2645,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         
         Alert.alert('Success', 'Admin user created and setup email sent. They can set their password via the email link or on first login.');
         setShowAddAdminModal(false);
-        setNewAdminForm({ email: '', name: '', role: 'manager' });
+        setNewAdminForm({ email: '', name: '', role: 'manager', siteIds: [] });
         // Reload admin list
         loadAdminList();
       } else {
@@ -2673,7 +2674,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const handleEditAdmin = (admin) => {
-    setEditingAdmin({ ...admin });
+    setEditingAdmin({ ...admin, siteIds: admin.site_ids || admin.siteIds || [] });
     setShowEditAdminModal(true);
   };
 
@@ -2686,7 +2687,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       const result = await updateAdminUser(editingAdmin.id, {
         name: editingAdmin.name,
-        role: editingAdmin.role
+        role: editingAdmin.role,
+        siteIds: editingAdmin.siteIds || editingAdmin.site_ids || []
       });
 
       if (result.success) {
@@ -2730,6 +2732,62 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       ]
     );
   };
+
+  const getAdminSiteNames = (siteIds = []) => {
+    if (!siteIds || siteIds.length === 0) return 'No sites assigned';
+    return siteIds
+      .map(siteId => sites.find(site => site.id === siteId)?.name)
+      .filter(Boolean)
+      .join(', ') || 'No matching sites';
+  };
+
+  const renderAdminSiteSelector = (selectedSiteIds = [], onChange) => (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Sites this admin can be visited at</Text>
+      <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+        Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
+      </Text>
+      <View style={{ gap: 8 }}>
+        {sites.map(site => {
+          const isSelected = selectedSiteIds.includes(site.id);
+          return (
+            <TouchableOpacity
+              key={site.id}
+              onPress={() => {
+                const nextSiteIds = isSelected
+                  ? selectedSiteIds.filter(id => id !== site.id)
+                  : [...selectedSiteIds, site.id];
+                onChange(nextSiteIds);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+              }}
+            >
+              <View style={{
+                width: 18,
+                height: 18,
+                borderRadius: 3,
+                borderWidth: 2,
+                borderColor: '#3B82F6',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isSelected ? '#3B82F6' : 'white',
+                marginRight: 10,
+              }}>
+                {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+              </View>
+              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: isSelected ? '600' : '400' }}>{site.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
 
   // Detect invitation flow from email (?type=invited)
   useEffect(() => {
@@ -23460,6 +23518,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               </View>
 
+              {renderAdminSiteSelector(newAdminForm.siteIds || [], (siteIds) => setNewAdminForm({ ...newAdminForm, siteIds }))}
+
               {/* Create Button */}
               <TouchableOpacity
                 style={{
@@ -23510,6 +23570,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           alignSelf: 'flex-start'
                         }}>
                           {admin.role === 'super_admin' ? 'Super Admin' : 'Manager'}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>
+                          Sites: {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
                         </Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -23629,6 +23692,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {renderAdminSiteSelector(editingAdmin.siteIds || editingAdmin.site_ids || [], (siteIds) => setEditingAdmin({ ...editingAdmin, siteIds }))}
               </>
             )}
           </ScrollView>

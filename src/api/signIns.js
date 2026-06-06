@@ -16,7 +16,7 @@ import { supabase } from '../supabaseClient';
  * @param {UUID} businessUnitId - Business Unit UUID
  * @returns {Object} Sign-in record
  */
-export async function checkInContractor(contractorId, siteId, businessUnitId, flagData = null, rtData = null) {
+export async function checkInContractor(contractorId, siteId, businessUnitId, flagData = null, rtData = null, visitingPersonName = null) {
   try {
     console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
     
@@ -80,6 +80,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
       induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
       inducted_at_site: contractor.induction_expiry || null,
       induction_expires_at: contractor.induction_expiry || null,
+      visiting_person_name: visitingPersonName || null,
     };
 
     // Add flag and RT data if provided
@@ -135,7 +136,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
  * @param {string} phone - Phone number
  * @returns {Object} Sign-in record
  */
-export async function checkInVisitor(visitorName, company, siteId, businessUnitId, phone) {
+export async function checkInVisitor(visitorName, company, siteId, businessUnitId, phone, visitingPersonName = null) {
   try {
     const { data, error } = await supabase
       .from('sign_ins')
@@ -147,6 +148,7 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
         business_unit_id: businessUnitId,
         check_in_time: new Date().toISOString(),
         inducted: true, // Visitors don't need induction check
+        visiting_person_name: visitingPersonName || null,
       })
       .select()
       .single();
@@ -240,7 +242,8 @@ export async function getSignedInPeople(siteId) {
         flag_taken,
         flag_name,
         rt_taken,
-        rt_name
+        rt_name,
+        visiting_person_name
       `)
       .eq('site_id', siteId)
       .is('check_out_time', null) // Currently signed in (no check-out time)

@@ -6,6 +6,9 @@
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
 
+const isMissingSiteIdsColumn = (error) =>
+  error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
+
 /**
  * Login admin user with email and password
  * @param {string} email - Admin email
@@ -17,11 +20,21 @@ export async function loginAdminUser(email, password) {
     console.log('🔐 Admin login attempt:', email);
 
     // Query admin_users table
-    const { data: adminUser, error: fetchError } = await supabase
+    let { data: adminUser, error: fetchError } = await supabase
       .from('admin_users')
-      .select('id, email, password_hash, name, role')
+      .select('id, email, password_hash, name, role, site_ids')
       .eq('email', email)
       .single();
+
+    if (fetchError && isMissingSiteIdsColumn(fetchError)) {
+      const retry = await supabase
+        .from('admin_users')
+        .select('id, email, password_hash, name, role')
+        .eq('email', email)
+        .single();
+      adminUser = retry.data;
+      fetchError = retry.error;
+    }
 
     if (fetchError || !adminUser) {
       console.error('❌ Admin user not found:', email);
@@ -49,7 +62,9 @@ export async function loginAdminUser(email, password) {
         id: adminUser.id,
         email: adminUser.email,
         name: adminUser.name,
-        role: adminUser.role
+        role: adminUser.role,
+        site_ids: adminUser.site_ids || [],
+        siteIds: adminUser.site_ids || []
       }
     };
   } catch (error) {
@@ -67,13 +82,26 @@ export async function loginAdminUser(email, password) {
  */
 export async function getAllAdminUsers() {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('admin_users')
-      .select('id, email, name, role, created_at')
+      .select('id, email, name, role, site_ids, created_at')
       .order('created_at', { ascending: false });
 
+    if (error && isMissingSiteIdsColumn(error)) {
+      const retry = await supabase
+        .from('admin_users')
+        .select('id, email, name, role, created_at')
+        .order('created_at', { ascending: false });
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) throw error;
-    return data || [];
+    return (data || []).map(user => ({
+      ...user,
+      site_ids: user.site_ids || [],
+      siteIds: user.site_ids || []
+    }));
   } catch (error) {
     console.error('❌ Error fetching admin users:', error);
     throw error;
@@ -88,7 +116,7 @@ export async function getAllAdminUsers() {
  * @param {string} role - 'super_admin' or 'manager'
  * @returns {Object} { success: boolean, data: user, error: string }
  */
-export async function createAdminUser(email, name, password, role = 'manager') {
+export async function createAdminUser(email, name, password, role = 'manager', siteIds = []) {
   try {
     console.log('👤 Creating admin user:', email, 'Role:', role);
 
@@ -114,25 +142,37 @@ export async function createAdminUser(email, name, password, role = 'manager') {
     }
 
     // Insert into admin_users
-    const { data, error } = await supabase
+    let insertPayload = {
+      email,
+      name,
+      password_hash: passwordHash,
+      role,
+      site_ids: siteIds || []
+    };
+
+    let { data, error } = await supabase
       .from('admin_users')
-      .insert([
-        {
-          email,
-          name,
-          password_hash: passwordHash,
-          role
-        }
-      ])
-      .select('id, email, name, role')
+      .insert([insertPayload])
+      .select('id, email, name, role, site_ids')
       .single();
+
+    if (error && isMissingSiteIdsColumn(error)) {
+      const { site_ids, ...fallbackPayload } = insertPayload;
+      const retry = await supabase
+        .from('admin_users')
+        .insert([fallbackPayload])
+        .select('id, email, name, role')
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) throw error;
 
     console.log('✅ Admin user created:', email);
     return {
       success: true,
-      data
+      data: data ? { ...data, siteIds: data.site_ids || [] } : data
     };
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
@@ -163,25 +203,41 @@ export async function updateAdminUser(userId, updates) {
       updateData.role = updates.role;
     }
 
+    if (updates.siteIds !== undefined || updates.site_ids !== undefined) {
+      updateData.site_ids = updates.siteIds || updates.site_ids || [];
+    }
+
     if (updates.password) {
       updateData.password_hash = await bcrypt.hash(updates.password, 10);
     }
 
     updateData.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('admin_users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, email, name, role')
+      .select('id, email, name, role, site_ids')
       .single();
+
+    if (error && isMissingSiteIdsColumn(error)) {
+      const { site_ids, ...fallbackUpdates } = updateData;
+      const retry = await supabase
+        .from('admin_users')
+        .update(fallbackUpdates)
+        .eq('id', userId)
+        .select('id, email, name, role')
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) throw error;
 
     console.log('✅ Admin user updated:', userId);
     return {
       success: true,
-      data
+      data: data ? { ...data, siteIds: data.site_ids || [] } : data
     };
   } catch (error) {
     console.error('❌ Error updating admin user:', error);
