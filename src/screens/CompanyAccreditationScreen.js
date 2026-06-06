@@ -22,6 +22,18 @@ import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-docu
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
+const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
+const debugLog = (...args) => {
+  if (isAccreditationDebugEnabled) {
+    console.log(...args);
+  }
+};
+const debugWarn = (...args) => {
+  if (isAccreditationDebugEnabled) {
+    console.warn(...args);
+  }
+};
+
 // Helper function to convert storage paths to full Supabase URLs
 const getFullStorageUrl = (storagePath) => {
   if (!storagePath) return null;
@@ -64,16 +76,16 @@ export default function CompanyAccreditationScreen({
   // Otherwise (admin mode), restore from localStorage or start empty
   const [currentCompanyId, setCurrentCompanyId] = useState(() => {
     if (companyId) {
-      console.log('✅ [ACCREDITATION INIT] Set currentCompanyId from prop:', companyId);
+      debugLog('✅ [ACCREDITATION INIT] Set currentCompanyId from prop');
       return companyId;
     }
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (isAdmin && typeof window !== 'undefined' && window.localStorage) {
       try {
         const stored = localStorage.getItem('accreditation_selected_company') || null;
-        if (stored) console.log('✅ [ACCREDITATION INIT] Restored currentCompanyId from localStorage:', stored);
+        if (stored) debugLog('✅ [ACCREDITATION INIT] Restored admin currentCompanyId from localStorage');
         return stored;
       } catch (e) {
-        console.warn('localStorage not available');
+        debugWarn('localStorage not available');
         return null;
       }
     }
@@ -82,6 +94,7 @@ export default function CompanyAccreditationScreen({
 
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasLoadedCompanyData, setHasLoadedCompanyData] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [uploadingDocumentKey, setUploadingDocumentKey] = useState(null); // Track which document is uploading
@@ -98,7 +111,7 @@ export default function CompanyAccreditationScreen({
         // Always keep Section 26 closed on load to avoid confusion and long load times
         return { ...loaded, 26: false };
       } catch (e) {
-        console.warn('localStorage not available');
+        debugWarn('localStorage not available');
         return defaults;
       }
     }
@@ -393,14 +406,14 @@ export default function CompanyAccreditationScreen({
 
   // Save selected company to localStorage (admin mode only)
   useEffect(() => {
-    if (!companyId && currentCompanyId && typeof window !== 'undefined' && window.localStorage) {
+    if (isAdmin && !companyId && currentCompanyId && typeof window !== 'undefined' && window.localStorage) {
       try {
         localStorage.setItem('accreditation_selected_company', currentCompanyId);
       } catch (e) {
-        console.warn('Failed to save to localStorage:', e);
+        debugWarn('Failed to save to localStorage:', e);
       }
     }
-  }, [currentCompanyId, companyId]);
+  }, [currentCompanyId, companyId, isAdmin]);
 
   // Save expanded sections to localStorage
   useEffect(() => {
@@ -408,17 +421,17 @@ export default function CompanyAccreditationScreen({
       try {
         localStorage.setItem('accreditation_expanded_sections', JSON.stringify(expandedSections));
       } catch (e) {
-        console.warn('Failed to save to localStorage:', e);
+        debugWarn('Failed to save to localStorage:', e);
       }
     }
   }, [expandedSections]);
 
   // Load company data
   useEffect(() => {
-    console.log('🔄 [ACCREDITATION] currentCompanyId changed:', currentCompanyId);
+    debugLog('🔄 [ACCREDITATION] currentCompanyId changed');
     loadCompanyData();
     if (isAdmin) loadAllCompanies();
-  }, [currentCompanyId]);
+  }, [currentCompanyId, isAdmin]);
 
   // Load services and business units on mount
   useEffect(() => {
@@ -461,7 +474,7 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading) return;
     
-    console.log('📋 Section 26 state changed:', {
+    debugLog('📋 Section 26 state changed:', {
       has_signature: !!section26.hs_agreement_signature,
       signature_size: section26.hs_agreement_signature?.length || 0,
       accepted_by: section26.hs_agreement_accepted_by,
@@ -470,9 +483,9 @@ export default function CompanyAccreditationScreen({
     
     // Only auto-save if signature exists
     if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
-      console.log('⏱️ Setting auto-save timer for Section 26...');
+      debugLog('⏱️ Setting auto-save timer for Section 26...');
       const timer = setTimeout(() => {
-        console.log('💾 Auto-saving Section 26 signature data...');
+        debugLog('💾 Auto-saving Section 26 signature data...');
         autoSave();
       }, 500);
       
@@ -484,10 +497,10 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading || !section8.ppe_compliance_yesno) return;
     
-    console.log('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
+    debugLog('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
     
     const timer = setTimeout(() => {
-      console.log('💾 Auto-saving Section 8 PPE compliance answer...');
+      debugLog('💾 Auto-saving Section 8 PPE compliance answer...');
       autoSave();
     }, 500);
     
@@ -498,10 +511,10 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading || !section9.plant_equipment_onsite_yesno) return;
     
-    console.log('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
+    debugLog('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
     
     const timer = setTimeout(() => {
-      console.log('💾 Auto-saving Section 9 Plant & Equipment answer...');
+      debugLog('💾 Auto-saving Section 9 Plant & Equipment answer...');
       autoSave();
     }, 500);
     
@@ -512,10 +525,10 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading || !section10.electrical_equipment_onsite_yesno) return;
     
-    console.log('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
+    debugLog('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
     
     const timer = setTimeout(() => {
-      console.log('💾 Auto-saving Section 10 Electrical Equipment answer...');
+      debugLog('💾 Auto-saving Section 10 Electrical Equipment answer...');
       autoSave();
     }, 500);
     
@@ -526,10 +539,10 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading || !section11.emergency_first_aid_yesno) return;
     
-    console.log('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
+    debugLog('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
     
     const timer = setTimeout(() => {
-      console.log('💾 Auto-saving Section 11 Emergency First Aid answer...');
+      debugLog('💾 Auto-saving Section 11 Emergency First Aid answer...');
       autoSave();
     }, 500);
     
@@ -540,10 +553,10 @@ export default function CompanyAccreditationScreen({
   useEffect(() => {
     if (!currentCompanyId || loading || !section11.emergency_first_aid_equipment) return;
     
-    console.log('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
+    debugLog('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
     
     const timer = setTimeout(() => {
-      console.log('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
+      debugLog('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
       autoSave();
     }, 500);
     
@@ -593,17 +606,19 @@ export default function CompanyAccreditationScreen({
   const loadCompanyData = async () => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
-      console.log('⚠️ [ACCREDITATION] No currentCompanyId set, skipping load');
+      debugLog('⚠️ [ACCREDITATION] No currentCompanyId set, skipping load');
+      setHasLoadedCompanyData(false);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    setHasLoadedCompanyData(false);
     try {
-      console.log('🔄 [ACCREDITATION LOAD] Starting load for company:', currentCompanyId);
+      debugLog('🔄 [ACCREDITATION LOAD] Starting load for company');
       // Load accreditation data
       const data = await getCompanyAccreditation(currentCompanyId);
-      console.log('📋 [ACCREDITATION LOAD] Company data loaded:', {
+      debugLog('📋 [ACCREDITATION LOAD] Company data loaded:', {
         id: data.id,
         name: data.name,
         email: data.email,
@@ -633,7 +648,7 @@ export default function CompanyAccreditationScreen({
           addressCity: data.address_city || '',
           addressPostcode: data.address_postcode || ''
         };
-        console.log('🔍 [DEBUG] Setting companyDetails:', updated);
+        debugLog('🔍 [DEBUG] Setting companyDetails');
         return updated;
       });
       
@@ -988,7 +1003,7 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 24 (Insurance Documents)
-      console.log('📋 [LOAD] Raw insurance data from DB:', {
+      debugLog('📋 [LOAD] Raw insurance data from DB:', {
         public_liability_expiry: data.public_liability_expiry,
         public_liability_insurance_evidence_url: data.public_liability_insurance_evidence_url,
         motor_vehicle_insurance_expiry: data.motor_vehicle_insurance_expiry,
@@ -998,7 +1013,7 @@ export default function CompanyAccreditationScreen({
         professional_indemnity_insurance_uploaded_at: data.professional_indemnity_insurance_uploaded_at
       });
       
-      console.log('🔍 Checking what will be set for section24:', {
+      debugLog('🔍 Checking what will be set for section24:', {
         pli_url_truthy: !!data.public_liability_insurance_evidence_url,
         pli_url_value: data.public_liability_insurance_evidence_url,
         mvi_url_truthy: !!data.motor_vehicle_insurance_evidence_url,
@@ -1027,7 +1042,7 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 25 (Contact Information)
-      console.log('📋 [LOAD] Contact information from DB:', {
+      debugLog('📋 [LOAD] Contact information from DB:', {
         health_safety_manager_name: data.health_safety_manager_name,
         health_safety_manager_email: data.health_safety_manager_email,
         health_safety_manager_phone: data.health_safety_manager_phone,
@@ -1164,13 +1179,13 @@ export default function CompanyAccreditationScreen({
       // Set hasSignature if signature exists
       if (data.hs_agreement_signature) {
         setHasSignature(true);
-        console.log('🔄 [LOAD] Section 26 signature loaded from DB - size:', data.hs_agreement_signature.length, 'bytes');
+        debugLog('🔄 [LOAD] Section 26 signature loaded from DB');
       } else {
-        console.log('🔄 [LOAD] Section 26: No signature in database');
+        debugLog('🔄 [LOAD] Section 26: No signature in database');
       }
       // Log what was loaded
       if (data.hs_agreement_signature) {
-        console.log('📥 Loaded Section 26 from database:', {
+        debugLog('📥 Loaded Section 26 from database:', {
           has_signature: true,
           signature_length: data.hs_agreement_signature.length,
           accepted_by: data.hs_agreement_accepted_by,
@@ -1183,10 +1198,12 @@ export default function CompanyAccreditationScreen({
       const { data: libraryItems, error: libError } = await getEvidenceLibrary(currentCompanyId);
       if (!libError && libraryItems) {
         setEvidenceLibrary(libraryItems);
-        console.log('📚 Loaded evidence library:', libraryItems.length, 'items');
+        debugLog('📚 Loaded evidence library:', libraryItems.length, 'items');
       }
 
+      setHasLoadedCompanyData(true);
     } catch (error) {
+      setHasLoadedCompanyData(false);
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
       setLoading(false);
@@ -1247,23 +1264,23 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleUploadCertificate = async (systemKey, systemLabel) => {
-    console.log('🔴 handleUploadCertificate called!', { systemKey, systemLabel });
+    debugLog('🔴 handleUploadCertificate called!', { systemKey, systemLabel });
     try {
-      console.log('📂 Opening document picker...');
+      debugLog('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
-      console.log('📂 DocumentPicker result:', result);
+      debugLog('📂 DocumentPicker result:', result);
       if (result.canceled) {
-        console.log('❌ User canceled');
+        debugLog('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      console.log('📄 Selected file:', file);
+      debugLog('📄 Selected file:', file);
       if (!file) {
-        console.log('❌ No file');
+        debugLog('❌ No file');
         return;
       }
 
@@ -1271,24 +1288,24 @@ export default function CompanyAccreditationScreen({
       setUploadingDocumentKey(`certificate-${systemKey}`);
 
       // Convert the file URI to a blob
-      console.log('🔄 Converting file to blob...');
+      debugLog('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
-      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
+      debugLog('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
-      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
+      debugLog('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Upload to Supabase Storage
-      console.log('📤 Starting certificate upload...');
+      debugLog('📤 Starting certificate upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         systemKey,
         fileObject
       );
-      console.log('📤 Upload result:', uploadResult);
+      debugLog('📤 Upload result:', uploadResult);
 
       if (uploadResult?.success) {
         // Update state with the new URL
@@ -1303,7 +1320,7 @@ export default function CompanyAccreditationScreen({
         
         // Immediately save to database after upload
         setTimeout(async () => {
-          console.log('💾 Auto-saving certificate upload immediately...');
+          debugLog('💾 Auto-saving certificate upload immediately...');
           await autoSave();
         }, 100);
         
@@ -1315,7 +1332,7 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${systemLabel} certificate uploaded successfully!`);
       } else {
-        console.log('❌ Upload failed:', uploadResult);
+        debugLog('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload certificate: ' + (uploadResult?.error || 'Unknown error'));
       }
     } catch (error) {
@@ -1323,7 +1340,7 @@ export default function CompanyAccreditationScreen({
       console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
-      console.log('🏁 Upload handler completed');
+      debugLog('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1389,23 +1406,23 @@ export default function CompanyAccreditationScreen({
 
   // Handle uploading policy document
   const handleUploadPolicy = async (policyKey, policyLabel) => {
-    console.log('🔴 handleUploadPolicy called!', { policyKey, policyLabel });
+    debugLog('🔴 handleUploadPolicy called!', { policyKey, policyLabel });
     try {
-      console.log('📂 Opening document picker for policy...');
+      debugLog('📂 Opening document picker for policy...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
-      console.log('📂 DocumentPicker result:', result);
+      debugLog('📂 DocumentPicker result:', result);
       if (result.canceled) {
-        console.log('❌ User canceled');
+        debugLog('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      console.log('📄 Selected file:', file);
+      debugLog('📄 Selected file:', file);
       if (!file) {
-        console.log('❌ No file');
+        debugLog('❌ No file');
         return;
       }
 
@@ -1413,24 +1430,24 @@ export default function CompanyAccreditationScreen({
       setUploadingDocumentKey(`policy-${policyKey}`);
 
       // Convert the file URI to a blob
-      console.log('🔄 Converting file to blob...');
+      debugLog('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
-      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
+      debugLog('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
-      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
+      debugLog('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Upload to Supabase Storage
-      console.log('📤 Starting policy upload...');
+      debugLog('📤 Starting policy upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `policy_${policyKey}`,
         fileObject
       );
-      console.log('📤 Upload result:', uploadResult);
+      debugLog('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
         // Update state with the new URL
@@ -1445,7 +1462,7 @@ export default function CompanyAccreditationScreen({
         
         // Immediately save to database after upload
         setTimeout(async () => {
-          console.log('💾 Auto-saving policy upload immediately...');
+          debugLog('💾 Auto-saving policy upload immediately...');
           await autoSave();
         }, 100);
         
@@ -1457,7 +1474,7 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${policyLabel} document uploaded successfully!`);
       } else {
-        console.log('❌ Upload failed:', uploadResult);
+        debugLog('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
@@ -1465,7 +1482,7 @@ export default function CompanyAccreditationScreen({
       console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
-      console.log('🏁 Upload handler completed');
+      debugLog('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1557,26 +1574,26 @@ export default function CompanyAccreditationScreen({
       20: { state: section20, setter: setSection20 },
       21: { state: section21, setter: setSection21 }
     };
-    console.log('🔍 getSectionData: displaySectionNum=', displaySectionNum, 'stateNum=', stateNum);
+    debugLog('🔍 getSectionData: displaySectionNum=', displaySectionNum, 'stateNum=', stateNum);
     return sectionMap[stateNum];
   };
 
   const handleDeleteEvidence = async (sectionNum, itemKey, itemLabel) => {
-    console.log('🗑️🗑️🗑️ handleDeleteEvidence STARTING 🗑️🗑️🗑️');
-    console.log('Parameters:', { sectionNum, itemKey, itemLabel });
+    debugLog('🗑️🗑️🗑️ handleDeleteEvidence STARTING 🗑️🗑️🗑️');
+    debugLog('Parameters:', { sectionNum, itemKey, itemLabel });
     
     try {
-      console.log('🗑️ Asking for confirmation');
+      debugLog('🗑️ Asking for confirmation');
       
       // Use window.confirm for web (Alert.alert doesn't work with buttons on web)
       const confirmed = window.confirm(`Are you sure you want to delete the ${itemLabel} evidence? You can upload new evidence afterwards.`);
       
       if (!confirmed) {
-        console.log('❌ User cancelled delete');
+        debugLog('❌ User cancelled delete');
         return;
       }
       
-      console.log('✅ User confirmed delete');
+      debugLog('✅ User confirmed delete');
       
       try {
         setLoading(true);
@@ -1589,36 +1606,36 @@ export default function CompanyAccreditationScreen({
         const sectionState = sectionData.state;
         const itemData = sectionState[itemKey];
         
-        console.log('🔍 Full itemData:', itemData);
-        console.log('🔍 itemData keys:', itemData ? Object.keys(itemData) : 'null');
+        debugLog('🔍 Full itemData:', itemData);
+        debugLog('🔍 itemData keys:', itemData ? Object.keys(itemData) : 'null');
         
         const evidenceUrl = itemData?.evidence || itemData?.url || itemData?.evidence_url;
         const libraryItemId = itemData?.library_item_id;
         
-        console.log('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData, itemKey, sectionNum });
+        debugLog('📋 Evidence data:', { evidenceUrl, libraryItemId, itemData, itemKey, sectionNum });
         
         if (!evidenceUrl) {
-          console.log('⚠️ No evidence URL found - full data:', { itemData, sectionState });
+          debugLog('⚠️ No evidence URL found - full data:', { itemData, sectionState });
           alert('Error: No evidence URL found');
           return;
         }
 
         // Only delete file from storage if it's NOT a library item
         if (!libraryItemId) {
-          console.log('🔥 Deleting actual file from storage');
+          debugLog('🔥 Deleting actual file from storage');
           const result = await deleteAccreditationCertificate(evidenceUrl);
-          console.log('📦 Delete result:', result);
+          debugLog('📦 Delete result:', result);
           if (!result.success) {
             alert('Error: Failed to delete evidence: ' + (result.error || 'Unknown error'));
             return;
           }
         } else {
-          console.log('📚 This is a library item - removing association only');
+          debugLog('📚 This is a library item - removing association only');
         }
 
         // Clear from state based on section number
-        console.log('🧹 Clearing evidence for itemKey:', itemKey);
-        console.log('🧹 Current itemData before clear:', sectionState[itemKey]);
+        debugLog('🧹 Clearing evidence for itemKey:', itemKey);
+        debugLog('🧹 Current itemData before clear:', sectionState[itemKey]);
         sectionData.setter(prev => {
           const updated = {
             ...prev,
@@ -1630,16 +1647,16 @@ export default function CompanyAccreditationScreen({
               exists: prev[itemKey]?.exists ?? false
             }
           };
-          console.log('🧹 Updated itemData after clear:', updated[itemKey]);
+          debugLog('🧹 Updated itemData after clear:', updated[itemKey]);
           return updated;
         });
         
-        console.log('💾 Scheduling autoSave after 100ms');
+        debugLog('💾 Scheduling autoSave after 100ms');
         // Save to database
         setTimeout(async () => {
-          console.log('🔄 Running autoSave');
+          debugLog('🔄 Running autoSave');
           await autoSave();
-          console.log('✅ autoSave complete');
+          debugLog('✅ autoSave complete');
           // Don't close the UI - keep user in the same place
         }, 100);
         
@@ -1658,48 +1675,48 @@ export default function CompanyAccreditationScreen({
   };
 
   const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
-    console.log('🔴 handleUploadInsuranceDocument called!', { insuranceType, insuranceLabel });
+    debugLog('🔴 handleUploadInsuranceDocument called!', { insuranceType, insuranceLabel });
     try {
-      console.log('📂 Opening document picker...');
+      debugLog('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*']
       });
 
-      console.log('📂 DocumentPicker result:', result);
+      debugLog('📂 DocumentPicker result:', result);
       if (result.canceled) {
-        console.log('❌ User canceled');
+        debugLog('❌ User canceled');
         return;
       }
 
       const file = result.assets[0];
-      console.log('📄 Selected file:', file);
+      debugLog('📄 Selected file:', file);
       if (!file) {
-        console.log('❌ No file');
+        debugLog('❌ No file');
         return;
       }
 
       // Convert the file URI to a blob
-      console.log('🔄 Converting file to blob...');
+      debugLog('🔄 Converting file to blob...');
       const response = await fetch(file.uri);
       const blob = await response.blob();
-      console.log('🔄 Blob created:', { size: blob.size, type: blob.type });
+      debugLog('🔄 Blob created:', { size: blob.size, type: blob.type });
       
       // Create a File object from the blob
       const fileObject = new File([blob], file.name, { type: file.mimeType });
-      console.log('📦 File object created:', { name: fileObject.name, size: fileObject.size });
+      debugLog('📦 File object created:', { name: fileObject.name, size: fileObject.size });
 
       // Set uploading state
       setUploadingDocumentKey(`insurance-${insuranceType}`);
 
       // Upload to Supabase Storage (accreditations bucket, same as other docs)
-      console.log('📤 Starting insurance upload...');
+      debugLog('📤 Starting insurance upload...');
       setLoading(true);
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `insurance_${insuranceType}`,
         fileObject
       );
-      console.log('📤 Upload result:', uploadResult);
+      debugLog('📤 Upload result:', uploadResult);
 
       if (uploadResult.success) {
         // Update state with the new URL and timestamp
@@ -1712,7 +1729,7 @@ export default function CompanyAccreditationScreen({
           insuranceKey = 'professional_indemnity_insurance';
         }
         
-        console.log('🔧 Setting section24 state with:', { insuranceKey, url: uploadResult.url });
+        debugLog('🔧 Setting section24 state with:', { insuranceKey, url: uploadResult.url });
         
         setSection24(prev => {
           const updated = {
@@ -1725,13 +1742,13 @@ export default function CompanyAccreditationScreen({
               library_item_id: null  // Clear library reference since this is a direct upload
             }
           };
-          console.log('🔧 New section24 state:', updated);
+          debugLog('🔧 New section24 state:', updated);
           return updated;
         });
         
         // Immediately save to database after upload
         setTimeout(async () => {
-          console.log('💾 Auto-saving insurance document upload immediately...');
+          debugLog('💾 Auto-saving insurance document upload immediately...');
           await autoSave();
         }, 100);
         
@@ -1743,7 +1760,7 @@ export default function CompanyAccreditationScreen({
         }, 100);
         Alert.alert('Success ✅', `${insuranceLabel} certificate uploaded successfully!`);
       } else {
-        console.log('❌ Upload failed:', uploadResult);
+        debugLog('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
@@ -1751,7 +1768,7 @@ export default function CompanyAccreditationScreen({
       console.error('🔥 Error stack:', error.stack);
       Alert.alert('Error', 'Failed to upload: ' + error.message);
     } finally {
-      console.log('🏁 Upload handler completed');
+      debugLog('🏁 Upload handler completed');
       setUploadingDocumentKey(null);
       setLoading(false);
     }
@@ -1817,10 +1834,10 @@ export default function CompanyAccreditationScreen({
                   updateData.professional_indemnity_insurance_url = null;
                 }
                 
-                console.log('🗑️ Saving deletion:', updateData);
+                debugLog('🗑️ Saving deletion:', updateData);
                 const result = await updateCompanyAccreditation(currentCompanyId, updateData);
                 if (result.success) {
-                  console.log('✅ Deletion saved to database');
+                  debugLog('✅ Deletion saved to database');
                 }
               }, 100);
               
@@ -1839,7 +1856,7 @@ export default function CompanyAccreditationScreen({
 
   // Handle evidence upload for sections 4 & 5
   const handleUploadEvidence = async (section, itemKey, itemLabel) => {
-    console.log('🔴 handleUploadEvidence called!', { section, itemKey, itemLabel });
+    debugLog('🔴 handleUploadEvidence called!', { section, itemKey, itemLabel });
     
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -1847,13 +1864,13 @@ export default function CompanyAccreditationScreen({
       });
       
       if (result.canceled) {
-        console.log('❌ User canceled document picker');
+        debugLog('❌ User canceled document picker');
         return;
       }
 
       const file = result.assets[0];
       if (!file) {
-        console.log('❌ No file selected');
+        debugLog('❌ No file selected');
         return;
       }
 
@@ -1875,7 +1892,7 @@ export default function CompanyAccreditationScreen({
       );
 
       if (uploadResult.success) {
-        console.log(`✅ Upload successful`);
+        debugLog(`✅ Upload successful`);
         
         // Update state with the new URL using the section map
         const sectionUpdater = sectionStateMap[section];
@@ -1889,7 +1906,7 @@ export default function CompanyAccreditationScreen({
             }
           }));
         } else {
-          console.warn(`⚠️ Unknown section: ${section}`);
+          debugWarn(`⚠️ Unknown section: ${section}`);
         }
         
         // Store the uploaded file info to offer saving to library
@@ -1908,7 +1925,7 @@ export default function CompanyAccreditationScreen({
         }, 100);
         
       } else {
-        console.log('❌ Upload failed:', uploadResult);
+        debugLog('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
       }
     } catch (error) {
@@ -2074,8 +2091,8 @@ export default function CompanyAccreditationScreen({
                 {handleDeleteFn && (
                   <TouchableOpacity
                     onPress={() => {
-                      console.log('🗑️ Delete button pressed, calling handler');
-                      console.log('handleDeleteFn is:', typeof handleDeleteFn, handleDeleteFn.toString().substring(0, 100));
+                      debugLog('🗑️ Delete button pressed, calling handler');
+                      debugLog('handleDeleteFn is:', typeof handleDeleteFn, handleDeleteFn.toString().substring(0, 100));
                       try {
                         handleDeleteFn();
                       } catch (btnError) {
@@ -2336,22 +2353,20 @@ export default function CompanyAccreditationScreen({
 
   // Build update data object
   const buildUpdateData = (status = accreditationStatus) => {
-    console.log('🔧 buildUpdateData called with status:', status, 'section24 current state:', section24);
+    debugLog('🔧 buildUpdateData called with status:', status);
     const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     
     const updateData = {
       // NOTE: Do NOT include 'name' or 'email' - these are company details, not accreditation details
       // Only update accreditation-specific fields to avoid overwriting company information
-      // Only include contact fields if they have actual values (not empty strings from form initialization)
-      ...(companyDetails.contactName && { contact_name: companyDetails.contactName }),
-      ...(companyDetails.contactSurname && { contact_surname: companyDetails.contactSurname }),
-      ...(companyDetails.contactEmail && { contact_email: companyDetails.contactEmail }),
-      ...(companyDetails.contactPhone && { contact_phone: companyDetails.contactPhone }),
-      // Only include services and business units if they have been populated from the database
-      ...(selectedServiceIds.length > 0 && { approved_services: selectedServiceIds }),
-      ...(selectedBusinessUnitIds.length > 0 && { fletcher_business_units: selectedBusinessUnitIds }),
-      ...(selectedBusinessUnitIds.length > 0 && { business_unit_ids: selectedBusinessUnitIds }),
+      contact_name: companyDetails.contactName || null,
+      contact_surname: companyDetails.contactSurname || null,
+      contact_email: companyDetails.contactEmail || null,
+      contact_phone: companyDetails.contactPhone || null,
+      approved_services: selectedServiceIds,
+      fletcher_business_units: selectedBusinessUnitIds,
+      business_unit_ids: selectedBusinessUnitIds,
       accreditation_status: status
     };
 
@@ -2368,9 +2383,7 @@ export default function CompanyAccreditationScreen({
       
       // Save certificate URL with correct column name pattern
       const urlKeyName = `${baseName}_certificate_url`;
-      if (accreditedSystems[sys.key]?.certificateUrl) {
-        updateData[urlKeyName] = accreditedSystems[sys.key].certificateUrl;
-      }
+      updateData[urlKeyName] = accreditedSystems[sys.key]?.certificateUrl || null;
       
       // Save expiry date with correct column name pattern
       const expiryKeyName = `${baseName}_certificate_expiry`;
@@ -2386,29 +2399,23 @@ export default function CompanyAccreditationScreen({
           const isoDate = parseNZDate(expiryValue);
           updateData[expiryKeyName] = isoDate;
         }
+      } else {
+        updateData[expiryKeyName] = null;
       }
     });
 
     // Add policies (Section 4)
     updateData.health_safety_policy_exists = policies.health_safety.exists;
-    if (policies.health_safety.url) {
-      updateData.health_safety_policy_url = policies.health_safety.url;
-    }
+    updateData.health_safety_policy_url = policies.health_safety.url || null;
     
     updateData.environmental_policy_exists = policies.environmental.exists;
-    if (policies.environmental.url) {
-      updateData.environmental_policy_url = policies.environmental.url;
-    }
+    updateData.environmental_policy_url = policies.environmental.url || null;
     
     updateData.drug_alcohol_policy_exists = policies.drug_alcohol.exists;
-    if (policies.drug_alcohol.url) {
-      updateData.drug_alcohol_policy_url = policies.drug_alcohol.url;
-    }
+    updateData.drug_alcohol_policy_url = policies.drug_alcohol.url || null;
     
     updateData.quality_policy_exists = policies.quality.exists;
-    if (policies.quality.url) {
-      updateData.quality_policy_url = policies.quality.url;
-    }
+    updateData.quality_policy_url = policies.quality.url || null;
 
     // Add Section 4 data (Accident, Incident & Investigation)
     updateData.accident_reporting_exists = section4.accident_reporting.exists;
@@ -2539,83 +2546,27 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    // Only include if they have values - don't overwrite database with null
-    console.log('🔧 buildUpdateData - section24:', section24);
-    
-    // Public Liability Insurance
-    if (section24.public_liability_insurance.expiry_date) {
-      updateData.public_liability_expiry = section24.public_liability_insurance.expiry_date;
-    }
-    if (section24.public_liability_insurance.url) {
-      updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url;
-    }
-    
-    // Motor Vehicle Insurance
-    if (section24.motor_vehicle_insurance.expiry_date) {
-      updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date;
-    }
-    if (section24.motor_vehicle_insurance.url) {
-      updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url;
-    }
-    
-    // Professional Indemnity Insurance
-    if (section24.professional_indemnity_insurance.expiry_date) {
-      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
-    }
-    if (section24.professional_indemnity_insurance.url) {
-      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
-    }
-    if (section24.professional_indemnity_insurance.uploaded_at) {
-      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
-    }
-    
-    console.log('🔧 buildUpdateData - insurance fields:', {
-      public_liability_expiry: updateData.public_liability_expiry,
-      public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
-      motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
-      professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
-    });
-    if (section24.professional_indemnity_insurance.uploaded_at) {
-      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
-    }
+    updateData.public_liability_expiry = section24.public_liability_insurance.expiry_date || null;
+    updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
+    updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date || null;
+    updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url || null;
+    updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date || null;
+    updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
+    updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at || null;
 
     // Add Section 25 data (Contact Information)
-    if (section25.health_safety_manager.name) {
-      updateData.health_safety_manager_name = section25.health_safety_manager.name;
-    }
-    if (section25.health_safety_manager.email) {
-      updateData.health_safety_manager_email = section25.health_safety_manager.email;
-    }
-    if (section25.health_safety_manager.phone) {
-      updateData.health_safety_manager_phone = section25.health_safety_manager.phone;
-    }
-    if (section25.environmental_manager.name) {
-      updateData.environmental_manager_name = section25.environmental_manager.name;
-    }
-    if (section25.environmental_manager.email) {
-      updateData.environmental_manager_email = section25.environmental_manager.email;
-    }
-    if (section25.environmental_manager.phone) {
-      updateData.environmental_manager_phone = section25.environmental_manager.phone;
-    }
-    if (section25.quality_manager.name) {
-      updateData.quality_manager_name = section25.quality_manager.name;
-    }
-    if (section25.quality_manager.email) {
-      updateData.quality_manager_email = section25.quality_manager.email;
-    }
-    if (section25.quality_manager.phone) {
-      updateData.quality_manager_phone = section25.quality_manager.phone;
-    }
-    if (section25.occupational_hygienist.name) {
-      updateData.occupational_hygienist_name = section25.occupational_hygienist.name;
-    }
-    if (section25.occupational_hygienist.email) {
-      updateData.occupational_hygienist_email = section25.occupational_hygienist.email;
-    }
-    if (section25.occupational_hygienist.phone) {
-      updateData.occupational_hygienist_phone = section25.occupational_hygienist.phone;
-    }
+    updateData.health_safety_manager_name = section25.health_safety_manager.name || null;
+    updateData.health_safety_manager_email = section25.health_safety_manager.email || null;
+    updateData.health_safety_manager_phone = section25.health_safety_manager.phone || null;
+    updateData.environmental_manager_name = section25.environmental_manager.name || null;
+    updateData.environmental_manager_email = section25.environmental_manager.email || null;
+    updateData.environmental_manager_phone = section25.environmental_manager.phone || null;
+    updateData.quality_manager_name = section25.quality_manager.name || null;
+    updateData.quality_manager_email = section25.quality_manager.email || null;
+    updateData.quality_manager_phone = section25.quality_manager.phone || null;
+    updateData.occupational_hygienist_name = section25.occupational_hygienist.name || null;
+    updateData.occupational_hygienist_email = section25.occupational_hygienist.email || null;
+    updateData.occupational_hygienist_phone = section25.occupational_hygienist.phone || null;
 
     // Add Section 15 data (Competency & Qualifications)
     Object.entries(section15).forEach(([key, value]) => {
@@ -2655,21 +2606,21 @@ export default function CompanyAccreditationScreen({
     // Add Section 26 data (Health & Safety Agreement)
     if (section26.hs_agreement_signature) {
       updateData.hs_agreement_signature = section26.hs_agreement_signature;
-      console.log('📝 Section 26: Signature included in update - size:', section26.hs_agreement_signature.length, 'bytes');
+      debugLog('📝 Section 26: Signature included in update - size:', section26.hs_agreement_signature.length, 'bytes');
     } else {
-      console.warn('⚠️ Section 26: NO SIGNATURE - signature data is missing!');
+      debugWarn('⚠️ Section 26: NO SIGNATURE - signature data is missing!');
     }
     if (section26.hs_agreement_accepted_by) {
       updateData.hs_agreement_accepted_by = section26.hs_agreement_accepted_by;
-      console.log('📝 Section 26: Name included -', section26.hs_agreement_accepted_by);
+      debugLog('📝 Section 26: Name included -', section26.hs_agreement_accepted_by);
     }
     updateData.hs_agreement_acknowledged = section26.hs_agreement_acknowledged;
-    console.log('📝 Section 26: Acknowledged -', section26.hs_agreement_acknowledged);
+    debugLog('📝 Section 26: Acknowledged -', section26.hs_agreement_acknowledged);
     // Record when they signed if they have a signature now
     if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
       updateData.hs_agreement_signed_date = new Date().toISOString();
       updateData.hs_agreement_accepted = true;
-      console.log('✅ Section 26: All required fields present - marking as signed');
+      debugLog('✅ Section 26: All required fields present - marking as signed');
     }
 
     // Add Section 20 data (Incidents & Breaches)
@@ -2687,7 +2638,7 @@ export default function CompanyAccreditationScreen({
       updateData.environmental_notices_comments = section20.incidents_breaches.environmental_notices_comments;
     }
 
-    console.log('🔧 buildUpdateData returning updateData with insurance fields:', {
+    debugLog('🔧 buildUpdateData returning updateData with insurance fields:', {
       public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
       motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
       professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
@@ -2697,7 +2648,7 @@ export default function CompanyAccreditationScreen({
 
   // Auto-save function (silent, no alerts)
   const autoSave = async () => {
-    if (!currentCompanyId) return;
+    if (!currentCompanyId || !hasLoadedCompanyData) return;
     
     try {
       setAutoSaving(true);
@@ -2705,7 +2656,7 @@ export default function CompanyAccreditationScreen({
       
       // Log section26 data being saved
       if (updateData.hs_agreement_signature || updateData.hs_agreement_accepted_by) {
-        console.log('💾 Saving Section 26:', {
+          debugLog('💾 Saving Section 26:', {
           has_signature: !!updateData.hs_agreement_signature,
           signature_length: updateData.hs_agreement_signature?.length || 0,
           accepted_by: updateData.hs_agreement_accepted_by,
@@ -2719,7 +2670,7 @@ export default function CompanyAccreditationScreen({
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       if (result.success) {
-        console.log('✨ Auto-saved successfully!', result);
+        debugLog('✨ Auto-saved successfully!', result);
       } else {
         console.error('❌ Auto-save failed:', result.error);
       }
@@ -2736,31 +2687,26 @@ export default function CompanyAccreditationScreen({
       Alert.alert('Error', 'No company selected');
       return;
     }
+    if (!hasLoadedCompanyData) {
+      Alert.alert('Please wait', 'Accreditation data is still loading. Try saving again once the form has loaded.');
+      return;
+    }
 
-    console.log('💾 handleSave called, current status:', accreditationStatus);
-    console.log('💾 Current section24 state BEFORE save:', section24);
-    console.log('💾 Current section26 state:', { hasSignature: !!section26.hs_agreement_signature, signatureLength: section26.hs_agreement_signature?.length, name: section26.hs_agreement_accepted_by });
+    debugLog('💾 handleSave called, current status:', accreditationStatus);
     setSaving(true);
     try {
       // Preserve the 'completed' status if already submitted - only save edits without changing status
       const updateData = buildUpdateData(accreditationStatus);
-      console.log('💾 Update data built with status:', accreditationStatus);
-      console.log('💾 Insurance fields in updateData:', {
-        public_liability_insurance_evidence_url: updateData.public_liability_insurance_evidence_url,
-        motor_vehicle_insurance_evidence_url: updateData.motor_vehicle_insurance_evidence_url,
-        professional_indemnity_insurance_url: updateData.professional_indemnity_insurance_url
-      });
-      console.log('💾 Section 26 in updateData:', { hasSignature: !!updateData.hs_agreement_signature, signatureLength: updateData.hs_agreement_signature?.length });
+      debugLog('💾 Update data built with status:', accreditationStatus);
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
-      console.log('📊 Update result:', result);
+      debugLog('📊 Update result:', result);
       
       
       if (result.success) {
-        console.log('💾 Save successful, reloading data from database...');
+        debugLog('💾 Save successful, reloading data from database...');
         // Wait for data to reload before showing success - ensures signature is visible after save
         await loadCompanyData();
-        console.log('💾 After loadCompanyData, section24:', section24);
         Alert.alert('Success ✅', 'Accreditation saved successfully');
       } else {
         Alert.alert('Error', 'Failed to save: ' + result.error);
@@ -2775,26 +2721,29 @@ export default function CompanyAccreditationScreen({
 
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
-    console.log('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
-    console.log('🟢 Showing confirmation modal...');
+    if (!hasLoadedCompanyData) {
+      Alert.alert('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
+      return;
+    }
+
+    debugLog('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
     setConfirmationModal({
       visible: true,
       title: 'Submit Accreditation',
       message: 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
-        console.log('🟢 User confirmed submission');
+        debugLog('🟢 User confirmed submission');
         setConfirmationModal({ ...confirmationModal, visible: false });
         setSaving(true);
         try {
           const updateData = buildUpdateData('completed');
-          console.log('🟢 Update data built, status will be: completed');
+          debugLog('🟢 Update data built, status will be: completed');
           const result = await updateCompanyAccreditation(currentCompanyId, updateData);
-          console.log('🟢 API result:', result);
+          debugLog('🟢 API result:', result);
           
           if (result.success) {
-            console.log('🟢 Update successful, setting status to completed');
+            debugLog('🟢 Update successful, setting status to completed');
             setAccreditationStatus('completed');
-            console.log('🟢 Status set to completed - accreditation is now complete!');
             // Wait for data to reload before considering operation fully complete
             await loadCompanyData();
           } else {
@@ -2807,7 +2756,7 @@ export default function CompanyAccreditationScreen({
         }
       },
       onCancel: () => {
-        console.log('🟡 User cancelled submission');
+        debugLog('🟡 User cancelled submission');
         setConfirmationModal({ ...confirmationModal, visible: false });
       }
     });
@@ -2816,14 +2765,14 @@ export default function CompanyAccreditationScreen({
   // Auto-save when data changes (debounced)
   // IMPORTANT: Skip autosave while loading to prevent saving empty state before data loads
   useEffect(() => {
-    if (!currentCompanyId || loading) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData) return;
     
     const timer = setTimeout(() => {
       autoSave();
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading, hasLoadedCompanyData]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -4161,11 +4110,11 @@ export default function CompanyAccreditationScreen({
   // Initialize canvas - runs ONLY when section is opened/closed, NOT when signature data changes
   useEffect(() => {
     if (!expandedSections[26]) {
-      console.log('📋 Section 26 not expanded, skipping canvas init');
+      debugLog('📋 Section 26 not expanded, skipping canvas init');
       return;
     }
 
-    console.log('🖼️ CANVAS INIT - Section opened');
+    debugLog('🖼️ CANVAS INIT - Section opened');
 
     // Use requestAnimationFrame to wait for DOM to be painted
     let animFrameId;
@@ -4191,7 +4140,7 @@ export default function CompanyAccreditationScreen({
       const actualWidth = Math.max(rect.width, 300);
       const actualHeight = 150;
 
-      console.log('🖼️ Canvas init - size:', { actualWidth, actualHeight });
+      debugLog('🖼️ Canvas init - size:', { actualWidth, actualHeight });
 
       // Set canvas resolution (drawing surface)
       canvas.width = actualWidth;
@@ -4211,7 +4160,7 @@ export default function CompanyAccreditationScreen({
       ctx.fillRect(0, 0, actualWidth, actualHeight);
 
       contextRef.current = ctx;
-      console.log('✅ Canvas initialized');
+      debugLog('✅ Canvas initialized');
     };
 
     // Start the initialization
@@ -4231,22 +4180,22 @@ export default function CompanyAccreditationScreen({
     // When user expands section later, the signature will already be drawn
     
     if (!section26.hs_agreement_signature) {
-      console.log('🖼️ REDRAW: No signature data, skipping');
+      debugLog('🖼️ REDRAW: No signature data, skipping');
       return;
     }
 
-    console.log('🖼️ REDRAW TRIGGERED - Signature data changed, length:', section26.hs_agreement_signature.length);
-    console.log('🖼️ Section 26 expanded?:', expandedSections[26], '(will redraw regardless)');
+    debugLog('🖼️ REDRAW TRIGGERED - Signature data changed, length:', section26.hs_agreement_signature.length);
+    debugLog('🖼️ Section 26 expanded?:', expandedSections[26], '(will redraw regardless)');
     
     const canvas = canvasRef.current;
     const container = canvasContainerRef.current;
     
     if (!canvas || !container) {
-      console.warn('⏳ Canvas or container not ready for redraw - canvas:', !!canvas, 'container:', !!container);
+      debugWarn('⏳ Canvas or container not ready for redraw - canvas:', !!canvas, 'container:', !!container);
       return;
     }
 
-    console.log('🖼️ Canvas and container exist, proceeding with redraw');
+    debugLog('🖼️ Canvas and container exist, proceeding with redraw');
 
     // ALWAYS reset and reinitialize context - component re-render may have invalidated it
     const rect = container.getBoundingClientRect();
@@ -4274,32 +4223,32 @@ export default function CompanyAccreditationScreen({
     
     // IMPORTANT: Update the ref to ensure we have the fresh context
     contextRef.current = ctx;
-    console.log('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
+    debugLog('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
 
     // Get current canvas dimensions before drawing
     const canvasDimensions = { w: canvas.width, h: canvas.height, clientW: container.clientWidth };
-    console.log('🖼️ About to draw, canvas dimensions:', canvasDimensions);
+    debugLog('🖼️ About to draw, canvas dimensions:', canvasDimensions);
 
     // Use requestAnimationFrame to ensure canvas is ready
     let rafId = requestAnimationFrame(() => {
-      console.log('🖼️ RAF callback - creating Image object');
+      debugLog('🖼️ RAF callback - creating Image object');
       const img = new Image();
       
       img.onload = () => {
         const currentCtx = contextRef.current;
         const currentCanvas = canvasRef.current;
-        console.log('📸 Image loaded, currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
-        console.log('📸 Canvas dimensions now:', {w: currentCanvas?.width, h: currentCanvas?.height});
+        debugLog('📸 Image loaded, currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
+        debugLog('📸 Canvas dimensions now:', {w: currentCanvas?.width, h: currentCanvas?.height});
         if (currentCtx && currentCanvas) {
-          console.log('🖼️ Clearing canvas and drawing signature');
+          debugLog('🖼️ Clearing canvas and drawing signature');
           // Clear canvas first to ensure clean draw
           currentCtx.fillStyle = 'white';
           currentCtx.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
-          console.log('🖼️ Canvas cleared');
+          debugLog('🖼️ Canvas cleared');
           // Then draw signature
           currentCtx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
           setHasSignature(true);
-          console.log('✅ Signature drawn successfully to canvas');
+          debugLog('✅ Signature drawn successfully to canvas');
         } else {
           console.error('❌ Missing context or canvas in img.onload - currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
         }
@@ -4310,12 +4259,12 @@ export default function CompanyAccreditationScreen({
         console.error('❌ Image src first 50 chars:', section26.hs_agreement_signature.substring(0, 50));
       };
       
-      console.log('🖼️ Setting img.src, signature length:', section26.hs_agreement_signature.length);
+      debugLog('🖼️ Setting img.src, signature length:', section26.hs_agreement_signature.length);
       img.src = section26.hs_agreement_signature;
     });
 
     return () => {
-      console.log('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
+      debugLog('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [section26.hs_agreement_signature]);  // ONLY depend on signature data, not expandedSections
@@ -4328,7 +4277,7 @@ export default function CompanyAccreditationScreen({
 
     // Define event handlers first (hoisting)
     const attachEventListeners = (canvas, ctx) => {
-      console.log('✅ Event listeners attached to canvas');
+      debugLog('✅ Event listeners attached to canvas');
 
       function handleMouseDown(e) {
         const rect = canvas.getBoundingClientRect();
@@ -4413,7 +4362,7 @@ export default function CompanyAccreditationScreen({
       const ctx = contextRef.current;
       
       if (!canvas || !ctx) {
-        console.warn('⏳ Canvas or context not yet ready, retrying in 100ms...');
+        debugWarn('⏳ Canvas or context not yet ready, retrying in 100ms...');
         // Retry with longer delay
         const retryTimer = setTimeout(() => {
           const canvas2 = canvasRef.current;
@@ -5173,7 +5122,7 @@ export default function CompanyAccreditationScreen({
         <TouchableOpacity
           style={[styles.addButton, { marginBottom: 10 }]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || !hasLoadedCompanyData}
         >
           <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
             {saving ? 'Saving...' : '✓ Save Accreditation'}
@@ -5185,7 +5134,7 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
-            disabled={saving}
+            disabled={saving || !hasLoadedCompanyData}
           >
             <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
               {saving ? 'Submitting...' : '✓ Submit as Complete'}

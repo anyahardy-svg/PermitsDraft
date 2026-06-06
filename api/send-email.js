@@ -10,6 +10,7 @@
 const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
@@ -89,6 +90,14 @@ const renderTemplate = (template, variables = {}) => {
   return { subject, content };
 };
 
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -98,34 +107,44 @@ export default async function handler(req, res) {
   try {
     if (!BREVO_API_KEY) {
       console.error('❌ Brevo API key not configured');
-      console.error('Available env vars:', {
-        has_vite_key: !!process.env.VITE_BREVO_API_KEY,
-        has_plain_key: !!process.env.BREVO_API_KEY,
-        env_keys: Object.keys(process.env).filter(k => k.includes('BREVO') || k.includes('KEY')).slice(0, 5)
-      });
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
     const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent } = req.body;
 
-    if (!toEmail) {
-      return res.status(400).json({ error: 'Missing toEmail' });
-    }
-
     // Different types require different fields
-    if (type === 'invitation' || type === 'request') {
+    if (type === 'invitation') {
+      if (!toEmail) {
+        return res.status(400).json({ error: 'Missing toEmail' });
+      }
       if (!companyName) {
-        return res.status(400).json({ error: 'Missing companyName for invitation/request' });
+        return res.status(400).json({ error: 'Missing companyName for invitation' });
+      }
+    } else if (type === 'request') {
+      if (!companyName) {
+        return res.status(400).json({ error: 'Missing companyName for request' });
+      }
+      if (!req.body.name || !req.body.email) {
+        return res.status(400).json({ error: 'Missing name or email for request' });
       }
     } else if (type === 'admin-setup') {
+      if (!toEmail) {
+        return res.status(400).json({ error: 'Missing toEmail' });
+      }
       if (!adminName || !setupUrl) {
         return res.status(400).json({ error: 'Missing adminName or setupUrl for admin-setup' });
       }
     } else if (type === 'admin-password-reset') {
+      if (!toEmail) {
+        return res.status(400).json({ error: 'Missing toEmail' });
+      }
       if (!adminName || !resetUrl) {
         return res.status(400).json({ error: 'Missing adminName or resetUrl for password reset' });
       }
     } else if (type === 'join-request') {
+      if (!toEmail) {
+        return res.status(400).json({ error: 'Missing toEmail' });
+      }
       // Custom email for join requests - uses provided subject and htmlContent
       if (!subject || !htmlContent) {
         return res.status(400).json({ error: 'Missing subject or htmlContent for join-request' });
@@ -143,8 +162,8 @@ export default async function handler(req, res) {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
           },
         });
 
@@ -230,13 +249,15 @@ export default async function handler(req, res) {
       }
     } else if (type === 'request') {
       const { name, email: senderEmail } = req.body;
+      const phone = req.body.phone || 'Not provided';
       actualSubject = `[Accreditation Request] ${companyName} - ${name}`;
       actualHtmlContent = `
         <h2>New Accreditation Invitation Request</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${senderEmail}</p>
-        <p><strong>Company:</strong> ${companyName}</p>
-        <p><a href="mailto:${senderEmail}">Reply to ${name}</a></p>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(senderEmail)}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
+        <p><strong>Company:</strong> ${escapeHtml(companyName)}</p>
+        <p><a href="mailto:${escapeHtml(senderEmail)}">Reply to ${escapeHtml(name)}</a></p>
       `;
     } else if (type === 'admin-setup') {
       if (dbTemplate) {
@@ -396,14 +417,10 @@ export default async function handler(req, res) {
         // Check if we have Supabase credentials
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
           console.error('❌ Supabase credentials not available for DB update');
-          console.error('SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'NOT SET');
-          console.error('SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
         } else {
           // Update companies table with invitation sent timestamp and deadline
           if (companyId) {
             const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
-            console.log(`📝 Updating company ${companyId} with deadline: ${deadlineDate}`);
-            
             const updateUrl = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`;
             const updateResponse = await fetch(updateUrl, {
               method: 'PATCH',
@@ -428,8 +445,6 @@ export default async function handler(req, res) {
 
           // Create user in Supabase Auth if this is actually a new user
           // (We already checked this above before sending the email)
-          console.log(`👤 User creation check: actuallyNewUser = ${actuallyNewUser}`);
-          
           if (actuallyNewUser) {
             console.log(`👤 Creating new user for ${toEmail}`);
             const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
@@ -442,23 +457,18 @@ export default async function handler(req, res) {
               },
             };
             
-            console.log(`📤 Auth request to: ${authUrl}`);
-            console.log(`📤 Payload:`, authPayload);
-            
             try {
               const authResponse = await fetch(authUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                  'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify(authPayload),
               });
 
               const authData = await authResponse.text();
-              console.log(`📥 Auth response status: ${authResponse.status}`);
-              console.log(`📥 Auth response body:`, authData);
 
               if (authResponse.ok) {
                 console.log(`✅ Created user for ${toEmail}`);

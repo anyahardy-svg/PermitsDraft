@@ -2,6 +2,13 @@ import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
 import { compressImage } from '../utils/imageCompression';
 
+const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
+const debugLog = (...args) => {
+  if (isAccreditationDebugEnabled) {
+    console.log(...args);
+  }
+};
+
 /**
  * Update company accreditation - Sections 2 & 3
  * @param {UUID} companyId - Company UUID
@@ -14,13 +21,16 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
     if (!companyId) {
       throw new Error('Company ID is required');
     }
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
+    }
 
     const updates = {
       ...accreditationData,
       accreditation_last_updated: new Date().toISOString(),
     };
 
-    console.log('📤 Update request to Supabase:', { companyId, updates });
+    debugLog('📤 Updating accreditation:', { companyId, fields: Object.keys(updates) });
 
     const { data, error } = await supabase
       .from('companies')
@@ -28,7 +38,7 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
       .eq('id', companyId)
       .select();
 
-    console.log('📥 Supabase response:', { data, error });
+    debugLog('📥 Supabase update response:', { updated: data?.length || 0, error });
 
     if (error) throw error;
     return { success: true, data: data[0] };
@@ -48,6 +58,9 @@ export const getCompanyAccreditation = async (companyId) => {
     // Validate that companyId is provided
     if (!companyId) {
       throw new Error('Company ID is required');
+    }
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
     }
 
     const { data, error } = await supabase
@@ -333,6 +346,10 @@ export const getCompanyAccreditation = async (companyId) => {
  */
 export const getAllCompaniesAccreditation = async () => {
   try {
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .select(`
@@ -367,11 +384,14 @@ export const getAllCompaniesAccreditation = async () => {
 export const uploadAccreditationCertificate = async (companyId, certificationType, file) => {
   try {
     if (!file || !file.name) throw new Error('No file provided');
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
+    }
 
     // Validate file type and size
     const validation = validateFile(file, 50); // Max 50MB
     if (!validation.valid) {
-      console.warn('❌ File validation failed:', validation.error);
+      debugLog('❌ File validation failed:', validation.error);
       return { success: false, error: validation.error };
     }
 
@@ -380,7 +400,7 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 
     // Automatically compress images
     if (validation.isImage && file.uri) {
-      console.log('🖼️ Image detected - starting compression...');
+      debugLog('🖼️ Image detected - starting compression...');
       try {
         fileToUpload = await compressImage(file, { width: 2000, height: 2000, compress: true });
         compressionInfo = {
@@ -389,9 +409,9 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
           compressionRatio: fileToUpload.compressionRatio,
           compressed: true
         };
-        console.log('✅ Image compression complete:', compressionInfo);
+        debugLog('✅ Image compression complete:', compressionInfo);
       } catch (compressionError) {
-        console.warn('⚠️ Image compression failed, using original:', compressionError.message);
+        debugLog('⚠️ Image compression failed, using original:', compressionError.message);
         fileToUpload = file;
       }
     }
@@ -414,7 +434,7 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
           .replace(/^_|_$/g, '');
       }
     } catch (err) {
-      console.warn('⚠️ Could not fetch company name, using ID:', err.message);
+      debugLog('⚠️ Could not fetch company name, using fallback:', err.message);
     }
 
     const timestamp = Date.now();
@@ -422,7 +442,7 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
     // Include company name in path for easier identification: companyName/certificationType/timestamp.ext
     const fileName = `${companyName}/${certificationType}/${timestamp}.${fileExt}`;
 
-    console.log('📤 Uploading accreditation file:', { fileName, fileType: fileToUpload.type, fileSize: fileToUpload.size, compressionInfo, companyName, companyId });
+    debugLog('📤 Uploading accreditation file:', { fileName, fileType: fileToUpload.type, fileSize: fileToUpload.size, compressionInfo, companyId });
 
     const { data, error } = await supabase.storage
       .from('accreditations')
@@ -436,14 +456,14 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
       throw error;
     }
 
-    console.log('✅ File uploaded successfully:', data);
+    debugLog('✅ File uploaded successfully:', data);
 
     // Get public URL
     const { data: publicUrl } = supabase.storage
       .from('accreditations')
       .getPublicUrl(fileName);
 
-    console.log('📍 Public URL:', publicUrl.publicUrl);
+    debugLog('📍 Public URL created');
 
     return {
       success: true,
@@ -468,6 +488,9 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 export const deleteAccreditationCertificate = async (certificateUrl) => {
   try {
     if (!certificateUrl) throw new Error('No certificate URL provided');
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
+    }
 
     let filePath;
 
@@ -482,7 +505,7 @@ export const deleteAccreditationCertificate = async (certificateUrl) => {
       filePath = certificateUrl;
     }
 
-    console.log('🗑️ Deleting accreditation file:', filePath);
+    debugLog('🗑️ Deleting accreditation file:', filePath);
 
     const { error } = await supabase.storage
       .from('accreditations')
@@ -493,7 +516,7 @@ export const deleteAccreditationCertificate = async (certificateUrl) => {
       throw error;
     }
 
-    console.log('✅ File deleted successfully:', filePath);
+    debugLog('✅ File deleted successfully:', filePath);
 
     return {
       success: true,
