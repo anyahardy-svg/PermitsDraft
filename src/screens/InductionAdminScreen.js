@@ -294,8 +294,12 @@ export default function InductionAdminScreen({ onBack, styles }) {
       console.log('📤 Upload response:', { success, message });
       
       if (success) {
-        // Update formData with PDF filename
-        setFormData({ ...formData, pdf_file_name: data.pdf_file_name });
+        // Update formData with PDF filename and URL
+        setFormData({ 
+          ...formData, 
+          pdf_file_name: data.pdf_file_name,
+          pdf_file_url: data.pdf_file_url
+        });
         setPdfFile(null);
         setPdfFileName('');
         await loadData(); // Refresh to show PDF indicator
