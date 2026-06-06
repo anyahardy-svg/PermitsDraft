@@ -989,15 +989,15 @@ export default function CompanyAccreditationScreen({
       setSection24({
         public_liability_insurance: {
           expiry_date: data.public_liability_insurance_expiry || '',
-          url: data.public_liability_insurance_url || null,
+          url: data.public_liability_insurance_evidence_url || null,
           uploaded_at: data.public_liability_insurance_uploaded_at || null,
-          has_document: !!data.public_liability_insurance_url
+          has_document: !!data.public_liability_insurance_evidence_url
         },
         motor_vehicle_insurance: {
           expiry_date: data.motor_vehicle_insurance_expiry || '',
-          url: data.motor_vehicle_insurance_url || null,
+          url: data.motor_vehicle_insurance_evidence_url || null,
           uploaded_at: data.motor_vehicle_insurance_uploaded_at || null,
-          has_document: !!data.motor_vehicle_insurance_url
+          has_document: !!data.motor_vehicle_insurance_evidence_url
         },
         professional_indemnity_insurance: {
           expiry_date: data.professional_indemnity_insurance_expiry || '',
@@ -2465,12 +2465,22 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    // NOTE: Insurance columns don't exist in the database schema, so we don't send them
-    // Insurance documents are stored in client state only
-    // if (section24.public_liability_insurance.expiry_date) {
-    //   updateData.public_liability_insurance_expiry = section24.public_liability_insurance.expiry_date;
-    // }
-    // ... rest of insurance fields are not sent to database
+    // Map section24 fields to database column names
+    if (section24.motor_vehicle_insurance.url) {
+      updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url;
+    }
+    if (section24.public_liability_insurance.url) {
+      updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url;
+    }
+    if (section24.professional_indemnity_insurance.expiry_date) {
+      updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date;
+    }
+    if (section24.professional_indemnity_insurance.url) {
+      updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url;
+    }
+    if (section24.professional_indemnity_insurance.uploaded_at) {
+      updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at;
+    }
 
     // Add Section 25 data (Contact Information)
     if (section25.health_safety_manager.name) {
