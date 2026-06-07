@@ -201,6 +201,8 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
     throw new Error('Supplier ID is required');
   }
 
+  let apiErrorMessage = null;
+
   if (typeof fetch !== 'undefined') {
     try {
       const response = await fetch('/api/save-supplier-accreditation', {
@@ -218,34 +220,38 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
       if (response.ok) {
         return response.json();
       }
+
+      const errorBody = await response.json().catch(() => ({}));
+      apiErrorMessage = errorBody.error || `Save API returned ${response.status}`;
+      console.warn('Supplier accreditation save API failed:', apiErrorMessage);
     } catch (apiError) {
-      console.warn('Supplier accreditation save API unavailable, falling back to direct Supabase query:', apiError);
+      apiErrorMessage = apiError.message || 'Save API unavailable';
+      console.warn('Supplier accreditation save API unavailable:', apiError);
     }
   }
 
   if (!supabase) {
-    throw new Error('Supabase client is not configured');
+    throw new Error(
+      apiErrorMessage ||
+        'Supabase client is not configured. Set SUPABASE_SERVICE_ROLE_KEY on the server or run migrations/fix-suppliers-anon-read-rls.sql.'
+    );
   }
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id || null;
 
-  if (authError) {
-    throw authError;
-  }
-
-  const existingQuery = supabase
+  let existingQuery = supabase
     .from('supplier_accreditations')
     .select('id, submitted_by')
     .eq('supplier_id', supplierId)
     .order('updated_at', { ascending: false })
     .limit(1);
 
-  const { data: existing, error: fetchError } = user
-    ? await existingQuery.eq('submitted_by', user.id).maybeSingle()
-    : await existingQuery.maybeSingle();
+  if (userId) {
+    existingQuery = existingQuery.eq('submitted_by', userId);
+  }
+
+  const { data: existing, error: fetchError } = await existingQuery.maybeSingle();
 
   if (fetchError) {
     throw fetchError;
@@ -260,17 +266,42 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
       })
       .eq('id', existing.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      throw new Error(
+        `${error.message}. Run migrations/fix-suppliers-anon-read-rls.sql in Supabase or configure SUPABASE_SERVICE_ROLE_KEY on the server.`
+      );
     }
 
-    return data;
+    if (data) {
+      return data;
+    }
+
+    const { data: refreshed, error: refreshError } = await supabase
+      .from('supplier_accreditations')
+      .select('*')
+      .eq('id', existing.id)
+      .maybeSingle();
+
+    if (refreshError) {
+      throw refreshError;
+    }
+
+    if (refreshed) {
+      return refreshed;
+    }
+
+    throw new Error(
+      'Save was blocked by database permissions. Run migrations/fix-suppliers-anon-read-rls.sql in Supabase or configure SUPABASE_SERVICE_ROLE_KEY on the server.'
+    );
   }
 
-  if (!user) {
-    throw new Error('Not authenticated');
+  if (!userId) {
+    throw new Error(
+      apiErrorMessage ||
+        'Unable to save supplier accreditation from the admin panel. Configure SUPABASE_SERVICE_ROLE_KEY on the server or run migrations/fix-suppliers-anon-read-rls.sql.'
+    );
   }
 
   const { data, error } = await supabase
@@ -279,7 +310,7 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
       supplier_id: supplierId,
       accreditation_data: formData,
       status,
-      submitted_by: user.id,
+      submitted_by: userId,
     })
     .select()
     .single();

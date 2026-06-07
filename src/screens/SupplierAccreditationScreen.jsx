@@ -12,6 +12,8 @@ import { supplierSchema } from '../schemas/supplierSchema';
 export default function SupplierAccreditationScreen({ supplierId }) {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saveMessage, setSaveMessage] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!supplierId) {
@@ -61,9 +63,15 @@ export default function SupplierAccreditationScreen({ supplierId }) {
     }
 
     try {
+      setSaving(true);
+      setSaveMessage(null);
       await saveSupplierAccreditation(supplierId, formData, 'draft');
+      setSaveMessage('Draft saved successfully.');
     } catch (error) {
       console.error('Failed to save supplier accreditation draft:', error);
+      setSaveMessage(error?.message || 'Failed to save draft. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -81,9 +89,15 @@ export default function SupplierAccreditationScreen({ supplierId }) {
             onFieldChange={handleFieldChange}
           />
 
-          <button type="button" onClick={handleSaveDraft}>
-            Save Draft
+          <button type="button" onClick={handleSaveDraft} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Draft'}
           </button>
+
+          {saveMessage && (
+            <p style={{ marginTop: '1rem', color: saveMessage.includes('successfully') ? '#065f46' : '#dc2626' }}>
+              {saveMessage}
+            </p>
+          )}
         </>
       )}
     </div>
