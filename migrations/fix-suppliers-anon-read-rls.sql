@@ -21,3 +21,13 @@ CREATE POLICY supplier_accreditations_select_anon
   FOR SELECT
   TO anon
   USING (true);
+
+-- Allow anon updates for admin panel draft saves (custom auth, not Supabase JWT)
+DROP POLICY IF EXISTS supplier_accreditations_update_anon ON supplier_accreditations;
+
+CREATE POLICY supplier_accreditations_update_anon
+  ON supplier_accreditations
+  FOR UPDATE
+  TO anon
+  USING (true)
+  WITH CHECK (true);

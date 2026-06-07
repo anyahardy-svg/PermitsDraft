@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 
 import FormEngine from '../components/supplier/FormEngine.jsx';
 import {
+  buildSupplierFormData,
   getSupplierAccreditation,
   getSupplierById,
-  getSupplierFormDefaults,
   saveSupplierAccreditation,
 } from '../api/supplierApi';
 import { supplierSchema } from '../schemas/supplierSchema';
@@ -30,15 +30,7 @@ export default function SupplierAccreditationScreen({ supplierId }) {
         ]);
 
         if (!cancelled) {
-          const defaults = getSupplierFormDefaults(supplier);
-          const savedData = record?.accreditation_data || {};
-
-          setFormData({
-            ...defaults,
-            ...savedData,
-            company_name: savedData.company_name || defaults.company_name,
-            risk_classification: savedData.risk_classification || defaults.risk_classification,
-          });
+          setFormData(buildSupplierFormData(supplier, record));
         }
       } catch (error) {
         console.error('Failed to load supplier accreditation:', error);

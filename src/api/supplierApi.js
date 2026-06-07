@@ -99,22 +99,87 @@ export function getSupplierFormDefaults(supplier) {
 }
 
 /**
+ * Normalise accreditation_data from Supabase (JSONB object or string).
+ * @param {unknown} accreditationData
+ * @returns {Object}
+ */
+export function parseAccreditationData(accreditationData) {
+  if (!accreditationData) {
+    return {};
+  }
+
+  if (typeof accreditationData === 'string') {
+    try {
+      const parsed = JSON.parse(accreditationData);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  if (typeof accreditationData === 'object') {
+    return { ...accreditationData };
+  }
+
+  return {};
+}
+
+/**
+ * Merge saved accreditation data with supplier table defaults.
+ * Saved accreditation values always take precedence.
+ * @param {Object|null} supplier
+ * @param {Object|null} accreditationRecord
+ * @returns {Object}
+ */
+export function buildSupplierFormData(supplier, accreditationRecord) {
+  const savedData = parseAccreditationData(accreditationRecord?.accreditation_data);
+  const defaults = getSupplierFormDefaults(supplier);
+
+  return {
+    ...defaults,
+    ...savedData,
+    company_name: savedData.company_name ?? defaults.company_name ?? '',
+    risk_classification: savedData.risk_classification ?? defaults.risk_classification ?? '',
+  };
+}
+
+/**
  * Fetch the supplier accreditation record for a given supplier.
  * @param {string} supplierId
  * @returns {Promise<Object|null>}
  */
 export async function getSupplierAccreditation(supplierId) {
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
-  }
   if (!supplierId) {
     throw new Error('Supplier ID is required');
+  }
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      const response = await fetch(
+        `/api/get-supplier-accreditation?supplierId=${encodeURIComponent(supplierId)}`
+      );
+
+      if (response.ok) {
+        const record = await response.json();
+        if (record) {
+          return record;
+        }
+      }
+    } catch (apiError) {
+      console.warn('Supplier accreditation API unavailable, falling back to direct Supabase query:', apiError);
+    }
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
   }
 
   const { data, error } = await supabase
     .from('supplier_accreditations')
     .select('*')
     .eq('supplier_id', supplierId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
@@ -132,11 +197,34 @@ export async function getSupplierAccreditation(supplierId) {
  * @returns {Promise<Object>}
  */
 export async function saveSupplierAccreditation(supplierId, formData, status = 'draft') {
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
-  }
   if (!supplierId) {
     throw new Error('Supplier ID is required');
+  }
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      const response = await fetch('/api/save-supplier-accreditation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          supplierId,
+          formData,
+          status,
+        }),
+      });
+
+      if (response.ok) {
+        return response.json();
+      }
+    } catch (apiError) {
+      console.warn('Supplier accreditation save API unavailable, falling back to direct Supabase query:', apiError);
+    }
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
   }
 
   const {
@@ -147,32 +235,52 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
   if (authError) {
     throw authError;
   }
-  if (!user) {
-    throw new Error('Not authenticated');
-  }
 
-  const { data: existing, error: fetchError } = await supabase
+  const existingQuery = supabase
     .from('supplier_accreditations')
-    .select('id')
+    .select('id, submitted_by')
     .eq('supplier_id', supplierId)
-    .eq('submitted_by', user.id)
-    .maybeSingle();
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  const { data: existing, error: fetchError } = user
+    ? await existingQuery.eq('submitted_by', user.id).maybeSingle()
+    : await existingQuery.maybeSingle();
 
   if (fetchError) {
     throw fetchError;
   }
 
-  const payload = {
-    supplier_id: supplierId,
-    accreditation_data: formData,
-    status,
-    submitted_by: user.id,
-    ...(existing?.id ? { id: existing.id } : {}),
-  };
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from('supplier_accreditations')
+      .update({
+        accreditation_data: formData,
+        status,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
 
   const { data, error } = await supabase
     .from('supplier_accreditations')
-    .upsert(payload)
+    .insert({
+      supplier_id: supplierId,
+      accreditation_data: formData,
+      status,
+      submitted_by: user.id,
+    })
     .select()
     .single();
 
