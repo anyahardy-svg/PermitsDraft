@@ -45,6 +45,7 @@ import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
 import AuthCallbackScreen from './src/screens/AuthCallbackScreen';
 import CompanyAccreditationScreen from './src/screens/CompanyAccreditationScreen';
 import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen';
+import SupplierAccreditationScreen from './src/screens/SupplierAccreditationScreen';
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
@@ -649,7 +650,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialContractorAdminTab, initialContractorParams }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierAccreditationId, initialContractorAdminTab, initialContractorParams }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -3072,6 +3073,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
   const [selectedCompanyAccreditationId, setSelectedCompanyAccreditationId] = useState(null);
+  const [selectedSupplierAccreditationId, setSelectedSupplierAccreditationId] = useState(initialSupplierAccreditationId || null);
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
@@ -3451,6 +3453,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     openAccreditationFromUrl();
   }, [initialCompanyAccreditationId, companies]);
 
+  // Handle initialSupplierAccreditationId - open supplier accreditation screen from URL
+  useEffect(() => {
+    if (initialSupplierAccreditationId) {
+      setSelectedSupplierAccreditationId(initialSupplierAccreditationId);
+      setCurrentScreen('supplier_accreditation');
+    }
+  }, [initialSupplierAccreditationId]);
+
   // Handle initialContractorAdminTab - restore contractor admin tab on page load
   useEffect(() => {
     if (initialContractorAdminTab !== undefined && initialContractorAdminTab !== null) {
@@ -3709,12 +3719,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (currentScreen === 'manage_companies' && showAccreditationModal && selectedCompanyAccreditationId) {
         newUrl = `/admin/companies/${selectedCompanyAccreditationId}/accreditation/`;
       }
+
+      // Add supplier accreditation to URL
+      if (currentScreen === 'supplier_accreditation' && selectedSupplierAccreditationId) {
+        newUrl = `/admin/suppliers/${selectedSupplierAccreditationId}/accreditation/`;
+      }
       
       if (window.location.pathname !== newUrl) {
         window.history.pushState({}, '', newUrl);
       }
     }
-  }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId]);
+  }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId, selectedSupplierAccreditationId]);
 
   // Listen to browser back button
   // Check initial URL on mount to restore screen
@@ -3838,6 +3853,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               setCurrentScreen('manage_companies');
               setSelectedCompanyAccreditationId(companyId);
               setShowAccreditationModal(true);
+              return;
+            }
+          }
+
+          // Check for supplier accreditation route
+          if (route.startsWith('suppliers/')) {
+            const parts = route.split('/').filter(p => p);
+            if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
+              setSelectedSupplierAccreditationId(parts[1]);
+              setCurrentScreen('supplier_accreditation');
               return;
             }
           }
@@ -23325,6 +23350,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onClose={() => setCurrentScreen('admin')}
         />
       );
+    case 'supplier_accreditation':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Supplier accreditation accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <SupplierAccreditationScreen supplierId={selectedSupplierAccreditationId} />
+      );
     case 'request_accreditation':
       return (
         <RequestAccreditationScreen
@@ -24734,6 +24768,14 @@ const AppRouter = ({ initialRoute }) => {
             return 'manage_companies';
           }
         }
+
+        // Check for supplier accreditation route
+        if (route.startsWith('suppliers/')) {
+          const parts = route.split('/').filter(p => p);
+          if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
+            return 'supplier_accreditation';
+          }
+        }
         
         const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
         
@@ -24804,6 +24846,20 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  // Extract supplier accreditation ID from URL if present
+  const getInitialSupplierAccreditationId = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/admin/suppliers/')) {
+        const parts = pathname.slice(7).split('/').filter(p => p);
+        if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
+          return parts[1];
+        }
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(false); // Disabled - admin key button removed
@@ -24812,6 +24868,7 @@ const AppRouter = ({ initialRoute }) => {
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
   const initialAdminRoute = getInitialAdminRoute();
   const initialCompanyAccreditationId = getInitialCompanyAccreditationId();
+  const initialSupplierAccreditationId = getInitialSupplierAccreditationId();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
   // Extract contractor details from URL query params if present
@@ -24839,7 +24896,7 @@ const AppRouter = ({ initialRoute }) => {
   
   const initialContractorParams = getInitialContractorParams();
   
-  console.log('🎯 Initial routes detected:', { initialAdminRoute, initialContractorAdminTab, initialCompanyAccreditationId, initialContractorParams });
+  console.log('🎯 Initial routes detected:', { initialAdminRoute, initialContractorAdminTab, initialCompanyAccreditationId, initialSupplierAccreditationId, initialContractorParams });
 
   React.useEffect(() => {
     try {
@@ -24924,7 +24981,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierAccreditationId={initialSupplierAccreditationId} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
