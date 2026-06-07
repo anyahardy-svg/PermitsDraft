@@ -1,171 +1,113 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  FlatList,
 } from 'react-native';
 
 export default function AdminDashboard({
-  adminUser,
+  adminSessionActive,
   onLogout,
   onNavigate,
+  onNavigateToSupplier,
+  onShowAddAdminModal,
   styles,
+  pendingJoinRequestsCount = 0,
+  permitIssuersCount = 0,
+  companiesCount = 0,
+  contractorsCount = 0,
+  sitesCount = 0,
+  servicesCount = 0,
+  isolationRegistersCount = 0,
+  businessUnitsCount = 0,
+  isSuperAdmin = false,
 }) {
-  const isSuperAdmin = adminUser?.role === 'super_admin';
-
-  // Menu items available to all admin roles
-  const commonMenuItems = [
-    {
-      id: 'join-requests',
-      title: 'Join Requests',
-      description: 'Approve or reject contractor join requests',
-      icon: '📝',
-      color: '#F59E0B',
-    },
-    {
-      id: 'contractors',
-      title: 'Contractors',
-      description: 'View and manage contractor profiles',
-      icon: '👷',
-      color: '#3B82F6',
-    },
-    {
-      id: 'companies',
-      title: 'Companies',
-      description: 'View and manage company information',
-      icon: '🏢',
-      color: '#10B981',
-    },
-    {
-      id: 'visitor-inductions',
-      title: 'Visitor Inductions',
-      description: 'Manage visitor induction records',
-      icon: '📋',
-      color: '#F59E0B',
-    },
-    {
-      id: 'isolation-registers',
-      title: 'Isolation Registers',
-      description: 'View isolation register data',
-      icon: '📊',
-      color: '#8B5CF6',
-    },
-  ];
-
-  // Menu items only for super_admins
-  const superAdminMenuItems = [
-    {
-      id: 'inductions',
-      title: 'Inductions',
-      description: 'Create and manage induction content',
-      icon: '🎓',
-      color: '#EF4444',
-    },
-    {
-      id: 'permit-issuers',
-      title: 'Permit Issuers',
-      description: 'Manage permit issuer organizations',
-      icon: '📜',
-      color: '#EC4899',
-    },
-    {
-      id: 'business-units',
-      title: 'Business Units',
-      description: 'Manage business unit organization',
-      icon: '🏭',
-      color: '#06B6D4',
-    },
-    {
-      id: 'sites',
-      title: 'Sites',
-      description: 'Manage work sites',
-      icon: '📍',
-      color: '#14B8A6',
-    },
-    {
-      id: 'services',
-      title: 'Services',
-      description: 'Manage services and categorization',
-      icon: '⚙️',
-      color: '#6366F1',
-    },
-    {
-      id: 'admin-users',
-      title: 'Admin Users',
-      description: 'Create and manage admin accounts',
-      icon: '👥',
-      color: '#F97316',
-    },
-  ];
-
-  const menuItems = isSuperAdmin ? [...commonMenuItems, ...superAdminMenuItems] : commonMenuItems;
-
-  const handleMenuPress = (menuId) => {
-    onNavigate(menuId);
-  };
-
-  const renderMenuItem = ({ item }) => (
-    <TouchableOpacity
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        borderLeftWidth: 4,
-        borderLeftColor: item.color,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      }}
-      onPress={() => handleMenuPress(item.id)}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Text style={{ fontSize: 28 }}>{item.icon}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>
-            {item.title}
-          </Text>
-          <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-            {item.description}
-          </Text>
-        </View>
-        <Text style={{ fontSize: 18, color: '#9CA3AF' }}>→</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={{ padding: 16, backgroundColor: '#1F2937', paddingTop: 40 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 24, fontWeight: '700', color: 'white' }}>Admin Dashboard</Text>
-            <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
-              {adminUser?.name} {isSuperAdmin && '(Super Admin)'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={{ backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 }}
-            onPress={onLogout}
-          >
-            <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => {
+          if (adminSessionActive) {
+            onLogout();
+          } else {
+            onNavigate('dashboard');
+          }
+        }}>
+          <Text style={styles.backButton}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Admin Panel</Text>
+        <TouchableOpacity
+          onPress={onLogout}
+          style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        >
+          <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Content */}
-      <FlatList
-        data={menuItems}
-        renderItem={renderMenuItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16 }}
-        scrollIndicatorInsets={{ right: 1 }}
-      />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        <View style={styles.dashboardGrid}>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E0B' }]} onPress={() => onNavigate('join-requests')}>
+            <Text style={styles.cardNumber}>{pendingJoinRequestsCount}</Text>
+            <Text style={styles.cardLabel}>Join Requests</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => onNavigate('manage_issuers')}>
+            <Text style={styles.cardNumber}>{permitIssuersCount}</Text>
+            <Text style={styles.cardLabel}>Permit Issuers</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => onNavigate('manage_companies')}>
+            <Text style={styles.cardNumber}>{companiesCount}</Text>
+            <Text style={styles.cardLabel}>Companies</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => onNavigate('manage_contractors')}>
+            <Text style={styles.cardNumber}>{contractorsCount}</Text>
+            <Text style={styles.cardLabel}>Contractors</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#3B82F6' }]} onPress={() => onNavigate('manage_sites')}>
+            <Text style={styles.cardNumber}>{sitesCount}</Text>
+            <Text style={styles.cardLabel}>Sites</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => onNavigate('manage_services')}>
+            <Text style={styles.cardNumber}>{servicesCount}</Text>
+            <Text style={styles.cardLabel}>Services</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EF4444' }]} onPress={() => onNavigate('manage_isolations')}>
+            <Text style={styles.cardNumber}>{isolationRegistersCount}</Text>
+            <Text style={styles.cardLabel}>Isolation Register</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => onNavigate('manage_visitor_inductions')}>
+            <Text style={styles.cardNumber}>{sitesCount}</Text>
+            <Text style={styles.cardLabel}>Visitor Inductions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]} onPress={() => onNavigate('manage_inductions')}>
+            <Text style={styles.cardNumber}>📚</Text>
+            <Text style={styles.cardLabel}>Inductions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => onNavigate('manage_business_units')}>
+            <Text style={styles.cardNumber}>{businessUnitsCount}</Text>
+            <Text style={styles.cardLabel}>Business Units</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => onNavigate('legal_documents')}>
+            <Text style={styles.cardNumber}>📋</Text>
+            <Text style={styles.cardLabel}>Legal Documents</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => onNavigate('manage_email_templates')}>
+            <Text style={styles.cardNumber}>📧</Text>
+            <Text style={styles.cardLabel}>Email Templates</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#6366F1' }]}
+            onPress={() => onNavigateToSupplier({ supplierId: 'test-123' })}
+          >
+            <Text style={styles.cardNumber}>0</Text>
+            <Text style={styles.cardLabel}>Suppliers</Text>
+          </TouchableOpacity>
+          {isSuperAdmin && (
+            <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={onShowAddAdminModal}>
+              <Text style={styles.cardNumber}>+</Text>
+              <Text style={styles.cardLabel}>Add Admin</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }

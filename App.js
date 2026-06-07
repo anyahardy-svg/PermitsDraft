@@ -53,6 +53,7 @@ import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
+import SupplierAccreditationScreen from './src/screens/SupplierAccreditationScreen.jsx';
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
@@ -649,7 +650,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialContractorAdminTab, initialContractorParams }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialContractorAdminTab, initialContractorParams }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -3072,6 +3073,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
   const [selectedCompanyAccreditationId, setSelectedCompanyAccreditationId] = useState(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(initialSupplierId || null);
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
@@ -3451,6 +3453,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     openAccreditationFromUrl();
   }, [initialCompanyAccreditationId, companies]);
 
+  useEffect(() => {
+    if (initialSupplierId) {
+      setSelectedSupplierId(initialSupplierId);
+      setCurrentScreen('supplier_accreditation');
+    }
+  }, [initialSupplierId]);
+
   // Handle initialContractorAdminTab - restore contractor admin tab on page load
   useEffect(() => {
     if (initialContractorAdminTab !== undefined && initialContractorAdminTab !== null) {
@@ -3610,7 +3619,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     // Only check if we're currently not in admin and not already showing login
-    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen?.startsWith('manage_')) {
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation') {
       console.log('ℹ️ Already in admin context, skipping check');
       return;
     }
@@ -3632,6 +3641,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       
       const route = pathname.slice(7);
+
+      if (route.startsWith('suppliers/')) {
+        const parts = route.split('/').filter(p => p);
+        if (parts.length >= 2 && parts[0] === 'suppliers') {
+          setSelectedSupplierId(parts[1]);
+          setCurrentScreen('supplier_accreditation');
+          return;
+        }
+      }
+
       const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
       
       const routeMap = {
@@ -3643,7 +3662,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'isolation-register': 'manage_isolations',
         'visitor-inductions': 'manage_visitor_inductions',
         'inductions': 'manage_inductions',
-        'business-units': 'manage_business_units'
+        'business-units': 'manage_business_units',
+        'suppliers': 'supplier_accreditation',
       };
       
       const screen = routeMap[routeWithoutTrailingSlash];
@@ -3685,6 +3705,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
         'manage_business_units': '/admin/business-units/',
+        'supplier_accreditation': selectedSupplierId
+          ? `/admin/suppliers/${selectedSupplierId}/`
+          : '/admin/suppliers/',
         'admin': '/admin/',
         'contractor_admin': '/contractor-admin/',
         'dashboard': '/permits/'
@@ -3714,7 +3737,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         window.history.pushState({}, '', newUrl);
       }
     }
-  }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId]);
+  }, [currentScreen, contractorAdminTab, showAccreditationModal, selectedCompanyAccreditationId, selectedSupplierId]);
 
   // Listen to browser back button
   // Check initial URL on mount to restore screen
@@ -3841,6 +3864,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return;
             }
           }
+
+          if (route.startsWith('suppliers/')) {
+            const parts = route.split('/').filter(p => p);
+            if (parts.length >= 2 && parts[0] === 'suppliers') {
+              setSelectedSupplierId(parts[1]);
+              setCurrentScreen('supplier_accreditation');
+              return;
+            }
+          }
           
           const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
           
@@ -3853,7 +3885,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'isolation-register': 'manage_isolations',
             'visitor-inductions': 'manage_visitor_inductions',
             'inductions': 'manage_inductions',
-            'business-units': 'manage_business_units'
+            'business-units': 'manage_business_units',
+            'suppliers': 'supplier_accreditation',
           };
           
           const screen = routeMap[routeWithoutTrailingSlash];
@@ -8794,84 +8827,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Admin Dashboard - choose between Permit Issuers or Contractors
   const renderAdminDashboard = () => {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => {
-            if (adminSessionActive) {
-              handleAdminLogout();
-            } else {
-              setCurrentScreen('dashboard');
-            }
-          }}>
-            <Text style={styles.backButton}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Admin Panel</Text>
-          <TouchableOpacity 
-            onPress={() => handleAdminLogout()}
-            style={{ paddingHorizontal: 16, paddingVertical: 8 }}
-          >
-            <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>LOGOUT</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-        <View style={styles.dashboardGrid}>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E0B' }]} onPress={() => setCurrentScreen('join-requests')}>
-            <Text style={styles.cardNumber}>{pendingJoinRequestsCount}</Text>
-            <Text style={styles.cardLabel}>Join Requests</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#7C3AED' }]} onPress={() => setCurrentScreen('manage_issuers')}>
-            <Text style={styles.cardNumber}>{permitIssuers.length}</Text>
-            <Text style={styles.cardLabel}>Permit Issuers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]} onPress={() => setCurrentScreen('manage_companies')}>
-            <Text style={styles.cardNumber}>{companies.length}</Text>
-            <Text style={styles.cardLabel}>Companies</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E42' }]} onPress={() => setCurrentScreen('manage_contractors')}>
-            <Text style={styles.cardNumber}>{contractors.length}</Text>
-            <Text style={styles.cardLabel}>Contractors</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#3B82F6' }]} onPress={() => setCurrentScreen('manage_sites')}>
-            <Text style={styles.cardNumber}>{sites.length}</Text>
-            <Text style={styles.cardLabel}>Sites</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('manage_services')}>
-            <Text style={styles.cardNumber}>{servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb.length : ALL_SERVICES.length}</Text>
-            <Text style={styles.cardLabel}>Services</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EF4444' }]} onPress={() => setCurrentScreen('manage_isolations')}>
-            <Text style={styles.cardNumber}>{isolationRegisters.length}</Text>
-            <Text style={styles.cardLabel}>Isolation Register</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => setCurrentScreen('manage_visitor_inductions')}>
-            <Text style={styles.cardNumber}>{sites.length}</Text>
-            <Text style={styles.cardLabel}>Visitor Inductions</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]} onPress={() => setCurrentScreen('manage_inductions')}>
-            <Text style={styles.cardNumber}>📚</Text>
-            <Text style={styles.cardLabel}>Inductions</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => setCurrentScreen('manage_business_units')}>
-            <Text style={styles.cardNumber}>{businessUnits.length}</Text>
-            <Text style={styles.cardLabel}>Business Units</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6' }]} onPress={() => setCurrentScreen('legal_documents')}>
-            <Text style={styles.cardNumber}>📋</Text>
-            <Text style={styles.cardLabel}>Legal Documents</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#06B6D4' }]} onPress={() => setCurrentScreen('manage_email_templates')}>
-            <Text style={styles.cardNumber}>📧</Text>
-            <Text style={styles.cardLabel}>Email Templates</Text>
-          </TouchableOpacity>
-          {loggedInAdmin?.role === 'super_admin' && (
-            <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={() => setShowAddAdminModal(true)}>
-              <Text style={styles.cardNumber}>+</Text>
-              <Text style={styles.cardLabel}>Add Admin</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        </ScrollView>
-      </View>
+      <AdminDashboard
+        adminSessionActive={adminSessionActive}
+        onLogout={handleAdminLogout}
+        onNavigate={setCurrentScreen}
+        onNavigateToSupplier={({ supplierId }) => {
+          setSelectedSupplierId(supplierId);
+          setCurrentScreen('supplier_accreditation');
+        }}
+        onShowAddAdminModal={() => setShowAddAdminModal(true)}
+        styles={styles}
+        pendingJoinRequestsCount={pendingJoinRequestsCount}
+        permitIssuersCount={permitIssuers.length}
+        companiesCount={companies.length}
+        contractorsCount={contractors.length}
+        sitesCount={sites.length}
+        servicesCount={servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb.length : ALL_SERVICES.length}
+        isolationRegistersCount={isolationRegisters.length}
+        businessUnitsCount={businessUnits.length}
+        isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
+      />
     );
   };
 
@@ -23362,6 +23337,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <EmailTemplatesScreen />
         </View>
       );
+    case 'supplier_accreditation':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Supplier accreditation accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Supplier Accreditation</Text>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <SupplierAccreditationScreen supplierId={selectedSupplierId || 'test-123'} />
+          </ScrollView>
+        </View>
+      );
     default:
       return renderDashboard();
         }
@@ -24734,6 +24728,13 @@ const AppRouter = ({ initialRoute }) => {
             return 'manage_companies';
           }
         }
+
+        if (route.startsWith('suppliers/')) {
+          const parts = route.split('/').filter(p => p);
+          if (parts.length >= 2 && parts[0] === 'suppliers') {
+            return 'supplier_accreditation';
+          }
+        }
         
         const routeWithoutTrailingSlash = route.endsWith('/') ? route.slice(0, -1) : route;
         
@@ -24747,7 +24748,8 @@ const AppRouter = ({ initialRoute }) => {
           'isolation-register': 'manage_isolations',
           'visitor-inductions': 'manage_visitor_inductions',
           'inductions': 'manage_inductions',
-          'business-units': 'manage_business_units'
+          'business-units': 'manage_business_units',
+          'suppliers': 'supplier_accreditation',
         };
         
         return routeMap[routeWithoutTrailingSlash] || null;
@@ -24804,6 +24806,19 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  const getInitialSupplierId = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/admin/suppliers/')) {
+        const parts = pathname.slice(7).split('/').filter(p => p);
+        if (parts.length >= 2 && parts[0] === 'suppliers') {
+          return parts[1];
+        }
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(false); // Disabled - admin key button removed
@@ -24812,6 +24827,7 @@ const AppRouter = ({ initialRoute }) => {
   const [forceRoute, setForceRoute] = React.useState(getInitialRoute()); // Force to specific route
   const initialAdminRoute = getInitialAdminRoute();
   const initialCompanyAccreditationId = getInitialCompanyAccreditationId();
+  const initialSupplierId = getInitialSupplierId();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
   // Extract contractor details from URL query params if present
@@ -24924,7 +24940,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
