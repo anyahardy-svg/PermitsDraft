@@ -10,7 +10,6 @@ export default function AdminDashboard({
   adminSessionActive,
   onLogout,
   onNavigate,
-  onNavigateToSupplier,
   onShowAddAdminModal,
   styles,
   pendingJoinRequestsCount = 0,
@@ -95,7 +94,7 @@ export default function AdminDashboard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.dashboardCard, { borderLeftColor: '#6366F1' }]}
-            onPress={() => onNavigateToSupplier({ supplierId: 'test-123' })}
+            onPress={() => onNavigate('manage_suppliers')}
           >
             <Text style={styles.cardNumber}>0</Text>
             <Text style={styles.cardLabel}>Suppliers</Text>

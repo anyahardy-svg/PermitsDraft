@@ -1,6 +1,27 @@
 import { supabase } from '../supabaseClient';
 
 /**
+ * Fetch all suppliers from the suppliers table.
+ * @returns {Promise<Array>}
+ */
+export async function getAllSuppliers() {
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
+  }
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('id, company_name, risk_classification, status, created_at')
+    .order('company_name', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+/**
  * Fetch the supplier accreditation record for a given supplier.
  * @param {string} supplierId
  * @returns {Promise<Object|null>}

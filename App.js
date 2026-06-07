@@ -54,6 +54,7 @@ import AdminUsersManagement from './src/screens/AdminUsersManagement';
 import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
 import SupplierAccreditationScreen from './src/screens/SupplierAccreditationScreen.jsx';
+import SupplierListScreen from './src/screens/SupplierListScreen.jsx';
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
@@ -3644,7 +3645,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
       if (route.startsWith('suppliers/')) {
         const parts = route.split('/').filter(p => p);
-        if (parts.length >= 2 && parts[0] === 'suppliers') {
+        if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
           setSelectedSupplierId(parts[1]);
           setCurrentScreen('supplier_accreditation');
           return;
@@ -3663,7 +3664,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'visitor-inductions': 'manage_visitor_inductions',
         'inductions': 'manage_inductions',
         'business-units': 'manage_business_units',
-        'suppliers': 'supplier_accreditation',
+        'suppliers': 'manage_suppliers',
       };
       
       const screen = routeMap[routeWithoutTrailingSlash];
@@ -3705,8 +3706,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
         'manage_business_units': '/admin/business-units/',
+        'manage_suppliers': '/admin/suppliers/',
         'supplier_accreditation': selectedSupplierId
-          ? `/admin/suppliers/${selectedSupplierId}/`
+          ? `/admin/suppliers/${selectedSupplierId}/accreditation/`
           : '/admin/suppliers/',
         'admin': '/admin/',
         'contractor_admin': '/contractor-admin/',
@@ -3867,7 +3869,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
           if (route.startsWith('suppliers/')) {
             const parts = route.split('/').filter(p => p);
-            if (parts.length >= 2 && parts[0] === 'suppliers') {
+            if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
               setSelectedSupplierId(parts[1]);
               setCurrentScreen('supplier_accreditation');
               return;
@@ -3886,7 +3888,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'visitor-inductions': 'manage_visitor_inductions',
             'inductions': 'manage_inductions',
             'business-units': 'manage_business_units',
-            'suppliers': 'supplier_accreditation',
+            'suppliers': 'manage_suppliers',
           };
           
           const screen = routeMap[routeWithoutTrailingSlash];
@@ -8831,10 +8833,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         adminSessionActive={adminSessionActive}
         onLogout={handleAdminLogout}
         onNavigate={setCurrentScreen}
-        onNavigateToSupplier={({ supplierId }) => {
-          setSelectedSupplierId(supplierId);
-          setCurrentScreen('supplier_accreditation');
-        }}
         onShowAddAdminModal={() => setShowAddAdminModal(true)}
         styles={styles}
         pendingJoinRequestsCount={pendingJoinRequestsCount}
@@ -23337,9 +23335,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <EmailTemplatesScreen />
         </View>
       );
-    case 'supplier_accreditation':
+    case 'manage_suppliers':
       if (!adminSessionActive) {
-        console.log('🔒 [SECURITY] Supplier accreditation accessed without session - showing login');
+        console.log('🔒 [SECURITY] Manage suppliers accessed without session - showing login');
         setShowAdminLoginModal(true);
         return renderDashboard();
       }
@@ -23349,10 +23347,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
+            <Text style={styles.title}>Suppliers</Text>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <SupplierListScreen
+              styles={styles}
+              onOpenForm={(supplierId) => {
+                setSelectedSupplierId(supplierId);
+                setCurrentScreen('supplier_accreditation');
+              }}
+            />
+          </ScrollView>
+        </View>
+      );
+    case 'supplier_accreditation':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Supplier accreditation accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setCurrentScreen('manage_suppliers')}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
             <Text style={styles.title}>Supplier Accreditation</Text>
           </View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-            <SupplierAccreditationScreen supplierId={selectedSupplierId || 'test-123'} />
+            <SupplierAccreditationScreen supplierId={selectedSupplierId} />
           </ScrollView>
         </View>
       );
@@ -24731,7 +24754,7 @@ const AppRouter = ({ initialRoute }) => {
 
         if (route.startsWith('suppliers/')) {
           const parts = route.split('/').filter(p => p);
-          if (parts.length >= 2 && parts[0] === 'suppliers') {
+          if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
             return 'supplier_accreditation';
           }
         }
@@ -24749,7 +24772,7 @@ const AppRouter = ({ initialRoute }) => {
           'visitor-inductions': 'manage_visitor_inductions',
           'inductions': 'manage_inductions',
           'business-units': 'manage_business_units',
-          'suppliers': 'supplier_accreditation',
+          'suppliers': 'manage_suppliers',
         };
         
         return routeMap[routeWithoutTrailingSlash] || null;
@@ -24811,7 +24834,7 @@ const AppRouter = ({ initialRoute }) => {
       const pathname = window.location.pathname;
       if (pathname.startsWith('/admin/suppliers/')) {
         const parts = pathname.slice(7).split('/').filter(p => p);
-        if (parts.length >= 2 && parts[0] === 'suppliers') {
+        if (parts.length >= 3 && parts[0] === 'suppliers' && parts[2] === 'accreditation') {
           return parts[1];
         }
       }
