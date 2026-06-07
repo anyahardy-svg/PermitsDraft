@@ -56,7 +56,8 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       } catch (loadError) {
         console.error('Failed to load suppliers:', loadError);
         if (!cancelled) {
-          setError('Failed to load suppliers. Please try again.');
+          const message = loadError?.message || 'Failed to load suppliers. Please try again.';
+          setError(message);
         }
       } finally {
         if (!cancelled) {

@@ -2,9 +2,26 @@ import { supabase } from '../supabaseClient';
 
 /**
  * Fetch all suppliers from the suppliers table.
+ * Tries the server API first (service role bypasses RLS), then falls back to
+ * a direct Supabase query once anon read policies are applied.
  * @returns {Promise<Array>}
  */
 export async function getAllSuppliers() {
+  if (typeof fetch !== 'undefined') {
+    try {
+      const response = await fetch('/api/list-suppliers');
+
+      if (response.ok) {
+        const suppliers = await response.json();
+        if (Array.isArray(suppliers)) {
+          return suppliers;
+        }
+      }
+    } catch (apiError) {
+      console.warn('Supplier list API unavailable, falling back to direct Supabase query:', apiError);
+    }
+  }
+
   if (!supabase) {
     throw new Error('Supabase client is not configured');
   }
