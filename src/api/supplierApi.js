@@ -39,6 +39,66 @@ export async function getAllSuppliers() {
 }
 
 /**
+ * Fetch a single supplier by ID from the suppliers table.
+ * @param {string} supplierId
+ * @returns {Promise<Object|null>}
+ */
+export async function getSupplierById(supplierId) {
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
+  }
+  if (!supplierId) {
+    throw new Error('Supplier ID is required');
+  }
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('id, company_name, risk_classification, status, created_at')
+    .eq('id', supplierId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (data) {
+    return data;
+  }
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      const response = await fetch('/api/list-suppliers');
+      if (response.ok) {
+        const suppliers = await response.json();
+        if (Array.isArray(suppliers)) {
+          return suppliers.find((supplier) => supplier.id === supplierId) || null;
+        }
+      }
+    } catch (apiError) {
+      console.warn('Supplier lookup API unavailable:', apiError);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Build default form values from a supplier record.
+ * @param {Object|null} supplier
+ * @returns {Object}
+ */
+export function getSupplierFormDefaults(supplier) {
+  if (!supplier) {
+    return {};
+  }
+
+  return {
+    company_name: supplier.company_name || '',
+    risk_classification: supplier.risk_classification || '',
+  };
+}
+
+/**
  * Fetch the supplier accreditation record for a given supplier.
  * @param {string} supplierId
  * @returns {Promise<Object|null>}

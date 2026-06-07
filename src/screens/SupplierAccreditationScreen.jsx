@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
 import FormEngine from '../components/supplier/FormEngine.jsx';
-import { getSupplierAccreditation, saveSupplierAccreditation } from '../api/supplierApi';
+import {
+  getSupplierAccreditation,
+  getSupplierById,
+  getSupplierFormDefaults,
+  saveSupplierAccreditation,
+} from '../api/supplierApi';
 import { supplierSchema } from '../schemas/supplierSchema';
 
 export default function SupplierAccreditationScreen({ supplierId }) {
@@ -19,10 +24,21 @@ export default function SupplierAccreditationScreen({ supplierId }) {
     async function loadAccreditation() {
       try {
         setLoading(true);
-        const record = await getSupplierAccreditation(supplierId);
+        const [supplier, record] = await Promise.all([
+          getSupplierById(supplierId),
+          getSupplierAccreditation(supplierId),
+        ]);
 
-        if (!cancelled && record?.accreditation_data) {
-          setFormData(record.accreditation_data);
+        if (!cancelled) {
+          const defaults = getSupplierFormDefaults(supplier);
+          const savedData = record?.accreditation_data || {};
+
+          setFormData({
+            ...defaults,
+            ...savedData,
+            company_name: savedData.company_name || defaults.company_name,
+            risk_classification: savedData.risk_classification || defaults.risk_classification,
+          });
         }
       } catch (error) {
         console.error('Failed to load supplier accreditation:', error);
