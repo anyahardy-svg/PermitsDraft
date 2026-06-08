@@ -19,6 +19,7 @@ import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
 import { logout } from '../api/contractorAuth';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -128,6 +129,7 @@ export default function ContractorAdminScreen({
   const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
+  const [isInviting, setIsInviting] = useState(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -1067,6 +1069,71 @@ export default function ContractorAdminScreen({
     );
   };
 
+  const handleInviteContractor = async (email) => {
+    if (!email?.trim()) {
+      Alert.alert('Invite Failed', 'This contractor does not have an email address.');
+      return;
+    }
+
+    setIsInviting(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      if (!supabase) {
+        throw new Error('Database connection is not configured.');
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('You must be logged in to send invitations.');
+      }
+
+      const redirectTo = typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://contractorhq.co.nz';
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/invite-contractor`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          redirectTo,
+        }),
+        signal: controller.signal,
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server timeout or invalid response');
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send invitation');
+      }
+
+      Alert.alert(
+        'Success',
+        data.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
+      );
+    } catch (error) {
+      const message = error.name === 'AbortError'
+        ? 'Server timeout or invalid response'
+        : (error.message || 'An error occurred while sending invitation');
+      Alert.alert('Invite Failed', message);
+    } finally {
+      clearTimeout(timeoutId);
+      setIsInviting(false);
+    }
+  };
+
   // Render inductions tab in table format
   const renderInductions = () => {
     if (loadingInductions) {
@@ -1132,14 +1199,14 @@ export default function ContractorAdminScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1000
+                  minWidth: 1060
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inducted Services</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>Actions</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 160, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -1153,7 +1220,7 @@ export default function ContractorAdminScreen({
                 borderBottomColor: '#E5E7EB',
                 paddingVertical: 10,
                 paddingHorizontal: 8,
-                minWidth: 1000
+                minWidth: 1060
               }}
             >
               <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -1168,7 +1235,7 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
               </Text>
-              <View style={{ width: 100, paddingRight: 8, flexDirection: 'row', gap: 6 }}>
+              <View style={{ width: 160, paddingRight: 8, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 <TouchableOpacity
                   onPress={() => {
                     setEditingContractor(contractor);
@@ -1179,6 +1246,23 @@ export default function ContractorAdminScreen({
                   style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
                 >
                   <Text style={{ fontSize: 10, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleInviteContractor(contractor.email)}
+                  disabled={isInviting || !contractor.email}
+                  style={{
+                    padding: 6,
+                    backgroundColor: isInviting || !contractor.email ? '#E5E7EB' : '#D1FAE5',
+                    borderRadius: 4
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 10,
+                    color: isInviting || !contractor.email ? '#9CA3AF' : '#047857',
+                    fontWeight: '600'
+                  }}>
+                    Invite
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
@@ -3169,6 +3253,24 @@ export default function ContractorAdminScreen({
 
       {/* Edit Contractor Modal */}
       {renderEditContractorModal()}
+
+      {/* Contractor Invite Loading Modal */}
+      <Modal visible={isInviting} transparent={true} animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 24,
+            alignItems: 'center',
+            minWidth: 200
+          }}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={{ marginTop: 12, fontSize: 14, color: '#6B7280' }}>
+              Sending invitation...
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       {/* Help Modal */}
       <HelpModal 
