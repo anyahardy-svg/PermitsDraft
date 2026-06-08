@@ -224,8 +224,8 @@ export async function inviteContractor(email) {
       body: {
         email: email,
         redirectTo: typeof window !== 'undefined' 
-          ? window.location.origin
-          : 'https://contractorhq.co.nz'
+          ? `${window.location.origin}/sign-in-contractor/`
+          : 'https://contractorhq.co.nz/sign-in-contractor/'
       }
     }).catch(err => ({ error: err, data: null }));
 

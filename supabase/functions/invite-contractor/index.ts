@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
     // Invite user (creates auth user + sends password reset email)
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: redirectTo || "https://contractorhq.co.nz",
+      redirectTo: redirectTo || "https://contractorhq.co.nz/sign-in-contractor/",
     });
 
     if (error) {
