@@ -18,7 +18,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { logout, inviteContractor } from '../api/contractorAuth';
+import { logout, inviteContractor, getCurrentUser } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -215,6 +215,25 @@ export default function ContractorAdminScreen({
       console.log('🔗 Cleared contractor info from URL');
     }
   };
+
+  // Restore login from existing Supabase session (e.g. after App-level auth)
+  useEffect(() => {
+    if (isLoggedIn) return;
+
+    const restoreFromSession = async () => {
+      const { success, contractor } = await getCurrentUser();
+      if (success && contractor) {
+        await handleLoginSuccess({
+          contractorId: contractor.id,
+          contractorName: contractor.name,
+          companyId: contractor.company_id,
+          email: contractor.email
+        });
+      }
+    };
+
+    restoreFromSession();
+  }, []);
 
   // Restore login from URL on mount
   useEffect(() => {

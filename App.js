@@ -2369,6 +2369,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // Initialize currentScreen - NEVER start with admin routes, they will be set by useEffect with auth check
   const getInitialScreen = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+        return 'contractorAuth';
+      }
+      if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
+        return 'authCallback';
+      }
+      if (pathname.startsWith('/contractor-admin')) {
+        return 'contractor_admin';
+      }
+    }
     if (initialAdminRoute && !initialAdminRoute.startsWith('admin') && !initialAdminRoute.startsWith('manage_') && !initialAdminRoute.startsWith('services_') && !initialAdminRoute.startsWith('company_')) {
       return initialAdminRoute; // Non-admin routes like contractor_admin
     }
@@ -3510,8 +3522,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('🔍 Checking domain:', hostname);
       
       // If we're on the auth callback route, don't override it
-      if (pathname === '/auth/callback') {
+      if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
         console.log('✅ Auth callback path detected - skipping auth check');
+        return;
+      }
+
+      // Sign-in route handles login and password setup itself
+      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+        console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
         return;
       }
       
@@ -3534,9 +3552,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const { success, contractor } = await getCurrentUser();
         
         if (!success || !contractor) {
-          console.log('❌ No logged-in contractor found - forcing login screen');
-          // Force to contractor auth screen if not logged in
-          setCurrentScreen('contractorAuth');
+          if (!pathname.startsWith('/contractor-admin')) {
+            console.log('❌ No logged-in contractor found - forcing login screen');
+            setCurrentScreen('contractorAuth');
+          }
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
           // Persist contractor info to localStorage so it survives re-renders
@@ -3712,6 +3731,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           : '/admin/suppliers/',
         'admin': '/admin/',
         'contractor_admin': '/contractor-admin/',
+        'contractorAuth': '/sign-in-contractor/',
+        'authCallback': '/auth/callback/',
         'dashboard': '/permits/'
       };
       
@@ -3761,6 +3782,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (pathname === '/permits' || pathname === '/permits/') {
         console.log('✅ Setting initial screen to dashboard from URL /permits/');
         setCurrentScreen('dashboard');
+        return;
+      }
+
+      // Contractor sign-in / password setup
+      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+        console.log('✅ Setting initial screen to contractorAuth from URL');
+        setCurrentScreen('contractorAuth');
+        return;
+      }
+
+      if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
+        console.log('✅ Setting initial screen to authCallback from URL');
+        setCurrentScreen('authCallback');
         return;
       }
 
