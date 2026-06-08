@@ -18,8 +18,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { logout } from '../api/contractorAuth';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
+import { logout, inviteContractor } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -137,7 +136,7 @@ export default function ContractorAdminScreen({
   const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
-  const [isInviting, setIsInviting] = useState(false);
+  const [invitingContractorId, setInvitingContractorId] = useState(null);
   const inviteInProgressRef = useRef(false);
 
   // Use first business unit if none is provided
@@ -1078,7 +1077,7 @@ export default function ContractorAdminScreen({
     );
   };
 
-  const handleInviteContractor = useCallback(async (email) => {
+  const handleInviteContractor = useCallback(async (contractorId, email) => {
     if (inviteInProgressRef.current) {
       return;
     }
@@ -1089,70 +1088,48 @@ export default function ContractorAdminScreen({
     }
 
     inviteInProgressRef.current = true;
-    setIsInviting(true);
+    setInvitingContractorId(contractorId);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Server timeout or invalid response')),
+        15000
+      );
+    });
 
     try {
-      if (!supabase) {
-        throw new Error('Database connection is not configured.');
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      if (!accessToken) {
-        throw new Error('You must be logged in to send invitations.');
-      }
-
-      const redirectTo = typeof window !== 'undefined'
-        ? window.location.origin
-        : 'https://contractorhq.co.nz';
-
-      let response;
+      let result;
       try {
-        response = await fetch(`${SUPABASE_URL}/functions/v1/invite-contractor`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            email: email.trim(),
-            redirectTo,
-          }),
-          signal: controller.signal,
-        });
-      } catch (fetchError) {
-        if (fetchError instanceof TypeError || fetchError?.name === 'TypeError') {
+        result = await Promise.race([
+          inviteContractor(email.trim()),
+          timeoutPromise,
+        ]);
+      } catch (requestError) {
+        if (requestError instanceof TypeError || requestError?.name === 'TypeError') {
           showUserMessage(
             'Network Error',
             'Could not reach the server. Please check your connection or the function URL.'
           );
           return;
         }
-        throw fetchError;
+        throw requestError;
       }
 
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error('Server timeout or invalid response');
+      if (result?.success) {
+        showUserMessage(
+          'Success',
+          result.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
+        );
+      } else {
+        showUserMessage('Invite Failed', result?.error || 'Failed to send invitation');
       }
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to send invitation');
-      }
-
-      showUserMessage(
-        'Success',
-        data.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
-      );
     } catch (error) {
-      if (error?.name === 'AbortError') {
-        showUserMessage('Invite Failed', 'Server timeout or invalid response');
+      if (error instanceof TypeError || error?.name === 'TypeError') {
+        showUserMessage(
+          'Network Error',
+          'Could not reach the server. Please check your connection or the function URL.'
+        );
         return;
       }
 
@@ -1161,7 +1138,7 @@ export default function ContractorAdminScreen({
     } finally {
       clearTimeout(timeoutId);
       inviteInProgressRef.current = false;
-      setIsInviting(false);
+      setInvitingContractorId(null);
     }
   }, []);
 
@@ -1280,23 +1257,23 @@ export default function ContractorAdminScreen({
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
-                    if (!isInviting && contractor.email) {
-                      handleInviteContractor(contractor.email);
+                    if (invitingContractorId === null && contractor.email) {
+                      handleInviteContractor(contractor.id, contractor.email);
                     }
                   }}
-                  disabled={isInviting || !contractor.email}
+                  disabled={invitingContractorId !== null || !contractor.email}
                   style={{
                     padding: 6,
-                    backgroundColor: isInviting || !contractor.email ? '#E5E7EB' : '#D1FAE5',
+                    backgroundColor: invitingContractorId !== null || !contractor.email ? '#E5E7EB' : '#D1FAE5',
                     borderRadius: 4
                   }}
                 >
                   <Text style={{
                     fontSize: 10,
-                    color: isInviting || !contractor.email ? '#9CA3AF' : '#047857',
+                    color: invitingContractorId !== null || !contractor.email ? '#9CA3AF' : '#047857',
                     fontWeight: '600'
                   }}>
-                    Invite
+                    {invitingContractorId === contractor.id ? 'Sending...' : 'Invite'}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -3288,24 +3265,6 @@ export default function ContractorAdminScreen({
 
       {/* Edit Contractor Modal */}
       {renderEditContractorModal()}
-
-      {/* Contractor Invite Loading Modal */}
-      <Modal visible={isInviting} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 24,
-            alignItems: 'center',
-            minWidth: 200
-          }}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text style={{ marginTop: 12, fontSize: 14, color: '#6B7280' }}>
-              Sending invitation...
-            </Text>
-          </View>
-        </View>
-      </Modal>
 
       {/* Help Modal */}
       <HelpModal 
