@@ -1551,7 +1551,15 @@ export default function CompanyAccreditationScreen({
   // Display section N uses state section(N-1)
   // Example: Display Section 6 uses section5 state
   const getSectionData = (displaySectionNum) => {
-    // Convert display number to state number (subtract 1)
+    // Sections 21-22 map directly to section21/section22 (no offset), matching sectionStateMap
+    if (displaySectionNum === 21) {
+      return { state: section21, setter: setSection21 };
+    }
+    if (displaySectionNum === 22) {
+      return { state: section22, setter: setSection22 };
+    }
+
+    // UI sections 5-20 use offset: display section N → state section(N-1)
     const stateNum = displaySectionNum - 1;
     
     const sectionMap = {
@@ -1571,8 +1579,7 @@ export default function CompanyAccreditationScreen({
       17: { state: section17, setter: setSection17 },
       18: { state: section18, setter: setSection18 },
       19: { state: section19, setter: setSection19 },
-      20: { state: section20, setter: setSection20 },
-      21: { state: section21, setter: setSection21 }
+      20: { state: section20, setter: setSection20 }
     };
     debugLog('🔍 getSectionData: displaySectionNum=', displaySectionNum, 'stateNum=', stateNum);
     return sectionMap[stateNum];
