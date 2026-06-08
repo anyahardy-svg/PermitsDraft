@@ -143,15 +143,37 @@ export async function getCurrentUser() {
       return { success: false, user: null };
     }
 
-    // Get contractor info
-    const { data: contractorData, error: contractorError } = await supabase
+    const { data: contractorData } = await supabase
       .from('contractors')
       .select('id, name, company_id, email')
       .eq('email', user.email)
-      .single();
+      .maybeSingle();
 
-    if (contractorError) {
-      return { success: false, user: null };
+    const userType = user.user_metadata?.user_type;
+
+    if (!contractorData && userType === 'admin_staff') {
+      const { data: joinRequest } = await supabase
+        .from('contractor_join_requests')
+        .select('company_id')
+        .eq('email', user.email)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      return {
+        success: true,
+        user,
+        contractor: {
+          id: null,
+          name: user.user_metadata?.name || user.email,
+          company_id: joinRequest?.company_id || null,
+          email: user.email,
+          userType: 'admin_staff'
+        }
+      };
+    }
+
+    if (!contractorData) {
+      return { success: false, user };
     }
 
     return {
@@ -161,7 +183,8 @@ export async function getCurrentUser() {
         id: contractorData.id,
         name: contractorData.name,
         company_id: contractorData.company_id,
-        email: contractorData.email
+        email: contractorData.email,
+        userType
       }
     };
   } catch (error) {

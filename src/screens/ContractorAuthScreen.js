@@ -61,6 +61,39 @@ export default function ContractorAuthScreen({
   const [joinRequestSuccess, setJoinRequestSuccess] = useState(false);
   const [joinRequestOnSite, setJoinRequestOnSite] = useState(true); // true = contractor, false = admin staff
 
+  const showUserMessage = (title, message) => {
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(`${title}: ${message}`);
+      return;
+    }
+    Alert.alert(title, message);
+  };
+
+  const completeLoginAfterPassword = async (loginEmail, loginPassword) => {
+    const response = await loginWithEmailPassword(loginEmail, loginPassword);
+
+    if (response.success && response.data) {
+      onLoginSuccess({
+        contractorId: response.data?.contractorId,
+        contractorName: response.data?.contractorName,
+        companyId: response.data?.companyId,
+        email: response.data?.email
+      });
+      return true;
+    }
+
+    setEmail(loginEmail);
+    setPassword('');
+    setShowPasswordSetup(false);
+    setPasswordResetStage('email');
+    setPasswordFlowType('reset');
+    showUserMessage(
+      'Login Failed',
+      response?.error || 'Your password was set, but sign-in failed. Please try logging in manually.'
+    );
+    return false;
+  };
+
   // Sync showPasswordReset prop with local state
   useEffect(() => {
     if (showPasswordReset) {
@@ -138,13 +171,18 @@ export default function ContractorAuthScreen({
         setShowPasswordSetup(true);
         window.history.replaceState(null, '', window.location.pathname); // Clean up URL
       }
-      // If this is a recovery/password reset link, show password setup
-      else if (token && hashType === 'recovery') {
-        console.log('✅ Recovery link detected - showing password form');
-        setPasswordFlowType('newUser'); 
-        setPasswordResetStage('password'); 
+      // Supabase invite/signup/recovery links arrive with tokens in the URL hash
+      else if (token && (hashType === 'recovery' || hashType === 'invite' || hashType === 'signup')) {
+        console.log('✅ Auth link detected - showing password form:', hashType);
+        setPasswordFlowType(hashType === 'recovery' ? 'reset' : 'newUser');
+        setPasswordResetStage('password');
         setShowPasswordSetup(true);
-        window.history.replaceState(null, '', window.location.pathname); // Clean up URL
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user?.email) {
+            setSetupEmail(session.user.email);
+          }
+        });
+        window.history.replaceState(null, '', window.location.pathname);
       }
     }
   }, []);
@@ -219,11 +257,11 @@ export default function ContractorAuthScreen({
           email: response.data?.email
         });
       } else {
-        Alert.alert('Login Failed', response?.error || 'Password or username incorrect');
+        showUserMessage('Login Failed', response?.error || 'Password or username incorrect');
         setPassword('');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      showUserMessage('Error', error.message || 'An unexpected error occurred');
       setPassword('');
     } finally {
       setLoading(false);
@@ -353,11 +391,36 @@ export default function ContractorAuthScreen({
     setSetupLoading(true);
     try {
       if (passwordFlowType === 'newUser') {
-        // NEW USER: Try to update password directly via API endpoint
-        // Since user was already created during approval (with no password),
-        // we need to set their password for them via backend
         console.log('🔐 Setting password for new contractor:', setupEmail);
-        
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const emailForLogin = setupEmail || session?.user?.email;
+
+        if (!emailForLogin) {
+          showUserMessage('Error', 'Please enter your email address before setting a password.');
+          return;
+        }
+
+        if (session?.user) {
+          const { error: updateError } = await supabase.auth.updateUser({
+            password: newPassword
+          });
+
+          if (updateError) {
+            throw new Error(updateError.message || 'Failed to set password');
+          }
+
+          console.log('✅ Password set via active invite session');
+          await supabase.auth.signOut();
+          const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
+          if (loggedIn) {
+            setShowPasswordSetup(false);
+            setNewPassword('');
+            setConfirmPassword('');
+          }
+          return;
+        }
+
         try {
           const passwordResponse = await fetch('/api/set-contractor-password', {
             method: 'POST',
@@ -365,62 +428,48 @@ export default function ContractorAuthScreen({
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              email: setupEmail,
+              email: emailForLogin,
               password: newPassword
             })
           });
 
           if (!passwordResponse.ok) {
-            const error = await passwordResponse.json();
+            const error = await passwordResponse.json().catch(() => ({}));
             console.error('❌ Password set failed:', error);
-            
-            // If endpoint doesn't exist or is misconfigured, fall back to password recovery email
+
             if (passwordResponse.status === 404 || passwordResponse.status === 500) {
               console.log('📧 API unavailable, using password recovery email instead');
-              setSetupLoading(false);
-              const recoveryResult = await sendPasswordResetEmail(setupEmail);
+              const recoveryResult = await sendPasswordResetEmail(emailForLogin);
               if (recoveryResult.success) {
-                Alert.alert(
+                showUserMessage(
                   'Password Recovery Email Sent',
-                  `A password recovery code has been sent to ${setupEmail}. Please check your email and enter the 6-digit code.`,
-                  [{ text: 'OK' }]
+                  `A password recovery code has been sent to ${emailForLogin}. Please check your email and enter the 6-digit code.`
                 );
               } else {
-                Alert.alert('Error', recoveryResult.error || 'Failed to send recovery email');
+                showUserMessage('Error', recoveryResult.error || 'Failed to send recovery email');
               }
               return;
             }
-            
+
             throw new Error(error.error || 'Failed to set password');
           }
 
-          const result = await passwordResponse.json();
-          console.log('✅ Password set successfully');
-          
-          // Reset form and show success
-          setSetupLoading(false);
-          setShowPasswordSetup(false);
-          setPasswordResetStage('email');
-          setPasswordFlowType('reset');
-          setSetupEmail('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setOtpCode('');
-          setOtpError(null);
-          
-          Alert.alert(
-            'Password Set Successfully!',
-            'Your account is ready. You can now log in with your email and password.',
-            [{ text: 'OK', onPress: () => {
-              // Refresh page to show login form
-              window.location.reload();
-            }}]
-          );
+          await passwordResponse.json();
+          console.log('✅ Password set successfully via API');
+
+          const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
+          if (loggedIn) {
+            setShowPasswordSetup(false);
+            setSetupEmail('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setOtpCode('');
+            setOtpError(null);
+          }
           return;
         } catch (apiError) {
           console.error('❌ Error:', apiError);
-          Alert.alert('Error', apiError.message || 'Failed to set password');
-          setSetupLoading(false);
+          showUserMessage('Error', apiError.message || 'Failed to set password');
           return;
         }
       } else {
@@ -431,30 +480,38 @@ export default function ContractorAuthScreen({
 
         if (error) {
           setOtpError(error.message);
-          Alert.alert('Error', error.message);
+          showUserMessage('Error', error.message);
         } else {
           console.log('✅ Password set successfully');
-          Alert.alert('Success', 'Your password has been set. You can now log in.');
-          
-          // Reset all states
-          setShowPasswordSetup(false);
-          setPasswordResetStage('email');
-          setPasswordFlowType('reset');
-          setSetupEmail('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setOtpCode('');
-          setOtpError(null);
-          
-          if (setShowPasswordReset) {
-            setShowPasswordReset(false);
+          const { data: { session } } = await supabase.auth.getSession();
+          const emailForLogin = setupEmail || session?.user?.email || email;
+
+          if (emailForLogin) {
+            await supabase.auth.signOut();
+            const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
+            if (loggedIn) {
+              setShowPasswordSetup(false);
+              setPasswordResetStage('email');
+              setPasswordFlowType('reset');
+              setSetupEmail('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setOtpCode('');
+              setOtpError(null);
+              if (setShowPasswordReset) {
+                setShowPasswordReset(false);
+              }
+            }
+          } else {
+            showUserMessage('Success', 'Your password has been set. You can now log in.');
+            setShowPasswordSetup(false);
           }
         }
       }
     } catch (error) {
       console.error('❌ Error:', error);
       setOtpError(error.message);
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      showUserMessage('Error', error.message || 'An unexpected error occurred');
     } finally {
       setSetupLoading(false);
     }
