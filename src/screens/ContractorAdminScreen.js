@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -138,6 +138,7 @@ export default function ContractorAdminScreen({
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
   const [isInviting, setIsInviting] = useState(false);
+  const inviteInProgressRef = useRef(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -1077,13 +1078,19 @@ export default function ContractorAdminScreen({
     );
   };
 
-  const handleInviteContractor = async (email) => {
+  const handleInviteContractor = useCallback(async (email) => {
+    if (inviteInProgressRef.current) {
+      return;
+    }
+
     if (!email?.trim()) {
       showUserMessage('Invite Failed', 'This contractor does not have an email address.');
       return;
     }
 
+    inviteInProgressRef.current = true;
     setIsInviting(true);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -1102,19 +1109,31 @@ export default function ContractorAdminScreen({
         ? window.location.origin
         : 'https://contractorhq.co.nz';
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/invite-contractor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          redirectTo,
-        }),
-        signal: controller.signal,
-      });
+      let response;
+      try {
+        response = await fetch(`${SUPABASE_URL}/functions/v1/invite-contractor`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            redirectTo,
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        if (fetchError instanceof TypeError || fetchError?.name === 'TypeError') {
+          showUserMessage(
+            'Network Error',
+            'Could not reach the server. Please check your connection or the function URL.'
+          );
+          return;
+        }
+        throw fetchError;
+      }
 
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
@@ -1132,15 +1151,19 @@ export default function ContractorAdminScreen({
         data.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
       );
     } catch (error) {
-      const message = error.name === 'AbortError'
-        ? 'Server timeout or invalid response'
-        : (error.message || 'An error occurred while sending invitation');
+      if (error?.name === 'AbortError') {
+        showUserMessage('Invite Failed', 'Server timeout or invalid response');
+        return;
+      }
+
+      const message = error?.message || 'An error occurred while sending invitation';
       showUserMessage('Invite Failed', message);
     } finally {
       clearTimeout(timeoutId);
+      inviteInProgressRef.current = false;
       setIsInviting(false);
     }
-  };
+  }, []);
 
   // Render inductions tab in table format
   const renderInductions = () => {
@@ -1256,7 +1279,11 @@ export default function ContractorAdminScreen({
                   <Text style={{ fontSize: 10, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => handleInviteContractor(contractor.email)}
+                  onPress={() => {
+                    if (!isInviting && contractor.email) {
+                      handleInviteContractor(contractor.email);
+                    }
+                  }}
                   disabled={isInviting || !contractor.email}
                   style={{
                     padding: 6,
