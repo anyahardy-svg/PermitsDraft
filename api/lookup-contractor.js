@@ -1,6 +1,8 @@
 /**
- * Look up a contractor record for the authenticated user.
- * Uses the service role so RLS cannot block login after password setup.
+ * Resolve application profile for a Supabase authenticated user.
+ * Auth (auth.users) proves identity; this enriches company/contractor details
+ * from the contractors table when they are not already in user_metadata.
+ * Uses the service role so RLS cannot block profile resolution after login.
  *
  * Usage: POST /api/lookup-contractor
  * Headers: Authorization: Bearer <supabase_access_token>
