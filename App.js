@@ -2371,6 +2371,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const getInitialScreen = () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const hasAuthHash = hash.includes('access_token') && (
+        hash.includes('type=invite') || hash.includes('type=signup') || hash.includes('type=recovery')
+      );
+      const hasAuthCode = search.includes('code=');
+
+      if (hasAuthHash || hasAuthCode) {
+        return 'contractorAuth';
+      }
       if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
         return 'contractorAuth';
       }
@@ -3715,6 +3725,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Update URL when currentScreen changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (
+        hash.includes('access_token')
+        || hash.includes('type=invite')
+        || hash.includes('type=signup')
+        || hash.includes('type=recovery')
+      ) {
+        return;
+      }
+
       const routeMap = {
         'manage_issuers': '/admin/permit-issuers/',
         'manage_companies': '/admin/companies/',

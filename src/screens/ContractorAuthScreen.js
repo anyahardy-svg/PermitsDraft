@@ -69,6 +69,51 @@ export default function ContractorAuthScreen({
     Alert.alert(title, message);
   };
 
+  const establishSessionFromUrl = async () => {
+    if (!supabase || typeof window === 'undefined') {
+      return null;
+    }
+
+    const hash = window.location.hash || '';
+    const queryParams = new URLSearchParams(window.location.search);
+    const authCode = queryParams.get('code');
+
+    if (authCode) {
+      const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
+      if (error) {
+        console.error('❌ Failed to exchange auth code:', error.message);
+      } else if (data.session) {
+        return data.session;
+      }
+    }
+
+    if (hash.length > 1) {
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) {
+          console.error('❌ Failed to set session from invite link:', error.message);
+        } else if (data.session) {
+          return data.session;
+        }
+      }
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  };
+
+  const clearAuthUrlParams = () => {
+    if (typeof window === 'undefined') return;
+    window.history.replaceState(null, '', window.location.pathname);
+  };
+
   const completeLoginAfterPassword = async (loginEmail, loginPassword) => {
     const response = await loginWithEmailPassword(loginEmail, loginPassword);
 
@@ -103,12 +148,34 @@ export default function ContractorAuthScreen({
 
   // Handle invitation flow from email link
   useEffect(() => {
-    if (invitationFlow) {
+    if (!invitationFlow) return;
+
+    const initializeInvitationFlow = async () => {
       console.log('✅ Invitation flow activated - showing password setup');
       setPasswordFlowType('newUser');
-      setPasswordResetStage('email');
       setShowPasswordSetup(true);
-    }
+
+      const queryParams = new URLSearchParams(window.location.search);
+      const emailParam = queryParams.get('email');
+      if (emailParam) {
+        setSetupEmail(decodeURIComponent(emailParam));
+        setPasswordResetStage('password');
+        clearAuthUrlParams();
+        return;
+      }
+
+      const session = await establishSessionFromUrl();
+      if (session?.user?.email) {
+        setSetupEmail(session.user.email);
+        setPasswordResetStage('password');
+        clearAuthUrlParams();
+        return;
+      }
+
+      setPasswordResetStage('email');
+    };
+
+    initializeInvitationFlow();
   }, [invitationFlow]);
 
   // Check if user is already logged in on mount
@@ -136,20 +203,29 @@ export default function ContractorAuthScreen({
 
   // Check if this is a recovery link or invitation link
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
+    const initializeAuthLink = async () => {
+      if (typeof window === 'undefined') return;
+
+      const hash = window.location.hash || '';
       const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
       const token = hashParams.get('token');
       const hashType = hashParams.get('type');
-      
-      // Also check query string for ?type=invited from email links
       const queryParams = new URLSearchParams(window.location.search);
       const queryType = queryParams.get('type');
       const freshLogin = queryParams.get('fresh_login');
-      
-      console.log('🔍 URL parameters detected:', { hash: hash.substring(0, 100), token: token ? '✓' : '✗', hashType, queryType, freshLogin });
-      
-      // If fresh_login is set, skip other flows and just show login form
+      const authCode = queryParams.get('code');
+
+      console.log('🔍 URL parameters detected:', {
+        hash: hash.substring(0, 100),
+        accessToken: accessToken ? '✓' : '✗',
+        token: token ? '✓' : '✗',
+        hashType,
+        queryType,
+        freshLogin,
+        authCode: authCode ? '✓' : '✗',
+      });
+
       if (freshLogin === '1') {
         console.log('✅ Fresh login flow - showing login form');
         setEmail('');
@@ -157,34 +233,43 @@ export default function ContractorAuthScreen({
         setShowPasswordSetup(false);
         return;
       }
-      
-      // If this is an invitation link from email, show password setup immediately
+
       if (queryType === 'invited') {
-        console.log('✅ Invitation link detected - showing password form');
+        console.log('✅ Invitation query link detected - showing password form');
         const emailParam = queryParams.get('email');
         if (emailParam) {
-          console.log('✅ Pre-filling email from link:', emailParam);
-          setSetupEmail(emailParam);
+          setSetupEmail(decodeURIComponent(emailParam));
         }
-        setPasswordFlowType('newUser'); 
-        setPasswordResetStage('password'); 
+        setPasswordFlowType('newUser');
+        setPasswordResetStage(emailParam ? 'password' : 'email');
         setShowPasswordSetup(true);
-        window.history.replaceState(null, '', window.location.pathname); // Clean up URL
+        clearAuthUrlParams();
+        return;
       }
-      // Supabase invite/signup/recovery links arrive with tokens in the URL hash
-      else if (token && (hashType === 'recovery' || hashType === 'invite' || hashType === 'signup')) {
-        console.log('✅ Auth link detected - showing password form:', hashType);
-        setPasswordFlowType(hashType === 'recovery' ? 'reset' : 'newUser');
-        setPasswordResetStage('password');
+
+      const isHashAuthLink = (accessToken || token) && (
+        hashType === 'recovery' || hashType === 'invite' || hashType === 'signup' || hashType === 'magiclink'
+      );
+      const isCodeAuthLink = !!authCode;
+
+      if (isHashAuthLink || isCodeAuthLink) {
+        console.log('✅ Supabase auth link detected - establishing session first');
+        const session = await establishSessionFromUrl();
+        const resolvedType = hashType || (isCodeAuthLink ? 'invite' : null);
+
+        if (session?.user?.email) {
+          console.log('✅ Pre-filling email from session:', session.user.email);
+          setSetupEmail(session.user.email);
+        }
+
+        setPasswordFlowType(resolvedType === 'recovery' ? 'reset' : 'newUser');
+        setPasswordResetStage(session?.user?.email ? 'password' : 'email');
         setShowPasswordSetup(true);
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user?.email) {
-            setSetupEmail(session.user.email);
-          }
-        });
-        window.history.replaceState(null, '', window.location.pathname);
+        clearAuthUrlParams();
       }
-    }
+    };
+
+    initializeAuthLink();
   }, []);
 
   // Log when passwordFlowType changes
@@ -394,10 +479,11 @@ export default function ContractorAuthScreen({
         console.log('🔐 Setting password for new contractor:', setupEmail);
 
         const { data: { session } } = await supabase.auth.getSession();
-        const emailForLogin = setupEmail || session?.user?.email;
+        const emailForLogin = (setupEmail || session?.user?.email || '').trim();
 
         if (!emailForLogin) {
-          showUserMessage('Error', 'Please enter your email address before setting a password.');
+          setPasswordResetStage('email');
+          showUserMessage('Error', 'Please enter the email address from your invitation link before setting a password.');
           return;
         }
 
@@ -1341,6 +1427,38 @@ export default function ContractorAuthScreen({
               {/* Stage 3: Password Input */}
               {passwordResetStage === 'password' && (
                 <>
+                  {passwordFlowType === 'newUser' && (
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={{
+                        fontSize: 13,
+                        fontWeight: '600',
+                        color: '#374151',
+                        marginBottom: 8
+                      }}>
+                        Email Address
+                      </Text>
+                      <TextInput
+                        placeholder="name@company.com"
+                        value={setupEmail}
+                        onChangeText={setSetupEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        editable={!setupLoading}
+                        placeholderTextColor="#D1D5DB"
+                        style={{
+                          borderWidth: 1.5,
+                          borderColor: '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 14,
+                          paddingVertical: 11,
+                          fontSize: 15,
+                          color: '#1F2937',
+                          backgroundColor: '#F9FAFB'
+                        }}
+                      />
+                    </View>
+                  )}
+
                   <View style={{ marginBottom: 16 }}>
                     <Text style={{ 
                       fontSize: 13, 
