@@ -97,8 +97,17 @@ const lookupContractorViaApi = async (accessToken) => {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.warn('⚠️ Server contractor lookup failed:', error.error || response.status);
+      const errorText = await response.text().catch(() => '');
+      let errorMessage = response.status;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorMessage;
+      } catch (parseError) {
+        if (errorText) {
+          errorMessage = errorText.slice(0, 200);
+        }
+      }
+      console.warn('⚠️ Server profile lookup failed:', errorMessage);
       return null;
     }
 
@@ -111,17 +120,12 @@ const lookupContractorViaApi = async (accessToken) => {
 };
 
 const enrichProfileFromContractorTable = async (user, accessToken) => {
-  const emailContractor = await lookupContractorByEmail(user.email);
-  if (emailContractor) {
-    return emailContractor;
-  }
-
   const apiContractor = await lookupContractorViaApi(accessToken);
-  if (!apiContractor) {
-    return null;
+  if (apiContractor) {
+    return apiContractor;
   }
 
-  return apiContractor;
+  return lookupContractorByEmail(user.email);
 };
 
 const resolveAuthUserProfile = async (user, accessToken) => {
@@ -196,8 +200,8 @@ export async function loginWithEmailPassword(email, password) {
       };
     }
 
-    if (!profile.companyId && profile.userType !== 'admin_staff') {
-      console.error('❌ Authenticated user has no company profile:', email);
+    if (!profile.contractorId && !profile.companyId && profile.userType !== 'admin_staff') {
+      console.error('❌ Authenticated user has no contractor profile:', email);
       return {
         success: false,
         error: 'Your contractor account is not set up. Please contact your administrator.',
@@ -266,6 +270,10 @@ export async function logout() {
  */
 export async function getCurrentUser() {
   try {
+    if (!supabase) {
+      return { success: false, user: null };
+    }
+
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       return { success: false, user: null };
