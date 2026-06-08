@@ -145,6 +145,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   // Initialize - detect site from subdomain
   useEffect(() => {
     const initializeKiosk = async () => {
+      let skipLoadingReset = false;
+
       try {
         setLoading(true);
         
@@ -156,8 +158,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         if (isContractorHub) {
           console.log('ℹ️ Contractor hub domain detected - redirecting to contractor auth');
+          skipLoadingReset = true;
           if (typeof window !== 'undefined') {
-            window.location.href = '/sign-in-contractor';
+            window.location.replace('/sign-in-contractor/');
           }
           return;
         }
@@ -213,7 +216,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         console.error('Error initializing kiosk:', error);
         Alert.alert('Error', 'Failed to initialize kiosk');
       } finally {
-        setLoading(false);
+        if (!skipLoadingReset) {
+          setLoading(false);
+        }
       }
     };
     

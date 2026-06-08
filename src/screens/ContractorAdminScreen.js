@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { logout } from '../api/contractorAuth';
+import { logout, inviteContractor } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -42,6 +42,14 @@ export default function ContractorAdminScreen({
     if (phoneStr.startsWith('0')) return phoneStr;
     // Otherwise prepend 0
     return '0' + phoneStr;
+  };
+
+  const showUserMessage = (title, message) => {
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(`${title}: ${message}`);
+      return;
+    }
+    Alert.alert(title, message);
   };
 
   // Authentication state
@@ -128,6 +136,8 @@ export default function ContractorAdminScreen({
   const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
+  const [invitingContractorId, setInvitingContractorId] = useState(null);
+  const inviteInProgressRef = useRef(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -1067,6 +1077,71 @@ export default function ContractorAdminScreen({
     );
   };
 
+  const handleInviteContractor = useCallback(async (contractorId, email) => {
+    if (inviteInProgressRef.current) {
+      return;
+    }
+
+    if (!email?.trim()) {
+      showUserMessage('Invite Failed', 'This contractor does not have an email address.');
+      return;
+    }
+
+    inviteInProgressRef.current = true;
+    setInvitingContractorId(contractorId);
+
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Server timeout or invalid response')),
+        15000
+      );
+    });
+
+    try {
+      let result;
+      try {
+        result = await Promise.race([
+          inviteContractor(email.trim()),
+          timeoutPromise,
+        ]);
+      } catch (requestError) {
+        if (requestError instanceof TypeError || requestError?.name === 'TypeError') {
+          showUserMessage(
+            'Network Error',
+            'Could not reach the server. Please check your connection or the function URL.'
+          );
+          return;
+        }
+        throw requestError;
+      }
+
+      if (result?.success) {
+        showUserMessage(
+          'Success',
+          result.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
+        );
+      } else {
+        showUserMessage('Invite Failed', result?.error || 'Failed to send invitation');
+      }
+    } catch (error) {
+      if (error instanceof TypeError || error?.name === 'TypeError') {
+        showUserMessage(
+          'Network Error',
+          'Could not reach the server. Please check your connection or the function URL.'
+        );
+        return;
+      }
+
+      const message = error?.message || 'An error occurred while sending invitation';
+      showUserMessage('Invite Failed', message);
+    } finally {
+      clearTimeout(timeoutId);
+      inviteInProgressRef.current = false;
+      setInvitingContractorId(null);
+    }
+  }, []);
+
   // Render inductions tab in table format
   const renderInductions = () => {
     if (loadingInductions) {
@@ -1132,14 +1207,14 @@ export default function ContractorAdminScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1000
+                  minWidth: 1060
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inducted Services</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>Actions</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 160, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -1153,7 +1228,7 @@ export default function ContractorAdminScreen({
                 borderBottomColor: '#E5E7EB',
                 paddingVertical: 10,
                 paddingHorizontal: 8,
-                minWidth: 1000
+                minWidth: 1060
               }}
             >
               <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -1168,7 +1243,7 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
               </Text>
-              <View style={{ width: 100, paddingRight: 8, flexDirection: 'row', gap: 6 }}>
+              <View style={{ width: 160, paddingRight: 8, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 <TouchableOpacity
                   onPress={() => {
                     setEditingContractor(contractor);
@@ -1179,6 +1254,27 @@ export default function ContractorAdminScreen({
                   style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
                 >
                   <Text style={{ fontSize: 10, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (invitingContractorId === null && contractor.email) {
+                      handleInviteContractor(contractor.id, contractor.email);
+                    }
+                  }}
+                  disabled={invitingContractorId !== null || !contractor.email}
+                  style={{
+                    padding: 6,
+                    backgroundColor: invitingContractorId !== null || !contractor.email ? '#E5E7EB' : '#D1FAE5',
+                    borderRadius: 4
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 10,
+                    color: invitingContractorId !== null || !contractor.email ? '#9CA3AF' : '#047857',
+                    fontWeight: '600'
+                  }}>
+                    {invitingContractorId === contractor.id ? 'Sending...' : 'Invite'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {

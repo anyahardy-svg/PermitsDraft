@@ -24892,18 +24892,19 @@ const AppRouter = ({ initialRoute }) => {
         console.log('🔗 Full URL:', fullUrl);
         
         // If URL contains admin or contractor-admin routes, always use permit management mode
-        const hasAdminRoute = pathname.includes('/admin/') || pathname.includes('/contractor-admin/');
+        const hasAdminRoute = pathname.includes('/admin/') || pathname.startsWith('/contractor-admin');
+        const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
+        const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
+          || pathname.startsWith('/auth/callback');
         console.log('📋 Has admin route:', hasAdminRoute);
-        
-        if (hasAdminRoute) {
-          console.log('🎯 Admin route detected - using PERMIT MODE');
+
+        if (hasAdminRoute || (isContractorHub && isContractorAuthRoute)) {
+          console.log('🎯 Permit mode - admin/contractor route detected');
           setIsKiosk(false);
         } else {
           // Check if subdomain contains "-kiosk" OR if test mode is enabled
           const isKioskSubdomain = hostname.includes('-kiosk.');
           const kioskRoutePaths = [
-            '/sign-in-contractor',
-            '/sign-in-contractor/',
             '/sign-in-visitor',
             '/sign-in-visitor/',
             '/sign-out',
