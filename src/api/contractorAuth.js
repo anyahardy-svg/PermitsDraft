@@ -5,25 +5,157 @@
 
 import { supabase } from '../supabaseClient';
 
+const getJoinRequestCompanyId = async (email) => {
+  if (!supabase || !email) {
+    return null;
+  }
+
+  const { data: joinRequest } = await supabase
+    .from('contractor_join_requests')
+    .select('company_id')
+    .ilike('email', email.trim())
+    .eq('status', 'approved')
+    .maybeSingle();
+
+  return joinRequest?.company_id || null;
+};
+
+const buildProfileFromAuthUser = (user) => {
+  const metadata = user?.user_metadata || {};
+  const userType = metadata.user_type || null;
+
+  if (userType === 'admin_staff') {
+    return {
+      contractorId: null,
+      contractorName: metadata.name || user.email,
+      companyId: metadata.company_id || null,
+      email: user.email,
+      userType: 'admin_staff',
+      isComplete: !!metadata.company_id,
+    };
+  }
+
+  if (metadata.contractor_id || metadata.company_id || metadata.name) {
+    return {
+      contractorId: metadata.contractor_id || null,
+      contractorName: metadata.contractor_name || metadata.name || user.email,
+      companyId: metadata.company_id || null,
+      email: user.email,
+      userType: userType || 'contractor',
+      isComplete: !!(metadata.company_id && (metadata.contractor_id || userType === 'admin_staff')),
+    };
+  }
+
+  return null;
+};
+
 const lookupContractorByEmail = async (email) => {
+  if (!supabase || !email) {
+    return null;
+  }
+
   const normalizedEmail = email.trim();
-  const { data: exactMatch } = await supabase
+  const { data: exactMatch, error: exactError } = await supabase
     .from('contractors')
     .select('id, name, company_id, email')
     .eq('email', normalizedEmail)
     .maybeSingle();
 
+  if (exactError) {
+    console.warn('⚠️ Contractor exact lookup error:', exactError.message);
+  }
+
   if (exactMatch) {
     return exactMatch;
   }
 
-  const { data: caseInsensitiveMatch } = await supabase
+  const { data: caseInsensitiveMatch, error: ilikeError } = await supabase
     .from('contractors')
     .select('id, name, company_id, email')
     .ilike('email', normalizedEmail)
     .maybeSingle();
 
+  if (ilikeError) {
+    console.warn('⚠️ Contractor ilike lookup error:', ilikeError.message);
+  }
+
   return caseInsensitiveMatch || null;
+};
+
+const lookupContractorViaApi = async (accessToken) => {
+  if (!accessToken || typeof fetch === 'undefined') {
+    return null;
+  }
+
+  try {
+    const response = await fetch('/api/lookup-contractor', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.warn('⚠️ Server contractor lookup failed:', error.error || response.status);
+      return null;
+    }
+
+    const result = await response.json();
+    return result.contractor || null;
+  } catch (error) {
+    console.warn('⚠️ Server contractor lookup exception:', error.message);
+    return null;
+  }
+};
+
+const enrichProfileFromContractorTable = async (user, accessToken) => {
+  const emailContractor = await lookupContractorByEmail(user.email);
+  if (emailContractor) {
+    return emailContractor;
+  }
+
+  const apiContractor = await lookupContractorViaApi(accessToken);
+  if (!apiContractor) {
+    return null;
+  }
+
+  return apiContractor;
+};
+
+const resolveAuthUserProfile = async (user, accessToken) => {
+  const authProfile = buildProfileFromAuthUser(user);
+
+  if (authProfile?.isComplete) {
+    return authProfile;
+  }
+
+  const contractorData = await enrichProfileFromContractorTable(user, accessToken);
+  if (contractorData) {
+    return {
+      contractorId: contractorData.id,
+      contractorName: contractorData.name,
+      companyId: contractorData.company_id,
+      email: contractorData.email || user.email,
+      userType: user.user_metadata?.user_type || 'contractor',
+    };
+  }
+
+  if (authProfile) {
+    if (authProfile.userType === 'admin_staff' && !authProfile.companyId) {
+      const companyId = await getJoinRequestCompanyId(user.email);
+      if (companyId) {
+        return { ...authProfile, companyId };
+      }
+    }
+
+    if (authProfile.companyId) {
+      return authProfile;
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -49,58 +181,39 @@ export async function loginWithEmailPassword(email, password) {
     }
 
     console.log('✅ Auth sign in successful for:', email);
+    console.log('👤 User type from metadata:', authData.user.user_metadata?.user_type);
 
-    const contractorData = await lookupContractorByEmail(email);
+    const profile = await resolveAuthUserProfile(
+      authData.user,
+      authData.session?.access_token
+    );
 
-    // Check if this is an admin_staff user (from metadata)
-    const userType = authData.user.user_metadata?.user_type;
-    console.log('👤 User type from metadata:', userType);
-
-    if (!contractorData && userType !== 'admin_staff') {
-      // Contractor user without a record - that's an error
-      console.error('❌ Contractor record not found for contractor user:', email);
-      return { 
-        success: false, 
-        error: 'Your contractor account is not set up. Please contact your administrator.' 
+    if (!profile) {
+      console.error('❌ Could not resolve profile for authenticated user:', email);
+      return {
+        success: false,
+        error: 'Your contractor account is not set up. Please contact your administrator.',
       };
     }
 
-    if (!contractorData && userType === 'admin_staff') {
-      // Admin staff user without contractor record - that's OK
-      // Get company_id from contractor_join_requests table
-      const { data: joinRequest } = await supabase
-        .from('contractor_join_requests')
-        .select('company_id')
-        .ilike('email', email.trim())
-        .eq('status', 'approved')
-        .maybeSingle();
-
-      const companyId = joinRequest?.company_id || null;
-      console.log('ℹ️ Admin staff user - company_id from join request:', companyId);
-      
-      return { 
-        success: true, 
-        data: {
-          user: authData.user,
-          contractorId: null,
-          contractorName: null,
-          companyId: companyId,
-          email: email,
-          userType: 'admin_staff'
-        }
+    if (!profile.companyId && profile.userType !== 'admin_staff') {
+      console.error('❌ Authenticated user has no company profile:', email);
+      return {
+        success: false,
+        error: 'Your contractor account is not set up. Please contact your administrator.',
       };
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         user: authData.user,
-        contractorId: contractorData.id,
-        contractorName: contractorData.name,
-        companyId: contractorData.company_id,
-        email: contractorData.email,
-        userType: userType
-      }
+        contractorId: profile.contractorId,
+        contractorName: profile.contractorName,
+        companyId: profile.companyId,
+        email: profile.email,
+        userType: profile.userType,
+      },
     };
   } catch (error) {
     console.error('Login error:', error);
@@ -158,32 +271,10 @@ export async function getCurrentUser() {
       return { success: false, user: null };
     }
 
-    const contractorData = await lookupContractorByEmail(user.email);
+    const { data: { session } } = await supabase.auth.getSession();
+    const profile = await resolveAuthUserProfile(user, session?.access_token);
 
-    const userType = user.user_metadata?.user_type;
-
-    if (!contractorData && userType === 'admin_staff') {
-      const { data: joinRequest } = await supabase
-        .from('contractor_join_requests')
-        .select('company_id')
-        .eq('email', user.email)
-        .eq('status', 'approved')
-        .maybeSingle();
-
-      return {
-        success: true,
-        user,
-        contractor: {
-          id: null,
-          name: user.user_metadata?.name || user.email,
-          company_id: joinRequest?.company_id || null,
-          email: user.email,
-          userType: 'admin_staff'
-        }
-      };
-    }
-
-    if (!contractorData) {
+    if (!profile) {
       return { success: false, user };
     }
 
@@ -191,12 +282,12 @@ export async function getCurrentUser() {
       success: true,
       user,
       contractor: {
-        id: contractorData.id,
-        name: contractorData.name,
-        company_id: contractorData.company_id,
-        email: contractorData.email,
-        userType
-      }
+        id: profile.contractorId,
+        name: profile.contractorName,
+        company_id: profile.companyId,
+        email: profile.email,
+        userType: profile.userType,
+      },
     };
   } catch (error) {
     console.error('Error getting current user:', error);

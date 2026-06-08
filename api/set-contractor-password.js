@@ -77,19 +77,64 @@ export default async function handler(req, res) {
     const user = usersData.users[0];
     console.log(`✅ Found user: ${user.id}`);
 
+    const serviceHeaders = {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    };
+
+    let contractor = null;
+    const exactContractorResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/contractors?select=id,name,company_id,email&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { method: 'GET', headers: serviceHeaders }
+    );
+
+    if (exactContractorResponse.ok) {
+      const exactMatches = await exactContractorResponse.json();
+      if (Array.isArray(exactMatches) && exactMatches.length > 0) {
+        contractor = exactMatches[0];
+      }
+    }
+
+    if (!contractor) {
+      const ilikeContractorResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/contractors?select=id,name,company_id,email&email=ilike.${encodeURIComponent(email)}&limit=1`,
+        { method: 'GET', headers: serviceHeaders }
+      );
+
+      if (ilikeContractorResponse.ok) {
+        const ilikeMatches = await ilikeContractorResponse.json();
+        if (Array.isArray(ilikeMatches) && ilikeMatches.length > 0) {
+          contractor = ilikeMatches[0];
+        }
+      }
+    }
+
+    const userMetadata = {
+      ...(user.user_metadata || {}),
+      user_type: 'contractor',
+    };
+
+    if (contractor) {
+      userMetadata.contractor_id = contractor.id;
+      userMetadata.contractor_name = contractor.name;
+      userMetadata.company_id = contractor.company_id;
+      userMetadata.name = contractor.name;
+      console.log(`✅ Linked contractor metadata for: ${contractor.name}`);
+    } else {
+      console.warn(`⚠️ No contractor row found for ${email} while setting password`);
+    }
+
     // Update user's password
     const updateResponse = await fetch(
       `${SUPABASE_URL}/auth/v1/admin/users/${user.id}`,
       {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
+        headers: serviceHeaders,
         body: JSON.stringify({
           password: password,
-          email_confirm: true  // Ensure email is confirmed
+          email_confirm: true,
+          user_metadata: userMetadata,
         }),
       }
     );
