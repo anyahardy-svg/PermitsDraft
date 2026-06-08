@@ -45,6 +45,14 @@ export default function ContractorAdminScreen({
     return '0' + phoneStr;
   };
 
+  const showUserMessage = (title, message) => {
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(`${title}: ${message}`);
+      return;
+    }
+    Alert.alert(title, message);
+  };
+
   // Authentication state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInContractor, setLoggedInContractor] = useState(null);
@@ -1071,7 +1079,7 @@ export default function ContractorAdminScreen({
 
   const handleInviteContractor = async (email) => {
     if (!email?.trim()) {
-      Alert.alert('Invite Failed', 'This contractor does not have an email address.');
+      showUserMessage('Invite Failed', 'This contractor does not have an email address.');
       return;
     }
 
@@ -1119,7 +1127,7 @@ export default function ContractorAdminScreen({
         throw new Error(data.error || 'Failed to send invitation');
       }
 
-      Alert.alert(
+      showUserMessage(
         'Success',
         data.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
       );
@@ -1127,7 +1135,7 @@ export default function ContractorAdminScreen({
       const message = error.name === 'AbortError'
         ? 'Server timeout or invalid response'
         : (error.message || 'An error occurred while sending invitation');
-      Alert.alert('Invite Failed', message);
+      showUserMessage('Invite Failed', message);
     } finally {
       clearTimeout(timeoutId);
       setIsInviting(false);
