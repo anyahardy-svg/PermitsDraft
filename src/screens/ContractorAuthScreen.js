@@ -496,6 +496,17 @@ export default function ContractorAuthScreen({
           }
 
           console.log('✅ Password set via active invite session');
+
+          if (session.access_token) {
+            await fetch('/api/lookup-contractor', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+            }).catch(() => {});
+          }
+
           await supabase.auth.signOut();
           finishNewUserPasswordSetup(emailForSetup);
           return;

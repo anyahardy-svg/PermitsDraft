@@ -5,25 +5,93 @@
 
 import { supabase } from '../supabaseClient';
 
+const contractorFromMetadata = (user) => {
+  const metadata = user?.user_metadata || {};
+  if (!metadata.contractor_id) {
+    return null;
+  }
+
+  return {
+    id: metadata.contractor_id,
+    name: metadata.contractor_name || metadata.name || user.email,
+    company_id: metadata.company_id || null,
+    email: user.email,
+  };
+};
+
 const lookupContractorByEmail = async (email) => {
+  if (!supabase || !email) {
+    return null;
+  }
+
   const normalizedEmail = email.trim();
-  const { data: exactMatch } = await supabase
+  const { data: exactMatch, error: exactError } = await supabase
     .from('contractors')
     .select('id, name, company_id, email')
     .eq('email', normalizedEmail)
     .maybeSingle();
 
+  if (exactError) {
+    console.warn('⚠️ Contractor exact lookup error:', exactError.message);
+  }
+
   if (exactMatch) {
     return exactMatch;
   }
 
-  const { data: caseInsensitiveMatch } = await supabase
+  const { data: caseInsensitiveMatch, error: ilikeError } = await supabase
     .from('contractors')
     .select('id, name, company_id, email')
     .ilike('email', normalizedEmail)
     .maybeSingle();
 
+  if (ilikeError) {
+    console.warn('⚠️ Contractor ilike lookup error:', ilikeError.message);
+  }
+
   return caseInsensitiveMatch || null;
+};
+
+const lookupContractorViaApi = async (accessToken) => {
+  if (!accessToken || typeof fetch === 'undefined') {
+    return null;
+  }
+
+  try {
+    const response = await fetch('/api/lookup-contractor', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.warn('⚠️ Server contractor lookup failed:', error.error || response.status);
+      return null;
+    }
+
+    const result = await response.json();
+    return result.contractor || null;
+  } catch (error) {
+    console.warn('⚠️ Server contractor lookup exception:', error.message);
+    return null;
+  }
+};
+
+const resolveContractorForUser = async (user, accessToken) => {
+  const metadataContractor = contractorFromMetadata(user);
+  if (metadataContractor?.id) {
+    return metadataContractor;
+  }
+
+  const emailContractor = await lookupContractorByEmail(user.email);
+  if (emailContractor) {
+    return emailContractor;
+  }
+
+  return lookupContractorViaApi(accessToken);
 };
 
 /**
@@ -50,9 +118,11 @@ export async function loginWithEmailPassword(email, password) {
 
     console.log('✅ Auth sign in successful for:', email);
 
-    const contractorData = await lookupContractorByEmail(email);
+    const contractorData = await resolveContractorForUser(
+      authData.user,
+      authData.session?.access_token
+    );
 
-    // Check if this is an admin_staff user (from metadata)
     const userType = authData.user.user_metadata?.user_type;
     console.log('👤 User type from metadata:', userType);
 
@@ -158,7 +228,11 @@ export async function getCurrentUser() {
       return { success: false, user: null };
     }
 
-    const contractorData = await lookupContractorByEmail(user.email);
+    const { data: { session } } = await supabase.auth.getSession();
+    const contractorData = await resolveContractorForUser(
+      user,
+      session?.access_token
+    );
 
     const userType = user.user_metadata?.user_type;
 
