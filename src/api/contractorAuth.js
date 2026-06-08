@@ -5,6 +5,27 @@
 
 import { supabase } from '../supabaseClient';
 
+const lookupContractorByEmail = async (email) => {
+  const normalizedEmail = email.trim();
+  const { data: exactMatch } = await supabase
+    .from('contractors')
+    .select('id, name, company_id, email')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const { data: caseInsensitiveMatch } = await supabase
+    .from('contractors')
+    .select('id, name, company_id, email')
+    .ilike('email', normalizedEmail)
+    .maybeSingle();
+
+  return caseInsensitiveMatch || null;
+};
+
 /**
  * Login with email and password
  * @param {string} email - Contractor email
@@ -29,13 +50,7 @@ export async function loginWithEmailPassword(email, password) {
 
     console.log('✅ Auth sign in successful for:', email);
 
-    // Try to get contractor info from contractors table using the user's email
-    // Use maybeSingle() instead of single() to allow no rows (for admin_staff users)
-    const { data: contractorData, error: contractorError } = await supabase
-      .from('contractors')
-      .select('id, name, company_id, email')
-      .eq('email', email)
-      .maybeSingle();
+    const contractorData = await lookupContractorByEmail(email);
 
     // Check if this is an admin_staff user (from metadata)
     const userType = authData.user.user_metadata?.user_type;
@@ -53,10 +68,10 @@ export async function loginWithEmailPassword(email, password) {
     if (!contractorData && userType === 'admin_staff') {
       // Admin staff user without contractor record - that's OK
       // Get company_id from contractor_join_requests table
-      const { data: joinRequest, error: joinRequestError } = await supabase
+      const { data: joinRequest } = await supabase
         .from('contractor_join_requests')
         .select('company_id')
-        .eq('email', email)
+        .ilike('email', email.trim())
         .eq('status', 'approved')
         .maybeSingle();
 
@@ -143,11 +158,7 @@ export async function getCurrentUser() {
       return { success: false, user: null };
     }
 
-    const { data: contractorData } = await supabase
-      .from('contractors')
-      .select('id, name, company_id, email')
-      .eq('email', user.email)
-      .maybeSingle();
+    const contractorData = await lookupContractorByEmail(user.email);
 
     const userType = user.user_metadata?.user_type;
 

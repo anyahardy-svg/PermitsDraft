@@ -114,29 +114,28 @@ export default function ContractorAuthScreen({
     window.history.replaceState(null, '', window.location.pathname);
   };
 
-  const completeLoginAfterPassword = async (loginEmail, loginPassword) => {
-    const response = await loginWithEmailPassword(loginEmail, loginPassword);
-
-    if (response.success && response.data) {
-      onLoginSuccess({
-        contractorId: response.data?.contractorId,
-        contractorName: response.data?.contractorName,
-        companyId: response.data?.companyId,
-        email: response.data?.email
-      });
-      return true;
-    }
-
-    setEmail(loginEmail);
-    setPassword('');
+  const finishNewUserPasswordSetup = (emailForLogin) => {
     setShowPasswordSetup(false);
     setPasswordResetStage('email');
     setPasswordFlowType('reset');
+    setSetupEmail('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setOtpCode('');
+    setOtpError(null);
+
+    if (emailForLogin) {
+      setEmail(emailForLogin);
+    }
+
     showUserMessage(
-      'Login Failed',
-      response?.error || 'Your password was set, but sign-in failed. Please try logging in manually.'
+      'Password Set Successfully!',
+      'Your account is ready. You can now log in with your email and password.'
     );
-    return false;
+
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
   };
 
   // Sync showPasswordReset prop with local state
@@ -479,9 +478,9 @@ export default function ContractorAuthScreen({
         console.log('🔐 Setting password for new contractor:', setupEmail);
 
         const { data: { session } } = await supabase.auth.getSession();
-        const emailForLogin = (setupEmail || session?.user?.email || '').trim();
+        const emailForSetup = (setupEmail || session?.user?.email || '').trim();
 
-        if (!emailForLogin) {
+        if (!emailForSetup) {
           setPasswordResetStage('email');
           showUserMessage('Error', 'Please enter the email address from your invitation link before setting a password.');
           return;
@@ -498,100 +497,71 @@ export default function ContractorAuthScreen({
 
           console.log('✅ Password set via active invite session');
           await supabase.auth.signOut();
-          const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
-          if (loggedIn) {
-            setShowPasswordSetup(false);
-            setNewPassword('');
-            setConfirmPassword('');
-          }
+          finishNewUserPasswordSetup(emailForSetup);
           return;
         }
 
-        try {
-          const passwordResponse = await fetch('/api/set-contractor-password', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: emailForLogin,
-              password: newPassword
-            })
-          });
-
-          if (!passwordResponse.ok) {
-            const error = await passwordResponse.json().catch(() => ({}));
-            console.error('❌ Password set failed:', error);
-
-            if (passwordResponse.status === 404 || passwordResponse.status === 500) {
-              console.log('📧 API unavailable, using password recovery email instead');
-              const recoveryResult = await sendPasswordResetEmail(emailForLogin);
-              if (recoveryResult.success) {
-                showUserMessage(
-                  'Password Recovery Email Sent',
-                  `A password recovery code has been sent to ${emailForLogin}. Please check your email and enter the 6-digit code.`
-                );
-              } else {
-                showUserMessage('Error', recoveryResult.error || 'Failed to send recovery email');
-              }
-              return;
-            }
-
-            throw new Error(error.error || 'Failed to set password');
-          }
-
-          await passwordResponse.json();
-          console.log('✅ Password set successfully via API');
-
-          const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
-          if (loggedIn) {
-            setShowPasswordSetup(false);
-            setSetupEmail('');
-            setNewPassword('');
-            setConfirmPassword('');
-            setOtpCode('');
-            setOtpError(null);
-          }
-          return;
-        } catch (apiError) {
-          console.error('❌ Error:', apiError);
-          showUserMessage('Error', apiError.message || 'Failed to set password');
-          return;
-        }
-      } else {
-        // PASSWORD RESET: Update password for existing user (already authenticated)
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword
+        const passwordResponse = await fetch('/api/set-contractor-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: emailForSetup,
+            password: newPassword
+          })
         });
 
-        if (error) {
-          setOtpError(error.message);
-          showUserMessage('Error', error.message);
-        } else {
-          console.log('✅ Password set successfully');
-          const { data: { session } } = await supabase.auth.getSession();
-          const emailForLogin = setupEmail || session?.user?.email || email;
+        if (!passwordResponse.ok) {
+          const error = await passwordResponse.json().catch(() => ({}));
+          console.error('❌ Password set failed:', error);
 
-          if (emailForLogin) {
-            await supabase.auth.signOut();
-            const loggedIn = await completeLoginAfterPassword(emailForLogin, newPassword);
-            if (loggedIn) {
-              setShowPasswordSetup(false);
-              setPasswordResetStage('email');
-              setPasswordFlowType('reset');
-              setSetupEmail('');
-              setNewPassword('');
-              setConfirmPassword('');
-              setOtpCode('');
-              setOtpError(null);
-              if (setShowPasswordReset) {
-                setShowPasswordReset(false);
-              }
+          if (passwordResponse.status === 404 || passwordResponse.status === 500) {
+            console.log('📧 API unavailable, using password recovery email instead');
+            const recoveryResult = await sendPasswordResetEmail(emailForSetup);
+            if (recoveryResult.success) {
+              showUserMessage(
+                'Password Recovery Email Sent',
+                `A password recovery code has been sent to ${emailForSetup}. Please check your email and enter the 6-digit code.`
+              );
+            } else {
+              showUserMessage('Error', recoveryResult.error || 'Failed to send recovery email');
             }
-          } else {
-            showUserMessage('Success', 'Your password has been set. You can now log in.');
-            setShowPasswordSetup(false);
+            return;
           }
+
+          throw new Error(error.error || 'Failed to set password');
+        }
+
+        await passwordResponse.json();
+        console.log('✅ Password set successfully via API');
+        finishNewUserPasswordSetup(emailForSetup);
+        return;
+      }
+
+      // PASSWORD RESET: Update password for existing user (already authenticated)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        setOtpError(error.message);
+        showUserMessage('Error', error.message);
+      } else {
+        console.log('✅ Password set successfully');
+        showUserMessage('Success', 'Your password has been set. You can now log in.');
+
+        setShowPasswordSetup(false);
+        setPasswordResetStage('email');
+        setPasswordFlowType('reset');
+        setSetupEmail('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtpCode('');
+        setOtpError(null);
+
+        if (setShowPasswordReset) {
+          setShowPasswordReset(false);
         }
       }
     } catch (error) {
