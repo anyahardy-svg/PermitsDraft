@@ -8,8 +8,12 @@
  * Requires SUPABASE_SERVICE_ROLE_KEY environment variable to be set
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  getSupabaseAdmin,
+  lookupContractorByEmail,
+} = require('./supabaseAdmin');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -77,38 +81,16 @@ export default async function handler(req, res) {
     const user = usersData.users[0];
     console.log(`✅ Found user: ${user.id}`);
 
+    const adminClient = getSupabaseAdmin();
+    const contractor = adminClient
+      ? await lookupContractorByEmail(adminClient, email)
+      : null;
+
     const serviceHeaders = {
       'Content-Type': 'application/json',
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     };
-
-    let contractor = null;
-    const exactContractorResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/contractors?select=id,name,company_id,email&email=eq.${encodeURIComponent(email)}&limit=1`,
-      { method: 'GET', headers: serviceHeaders }
-    );
-
-    if (exactContractorResponse.ok) {
-      const exactMatches = await exactContractorResponse.json();
-      if (Array.isArray(exactMatches) && exactMatches.length > 0) {
-        contractor = exactMatches[0];
-      }
-    }
-
-    if (!contractor) {
-      const ilikeContractorResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/contractors?select=id,name,company_id,email&email=ilike.${encodeURIComponent(email)}&limit=1`,
-        { method: 'GET', headers: serviceHeaders }
-      );
-
-      if (ilikeContractorResponse.ok) {
-        const ilikeMatches = await ilikeContractorResponse.json();
-        if (Array.isArray(ilikeMatches) && ilikeMatches.length > 0) {
-          contractor = ilikeMatches[0];
-        }
-      }
-    }
 
     const userMetadata = {
       ...(user.user_metadata || {}),
