@@ -46,6 +46,18 @@ const formatNameToTitleCase = (name) => {
     .join(' ');
 };
 
+const getForceCompulsoryServiceIds = (induction) => {
+  if (Array.isArray(induction.force_compulsory_with_service_ids) && induction.force_compulsory_with_service_ids.length > 0) {
+    return induction.force_compulsory_with_service_ids;
+  }
+  return induction.force_compulsory_with_service_id ? [induction.force_compulsory_with_service_id] : [];
+};
+
+const inductionForcedByContractorServices = (induction, contractorServiceIds) => {
+  const forceServiceIds = getForceCompulsoryServiceIds(induction);
+  return forceServiceIds.some(serviceId => contractorServiceIds.includes(serviceId));
+};
+
 // Helper function to extract YouTube video ID and create embed URL
 const getYouTubeEmbedUrl = (url) => {
   if (!url) return null;
@@ -616,8 +628,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       });
 
       // Apply service-triggered compulsory rules: if contractor has a service that forces this induction to be compulsory, move it
-      const serviceTriggeredCompulsory = optional.filter(ind => 
-        ind.force_compulsory_with_service_id && contractorServiceIds.includes(ind.force_compulsory_with_service_id)
+      const serviceTriggeredCompulsory = optional.filter(ind =>
+        inductionForcedByContractorServices(ind, contractorServiceIds)
       );
       
       if (serviceTriggeredCompulsory.length > 0) {

@@ -171,9 +171,38 @@ export default function InductionAdminScreen({ onBack, styles }) {
     setModalVisible(true);
   };
 
+  const getSelectedBUIds = () => Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
+
+  const getApplicableForceServices = () => {
+    const selectedBUIds = getSelectedBUIds();
+    if (selectedBUIds.length === 0) return [];
+    return services.filter(service => selectedBUIds.includes(service.business_unit_id));
+  };
+
+  const getServiceDisplayName = (service) => {
+    const applicableServices = getApplicableForceServices();
+    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
+    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
+    if (hasDuplicateName && businessUnit) {
+      return `${service.name} (${businessUnit.name})`;
+    }
+    return service.name;
+  };
+
   const handleSaveInduction = async () => {
     if (!formData.induction_name.trim() || formData.business_unit_ids.length === 0) {
       Alert.alert('Error', 'Please fill in induction name and select at least one business unit');
+      return;
+    }
+
+    const selectedBUIds = getSelectedBUIds();
+    const forceServiceIds = formData.force_compulsory_with_service_ids || [];
+    const invalidForceServiceIds = forceServiceIds.filter(id => {
+      const service = services.find(s => s.id === id);
+      return !service || !selectedBUIds.includes(service.business_unit_id);
+    });
+    if (invalidForceServiceIds.length > 0) {
+      Alert.alert('Error', 'Force-compulsory services must belong to one of the selected business units.');
       return;
     }
 
@@ -374,7 +403,24 @@ export default function InductionAdminScreen({ onBack, styles }) {
     const updatedIds = currentIds.includes(buId)
       ? currentIds.filter(id => id !== buId)
       : [...currentIds, buId];
-    setFormData({ ...formData, business_unit_ids: updatedIds });
+
+    const validServiceIds = new Set(
+      services
+        .filter(service => updatedIds.includes(service.business_unit_id))
+        .map(service => service.id)
+    );
+    const prunedForceServiceIds = (formData.force_compulsory_with_service_ids || [])
+      .filter(id => validServiceIds.has(id));
+
+    const selectedSite = sites.find(site => site.id === formData.site_id);
+    const siteStillValid = !formData.site_id || (selectedSite && updatedIds.includes(selectedSite.business_unit_id));
+
+    setFormData({
+      ...formData,
+      business_unit_ids: updatedIds,
+      force_compulsory_with_service_ids: prunedForceServiceIds,
+      site_id: siteStillValid ? formData.site_id : '',
+    });
   };
 
   const toggleService = (serviceId) => {
@@ -383,7 +429,6 @@ export default function InductionAdminScreen({ onBack, styles }) {
   };
 
   const isServiceSelected = (serviceId) => formData.service_id === serviceId;
-  const getSelectedBUIds = () => Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
   const isBUSelected = (buId) => Array.isArray(formData.business_unit_ids) && formData.business_unit_ids.includes(buId);
 
   const filteredInductions = filterByBU
@@ -463,25 +508,37 @@ export default function InductionAdminScreen({ onBack, styles }) {
             ))}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Services Selected (optional)</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>Select services that, if assigned to a contractor, will make this induction compulsory</Text>
-            {services.map(service => {
-              const isSelected = formData.force_compulsory_with_service_ids && formData.force_compulsory_with_service_ids.includes(service.id);
-              return (
-                <TouchableOpacity 
-                  key={`force_${service.id}`} 
-                  onPress={() => {
-                    const newIds = isSelected 
-                      ? formData.force_compulsory_with_service_ids.filter(id => id !== service.id)
-                      : [...(formData.force_compulsory_with_service_ids || []), service.id];
-                    setFormData({ ...formData, force_compulsory_with_service_ids: newIds });
-                  }} 
-                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
-                >
-                  <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#DC2626', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#DC2626' : 'white', marginRight: 10 }}>{isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
-                  <Text style={{ color: isSelected ? '#DC2626' : '#6B7280', fontWeight: isSelected ? '600' : '400' }}>{service.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
+              This induction becomes compulsory when a contractor already has the selected service(s). Services are specific to each business unit.
+            </Text>
+            {getSelectedBUIds().length === 0 ? (
+              <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 10 }}>
+                Select business units above to see available services.
+              </Text>
+            ) : getApplicableForceServices().length === 0 ? (
+              <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 10 }}>
+                No services found for the selected business units.
+              </Text>
+            ) : (
+              getApplicableForceServices().map(service => {
+                const isSelected = formData.force_compulsory_with_service_ids?.includes(service.id);
+                return (
+                  <TouchableOpacity
+                    key={`force_${service.id}`}
+                    onPress={() => {
+                      const newIds = isSelected
+                        ? formData.force_compulsory_with_service_ids.filter(id => id !== service.id)
+                        : [...(formData.force_compulsory_with_service_ids || []), service.id];
+                      setFormData({ ...formData, force_compulsory_with_service_ids: newIds });
+                    }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
+                  >
+                    <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#DC2626', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#DC2626' : 'white', marginRight: 10 }}>{isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
+                    <Text style={{ color: isSelected ? '#DC2626' : '#6B7280', fontWeight: isSelected ? '600' : '400' }}>{getServiceDisplayName(service)}</Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Site-Specific (optional)</Text>
             <TouchableOpacity onPress={() => setFormData({ ...formData, site_id: '' })} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: formData.site_id === '' ? '#10B981' : '#E5E7EB', marginBottom: 8 }}><Text style={{ color: formData.site_id === '' ? 'white' : '#374151', fontWeight: '600' }}>✓ All Sites</Text></TouchableOpacity>
