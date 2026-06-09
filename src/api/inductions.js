@@ -32,6 +32,16 @@ function getNZTimestamp() {
 // INDUCTIONS MANAGEMENT (Creation, Reading, Updating, Deleting)
 // ============================================================================
 
+function normalizeForceCompulsoryServiceIds(inductionData) {
+  if (Array.isArray(inductionData.force_compulsory_with_service_ids)) {
+    return inductionData.force_compulsory_with_service_ids.filter(Boolean);
+  }
+  if (inductionData.force_compulsory_with_service_id) {
+    return [inductionData.force_compulsory_with_service_id];
+  }
+  return [];
+}
+
 /**
  * Get all inductions
  * @returns {Array} All inductions
@@ -165,11 +175,12 @@ export async function getCompulsoryInductions(businessUnitId) {
 
 /**
  * Create a new induction
- * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, force_compulsory_with_service_id, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
+ * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, force_compulsory_with_service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
  * @returns {Object} Created induction
  */
 export async function createInduction(inductionData) {
   try {
+    const forceCompulsoryServiceIds = normalizeForceCompulsoryServiceIds(inductionData);
     const { data, error } = await supabase
       .from('inductions')
       .insert([{
@@ -178,7 +189,8 @@ export async function createInduction(inductionData) {
         business_unit_ids: inductionData.business_unit_ids || [],
         site_id: inductionData.site_id || null,
         service_id: inductionData.service_id || null,
-        force_compulsory_with_service_id: inductionData.force_compulsory_with_service_id || null,
+        force_compulsory_with_service_ids: forceCompulsoryServiceIds,
+        force_compulsory_with_service_id: forceCompulsoryServiceIds[0] || null,
         video_url: inductionData.video_url || '',
         video_duration: inductionData.video_duration ? parseInt(inductionData.video_duration) : 0,
         pdf_file_name: inductionData.pdf_file_name || '',
@@ -215,13 +227,15 @@ export async function createInduction(inductionData) {
  */
 export async function updateInduction(inductionId, updates) {
   try {
+    const forceCompulsoryServiceIds = normalizeForceCompulsoryServiceIds(updates);
     const updateData = {
       induction_name: updates.induction_name,
       description: updates.description || '',
       business_unit_ids: updates.business_unit_ids || [],
       site_id: updates.site_id || null,
       service_id: updates.service_id || null,
-      force_compulsory_with_service_id: updates.force_compulsory_with_service_id || null,
+      force_compulsory_with_service_ids: forceCompulsoryServiceIds,
+      force_compulsory_with_service_id: forceCompulsoryServiceIds[0] || null,
       video_url: updates.video_url || '',
       video_duration: updates.video_duration ? parseInt(updates.video_duration) : 0,
       pdf_file_name: updates.pdf_file_name || '',
