@@ -13,6 +13,25 @@ import { getAllEmailTemplates, updateEmailTemplate, getEmailTemplate } from '../
 
 const { width } = Dimensions.get('window');
 
+const VARIABLE_DESCRIPTIONS = {
+  contactName: 'Primary contact name. Use as Dear {{contactName}}, — defaults to "Contractor" when no name is set.',
+  companyName: 'Company name',
+  deadline: 'Accreditation deadline',
+  signupUrl: 'Sign-up link for new contractors',
+  supportEmail: 'Support email address',
+  adminName: 'Admin user name',
+  setupUrl: 'Password setup link',
+  resetUrl: 'Password reset link',
+};
+
+const getTemplateVariables = (template) => {
+  const variables = Array.isArray(template?.variables) ? [...template.variables] : [];
+  if (template?.type === 'invitation' && !variables.includes('contactName')) {
+    variables.push('contactName');
+  }
+  return variables;
+};
+
 const EmailTemplatesScreen = () => {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -154,14 +173,21 @@ const EmailTemplatesScreen = () => {
               </View>
             )}
 
-            {selectedTemplate.variables && selectedTemplate.variables.length > 0 && (
+            {selectedTemplate && getTemplateVariables(selectedTemplate).length > 0 && (
               <View style={styles.variablesBox}>
                 <Text style={styles.variablesLabel}>Available Variables:</Text>
                 <View style={styles.variablesList}>
-                  {selectedTemplate.variables.map((variable, index) => (
-                    <Text key={index} style={styles.variableItem}>
-                      {`{{${variable}}}`}
-                    </Text>
+                  {getTemplateVariables(selectedTemplate).map((variable) => (
+                    <View key={variable} style={styles.variableRow}>
+                      <Text style={styles.variableItem}>
+                        {`{{${variable}}}`}
+                      </Text>
+                      {VARIABLE_DESCRIPTIONS[variable] && (
+                        <Text style={styles.variableDescription}>
+                          {VARIABLE_DESCRIPTIONS[variable]}
+                        </Text>
+                      )}
+                    </View>
                   ))}
                 </View>
               </View>
@@ -214,7 +240,7 @@ const EmailTemplatesScreen = () => {
                     editable={!loading}
                   />
                   <Text style={styles.htmlHint}>
-                    💡 Tip: Use {'{{variableName}}'} for dynamic content. Check available variables above.
+                    💡 Tip: Use {'{{variableName}}'} for dynamic content. For greetings, use {'Dear {{contactName}},'} — it becomes Dear Contractor, when no contact name is on file.
                   </Text>
                 </View>
 
@@ -399,11 +425,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   variablesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
+  },
+  variableRow: {
+    gap: 4,
   },
   variableItem: {
+    alignSelf: 'flex-start',
     backgroundColor: 'white',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -411,6 +439,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'monospace',
     color: '#92400e',
+  },
+  variableDescription: {
+    fontSize: 12,
+    color: '#92400e',
+    lineHeight: 18,
   },
   form: {
     marginTop: 12,

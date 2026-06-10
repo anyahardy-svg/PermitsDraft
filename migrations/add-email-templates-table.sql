@@ -30,7 +30,7 @@ INSERT INTO email_templates (type, name, subject, html_content, description, var
   'Accreditation Invitation',
   '{{companyName}} - Complete Your Company Accreditation',
   '<h2>Complete Your Company Accreditation</h2>
-<p>Hello,</p>
+<p>Dear {{contactName}},</p>
 <p>{{companyName}} is requesting that you complete an accreditation questionnaire.</p>
 <p><strong>Deadline:</strong> {{deadline}}</p>
 <p>To get started, you''ll need to create a password and access our portal:</p>
@@ -40,7 +40,7 @@ INSERT INTO email_templates (type, name, subject, html_content, description, var
 </p>
 <p>If you have any questions, please contact us at {{supportEmail}}</p>',
   'Sent when inviting contractors to complete accreditation',
-  '["companyName", "deadline", "signupUrl", "supportEmail"]'::jsonb,
+  '["companyName", "contactName", "deadline", "signupUrl", "supportEmail"]'::jsonb,
   true
 ),
 (

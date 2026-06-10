@@ -11123,7 +11123,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           selectedCompanyForInvitation.name,
                           deadline,
                           false, // isNewUser - will check in backend
-                          selectedCompanyForInvitation.id // companyId for database updates
+                          selectedCompanyForInvitation.id, // companyId for database updates
+                          selectedCompanyForInvitation.contactName || selectedCompanyForInvitation.contact_name || null
                         );
 
                         if (result.success) {
@@ -11266,7 +11267,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           newCompanyInvitationForm.companyName,
                           deadline,
                           false,
-                          newCompany.id
+                          newCompany.id,
+                          null
                         );
 
                         if (result.success) {
