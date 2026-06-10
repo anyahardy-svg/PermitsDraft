@@ -3149,6 +3149,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [siteImportStatus, setSiteImportStatus] = useState('idle');
   const [siteImportMessage, setSiteImportMessage] = useState('');
   const [contractorCompanyFilter, setContractorCompanyFilter] = useState('All');
+  const [contractorCompanyFilterSearch, setContractorCompanyFilterSearch] = useState('');
+  const [showContractorCompanyFilterDropdown, setShowContractorCompanyFilterDropdown] = useState(false);
   const [contractorBusinessUnitFilter, setContractorBusinessUnitFilter] = useState('All');
   const [companySearchText, setCompanySearchText] = useState('');
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
@@ -13001,32 +13003,104 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 />
 
                 <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  <TouchableOpacity
-                    style={[
-                      { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
-                      contractorCompanyFilter === 'All'
-                        ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                        : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                    ]}
-                    onPress={() => setContractorCompanyFilter('All')}
-                  >
-                    <Text style={{ color: contractorCompanyFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
-                  </TouchableOpacity>
-                  {[...new Set(contractors.map(c => c.companyName || c.company).filter(Boolean))].map(company => (
-                    <TouchableOpacity
-                      key={company}
-                      style={[
-                        { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
-                        contractorCompanyFilter === company
-                          ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-                          : { backgroundColor: 'white', borderColor: '#D1D5DB' }
-                      ]}
-                      onPress={() => setContractorCompanyFilter(company)}
-                    >
-                      <Text style={{ color: contractorCompanyFilter === company ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{company}</Text>
-                    </TouchableOpacity>
-                  ))}
+                <View style={{ position: 'relative', zIndex: 10 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="All Companies - type to search..."
+                    value={showContractorCompanyFilterDropdown
+                      ? contractorCompanyFilterSearch
+                      : (contractorCompanyFilter === 'All' ? '' : contractorCompanyFilter)}
+                    onChangeText={(text) => {
+                      setContractorCompanyFilterSearch(text);
+                      setShowContractorCompanyFilterDropdown(true);
+                      if (text.trim() === '') {
+                        setContractorCompanyFilter('All');
+                      }
+                    }}
+                    onFocus={() => {
+                      setContractorCompanyFilterSearch(
+                        contractorCompanyFilter === 'All' ? '' : contractorCompanyFilter
+                      );
+                      setShowContractorCompanyFilterDropdown(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowContractorCompanyFilterDropdown(false), 200);
+                    }}
+                  />
+                  {showContractorCompanyFilterDropdown && (() => {
+                    const contractorCompanyOptions = [...new Set(
+                      contractors.map(c => c.companyName || c.company).filter(Boolean)
+                    )].sort((a, b) => a.localeCompare(b));
+                    const filteredContractorCompanyOptions = contractorCompanyFilterSearch.trim() === ''
+                      ? contractorCompanyOptions
+                      : contractorCompanyOptions.filter(company =>
+                          company.toLowerCase().includes(contractorCompanyFilterSearch.toLowerCase())
+                        );
+
+                    return (
+                      <View style={{
+                        position: 'absolute',
+                        top: 55,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        borderRadius: 8,
+                        maxHeight: 200,
+                        zIndex: 50,
+                        elevation: 10,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3,
+                        borderWidth: 1,
+                        borderColor: '#D1D5DB',
+                        overflow: 'hidden',
+                      }}>
+                        <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                          <TouchableOpacity
+                            style={{
+                              padding: 12,
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#E5E7EB',
+                              backgroundColor: contractorCompanyFilter === 'All' ? '#EFF6FF' : 'white',
+                            }}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                              setContractorCompanyFilter('All');
+                              setContractorCompanyFilterSearch('');
+                              setShowContractorCompanyFilterDropdown(false);
+                            }}
+                          >
+                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>All Companies</Text>
+                          </TouchableOpacity>
+                          {filteredContractorCompanyOptions.map(company => (
+                            <TouchableOpacity
+                              key={company}
+                              style={{
+                                padding: 12,
+                                borderBottomWidth: 1,
+                                borderBottomColor: '#E5E7EB',
+                                backgroundColor: contractorCompanyFilter === company ? '#EFF6FF' : 'white',
+                              }}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                setContractorCompanyFilter(company);
+                                setContractorCompanyFilterSearch(company);
+                                setShowContractorCompanyFilterDropdown(false);
+                              }}
+                            >
+                              <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{company}</Text>
+                            </TouchableOpacity>
+                          ))}
+                          {filteredContractorCompanyOptions.length === 0 && contractorCompanyFilterSearch.trim().length > 0 && (
+                            <View style={{ padding: 12 }}>
+                              <Text style={{ fontSize: 14, color: '#9CA3AF' }}>No matching companies</Text>
+                            </View>
+                          )}
+                        </ScrollView>
+                      </View>
+                    );
+                  })()}
                 </View>
 
                 <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Business Unit:</Text>
