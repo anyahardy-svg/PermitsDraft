@@ -47,15 +47,20 @@ const formatNameToTitleCase = (name) => {
 };
 
 const getForceCompulsoryServiceIds = (induction) => {
-  if (Array.isArray(induction.force_compulsory_with_service_ids) && induction.force_compulsory_with_service_ids.length > 0) {
-    return induction.force_compulsory_with_service_ids;
+  const forceServiceIds = new Set();
+  if (Array.isArray(induction?.force_compulsory_with_service_ids)) {
+    induction.force_compulsory_with_service_ids.filter(Boolean).forEach(id => forceServiceIds.add(id));
   }
-  return induction.force_compulsory_with_service_id ? [induction.force_compulsory_with_service_id] : [];
+  if (induction?.force_compulsory_with_service_id) {
+    forceServiceIds.add(induction.force_compulsory_with_service_id);
+  }
+  return Array.from(forceServiceIds);
 };
 
 const inductionForcedByContractorServices = (induction, contractorServiceIds) => {
+  const activeServiceIds = Array.isArray(contractorServiceIds) ? contractorServiceIds : [];
   const forceServiceIds = getForceCompulsoryServiceIds(induction);
-  return forceServiceIds.some(serviceId => contractorServiceIds.includes(serviceId));
+  return forceServiceIds.some(serviceId => activeServiceIds.includes(serviceId));
 };
 
 // Helper function to extract YouTube video ID and create embed URL
@@ -584,11 +589,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           site_ids: selectedSites,
           service_ids: [],
         });
+        if (!newContractor?.id) {
+          throw new Error('Failed to create contractor record');
+        }
         contractorId = newContractor.id;
         setContractorInfo({ ...contractorInfo, id: contractorId, name: formattedName });
         console.log('✅ Contractor created:', contractorId);
       } else {
         console.log('♻️ Using existing contractor:', contractorId);
+      }
+
+      if (!contractorId) {
+        throw new Error('Contractor record not found. Please go back and select your profile again.');
       }
 
       // Get inductions for all selected business units
