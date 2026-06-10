@@ -79,24 +79,20 @@ export async function getAllInductions() {
  * @param {UUID} businessUnitId
  * @returns {Array} Inductions for the business unit
  */
-export async function getInductionsByBusinessUnit(businessUnitId, contractorServiceIds = []) {
+export async function getInductionsByBusinessUnit(businessUnitId, contractorServiceIds = [], { skipServiceFilter = false } = {}) {
   try {
     let query = supabase
       .from('inductions')
       .select('*')
       .overlaps('business_unit_ids', [businessUnitId]);
 
-    // If contractor has services, filter to inductions that apply to those services
-    if (contractorServiceIds && contractorServiceIds.length > 0) {
-      // Induction applies if:
-      // 1. It has no service_id (applies to all) OR
-      // 2. Its service_id matches one of contractor's services
-      // Note: We fetch all and filter in JS because Supabase doesn't support complex OR conditions easily
-    }
-
     const { data, error } = await query.order('induction_name', { ascending: true });
 
     if (error) throw error;
+
+    if (skipServiceFilter) {
+      return data || [];
+    }
     
     // Filter by services in JavaScript (easier than complex SQL OR conditions)
     const filtered = data?.filter(induction => {
