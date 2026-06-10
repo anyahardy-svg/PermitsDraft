@@ -42,6 +42,19 @@ function normalizeForceCompulsoryServiceIds(inductionData) {
   return [];
 }
 
+function isMissingForceServiceIdsColumnError(error) {
+  const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  return message.includes('force_compulsory_with_service_ids');
+}
+
+function applyForceCompulsoryFields(record, forceCompulsoryServiceIds, includeArrayColumn = true) {
+  record.force_compulsory_with_service_id = forceCompulsoryServiceIds[0] || null;
+  if (includeArrayColumn) {
+    record.force_compulsory_with_service_ids = forceCompulsoryServiceIds;
+  }
+  return record;
+}
+
 /**
  * Get all inductions
  * @returns {Array} All inductions
@@ -181,35 +194,46 @@ export async function getCompulsoryInductions(businessUnitId) {
 export async function createInduction(inductionData) {
   try {
     const forceCompulsoryServiceIds = normalizeForceCompulsoryServiceIds(inductionData);
-    const { data, error } = await supabase
+    const insertData = applyForceCompulsoryFields({
+      induction_name: inductionData.induction_name,
+      description: inductionData.description || '',
+      business_unit_ids: inductionData.business_unit_ids || [],
+      site_id: inductionData.site_id || null,
+      service_id: inductionData.service_id || null,
+      video_url: inductionData.video_url || '',
+      video_duration: inductionData.video_duration ? parseInt(inductionData.video_duration) : 0,
+      pdf_file_name: inductionData.pdf_file_name || '',
+      pdf_file_url: inductionData.pdf_file_url || '',
+      question_1_text: inductionData.question_1_text || '',
+      question_1_options: inductionData.question_1_options || null,
+      question_1_correct_answer: inductionData.question_1_correct_answer ?? null,
+      question_1_type: inductionData.question_1_type || 'single-select',
+      question_2_text: inductionData.question_2_text || '',
+      question_2_options: inductionData.question_2_options || null,
+      question_2_correct_answer: inductionData.question_2_correct_answer ?? null,
+      question_2_type: inductionData.question_2_type || 'single-select',
+      question_3_text: inductionData.question_3_text || '',
+      question_3_options: inductionData.question_3_options || null,
+      question_3_correct_answer: inductionData.question_3_correct_answer ?? null,
+      question_3_type: inductionData.question_3_type || 'single-select',
+      is_compulsory: inductionData.is_compulsory !== false,
+    }, forceCompulsoryServiceIds);
+
+    let { data, error } = await supabase
       .from('inductions')
-      .insert([{
-        induction_name: inductionData.induction_name,
-        description: inductionData.description || '',
-        business_unit_ids: inductionData.business_unit_ids || [],
-        site_id: inductionData.site_id || null,
-        service_id: inductionData.service_id || null,
-        force_compulsory_with_service_ids: forceCompulsoryServiceIds,
-        force_compulsory_with_service_id: forceCompulsoryServiceIds[0] || null,
-        video_url: inductionData.video_url || '',
-        video_duration: inductionData.video_duration ? parseInt(inductionData.video_duration) : 0,
-        pdf_file_name: inductionData.pdf_file_name || '',
-        pdf_file_url: inductionData.pdf_file_url || '',
-        question_1_text: inductionData.question_1_text || '',
-        question_1_options: inductionData.question_1_options || null,
-        question_1_correct_answer: inductionData.question_1_correct_answer ?? null,
-        question_1_type: inductionData.question_1_type || 'single-select',
-        question_2_text: inductionData.question_2_text || '',
-        question_2_options: inductionData.question_2_options || null,
-        question_2_correct_answer: inductionData.question_2_correct_answer ?? null,
-        question_2_type: inductionData.question_2_type || 'single-select',
-        question_3_text: inductionData.question_3_text || '',
-        question_3_options: inductionData.question_3_options || null,
-        question_3_correct_answer: inductionData.question_3_correct_answer ?? null,
-        question_3_type: inductionData.question_3_type || 'single-select',
-        is_compulsory: inductionData.is_compulsory !== false,
-      }])
+      .insert([insertData])
       .select();
+
+    if (error && isMissingForceServiceIdsColumnError(error)) {
+      const legacyInsertData = applyForceCompulsoryFields({
+        ...insertData,
+      }, forceCompulsoryServiceIds, false);
+      delete legacyInsertData.force_compulsory_with_service_ids;
+      ({ data, error } = await supabase
+        .from('inductions')
+        .insert([legacyInsertData])
+        .select());
+    }
 
     if (error) throw error;
     return data ? data[0] : null;
@@ -228,14 +252,12 @@ export async function createInduction(inductionData) {
 export async function updateInduction(inductionId, updates) {
   try {
     const forceCompulsoryServiceIds = normalizeForceCompulsoryServiceIds(updates);
-    const updateData = {
+    const updateData = applyForceCompulsoryFields({
       induction_name: updates.induction_name,
       description: updates.description || '',
       business_unit_ids: updates.business_unit_ids || [],
       site_id: updates.site_id || null,
       service_id: updates.service_id || null,
-      force_compulsory_with_service_ids: forceCompulsoryServiceIds,
-      force_compulsory_with_service_id: forceCompulsoryServiceIds[0] || null,
       video_url: updates.video_url || '',
       video_duration: updates.video_duration ? parseInt(updates.video_duration) : 0,
       pdf_file_name: updates.pdf_file_name || '',
@@ -254,13 +276,25 @@ export async function updateInduction(inductionId, updates) {
       question_3_type: updates.question_3_type || 'single-select',
       is_compulsory: updates.is_compulsory !== false,
       updated_at: new Date().toISOString(),
-    };
+    }, forceCompulsoryServiceIds);
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('inductions')
       .update(updateData)
       .eq('id', inductionId)
       .select();
+
+    if (error && isMissingForceServiceIdsColumnError(error)) {
+      const legacyUpdateData = applyForceCompulsoryFields({
+        ...updateData,
+      }, forceCompulsoryServiceIds, false);
+      delete legacyUpdateData.force_compulsory_with_service_ids;
+      ({ data, error } = await supabase
+        .from('inductions')
+        .update(legacyUpdateData)
+        .eq('id', inductionId)
+        .select());
+    }
 
     if (error) throw error;
     return data ? data[0] : null;

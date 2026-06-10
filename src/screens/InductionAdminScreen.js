@@ -197,13 +197,15 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
     const selectedBUIds = getSelectedBUIds();
     const forceServiceIds = formData.force_compulsory_with_service_ids || [];
-    const invalidForceServiceIds = forceServiceIds.filter(id => {
-      const service = services.find(s => s.id === id);
-      return !service || !selectedBUIds.includes(service.business_unit_id);
-    });
-    if (invalidForceServiceIds.length > 0) {
-      Alert.alert('Error', 'Force-compulsory services must belong to one of the selected business units.');
-      return;
+    if (forceServiceIds.length > 0 && services.length > 0) {
+      const invalidForceServiceIds = forceServiceIds.filter(id => {
+        const service = services.find(s => s.id === id);
+        return !service || !selectedBUIds.includes(service.business_unit_id);
+      });
+      if (invalidForceServiceIds.length > 0) {
+        Alert.alert('Error', 'Force-compulsory services must belong to one of the selected business units.');
+        return;
+      }
     }
 
     try {
@@ -526,9 +528,10 @@ export default function InductionAdminScreen({ onBack, styles }) {
                   <TouchableOpacity
                     key={`force_${service.id}`}
                     onPress={() => {
+                      const currentForceIds = formData.force_compulsory_with_service_ids || [];
                       const newIds = isSelected
-                        ? formData.force_compulsory_with_service_ids.filter(id => id !== service.id)
-                        : [...(formData.force_compulsory_with_service_ids || []), service.id];
+                        ? currentForceIds.filter(id => id !== service.id)
+                        : [...currentForceIds, service.id];
                       setFormData({ ...formData, force_compulsory_with_service_ids: newIds });
                     }}
                     style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
