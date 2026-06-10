@@ -623,7 +623,6 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
       // Separate compulsory and optional, considering site-specific rules
       const compulsory = [];
       const optional = [];
-      const selectedSites = contractorInfo.selectedSiteIds || [];
 
       uniqueInductions.forEach(ind => {
         const isSiteSpecific = ind.site_id !== null;
