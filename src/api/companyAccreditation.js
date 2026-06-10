@@ -16,6 +16,7 @@ export const sendAccreditationInvitationEmail = async ({
   email,
   companyName,
   deadline,
+  contactName,
 }) => {
   try {
     console.log('📧 Sending accreditation invitation to:', email, 'for', companyName);
@@ -27,7 +28,8 @@ export const sendAccreditationInvitationEmail = async ({
       companyName,
       deadline,
       false,
-      companyId
+      companyId,
+      contactName
     );
 
     if (!emailResult.success) {

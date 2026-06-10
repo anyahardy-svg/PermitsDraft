@@ -10,9 +10,10 @@
  * @param {Date} deadline - Accreditation deadline
  * @param {boolean} isNewUser - Whether this is a new user
  * @param {string} companyId - Company ID for database updates
+ * @param {string} contactName - Primary contact name (defaults to "Contractor" if empty)
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export const sendAccreditationInvitation = async (toEmail, companyName, deadline, isNewUser = false, companyId = null) => {
+export const sendAccreditationInvitation = async (toEmail, companyName, deadline, isNewUser = false, companyId = null, contactName = null) => {
   try {
     const response = await fetch('/api/send-email', {
       method: 'POST',
@@ -26,6 +27,7 @@ export const sendAccreditationInvitation = async (toEmail, companyName, deadline
         deadline,
         isNewUser,
         companyId,
+        contactName,
       }),
     });
 

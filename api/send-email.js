@@ -74,6 +74,10 @@ const getEmailTemplate = async (type) => {
   return null;
 };
 
+const TEMPLATE_VARIABLE_DEFAULTS = {
+  contactName: 'Contractor',
+};
+
 /**
  * Render template with variables (replaces {{variableName}} with values)
  */
@@ -81,13 +85,51 @@ const renderTemplate = (template, variables = {}) => {
   let subject = template.subject;
   let content = template.html_content;
 
-  Object.entries(variables).forEach(([key, value]) => {
+  const templateVariables = Array.isArray(template?.variables) ? template.variables : [];
+  const keys = new Set([
+    ...templateVariables,
+    ...Object.keys(TEMPLATE_VARIABLE_DEFAULTS),
+    ...Object.keys(variables),
+  ]);
+
+  keys.forEach((key) => {
+    const rawValue = variables[key];
+    const hasValue = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '';
+    const value = hasValue ? String(rawValue).trim() : (TEMPLATE_VARIABLE_DEFAULTS[key] || '');
     const regex = new RegExp(`{{${key}}}`, 'g');
-    subject = subject.replace(regex, value || '');
-    content = content.replace(regex, value || '');
+    subject = subject.replace(regex, value);
+    content = content.replace(regex, value);
   });
 
   return { subject, content };
+};
+
+const fetchCompanyContactName = async (companyId) => {
+  if (!companyId || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return '';
+  }
+
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=contact_name`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+
+    if (!response.ok) {
+      return '';
+    }
+
+    const data = await response.json();
+    return data?.[0]?.contact_name?.trim() || '';
+  } catch (err) {
+    console.warn(`⚠️ Could not fetch contact name for company ${companyId}:`, err.message);
+    return '';
+  }
 };
 
 const escapeHtml = (value = '') =>
@@ -110,7 +152,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
-    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent } = req.body;
+    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent, contactName, companyId } = req.body;
 
     // Different types require different fields
     if (type === 'invitation') {
@@ -192,6 +234,8 @@ export default async function handler(req, res) {
       actualSubject = subject;
       actualHtmlContent = htmlContent;
     } else if (type === 'invitation') {
+      const resolvedContactName = (contactName || '').trim() || await fetchCompanyContactName(companyId);
+
       if (dbTemplate) {
         // Use database template
         const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
@@ -204,6 +248,7 @@ export default async function handler(req, res) {
         const signupUrl = 'https://contractorhq.co.nz/sign-in-contractor?type=invited';
         const rendered = renderTemplate(dbTemplate, {
           companyName,
+          contactName: resolvedContactName,
           deadline: deadlineStr,
           signupUrl,
           supportEmail: SUPPORT_EMAIL,
@@ -223,10 +268,12 @@ export default async function handler(req, res) {
           ? `${companyName} - Complete Your Company Accreditation`
           : `Request to Complete ${companyName} Accreditation`;
 
+        const greetingName = resolvedContactName || TEMPLATE_VARIABLE_DEFAULTS.contactName;
+
         actualHtmlContent = actuallyNewUser 
           ? `
             <h2>Complete Your Company Accreditation</h2>
-            <p>Hello,</p>
+            <p>Dear ${escapeHtml(greetingName)},</p>
             <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
             <p><strong>Deadline:</strong> ${deadlineStr}</p>
             <p>To get started, you'll need to create a password and access our portal:</p>
@@ -238,7 +285,7 @@ export default async function handler(req, res) {
           `
           : `
             <h2>Complete Your Company Accreditation Return</h2>
-            <p>Hello,</p>
+            <p>Dear ${escapeHtml(greetingName)},</p>
             <p>Firth Industries Ltd or Winstone Aggregates is requesting that ${companyName} complete an accreditation questionnaire.</p>
             <p><strong>Deadline:</strong> ${deadlineStr}</p>
             <p>To complete the accreditation, please log in to your account:</p>
@@ -411,7 +458,7 @@ export default async function handler(req, res) {
 
     // For invitation emails, update the company record and create user if needed
     if (type === 'invitation') {
-      const { companyId, deadline: deadlineParam } = req.body;
+      const { deadline: deadlineParam } = req.body;
       
       try {
         // Check if we have Supabase credentials

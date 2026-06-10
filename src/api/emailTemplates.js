@@ -116,6 +116,10 @@ export const deleteEmailTemplate = async (type) => {
   }
 };
 
+const TEMPLATE_VARIABLE_DEFAULTS = {
+  contactName: 'Contractor',
+};
+
 /**
  * Replace variables in email template
  * Variables use {{variableName}} format
@@ -124,10 +128,20 @@ export const renderEmailTemplate = (template, variables = {}) => {
   let subject = template.subject;
   let content = template.html_content;
 
-  Object.entries(variables).forEach(([key, value]) => {
+  const templateVariables = Array.isArray(template?.variables) ? template.variables : [];
+  const keys = new Set([
+    ...templateVariables,
+    ...Object.keys(TEMPLATE_VARIABLE_DEFAULTS),
+    ...Object.keys(variables),
+  ]);
+
+  keys.forEach((key) => {
+    const rawValue = variables[key];
+    const hasValue = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '';
+    const value = hasValue ? String(rawValue).trim() : (TEMPLATE_VARIABLE_DEFAULTS[key] || '');
     const regex = new RegExp(`{{${key}}}`, 'g');
-    subject = subject.replace(regex, value || '');
-    content = content.replace(regex, value || '');
+    subject = subject.replace(regex, value);
+    content = content.replace(regex, value);
   });
 
   return { subject, content };
