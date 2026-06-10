@@ -28,7 +28,7 @@ import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
-import { getSitesByBusinessUnits } from '../api/sites';
+import { getSitesByBusinessUnits, listSites } from '../api/sites';
 import { listServicesByBusinessUnit } from '../api/services';
 
 /**
@@ -113,9 +113,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   // Returning Contractor filter state
   const [returningFilterCompanyId, setReturningFilterCompanyId] = useState('');
   const [returningFilterBUId, setReturningFilterBUId] = useState('');
+  const [returningFilterSiteId, setReturningFilterSiteId] = useState('');
+  const [returningFilterName, setReturningFilterName] = useState('');
   const [returningFilteredContractors, setReturningFilteredContractors] = useState([]);
   const [showReturningBUDropdown, setShowReturningBUDropdown] = useState(false);
   const [showReturningCompanyDropdown, setShowReturningCompanyDropdown] = useState(false);
+  const [showReturningSiteDropdown, setShowReturningSiteDropdown] = useState(false);
 
   // Add Parts to Existing Induction state
   const [addPartsContractorId, setAddPartsContractorId] = useState(''); // Contractor to add parts to
@@ -123,8 +126,17 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   const [existingInductionProgress, setExistingInductionProgress] = useState([]); // Their completed/incomplete inductions
   const [completedInductionIds_AddParts, setCompletedInductionIds_AddParts] = useState([]); // IDs of their completed inductions
   const [newInductionsToAdd, setNewInductionsToAdd] = useState({}); // { inductionId: true/false } for selection
+  const [addPartsContractorFilterBUId, setAddPartsContractorFilterBUId] = useState('');
+  const [addPartsContractorFilterSiteId, setAddPartsContractorFilterSiteId] = useState('');
+  const [addPartsContractorFilterName, setAddPartsContractorFilterName] = useState('');
+  const [showAddPartsContractorBUDropdown, setShowAddPartsContractorBUDropdown] = useState(false);
+  const [showAddPartsContractorSiteDropdown, setShowAddPartsContractorSiteDropdown] = useState(false);
   const [addPartsFilterBUId, setAddPartsFilterBUId] = useState('');
+  const [addPartsFilterSiteId, setAddPartsFilterSiteId] = useState('');
+  const [addPartsFilterName, setAddPartsFilterName] = useState('');
   const [showAddPartsBUDropdown, setShowAddPartsBUDropdown] = useState(false);
+  const [showAddPartsSiteDropdown, setShowAddPartsSiteDropdown] = useState(false);
+  const [allSites, setAllSites] = useState([]);
 
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
@@ -194,20 +206,28 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         .map(p => p.induction_id);
       setCompletedInductionIds_AddParts(completedIds);
       
-      // Load all available inductions for their business units
+      // Load all available inductions across every assigned business unit
       const contractorBUs = contractor.business_unit_ids || [];
-      if (contractorBUs.length > 0) {
-        const allInductionsForBU = await getInductionsByBusinessUnit(contractorBUs[0]);
-        setAllInductions(allInductionsForBU);
-        // Initialize selection state - don't select already completed ones
-        const selectionState = {};
-        allInductionsForBU.forEach(ind => {
-          if (!completedIds.includes(ind.id)) {
-            selectionState[ind.id] = false; // Unchecked by default for incomplete
-          }
-        });
-        setNewInductionsToAdd(selectionState);
+      let allInductionsData = [];
+      for (const buId of contractorBUs) {
+        const inductionsForBU = await getInductionsByBusinessUnit(buId, [], { skipServiceFilter: true });
+        if (Array.isArray(inductionsForBU)) {
+          allInductionsData = [...allInductionsData, ...inductionsForBU];
+        }
       }
+      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+      setAllInductions(uniqueInductions);
+      setAddPartsFilterBUId('');
+      setAddPartsFilterSiteId('');
+      setAddPartsFilterName('');
+
+      const selectionState = {};
+      uniqueInductions.forEach(ind => {
+        if (!completedIds.includes(ind.id)) {
+          selectionState[ind.id] = false;
+        }
+      });
+      setNewInductionsToAdd(selectionState);
       
       // Move to selection screen
       setStep('info-add-parts');
@@ -245,17 +265,43 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [companiesData, buData, contractorsData] = await Promise.all([
+      const [companiesData, buData, contractorsData, sitesData] = await Promise.all([
         listCompanies(),
         listBusinessUnits(),
         listContractors(),
+        listSites(),
       ]);
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setContractors(Array.isArray(contractorsData) ? contractorsData : []);
+      setAllSites(Array.isArray(sitesData) ? sitesData : []);
     } catch (err) {
       setError('Failed to load data');
     }
+  };
+
+  const getSitesForBUFilter = (businessUnitId) => {
+    if (!businessUnitId) return allSites;
+    return allSites.filter(site => site.business_unit_id === businessUnitId);
+  };
+
+  const matchesContractorFilters = (contractor, { buId, companyId, siteId, nameQuery }) => {
+    const normalizedName = (nameQuery || '').trim().toLowerCase();
+    const matchesCompany = !companyId || contractor.company_id === companyId;
+    const matchesBU = !buId || (contractor.business_unit_ids && contractor.business_unit_ids.includes(buId));
+    const matchesSite = !siteId || (contractor.site_ids && contractor.site_ids.includes(siteId));
+    const matchesName = !normalizedName
+      || contractor.name?.toLowerCase().includes(normalizedName)
+      || contractor.email?.toLowerCase().includes(normalizedName);
+    return matchesCompany && matchesBU && matchesSite && matchesName;
+  };
+
+  const matchesInductionFilters = (induction, { buId, siteId, nameQuery }) => {
+    const normalizedName = (nameQuery || '').trim().toLowerCase();
+    const matchesBU = !buId || (induction.business_unit_ids && induction.business_unit_ids.includes(buId));
+    const matchesSite = !siteId || !induction.site_id || induction.site_id === siteId;
+    const matchesName = !normalizedName || induction.induction_name?.toLowerCase().includes(normalizedName);
+    return matchesBU && matchesSite && matchesName;
   };
 
   // Helper: Render standardized header with screen context
@@ -884,6 +930,8 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               setIsNewContractor('returning');
               setReturningFilterCompanyId('');
               setReturningFilterBUId('');
+              setReturningFilterSiteId('');
+              setReturningFilterName('');
               setReturningFilteredContractors(contractors);
               if (onSelectInductionType) {
                 onSelectInductionType('returning');
@@ -911,7 +959,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           <TouchableOpacity 
             onPress={async () => {
               setIsNewContractor('add-parts');
+              setAddPartsContractorFilterBUId('');
+              setAddPartsContractorFilterSiteId('');
+              setAddPartsContractorFilterName('');
               setAddPartsFilterBUId('');
+              setAddPartsFilterSiteId('');
+              setAddPartsFilterName('');
               // Load contractors
               try {
                 const allContractors = await listContractors();
@@ -1002,6 +1055,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   // STEP 0: SELECT CONTRACTOR FOR ADD-PARTS
   if (step === 'info' && isNewContractor === 'add-parts') {
+    const addPartsContractorList = contractors.filter(contractor =>
+      matchesContractorFilters(contractor, {
+        buId: addPartsContractorFilterBUId,
+        siteId: addPartsContractorFilterSiteId,
+        nameQuery: addPartsContractorFilterName,
+      })
+    );
+    const addPartsSiteOptions = getSitesForBUFilter(addPartsContractorFilterBUId);
+
     return (
       <View style={styles.container}>
         {renderHeader('Add Parts - Select Contractor', () => {
@@ -1009,15 +1071,75 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           setContractors([]);
         })}
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <View style={{ flex: 1, padding: 16 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
             Which contractor needs to add induction sections?
           </Text>
 
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {contractors.length > 0 ? (
-                contractors.map(contractor => (
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit</Text>
+          <TouchableOpacity
+            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 12, marginBottom: 4, backgroundColor: addPartsContractorFilterBUId ? '#F3E8FF' : '#F9FAFB' }}
+            onPress={() => setShowAddPartsContractorBUDropdown(!showAddPartsContractorBUDropdown)}
+          >
+            <Text style={{ color: addPartsContractorFilterBUId ? '#A855F7' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {addPartsContractorFilterBUId ? businessUnits.find(bu => bu.id === addPartsContractorFilterBUId)?.name || 'Select BU' : 'All Business Units'}
+            </Text>
+          </TouchableOpacity>
+          {showAddPartsContractorBUDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity onPress={() => { setAddPartsContractorFilterBUId(''); setAddPartsContractorFilterSiteId(''); setShowAddPartsContractorBUDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Business Units</Text>
+                </TouchableOpacity>
+                {businessUnits.map(bu => (
+                  <TouchableOpacity key={bu.id} onPress={() => { setAddPartsContractorFilterBUId(bu.id); setAddPartsContractorFilterSiteId(''); setShowAddPartsContractorBUDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{bu.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>Filter by Site</Text>
+          <TouchableOpacity
+            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 12, marginBottom: 4, backgroundColor: addPartsContractorFilterSiteId ? '#F3E8FF' : '#F9FAFB' }}
+            onPress={() => setShowAddPartsContractorSiteDropdown(!showAddPartsContractorSiteDropdown)}
+          >
+            <Text style={{ color: addPartsContractorFilterSiteId ? '#A855F7' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {addPartsContractorFilterSiteId ? allSites.find(site => site.id === addPartsContractorFilterSiteId)?.name || 'Select Site' : 'All Sites'}
+            </Text>
+          </TouchableOpacity>
+          {showAddPartsContractorSiteDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity onPress={() => { setAddPartsContractorFilterSiteId(''); setShowAddPartsContractorSiteDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Sites</Text>
+                </TouchableOpacity>
+                {addPartsSiteOptions.map(site => (
+                  <TouchableOpacity key={site.id} onPress={() => { setAddPartsContractorFilterSiteId(site.id); setShowAddPartsContractorSiteDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{site.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>Search by Name</Text>
+          <TextInput
+            style={[styles.input, { marginTop: 0, marginBottom: 12 }]}
+            placeholder="Search contractor name or email..."
+            value={addPartsContractorFilterName}
+            onChangeText={setAddPartsContractorFilterName}
+          />
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 4 }}>
+            Contractors ({addPartsContractorList.length})
+          </Text>
+
+          <View style={{ flex: 1, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+            {addPartsContractorList.length > 0 ? (
+              <ScrollView>
+                {addPartsContractorList.map(contractor => (
                   <TouchableOpacity
                     key={contractor.id}
                     onPress={() => handleAddPartsContractorSelected(contractor.id)}
@@ -1026,21 +1148,33 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
                     <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
                   </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={{ padding: 12, color: '#9CA3AF' }}>No contractors found</Text>
-              )}
-            </ScrollView>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ padding: 12, color: '#9CA3AF' }}>No contractors found</Text>
+            )}
           </View>
-        </ScrollView>
+        </View>
       </View>
     );
   }
 
   // STEP INFO-ADD-PARTS: SELECT SECTIONS TO ADD
   if (step === 'info-add-parts' && addPartsContractor) {
-    const incompleteInductions = allInductions.filter(ind => !completedInductionIds_AddParts.includes(ind.id));
-    const completedInductions = allInductions.filter(ind => completedInductionIds_AddParts.includes(ind.id));
+    const contractorBUIds = addPartsContractor.business_unit_ids || [];
+    const addPartsBUOptions = businessUnits.filter(bu => contractorBUIds.includes(bu.id));
+    const addPartsSiteOptions = getSitesForBUFilter(addPartsFilterBUId).filter(site =>
+      !addPartsFilterBUId || contractorBUIds.includes(site.business_unit_id)
+    );
+    const filteredAllInductions = allInductions.filter(ind =>
+      matchesInductionFilters(ind, {
+        buId: addPartsFilterBUId,
+        siteId: addPartsFilterSiteId,
+        nameQuery: addPartsFilterName,
+      })
+    );
+    const incompleteInductions = filteredAllInductions.filter(ind => !completedInductionIds_AddParts.includes(ind.id));
+    const completedInductions = filteredAllInductions.filter(ind => completedInductionIds_AddParts.includes(ind.id));
     const selectedCount = Object.values(newInductionsToAdd).filter(v => v).length;
 
     return (
@@ -1051,6 +1185,62 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
         })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit</Text>
+          <TouchableOpacity
+            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 12, marginBottom: 4, backgroundColor: addPartsFilterBUId ? '#F3E8FF' : '#F9FAFB' }}
+            onPress={() => setShowAddPartsBUDropdown(!showAddPartsBUDropdown)}
+          >
+            <Text style={{ color: addPartsFilterBUId ? '#A855F7' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {addPartsFilterBUId ? businessUnits.find(bu => bu.id === addPartsFilterBUId)?.name || 'Select BU' : 'All Business Units'}
+            </Text>
+          </TouchableOpacity>
+          {showAddPartsBUDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity onPress={() => { setAddPartsFilterBUId(''); setAddPartsFilterSiteId(''); setShowAddPartsBUDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Business Units</Text>
+                </TouchableOpacity>
+                {addPartsBUOptions.map(bu => (
+                  <TouchableOpacity key={bu.id} onPress={() => { setAddPartsFilterBUId(bu.id); setAddPartsFilterSiteId(''); setShowAddPartsBUDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{bu.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>Filter by Site</Text>
+          <TouchableOpacity
+            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 12, marginBottom: 4, backgroundColor: addPartsFilterSiteId ? '#F3E8FF' : '#F9FAFB' }}
+            onPress={() => setShowAddPartsSiteDropdown(!showAddPartsSiteDropdown)}
+          >
+            <Text style={{ color: addPartsFilterSiteId ? '#A855F7' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {addPartsFilterSiteId ? allSites.find(site => site.id === addPartsFilterSiteId)?.name || 'Select Site' : 'All Sites'}
+            </Text>
+          </TouchableOpacity>
+          {showAddPartsSiteDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity onPress={() => { setAddPartsFilterSiteId(''); setShowAddPartsSiteDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Sites</Text>
+                </TouchableOpacity>
+                {addPartsSiteOptions.map(site => (
+                  <TouchableOpacity key={site.id} onPress={() => { setAddPartsFilterSiteId(site.id); setShowAddPartsSiteDropdown(false); }} style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{site.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>Search by Name</Text>
+          <TextInput
+            style={[styles.input, { marginTop: 0, marginBottom: 16 }]}
+            placeholder="Search induction name..."
+            value={addPartsFilterName}
+            onChangeText={setAddPartsFilterName}
+          />
+
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 12 }}>
             Completed Inductions ({completedInductions.length}):
           </Text>
@@ -1202,11 +1392,15 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
 
   // RETURNING CONTRACTOR FILTER SCREEN - Select contractor to redo induction
   if (step === 'info' && isNewContractor === 'returning') {
-    const filteredList = returningFilteredContractors.filter(contractor => {
-      const matchesCompany = !returningFilterCompanyId || contractor.company_id === returningFilterCompanyId;
-      const matchesBU = !returningFilterBUId || (contractor.business_unit_ids && contractor.business_unit_ids.includes(returningFilterBUId));
-      return matchesCompany && matchesBU;
-    });
+    const returningSiteOptions = getSitesForBUFilter(returningFilterBUId);
+    const filteredList = returningFilteredContractors.filter(contractor =>
+      matchesContractorFilters(contractor, {
+        buId: returningFilterBUId,
+        companyId: returningFilterCompanyId,
+        siteId: returningFilterSiteId,
+        nameQuery: returningFilterName,
+      })
+    );
 
     return (
       <View style={styles.container}>
@@ -1245,6 +1439,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                 <TouchableOpacity
                   onPress={() => {
                     setReturningFilterBUId('');
+                    setReturningFilterSiteId('');
                     setShowReturningBUDropdown(false);
                   }}
                   style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
@@ -1256,11 +1451,63 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                     key={bu.id}
                     onPress={() => {
                       setReturningFilterBUId(bu.id);
+                      setReturningFilterSiteId('');
                       setShowReturningBUDropdown(false);
                     }}
                     style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
                     <Text style={{ color: '#1F2937', fontSize: 13 }}>{bu.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Site Filter */}
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>
+            Filter by Site
+          </Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              marginBottom: 4,
+              backgroundColor: returningFilterSiteId ? '#E0E7FF' : '#F9FAFB',
+            }}
+            onPress={() => setShowReturningSiteDropdown(!showReturningSiteDropdown)}
+          >
+            <Text style={{ color: returningFilterSiteId ? '#3B82F6' : '#6B7280', fontSize: 14, fontWeight: '500' }}>
+              {returningFilterSiteId
+                ? allSites.find(site => site.id === returningFilterSiteId)?.name || 'Select Site'
+                : 'All Sites'}
+            </Text>
+          </TouchableOpacity>
+
+          {showReturningSiteDropdown && (
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 12, maxHeight: 150 }}>
+              <ScrollView>
+                <TouchableOpacity
+                  onPress={() => {
+                    setReturningFilterSiteId('');
+                    setShowReturningSiteDropdown(false);
+                  }}
+                  style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                >
+                  <Text style={{ color: '#1F2937', fontSize: 13 }}>All Sites</Text>
+                </TouchableOpacity>
+                {returningSiteOptions.map(site => (
+                  <TouchableOpacity
+                    key={site.id}
+                    onPress={() => {
+                      setReturningFilterSiteId(site.id);
+                      setShowReturningSiteDropdown(false);
+                    }}
+                    style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ color: '#1F2937', fontSize: 13 }}>{site.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -1318,8 +1565,18 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
             </View>
           )}
 
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>
+            Search by Name
+          </Text>
+          <TextInput
+            style={[styles.input, { marginTop: 0, marginBottom: 12 }]}
+            placeholder="Search contractor name or email..."
+            value={returningFilterName}
+            onChangeText={setReturningFilterName}
+          />
+
           {/* Contractors List */}
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 12 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 4 }}>
             Contractors ({filteredList.length})
           </Text>
 
