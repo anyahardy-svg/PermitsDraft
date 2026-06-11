@@ -38,6 +38,8 @@ import { handoverPermit } from './src/api/permitHandovers';
 import { getAllPendingJoinRequests } from './src/api/joinRequests';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
+import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
+import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
@@ -25049,11 +25051,12 @@ const AppRouter = ({ initialRoute }) => {
             '/inductions/resume/',
           ];
           const isKioskRoute = kioskRoutePaths.includes(pathname);
+          const isStandaloneInduction = isStandaloneInductionRoute(hostname, pathname);
           
           // Check for ?mode=kiosk parameter in URL
           const testMode = fullUrl.includes('mode=kiosk');
           
-          const isKioskMode = isKioskSubdomain || testMode || isKioskRoute;
+          const isKioskMode = (isKioskSubdomain || testMode || isKioskRoute) && !isStandaloneInduction;
           
           console.log(`${isKioskMode ? '✅ KIOSK MODE' : '📊 PERMIT MODE'} - Subdomain: ${isKioskSubdomain}, TestMode: ${testMode}, KioskRoute: ${isKioskRoute}`);
           
@@ -25081,9 +25084,14 @@ const AppRouter = ({ initialRoute }) => {
     console.log(`🔄 Switched to ${!isKiosk ? 'KIOSK' : 'PERMIT'} mode`);
   };
 
+  const standaloneInductionActive = typeof window !== 'undefined'
+    && isStandaloneInductionRoute(window.location.hostname, window.location.pathname);
+
   // Determine what to render
   let mainContent;
-  if (isKiosk && kioskViewingPermits) {
+  if (standaloneInductionActive) {
+    mainContent = <StandaloneInductionScreen />;
+  } else if (isKiosk && kioskViewingPermits) {
     // In kiosk mode viewing permits - render main app with site auto-selected
     mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
   } else if (isKiosk) {

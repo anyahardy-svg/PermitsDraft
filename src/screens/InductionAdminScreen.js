@@ -28,6 +28,7 @@ import {
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
 import { listAllServices } from '../api/services';
+import { copyContractorInductionLink, getContractorInductionUrl } from '../utils/inductionLinks';
 
 /**
  * InductionAdminScreen - Manage inductions (single table, simple form)
@@ -404,6 +405,15 @@ export default function InductionAdminScreen({ onBack, styles }) {
     }
   };
 
+  const handleCopyInductionLink = async () => {
+    try {
+      const url = await copyContractorInductionLink('/inductions/');
+      Alert.alert('Link Copied', `Induction link copied:\n${url}`);
+    } catch (error) {
+      Alert.alert('Copy Failed', error?.message || 'Could not copy the induction link.');
+    }
+  };
+
   const toggleBusinessUnit = (buId) => {
     const currentIds = Array.isArray(formData.business_unit_ids) ? formData.business_unit_ids : [];
     const updatedIds = currentIds.includes(buId)
@@ -453,6 +463,23 @@ export default function InductionAdminScreen({ onBack, styles }) {
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F3F4F6' }}>
+        <View style={{ backgroundColor: '#EFF6FF', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 12 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E3A8A', marginBottom: 4 }}>
+            Share induction link
+          </Text>
+          <Text style={{ fontSize: 13, color: '#1E40AF', marginBottom: 8 }}>
+            Send this link to contractors. It works on any device and does not require a site kiosk.
+          </Text>
+          <Text selectable style={{ fontSize: 12, color: '#1F2937', marginBottom: 12 }}>
+            {getContractorInductionUrl('/inductions/')}
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+            onPress={handleCopyInductionLink}
+          >
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Copy Link</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={{ backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 12 }} onPress={handleAddInduction}>
           <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>+ Add Induction</Text>
         </TouchableOpacity>

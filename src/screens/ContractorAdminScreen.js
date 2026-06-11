@@ -24,6 +24,7 @@ import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
 import ContractorAuthScreen from './ContractorAuthScreen';
 import HelpModal from '../components/HelpModal';
+import { copyContractorInductionLink, getContractorInductionUrl } from '../utils/inductionLinks';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack,
@@ -1161,6 +1162,69 @@ export default function ContractorAdminScreen({
     }
   }, []);
 
+  const handleCopyInductionLink = useCallback(async () => {
+    try {
+      const url = await copyContractorInductionLink('/inductions/');
+      showUserMessage('Link Copied', `Induction link copied:\n${url}`);
+    } catch (error) {
+      showUserMessage('Copy Failed', error?.message || 'Could not copy the induction link.');
+    }
+  }, []);
+
+  const renderInductionSharePanel = () => {
+    const inductionUrl = getContractorInductionUrl('/inductions/');
+
+    return (
+      <View style={{ padding: 16, paddingBottom: 8, gap: 8 }}>
+        <View style={{ backgroundColor: '#EFF6FF', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E3A8A', marginBottom: 4 }}>
+            Share induction link
+          </Text>
+          <Text style={{ fontSize: 13, color: '#1E40AF', marginBottom: 8 }}>
+            Send this link to contractors. They can complete inductions online without visiting a site kiosk.
+          </Text>
+          <Text selectable style={{ fontSize: 12, color: '#1F2937', marginBottom: 12 }}>
+            {inductionUrl}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#3B82F6',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+              onPress={handleCopyInductionLink}
+            >
+              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                Copy Link
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#E0E7FF',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                window.open(inductionUrl, '_blank');
+              }}
+            >
+              <Text style={{ color: '#1D4ED8', fontSize: 14, fontWeight: '600' }}>
+                Open Link
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   // Render inductions tab in table format
   const renderInductions = () => {
     if (loadingInductions) {
@@ -1183,10 +1247,15 @@ export default function ContractorAdminScreen({
 
     if (inductedContractors.length === 0) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
-            No contractors inducted yet
-          </Text>
+        <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+            {renderInductionSharePanel()}
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
+                No contractors inducted yet
+              </Text>
+            </View>
+          </ScrollView>
         </View>
       );
     }
@@ -1194,25 +1263,7 @@ export default function ContractorAdminScreen({
     return (
       <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
-          {/* Start New Induction Button */}
-          <View style={{ padding: 16, paddingBottom: 8 }}>
-            <TouchableOpacity 
-              style={{
-                backgroundColor: '#3B82F6',
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 8,
-                alignItems: 'center'
-              }}
-              onPress={() => {
-                window.open('https://wa-hunua-quarry-kiosk.contractorhq.co.nz/inductions/', '_blank');
-              }}
-            >
-              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                ➕ Start New Induction
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {renderInductionSharePanel()}
 
           {/* Table Wrapper with horizontal scroll for wide table */}
           <ScrollView horizontal showsHorizontalScrollIndicator>
