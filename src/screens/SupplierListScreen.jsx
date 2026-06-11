@@ -15,6 +15,7 @@ import {
   getAllSuppliers,
   inviteSupplier,
 } from '../api/supplierApi';
+import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 
 const RISK_COLORS = {
   Critical: { backgroundColor: '#FCA5A5', color: '#7F1D1D' },
@@ -41,12 +42,6 @@ function formatDate(dateString) {
   }
 
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-}
-
-function getDefaultDeadline() {
-  const today = new Date();
-  const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
-  return `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
 }
 
 function parseDateToISO(dateString) {
@@ -100,7 +95,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
     email: '',
     techContactName: '',
     riskClassification: '',
-    deadline: getDefaultDeadline(),
+    deadline: getDefaultAccreditationDeadline(),
   });
   const [importStatus, setImportStatus] = useState('idle');
   const [importMessage, setImportMessage] = useState('');
@@ -147,7 +142,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       email: '',
       techContactName: '',
       riskClassification: '',
-      deadline: getDefaultDeadline(),
+      deadline: getDefaultAccreditationDeadline(),
     });
     setShowInviteModal(true);
   };
