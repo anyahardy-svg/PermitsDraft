@@ -40,6 +40,7 @@ import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
+import { getDefaultAccreditationDeadline } from './src/utils/accreditation';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
@@ -10419,13 +10420,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
               </View>
               <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { 
-                // Calculate 2 months from today
-                const today = new Date();
-                const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
-                const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
-                
                 setShowNewCompanyInvitationModal(true); 
-                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: deadlineStr, contractor_type: 'D' }); 
+                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: getDefaultAccreditationDeadline(), contractor_type: 'D' }); 
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
@@ -10607,11 +10603,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 onPress={() => {
                                   setSelectedCompanyForInvitation(company);
                                   
-                                  // Calculate 2 months from today
-                                  const today = new Date();
-                                  const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
-                                  const deadlineStr = `${String(twoMonthsLater.getDate()).padStart(2, '0')}/${String(twoMonthsLater.getMonth() + 1).padStart(2, '0')}/${twoMonthsLater.getFullYear()}`;
-                                  
                                   // Try both snake_case and camelCase for email field
                                   const contactEmail = company.contact_email || company.contactEmail || '';
                                   
@@ -10619,7 +10610,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     email: contactEmail, 
                                     deadline: company.accreditation_deadline 
                                       ? new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                                      : deadlineStr
+                                      : getDefaultAccreditationDeadline()
                                   });
                                   setShowInvitationModal(true);
                                 }}
