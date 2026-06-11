@@ -27,5 +27,20 @@ ADD COLUMN IF NOT EXISTS service_id UUID REFERENCES services(id) ON DELETE CASCA
 ALTER TABLE inductions
 ADD COLUMN IF NOT EXISTS force_compulsory_with_service_id UUID;
 
+-- Add force_compulsory_with_service_ids array for multiple service triggers
+ALTER TABLE inductions
+ADD COLUMN IF NOT EXISTS force_compulsory_with_service_ids UUID[] DEFAULT '{}';
+
+UPDATE inductions
+SET force_compulsory_with_service_ids = ARRAY[force_compulsory_with_service_id]
+WHERE force_compulsory_with_service_id IS NOT NULL
+  AND (
+    force_compulsory_with_service_ids IS NULL
+    OR force_compulsory_with_service_ids = '{}'
+  );
+
+CREATE INDEX IF NOT EXISTS idx_inductions_force_compulsory_service_ids
+  ON inductions USING GIN (force_compulsory_with_service_ids);
+
 -- Update index on services
 CREATE INDEX IF NOT EXISTS idx_inductions_service ON inductions(service_id);

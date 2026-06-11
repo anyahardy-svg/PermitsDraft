@@ -32,19 +32,68 @@ function getNZTimestamp() {
 // INDUCTIONS MANAGEMENT (Creation, Reading, Updating, Deleting)
 // ============================================================================
 
-function normalizeForceCompulsoryServiceIds(inductionData) {
-  if (Array.isArray(inductionData.force_compulsory_with_service_ids)) {
-    return inductionData.force_compulsory_with_service_ids.filter(Boolean);
+function parseForceCompulsoryServiceIdList(rawValue) {
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter(Boolean);
   }
-  if (inductionData.force_compulsory_with_service_id) {
-    return [inductionData.force_compulsory_with_service_id];
+  if (typeof rawValue === 'string') {
+    const trimmed = rawValue.trim();
+    if (!trimmed || trimmed === '{}') {
+      return [];
+    }
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed
+        .slice(1, -1)
+        .split(',')
+        .map((id) => id.trim().replace(/^"(.*)"$/, '$1'))
+        .filter(Boolean);
+    }
+    return [trimmed];
   }
   return [];
 }
 
+export function getForceCompulsoryServiceIds(induction) {
+  const forceServiceIds = new Set();
+  parseForceCompulsoryServiceIdList(induction?.force_compulsory_with_service_ids)
+    .forEach((id) => forceServiceIds.add(id));
+  if (induction?.force_compulsory_with_service_id) {
+    forceServiceIds.add(induction.force_compulsory_with_service_id);
+  }
+  return Array.from(forceServiceIds);
+}
+
+function normalizeForceCompulsoryServiceIds(inductionData) {
+  const ids = getForceCompulsoryServiceIds(inductionData);
+  return ids.filter(Boolean);
+}
+
+function normalizeInductionRecord(induction) {
+  if (!induction) return induction;
+  const forceCompulsoryServiceIds = getForceCompulsoryServiceIds(induction);
+  return {
+    ...induction,
+    force_compulsory_with_service_ids: forceCompulsoryServiceIds,
+    force_compulsory_with_service_id: forceCompulsoryServiceIds[0] || null,
+  };
+}
+
 function isMissingForceServiceIdsColumnError(error) {
-  const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-  return message.includes('force_compulsory_with_service_ids');
+  const message = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase();
+  return (
+    message.includes('force_compulsory_with_service_ids') &&
+    (message.includes('does not exist') ||
+      message.includes('could not find') ||
+      message.includes('schema cache'))
+  );
+}
+
+function createForceCompulsoryMigrationError() {
+  const migrationError = new Error(
+    'Saving multiple force-compulsory services requires a database update. Please run migration migrations/add-force-compulsory-service-ids-array.sql.'
+  );
+  migrationError.code = 'FORCE_COMPULSORY_MIGRATION_REQUIRED';
+  return migrationError;
 }
 
 function applyForceCompulsoryFields(record, forceCompulsoryServiceIds, includeArrayColumn = true) {
@@ -67,7 +116,7 @@ export async function getAllInductions() {
       .order('induction_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(normalizeInductionRecord);
   } catch (error) {
     console.error('Error fetching inductions:', error);
     throw error;
@@ -91,7 +140,7 @@ export async function getInductionsByBusinessUnit(businessUnitId, contractorServ
     if (error) throw error;
 
     if (skipServiceFilter) {
-      return data || [];
+      return (data || []).map(normalizeInductionRecord);
     }
     
     // Filter by services in JavaScript (easier than complex SQL OR conditions)
@@ -108,7 +157,7 @@ export async function getInductionsByBusinessUnit(businessUnitId, contractorServ
       return false;
     }) || [];
 
-    return filtered;
+    return filtered.map(normalizeInductionRecord);
   } catch (error) {
     console.error('Error fetching inductions for business unit:', error);
     throw error;
@@ -129,7 +178,7 @@ export async function getInductionsBySite(siteId) {
       .order('induction_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(normalizeInductionRecord);
   } catch (error) {
     console.error('Error fetching inductions for site:', error);
     throw error;
@@ -153,7 +202,7 @@ export async function getInductionsForContractor(contractorId, businessUnitId) {
     const { data, error } = await query.order('induction_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(normalizeInductionRecord);
   } catch (error) {
     console.error('Error fetching inductions for contractor:', error);
     throw error;
@@ -175,7 +224,7 @@ export async function getCompulsoryInductions(businessUnitId) {
       .order('induction_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(normalizeInductionRecord);
   } catch (error) {
     console.error('Error fetching compulsory inductions:', error);
     throw error;
@@ -221,6 +270,9 @@ export async function createInduction(inductionData) {
       .select();
 
     if (error && isMissingForceServiceIdsColumnError(error)) {
+      if (forceCompulsoryServiceIds.length > 1) {
+        throw createForceCompulsoryMigrationError();
+      }
       const legacyInsertData = applyForceCompulsoryFields({
         ...insertData,
       }, forceCompulsoryServiceIds, false);
@@ -232,7 +284,7 @@ export async function createInduction(inductionData) {
     }
 
     if (error) throw error;
-    return data ? data[0] : null;
+    return data ? normalizeInductionRecord(data[0]) : null;
   } catch (error) {
     console.error('Error creating induction:', error);
     throw error;
@@ -281,6 +333,9 @@ export async function updateInduction(inductionId, updates) {
       .select();
 
     if (error && isMissingForceServiceIdsColumnError(error)) {
+      if (forceCompulsoryServiceIds.length > 1) {
+        throw createForceCompulsoryMigrationError();
+      }
       const legacyUpdateData = applyForceCompulsoryFields({
         ...updateData,
       }, forceCompulsoryServiceIds, false);
@@ -293,7 +348,7 @@ export async function updateInduction(inductionId, updates) {
     }
 
     if (error) throw error;
-    return data ? data[0] : null;
+    return data ? normalizeInductionRecord(data[0]) : null;
   } catch (error) {
     console.error('Error updating induction:', error);
     throw error;
