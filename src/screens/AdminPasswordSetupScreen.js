@@ -44,7 +44,7 @@ export default function AdminPasswordSetupScreen({ email, onPasswordSet, onCance
       const { error: updateError } = await supabase
         .from('admin_users')
         .update({ password_hash: passwordHash })
-        .eq('email', email);
+        .ilike('email', email.trim());
 
       if (updateError) {
         console.error('❌ Password update error:', updateError);

@@ -5,9 +5,33 @@
 
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
+import { normalizeEmailInput } from '../utils/emailNormalization';
 
 const isMissingSiteIdsColumn = (error) =>
   error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
+
+async function findAdminUserByEmail(email, selectFields, fallbackSelectFields = null) {
+  const normalizedEmail = normalizeEmailInput(email);
+  if (!normalizedEmail) {
+    return { data: null, error: { message: 'Missing email' } };
+  }
+
+  let result = await supabase
+    .from('admin_users')
+    .select(selectFields)
+    .ilike('email', normalizedEmail)
+    .maybeSingle();
+
+  if (result.error && isMissingSiteIdsColumn(result.error) && fallbackSelectFields) {
+    result = await supabase
+      .from('admin_users')
+      .select(fallbackSelectFields)
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+  }
+
+  return result;
+}
 
 /**
  * Login admin user with email and password
@@ -17,27 +41,17 @@ const isMissingSiteIdsColumn = (error) =>
  */
 export async function loginAdminUser(email, password) {
   try {
-    console.log('🔐 Admin login attempt:', email);
+    const normalizedEmail = normalizeEmailInput(email);
+    console.log('🔐 Admin login attempt:', normalizedEmail);
 
-    // Query admin_users table
-    let { data: adminUser, error: fetchError } = await supabase
-      .from('admin_users')
-      .select('id, email, password_hash, name, role, site_ids')
-      .eq('email', email)
-      .single();
-
-    if (fetchError && isMissingSiteIdsColumn(fetchError)) {
-      const retry = await supabase
-        .from('admin_users')
-        .select('id, email, password_hash, name, role')
-        .eq('email', email)
-        .single();
-      adminUser = retry.data;
-      fetchError = retry.error;
-    }
+    const { data: adminUser, error: fetchError } = await findAdminUserByEmail(
+      normalizedEmail,
+      'id, email, password_hash, name, role, site_ids',
+      'id, email, password_hash, name, role'
+    );
 
     if (fetchError || !adminUser) {
-      console.error('❌ Admin user not found:', email);
+      console.error('❌ Admin user not found:', normalizedEmail);
       return {
         success: false,
         error: 'Password or username incorrect'
@@ -48,14 +62,14 @@ export async function loginAdminUser(email, password) {
     const passwordMatch = await bcrypt.compare(password, adminUser.password_hash);
 
     if (!passwordMatch) {
-      console.error('❌ Password mismatch for:', email);
+      console.error('❌ Password mismatch for:', adminUser.email);
       return {
         success: false,
         error: 'Password or username incorrect'
       };
     }
 
-    console.log('✅ Admin login successful:', email, 'Role:', adminUser.role);
+    console.log('✅ Admin login successful:', adminUser.email, 'Role:', adminUser.role);
     return {
       success: true,
       data: {
@@ -333,13 +347,13 @@ export async function changeAdminPassword(userId, currentPassword, newPassword) 
  */
 export async function checkAdminPasswordSetup(email) {
   try {
-    console.log('🔍 Checking password setup for:', email);
+    const normalizedEmail = normalizeEmailInput(email);
+    console.log('🔍 Checking password setup for:', normalizedEmail);
     
-    const { data: adminUser, error } = await supabase
-      .from('admin_users')
-      .select('id, password_hash')
-      .eq('email', email)
-      .single();
+    const { data: adminUser, error } = await findAdminUserByEmail(
+      normalizedEmail,
+      'id, email, password_hash'
+    );
 
     if (error) {
       console.error('❌ Error fetching admin user:', error);
@@ -347,7 +361,7 @@ export async function checkAdminPasswordSetup(email) {
     }
 
     if (!adminUser) {
-      console.log('⚠️ Admin user not found:', email);
+      console.log('⚠️ Admin user not found:', normalizedEmail);
       return { needsSetup: false };
     }
 
@@ -359,7 +373,7 @@ export async function checkAdminPasswordSetup(email) {
     return {
       needsSetup,
       adminId: adminUser.id,
-      email
+      email: adminUser.email,
     };
   } catch (error) {
     console.error('❌ Error checking password setup:', error);
@@ -374,17 +388,16 @@ export async function checkAdminPasswordSetup(email) {
  */
 export async function requestPasswordReset(email) {
   try {
-    console.log('🔐 Password reset requested for:', email);
+    const normalizedEmail = normalizeEmailInput(email);
+    console.log('🔐 Password reset requested for:', normalizedEmail);
 
-    // Find admin by email
-    const { data: adminUser, error: fetchError } = await supabase
-      .from('admin_users')
-      .select('id, email')
-      .eq('email', email)
-      .single();
+    const { data: adminUser, error: fetchError } = await findAdminUserByEmail(
+      normalizedEmail,
+      'id, email'
+    );
 
     if (fetchError || !adminUser) {
-      console.log('ℹ️ No admin user found for:', email);
+      console.log('ℹ️ No admin user found for:', normalizedEmail);
       // Don't reveal if email exists or not (security best practice)
       return {
         success: true,

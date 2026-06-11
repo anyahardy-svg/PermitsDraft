@@ -41,10 +41,14 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
 
       if (setupCheck.needsSetup) {
         console.log('🔐 Showing password setup screen');
-        setSetupEmail(email);
+        setSetupEmail(setupCheck.email || email);
+        setEmail(setupCheck.email || email);
         setShowPasswordSetup(true);
       } else if (setupCheck.adminId) {
         console.log('✅ User has password, showing login');
+        if (setupCheck.email) {
+          setEmail(setupCheck.email);
+        }
         setEmailSubmitted(true);
       } else {
         setError('Admin account not found');

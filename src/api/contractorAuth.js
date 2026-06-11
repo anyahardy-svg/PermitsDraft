@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { normalizeEmailInput, uniqueEmailCandidates } from '../utils/emailNormalization';
 
 const getJoinRequestCompanyId = async (email) => {
   if (!supabase || !email) {
@@ -47,6 +48,56 @@ const buildProfileFromAuthUser = (user) => {
   }
 
   return null;
+};
+
+const resolveAuthEmailForLogin = async (email) => {
+  const trimmed = normalizeEmailInput(email);
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  try {
+    if (typeof fetch !== 'undefined') {
+      const response = await fetch('/api/resolve-auth-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.email) {
+          return result.email;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not resolve auth email via API:', error.message);
+  }
+
+  const contractor = await lookupContractorByEmail(trimmed);
+  return contractor?.email || trimmed;
+};
+
+const signInWithEmailCaseInsensitive = async (email, password) => {
+  const resolvedEmail = await resolveAuthEmailForLogin(email);
+  const candidates = uniqueEmailCandidates(resolvedEmail, email);
+
+  let lastError = null;
+  for (const tryEmail of candidates) {
+    const result = await supabase.auth.signInWithPassword({
+      email: tryEmail,
+      password,
+    });
+
+    if (!result.error) {
+      return result;
+    }
+
+    lastError = result.error;
+  }
+
+  return { data: { user: null, session: null }, error: lastError };
 };
 
 const lookupContractorByEmail = async (email) => {
@@ -170,11 +221,11 @@ const resolveAuthUserProfile = async (user, accessToken) => {
  */
 export async function loginWithEmailPassword(email, password) {
   try {
-    // Sign in with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
+    const normalizedEmail = normalizeEmailInput(email);
+    const { data: authData, error: authError } = await signInWithEmailCaseInsensitive(
+      normalizedEmail,
       password
-    });
+    );
 
     if (authError) {
       return { success: false, error: authError.message };
@@ -184,7 +235,7 @@ export async function loginWithEmailPassword(email, password) {
       return { success: false, error: 'Login failed' };
     }
 
-    console.log('✅ Auth sign in successful for:', email);
+    console.log('✅ Auth sign in successful for:', authData.user.email || normalizedEmail);
     console.log('👤 User type from metadata:', authData.user.user_metadata?.user_type);
 
     const profile = await resolveAuthUserProfile(
@@ -193,7 +244,7 @@ export async function loginWithEmailPassword(email, password) {
     );
 
     if (!profile) {
-      console.error('❌ Could not resolve profile for authenticated user:', email);
+      console.error('❌ Could not resolve profile for authenticated user:', normalizedEmail);
       return {
         success: false,
         error: 'Your contractor account is not set up. Please contact your administrator.',
@@ -201,7 +252,7 @@ export async function loginWithEmailPassword(email, password) {
     }
 
     if (!profile.contractorId && !profile.companyId && profile.userType !== 'admin_staff') {
-      console.error('❌ Authenticated user has no contractor profile:', email);
+      console.error('❌ Authenticated user has no contractor profile:', normalizedEmail);
       return {
         success: false,
         error: 'Your contractor account is not set up. Please contact your administrator.',
@@ -316,8 +367,8 @@ export async function inviteContractor(email) {
     const { data: contractorData, error: contractorError } = await supabase
       .from('contractors')
       .select('id, email, name')
-      .eq('email', email)
-      .single();
+      .ilike('email', normalizeEmailInput(email))
+      .maybeSingle();
 
     if (contractorError || !contractorData) {
       return { 
@@ -377,14 +428,15 @@ export async function inviteContractor(email) {
  */
 export async function sendPasswordResetCode(email) {
   try {
-    console.log('🔑 Sending password reset code to:', email);
+    const resolvedEmail = await resolveAuthEmailForLogin(email);
+    console.log('🔑 Sending password reset code to:', resolvedEmail);
     
     // Don't require contractor record to exist - just send the email
     // This supports newly approved contractors who may not be fully set up yet
     
     // Send password reset code via Supabase (sends 6-digit OTP)
     console.log('📧 Sending password reset code via Supabase');
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
       redirectTo: typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/callback` 
         : 'https://contractorhq.co.nz/auth/callback'
@@ -401,7 +453,7 @@ export async function sendPasswordResetCode(email) {
     console.log('✅ Password reset code sent successfully');
     return { 
       success: true, 
-      message: `Password reset code has been sent to ${email}. Check your email for a 6-digit code.`
+      message: `Password reset code has been sent to ${resolvedEmail}. Check your email for a 6-digit code.`
     };
   } catch (error) {
     console.error('❌ Password reset error:', error);
@@ -427,11 +479,12 @@ export async function sendPasswordResetEmail(email) {
  */
 export async function verifyPasswordResetOtp(email, token) {
   try {
-    console.log('Verifying OTP for email:', email);
+    const resolvedEmail = await resolveAuthEmailForLogin(email);
+    console.log('Verifying OTP for email:', resolvedEmail);
     
     // Verify the OTP token for recovery (password reset)
     const { data, error } = await supabase.auth.verifyOtp({
-      email: email,
+      email: resolvedEmail,
       token: token.replace(/\s/g, ''), // Remove spaces
       type: 'recovery'
     });
