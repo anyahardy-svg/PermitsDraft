@@ -78,7 +78,16 @@ const getYouTubeEmbedUrl = (url) => {
   return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0` : null;
 };
 
-export default function ContractorInductionScreen({ onComplete, onCancel, styles, initialRoute, initialContractorId, onSelectInductionType, onBackToSelection }) {
+export default function ContractorInductionScreen({
+  onComplete,
+  onCancel,
+  styles,
+  initialRoute,
+  initialContractorId,
+  onSelectInductionType,
+  onBackToSelection,
+  standalone = false,
+}) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -884,7 +893,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
   if (step === 'info' && isNewContractor === null) {
     return (
       <View style={styles.container}>
-        {renderHeader('Contractor Induction', onCancel, '✕')}
+        {renderHeader('Contractor Induction', standalone ? onBackToSelection || onCancel : onCancel, standalone ? '←' : '✕')}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, justifyContent: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
@@ -2151,7 +2160,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           console.log('🎉 All inductions completed!');
           await finalizeContractorInductionStatus(newCompletedIds);
           setModalVisible(false);
-          Alert.alert('Success', 'All inductions completed. You can now sign in at the kiosk.', [
+          Alert.alert(
+            'Success',
+            standalone
+              ? 'All inductions completed. You can close this page.'
+              : 'All inductions completed. You can now sign in at the kiosk.',
+            [
             {
               text: 'OK',
               onPress: () => {
@@ -2230,7 +2244,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
               onPress={() => onCancel()} 
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                All Inductions Complete - Return to Kiosk
+                {standalone ? 'All Inductions Complete' : 'All Inductions Complete - Return to Kiosk'}
               </Text>
             </TouchableOpacity>
           )}
@@ -2721,7 +2735,12 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
                               console.warn('⚠️ Error saving progress, but continuing:', savErr.message);
                             }
                           }
-                          Alert.alert('Success', 'Progress saved! You can continue later.', [
+                          Alert.alert(
+                            'Success',
+                            standalone
+                              ? 'Progress saved! Return to this same link to continue.'
+                              : 'Progress saved! You can continue later.',
+                            [
                             {
                               text: 'OK',
                               onPress: () => {
@@ -3135,7 +3154,7 @@ export default function ContractorInductionScreen({ onComplete, onCancel, styles
           </Text>
           <TouchableOpacity style={styles.button} onPress={onComplete}>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
-              Return to Kiosk
+              {standalone ? 'Done' : 'Return to Kiosk'}
             </Text>
           </TouchableOpacity>
         </View>
