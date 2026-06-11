@@ -23,6 +23,7 @@ import {
   saveInductionAnswers,
   saveInductionProgress,
   completeInduction,
+  getForceCompulsoryServiceIds,
 } from '../api/inductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany } from '../api/companies';
@@ -44,17 +45,6 @@ const formatNameToTitleCase = (name) => {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
-};
-
-const getForceCompulsoryServiceIds = (induction) => {
-  const forceServiceIds = new Set();
-  if (Array.isArray(induction?.force_compulsory_with_service_ids)) {
-    induction.force_compulsory_with_service_ids.filter(Boolean).forEach(id => forceServiceIds.add(id));
-  }
-  if (induction?.force_compulsory_with_service_id) {
-    forceServiceIds.add(induction.force_compulsory_with_service_id);
-  }
-  return Array.from(forceServiceIds);
 };
 
 const inductionForcedByContractorServices = (induction, contractorServiceIds) => {

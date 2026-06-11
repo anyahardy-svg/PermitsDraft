@@ -18,6 +18,7 @@ import {
   createInduction,
   updateInduction,
   deleteInduction,
+  getForceCompulsoryServiceIds,
 } from '../api/inductions';
 import {
   uploadInductionPDF,
@@ -146,7 +147,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       description: induction.description || '',
       business_unit_ids: induction.business_unit_ids || [],
       service_id: induction.service_id || '',
-      force_compulsory_with_service_ids: induction.force_compulsory_with_service_ids || (induction.force_compulsory_with_service_id ? [induction.force_compulsory_with_service_id] : []),
+      force_compulsory_with_service_ids: getForceCompulsoryServiceIds(induction),
       site_id: induction.site_id || '',
       video_url: induction.video_url || '',
       video_duration: induction.video_duration?.toString() || '',
@@ -210,7 +211,10 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
     try {
       // Normalize correct answers for multi-select questions
-      const dataToSave = { ...formData };
+      const dataToSave = {
+        ...formData,
+        force_compulsory_with_service_ids: getForceCompulsoryServiceIds(formData),
+      };
       
       // DEBUG: Log what we're about to send
       console.log('📝 FormData service_id before save:', formData.service_id);
@@ -251,7 +255,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       Alert.alert('Success', dataToSave.id ? 'Induction updated' : 'Induction created');
     } catch (err) {
       console.error('❌ Full error object:', err);
-      Alert.alert('Error', 'Failed to save induction');
+      Alert.alert('Error', err.message || 'Failed to save induction');
     }
   };
 
@@ -523,16 +527,20 @@ export default function InductionAdminScreen({ onBack, styles }) {
               </Text>
             ) : (
               getApplicableForceServices().map(service => {
-                const isSelected = formData.force_compulsory_with_service_ids?.includes(service.id);
+                const selectedForceIds = getForceCompulsoryServiceIds(formData);
+                const isSelected = selectedForceIds.includes(service.id);
                 return (
                   <TouchableOpacity
                     key={`force_${service.id}`}
                     onPress={() => {
-                      const currentForceIds = formData.force_compulsory_with_service_ids || [];
-                      const newIds = isSelected
-                        ? currentForceIds.filter(id => id !== service.id)
-                        : [...currentForceIds, service.id];
-                      setFormData({ ...formData, force_compulsory_with_service_ids: newIds });
+                      setFormData((prev) => {
+                        const currentForceIds = getForceCompulsoryServiceIds(prev);
+                        const currentlySelected = currentForceIds.includes(service.id);
+                        const newIds = currentlySelected
+                          ? currentForceIds.filter((id) => id !== service.id)
+                          : [...currentForceIds, service.id];
+                        return { ...prev, force_compulsory_with_service_ids: newIds };
+                      });
                     }}
                     style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
                   >
