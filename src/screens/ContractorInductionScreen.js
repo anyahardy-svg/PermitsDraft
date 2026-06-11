@@ -18,6 +18,7 @@ import {
   getInductionsByBusinessUnit,
   getInductionsForContractor,
   getContractorInductionProgress,
+  listContractorsWithIncompleteInductions,
   getInductionProgress,
   startInduction,
   saveInductionAnswers,
@@ -417,42 +418,16 @@ export default function ContractorInductionScreen({
     try {
       setLoading(true);
       setError('Loading contractors with incomplete inductions...');
-      
-      // Load all contractors
-      const allContractorsData = await listContractors();
-      
-      // Load progress for ALL contractors in parallel (not sequential!)
-      const progressPromises = allContractorsData.map(contractor =>
-        getContractorInductionProgress(contractor.id)
-          .then(progressData => ({
-            contractorId: contractor.id,
-            contractor,
-            progressData,
-          }))
-          .catch(err => {
-            console.error('Error loading progress for', contractor.id, ':', err);
-            return { contractorId: contractor.id, contractor, progressData: [] };
-          })
-      );
-      
-      const allProgress = await Promise.all(progressPromises);
-      
-      // Filter to only contractors with incomplete inductions
-      const contractorsWithIncomplete = allProgress
-        .filter(({ progressData }) => progressData.some(p => p.status === 'in_progress'))
-        .map(({ contractor, progressData }) => ({
-          ...contractor,
-          incompleteCount: progressData.filter(p => p.status === 'in_progress').length
-        }));
-      
+
+      const contractorsWithIncomplete = await listContractorsWithIncompleteInductions();
+
       setError('');
-      
+
       if (contractorsWithIncomplete.length === 0) {
         Alert.alert('No Saved Inductions', 'No contractors have incomplete inductions to resume.');
         return;
       }
-      
-      // Temporarily store contractors with incomplete inductions
+
       setContractors(contractorsWithIncomplete);
       setIsNewContractor('choose-contractor-for-resume');
     } catch (err) {
