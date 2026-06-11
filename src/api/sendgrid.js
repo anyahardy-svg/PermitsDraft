@@ -149,3 +149,50 @@ export const sendAdminPasswordResetEmail = async (toEmail, adminName, resetUrl) 
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send supplier accreditation invitation email via backend API
+ * @param {string} toEmail
+ * @param {string} companyName
+ * @param {Date|null} deadline
+ * @param {string|null} supplierId
+ * @param {string|null} contactName
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+export const sendSupplierInvitation = async (
+  toEmail,
+  companyName,
+  deadline = null,
+  supplierId = null,
+  contactName = null
+) => {
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'supplier-invitation',
+        toEmail,
+        companyName,
+        deadline,
+        supplierId,
+        contactName,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Error sending supplier invitation:', error);
+      return { success: false, error: error.error || 'Failed to send email' };
+    }
+
+    const data = await response.json();
+    console.log('✅ Supplier invitation sent to:', toEmail);
+    return { success: true, messageId: data.messageId };
+  } catch (error) {
+    console.error('❌ Error sending supplier invitation:', error);
+    return { success: false, error: error.message };
+  }
+};

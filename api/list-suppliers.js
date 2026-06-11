@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/suppliers?select=id,company_name,risk_classification,status,created_at&order=company_name.asc`,
+      `${SUPABASE_URL}/rest/v1/suppliers?select=id,company_name,risk_classification,status,created_at,contact_email,tech_contact_name,invitation_sent_at,accreditation_deadline&order=company_name.asc`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
