@@ -409,6 +409,44 @@ export async function getContractorInductionProgress(contractorId) {
 }
 
 /**
+ * Get contractors who have at least one in-progress induction.
+ * Uses a single query instead of loading every contractor individually.
+ * @returns {Array} Contractors with incompleteCount for each
+ */
+export async function listContractorsWithIncompleteInductions() {
+  try {
+    const { data, error } = await supabase
+      .from('contractor_induction_progress')
+      .select('contractor_id, contractors(*)')
+      .eq('status', 'in_progress');
+
+    if (error) throw error;
+
+    const contractorMap = new Map();
+    for (const row of data || []) {
+      const contractor = row.contractors;
+      if (!contractor?.id) continue;
+
+      if (contractorMap.has(contractor.id)) {
+        contractorMap.get(contractor.id).incompleteCount += 1;
+      } else {
+        contractorMap.set(contractor.id, {
+          ...contractor,
+          incompleteCount: 1,
+        });
+      }
+    }
+
+    return Array.from(contractorMap.values()).sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+    );
+  } catch (error) {
+    console.error('Error fetching contractors with incomplete inductions:', error);
+    throw error;
+  }
+}
+
+/**
  * Get a specific induction progress record
  * @param {UUID} contractorId
  * @param {UUID} inductionId
