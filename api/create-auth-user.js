@@ -10,6 +10,88 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
+function getServiceHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+}
+
+function isEmailExistsError(status, parsed) {
+  const message = String(parsed?.message || parsed?.msg || parsed?.error || '').toLowerCase();
+  const errorCode = String(parsed?.error_code || parsed?.code || '').toLowerCase();
+
+  return (
+    errorCode === 'email_exists' ||
+    message.includes('already been registered') ||
+    message.includes('already exists')
+  );
+}
+
+async function fetchUserByEmail(email) {
+  const getUserUrl = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`;
+  const getUserResponse = await fetch(getUserUrl, {
+    method: 'GET',
+    headers: getServiceHeaders(),
+  });
+
+  if (!getUserResponse.ok) {
+    return null;
+  }
+
+  const usersData = await getUserResponse.json();
+  if (!usersData.users || usersData.users.length === 0) {
+    return null;
+  }
+
+  return usersData.users[0];
+}
+
+async function updateUserMetadata(userId, existingMetadata, metadata) {
+  const updateResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: getServiceHeaders(),
+    body: JSON.stringify({
+      user_metadata: {
+        ...(existingMetadata || {}),
+        ...metadata,
+      },
+    }),
+  });
+
+  if (!updateResponse.ok) {
+    const errorText = await updateResponse.text();
+    throw new Error(`Failed to update user metadata: ${errorText}`);
+  }
+}
+
+async function handleExistingUser(res, email, metadata) {
+  console.log('ℹ️ User already exists - fetching and updating metadata');
+
+  const existingUser = await fetchUserByEmail(email);
+  if (!existingUser) {
+    return res.status(400).json({
+      error: 'User already exists but could not retrieve their ID',
+    });
+  }
+
+  try {
+    await updateUserMetadata(existingUser.id, existingUser.user_metadata, metadata);
+    console.log('✅ Updated metadata for existing user:', existingUser.id);
+  } catch (updateError) {
+    console.warn('⚠️ Could not update existing user metadata:', updateError.message);
+  }
+
+  return res.status(200).json({
+    success: true,
+    userId: existingUser.id,
+    email: existingUser.email,
+    message: `User ${email} already exists`,
+    existing: true,
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -42,8 +124,12 @@ export default async function handler(req, res) {
     console.log(`👤 Creating or checking auth user: ${email} (${userType})`);
     console.log('📋 Request body:', { email, name, companyId, companyName, userType });
 
-    // Skip checking for existing users - just try to create
-    // If user exists, Supabase will return a 400 error that we can handle
+    const userMetadata = {
+      name: name || email,
+      company_name: companyName,
+      company_id: companyId,
+      user_type: userType,
+    };
 
     // Create user via Supabase Auth REST API using SERVICE ROLE KEY
     console.log('🔑 Creating new user with service role key');
@@ -56,12 +142,7 @@ export default async function handler(req, res) {
       email: email,
       password: tempPassword,  // Required by Supabase
       email_confirm: true,  // Auto-confirm so they don't need email verification
-      user_metadata: {
-        name: name || email,
-        company_name: companyName,
-        company_id: companyId,
-        user_type: userType
-      }
+      user_metadata: userMetadata,
     };
     
     console.log('📤 Sending to Supabase Auth:', { 
@@ -78,11 +159,7 @@ export default async function handler(req, res) {
     
     const authResponse = await fetch(authUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
+      headers: getServiceHeaders(),
       body: JSON.stringify(createBody)
     });
 
@@ -112,44 +189,8 @@ export default async function handler(req, res) {
         errorDetails = parsed;
         console.error('📋 Parsed error object:', JSON.stringify(parsed, null, 2));
         
-        // If user already exists, query for them to get their ID
-        if (authResponse.status === 400 && errorMsg.toLowerCase().includes('already exists')) {
-          console.log('ℹ️ User already exists - fetching their ID');
-          
-          const getUserUrl = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`;
-          try {
-            const getUserResponse = await fetch(getUserUrl, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_SERVICE_ROLE_KEY,
-                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              },
-            });
-
-            if (getUserResponse.ok) {
-              const usersData = await getUserResponse.json();
-              if (usersData.users && usersData.users.length > 0) {
-                const existingUser = usersData.users[0];
-                console.log('✅ Found existing user:', existingUser.id);
-                return res.status(200).json({
-                  success: true,
-                  userId: existingUser.id,
-                  email: existingUser.email,
-                  message: `User ${email} already exists`,
-                  existing: true
-                });
-              }
-            }
-          } catch (err) {
-            console.warn('⚠️ Could not fetch existing user:', err.message);
-          }
-          
-          // If we couldn't fetch them, return error
-          return res.status(400).json({ 
-            error: 'User already exists but could not retrieve their ID',
-            details: errorDetails
-          });
+        if (isEmailExistsError(authResponse.status, parsed)) {
+          return handleExistingUser(res, email, userMetadata);
         }
       } catch (e) {
         console.error('📋 Could not parse response as JSON:', e.message);

@@ -314,7 +314,11 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
       const authData = JSON.parse(authText);
       authUserId = authData.userId;
-      console.log('✅ Auth user created:', authUserId);
+      if (authData.existing) {
+        console.log('ℹ️ Reusing existing auth user:', authUserId);
+      } else {
+        console.log('✅ Auth user created:', authUserId);
+      }
     } catch (authErr) {
       console.error('❌ Error creating auth user:', authErr.message);
       return { success: false, error: 'Failed to create auth user: ' + authErr.message };
@@ -323,25 +327,37 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
     // STEP 2: Create contractor record if they'll work on site
     console.log('👤 STEP 2: Creating contractor record if needed');
     if (request.will_work_on_site) {
-      const { data: contractor, error: contractorError } = await supabase
+      const { data: existingContractor } = await supabase
         .from('contractors')
-        .insert([
-          {
-            name: request.name,
-            email: request.email,
-            company_id: companyIdToUse,
-            phone: request.phone
-          }
-        ])
-        .select();
+        .select('id')
+        .ilike('email', request.email.trim())
+        .eq('company_id', companyIdToUse)
+        .maybeSingle();
 
-      if (contractorError) {
-        console.error('❌ Error creating contractor:', contractorError);
-        return { success: false, error: 'Failed to create contractor record: ' + contractorError.message };
+      if (existingContractor) {
+        contractorId = existingContractor.id;
+        console.log('ℹ️ Reusing existing contractor record:', contractorId);
+      } else {
+        const { data: contractor, error: contractorError } = await supabase
+          .from('contractors')
+          .insert([
+            {
+              name: request.name,
+              email: request.email,
+              company_id: companyIdToUse,
+              phone: request.phone
+            }
+          ])
+          .select();
+
+        if (contractorError) {
+          console.error('❌ Error creating contractor:', contractorError);
+          return { success: false, error: 'Failed to create contractor record: ' + contractorError.message };
+        }
+
+        contractorId = contractor[0]?.id;
+        console.log('✅ Contractor record created:', contractorId);
       }
-
-      contractorId = contractor[0]?.id;
-      console.log('✅ Contractor record created:', contractorId);
     } else {
       console.log('ℹ️ Admin staff - no contractor record needed');
     }
