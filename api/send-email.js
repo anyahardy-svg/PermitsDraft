@@ -152,7 +152,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
-    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent, contactName, companyId } = req.body;
+    const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent, contactName, companyId, supplierId } = req.body;
 
     // Different types require different fields
     if (type === 'invitation') {
@@ -190,6 +190,13 @@ export default async function handler(req, res) {
       // Custom email for join requests - uses provided subject and htmlContent
       if (!subject || !htmlContent) {
         return res.status(400).json({ error: 'Missing subject or htmlContent for join-request' });
+      }
+    } else if (type === 'supplier-invitation') {
+      if (!toEmail) {
+        return res.status(400).json({ error: 'Missing toEmail' });
+      }
+      if (!companyName) {
+        return res.status(400).json({ error: 'Missing companyName for supplier invitation' });
       }
     }
 
@@ -358,6 +365,34 @@ export default async function handler(req, res) {
             <strong>Security Note:</strong> This link expires in 24 hours. Never share this link with anyone.
           </p>
           <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request a password reset, you can ignore this email. Your password remains unchanged.</p>
+        `;
+      }
+    } else if (type === 'supplier-invitation') {
+      const resolvedContactName = (contactName || '').trim() || 'Supplier Contact';
+      const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }) : 'As soon as possible';
+
+      if (dbTemplate) {
+        const rendered = renderTemplate(dbTemplate, {
+          companyName,
+          contactName: resolvedContactName,
+          deadline: deadlineStr,
+          supportEmail: SUPPORT_EMAIL,
+        });
+        actualSubject = rendered.subject;
+        actualHtmlContent = rendered.content;
+      } else {
+        actualSubject = `${companyName} - Complete Your Supplier Accreditation`;
+        actualHtmlContent = `
+          <h2>Supplier Accreditation Invitation</h2>
+          <p>Dear ${escapeHtml(resolvedContactName)},</p>
+          <p>${escapeHtml(companyName)} has been invited to complete a supplier accreditation questionnaire.</p>
+          <p><strong>Deadline:</strong> ${deadlineStr}</p>
+          <p>Our team will be in touch with the next steps to complete your supplier accreditation. If you have any questions in the meantime, please contact us at ${SUPPORT_EMAIL}.</p>
         `;
       }
     } else {
@@ -532,6 +567,41 @@ export default async function handler(req, res) {
       } catch (dbErr) {
         console.error(`❌ Error in invitation follow-up:`, dbErr);
         // Don't fail the operation - email was sent successfully
+      }
+    }
+
+    if (type === 'supplier-invitation') {
+      const { deadline: deadlineParam } = req.body;
+
+      try {
+        if (!SUPABASE_URL || !(SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
+          console.error('❌ Supabase credentials not available for supplier DB update');
+        } else if (supplierId) {
+          const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
+          const updateUrl = `${SUPABASE_URL}/rest/v1/suppliers?id=eq.${supplierId}`;
+          const updateResponse = await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              invitation_sent_at: new Date().toISOString(),
+              accreditation_deadline: deadlineDate,
+              contact_email: toEmail,
+            }),
+          });
+
+          if (updateResponse.ok) {
+            console.log(`✅ Updated supplier ${supplierId} with invitation sent date and deadline`);
+          } else {
+            const dbError = await updateResponse.text();
+            console.error(`❌ Failed to update supplier: ${updateResponse.status} - ${dbError}`);
+          }
+        }
+      } catch (dbErr) {
+        console.error('❌ Error in supplier invitation follow-up:', dbErr);
       }
     }
 

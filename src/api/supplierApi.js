@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { sendSupplierInvitation } from './sendgrid';
 
 /**
  * Fetch all suppliers from the suppliers table.
@@ -28,7 +29,7 @@ export async function getAllSuppliers() {
 
   const { data, error } = await supabase
     .from('suppliers')
-    .select('id, company_name, risk_classification, status, created_at')
+    .select('id, company_name, risk_classification, status, created_at, contact_email, tech_contact_name, invitation_sent_at, accreditation_deadline')
     .order('company_name', { ascending: true });
 
   if (error) {
@@ -53,7 +54,7 @@ export async function getSupplierById(supplierId) {
 
   const { data, error } = await supabase
     .from('suppliers')
-    .select('id, company_name, risk_classification, status, created_at')
+    .select('id, company_name, risk_classification, status, created_at, contact_email, tech_contact_name, invitation_sent_at, accreditation_deadline')
     .eq('id', supplierId)
     .maybeSingle();
 
@@ -320,4 +321,77 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
   }
 
   return data;
+}
+
+/**
+ * Create or update a supplier via the server API (service role).
+ * @param {Object} supplierData
+ * @returns {Promise<Object>}
+ */
+export async function createSupplier(supplierData) {
+  if (!supplierData?.company_name?.trim()) {
+    throw new Error('Company name is required');
+  }
+
+  const response = await fetch('/api/create-supplier', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(supplierData),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to save supplier (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a supplier and send an accreditation invitation email.
+ * @param {Object} params
+ * @returns {Promise<{supplier: Object, emailSent: boolean, warning?: string}>}
+ */
+export async function inviteSupplier({
+  companyName,
+  email,
+  riskClassification,
+  deadline,
+  techContactName,
+}) {
+  const supplier = await createSupplier({
+    company_name: companyName,
+    risk_classification: riskClassification,
+    contact_email: email,
+    tech_contact_name: techContactName,
+    upsert: true,
+  });
+
+  const emailResult = await sendSupplierInvitation(
+    email,
+    companyName,
+    deadline,
+    supplier.id,
+    techContactName
+  );
+
+  if (!emailResult.success) {
+    return {
+      supplier,
+      emailSent: false,
+      warning: emailResult.error || 'Supplier was created but the invitation email failed to send',
+    };
+  }
+
+  return {
+    supplier: {
+      ...supplier,
+      invitation_sent_at: new Date().toISOString(),
+      accreditation_deadline: deadline ? new Date(deadline).toISOString().split('T')[0] : supplier.accreditation_deadline,
+      contact_email: email,
+    },
+    emailSent: true,
+  };
 }
