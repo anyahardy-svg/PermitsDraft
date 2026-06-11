@@ -885,6 +885,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     
     return (
       <ContractorInductionScreen
+        key={currentScreen}
         styles={styles}
         initialRoute={inductionInitialState}
         initialContractorId={inductionPrefillContractorId}

@@ -97,8 +97,8 @@ export default function ContractorInductionScreen({
   // initialRoute can be 'new', 'returning', 'resume', or null
   const getInitialIsNewContractor = () => {
     if (initialRoute === 'new') return true;
-    if (initialRoute === 'returning') return false;
-    if (initialRoute === 'resume') return 'resume';
+    if (initialRoute === 'returning') return 'returning';
+    if (initialRoute === 'resume') return null; // Loaded via handleLoadIncompleteInductions on mount
     return null; // User chooses
   };
   
@@ -106,8 +106,6 @@ export default function ContractorInductionScreen({
   const [contractors, setContractors] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState('');
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
-  const [incompleteInductions, setIncompleteInductions] = useState([]);
-  const [showIncompleteInductionsDropdown, setShowIncompleteInductionsDropdown] = useState(false);
   
   // Returning Contractor filter state
   const [returningFilterCompanyId, setReturningFilterCompanyId] = useState('');
@@ -183,6 +181,7 @@ export default function ContractorInductionScreen({
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [pendingResumeChoice, setPendingResumeChoice] = useState(null); // Will be set when resume dialog needs to appear
   const [resumeInductionData, setResumeInductionData] = useState(null); // Data to use when they choose resume
+  const [loadSavedAnswersOnOpen, setLoadSavedAnswersOnOpen] = useState(false);
 
   // ============================================================================
   // HANDLERS FOR ADD PARTS TO EXISTING INDUCTION
@@ -241,6 +240,22 @@ export default function ContractorInductionScreen({
   // Load initial data
   useEffect(() => {
     loadCompaniesAndBU();
+  }, []);
+
+  // Handle deep-link routes on mount
+  useEffect(() => {
+    if (initialRoute === 'returning') {
+      setIsNewContractor('returning');
+      listContractors()
+        .then((data) => {
+          const allContractors = Array.isArray(data) ? data : [];
+          setContractors(allContractors);
+          setReturningFilteredContractors(allContractors);
+        })
+        .catch((err) => console.error('Failed to load contractors for returning route:', err));
+    } else if (initialRoute === 'resume') {
+      handleLoadIncompleteInductions();
+    }
   }, []);
 
   // Load sites when business units are selected (for pre-filled returning contractors)
@@ -360,6 +375,7 @@ export default function ContractorInductionScreen({
       });
       setSelectedContractorId(contractorId);
       setShowContractorDropdown(false);
+      setLoadSavedAnswersOnOpen(false);
       
       // Show their info screen so they can review/update details before inductions
       // For returning contractors, show info screen first
@@ -385,6 +401,7 @@ export default function ContractorInductionScreen({
 
   const handleNewContractor = () => {
     setIsNewContractor(true);
+    setLoadSavedAnswersOnOpen(false);
     setContractorInfo({
       id: '',
       name: '',
@@ -503,9 +520,9 @@ export default function ContractorInductionScreen({
         setInductionQueue(assignedInductions);
         setCompletedInductionIds(completedIds);
         setModalAnswers({});
+        setLoadSavedAnswersOnOpen(true);
         setStep('inductionBoard');
         setIsNewContractor(null);
-        setShowIncompleteInductionsDropdown(false);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load contractor');
@@ -779,6 +796,12 @@ export default function ContractorInductionScreen({
       return;
     }
 
+    if (!contractorInfo.id) {
+      Alert.alert('Error', 'Contractor record not found. Please go back and complete your details.');
+      return;
+    }
+
+    setLoadSavedAnswersOnOpen(false);
     setLoading(true);
     try {
       // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
@@ -925,13 +948,21 @@ export default function ContractorInductionScreen({
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => {
+            onPress={async () => {
               setIsNewContractor('returning');
               setReturningFilterCompanyId('');
               setReturningFilterBUId('');
               setReturningFilterSiteId('');
               setReturningFilterName('');
-              setReturningFilteredContractors(contractors);
+              try {
+                const allContractors = await listContractors();
+                const contractorList = Array.isArray(allContractors) ? allContractors : [];
+                setContractors(contractorList);
+                setReturningFilteredContractors(contractorList);
+              } catch (err) {
+                console.error('Error loading contractors:', err);
+                setReturningFilteredContractors(contractors);
+              }
               if (onSelectInductionType) {
                 onSelectInductionType('returning');
               }
@@ -1019,13 +1050,13 @@ export default function ContractorInductionScreen({
           if (onBackToSelection) onBackToSelection();
         })}
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
             Which contractor would you like to resume an induction for?
           </Text>
 
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
-            <ScrollView style={{ maxHeight: 400 }}>
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, maxHeight: 400 }}>
+            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
               {contractors.map(contractor => (
                 <TouchableOpacity
                   key={contractor.id}
@@ -1067,10 +1098,9 @@ export default function ContractorInductionScreen({
       <View style={styles.container}>
         {renderHeader('Add Parts - Select Contractor', () => {
           setIsNewContractor(null);
-          setContractors([]);
         })}
 
-        <View style={{ flex: 1, padding: 16 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
             Which contractor needs to add induction sections?
           </Text>
@@ -1135,9 +1165,9 @@ export default function ContractorInductionScreen({
             Contractors ({addPartsContractorList.length})
           </Text>
 
-          <View style={{ flex: 1, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', maxHeight: 400 }}>
             {addPartsContractorList.length > 0 ? (
-              <ScrollView>
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
                 {addPartsContractorList.map(contractor => (
                   <TouchableOpacity
                     key={contractor.id}
@@ -1153,7 +1183,7 @@ export default function ContractorInductionScreen({
               <Text style={{ padding: 12, color: '#9CA3AF' }}>No contractors found</Text>
             )}
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -1331,6 +1361,8 @@ export default function ContractorInductionScreen({
                   service_ids: addPartsContractor.service_ids || [],
                 });
                 setSelectedContractorId(addPartsContractor.id);
+                setLoadSavedAnswersOnOpen(false);
+                setIsNewContractor(false);
                 
                 // Set inductions as optional (user can review/deselect if needed)
                 setOptionalInductions(inductionsToAdd);
@@ -1351,43 +1383,7 @@ export default function ContractorInductionScreen({
     );
   }
 
-  // STEP 0: Choose incomplete induction to resume
-  if (step === 'info' && isNewContractor === 'resume') {
-    return (
-      <View style={styles.container}>
-        {renderHeader('Resume Induction', () => {
-          setIsNewContractor(null);
-          setIncompleteInductions([]);
-          setShowIncompleteInductionsDropdown(false);
-        })}
-
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
-            {contractorInfo.name} has {incompleteInductions.length} saved induction{incompleteInductions.length !== 1 ? 's' : ''}. Which would you like to resume?
-          </Text>
-
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8 }}>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {incompleteInductions.map(progress => (
-                <TouchableOpacity
-                  key={progress.id}
-                  onPress={() => handleResumeInduction(progress)}
-                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
-                    {progress.inductions?.induction_name || 'Induction'}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-                    Last saved: {new Date(progress.updated_at).toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
+  // STEP 0: Choose incomplete induction to resume — handled via choose-contractor-for-resume flow
 
   // RETURNING CONTRACTOR FILTER SCREEN - Select contractor to redo induction
   if (step === 'info' && isNewContractor === 'returning') {
@@ -1408,7 +1404,7 @@ export default function ContractorInductionScreen({
           if (onBackToSelection) onBackToSelection();
         })}
 
-        <View style={{ flex: 1, padding: 16 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {/* Business Unit Filter */}
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>
             Filter by Business Unit
@@ -1579,13 +1575,13 @@ export default function ContractorInductionScreen({
             Contractors ({filteredList.length})
           </Text>
 
-          <View style={{ flex: 1, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', maxHeight: 400 }}>
             {filteredList.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
+              <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
                 <Text style={{ color: '#9CA3AF', fontSize: 14 }}>No contractors found</Text>
               </View>
             ) : (
-              <ScrollView>
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
                 {filteredList.map(contractor => (
                   <TouchableOpacity
                     key={contractor.id}
@@ -1604,7 +1600,7 @@ export default function ContractorInductionScreen({
               </ScrollView>
             )}
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -1887,6 +1883,7 @@ export default function ContractorInductionScreen({
                   onPress={() => {
                     console.log('💾 User chose: Start Over');
                     setShowResumeDialog(false);
+                    setLoadSavedAnswersOnOpen(false);
                     // Reset induction progress to start fresh
                     setCompletedInductionIds([]);
                     setSelectedOptionalIds([]);
@@ -1914,6 +1911,7 @@ export default function ContractorInductionScreen({
                   onPress={() => {
                     console.log('💾 User chose: Resume');
                     setShowResumeDialog(false);
+                    setLoadSavedAnswersOnOpen(true);
                     if (resumeInductionData && resumeInductionData.completedIds) {
                       setCompletedInductionIds(resumeInductionData.completedIds);
                     }
@@ -2076,9 +2074,12 @@ export default function ContractorInductionScreen({
       try {
         setLoading(true);
         
-        // Load any saved answers for THIS induction only (faster query)
-        const progressRecord = await getInductionProgress(contractorInfo.id, induction.id);
-        const savedAnswers = progressRecord?.answers || {};
+        // Only load saved answers when explicitly resuming — not for fresh starts or redos
+        let savedAnswers = {};
+        if (loadSavedAnswersOnOpen) {
+          const progressRecord = await getInductionProgress(contractorInfo.id, induction.id);
+          savedAnswers = progressRecord?.answers || {};
+        }
         
         // Normalize the induction data to ensure correct answers match question type
         const normalizedInduction = { ...induction };
