@@ -21,6 +21,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import { getAccreditationSaveStatus } from '../utils/accreditation';
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -689,7 +690,7 @@ export default function CompanyAccreditationScreen({
       setAccreditedSystems(systems);
       
       // Set accreditation status
-      const status = data.accreditation_status || 'in-progress';
+      const status = data.accreditation_status || 'none';
       setAccreditationStatus(status);
       
       // Notify parent component of the actual status
@@ -2692,7 +2693,8 @@ export default function CompanyAccreditationScreen({
     
     try {
       setAutoSaving(true);
-      const updateData = buildUpdateData();
+      const saveStatus = getAccreditationSaveStatus(accreditationStatus);
+      const updateData = buildUpdateData(saveStatus);
       
       // Log section26 data being saved
       if (updateData.hs_agreement_signature || updateData.hs_agreement_accepted_by) {
@@ -2711,6 +2713,12 @@ export default function CompanyAccreditationScreen({
       
       if (result.success) {
         debugLog('✨ Auto-saved successfully!', result);
+        if (saveStatus !== accreditationStatus) {
+          setAccreditationStatus(saveStatus);
+          if (onStatusUpdate) {
+            onStatusUpdate(saveStatus);
+          }
+        }
       } else {
         console.error('❌ Auto-save failed:', result.error);
       }
@@ -2736,8 +2744,9 @@ export default function CompanyAccreditationScreen({
     setSaving(true);
     try {
       // Preserve the 'completed' status if already submitted - only save edits without changing status
-      const updateData = buildUpdateData(accreditationStatus);
-      debugLog('💾 Update data built with status:', accreditationStatus);
+      const saveStatus = getAccreditationSaveStatus(accreditationStatus);
+      const updateData = buildUpdateData(saveStatus);
+      debugLog('💾 Update data built with status:', saveStatus);
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       debugLog('📊 Update result:', result);
