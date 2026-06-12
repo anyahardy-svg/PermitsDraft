@@ -16,6 +16,8 @@ const getJoinRequestCompanyId = async (email) => {
     .select('company_id')
     .ilike('email', email.trim())
     .eq('status', 'approved')
+    .order('reviewed_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   return joinRequest?.company_id || null;
@@ -100,12 +102,26 @@ const signInWithEmailCaseInsensitive = async (email, password) => {
   return { data: { user: null, session: null }, error: lastError };
 };
 
-const lookupContractorByEmail = async (email) => {
+const lookupContractorByEmail = async (email, preferredCompanyId = null) => {
   if (!supabase || !email) {
     return null;
   }
 
   const normalizedEmail = email.trim();
+
+  if (preferredCompanyId) {
+    const { data: companyMatch } = await supabase
+      .from('contractors')
+      .select('id, name, company_id, email')
+      .ilike('email', normalizedEmail)
+      .eq('company_id', preferredCompanyId)
+      .maybeSingle();
+
+    if (companyMatch) {
+      return companyMatch;
+    }
+  }
+
   const { data: exactMatch, error: exactError } = await supabase
     .from('contractors')
     .select('id, name, company_id, email')
@@ -176,38 +192,55 @@ const enrichProfileFromContractorTable = async (user, accessToken) => {
     return apiContractor;
   }
 
-  return lookupContractorByEmail(user.email);
+  return lookupContractorByEmail(user.email, user.user_metadata?.company_id || null);
+};
+
+const resolveAdminStaffProfile = async (user) => {
+  const metadata = user?.user_metadata || {};
+  const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
+  const companyId = joinRequestCompanyId || metadata.company_id || null;
+
+  if (!companyId) {
+    return null;
+  }
+
+  return {
+    contractorId: null,
+    contractorName: metadata.name || user.email,
+    companyId,
+    email: user.email,
+    userType: 'admin_staff',
+  };
 };
 
 const resolveAuthUserProfile = async (user, accessToken) => {
-  const authProfile = buildProfileFromAuthUser(user);
+  const metadata = user?.user_metadata || {};
+  const userType = metadata.user_type || 'contractor';
 
-  if (authProfile?.isComplete) {
-    return authProfile;
+  if (userType === 'admin_staff') {
+    return resolveAdminStaffProfile(user);
   }
 
+  // Always resolve contractor company from the database — JWT metadata can be stale
+  // after join approval, re-invite, or duplicate contractor rows for the same email.
   const contractorData = await enrichProfileFromContractorTable(user, accessToken);
   if (contractorData) {
+    if (contractorData.user_type === 'admin_staff') {
+      return resolveAdminStaffProfile(user);
+    }
+
     return {
       contractorId: contractorData.id,
       contractorName: contractorData.name,
       companyId: contractorData.company_id,
       email: contractorData.email || user.email,
-      userType: user.user_metadata?.user_type || 'contractor',
+      userType,
     };
   }
 
-  if (authProfile) {
-    if (authProfile.userType === 'admin_staff' && !authProfile.companyId) {
-      const companyId = await getJoinRequestCompanyId(user.email);
-      if (companyId) {
-        return { ...authProfile, companyId };
-      }
-    }
-
-    if (authProfile.companyId) {
-      return authProfile;
-    }
+  const authProfile = buildProfileFromAuthUser(user);
+  if (authProfile?.companyId) {
+    return authProfile;
   }
 
   return null;

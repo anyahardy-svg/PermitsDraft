@@ -13,7 +13,7 @@ const {
   SUPABASE_SERVICE_ROLE_KEY,
   getSupabaseAdmin,
   findAuthUserCaseInsensitive,
-  lookupContractorByEmail,
+  lookupContractorForAuthUser,
 } = require('./supabaseAdmin');
 
 export default async function handler(req, res) {
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     console.log(`🔐 Setting password for contractor: ${user.email}`);
     console.log(`✅ Found user: ${user.id}`);
 
-    const contractor = await lookupContractorByEmail(adminClient, user.email);
+    const contractor = await lookupContractorForAuthUser(adminClient, user);
 
     const serviceHeaders = {
       'Content-Type': 'application/json',

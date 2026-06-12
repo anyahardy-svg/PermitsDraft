@@ -8,7 +8,7 @@ const PASSWORD_RESET_CODE_EXPIRY_MS = 48 * 60 * 60 * 1000;
 const {
   getSupabaseAdmin,
   findAuthUserCaseInsensitive,
-  lookupContractorByEmail,
+  lookupContractorForAuthUser,
 } = require('./supabaseAdmin');
 
 function generateResetCode() {
@@ -172,7 +172,7 @@ async function resetPasswordWithCode(email, token, password) {
     return { success: false, error: validation.error };
   }
 
-  const contractor = await lookupContractorByEmail(adminClient, user.email);
+  const contractor = await lookupContractorForAuthUser(adminClient, user);
   const userMetadata = {
     ...(user.user_metadata || {}),
     user_type: user.user_metadata?.user_type || 'contractor',

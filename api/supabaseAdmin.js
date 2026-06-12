@@ -170,9 +170,77 @@ async function lookupContractorByEmail(adminClient, email) {
   return caseInsensitiveMatch || null;
 }
 
+async function lookupContractorForAuthUser(adminClient, user) {
+  const metadata = user.user_metadata || {};
+  const normalizedEmail = String(user.email || '').trim();
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  // Prefer the contractor row at the company stored in auth metadata (e.g. after join approval).
+  if (metadata.company_id) {
+    const { data: byEmailAndCompany } = await adminClient
+      .from('contractors')
+      .select('id, name, company_id, email')
+      .ilike('email', normalizedEmail)
+      .eq('company_id', metadata.company_id)
+      .maybeSingle();
+
+    if (byEmailAndCompany) {
+      return byEmailAndCompany;
+    }
+  }
+
+  if (metadata.contractor_id) {
+    const { data: contractorById } = await adminClient
+      .from('contractors')
+      .select('id, name, company_id, email')
+      .eq('id', metadata.contractor_id)
+      .maybeSingle();
+
+    if (contractorById) {
+      const emailMatches =
+        contractorById.email &&
+        contractorById.email.toLowerCase() === normalizedEmail.toLowerCase();
+      const companyMatches =
+        !metadata.company_id || contractorById.company_id === metadata.company_id;
+
+      if (emailMatches && companyMatches) {
+        return contractorById;
+      }
+    }
+  }
+
+  return lookupContractorByEmail(adminClient, normalizedEmail);
+}
+
+async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
+  const normalizedEmail = String(email || '').trim();
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const { data: joinRequest } = await adminClient
+    .from('contractor_join_requests')
+    .select('company_id')
+    .ilike('email', normalizedEmail)
+    .eq('status', 'approved')
+    .order('reviewed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return joinRequest?.company_id || null;
+}
+
 async function syncAuthUserContractorMetadata(adminClient, user, contractor) {
   const metadata = user.user_metadata || {};
-  if (!contractor || metadata.contractor_id === contractor.id) {
+  if (!contractor) {
+    return;
+  }
+
+  const contractorIdMatches = metadata.contractor_id === contractor.id;
+  const companyIdMatches = metadata.company_id === contractor.company_id;
+  if (contractorIdMatches && companyIdMatches) {
     return;
   }
 
@@ -204,5 +272,7 @@ module.exports = {
   findAuthUserCaseInsensitive,
   resolveAuthEmailCaseInsensitive,
   lookupContractorByEmail,
+  lookupContractorForAuthUser,
+  getLatestApprovedJoinRequestCompanyId,
   syncAuthUserContractorMetadata,
 };

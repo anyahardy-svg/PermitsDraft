@@ -279,6 +279,22 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
 
     let contractorId = null;
 
+    // STEP 2 (early): Resolve contractor record before auth metadata is written
+    console.log('👤 STEP 2a: Resolving contractor record if needed');
+    if (request.will_work_on_site) {
+      const { data: existingContractor } = await supabase
+        .from('contractors')
+        .select('id')
+        .ilike('email', request.email.trim())
+        .eq('company_id', companyIdToUse)
+        .maybeSingle();
+
+      if (existingContractor) {
+        contractorId = existingContractor.id;
+        console.log('ℹ️ Found existing contractor record for approval:', contractorId);
+      }
+    }
+
     // STEP 1: Create USER in Authentication
     console.log('👤 STEP 1: Creating auth user for:', request.email);
     let authUserId = null;
@@ -293,7 +309,8 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
           name: request.name,
           companyId: companyIdToUse,
           companyName: request.company_name,
-          userType: request.user_type
+          userType: request.user_type,
+          contractorId: contractorId || undefined,
         })
       });
 
@@ -360,6 +377,31 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       }
     } else {
       console.log('ℹ️ Admin staff - no contractor record needed');
+    }
+
+    // Ensure auth metadata matches the approved company and contractor row
+    if (authUserId) {
+      try {
+        const syncResponse = await fetch('/api/create-auth-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: request.email,
+            name: request.name,
+            companyId: companyIdToUse,
+            companyName: request.company_name,
+            userType: request.user_type,
+            contractorId: contractorId || undefined,
+          }),
+        });
+        if (!syncResponse.ok) {
+          console.warn('⚠️ Auth metadata sync returned:', syncResponse.status);
+        } else {
+          console.log('✅ Auth metadata synced with approved company/contractor');
+        }
+      } catch (syncErr) {
+        console.warn('⚠️ Could not sync auth metadata after approval:', syncErr.message);
+      }
     }
 
     // STEP 3: Send password setup instructions (first-time password uses case-insensitive lookup)
