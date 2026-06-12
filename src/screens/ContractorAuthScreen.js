@@ -19,6 +19,8 @@ import {
   getCurrentUser,
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
+  resetContractorPasswordWithToken,
+  resolveContractorAuthEmail,
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
 
@@ -246,6 +248,19 @@ export default function ContractorAuthScreen({
         return;
       }
 
+      if (queryType === 'recovery') {
+        console.log('✅ Password recovery link detected - showing reset flow');
+        const emailParam = queryParams.get('email');
+        if (emailParam) {
+          setSetupEmail(decodeURIComponent(emailParam));
+        }
+        setPasswordFlowType('reset');
+        setPasswordResetStage(emailParam ? 'otp' : 'email');
+        setShowPasswordSetup(true);
+        clearAuthUrlParams();
+        return;
+      }
+
       const isHashAuthLink = (accessToken || token) && (
         hashType === 'recovery' || hashType === 'invite' || hashType === 'signup' || hashType === 'magiclink'
       );
@@ -375,16 +390,19 @@ export default function ContractorAuthScreen({
     setOtpError(null);
     try {
       if (passwordFlowType === 'newUser') {
-        // NEW USER: Go straight to password form
-        console.log('🆕 New user - showing password form');
+        console.log('🆕 New user - resolving email before password form');
+        const resolvedEmail = await resolveContractorAuthEmail(setupEmail);
+        setSetupEmail(resolvedEmail);
         setPasswordResetStage('password');
       } else {
-        // PASSWORD RESET: Send OTP code
-        console.log('🔐 Password reset flow - sending OTP');
+        console.log('🔐 Password reset flow - sending reset code');
         const response = await sendPasswordResetEmail(setupEmail);
 
         if (response.success) {
-          console.log('✅ OTP sent - moving to OTP entry stage');
+          if (response.email) {
+            setSetupEmail(response.email);
+          }
+          console.log('✅ Reset code sent - moving to OTP entry stage');
           setPasswordResetStage('otp');
           setOtpCode('');
           Alert.alert('Check Your Email', response.message);
@@ -429,8 +447,10 @@ export default function ContractorAuthScreen({
 
       if (response?.success) {
         console.log('OTP verified successfully - moving to password set stage');
+        if (response.email) {
+          setSetupEmail(response.email);
+        }
         setPasswordResetStage('password');
-        setOtpCode('');
       } else {
         console.log('OTP verification error:', response?.error);
         setOtpError(response?.error);
@@ -478,7 +498,10 @@ export default function ContractorAuthScreen({
         console.log('🔐 Setting password for new contractor:', setupEmail);
 
         const { data: { session } } = await supabase.auth.getSession();
-        const emailForSetup = (setupEmail || session?.user?.email || '').trim();
+        const rawEmailForSetup = (setupEmail || session?.user?.email || '').trim();
+        const emailForSetup = rawEmailForSetup
+          ? await resolveContractorAuthEmail(rawEmailForSetup)
+          : '';
 
         if (!emailForSetup) {
           setPasswordResetStage('email');
@@ -550,16 +573,20 @@ export default function ContractorAuthScreen({
         return;
       }
 
-      // PASSWORD RESET: Update password for existing user (already authenticated)
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+      const resetResponse = await resetContractorPasswordWithToken(
+        setupEmail,
+        otpCode,
+        newPassword
+      );
 
-      if (error) {
-        setOtpError(error.message);
-        showUserMessage('Error', error.message);
+      if (!resetResponse.success) {
+        setOtpError(resetResponse.error);
+        showUserMessage('Error', resetResponse.error || 'Failed to reset password');
       } else {
-        console.log('✅ Password set successfully');
+        console.log('✅ Password reset successfully');
+        if (resetResponse.email) {
+          setEmail(resetResponse.email);
+        }
         showUserMessage('Success', 'Your password has been set. You can now log in.');
 
         setShowPasswordSetup(false);
@@ -1205,7 +1232,7 @@ export default function ContractorAuthScreen({
             ) : (
               <>
                 {passwordResetStage === 'email' && 'Enter your email to receive a password reset code'}
-                {passwordResetStage === 'otp' && 'Enter the 6-digit code we sent to your email'}
+                {passwordResetStage === 'otp' && 'Enter the 6-digit code we sent to your email (valid for 48 hours)'}
                 {passwordResetStage === 'password' && 'Create a strong password for your account'}
               </>
             )}

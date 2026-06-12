@@ -12,6 +12,7 @@ const {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   getSupabaseAdmin,
+  findAuthUserCaseInsensitive,
   lookupContractorByEmail,
 } = require('./supabaseAdmin');
 
@@ -49,42 +50,22 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🔐 Setting password for contractor: ${email}`);
-
-    // Use service role key to update user password
-    // First, get the user by email
-    const getUserResponse = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      }
-    );
-
-    if (!getUserResponse.ok) {
-      const errorText = await getUserResponse.text();
-      console.error('❌ Failed to get user:', getUserResponse.status, errorText);
-      return res.status(400).json({ error: 'User not found or invalid credentials' });
+    const adminClient = getSupabaseAdmin();
+    if (!adminClient) {
+      console.error('❌ Missing Supabase admin client');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const usersData = await getUserResponse.json();
-    
-    if (!usersData.users || usersData.users.length === 0) {
+    const user = await findAuthUserCaseInsensitive(adminClient, email);
+    if (!user) {
       console.error('❌ No user found with email:', email);
       return res.status(400).json({ error: 'User not found' });
     }
 
-    const user = usersData.users[0];
+    console.log(`🔐 Setting password for contractor: ${user.email}`);
     console.log(`✅ Found user: ${user.id}`);
 
-    const adminClient = getSupabaseAdmin();
-    const contractor = adminClient
-      ? await lookupContractorByEmail(adminClient, email)
-      : null;
+    const contractor = await lookupContractorByEmail(adminClient, user.email);
 
     const serviceHeaders = {
       'Content-Type': 'application/json',
@@ -104,7 +85,7 @@ export default async function handler(req, res) {
       userMetadata.name = contractor.name;
       console.log(`✅ Linked contractor metadata for: ${contractor.name}`);
     } else {
-      console.warn(`⚠️ No contractor row found for ${email} while setting password`);
+      console.warn(`⚠️ No contractor row found for ${user.email} while setting password`);
     }
 
     // Update user's password
@@ -128,7 +109,7 @@ export default async function handler(req, res) {
     }
 
     const updatedUser = await updateResponse.json();
-    console.log(`✅ Password set successfully for: ${email}`);
+    console.log(`✅ Password set successfully for: ${user.email}`);
 
     return res.status(200).json({
       success: true,

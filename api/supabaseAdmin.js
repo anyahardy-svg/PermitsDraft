@@ -18,6 +18,125 @@ function getSupabaseAdmin() {
   });
 }
 
+async function fetchAuthUserByEmail(email) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !email) {
+    return null;
+  }
+
+  const getUserUrl = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`;
+  const getUserResponse = await fetch(getUserUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+
+  if (!getUserResponse.ok) {
+    return null;
+  }
+
+  const usersData = await getUserResponse.json();
+  if (!usersData.users || usersData.users.length === 0) {
+    return null;
+  }
+
+  return usersData.users[0];
+}
+
+async function findAuthUserCaseInsensitive(adminClient, email) {
+  const resolvedEmail = await resolveAuthEmailCaseInsensitive(adminClient, email);
+  if (!resolvedEmail) {
+    return null;
+  }
+
+  let user = await fetchAuthUserByEmail(resolvedEmail);
+  if (user) {
+    return user;
+  }
+
+  const lower = resolvedEmail.toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+
+  while (page <= 10) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error || !data?.users?.length) {
+      break;
+    }
+
+    const match = data.users.find((candidate) => candidate.email?.toLowerCase() === lower);
+    if (match) {
+      return match;
+    }
+
+    if (data.users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return null;
+}
+
+async function resolveAuthEmailCaseInsensitive(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const lower = trimmed.toLowerCase();
+  const candidates = new Set([trimmed, lower]);
+
+  const contractor = await lookupContractorByEmail(adminClient, trimmed);
+  if (contractor?.email) {
+    candidates.add(contractor.email);
+  }
+
+  const { data: joinRequest } = await adminClient
+    .from('contractor_join_requests')
+    .select('email')
+    .ilike('email', trimmed)
+    .eq('status', 'approved')
+    .maybeSingle();
+
+  if (joinRequest?.email) {
+    candidates.add(joinRequest.email);
+  }
+
+  for (const candidate of candidates) {
+    const user = await fetchAuthUserByEmail(candidate);
+    if (user?.email) {
+      return user.email;
+    }
+  }
+
+  let page = 1;
+  const perPage = 1000;
+
+  while (page <= 10) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error || !data?.users?.length) {
+      break;
+    }
+
+    const match = data.users.find((user) => user.email?.toLowerCase() === lower);
+    if (match?.email) {
+      return match.email;
+    }
+
+    if (data.users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return contractor?.email || joinRequest?.email || trimmed;
+}
+
 async function lookupContractorByEmail(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
@@ -81,6 +200,9 @@ module.exports = {
   SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY,
   getSupabaseAdmin,
+  fetchAuthUserByEmail,
+  findAuthUserCaseInsensitive,
+  resolveAuthEmailCaseInsensitive,
   lookupContractorByEmail,
   syncAuthUserContractorMetadata,
 };
