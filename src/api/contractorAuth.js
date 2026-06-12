@@ -8,6 +8,31 @@ import { normalizeEmailInput, uniqueEmailCandidates, normalizeEmailForComparison
 
 const CONTRACTOR_CONTEXT_KEY = '_contractorContext';
 
+export function purgeSupabaseAuthStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith('sb-') && key.includes('auth')) {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+/** Drop cached Supabase sessions before invite/password-setup UI renders. */
+export function bootstrapPasswordSetupPage() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const setupType = params.get('type');
+  if (setupType === 'invited' || setupType === 'recovery') {
+    clearContractorSessionStorage();
+  }
+}
+
 export function clearContractorSessionStorage() {
   if (typeof window === 'undefined' || !window.localStorage) {
     return;
@@ -17,6 +42,7 @@ export function clearContractorSessionStorage() {
   localStorage.removeItem('contractor_session');
   localStorage.removeItem('contractor_token');
   localStorage.removeItem('contractor_id');
+  purgeSupabaseAuthStorage();
 }
 
 function contractorBelongsToAuthUser(contractor, user) {
