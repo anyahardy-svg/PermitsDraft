@@ -64,6 +64,19 @@ const getCompanyIdForAuthEmailClient = async (email) => {
   }
 
   const trimmed = email.trim();
+
+  const { data: adminAccess } = await supabase
+    .from('company_admin_access')
+    .select('company_id')
+    .ilike('email', trimmed)
+    .order('granted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (adminAccess?.company_id) {
+    return adminAccess.company_id;
+  }
+
   const { data: byContact } = await supabase
     .from('companies')
     .select('id')
@@ -375,6 +388,17 @@ const resolveAuthUserProfile = async (user, accessToken) => {
       companyId: joinRequest.company_id,
       email: user.email,
       userType: joinUserType,
+    };
+  }
+
+  const companyIdForEmail = await getCompanyIdForAuthEmailClient(user.email);
+  if (companyIdForEmail) {
+    return {
+      contractorId: null,
+      contractorName: metadata.name || user.email,
+      companyId: companyIdForEmail,
+      email: user.email,
+      userType: 'admin_staff',
     };
   }
 

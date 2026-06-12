@@ -227,16 +227,98 @@ async function getCompanyIdForAuthEmail(adminClient, email) {
   return byEmail?.id || null;
 }
 
+async function getCompanyAdminAccessForEmail(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const { data, error } = await adminClient
+    .from('company_admin_access')
+    .select('company_id, name, granted_at')
+    .ilike('email', trimmed)
+    .order('granted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('❌ company_admin_access lookup error:', error.message);
+    return null;
+  }
+
+  return data;
+}
+
+async function grantCompanyAdminAccess(adminClient, { email, companyId, name }) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed || !companyId) {
+    return;
+  }
+
+  const { error } = await adminClient.from('company_admin_access').upsert(
+    {
+      email: trimmed,
+      company_id: companyId,
+      name: name || null,
+      granted_at: new Date().toISOString(),
+    },
+    { onConflict: 'company_id,email' }
+  );
+
+  if (error) {
+    console.error('❌ Failed to grant company admin access:', error.message);
+  }
+}
+
+async function syncInvitedAdminAuthUser(adminClient, { email, companyId, companyName, name }) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed || !companyId) {
+    return null;
+  }
+
+  const user = await findAuthUserStrictCaseInsensitive(adminClient, trimmed);
+  const metadataPatch = {
+    company_id: companyId,
+    company_name: companyName || null,
+    user_type: 'admin_staff',
+    name: name || user?.user_metadata?.name || trimmed,
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  const { error } = await adminClient.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...(user.user_metadata || {}),
+      ...metadataPatch,
+    },
+  });
+
+  if (error) {
+    console.error('❌ Failed to sync invited admin auth user:', error.message);
+    return null;
+  }
+
+  return user;
+}
+
 /**
- * Resolve company for an auth user without trusting JWT alone.
- * Returns company_id only when the user's email matches companies.contact_email/email
- * or when metadata.company_id matches such a company row.
+ * Resolve company for an auth user.
+ * Priority: company contact fields → invitation grant table → admin_staff metadata.
  */
 async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
   const metadata = user.user_metadata || {};
-  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, user.email);
+  const trimmed = String(user.email || '').trim();
+
+  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
   if (emailCompanyId) {
     return emailCompanyId;
+  }
+
+  const adminAccess = await getCompanyAdminAccessForEmail(adminClient, trimmed);
+  if (adminAccess?.company_id) {
+    return adminAccess.company_id;
   }
 
   const metadataCompanyId = metadata.company_id;
@@ -254,7 +336,11 @@ async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
     return null;
   }
 
-  if (emailsMatch(company.contact_email, user.email) || emailsMatch(company.email, user.email)) {
+  if (metadata.user_type === 'admin_staff') {
+    return company.id;
+  }
+
+  if (emailsMatch(company.contact_email, trimmed) || emailsMatch(company.email, trimmed)) {
     return company.id;
   }
 
@@ -338,6 +424,9 @@ module.exports = {
   getLatestApprovedJoinRequestCompanyId,
   getLatestApprovedJoinRequest,
   getCompanyIdForAuthEmail,
+  getCompanyAdminAccessForEmail,
+  grantCompanyAdminAccess,
+  syncInvitedAdminAuthUser,
   resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
 };
