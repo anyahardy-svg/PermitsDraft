@@ -40,7 +40,12 @@ import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
-import { getDefaultAccreditationDeadline } from './src/utils/accreditation';
+import {
+  getAccreditationModalStatusLabel,
+  getAccreditationStatusDisplay,
+  getDefaultAccreditationDeadline,
+  resolveAccreditationDisplayStatus,
+} from './src/utils/accreditation';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
@@ -9660,9 +9665,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       console.log('🔍 Loading accreditation for:', company.name);
       const accredData = await getCompanyAccreditation(company.id);
+      const resolvedStatus = resolveAccreditationDisplayStatus({
+        ...company,
+        ...accredData,
+        accreditation_status: accredData?.accreditation_status ?? company.accreditation_status,
+      });
       setSelectedCompanyForAccreditation(company);
-      setCompanyAccreditationData(accredData);
-      setDisplayedAccreditationStatus(accredData?.accreditation_status || 'in-progress');
+      setCompanyAccreditationData({ ...accredData, accreditation_status: resolvedStatus });
+      setDisplayedAccreditationStatus(resolvedStatus);
       setSelectedCompanyAccreditationId(company.id);
       setShowAccreditationModal(true);
     } catch (error) {
@@ -9783,8 +9793,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
-      setCompanyAccreditationData(updatedAccred);
-      setDisplayedAccreditationStatus(updatedAccred?.accreditation_status || 'approved');
+      const resolvedStatus = resolveAccreditationDisplayStatus({
+        ...selectedCompanyForAccreditation,
+        ...updatedAccred,
+        accreditation_status: updatedAccred?.accreditation_status ?? 'approved',
+      });
+      setCompanyAccreditationData({ ...updatedAccred, accreditation_status: resolvedStatus });
+      setDisplayedAccreditationStatus(resolvedStatus);
       
       Alert.alert('Success', 'Accreditation approved successfully', [
         { text: 'OK', onPress: () => {
@@ -9815,8 +9830,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
-      setCompanyAccreditationData(updatedAccred);
-      setDisplayedAccreditationStatus(updatedAccred?.accreditation_status || 'needs_revision');
+      const resolvedStatus = resolveAccreditationDisplayStatus({
+        ...selectedCompanyForAccreditation,
+        ...updatedAccred,
+        accreditation_status: updatedAccred?.accreditation_status ?? 'needs_revision',
+      });
+      setCompanyAccreditationData({ ...updatedAccred, accreditation_status: resolvedStatus });
+      setDisplayedAccreditationStatus(resolvedStatus);
       
       Alert.alert('Success', 'Accreditation marked as needing revision', [
         { text: 'OK', onPress: () => {
@@ -10482,20 +10502,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
                               onPress={() => handleViewCompanyAccreditation(company)}
                             >
+                              {(() => {
+                                const accreditationDisplay = getAccreditationStatusDisplay(company.accreditation_status);
+                                return (
                               <View style={{
                                 paddingHorizontal: 8,
                                 paddingVertical: 4,
                                 borderRadius: 4,
-                                backgroundColor: company.accreditation_status === 'approved' ? '#D1FAE5' : company.accreditation_status === 'completed' ? '#D1FAE5' : company.accreditation_status === 'needs_revision' ? '#FEE2E2' : company.accreditation_status === 'pending' ? '#E0E7FF' : company.accreditation_status === 'in-progress' ? '#FEF3C7' : '#FEF3C7',
+                                backgroundColor: accreditationDisplay.backgroundColor,
                               }}>
                                 <Text style={{
                                   fontSize: 13,
                                   fontWeight: '600',
-                                  color: company.accreditation_status === 'approved' ? '#065F46' : company.accreditation_status === 'completed' ? '#065F46' : company.accreditation_status === 'needs_revision' ? '#7F1D1D' : company.accreditation_status === 'pending' ? '#3730A3' : company.accreditation_status === 'in-progress' ? '#92400E' : '#92400E'
+                                  color: accreditationDisplay.color,
                                 }}>
-                                  {company.accreditation_status === 'approved' ? '✓ Approved' : company.accreditation_status === 'completed' ? '✓ Completed' : company.accreditation_status === 'pending' ? '⟳ Pending' : company.accreditation_status === 'needs_revision' ? '⚠ Needs Revision' : company.accreditation_status === 'in-progress' ? '→ In Progress' : company.accreditation_status === 'started' || company.accredited_date ? '→ Started' : '○ None'}
+                                  {accreditationDisplay.label}
                                 </Text>
                               </View>
+                                );
+                              })()}
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={{ width: 150, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
@@ -10639,7 +10664,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     {selectedCompanyForAccreditation.name}
                   </Text>
                   <Text style={{ fontSize: 14, color: '#DBEAFE' }}>
-                    Accreditation Status: {displayedAccreditationStatus === 'approved' ? '✓ Approved' : displayedAccreditationStatus === 'completed' ? '✓ Completed' : displayedAccreditationStatus === 'needs_revision' ? '⚠ Needs Revision' : displayedAccreditationStatus === 'pending' ? '⟳ Pending' : displayedAccreditationStatus === 'in-progress' ? '⏳ In Progress' : '○ Not Submitted'}
+                    Accreditation Status: {getAccreditationModalStatusLabel(displayedAccreditationStatus)}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => {

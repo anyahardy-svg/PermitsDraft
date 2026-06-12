@@ -1,7 +1,10 @@
 import { supabase } from '../supabaseClient';
+import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 
 // Helper function to transform Supabase data to app format
 const transformCompany = (dbCompany) => {
+  const accreditationStatus = resolveAccreditationDisplayStatus(dbCompany);
+
   return {
     id: dbCompany.id,
     name: dbCompany.name,
@@ -48,8 +51,10 @@ const transformCompany = (dbCompany) => {
     created_at: dbCompany.created_at,
     updatedAt: dbCompany.updated_at,
     updated_at: dbCompany.updated_at,
-    accreditationStatus: dbCompany.accreditation_status || 'none',
-    accreditation_status: dbCompany.accreditation_status || 'none',
+    accreditationStatus,
+    accreditation_status: accreditationStatus,
+    accreditationLastUpdated: dbCompany.accreditation_last_updated || null,
+    accreditation_last_updated: dbCompany.accreditation_last_updated || null,
     trainingRecordsTotal: dbCompany.training_records_total || 0,
     training_records_total: dbCompany.training_records_total || 0,
     trainingRecordsApproved: dbCompany.training_records_approved || 0,
@@ -84,6 +89,7 @@ export const createCompany = async (companyData) => {
       address_city: companyData.address_city || companyData.addressCity || null,
       address_postcode: companyData.address_postcode || companyData.addressPostcode || null,
       contractor_type: companyData.contractor_type || companyData.contractorType || 'D',
+      accreditation_status: 'none',
     };
 
     const { data, error } = await supabase
@@ -104,7 +110,7 @@ export const listCompanies = async () => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, contractor_type')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, contractor_type')
       .order('name', { ascending: true });
 
     if (error) throw error;
