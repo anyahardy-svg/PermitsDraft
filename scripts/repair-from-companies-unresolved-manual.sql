@@ -2,6 +2,8 @@
 -- Manual fixes for users not matched via companies.contact_email / email
 -- (STEP 5 unresolved list — typically staff who are not the company contact)
 -- Run AFTER repair-from-companies-APPLY.sql
+--
+-- hs@sollys.co.nz: company deleted — use deprovision-deleted-company-users.sql
 -- =============================================================================
 
 -- Preview the 5 unresolved users and whether meta company_id is valid
@@ -17,7 +19,6 @@ LEFT JOIN companies co ON co.id = (u.raw_user_meta_data->>'company_id')::uuid
 LEFT JOIN contractors c ON lower(c.email) = lower(u.email)
 WHERE lower(u.email) IN (
   'angela.bell@hiltons.co.nz',
-  'hs@sollys.co.nz',
   'matt@mountcampbell.co.nz',
   'pankhudi_5@hotmail.com',
   'sales@nzbrush.co.nz'
@@ -39,7 +40,6 @@ SET company_id = sub.company_id, updated_at = NOW()
 FROM (
   VALUES
     ('angela.bell@hiltons.co.nz', '15f19f70-fe19-40c9-9f44-7f6c06084faf'::uuid),
-    ('hs@sollys.co.nz', 'c16eea24-9ad5-4126-9213-49eeba2be77e'::uuid),
     ('matt@mountcampbell.co.nz', '0b0574b8-628d-4632-a22a-e5b87993ae70'::uuid),
     ('pankhudi_5@hotmail.com', 'f16687bf-a7cb-4804-9dc6-338cc2eb8151'::uuid),
     ('sales@nzbrush.co.nz', 'ef993c15-d79c-47d5-9587-f1dc739d69b4'::uuid)
@@ -56,7 +56,6 @@ SELECT
 FROM auth.users u
 WHERE lower(u.email) IN (
   'angela.bell@hiltons.co.nz',
-  'hs@sollys.co.nz',
   'matt@mountcampbell.co.nz',
   'pankhudi_5@hotmail.com',
   'sales@nzbrush.co.nz'
@@ -85,7 +84,6 @@ JOIN companies co ON co.id = c.company_id
 WHERE lower(c.email) = lower(u.email)
   AND lower(u.email) IN (
     'angela.bell@hiltons.co.nz',
-    'hs@sollys.co.nz',
     'matt@mountcampbell.co.nz',
     'pankhudi_5@hotmail.com',
     'sales@nzbrush.co.nz'
