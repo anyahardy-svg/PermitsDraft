@@ -34,6 +34,7 @@ import { listServicesByBusinessUnit, listAllServices, createService, updateServi
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
+import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
 import { handoverPermit } from './src/api/permitHandovers';
 import { getAllPendingJoinRequests } from './src/api/joinRequests';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
@@ -2919,6 +2920,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         
         // Initialize empty training records statuses
         setTrainingRecordsStatuses({});
+        setTrainingMatricesStatuses({});
         
         // Load training records statuses in background (non-blocking)
         // This runs asynchronously after UI renders
@@ -2934,6 +2936,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               );
               
               setTrainingRecordsStatuses(statusResults);
+
+              const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
+                companiesData.map(c => c.id)
+              );
+              setTrainingMatricesStatuses(matrixStatusResults);
               if (process.env.NODE_ENV === 'development') {
                 console.log('✅ All training records statuses loaded (batch query)');
               }
@@ -3109,6 +3116,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
   const [trainingRecordsStatuses, setTrainingRecordsStatuses] = useState({}); // Stores status for each company ID
+  const [trainingMatricesStatuses, setTrainingMatricesStatuses] = useState({});
   const [approvingTrainingRecords, setApprovingTrainingRecords] = useState(false);
   const [showTrainingRecordsFeedbackModal, setShowTrainingRecordsFeedbackModal] = useState(false);
   const [trainingRecordsFeedback, setTrainingRecordsFeedback] = useState('');
@@ -9699,6 +9707,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
+  const refreshTrainingMatricesStatus = async (companyId) => {
+    try {
+      const result = await getCompanyTrainingMatricesStatus(companyId);
+      if (result.success) {
+        setTrainingMatricesStatuses(prev => ({
+          ...prev,
+          [companyId]: result.status
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Error refreshing training matrices status:', error);
+    }
+  };
+
   // Handle approving all company training records
   const handleApproveAllTrainingRecords = async () => {
     if (!selectedCompanyForTrainingRecords) return;
@@ -9727,6 +9749,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to approve training records: ' + error.message);
+    } finally {
+      setApprovingTrainingRecords(false);
+    }
+  };
+
+  const handleApproveAllTrainingMatrices = async () => {
+    if (!selectedCompanyForTrainingRecords) return;
+
+    setApprovingTrainingRecords(true);
+    try {
+      const result = await approveAllCompanyTrainingMatrices(selectedCompanyForTrainingRecords.id, 'admin');
+      if (result.success) {
+        await refreshTrainingMatricesStatus(selectedCompanyForTrainingRecords.id);
+        const updatedCompanies = await listCompanies();
+        setCompanies(updatedCompanies);
+        Alert.alert('Success', result.message || 'Training matrices approved successfully');
+      } else {
+        Alert.alert('Info', result.message || 'No pending matrices to approve');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to approve training matrices: ' + error.message);
     } finally {
       setApprovingTrainingRecords(false);
     }
@@ -10454,6 +10497,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
+                        <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Matrices</Text>
                         <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
                         <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
@@ -10528,6 +10572,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 setSelectedCompanyForTrainingRecords(company);
                                 setShowTrainingRecordsModal(true);
                                 refreshTrainingRecordsStatus(company.id);
+                                refreshTrainingMatricesStatus(company.id);
                               }}
                             >
                               <View style={{
@@ -10548,6 +10593,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     '#6B7280'
                                 }}>
                                   {company.training_records_total > 0 && (company.training_records_approved || 0) === company.training_records_total ? '✓ Approved' : company.training_records_total > 0 ? `⏳ ${company.training_records_total - (company.training_records_approved || 0)} Pending` : '○ None'}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={{ width: 150, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
+                              onPress={() => {
+                                setSelectedCompanyForTrainingRecords(company);
+                                setShowTrainingRecordsModal(true);
+                                refreshTrainingRecordsStatus(company.id);
+                                refreshTrainingMatricesStatus(company.id);
+                              }}
+                            >
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 4,
+                                backgroundColor:
+                                  company.training_matrices_total > 0 && (company.training_matrices_approved || 0) === company.training_matrices_total ? '#D1FAE5' :
+                                  company.training_matrices_total > 0 ? '#FEF3C7' :
+                                  '#F3F4F6'
+                              }}>
+                                <Text style={{
+                                  fontSize: 13,
+                                  fontWeight: '600',
+                                  color:
+                                    company.training_matrices_total > 0 && (company.training_matrices_approved || 0) === company.training_matrices_total ? '#065F46' :
+                                    company.training_matrices_total > 0 ? '#92400E' :
+                                    '#6B7280'
+                                }}>
+                                  {company.training_matrices_total > 0 && (company.training_matrices_approved || 0) === company.training_matrices_total ? '✓ Approved' : company.training_matrices_total > 0 ? `⏳ ${company.training_matrices_total - (company.training_matrices_approved || 0)} Pending` : '○ None'}
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -10859,7 +10934,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     {selectedCompanyForTrainingRecords.name}
                   </Text>
                   <Text style={{ fontSize: 14, color: '#E9D5FF' }}>
-                    Training Records - {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? '📝 Pending Review' : '○ None'}
+                    Individual Records - {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'approved' ? '✓ Approved' : trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? '📝 Pending Review' : '○ None'}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#E9D5FF', marginTop: 2 }}>
+                    Training Matrices - {trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'approved' ? '✓ Approved' : trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? '📝 Pending Review' : '○ None'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowTrainingRecordsModal(false)} style={{ padding: 8 }}>
@@ -10868,20 +10946,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
 
               {/* Full Training Records Screen with padding for buttons */}
-              <View style={{ flex: 1, paddingBottom: trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' ? 80 : 0 }}>
+              <View style={{
+                flex: 1,
+                paddingBottom: (
+                  trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' ||
+                  trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'added'
+                ) ? (trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' && trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? 140 : 80) : 0
+              }}>
                 <TrainingRecordsScreen
                   loggedInCompanyId={selectedCompanyForTrainingRecords.id}
                   styles={styles}
                   onClose={() => setShowTrainingRecordsModal(false)}
                   onStatusChanged={refreshTrainingRecordsStatus}
+                  onMatrixStatusChanged={refreshTrainingMatricesStatus}
                 />
               </View>
 
-              {/* Admin Action Buttons - Floating */}
+              {/* Admin Action Buttons - Individual Records */}
               {trainingRecordsStatuses[selectedCompanyForTrainingRecords.id] !== 'approved' && (
                 <View style={{
                   position: 'absolute',
-                  bottom: 0,
+                  bottom: trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'added' ? 68 : 0,
                   left: 0,
                   right: 0,
                   backgroundColor: 'white',
@@ -10889,7 +10974,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   borderTopColor: '#E5E7EB',
                   paddingHorizontal: 16,
                   paddingVertical: 12,
-                  paddingBottom: 16,
                   flexDirection: 'row',
                   gap: 10
                 }}>
@@ -10923,7 +11007,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     disabled={approvingTrainingRecords}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      {approvingTrainingRecords ? 'Processing...' : 'Approve All'}
+                      {approvingTrainingRecords ? 'Processing...' : 'Approve All Records'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Admin Action Buttons - Training Matrices */}
+              {trainingMatricesStatuses[selectedCompanyForTrainingRecords.id] === 'added' && (
+                <View style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderTopWidth: 1,
+                  borderTopColor: '#E5E7EB',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  paddingBottom: 16,
+                }}>
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: 12,
+                      backgroundColor: '#6366F1',
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={handleApproveAllTrainingMatrices}
+                    disabled={approvingTrainingRecords}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                      {approvingTrainingRecords ? 'Processing...' : 'Approve All Matrices'}
                     </Text>
                   </TouchableOpacity>
                 </View>
