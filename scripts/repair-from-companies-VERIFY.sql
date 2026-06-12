@@ -56,6 +56,29 @@ LEFT JOIN companies co_c ON co_c.id = c.company_id
 WHERE lower(u.email) = 'polina.maslova@janiking.co.nz';
 
 
+-- Nikita Anandh / Atlas Copco (expect status = OK)
+SELECT
+  u.email,
+  u.raw_user_meta_data->>'name' AS auth_name,
+  u.raw_user_meta_data->>'contractor_id' AS auth_contractor_id,
+  co.name AS auth_company,
+  c.id AS contractor_id,
+  c.name AS contractor_name,
+  co_c.name AS contractor_company,
+  CASE
+    WHEN co_c.id = 'ecb3c8ec-59f6-4d80-910e-4fe1f28871a3'
+      AND lower(c.email) = 'nikita.anandh@atlascopco.com' THEN 'OK'
+    WHEN c.id IS NULL THEN 'NO CONTRACTOR ROW'
+    WHEN co_c.id = '350e7270-f363-4e3e-888d-4b4c9485442c' THEN 'WRONG — Ash Air not Atlas Copco'
+    ELSE 'CHECK'
+  END AS status
+FROM auth.users u
+LEFT JOIN contractors c ON lower(c.email) = lower(u.email)
+LEFT JOIN companies co ON co.id = (u.raw_user_meta_data->>'company_id')::uuid
+LEFT JOIN companies co_c ON co_c.id = c.company_id
+WHERE lower(u.email) = 'nikita.anandh@atlascopco.com';
+
+
 -- Wrong-person + broken links (expect 0 rows)
 SELECT
   u.email AS auth_email,
