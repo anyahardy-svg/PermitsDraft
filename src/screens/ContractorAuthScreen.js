@@ -229,13 +229,11 @@ export default function ContractorAuthScreen({
       // If fresh_login is set, clear any cached session to force new login
       if (freshLogin === '1') {
         console.log('🔄 Fresh login requested - clearing cached session');
-        // Clear contractor auth session from localStorage
-        localStorage.removeItem('contractor_session');
-        localStorage.removeItem('contractor_token');
-        localStorage.removeItem('contractor_id');
-        // Clear the URL parameter
+        clearContractorSessionStorage();
+        if (supabase) {
+          supabase.auth.signOut();
+        }
         window.history.replaceState(null, '', window.location.pathname);
-        // Don't check existing session when fresh login is requested
         return;
       }
     }
@@ -387,6 +385,9 @@ export default function ContractorAuthScreen({
     setLoading(true);
     try {
       clearContractorSessionStorage();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       const response = await loginWithEmailPassword(email, password);
 
       if (response.success && response.data) {

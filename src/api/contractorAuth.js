@@ -143,31 +143,42 @@ const lookupContractorByEmail = async (email, preferredCompanyId = null) => {
     }
   }
 
-  const { data: exactMatch, error: exactError } = await supabase
+  const pickBestContractorRow = (rows) => {
+    if (!rows?.length) {
+      return null;
+    }
+
+    return rows.find((row) => row.company_id) || rows[0];
+  };
+
+  const { data: exactMatches, error: exactError } = await supabase
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .eq('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (exactError) {
     console.warn('⚠️ Contractor exact lookup error:', exactError.message);
   }
 
+  const exactMatch = pickBestContractorRow(exactMatches);
   if (exactMatch) {
     return exactMatch;
   }
 
-  const { data: caseInsensitiveMatch, error: ilikeError } = await supabase
+  const { data: caseInsensitiveMatches, error: ilikeError } = await supabase
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .ilike('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (ilikeError) {
     console.warn('⚠️ Contractor ilike lookup error:', ilikeError.message);
   }
 
-  return caseInsensitiveMatch || null;
+  return pickBestContractorRow(caseInsensitiveMatches);
 };
 
 const lookupContractorViaApi = async (accessToken) => {
@@ -268,12 +279,15 @@ const resolveAuthUserProfile = async (user, accessToken) => {
     };
   }
 
-  const authProfile = buildProfileFromAuthUser(user);
-  if (authProfile?.companyId) {
+  // Never trust JWT name/contractor_id — stale metadata caused cross-user bleed (e.g. Angie).
+  const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
+  if (joinRequestCompanyId) {
     return {
-      ...authProfile,
+      contractorId: null,
+      contractorName: user.email,
+      companyId: joinRequestCompanyId,
       email: user.email,
-      contractorName: authProfile.contractorName || user.email,
+      userType,
     };
   }
 
