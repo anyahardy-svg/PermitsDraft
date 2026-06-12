@@ -153,22 +153,37 @@ const AuthCallbackScreen = ({ onPasswordSet }) => {
     setError(null);
 
     try {
-      // Update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.email) {
+        const expiredMsg = 'Your session has expired. Please request a new password reset link.';
+        setError(expiredMsg);
+        Alert.alert('Error', expiredMsg);
+        return;
+      }
+
+      // Admin API sets password and marks email confirmed (client updateUser does not)
+      const passwordResponse = await fetch('/api/set-contractor-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+          password: newPassword,
+        }),
       });
 
-      if (updateError) {
-        setError(updateError.message);
-        Alert.alert('Error', updateError.message);
+      if (!passwordResponse.ok) {
+        const errorData = await passwordResponse.json().catch(() => ({}));
+        const errorMsg = errorData.error || 'Failed to set password';
+        setError(errorMsg);
+        Alert.alert('Error', errorMsg);
       } else {
-        // Success - notify parent or navigate
         Alert.alert('Success', 'Your password has been set successfully. You can now log in with your email and password.');
-        
+
         if (onPasswordSet) {
           onPasswordSet();
         } else {
-          // Fallback: try to sign out and go to login
           await supabase.auth.signOut();
         }
       }

@@ -552,47 +552,10 @@ export default function ContractorAuthScreen({
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        const canUseInviteSession =
-          inviteRecoverySessionRef.current &&
-          session?.user?.email &&
-          emailsMatch(session.user.email, emailForSetup);
-
-        if (canUseInviteSession) {
-          try {
-            const { error: updateError } = await supabase.auth.updateUser({
-              password: newPassword
-            });
-
-            if (!updateError) {
-              console.log('✅ Password set via active invite session');
-
-              if (session.access_token) {
-                await fetch('/api/lookup-contractor', {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                  },
-                }).catch(() => {});
-              }
-
-              await supabase.auth.signOut();
-              inviteRecoverySessionRef.current = false;
-              finishNewUserPasswordSetup(emailForSetup);
-              return;
-            }
-
-            console.warn('⚠️ Session password update failed, falling back to API:', updateError.message);
-          } catch (sessionError) {
-            console.warn('⚠️ Session password update threw, falling back to API:', sessionError.message);
-          }
-
-          await supabase.auth.signOut();
-          inviteRecoverySessionRef.current = false;
-        } else if (session?.user) {
-          console.log('⚠️ Ignoring cached session for invite password setup');
+        if (session?.user) {
           await supabase.auth.signOut();
         }
+        inviteRecoverySessionRef.current = false;
 
         const passwordResponse = await fetch('/api/set-contractor-password', {
           method: 'POST',

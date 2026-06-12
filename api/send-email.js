@@ -532,7 +532,7 @@ export default async function handler(req, res) {
             const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
             const authPayload = {
               email: toEmail,
-              email_confirm: false,
+              email_confirm: true,
               user_metadata: {
                 company_name: companyName,
                 company_id: companyId,
