@@ -45,18 +45,18 @@ async function fetchAuthUserByEmail(email) {
   return usersData.users[0];
 }
 
-async function findAuthUserCaseInsensitive(adminClient, email) {
-  const resolvedEmail = await resolveAuthEmailCaseInsensitive(adminClient, email);
-  if (!resolvedEmail) {
+async function findAuthUserStrictCaseInsensitive(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
     return null;
   }
 
-  let user = await fetchAuthUserByEmail(resolvedEmail);
-  if (user) {
-    return user;
+  const lower = trimmed.toLowerCase();
+  const direct = await fetchAuthUserByEmail(trimmed);
+  if (direct?.email && direct.email.toLowerCase() === lower) {
+    return direct;
   }
 
-  const lower = resolvedEmail.toLowerCase();
   let page = 1;
   const perPage = 1000;
 
@@ -81,62 +81,18 @@ async function findAuthUserCaseInsensitive(adminClient, email) {
   return null;
 }
 
+async function findAuthUserCaseInsensitive(adminClient, email) {
+  return findAuthUserStrictCaseInsensitive(adminClient, email);
+}
+
 async function resolveAuthEmailCaseInsensitive(adminClient, email) {
   const trimmed = String(email || '').trim();
   if (!trimmed) {
     return null;
   }
 
-  const lower = trimmed.toLowerCase();
-  const candidates = new Set([trimmed, lower]);
-
-  const contractor = await lookupContractorByEmail(adminClient, trimmed);
-  // Only use contractor/join-request email when it matches what the user typed.
-  // Corrupt rows (e.g. Nikita's row storing angie@) must not redirect login/password setup.
-  if (contractor?.email && emailsMatch(contractor.email, trimmed)) {
-    candidates.add(contractor.email);
-  }
-
-  const { data: joinRequest } = await adminClient
-    .from('contractor_join_requests')
-    .select('email')
-    .ilike('email', trimmed)
-    .eq('status', 'approved')
-    .maybeSingle();
-
-  if (joinRequest?.email && emailsMatch(joinRequest.email, trimmed)) {
-    candidates.add(joinRequest.email);
-  }
-
-  for (const candidate of candidates) {
-    const user = await fetchAuthUserByEmail(candidate);
-    if (user?.email) {
-      return user.email;
-    }
-  }
-
-  let page = 1;
-  const perPage = 1000;
-
-  while (page <= 10) {
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
-    if (error || !data?.users?.length) {
-      break;
-    }
-
-    const match = data.users.find((user) => user.email?.toLowerCase() === lower);
-    if (match?.email) {
-      return match.email;
-    }
-
-    if (data.users.length < perPage) {
-      break;
-    }
-
-    page += 1;
-  }
-
-  return trimmed;
+  const user = await findAuthUserStrictCaseInsensitive(adminClient, trimmed);
+  return user?.email || trimmed;
 }
 
 function emailsMatch(left, right) {
@@ -307,6 +263,7 @@ module.exports = {
   getSupabaseAdmin,
   fetchAuthUserByEmail,
   findAuthUserCaseInsensitive,
+  findAuthUserStrictCaseInsensitive,
   resolveAuthEmailCaseInsensitive,
   emailsMatch,
   contractorBelongsToAuthUser,

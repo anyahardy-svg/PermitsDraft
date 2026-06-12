@@ -12,7 +12,8 @@ const {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   getSupabaseAdmin,
-  findAuthUserCaseInsensitive,
+  findAuthUserStrictCaseInsensitive,
+  emailsMatch,
   lookupContractorForAuthUser,
 } = require('./supabaseAdmin');
 
@@ -56,9 +57,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const user = await findAuthUserCaseInsensitive(adminClient, email);
+    const requestedEmail = String(email || '').trim();
+    const user = await findAuthUserStrictCaseInsensitive(adminClient, requestedEmail);
     if (!user) {
-      console.error('❌ No user found with email:', email);
+      console.error('❌ No user found with email:', requestedEmail);
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    if (!emailsMatch(user.email, requestedEmail)) {
+      console.error(
+        '❌ Refusing password update — auth user email does not match request:',
+        user.email,
+        requestedEmail
+      );
       return res.status(400).json({ error: 'User not found' });
     }
 
