@@ -3498,34 +3498,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   }, [initialContractorAdminTab]);
 
-  // Restore contractor context from localStorage on app mount
-  useEffect(() => {
-    const stored = localStorage.getItem('_contractorContext');
-    if (stored) {
-      try {
-        const ctx = JSON.parse(stored);
-        setCurrentContractor({
-          id: ctx.id || '',
-          name: ctx.name || '',
-          email: ctx.email || '',
-          company_id: ctx.company_id || '',
-          phone: '',
-          businessUnitIds: [],
-          services: [],
-          siteIds: [],
-          company: '',
-          inductionExpiry: '',
-          companyManuallyEntered: false
-        });
-        console.log('✅ currentContractor state set from localStorage');
-      } catch (e) {
-        console.warn('Failed to restore contractor context:', e);
-        console.warn('Failed to parse:', stored);
-      }
-    } else {
-      console.log('ℹ️ localStorage empty - contractor will be restored from detectContractorHub or later');
-    }
-  }, []); // Run only on mount
+  // Contractor context is restored from the authenticated Supabase session only.
+  // Do not hydrate from localStorage here — stale entries caused cross-user name/company bleed.
 
   // Detect contractor hub domain and handle authentication
   useEffect(() => {

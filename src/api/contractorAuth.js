@@ -4,7 +4,28 @@
  */
 
 import { supabase } from '../supabaseClient';
-import { normalizeEmailInput, uniqueEmailCandidates } from '../utils/emailNormalization';
+import { normalizeEmailInput, uniqueEmailCandidates, normalizeEmailForComparison } from '../utils/emailNormalization';
+
+const CONTRACTOR_CONTEXT_KEY = '_contractorContext';
+
+export function clearContractorSessionStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  localStorage.removeItem(CONTRACTOR_CONTEXT_KEY);
+  localStorage.removeItem('contractor_session');
+  localStorage.removeItem('contractor_token');
+  localStorage.removeItem('contractor_id');
+}
+
+function contractorBelongsToAuthUser(contractor, user) {
+  if (!contractor?.email || !user?.email) {
+    return false;
+  }
+
+  return normalizeEmailForComparison(contractor.email) === normalizeEmailForComparison(user.email);
+}
 
 const getJoinRequestCompanyId = async (email) => {
   if (!supabase || !email) {
@@ -229,18 +250,31 @@ const resolveAuthUserProfile = async (user, accessToken) => {
       return resolveAdminStaffProfile(user);
     }
 
+    if (!contractorBelongsToAuthUser(contractorData, user)) {
+      console.error(
+        '❌ Contractor profile email mismatch for authenticated user:',
+        user.email,
+        contractorData.email
+      );
+      return null;
+    }
+
     return {
       contractorId: contractorData.id,
       contractorName: contractorData.name,
       companyId: contractorData.company_id,
-      email: contractorData.email || user.email,
+      email: user.email,
       userType,
     };
   }
 
   const authProfile = buildProfileFromAuthUser(user);
   if (authProfile?.companyId) {
-    return authProfile;
+    return {
+      ...authProfile,
+      email: user.email,
+      contractorName: authProfile.contractorName || user.email,
+    };
   }
 
   return null;
@@ -338,6 +372,7 @@ export async function signupContractor(email, password) {
  */
 export async function logout() {
   try {
+    clearContractorSessionStorage();
     const { error } = await supabase.auth.signOut();
     if (error) {
       return { success: false, error: error.message };
