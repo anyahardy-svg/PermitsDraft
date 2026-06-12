@@ -47,12 +47,11 @@ export function inductionRouteToPath(route) {
   return '/inductions/';
 }
 
+const CONTRACTOR_HQ_ORIGIN = 'https://contractorhq.co.nz';
+
 export function getContractorInductionUrl(subPath = '/inductions/') {
   const normalizedSubPath = subPath.startsWith('/') ? subPath : `/${subPath}`;
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return `${window.location.origin}${normalizedSubPath}`;
-  }
-  return `https://contractorhq.co.nz${normalizedSubPath}`;
+  return `${CONTRACTOR_HQ_ORIGIN}${normalizedSubPath}`;
 }
 
 export async function copyContractorInductionLink(subPath = '/inductions/') {
