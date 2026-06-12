@@ -8,7 +8,14 @@
 --   4. @winstoneaggregates.co.nz domain → Winstone Aggregates (internal staff)
 --
 -- Does NOT trust auth.users.raw_user_meta_data.company_id for assignment.
--- Run ONE SECTION AT A TIME in Supabase SQL Editor. Preview before apply.
+--
+-- ⚠️  SUPABASE SQL EDITOR: Pasting this whole file runs ONLY THE LAST query
+--     (STEP 5 — unresolved users). That is a preview, NOT the repair.
+--
+--     To repair data you must run the APPLY file:
+--       scripts/repair-from-companies-APPLY.sql  (steps 1B → 2B → 3)
+--
+--     Or highlight ONE step block below and Run selected only.
 -- =============================================================================
 
 -- Winstone Aggregates UUID: faf93bef-1f88-4920-9b0d-bb72ccf8b7c7
