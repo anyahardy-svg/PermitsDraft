@@ -54,20 +54,52 @@ function contractorBelongsToAuthUser(contractor, user) {
 }
 
 const getJoinRequestCompanyId = async (email) => {
+  const joinRequest = await getApprovedJoinRequest(email);
+  return joinRequest?.company_id || null;
+};
+
+const getCompanyIdForAuthEmailClient = async (email) => {
+  if (!supabase || !email) {
+    return null;
+  }
+
+  const trimmed = email.trim();
+  const { data: byContact } = await supabase
+    .from('companies')
+    .select('id')
+    .ilike('contact_email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  if (byContact?.id) {
+    return byContact.id;
+  }
+
+  const { data: byEmail } = await supabase
+    .from('companies')
+    .select('id')
+    .ilike('email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  return byEmail?.id || null;
+};
+
+const getApprovedJoinRequest = async (email) => {
   if (!supabase || !email) {
     return null;
   }
 
   const { data: joinRequest } = await supabase
     .from('contractor_join_requests')
-    .select('company_id')
+    .select('company_id, user_type, will_work_on_site')
     .ilike('email', email.trim())
     .eq('status', 'approved')
     .order('reviewed_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return joinRequest?.company_id || null;
+  return joinRequest || null;
 };
 
 const buildProfileFromAuthUser = (user) => {
@@ -327,15 +359,22 @@ const resolveAuthUserProfile = async (user, accessToken) => {
     };
   }
 
-  // Never trust JWT name/contractor_id — stale metadata caused cross-user bleed (e.g. Angie).
-  const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
-  if (joinRequestCompanyId) {
+  // Company contacts (accreditation invites) — admin staff, no contractors row required
+  if (metadata.user_type === 'admin_staff' && metadata.company_id) {
+    return resolveAdminStaffProfile(user);
+  }
+
+  const joinRequest = await getApprovedJoinRequest(user.email);
+  if (joinRequest?.company_id) {
+    const joinUserType =
+      joinRequest.user_type ||
+      (joinRequest.will_work_on_site === false ? 'admin_staff' : 'contractor');
     return {
       contractorId: null,
-      contractorName: user.email,
-      companyId: joinRequestCompanyId,
+      contractorName: metadata.name || user.email,
+      companyId: joinRequest.company_id,
       email: user.email,
-      userType,
+      userType: joinUserType,
     };
   }
 

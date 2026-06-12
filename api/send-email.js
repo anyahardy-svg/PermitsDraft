@@ -536,6 +536,8 @@ export default async function handler(req, res) {
               user_metadata: {
                 company_name: companyName,
                 company_id: companyId,
+                // Accreditation contacts are company admin staff — not field contractors
+                user_type: 'admin_staff',
               },
             };
             

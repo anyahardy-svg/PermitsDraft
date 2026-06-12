@@ -261,7 +261,7 @@ async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
   return null;
 }
 
-async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
+async function getLatestApprovedJoinRequest(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
     return null;
@@ -269,13 +269,18 @@ async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
 
   const { data: joinRequest } = await adminClient
     .from('contractor_join_requests')
-    .select('company_id')
+    .select('company_id, user_type, will_work_on_site')
     .ilike('email', normalizedEmail)
     .eq('status', 'approved')
     .order('reviewed_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  return joinRequest || null;
+}
+
+async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
+  const joinRequest = await getLatestApprovedJoinRequest(adminClient, email);
   return joinRequest?.company_id || null;
 }
 
@@ -331,6 +336,7 @@ module.exports = {
   lookupContractorByEmail,
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
+  getLatestApprovedJoinRequest,
   getCompanyIdForAuthEmail,
   resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
