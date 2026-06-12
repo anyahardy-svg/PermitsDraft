@@ -263,7 +263,7 @@ const resolveAuthUserProfile = async (user, accessToken) => {
 
     if (!contractorBelongsToAuthUser(contractorData, user)) {
       console.error(
-        '❌ Contractor profile email mismatch for authenticated user:',
+        '❌ Contractor row email does not match authenticated user:',
         user.email,
         contractorData.email
       );
@@ -347,7 +347,7 @@ export async function loginWithEmailPassword(email, password) {
         contractorId: profile.contractorId,
         contractorName: profile.contractorName,
         companyId: profile.companyId,
-        email: profile.email,
+        email: authData.user.email,
         userType: profile.userType,
       },
     };
@@ -426,7 +426,7 @@ export async function getCurrentUser() {
         id: profile.contractorId,
         name: profile.contractorName,
         company_id: profile.companyId,
-        email: profile.email,
+        email: user.email,
         userType: profile.userType,
       },
     };
