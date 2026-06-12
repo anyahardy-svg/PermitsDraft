@@ -15,6 +15,7 @@ const {
   findAuthUserStrictCaseInsensitive,
   emailsMatch,
   lookupContractorForAuthUser,
+  resolveValidatedCompanyIdForAuthUser,
 } = require('./supabaseAdmin');
 
 export default async function handler(req, res) {
@@ -86,17 +87,28 @@ export default async function handler(req, res) {
 
     const userMetadata = {
       ...(user.user_metadata || {}),
-      user_type: 'contractor',
     };
 
     if (contractor) {
+      userMetadata.user_type = 'contractor';
       userMetadata.contractor_id = contractor.id;
       userMetadata.contractor_name = contractor.name;
       userMetadata.company_id = contractor.company_id;
       userMetadata.name = contractor.name;
       console.log(`✅ Linked contractor metadata for: ${contractor.name}`);
     } else {
-      console.warn(`⚠️ No contractor row found for ${user.email} while setting password`);
+      const companyId =
+        (await resolveValidatedCompanyIdForAuthUser(adminClient, user)) ||
+        userMetadata.company_id ||
+        null;
+      userMetadata.user_type = 'admin_staff';
+      userMetadata.company_id = companyId;
+      delete userMetadata.contractor_id;
+      delete userMetadata.contractor_name;
+      console.log(
+        `✅ Company contact (admin staff) password setup for: ${user.email}`,
+        companyId ? `company ${companyId}` : '(no company linked yet)'
+      );
     }
 
     // Update user's password
