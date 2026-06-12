@@ -45,6 +45,42 @@ async function fetchAuthUserByEmail(email) {
   return usersData.users[0];
 }
 
+async function findAuthUserCaseInsensitive(adminClient, email) {
+  const resolvedEmail = await resolveAuthEmailCaseInsensitive(adminClient, email);
+  if (!resolvedEmail) {
+    return null;
+  }
+
+  let user = await fetchAuthUserByEmail(resolvedEmail);
+  if (user) {
+    return user;
+  }
+
+  const lower = resolvedEmail.toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+
+  while (page <= 10) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error || !data?.users?.length) {
+      break;
+    }
+
+    const match = data.users.find((candidate) => candidate.email?.toLowerCase() === lower);
+    if (match) {
+      return match;
+    }
+
+    if (data.users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return null;
+}
+
 async function resolveAuthEmailCaseInsensitive(adminClient, email) {
   const trimmed = String(email || '').trim();
   if (!trimmed) {
@@ -165,6 +201,7 @@ module.exports = {
   SUPABASE_SERVICE_ROLE_KEY,
   getSupabaseAdmin,
   fetchAuthUserByEmail,
+  findAuthUserCaseInsensitive,
   resolveAuthEmailCaseInsensitive,
   lookupContractorByEmail,
   syncAuthUserContractorMetadata,

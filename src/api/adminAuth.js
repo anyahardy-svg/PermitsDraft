@@ -409,8 +409,8 @@ export async function requestPasswordReset(email) {
     const token = crypto.getRandomValues(new Uint8Array(32))
       .reduce((acc, val) => acc + val.toString(16).padStart(2, '0'), '');
 
-    // Set expiration to 24 hours from now
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    // Set expiration to 48 hours from now
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
     console.log('🔑 Generated reset token for:', adminUser.id);
 

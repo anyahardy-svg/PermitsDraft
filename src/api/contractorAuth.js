@@ -428,38 +428,36 @@ export async function inviteContractor(email) {
  */
 export async function sendPasswordResetCode(email) {
   try {
-    const resolvedEmail = await resolveAuthEmailForLogin(email);
-    console.log('🔑 Sending password reset code to:', resolvedEmail);
-    
-    // Don't require contractor record to exist - just send the email
-    // This supports newly approved contractors who may not be fully set up yet
-    
-    // Send password reset code via Supabase (sends 6-digit OTP)
-    console.log('📧 Sending password reset code via Supabase');
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
-      redirectTo: typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback` 
-        : 'https://contractorhq.co.nz/auth/callback'
+    const normalizedEmail = normalizeEmailInput(email);
+    console.log('🔑 Sending password reset code to:', normalizedEmail);
+
+    const response = await fetch('/api/request-contractor-password-reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail }),
     });
 
-    if (resetError) {
-      console.error('❌ Reset email error:', resetError);
-      return { 
-        success: false, 
-        error: resetError.message || 'Failed to send password reset code' 
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        success: false,
+        error: result.error || 'Failed to send password reset code',
       };
     }
 
     console.log('✅ Password reset code sent successfully');
-    return { 
-      success: true, 
-      message: `Password reset code has been sent to ${resolvedEmail}. Check your email for a 6-digit code.`
+    return {
+      success: true,
+      email: result.email || normalizedEmail,
+      message:
+        result.message ||
+        `Password reset code has been sent to ${result.email || normalizedEmail}. The code is valid for 48 hours.`,
     };
   } catch (error) {
     console.error('❌ Password reset error:', error);
-    return { 
-      success: false, 
-      error: error.message || 'An error occurred' 
+    return {
+      success: false,
+      error: error.message || 'An error occurred',
     };
   }
 }
@@ -479,41 +477,78 @@ export async function sendPasswordResetEmail(email) {
  */
 export async function verifyPasswordResetOtp(email, token) {
   try {
-    const resolvedEmail = await resolveAuthEmailForLogin(email);
-    console.log('Verifying OTP for email:', resolvedEmail);
-    
-    // Verify the OTP token for recovery (password reset)
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: resolvedEmail,
-      token: token.replace(/\s/g, ''), // Remove spaces
-      type: 'recovery'
+    const normalizedEmail = normalizeEmailInput(email);
+    console.log('Verifying reset code for email:', normalizedEmail);
+
+    const response = await fetch('/api/verify-contractor-reset-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        token: token.replace(/\s/g, ''),
+      }),
     });
 
-    if (error) {
-      console.error('OTP verification error:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Invalid or expired code'
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) {
+      console.error('Reset code verification error:', result.error);
+      return {
+        success: false,
+        error: result.error || 'Invalid or expired code',
       };
     }
 
-    if (!data.session) {
-      console.error('No session created after OTP verification');
-      return { 
-        success: false, 
-        error: 'Authentication failed. Please try again.'
-      };
-    }
-
-    console.log('✅ OTP verified successfully, session established');
-    return { success: true };
+    console.log('✅ Reset code verified successfully');
+    return {
+      success: true,
+      email: result.email || normalizedEmail,
+    };
   } catch (error) {
     console.error('OTP verification exception:', error);
-    return { 
-      success: false, 
-      error: error.message || 'An error occurred'
+    return {
+      success: false,
+      error: error.message || 'An error occurred',
     };
   }
+}
+
+export async function resetContractorPasswordWithToken(email, token, password) {
+  try {
+    const normalizedEmail = normalizeEmailInput(email);
+    const response = await fetch('/api/reset-contractor-password-with-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        token: token.replace(/\s/g, ''),
+        password,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to reset password',
+      };
+    }
+
+    return {
+      success: true,
+      email: result.email || normalizedEmail,
+      message: result.message || 'Password reset successfully',
+    };
+  } catch (error) {
+    console.error('Password reset exception:', error);
+    return {
+      success: false,
+      error: error.message || 'An error occurred',
+    };
+  }
+}
+
+export async function resolveContractorAuthEmail(email) {
+  return resolveAuthEmailForLogin(email);
 }
 
 /**

@@ -362,22 +362,8 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
       console.log('ℹ️ Admin staff - no contractor record needed');
     }
 
-    // STEP 3: Send password reset link so user can set their own password
-    console.log('🔐 STEP 3: Sending password reset link');
-    try {
-      const resetResult = await supabase.auth.resetPasswordForEmail(request.email, {
-        redirectTo: `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(request.email)}`
-      });
-
-      if (resetResult.error) {
-        console.warn('⚠️ Could not send password reset email:', resetResult.error.message);
-        // Continue anyway - we'll send it in the approval email
-      } else {
-        console.log('✅ Password reset link sent to:', request.email);
-      }
-    } catch (resetErr) {
-      console.warn('⚠️ Error sending password reset:', resetErr.message);
-    }
+    // STEP 3: Send password setup instructions (first-time password uses case-insensitive lookup)
+    console.log('🔐 STEP 3: Preparing password setup instructions');
 
     // STEP 4: Update request status
     console.log('📋 STEP 4: Updating request status');
