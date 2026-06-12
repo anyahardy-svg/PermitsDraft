@@ -7,6 +7,12 @@
  * Body: { toEmail, companyName, deadline, isNewUser, companyId }
  */
 
+const {
+  getSupabaseAdmin,
+  grantCompanyAdminAccess,
+  syncInvitedAdminAuthUser,
+} = require('./supabaseAdmin');
+
 const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -525,8 +531,19 @@ export default async function handler(req, res) {
             }
           }
 
-          // Create user in Supabase Auth if this is actually a new user
-          // (We already checked this above before sending the email)
+          const adminClient = getSupabaseAdmin();
+          const resolvedContactName = (contactName || '').trim() || null;
+
+          if (adminClient && companyId) {
+            await grantCompanyAdminAccess(adminClient, {
+              email: toEmail,
+              companyId,
+              name: resolvedContactName,
+            });
+            console.log(`✅ Granted company admin access for ${toEmail} → company ${companyId}`);
+          }
+
+          // Create or update auth user for this invited admin (any email, not only contact_email)
           if (actuallyNewUser) {
             console.log(`👤 Creating new user for ${toEmail}`);
             const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
@@ -536,16 +553,18 @@ export default async function handler(req, res) {
               user_metadata: {
                 company_name: companyName,
                 company_id: companyId,
+                name: resolvedContactName,
+                user_type: 'admin_staff',
               },
             };
-            
+
             try {
               const authResponse = await fetch(authUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                  apikey: SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify(authPayload),
               });
@@ -560,8 +579,19 @@ export default async function handler(req, res) {
             } catch (authErr) {
               console.error(`❌ Error creating auth user:`, authErr.message);
             }
-          } else {
-            console.log(`⏭️  Skipping user creation - ${toEmail} already exists in auth`);
+          } else if (adminClient) {
+            console.log(`🔄 Syncing existing auth user for invited admin: ${toEmail}`);
+            const synced = await syncInvitedAdminAuthUser(adminClient, {
+              email: toEmail,
+              companyId,
+              companyName,
+              name: resolvedContactName,
+            });
+            if (synced) {
+              console.log(`✅ Updated auth metadata for existing user ${toEmail}`);
+            } else {
+              console.warn(`⚠️ Could not find auth user to sync for ${toEmail}`);
+            }
           }
         }
       } catch (dbErr) {

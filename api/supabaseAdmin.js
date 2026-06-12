@@ -200,7 +200,154 @@ async function lookupContractorForAuthUser(adminClient, user) {
   return null;
 }
 
-async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
+async function getCompanyIdForAuthEmail(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const { data: byContact } = await adminClient
+    .from('companies')
+    .select('id')
+    .ilike('contact_email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  if (byContact?.id) {
+    return byContact.id;
+  }
+
+  const { data: byEmail } = await adminClient
+    .from('companies')
+    .select('id')
+    .ilike('email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  return byEmail?.id || null;
+}
+
+async function getCompanyAdminAccessForEmail(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const { data, error } = await adminClient
+    .from('company_admin_access')
+    .select('company_id, name, granted_at')
+    .ilike('email', trimmed)
+    .order('granted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('❌ company_admin_access lookup error:', error.message);
+    return null;
+  }
+
+  return data;
+}
+
+async function grantCompanyAdminAccess(adminClient, { email, companyId, name }) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed || !companyId) {
+    return;
+  }
+
+  const { error } = await adminClient.from('company_admin_access').upsert(
+    {
+      email: trimmed,
+      company_id: companyId,
+      name: name || null,
+      granted_at: new Date().toISOString(),
+    },
+    { onConflict: 'company_id,email' }
+  );
+
+  if (error) {
+    console.error('❌ Failed to grant company admin access:', error.message);
+  }
+}
+
+async function syncInvitedAdminAuthUser(adminClient, { email, companyId, companyName, name }) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed || !companyId) {
+    return null;
+  }
+
+  const user = await findAuthUserStrictCaseInsensitive(adminClient, trimmed);
+  const metadataPatch = {
+    company_id: companyId,
+    company_name: companyName || null,
+    user_type: 'admin_staff',
+    name: name || user?.user_metadata?.name || trimmed,
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  const { error } = await adminClient.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...(user.user_metadata || {}),
+      ...metadataPatch,
+    },
+  });
+
+  if (error) {
+    console.error('❌ Failed to sync invited admin auth user:', error.message);
+    return null;
+  }
+
+  return user;
+}
+
+/**
+ * Resolve company for an auth user.
+ * Priority: company contact fields → invitation grant table → admin_staff metadata.
+ */
+async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
+  const metadata = user.user_metadata || {};
+  const trimmed = String(user.email || '').trim();
+
+  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
+  if (emailCompanyId) {
+    return emailCompanyId;
+  }
+
+  const adminAccess = await getCompanyAdminAccessForEmail(adminClient, trimmed);
+  if (adminAccess?.company_id) {
+    return adminAccess.company_id;
+  }
+
+  const metadataCompanyId = metadata.company_id;
+  if (!metadataCompanyId) {
+    return null;
+  }
+
+  const { data: company } = await adminClient
+    .from('companies')
+    .select('id, contact_email, email')
+    .eq('id', metadataCompanyId)
+    .maybeSingle();
+
+  if (!company) {
+    return null;
+  }
+
+  if (metadata.user_type === 'admin_staff') {
+    return company.id;
+  }
+
+  if (emailsMatch(company.contact_email, trimmed) || emailsMatch(company.email, trimmed)) {
+    return company.id;
+  }
+
+  return null;
+}
+
+async function getLatestApprovedJoinRequest(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
     return null;
@@ -208,13 +355,18 @@ async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
 
   const { data: joinRequest } = await adminClient
     .from('contractor_join_requests')
-    .select('company_id')
+    .select('company_id, user_type, will_work_on_site')
     .ilike('email', normalizedEmail)
     .eq('status', 'approved')
     .order('reviewed_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  return joinRequest || null;
+}
+
+async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
+  const joinRequest = await getLatestApprovedJoinRequest(adminClient, email);
   return joinRequest?.company_id || null;
 }
 
@@ -270,5 +422,11 @@ module.exports = {
   lookupContractorByEmail,
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
+  getLatestApprovedJoinRequest,
+  getCompanyIdForAuthEmail,
+  getCompanyAdminAccessForEmail,
+  grantCompanyAdminAccess,
+  syncInvitedAdminAuthUser,
+  resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
 };
