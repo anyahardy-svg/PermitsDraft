@@ -59,6 +59,10 @@ const transformCompany = (dbCompany) => {
     training_records_total: dbCompany.training_records_total || 0,
     trainingRecordsApproved: dbCompany.training_records_approved || 0,
     training_records_approved: dbCompany.training_records_approved || 0,
+    trainingMatricesTotal: dbCompany.training_matrices_total || 0,
+    training_matrices_total: dbCompany.training_matrices_total || 0,
+    trainingMatricesApproved: dbCompany.training_matrices_approved || 0,
+    training_matrices_approved: dbCompany.training_matrices_approved || 0,
     contractorType: dbCompany.contractor_type || 'D',
     contractor_type: dbCompany.contractor_type || 'D',
   };
@@ -110,7 +114,7 @@ export const listCompanies = async () => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, contractor_type')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type')
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -132,7 +136,7 @@ export const getCompany = async (companyId) => {
 
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved')
       .eq('id', companyId)
       .single();
 
