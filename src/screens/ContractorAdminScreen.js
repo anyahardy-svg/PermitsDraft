@@ -236,82 +236,19 @@ export default function ContractorAdminScreen({
     restoreFromSession();
   }, []);
 
-  // Restore login from URL on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !isLoggedIn) {
-      const params = new URLSearchParams(window.location.search);
-      const contractorId = params.get('contractorId');
-      const companyId = params.get('companyId');
-      
-      if (contractorId && companyId) {
-        console.log('🔍 Restoring contractor login from URL:', { contractorId, companyId });
-        // We have contractor info in URL but need contractor name
-        // For now, we'll set the logged in state with what we have
-        setLoggedInCompanyId(companyId);
-        setSelectedCompanyId(companyId);
-        
-        // Fetch contractor name, email, and phone
-        const restoreLogin = async () => {
-          try {
-            // Get contractor details
-            const { data: contractor, error: contractorError } = await supabase
-              .from('contractors')
-              .select('id, name, email, phone')
-              .eq('id', contractorId)
-              .single();
-            
-            if (!contractorError && contractor) {
-              setLoggedInContractorId(contractor.id);
-              setLoggedInContractor(contractor.name);
-              setLoggedInContractorEmail(contractor.email || '');
-              setLoggedInContractorPhone(formatPhoneNumber(contractor.phone || ''));
-              console.log('✅ Restored contractor:', { name: contractor.name, email: contractor.email, phone: formatPhoneNumber(contractor.phone || '') });
-            }
-            
-            // Get company name
-            const { data: company, error: companyError } = await supabase
-              .from('companies')
-              .select('name')
-              .eq('id', companyId)
-              .single();
-            
-            if (!companyError && company) {
-              setLoggedInCompanyName(company.name);
-              console.log('✅ Restored company name:', company.name);
-            }
-            
-            setIsLoggedIn(true);
-            
-            // Directly load inductions for the restored company to avoid showing wrong contractors
-            try {
-              const inductionsData = await getContractorInductionsForCompany(companyId);
-              setInductedContractors(inductionsData || []);
-              console.log('✅ Loaded inductions for restored company:', inductionsData?.length);
-            } catch (inductionErr) {
-              console.error('Error loading inductions during restore:', inductionErr);
-            }
-            
-            console.log('✅ Login restored from URL');
-          } catch (error) {
-            console.error('Error restoring login:', error);
-          }
-        };
-        
-        restoreLogin();
-      }
-    }
-  }, []); // Only run on mount
-
-  // Update URL when activeTab or login state changes
+  // Update URL when activeTab or login state changes (company comes from auth session only)
   useEffect(() => {
     if (typeof window !== 'undefined' && isLoggedIn && loggedInCompanyId) {
       const tabPart = activeTab ? `${activeTab}/` : '';
-      const newUrl = `/contractor-admin/${tabPart}?contractorId=&companyId=${loggedInCompanyId}`;
-      if (window.location.pathname !== `/contractor-admin/${tabPart}`) {
+      const contractorParam = loggedInContractorId || '';
+      const search = `?contractorId=${contractorParam}&companyId=${loggedInCompanyId}`;
+      const newUrl = `/contractor-admin/${tabPart}${search}`;
+      const expectedPath = `/contractor-admin/${tabPart}`;
+      if (window.location.pathname !== expectedPath || window.location.search !== search) {
         window.history.replaceState({}, '', newUrl);
       }
     }
-  }, [activeTab, isLoggedIn, loggedInCompanyId]);
+  }, [activeTab, isLoggedIn, loggedInCompanyId, loggedInContractorId]);
 
   // Handle back button - go to dashboard or exit with logout warning
   const handleContractorAdminBack = () => {

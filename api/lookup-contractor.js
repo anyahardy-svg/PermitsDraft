@@ -9,7 +9,8 @@
 
 const {
   getSupabaseAdmin,
-  lookupContractorByEmail,
+  lookupContractorForAuthUser,
+  getLatestApprovedJoinRequestCompanyId,
   syncAuthUserContractorMetadata,
 } = require('./supabaseAdmin');
 
@@ -40,20 +41,39 @@ module.exports = async function handler(req, res) {
     }
 
     const metadata = user.user_metadata || {};
+    const userType = metadata.user_type || 'contractor';
 
-    if (metadata.contractor_id) {
-      const { data: contractorById } = await adminClient
-        .from('contractors')
-        .select('id, name, company_id, email')
-        .eq('id', metadata.contractor_id)
-        .maybeSingle();
+    if (userType === 'admin_staff') {
+      const companyId =
+        metadata.company_id || (await getLatestApprovedJoinRequestCompanyId(adminClient, user.email));
 
-      if (contractorById) {
-        return res.status(200).json({ success: true, contractor: contractorById });
+      if (!companyId) {
+        console.error('❌ No company for admin_staff user:', user.email);
+        return res.status(404).json({ error: 'Company assignment not found' });
       }
+
+      if (metadata.company_id !== companyId) {
+        await adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...metadata,
+            company_id: companyId,
+          },
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        contractor: {
+          id: null,
+          name: metadata.name || user.email,
+          company_id: companyId,
+          email: user.email,
+          user_type: 'admin_staff',
+        },
+      });
     }
 
-    const contractor = await lookupContractorByEmail(adminClient, user.email);
+    const contractor = await lookupContractorForAuthUser(adminClient, user);
     if (!contractor) {
       console.error('❌ No contractor row for authenticated user:', user.email);
       return res.status(404).json({ error: 'Contractor record not found' });

@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const { email, name, companyId, companyName, userType } = req.body;
+    const { email, name, companyId, companyName, userType, contractorId } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Missing email' });
@@ -130,6 +130,10 @@ export default async function handler(req, res) {
       company_id: companyId,
       user_type: userType,
     };
+
+    if (contractorId) {
+      userMetadata.contractor_id = contractorId;
+    }
 
     // Create user via Supabase Auth REST API using SERVICE ROLE KEY
     console.log('🔑 Creating new user with service role key');
