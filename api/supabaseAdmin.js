@@ -91,7 +91,9 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
   const candidates = new Set([trimmed, lower]);
 
   const contractor = await lookupContractorByEmail(adminClient, trimmed);
-  if (contractor?.email) {
+  // Only use contractor/join-request email when it matches what the user typed.
+  // Corrupt rows (e.g. Nikita's row storing angie@) must not redirect login/password setup.
+  if (contractor?.email && emailsMatch(contractor.email, trimmed)) {
     candidates.add(contractor.email);
   }
 
@@ -102,7 +104,7 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
     .eq('status', 'approved')
     .maybeSingle();
 
-  if (joinRequest?.email) {
+  if (joinRequest?.email && emailsMatch(joinRequest.email, trimmed)) {
     candidates.add(joinRequest.email);
   }
 
@@ -134,7 +136,7 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
     page += 1;
   }
 
-  return contractor?.email || joinRequest?.email || trimmed;
+  return trimmed;
 }
 
 function emailsMatch(left, right) {
@@ -149,37 +151,48 @@ function contractorBelongsToAuthUser(contractor, user) {
   return !!contractor && emailsMatch(contractor.email, user?.email);
 }
 
+function pickBestContractorRow(rows) {
+  if (!rows?.length) {
+    return null;
+  }
+
+  return rows.find((row) => row.company_id) || rows[0];
+}
+
 async function lookupContractorByEmail(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
     return null;
   }
 
-  const { data: exactMatch, error: exactError } = await adminClient
+  const { data: exactMatches, error: exactError } = await adminClient
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .eq('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (exactError) {
     console.error('❌ Contractor exact lookup error:', exactError.message);
   }
 
+  const exactMatch = pickBestContractorRow(exactMatches);
   if (exactMatch) {
     return exactMatch;
   }
 
-  const { data: caseInsensitiveMatch, error: ilikeError } = await adminClient
+  const { data: caseInsensitiveMatches, error: ilikeError } = await adminClient
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .ilike('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (ilikeError) {
     console.error('❌ Contractor ilike lookup error:', ilikeError.message);
   }
 
-  return caseInsensitiveMatch || null;
+  return pickBestContractorRow(caseInsensitiveMatches);
 }
 
 async function lookupContractorForAuthUser(adminClient, user) {
@@ -189,15 +202,22 @@ async function lookupContractorForAuthUser(adminClient, user) {
     return null;
   }
 
-  // Prefer the contractor row at the company stored in auth metadata (e.g. after join approval).
+  // Email on the contractor row is the source of truth — check it before JWT metadata.
+  const contractorByEmail = await lookupContractorByEmail(adminClient, normalizedEmail);
+  if (contractorByEmail && contractorBelongsToAuthUser(contractorByEmail, user)) {
+    return contractorByEmail;
+  }
+
   if (metadata.company_id) {
-    const { data: byEmailAndCompany } = await adminClient
+    const { data: byEmailAndCompanyRows } = await adminClient
       .from('contractors')
-      .select('id, name, company_id, email')
+      .select('id, name, company_id, email, created_at')
       .ilike('email', normalizedEmail)
       .eq('company_id', metadata.company_id)
-      .maybeSingle();
+      .order('created_at', { ascending: false })
+      .limit(5);
 
+    const byEmailAndCompany = pickBestContractorRow(byEmailAndCompanyRows);
     if (byEmailAndCompany && contractorBelongsToAuthUser(byEmailAndCompany, user)) {
       return byEmailAndCompany;
     }
@@ -219,11 +239,6 @@ async function lookupContractorForAuthUser(adminClient, user) {
         `⚠️ Ignoring mismatched contractor_id for ${user.email}: linked to ${contractorById.email}`
       );
     }
-  }
-
-  const contractorByEmail = await lookupContractorByEmail(adminClient, normalizedEmail);
-  if (contractorByEmail && contractorBelongsToAuthUser(contractorByEmail, user)) {
-    return contractorByEmail;
   }
 
   return null;

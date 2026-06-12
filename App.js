@@ -2404,7 +2404,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
-  const [selectedCompanyId, setSelectedCompanyId] = useState(initialContractorParams?.companyId || null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   
   // Network status tracking
   const { isOnline } = useNetworkStatus();
@@ -3547,14 +3547,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
         } else {
           console.log('✅ Contractor already logged in:', contractor.name);
-          // Persist contractor info to localStorage so it survives re-renders
-          localStorage.setItem('_contractorContext', JSON.stringify({
-            id: contractor.id,
-            name: contractor.name,
-            email: contractor.email,
-            company_id: contractor.company_id
-          }));
-          console.log('💾 Saved contractor to localStorage');
           // Set currentContractor IMMEDIATELY without setTimeout
           setCurrentContractor({
             id: contractor.id,
@@ -23232,14 +23224,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
             // Contractor logged in successfully
             console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
-            // Store contractor info to localStorage for persistence
-            localStorage.setItem('_contractorContext', JSON.stringify({
-              id: contractorId,
-              name: contractorName,
-              email: email,
-              company_id: companyId
-            }));
-            console.log('💾 Saved contractor to localStorage from onLoginSuccess');
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
             console.log('✅ selectedCompanyId set to:', companyId);
@@ -23295,14 +23279,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onNavigateBack={(contractorInfo) => {
             // If contractor info is passed, update currentContractor for dashboard filtering
             if (contractorInfo && contractorInfo.id) {
-              // Save to localStorage for persistence through navigation
-              localStorage.setItem('_contractorContext', JSON.stringify({
-                id: contractorInfo.id,
-                name: contractorInfo.contractorName || contractorInfo.name || '',
-                email: contractorInfo.email || '',
-                company_id: contractorInfo.companyId || contractorInfo.company_id || ''
-              }));
-              console.log('💾 Saved contractor to localStorage from onNavigateBack');
               setCurrentContractor({
                 id: contractorInfo.id || '',
                 name: contractorInfo.contractorName || contractorInfo.name || '',
@@ -23327,14 +23303,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           onReturnToKiosk={(contractorInfo) => {
             // If contractor info is passed, update currentContractor so kiosk filters permits by this contractor
             if (contractorInfo && contractorInfo.id) {
-              // Save to localStorage for persistence through navigation
-              localStorage.setItem('_contractorContext', JSON.stringify({
-                id: contractorInfo.id,
-                name: contractorInfo.contractorName || contractorInfo.name || '',
-                email: contractorInfo.email || '',
-                company_id: contractorInfo.companyId || contractorInfo.company_id || ''
-              }));
-              console.log('💾 Saved contractor to localStorage from onReturnToKiosk');
               setCurrentContractor({
                 id: contractorInfo.id,
                 name: contractorInfo.contractorName || contractorInfo.name || '',

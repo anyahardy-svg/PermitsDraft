@@ -53,6 +53,7 @@ async function updateUserMetadata(userId, existingMetadata, metadata) {
     method: 'PUT',
     headers: getServiceHeaders(),
     body: JSON.stringify({
+      email_confirm: true,
       user_metadata: {
         ...(existingMetadata || {}),
         ...metadata,

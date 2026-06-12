@@ -252,7 +252,7 @@ export default async function handler(req, res) {
           day: 'numeric' 
         }) : 'As soon as possible';
         
-        const signupUrl = 'https://contractorhq.co.nz/sign-in-contractor?type=invited';
+        const signupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(toEmail)}`;
         const rendered = renderTemplate(dbTemplate, {
           companyName,
           contactName: resolvedContactName,
@@ -284,7 +284,7 @@ export default async function handler(req, res) {
             <p>${companyName} is requesting that you complete an accreditation questionnaire.</p>
             <p><strong>Deadline:</strong> ${deadlineStr}</p>
             <p>To get started, you'll need to create a password and access our portal:</p>
-            <p><a href="https://contractorhq.co.nz/sign-in-contractor?type=invited" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Create Your Password</a></p>
+            <p><a href="https://contractorhq.co.nz/sign-in-contractor?type=invited&amp;email=${encodeURIComponent(toEmail)}" style="background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Create Your Password</a></p>
             <p style="margin-top: 16px; padding: 12px; background-color: #F0F9FF; border-left: 3px solid #3B82F6; font-size: 13px;">
               <strong>Already have an account?</strong> If you've already registered before, please use the "Forgot Password" option to reset your password instead of creating a new account.
             </p>
@@ -532,7 +532,7 @@ export default async function handler(req, res) {
             const authUrl = `${SUPABASE_URL}/auth/v1/admin/users`;
             const authPayload = {
               email: toEmail,
-              email_confirm: false,
+              email_confirm: true,
               user_metadata: {
                 company_name: companyName,
                 company_id: companyId,

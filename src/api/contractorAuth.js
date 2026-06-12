@@ -8,6 +8,31 @@ import { normalizeEmailInput, uniqueEmailCandidates, normalizeEmailForComparison
 
 const CONTRACTOR_CONTEXT_KEY = '_contractorContext';
 
+export function purgeSupabaseAuthStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith('sb-') && key.includes('auth')) {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+/** Drop cached Supabase sessions before invite/password-setup UI renders. */
+export function bootstrapPasswordSetupPage() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const setupType = params.get('type');
+  if (setupType === 'invited' || setupType === 'recovery') {
+    clearContractorSessionStorage();
+  }
+}
+
 export function clearContractorSessionStorage() {
   if (typeof window === 'undefined' || !window.localStorage) {
     return;
@@ -17,6 +42,7 @@ export function clearContractorSessionStorage() {
   localStorage.removeItem('contractor_session');
   localStorage.removeItem('contractor_token');
   localStorage.removeItem('contractor_id');
+  purgeSupabaseAuthStorage();
 }
 
 function contractorBelongsToAuthUser(contractor, user) {
@@ -99,7 +125,13 @@ const resolveAuthEmailForLogin = async (email) => {
   }
 
   const contractor = await lookupContractorByEmail(trimmed);
-  return contractor?.email || trimmed;
+  if (
+    contractor?.email &&
+    normalizeEmailForComparison(contractor.email) === normalizeEmailForComparison(trimmed)
+  ) {
+    return contractor.email;
+  }
+  return trimmed;
 };
 
 const signInWithEmailCaseInsensitive = async (email, password) => {
@@ -143,31 +175,42 @@ const lookupContractorByEmail = async (email, preferredCompanyId = null) => {
     }
   }
 
-  const { data: exactMatch, error: exactError } = await supabase
+  const pickBestContractorRow = (rows) => {
+    if (!rows?.length) {
+      return null;
+    }
+
+    return rows.find((row) => row.company_id) || rows[0];
+  };
+
+  const { data: exactMatches, error: exactError } = await supabase
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .eq('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (exactError) {
     console.warn('⚠️ Contractor exact lookup error:', exactError.message);
   }
 
+  const exactMatch = pickBestContractorRow(exactMatches);
   if (exactMatch) {
     return exactMatch;
   }
 
-  const { data: caseInsensitiveMatch, error: ilikeError } = await supabase
+  const { data: caseInsensitiveMatches, error: ilikeError } = await supabase
     .from('contractors')
-    .select('id, name, company_id, email')
+    .select('id, name, company_id, email, created_at')
     .ilike('email', normalizedEmail)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(5);
 
   if (ilikeError) {
     console.warn('⚠️ Contractor ilike lookup error:', ilikeError.message);
   }
 
-  return caseInsensitiveMatch || null;
+  return pickBestContractorRow(caseInsensitiveMatches);
 };
 
 const lookupContractorViaApi = async (accessToken) => {
@@ -252,7 +295,7 @@ const resolveAuthUserProfile = async (user, accessToken) => {
 
     if (!contractorBelongsToAuthUser(contractorData, user)) {
       console.error(
-        '❌ Contractor profile email mismatch for authenticated user:',
+        '❌ Contractor row email does not match authenticated user:',
         user.email,
         contractorData.email
       );
@@ -268,12 +311,15 @@ const resolveAuthUserProfile = async (user, accessToken) => {
     };
   }
 
-  const authProfile = buildProfileFromAuthUser(user);
-  if (authProfile?.companyId) {
+  // Never trust JWT name/contractor_id — stale metadata caused cross-user bleed (e.g. Angie).
+  const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
+  if (joinRequestCompanyId) {
     return {
-      ...authProfile,
+      contractorId: null,
+      contractorName: user.email,
+      companyId: joinRequestCompanyId,
       email: user.email,
-      contractorName: authProfile.contractorName || user.email,
+      userType,
     };
   }
 
@@ -333,7 +379,7 @@ export async function loginWithEmailPassword(email, password) {
         contractorId: profile.contractorId,
         contractorName: profile.contractorName,
         companyId: profile.companyId,
-        email: profile.email,
+        email: authData.user.email,
         userType: profile.userType,
       },
     };
@@ -412,7 +458,7 @@ export async function getCurrentUser() {
         id: profile.contractorId,
         name: profile.contractorName,
         company_id: profile.companyId,
-        email: profile.email,
+        email: user.email,
         userType: profile.userType,
       },
     };

@@ -3,7 +3,7 @@
  * Email/password login for Contractor Admin
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,18 +17,32 @@ import { supabase } from '../supabaseClient';
 import {
   loginWithEmailPassword,
   getCurrentUser,
+  bootstrapPasswordSetupPage,
   clearContractorSessionStorage,
+  purgeSupabaseAuthStorage,
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
   resetContractorPasswordWithToken,
-  resolveContractorAuthEmail,
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
+
+function readInviteParamsFromUrl() {
+  if (typeof window === 'undefined') {
+    return { isInvite: false, email: '' };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const isInvite = params.get('type') === 'invited';
+  const rawEmail = params.get('email');
+  const email = rawEmail ? decodeURIComponent(rawEmail).trim() : '';
+  return { isInvite, email };
+}
+
+bootstrapPasswordSetupPage();
 
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
   showPasswordReset,
-  invitationFlow,
   setShowPasswordReset,
   styles 
 }) {
@@ -37,13 +51,26 @@ export default function ContractorAuthScreen({
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPasswordSetup, setShowPasswordSetup] = useState(showPasswordReset || false);
-  const [setupEmail, setSetupEmail] = useState('');
+  const initialInvite = readInviteParamsFromUrl();
+  const [showPasswordSetup, setShowPasswordSetup] = useState(
+    showPasswordReset || initialInvite.isInvite
+  );
+  const [lockedInviteEmail, setLockedInviteEmail] = useState(
+    initialInvite.isInvite && initialInvite.email ? initialInvite.email : null
+  );
+  const [setupEmail, setSetupEmail] = useState(
+    initialInvite.isInvite && initialInvite.email ? initialInvite.email : ''
+  );
   const [setupLoading, setSetupLoading] = useState(false);
   
   // OTP flow states
-  const [passwordResetStage, setPasswordResetStage] = useState('email'); // 'email', 'otp', 'password'
-  const [passwordFlowType, setPasswordFlowType] = useState('reset'); // 'reset' (OTP) or 'newUser' (no OTP)
+  const [passwordResetStage, setPasswordResetStage] = useState(() => {
+    if (initialInvite.isInvite && initialInvite.email) return 'password';
+    return 'email';
+  }); // 'email', 'otp', 'password'
+  const [passwordFlowType, setPasswordFlowType] = useState(
+    initialInvite.isInvite ? 'newUser' : 'reset'
+  ); // 'reset' (OTP) or 'newUser' (no OTP)
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -65,6 +92,19 @@ export default function ContractorAuthScreen({
   const [joinRequestOnSite, setJoinRequestOnSite] = useState(true); // true = contractor, false = admin staff
   const inviteRecoverySessionRef = useRef(false);
 
+  useLayoutEffect(() => {
+    if (!initialInvite.isInvite) {
+      return;
+    }
+
+    purgeSupabaseAuthStorage();
+    if (initialInvite.email) {
+      console.log('🔒 Invite email locked at mount:', initialInvite.email);
+    } else {
+      console.log('ℹ️ Invite flow — enter the email from your invitation');
+    }
+  }, []);
+
   const showUserMessage = (title, message) => {
     if (typeof window !== 'undefined' && typeof window.alert === 'function') {
       window.alert(`${title}: ${message}`);
@@ -76,6 +116,26 @@ export default function ContractorAuthScreen({
   const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
   const emailsMatch = (a, b) => normalizeEmail(a) === normalizeEmail(b);
+
+  const getInviteSetupEmail = () => (lockedInviteEmail || setupEmail).trim();
+
+  const lockInviteEmail = (email) => {
+    const trimmed = String(email || '').trim();
+    if (!trimmed) {
+      return;
+    }
+    setLockedInviteEmail(trimmed);
+    setSetupEmail(trimmed);
+  };
+
+  const purgeCachedAuthForInvite = async () => {
+    clearContractorSessionStorage();
+    purgeSupabaseAuthStorage();
+    inviteRecoverySessionRef.current = false;
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
 
   const establishSessionFromUrlTokens = async () => {
     if (!supabase || typeof window === 'undefined') {
@@ -154,17 +214,21 @@ export default function ContractorAuthScreen({
     setPasswordFlowType('newUser');
     setShowPasswordSetup(true);
 
-    const targetEmail = emailParam ? decodeURIComponent(emailParam) : null;
-    const sessionFromTokens = await establishSessionFromUrlTokens();
-    await clearStaleInviteSession(targetEmail, sessionFromTokens);
+    const targetEmail = emailParam ? decodeURIComponent(emailParam).trim() : null;
+
+    await purgeCachedAuthForInvite();
 
     if (targetEmail) {
-      setSetupEmail(targetEmail);
+      console.log('✅ Invite email locked from URL:', targetEmail);
+      lockInviteEmail(targetEmail);
       setPasswordResetStage('password');
-    } else if (sessionFromTokens?.user?.email) {
-      setSetupEmail(sessionFromTokens.user.email);
+    } else if (lockedInviteEmail) {
+      console.log('✅ Invite email already locked:', lockedInviteEmail);
       setPasswordResetStage('password');
     } else {
+      console.log('ℹ️ Invite link has no email — showing email entry step first');
+      setSetupEmail('');
+      setLockedInviteEmail(null);
       setPasswordResetStage('email');
     }
 
@@ -207,35 +271,26 @@ export default function ContractorAuthScreen({
     }
   }, [showPasswordReset]);
 
-  // Handle invitation flow from email link
-  useEffect(() => {
-    if (!invitationFlow) return;
-
-    const initializeInvitationFlow = async () => {
-      console.log('✅ Invitation flow activated - showing password setup');
-      const queryParams = new URLSearchParams(window.location.search);
-      await setupInvitedPasswordFlow(queryParams.get('email'));
-    };
-
-    initializeInvitationFlow();
-  }, [invitationFlow]);
-
   // Check if user is already logged in on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const queryParams = new URLSearchParams(window.location.search);
       const freshLogin = queryParams.get('fresh_login');
+      const queryType = queryParams.get('type');
+
+      // Never auto-login on invite/password-setup links — stale sessions bleed profiles.
+      if (queryType === 'invited' || queryType === 'recovery') {
+        return;
+      }
       
       // If fresh_login is set, clear any cached session to force new login
       if (freshLogin === '1') {
         console.log('🔄 Fresh login requested - clearing cached session');
-        // Clear contractor auth session from localStorage
-        localStorage.removeItem('contractor_session');
-        localStorage.removeItem('contractor_token');
-        localStorage.removeItem('contractor_id');
-        // Clear the URL parameter
+        clearContractorSessionStorage();
+        if (supabase) {
+          supabase.auth.signOut();
+        }
         window.history.replaceState(null, '', window.location.pathname);
-        // Don't check existing session when fresh login is requested
         return;
       }
     }
@@ -302,19 +357,33 @@ export default function ContractorAuthScreen({
 
       if (isHashAuthLink || isCodeAuthLink) {
         console.log('✅ Supabase auth link detected - establishing session first');
+        await purgeCachedAuthForInvite();
         const sessionFromTokens = await establishSessionFromUrlTokens();
         const resolvedType = hashType || (isCodeAuthLink ? 'invite' : null);
         const isInviteFlow = resolvedType !== 'recovery';
+        const urlEmail = queryParams.get('email')
+          ? decodeURIComponent(queryParams.get('email')).trim()
+          : null;
 
-        if (isInviteFlow) {
-          await clearStaleInviteSession(null, sessionFromTokens);
+        if (isInviteFlow && urlEmail) {
+          console.log('✅ Invite hash link — using URL email, ignoring session:', urlEmail);
+          lockInviteEmail(urlEmail);
+          setPasswordFlowType('newUser');
+          setPasswordResetStage('password');
+          setShowPasswordSetup(true);
+          clearAuthUrlParams();
+          return;
         }
 
         const session = sessionFromTokens || (isInviteFlow ? null : await establishSessionFromUrl());
 
         if (session?.user?.email) {
           console.log('✅ Pre-filling email from session:', session.user.email);
-          setSetupEmail(session.user.email);
+          if (isInviteFlow) {
+            lockInviteEmail(session.user.email);
+          } else {
+            setSetupEmail(session.user.email);
+          }
         }
 
         setPasswordFlowType(resolvedType === 'recovery' ? 'reset' : 'newUser');
@@ -387,6 +456,9 @@ export default function ContractorAuthScreen({
     setLoading(true);
     try {
       clearContractorSessionStorage();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       const response = await loginWithEmailPassword(email, password);
 
       if (response.success && response.data) {
@@ -432,9 +504,9 @@ export default function ContractorAuthScreen({
     setOtpError(null);
     try {
       if (passwordFlowType === 'newUser') {
-        console.log('🆕 New user - resolving email before password form');
-        const resolvedEmail = await resolveContractorAuthEmail(setupEmail);
-        setSetupEmail(resolvedEmail);
+        const enteredEmail = setupEmail.trim();
+        console.log('🆕 New user - locking entered email for password form:', enteredEmail);
+        lockInviteEmail(enteredEmail);
         setPasswordResetStage('password');
       } else {
         console.log('🔐 Password reset flow - sending reset code');
@@ -537,12 +609,8 @@ export default function ContractorAuthScreen({
     setSetupLoading(true);
     try {
       if (passwordFlowType === 'newUser') {
-        console.log('🔐 Setting password for new contractor:', setupEmail);
-
-        const rawEmailForSetup = setupEmail.trim();
-        const emailForSetup = rawEmailForSetup
-          ? await resolveContractorAuthEmail(rawEmailForSetup)
-          : '';
+        const emailForSetup = getInviteSetupEmail();
+        console.log('🔐 Setting password for new contractor:', emailForSetup);
 
         if (!emailForSetup) {
           setPasswordResetStage('email');
@@ -550,48 +618,7 @@ export default function ContractorAuthScreen({
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const canUseInviteSession =
-          inviteRecoverySessionRef.current &&
-          session?.user?.email &&
-          emailsMatch(session.user.email, emailForSetup);
-
-        if (canUseInviteSession) {
-          try {
-            const { error: updateError } = await supabase.auth.updateUser({
-              password: newPassword
-            });
-
-            if (!updateError) {
-              console.log('✅ Password set via active invite session');
-
-              if (session.access_token) {
-                await fetch('/api/lookup-contractor', {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                  },
-                }).catch(() => {});
-              }
-
-              await supabase.auth.signOut();
-              inviteRecoverySessionRef.current = false;
-              finishNewUserPasswordSetup(emailForSetup);
-              return;
-            }
-
-            console.warn('⚠️ Session password update failed, falling back to API:', updateError.message);
-          } catch (sessionError) {
-            console.warn('⚠️ Session password update threw, falling back to API:', sessionError.message);
-          }
-
-          await supabase.auth.signOut();
-          inviteRecoverySessionRef.current = false;
-        } else if (session?.user) {
-          console.log('⚠️ Ignoring cached session for invite password setup');
-          await supabase.auth.signOut();
-        }
+        await purgeCachedAuthForInvite();
 
         const passwordResponse = await fetch('/api/set-contractor-password', {
           method: 'POST',
@@ -1351,6 +1378,8 @@ export default function ContractorAuthScreen({
                       onChangeText={setSetupEmail}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect={false}
                       editable={!setupLoading}
                       placeholderTextColor="#D1D5DB"
                       style={{
@@ -1503,25 +1532,49 @@ export default function ContractorAuthScreen({
                       }}>
                         Email Address
                       </Text>
-                      <TextInput
-                        placeholder="name@company.com"
-                        value={setupEmail}
-                        onChangeText={setSetupEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        editable={!setupLoading}
-                        placeholderTextColor="#D1D5DB"
-                        style={{
-                          borderWidth: 1.5,
-                          borderColor: '#E5E7EB',
-                          borderRadius: 8,
-                          paddingHorizontal: 14,
-                          paddingVertical: 11,
-                          fontSize: 15,
-                          color: '#1F2937',
-                          backgroundColor: '#F9FAFB'
-                        }}
-                      />
+                      {lockedInviteEmail ? (
+                        <View
+                          style={{
+                            borderWidth: 1.5,
+                            borderColor: '#E5E7EB',
+                            borderRadius: 8,
+                            paddingHorizontal: 14,
+                            paddingVertical: 11,
+                            backgroundColor: '#F3F4F6',
+                          }}
+                        >
+                          <Text style={{ fontSize: 15, color: '#1F2937', fontWeight: '500' }}>
+                            {lockedInviteEmail}
+                          </Text>
+                        </View>
+                      ) : (
+                        <TextInput
+                          placeholder="name@company.com"
+                          value={setupEmail}
+                          onChangeText={setSetupEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoComplete="off"
+                          autoCorrect={false}
+                          editable={!setupLoading}
+                          placeholderTextColor="#D1D5DB"
+                          style={{
+                            borderWidth: 1.5,
+                            borderColor: '#E5E7EB',
+                            borderRadius: 8,
+                            paddingHorizontal: 14,
+                            paddingVertical: 11,
+                            fontSize: 15,
+                            color: '#1F2937',
+                            backgroundColor: '#F9FAFB',
+                          }}
+                        />
+                      )}
+                      {lockedInviteEmail ? (
+                        <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 6 }}>
+                          This email is fixed for your invitation and cannot be changed here.
+                        </Text>
+                      ) : null}
                     </View>
                   )}
 

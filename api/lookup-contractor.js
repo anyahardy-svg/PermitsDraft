@@ -12,6 +12,7 @@ const {
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
   syncAuthUserContractorMetadata,
+  contractorBelongsToAuthUser,
 } = require('./supabaseAdmin');
 
 module.exports = async function handler(req, res) {
@@ -79,9 +80,24 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Contractor record not found' });
     }
 
+    if (!contractorBelongsToAuthUser(contractor, user)) {
+      console.error(
+        '❌ Contractor email mismatch for authenticated user:',
+        user.email,
+        contractor.email
+      );
+      return res.status(403).json({ error: 'Contractor profile does not match authenticated user' });
+    }
+
     await syncAuthUserContractorMetadata(adminClient, user, contractor);
 
-    return res.status(200).json({ success: true, contractor });
+    return res.status(200).json({
+      success: true,
+      contractor: {
+        ...contractor,
+        email: user.email,
+      },
+    });
   } catch (error) {
     console.error('❌ lookup-contractor error:', error);
     return res.status(500).json({ error: error.message || 'Server error' });
