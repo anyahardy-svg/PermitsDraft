@@ -1,5 +1,7 @@
 -- =============================================================================
 -- BULK REPAIR: contractors table + auth.users metadata
+-- DEPRECATED for company assignment — uses corrupted auth metadata company_id.
+-- Prefer: scripts/repair-from-companies-table.sql (companies.contact_email / email).
 -- Run in Supabase SQL Editor — ONE SECTION AT A TIME, preview before apply.
 -- =============================================================================
 
