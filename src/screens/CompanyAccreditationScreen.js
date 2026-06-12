@@ -128,12 +128,12 @@ export default function CompanyAccreditationScreen({
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
 
-  // Section 1 state (Services)
+  // Section 1 state (Business Units)
+  const [selectedBusinessUnits, setSelectedBusinessUnits] = useState({});
+
+  // Section 2 state (Services)
   const [approvedServices, setApprovedServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState({});
-  
-  // Section 2 state (Business Units & Accreditations)
-  const [selectedBusinessUnits, setSelectedBusinessUnits] = useState({});
 
   // Section 3 state
   const [accreditedSystems, setAccreditedSystems] = useState({});
@@ -147,8 +147,8 @@ export default function CompanyAccreditationScreen({
     quality: { exists: false, url: null, library_item_id: null }
   });
 
-  // Section 1 state (Services) - No state needed, handled separately
-  // Section 2 state (Business Units) - No state needed, handled separately  
+  // Section 1 state (Business Units) - No state needed, handled separately
+  // Section 2 state (Services) - No state needed, handled separately
   // Section 3 state (Policies) - Using policies state above
 
   // Section 4 state (Accident, Incident & Investigation)
@@ -1226,11 +1226,44 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
+  const getSelectedBusinessUnitIds = () =>
+    Object.keys(selectedBusinessUnits).filter(id => selectedBusinessUnits[id]);
+
+  const getApplicableServices = () => {
+    const selectedBUIds = getSelectedBusinessUnitIds();
+    if (selectedBUIds.length === 0) return [];
+    return services.filter(service => selectedBUIds.includes(service.business_unit_id));
+  };
+
+  const getServiceDisplayName = (service) => {
+    const applicableServices = getApplicableServices();
+    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
+    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
+    if (hasDuplicateName && businessUnit) {
+      return `${service.name} (${businessUnit.name})`;
+    }
+    return service.name;
+  };
+
   const handleBusinessUnitToggle = (unitId) => {
-    setSelectedBusinessUnits(prev => ({
-      ...prev,
-      [unitId]: !prev[unitId]
-    }));
+    setSelectedBusinessUnits(prev => {
+      const updated = {
+        ...prev,
+        [unitId]: !prev[unitId]
+      };
+      const selectedBUIds = Object.keys(updated).filter(id => updated[id]);
+      const validServiceIds = new Set(
+        services
+          .filter(service => selectedBUIds.includes(service.business_unit_id))
+          .map(service => service.id)
+      );
+      setSelectedServices(current =>
+        Object.fromEntries(
+          Object.entries(current).filter(([serviceId, isSelected]) => !isSelected || validServiceIds.has(serviceId))
+        )
+      );
+      return updated;
+    });
   };
 
   const handleAccreditationToggle = (key) => {
@@ -4713,7 +4746,7 @@ export default function CompanyAccreditationScreen({
         {/* Section Navigation */}
         {/* Collapsible Sections */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          {/* SECTION 1: Services */}
+          {/* SECTION 1: Business Units */}
           <TouchableOpacity
             onPress={() => toggleSection(1)}
             style={{
@@ -4735,7 +4768,7 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-              Section 1: Services
+              Section 1: Business Units
             </Text>
             <Text style={{ fontSize: 18, color: '#0284C7' }}>
               {expandedSections[1] ? '▼' : '▶'}
@@ -4744,28 +4777,30 @@ export default function CompanyAccreditationScreen({
 
           {expandedSections[1] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
-              <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>Which services will you perform on our site?</Text>
-              {services.length > 0 ? (
-                services.map(service => (
-                  <View key={service.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
+              <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
+                Which business units do you work for?
+              </Text>
+              {businessUnits.length > 0 ? (
+                businessUnits.map(unit => (
+                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
                     <CheckBox
-                      value={selectedServices[service.id] || false}
-                      onValueChange={() => handleServiceToggle(service.id)}
+                      value={selectedBusinessUnits[unit.id] || false}
+                      onValueChange={() => handleBusinessUnitToggle(unit.id)}
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{service.name}</Text>
+                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{unit.name}</Text>
                   </View>
                 ))
               ) : (
                 <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
-                  Loading services...
+                  Loading business units...
                 </Text>
               )}
             </View>
           )}
 
-          {/* SECTION 2: Business Units */}
+          {/* SECTION 2: Services */}
           <TouchableOpacity
             onPress={() => toggleSection(2)}
             style={{
@@ -4787,7 +4822,7 @@ export default function CompanyAccreditationScreen({
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-              Section 2: Business Units
+              Section 2: Services
             </Text>
             <Text style={{ fontSize: 18, color: '#0284C7' }}>
               {expandedSections[2] ? '▼' : '▶'}
@@ -4796,25 +4831,34 @@ export default function CompanyAccreditationScreen({
 
           {expandedSections[2] && (
             <View style={{ paddingHorizontal: 0, paddingBottom: 20, marginBottom: 12 }}>
-              <Text style={[styles.label, { margin: 12, marginBottom: 12 }]}>
-                Which business units do you work for?
+              <Text style={[styles.label, { margin: 12, marginBottom: 16 }]}>Which services will you perform on our site?</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginHorizontal: 12, marginBottom: 12 }}>
+                Services are specific to each business unit. Select your business units above first.
               </Text>
-              {businessUnits.length > 0 ? (
-                businessUnits.map(unit => (
-                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
+              {services.length === 0 ? (
+                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Loading services...
+                </Text>
+              ) : getSelectedBusinessUnitIds().length === 0 ? (
+                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Select business units above to see available services.
+                </Text>
+              ) : getApplicableServices().length === 0 ? (
+                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  No services found for the selected business units.
+                </Text>
+              ) : (
+                getApplicableServices().map(service => (
+                  <View key={service.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} pointerEvents="auto">
                     <CheckBox
-                      value={selectedBusinessUnits[unit.id] || false}
-                      onValueChange={() => handleBusinessUnitToggle(unit.id)}
+                      value={selectedServices[service.id] || false}
+                      onValueChange={() => handleServiceToggle(service.id)}
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{unit.name}</Text>
+                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{getServiceDisplayName(service)}</Text>
                   </View>
                 ))
-              ) : (
-                <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
-                  Loading business units...
-                </Text>
               )}
             </View>
           )}
