@@ -17,6 +17,7 @@ import { supabase } from '../supabaseClient';
 import {
   loginWithEmailPassword,
   getCurrentUser,
+  clearContractorSessionStorage,
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
   resetContractorPasswordWithToken,
@@ -385,6 +386,7 @@ export default function ContractorAuthScreen({
 
     setLoading(true);
     try {
+      clearContractorSessionStorage();
       const response = await loginWithEmailPassword(email, password);
 
       if (response.success && response.data) {

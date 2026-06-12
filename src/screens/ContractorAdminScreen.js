@@ -18,7 +18,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { logout, inviteContractor, getCurrentUser } from '../api/contractorAuth';
+import { logout, inviteContractor, getCurrentUser, clearContractorSessionStorage } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -202,6 +202,8 @@ export default function ContractorAdminScreen({
       console.error('❌ Error calling logout:', error);
     }
     
+    clearContractorSessionStorage();
+
     // Clear local state
     setIsLoggedIn(false);
     setLoggedInContractor(null);
@@ -320,9 +322,6 @@ export default function ContractorAdminScreen({
       const companiesData = await listCompanies();
       if (Array.isArray(companiesData)) {
         setCompanies(companiesData);
-        if (companiesData.length > 0 && !selectedCompanyId) {
-          setSelectedCompanyId(companiesData[0].id);
-        }
       }
     } catch (error) {
       console.error('Failed to load companies:', error);
