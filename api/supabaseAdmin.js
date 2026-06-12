@@ -200,6 +200,67 @@ async function lookupContractorForAuthUser(adminClient, user) {
   return null;
 }
 
+async function getCompanyIdForAuthEmail(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const { data: byContact } = await adminClient
+    .from('companies')
+    .select('id')
+    .ilike('contact_email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  if (byContact?.id) {
+    return byContact.id;
+  }
+
+  const { data: byEmail } = await adminClient
+    .from('companies')
+    .select('id')
+    .ilike('email', trimmed)
+    .limit(1)
+    .maybeSingle();
+
+  return byEmail?.id || null;
+}
+
+/**
+ * Resolve company for an auth user without trusting JWT alone.
+ * Returns company_id only when the user's email matches companies.contact_email/email
+ * or when metadata.company_id matches such a company row.
+ */
+async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
+  const metadata = user.user_metadata || {};
+  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, user.email);
+  if (emailCompanyId) {
+    return emailCompanyId;
+  }
+
+  const metadataCompanyId = metadata.company_id;
+  if (!metadataCompanyId) {
+    return null;
+  }
+
+  const { data: company } = await adminClient
+    .from('companies')
+    .select('id, contact_email, email')
+    .eq('id', metadataCompanyId)
+    .maybeSingle();
+
+  if (!company) {
+    return null;
+  }
+
+  if (emailsMatch(company.contact_email, user.email) || emailsMatch(company.email, user.email)) {
+    return company.id;
+  }
+
+  return null;
+}
+
 async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
@@ -270,5 +331,7 @@ module.exports = {
   lookupContractorByEmail,
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
+  getCompanyIdForAuthEmail,
+  resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
 };

@@ -11,6 +11,7 @@ const {
   getSupabaseAdmin,
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
+  resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
   contractorBelongsToAuthUser,
 } = require('./supabaseAdmin');
@@ -76,6 +77,45 @@ module.exports = async function handler(req, res) {
 
     const contractor = await lookupContractorForAuthUser(adminClient, user);
     if (!contractor) {
+      const validatedCompanyId = await resolveValidatedCompanyIdForAuthUser(adminClient, user);
+      if (validatedCompanyId) {
+        console.log(
+          `✅ No contractor row for ${user.email} — using validated company assignment:`,
+          validatedCompanyId
+        );
+        return res.status(200).json({
+          success: true,
+          contractor: {
+            id: metadata.contractor_id || null,
+            name: metadata.name || metadata.contractor_name || user.email,
+            company_id: validatedCompanyId,
+            email: user.email,
+            user_type: 'contractor',
+          },
+        });
+      }
+
+      const joinRequestCompanyId = await getLatestApprovedJoinRequestCompanyId(
+        adminClient,
+        user.email
+      );
+      if (joinRequestCompanyId) {
+        console.log(
+          `✅ No contractor row for ${user.email} — using approved join request company:`,
+          joinRequestCompanyId
+        );
+        return res.status(200).json({
+          success: true,
+          contractor: {
+            id: null,
+            name: metadata.name || user.email,
+            company_id: joinRequestCompanyId,
+            email: user.email,
+            user_type: 'contractor',
+          },
+        });
+      }
+
       console.error('❌ No contractor row for authenticated user:', user.email);
       return res.status(404).json({ error: 'Contractor record not found' });
     }
