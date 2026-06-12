@@ -115,8 +115,18 @@ const resolveAuthEmailForLogin = async (email) => {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.email) {
+        if (
+          result.email &&
+          normalizeEmailForComparison(result.email) === normalizeEmailForComparison(trimmed)
+        ) {
           return result.email;
+        }
+
+        if (result.email) {
+          console.warn(
+            '⚠️ Ignoring resolved auth email that differs from login input:',
+            result.email
+          );
         }
       }
     }
@@ -124,19 +134,25 @@ const resolveAuthEmailForLogin = async (email) => {
     console.warn('⚠️ Could not resolve auth email via API:', error.message);
   }
 
-  const contractor = await lookupContractorByEmail(trimmed);
-  if (
-    contractor?.email &&
-    normalizeEmailForComparison(contractor.email) === normalizeEmailForComparison(trimmed)
-  ) {
-    return contractor.email;
-  }
   return trimmed;
 };
 
 const signInWithEmailCaseInsensitive = async (email, password) => {
-  const resolvedEmail = await resolveAuthEmailForLogin(email);
-  const candidates = uniqueEmailCandidates(resolvedEmail, email);
+  const trimmed = normalizeEmailInput(email);
+  if (!trimmed) {
+    return {
+      data: { user: null, session: null },
+      error: { message: 'Email is required' },
+    };
+  }
+
+  const resolvedEmail = await resolveAuthEmailForLogin(trimmed);
+  const candidates = uniqueEmailCandidates(
+    trimmed,
+    normalizeEmailForComparison(resolvedEmail) === normalizeEmailForComparison(trimmed)
+      ? resolvedEmail
+      : null
+  );
 
   let lastError = null;
   for (const tryEmail of candidates) {
@@ -348,7 +364,21 @@ export async function loginWithEmailPassword(email, password) {
       return { success: false, error: 'Login failed' };
     }
 
-    console.log('✅ Auth sign in successful for:', authData.user.email || normalizedEmail);
+    if (
+      authData.user.email &&
+      normalizeEmailForComparison(authData.user.email) !== normalizeEmailForComparison(normalizedEmail)
+    ) {
+      console.error(
+        '❌ Refusing login — authenticated as wrong user:',
+        authData.user.email,
+        'expected:',
+        normalizedEmail
+      );
+      await supabase.auth.signOut();
+      return { success: false, error: 'Password or username incorrect' };
+    }
+
+    console.log('✅ Auth sign in successful for:', authData.user.email);
     console.log('👤 User type from metadata:', authData.user.user_metadata?.user_type);
 
     const profile = await resolveAuthUserProfile(
@@ -357,7 +387,7 @@ export async function loginWithEmailPassword(email, password) {
     );
 
     if (!profile) {
-      console.error('❌ Could not resolve profile for authenticated user:', normalizedEmail);
+      console.error('❌ Could not resolve profile for authenticated user:', authData.user.email);
       return {
         success: false,
         error: 'Your contractor account is not set up. Please contact your administrator.',
