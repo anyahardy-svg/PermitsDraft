@@ -159,12 +159,15 @@ export default function ContractorAuthScreen({
     await clearStaleInviteSession(targetEmail, sessionFromTokens);
 
     if (targetEmail) {
+      console.log('✅ Invite email pre-filled from URL:', targetEmail);
       setSetupEmail(targetEmail);
       setPasswordResetStage('password');
     } else if (sessionFromTokens?.user?.email) {
+      console.log('✅ Invite email pre-filled from session:', sessionFromTokens.user.email);
       setSetupEmail(sessionFromTokens.user.email);
       setPasswordResetStage('password');
     } else {
+      console.log('ℹ️ Invite link has no email — showing email entry step first');
       setPasswordResetStage('email');
     }
 
@@ -212,9 +215,13 @@ export default function ContractorAuthScreen({
     if (!invitationFlow) return;
 
     const initializeInvitationFlow = async () => {
-      console.log('✅ Invitation flow activated - showing password setup');
       const queryParams = new URLSearchParams(window.location.search);
-      await setupInvitedPasswordFlow(queryParams.get('email'));
+      const emailParam = queryParams.get('email');
+      console.log('✅ Invitation flow activated - showing password setup', {
+        emailInUrl: emailParam ? '✓' : '✗ (user must type email manually)',
+        email: emailParam ? decodeURIComponent(emailParam) : null,
+      });
+      await setupInvitedPasswordFlow(emailParam);
     };
 
     initializeInvitationFlow();
