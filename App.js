@@ -10447,7 +10447,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
               <TextInput
                 style={[styles.input, { flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB' }]}
-                placeholder="Search companies..."
+                placeholder="Search by company, contact name, or email..."
                 value={companySearchText}
                 onChangeText={setCompanySearchText}
               />
@@ -10472,8 +10472,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             ) : (
               (() => {
                 const filteredCompanies = companies.filter(company => {
-                  const matchesSearch = companySearchText === '' || 
-                    company.name.toLowerCase().includes(companySearchText.toLowerCase());
+                  const query = companySearchText.toLowerCase();
+                  const contactName = `${company.contactName || company.contact_name || ''} ${company.contactSurname || company.contact_surname || ''}`.trim().toLowerCase();
+                  const matchesSearch = companySearchText === '' ||
+                    company.name.toLowerCase().includes(query) ||
+                    contactName.includes(query) ||
+                    (company.contactEmail || company.contact_email || '').toLowerCase().includes(query) ||
+                    (company.email || '').toLowerCase().includes(query);
                   
                   const matchesBUFilter = companyFilterBusinessUnit === 'All' || 
                     (company.business_unit_ids || []).includes(companyFilterBusinessUnit);
