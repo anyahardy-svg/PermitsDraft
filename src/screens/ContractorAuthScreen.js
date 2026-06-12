@@ -1433,7 +1433,9 @@ export default function ContractorAuthScreen({
                       lineHeight: 18,
                       fontWeight: '500'
                     }}>
-                      We'll send you a 6-digit code via email. This code is safer than magic links as email security tools can't automatically use it.
+                      {passwordFlowType === 'newUser'
+                        ? 'Use the same email address your invitation was sent to. On the next step you will create your password.'
+                        : "We'll send you a 6-digit code via email. This code is safer than magic links as email security tools can't automatically use it."}
                     </Text>
                   </View>
                 </>
