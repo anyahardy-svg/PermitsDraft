@@ -21,14 +21,12 @@ import {
   sendPasswordResetEmail,
   verifyPasswordResetOtp,
   resetContractorPasswordWithToken,
-  resolveContractorAuthEmail,
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
 
 export default function ContractorAuthScreen({ 
   onLoginSuccess,
   showPasswordReset,
-  invitationFlow,
   setShowPasswordReset,
   styles 
 }) {
@@ -154,20 +152,42 @@ export default function ContractorAuthScreen({
     setPasswordFlowType('newUser');
     setShowPasswordSetup(true);
 
-    const targetEmail = emailParam ? decodeURIComponent(emailParam) : null;
+    const targetEmail = emailParam ? decodeURIComponent(emailParam).trim() : null;
+
+    // Always clear cached auth first — a previous Angie (or other) session must not
+    // bleed into this invitee's password setup on a shared admin browser.
+    clearContractorSessionStorage();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    inviteRecoverySessionRef.current = false;
+
     const sessionFromTokens = await establishSessionFromUrlTokens();
-    await clearStaleInviteSession(targetEmail, sessionFromTokens);
+    const inviteSession =
+      sessionFromTokens?.user?.email &&
+      targetEmail &&
+      emailsMatch(sessionFromTokens.user.email, targetEmail)
+        ? sessionFromTokens
+        : null;
+
+    if (inviteSession) {
+      inviteRecoverySessionRef.current = true;
+    }
 
     if (targetEmail) {
       console.log('✅ Invite email pre-filled from URL:', targetEmail);
       setSetupEmail(targetEmail);
       setPasswordResetStage('password');
-    } else if (sessionFromTokens?.user?.email) {
-      console.log('✅ Invite email pre-filled from session:', sessionFromTokens.user.email);
+    } else if (
+      sessionFromTokens?.user?.email &&
+      !targetEmail
+    ) {
+      console.log('✅ Invite email pre-filled from invite link session:', sessionFromTokens.user.email);
       setSetupEmail(sessionFromTokens.user.email);
       setPasswordResetStage('password');
     } else {
       console.log('ℹ️ Invite link has no email — showing email entry step first');
+      setSetupEmail('');
       setPasswordResetStage('email');
     }
 
@@ -210,28 +230,17 @@ export default function ContractorAuthScreen({
     }
   }, [showPasswordReset]);
 
-  // Handle invitation flow from email link
-  useEffect(() => {
-    if (!invitationFlow) return;
-
-    const initializeInvitationFlow = async () => {
-      const queryParams = new URLSearchParams(window.location.search);
-      const emailParam = queryParams.get('email');
-      console.log('✅ Invitation flow activated - showing password setup', {
-        emailInUrl: emailParam ? '✓' : '✗ (user must type email manually)',
-        email: emailParam ? decodeURIComponent(emailParam) : null,
-      });
-      await setupInvitedPasswordFlow(emailParam);
-    };
-
-    initializeInvitationFlow();
-  }, [invitationFlow]);
-
   // Check if user is already logged in on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const queryParams = new URLSearchParams(window.location.search);
       const freshLogin = queryParams.get('fresh_login');
+      const queryType = queryParams.get('type');
+
+      // Never auto-login on invite/password-setup links — stale sessions bleed profiles.
+      if (queryType === 'invited' || queryType === 'recovery') {
+        return;
+      }
       
       // If fresh_login is set, clear any cached session to force new login
       if (freshLogin === '1') {
@@ -440,9 +449,8 @@ export default function ContractorAuthScreen({
     setOtpError(null);
     try {
       if (passwordFlowType === 'newUser') {
-        console.log('🆕 New user - resolving email before password form');
-        const resolvedEmail = await resolveContractorAuthEmail(setupEmail);
-        setSetupEmail(resolvedEmail);
+        console.log('🆕 New user - using entered email for password form:', setupEmail.trim());
+        setSetupEmail(setupEmail.trim());
         setPasswordResetStage('password');
       } else {
         console.log('🔐 Password reset flow - sending reset code');
@@ -547,10 +555,7 @@ export default function ContractorAuthScreen({
       if (passwordFlowType === 'newUser') {
         console.log('🔐 Setting password for new contractor:', setupEmail);
 
-        const rawEmailForSetup = setupEmail.trim();
-        const emailForSetup = rawEmailForSetup
-          ? await resolveContractorAuthEmail(rawEmailForSetup)
-          : '';
+        const emailForSetup = setupEmail.trim();
 
         if (!emailForSetup) {
           setPasswordResetStage('email');

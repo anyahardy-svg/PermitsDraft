@@ -99,7 +99,13 @@ const resolveAuthEmailForLogin = async (email) => {
   }
 
   const contractor = await lookupContractorByEmail(trimmed);
-  return contractor?.email || trimmed;
+  if (
+    contractor?.email &&
+    normalizeEmailForComparison(contractor.email) === normalizeEmailForComparison(trimmed)
+  ) {
+    return contractor.email;
+  }
+  return trimmed;
 };
 
 const signInWithEmailCaseInsensitive = async (email, password) => {

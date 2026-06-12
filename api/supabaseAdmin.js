@@ -91,7 +91,9 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
   const candidates = new Set([trimmed, lower]);
 
   const contractor = await lookupContractorByEmail(adminClient, trimmed);
-  if (contractor?.email) {
+  // Only use contractor/join-request email when it matches what the user typed.
+  // Corrupt rows (e.g. Nikita's row storing angie@) must not redirect login/password setup.
+  if (contractor?.email && emailsMatch(contractor.email, trimmed)) {
     candidates.add(contractor.email);
   }
 
@@ -102,7 +104,7 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
     .eq('status', 'approved')
     .maybeSingle();
 
-  if (joinRequest?.email) {
+  if (joinRequest?.email && emailsMatch(joinRequest.email, trimmed)) {
     candidates.add(joinRequest.email);
   }
 
@@ -134,7 +136,7 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
     page += 1;
   }
 
-  return contractor?.email || joinRequest?.email || trimmed;
+  return trimmed;
 }
 
 function emailsMatch(left, right) {
