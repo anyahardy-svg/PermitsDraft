@@ -69,7 +69,11 @@ export default function ContractorAuthScreen({
     Alert.alert(title, message);
   };
 
-  const establishSessionFromUrl = async () => {
+  const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+  const emailsMatch = (a, b) => normalizeEmail(a) === normalizeEmail(b);
+
+  const establishSessionFromUrlTokens = async () => {
     if (!supabase || typeof window === 'undefined') {
       return null;
     }
@@ -105,8 +109,62 @@ export default function ContractorAuthScreen({
       }
     }
 
+    return null;
+  };
+
+  const establishSessionFromUrl = async () => {
+    const sessionFromTokens = await establishSessionFromUrlTokens();
+    if (sessionFromTokens) {
+      return sessionFromTokens;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     return session;
+  };
+
+  const clearMismatchedInviteSession = async (targetEmail) => {
+    if (!supabase || !targetEmail) {
+      return null;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email && !emailsMatch(session.user.email, targetEmail)) {
+      console.log('⚠️ Clearing session for different user before invite password setup');
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    return session;
+  };
+
+  const setupInvitedPasswordFlow = async (emailParam) => {
+    setPasswordFlowType('newUser');
+    setShowPasswordSetup(true);
+
+    const targetEmail = emailParam ? decodeURIComponent(emailParam) : null;
+    const sessionFromTokens = await establishSessionFromUrlTokens();
+    let activeSession = sessionFromTokens;
+
+    if (targetEmail) {
+      setSetupEmail(targetEmail);
+      setPasswordResetStage('password');
+
+      if (!activeSession) {
+        activeSession = await clearMismatchedInviteSession(targetEmail);
+      } else if (!emailsMatch(activeSession.user?.email, targetEmail)) {
+        console.log('⚠️ Recovery session email mismatch - using admin API for password setup');
+        await supabase.auth.signOut();
+        activeSession = null;
+      }
+    } else if (activeSession?.user?.email) {
+      setSetupEmail(activeSession.user.email);
+      setPasswordResetStage('password');
+    } else {
+      setPasswordResetStage('email');
+    }
+
+    clearAuthUrlParams();
+    return activeSession;
   };
 
   const clearAuthUrlParams = () => {
@@ -151,27 +209,8 @@ export default function ContractorAuthScreen({
 
     const initializeInvitationFlow = async () => {
       console.log('✅ Invitation flow activated - showing password setup');
-      setPasswordFlowType('newUser');
-      setShowPasswordSetup(true);
-
       const queryParams = new URLSearchParams(window.location.search);
-      const emailParam = queryParams.get('email');
-      if (emailParam) {
-        setSetupEmail(decodeURIComponent(emailParam));
-        setPasswordResetStage('password');
-        clearAuthUrlParams();
-        return;
-      }
-
-      const session = await establishSessionFromUrl();
-      if (session?.user?.email) {
-        setSetupEmail(session.user.email);
-        setPasswordResetStage('password');
-        clearAuthUrlParams();
-        return;
-      }
-
-      setPasswordResetStage('email');
+      await setupInvitedPasswordFlow(queryParams.get('email'));
     };
 
     initializeInvitationFlow();
@@ -235,14 +274,7 @@ export default function ContractorAuthScreen({
 
       if (queryType === 'invited') {
         console.log('✅ Invitation query link detected - showing password form');
-        const emailParam = queryParams.get('email');
-        if (emailParam) {
-          setSetupEmail(decodeURIComponent(emailParam));
-        }
-        setPasswordFlowType('newUser');
-        setPasswordResetStage(emailParam ? 'password' : 'email');
-        setShowPasswordSetup(true);
-        clearAuthUrlParams();
+        await setupInvitedPasswordFlow(queryParams.get('email'));
         return;
       }
 
@@ -477,8 +509,7 @@ export default function ContractorAuthScreen({
       if (passwordFlowType === 'newUser') {
         console.log('🔐 Setting password for new contractor:', setupEmail);
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const emailForSetup = (setupEmail || session?.user?.email || '').trim();
+        const emailForSetup = setupEmail.trim();
 
         if (!emailForSetup) {
           setPasswordResetStage('email');
@@ -486,30 +517,34 @@ export default function ContractorAuthScreen({
           return;
         }
 
-        if (session?.user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const hasMatchingSession = session?.user?.email && emailsMatch(session.user.email, emailForSetup);
+
+        if (hasMatchingSession) {
           const { error: updateError } = await supabase.auth.updateUser({
             password: newPassword
           });
 
-          if (updateError) {
-            throw new Error(updateError.message || 'Failed to set password');
+          if (!updateError) {
+            console.log('✅ Password set via active invite session');
+
+            if (session.access_token) {
+              await fetch('/api/lookup-contractor', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+              }).catch(() => {});
+            }
+
+            await supabase.auth.signOut();
+            finishNewUserPasswordSetup(emailForSetup);
+            return;
           }
 
-          console.log('✅ Password set via active invite session');
-
-          if (session.access_token) {
-            await fetch('/api/lookup-contractor', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-            }).catch(() => {});
-          }
-
+          console.warn('⚠️ Session password update failed, falling back to API:', updateError.message);
           await supabase.auth.signOut();
-          finishNewUserPasswordSetup(emailForSetup);
-          return;
         }
 
         const passwordResponse = await fetch('/api/set-contractor-password', {
