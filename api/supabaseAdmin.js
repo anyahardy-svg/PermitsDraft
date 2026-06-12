@@ -137,6 +137,18 @@ async function resolveAuthEmailCaseInsensitive(adminClient, email) {
   return contractor?.email || joinRequest?.email || trimmed;
 }
 
+function emailsMatch(left, right) {
+  if (!left || !right) {
+    return false;
+  }
+
+  return String(left).trim().toLowerCase() === String(right).trim().toLowerCase();
+}
+
+function contractorBelongsToAuthUser(contractor, user) {
+  return !!contractor && emailsMatch(contractor.email, user?.email);
+}
+
 async function lookupContractorByEmail(adminClient, email) {
   const normalizedEmail = String(email || '').trim();
   if (!normalizedEmail) {
@@ -186,7 +198,7 @@ async function lookupContractorForAuthUser(adminClient, user) {
       .eq('company_id', metadata.company_id)
       .maybeSingle();
 
-    if (byEmailAndCompany) {
+    if (byEmailAndCompany && contractorBelongsToAuthUser(byEmailAndCompany, user)) {
       return byEmailAndCompany;
     }
   }
@@ -198,20 +210,23 @@ async function lookupContractorForAuthUser(adminClient, user) {
       .eq('id', metadata.contractor_id)
       .maybeSingle();
 
-    if (contractorById) {
-      const emailMatches =
-        contractorById.email &&
-        contractorById.email.toLowerCase() === normalizedEmail.toLowerCase();
-      const companyMatches =
-        !metadata.company_id || contractorById.company_id === metadata.company_id;
+    if (contractorById && contractorBelongsToAuthUser(contractorById, user)) {
+      return contractorById;
+    }
 
-      if (emailMatches && companyMatches) {
-        return contractorById;
-      }
+    if (contractorById && !contractorBelongsToAuthUser(contractorById, user)) {
+      console.warn(
+        `⚠️ Ignoring mismatched contractor_id for ${user.email}: linked to ${contractorById.email}`
+      );
     }
   }
 
-  return lookupContractorByEmail(adminClient, normalizedEmail);
+  const contractorByEmail = await lookupContractorByEmail(adminClient, normalizedEmail);
+  if (contractorByEmail && contractorBelongsToAuthUser(contractorByEmail, user)) {
+    return contractorByEmail;
+  }
+
+  return null;
 }
 
 async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
@@ -235,6 +250,13 @@ async function getLatestApprovedJoinRequestCompanyId(adminClient, email) {
 async function syncAuthUserContractorMetadata(adminClient, user, contractor) {
   const metadata = user.user_metadata || {};
   if (!contractor) {
+    return;
+  }
+
+  if (!contractorBelongsToAuthUser(contractor, user)) {
+    console.warn(
+      `⚠️ Refusing to sync metadata for ${user.email} with contractor ${contractor.id} (${contractor.email})`
+    );
     return;
   }
 
@@ -271,6 +293,8 @@ module.exports = {
   fetchAuthUserByEmail,
   findAuthUserCaseInsensitive,
   resolveAuthEmailCaseInsensitive,
+  emailsMatch,
+  contractorBelongsToAuthUser,
   lookupContractorByEmail,
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequestCompanyId,
