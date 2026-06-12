@@ -33,6 +33,29 @@ WHERE lower(u.email) IN (
 ORDER BY u.email;
 
 
+-- Polina Maslova / Jani-King (expect status = OK)
+SELECT
+  u.email,
+  u.raw_user_meta_data->>'name' AS auth_name,
+  u.raw_user_meta_data->>'contractor_id' AS auth_contractor_id,
+  co.name AS auth_company,
+  c.id AS contractor_id,
+  c.name AS contractor_name,
+  co_c.name AS contractor_company,
+  CASE
+    WHEN co_c.id = '677dac9b-f805-43a2-9702-72e77e0cb0cc'
+      AND lower(c.email) = 'polina.maslova@janiking.co.nz' THEN 'OK'
+    WHEN c.id IS NULL THEN 'NO CONTRACTOR ROW'
+    WHEN co_c.id = '144f7b16-6cc3-4d4b-9130-7ece1bfeb851' THEN 'WRONG — franchisee not Jani-King NZ'
+    ELSE 'CHECK'
+  END AS status
+FROM auth.users u
+LEFT JOIN contractors c ON lower(c.email) = lower(u.email)
+LEFT JOIN companies co ON co.id = (u.raw_user_meta_data->>'company_id')::uuid
+LEFT JOIN companies co_c ON co_c.id = c.company_id
+WHERE lower(u.email) = 'polina.maslova@janiking.co.nz';
+
+
 -- Wrong-person + broken links (expect 0 rows)
 SELECT
   u.email AS auth_email,
