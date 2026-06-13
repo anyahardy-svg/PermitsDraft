@@ -58,6 +58,24 @@ Check that the RLS policies are enabled. The app handles authentication automati
 ### Files not accessible
 Make sure the bucket is accessible in your Supabase project. You can test in the Storage browser on the dashboard.
 
+## Migrating existing UUID folders to company names
+
+Older uploads may still be stored under contractor or company UUID folders. After deploying the readable-path update, run this one-time script to reorganize existing files in Supabase Storage (same pattern as the accreditations bucket):
+
+```bash
+# Preview changes first
+DRY_RUN=1 SUPABASE_URL="https://your-project.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+  node scripts/migrate-training-records-storage-paths.js
+
+# Apply migration
+SUPABASE_URL="https://your-project.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+  node scripts/migrate-training-records-storage-paths.js
+```
+
+The script moves files to `{company_name}/{contractor_name}/{training_type}/...` (or `{company_name}/matrices/...`) and updates `file_url` in the database.
+
 ## After Setup
 
 Once the bucket is created, the Training Records feature in the Contractor Admin dashboard will work automatically:
