@@ -42,7 +42,8 @@ node setup-bucket.js
 ## Security Notes
 
 - The bucket is **private** - only authenticated users can upload/access files
-- Files are stored in paths like: `contractor-id/timestamp.extension`
+- Files are stored in paths like: `company_name/contractor_name/training_type/timestamp.extension`
+- Company training matrices are stored in: `company_name/matrices/timestamp.extension`
 - RLS (Row Level Security) policies ensure users can only access their company's records
 - Service role key should never be committed to version control
 
