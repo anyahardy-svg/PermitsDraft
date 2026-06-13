@@ -7,6 +7,30 @@ import { supabase } from '../supabaseClient';
 /**
  * Get all active email templates
  */
+export const ensureDefaultEmailTemplates = async () => {
+  try {
+    const response = await fetch('/api/ensure-email-templates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to ensure email templates');
+    }
+
+    return { success: true, ...(await response.json()) };
+  } catch (error) {
+    console.error('Error ensuring email templates:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get all active email templates
+ */
 export const getAllEmailTemplates = async () => {
   try {
     const { data, error } = await supabase
