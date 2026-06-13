@@ -14,12 +14,62 @@ const {
 } = require('./supabaseAdmin');
 
 const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
+const crypto = require('crypto');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 const FROM_EMAIL = 'noreply@contractorhq.co.nz';
 const FROM_NAME = 'Contractor HQ';
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
+
+function generateSupplierAccreditationToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function getSupplierTokenExpiryDate() {
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function getRequestOrigin(req) {
+  if (req.headers.origin) {
+    return req.headers.origin;
+  }
+
+  if (req.headers.referer) {
+    try {
+      return new URL(req.headers.referer).origin;
+    } catch {
+      return 'https://contractorhq.co.nz';
+    }
+  }
+
+  return process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz';
+}
+
+async function issueSupplierAccreditationTokenForEmail(supplierId) {
+  const token = generateSupplierAccreditationToken();
+  const expiresAt = getSupplierTokenExpiryDate();
+
+  const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/suppliers?id=eq.${supplierId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      accreditation_token: token,
+      accreditation_token_expires_at: expiresAt,
+    }),
+  });
+
+  if (!updateResponse.ok) {
+    const errorText = await updateResponse.text();
+    throw new Error(`Failed to issue supplier accreditation token: ${errorText}`);
+  }
+
+  return token;
+}
 
 // Simple Supabase client for server-side operations
 const supabaseRequest = async (table, method, data = null, filter = null) => {
@@ -382,12 +432,24 @@ export default async function handler(req, res) {
         day: 'numeric',
       }) : 'As soon as possible';
 
+      let formUrl = null;
+      if (supplierId && SUPABASE_URL && (SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
+        try {
+          const token = await issueSupplierAccreditationTokenForEmail(supplierId);
+          const origin = getRequestOrigin(req);
+          formUrl = `${origin.replace(/\/$/, '')}/supplier-accreditation?token=${encodeURIComponent(token)}`;
+        } catch (tokenError) {
+          console.error('Failed to issue supplier accreditation token for invitation email:', tokenError);
+        }
+      }
+
       if (dbTemplate) {
         const rendered = renderTemplate(dbTemplate, {
           companyName,
           contactName: resolvedContactName,
           deadline: deadlineStr,
           supportEmail: SUPPORT_EMAIL,
+          formUrl: formUrl || '',
         });
         actualSubject = rendered.subject;
         actualHtmlContent = rendered.content;
@@ -398,7 +460,17 @@ export default async function handler(req, res) {
           <p>Dear ${escapeHtml(resolvedContactName)},</p>
           <p>${escapeHtml(companyName)} has been invited to complete a supplier accreditation questionnaire.</p>
           <p><strong>Deadline:</strong> ${deadlineStr}</p>
-          <p>Our team will be in touch with the next steps to complete your supplier accreditation. If you have any questions in the meantime, please contact us at ${SUPPORT_EMAIL}.</p>
+          ${formUrl ? `
+            <p>Please use the secure link below to open your supplier accreditation form:</p>
+            <p><a href="${formUrl}" style="background-color: #0284C7; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Complete Supplier Accreditation</a></p>
+            <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${formUrl}</p>
+            <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
+              <strong>Security Note:</strong> This link is personal to your organisation. Do not share it with anyone else.
+            </p>
+          ` : `
+            <p>Our team will be in touch with the next steps to complete your supplier accreditation.</p>
+          `}
+          <p>If you have any questions in the meantime, please contact us at ${SUPPORT_EMAIL}.</p>
         `;
       }
     } else {

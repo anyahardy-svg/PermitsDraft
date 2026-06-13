@@ -19,6 +19,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/supplier-accreditation",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/supplier-accreditation/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/sign-in-visitor",
       "destination": "/index.html"
     },

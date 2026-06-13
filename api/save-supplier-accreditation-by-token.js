@@ -1,19 +1,13 @@
-/**
- * Backend endpoint to save supplier accreditation data using the service role key.
- * Allows the admin panel (custom auth) to persist form drafts and updates.
- *
- * Usage: POST /api/save-supplier-accreditation
- * Body: { supplierId, formData, status? }
- */
+import { getSupplierByAccreditationToken } from './lib/supplierToken.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_SYSTEM_USER_ID = process.env.SUPABASE_SYSTEM_USER_ID;
 
-const serviceRoleHeaders = (serviceRoleKey, prefer = 'return=representation') => ({
-  apikey: serviceRoleKey,
-  Authorization: `Bearer ${serviceRoleKey}`,
+const serviceRoleHeaders = (prefer = 'return=representation') => ({
+  apikey: SUPABASE_SERVICE_ROLE_KEY,
+  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
   'Content-Type': 'application/json',
   Prefer: prefer,
 });
@@ -44,7 +38,7 @@ function buildSupplierProfilePayload(formData) {
   return payload;
 }
 
-async function saveSupplierProfile(serviceRoleKey, supplierId, formData) {
+async function saveSupplierProfile(supplierId, formData) {
   const payload = buildSupplierProfilePayload(formData);
   if (!Object.keys(payload).length) {
     return;
@@ -52,7 +46,7 @@ async function saveSupplierProfile(serviceRoleKey, supplierId, formData) {
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/suppliers?id=eq.${supplierId}`, {
     method: 'PATCH',
-    headers: serviceRoleHeaders(serviceRoleKey, ''),
+    headers: serviceRoleHeaders(''),
     body: JSON.stringify(payload),
   });
 
@@ -73,10 +67,10 @@ export default async function handler(req, res) {
     });
   }
 
-  const { supplierId, formData, status = 'draft' } = req.body || {};
+  const { token, formData, status = 'draft' } = req.body || {};
 
-  if (!supplierId) {
-    return res.status(400).json({ error: 'supplierId is required' });
+  if (!token) {
+    return res.status(400).json({ error: 'token is required' });
   }
 
   if (!formData || typeof formData !== 'object') {
@@ -84,13 +78,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    await saveSupplierProfile(SUPABASE_SERVICE_ROLE_KEY, supplierId, formData);
+    const result = await getSupplierByAccreditationToken(token);
+
+    if (result.error) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    const { supplier } = result;
+    const supplierId = supplier.id;
+
+    await saveSupplierProfile(supplierId, formData);
 
     const existingResponse = await fetch(
       `${SUPABASE_URL}/rest/v1/supplier_accreditations?supplier_id=eq.${supplierId}&select=id,submitted_by&order=updated_at.desc&limit=1`,
-      {
-        headers: serviceRoleHeaders(SUPABASE_SERVICE_ROLE_KEY),
-      }
+      { headers: serviceRoleHeaders('') }
     );
 
     if (!existingResponse.ok) {
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
         `${SUPABASE_URL}/rest/v1/supplier_accreditations?id=eq.${existing.id}`,
         {
           method: 'PATCH',
-          headers: serviceRoleHeaders(SUPABASE_SERVICE_ROLE_KEY),
+          headers: serviceRoleHeaders(),
           body: JSON.stringify({
             accreditation_data: formData,
             status,
@@ -134,7 +135,7 @@ export default async function handler(req, res) {
 
     const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/supplier_accreditations`, {
       method: 'POST',
-      headers: serviceRoleHeaders(SUPABASE_SERVICE_ROLE_KEY),
+      headers: serviceRoleHeaders(),
       body: JSON.stringify({
         supplier_id: supplierId,
         accreditation_data: formData,
@@ -152,7 +153,7 @@ export default async function handler(req, res) {
     const created = await insertResponse.json();
     return res.status(200).json(created[0] || created);
   } catch (error) {
-    console.error('save-supplier-accreditation error:', error);
+    console.error('save-supplier-accreditation-by-token error:', error);
     return res.status(500).json({ error: error.message || 'Failed to save supplier accreditation' });
   }
 }
