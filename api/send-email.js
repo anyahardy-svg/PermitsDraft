@@ -437,7 +437,7 @@ export default async function handler(req, res) {
         try {
           const token = await issueSupplierAccreditationTokenForEmail(supplierId);
           const origin = getRequestOrigin(req);
-          formUrl = `${origin.replace(/\/$/, '')}/supplier-accreditation?token=${encodeURIComponent(token)}`;
+          formUrl = `${origin.replace(/\/$/, '')}/supplier-form?token=${encodeURIComponent(token)}`;
         } catch (tokenError) {
           console.error('Failed to issue supplier accreditation token for invitation email:', tokenError);
         }
