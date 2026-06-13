@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { migrateTrainingStorage } from '../api/adminMaintenance';
 
@@ -25,6 +24,47 @@ function formatResult(result) {
   ].join('\n');
 }
 
+const STATUS_STYLES = {
+  error: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+    color: '#991B1B',
+  },
+  success: {
+    backgroundColor: '#D1FAE5',
+    borderColor: '#6EE7B7',
+    color: '#065F46',
+  },
+  info: {
+    backgroundColor: '#DBEAFE',
+    borderColor: '#93C5FD',
+    color: '#1E40AF',
+  },
+};
+
+function StatusBanner({ type = 'info', message }) {
+  if (!message) {
+    return null;
+  }
+
+  const palette = STATUS_STYLES[type] || STATUS_STYLES.info;
+
+  return (
+    <View style={{
+      backgroundColor: palette.backgroundColor,
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: palette.borderColor,
+    }}>
+      <Text style={{ fontSize: 14, color: palette.color, lineHeight: 20 }}>
+        {message}
+      </Text>
+    </View>
+  );
+}
+
 export default function AdminMaintenanceScreen({
   adminEmail,
   onNavigateBack,
@@ -34,15 +74,24 @@ export default function AdminMaintenanceScreen({
   const [loadingStep, setLoadingStep] = useState(null);
   const [previewResult, setPreviewResult] = useState(null);
   const [applyResult, setApplyResult] = useState(null);
+  const [status, setStatus] = useState(null);
 
   const runMigration = async (dryRun) => {
+    setStatus(null);
+
     if (!adminEmail) {
-      Alert.alert('Session expired', 'Please log out and log back into the Admin Panel.');
+      setStatus({
+        type: 'error',
+        message: 'Session expired. Please log out and log back into the Admin Panel.',
+      });
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert('Password required', 'Enter your admin password to continue.');
+      setStatus({
+        type: 'error',
+        message: 'Enter your admin password to continue.',
+      });
       return;
     }
 
@@ -60,7 +109,15 @@ export default function AdminMaintenanceScreen({
 
         const toMove = result.records.migrated + result.matrices.migrated;
         if (toMove === 0) {
-          Alert.alert('All organized', 'Training files are already stored under company names.');
+          setStatus({
+            type: 'success',
+            message: 'All training files are already stored under company names.',
+          });
+        } else {
+          setStatus({
+            type: 'info',
+            message: `Found ${toMove} file(s) ready to move. Click Step 2 below to move them.`,
+          });
         }
         return;
       }
@@ -72,21 +129,24 @@ export default function AdminMaintenanceScreen({
       const failed = result.records.failed + result.matrices.failed;
 
       if (failed > 0) {
-        Alert.alert(
-          'Some files could not be moved',
-          `${moved} file(s) moved, ${failed} failed.\n\nCheck the result below, then try again or contact support.`
-        );
+        setStatus({
+          type: 'error',
+          message: `${moved} file(s) moved, ${failed} failed. Check the result below, then try again.`,
+        });
         return;
       }
 
-      Alert.alert(
-        'Done',
-        `${moved} file(s) moved into company-name folders.\n\nRefresh Supabase Storage to see the new folders.`
-      );
+      setStatus({
+        type: 'success',
+        message: `${moved} file(s) moved into company-name folders. Refresh Supabase Storage to see the new folders.`,
+      });
     } catch (error) {
-      Alert.alert('Could not complete', error.message || 'Something went wrong.');
+      setStatus({
+        type: 'error',
+        message: error.message || 'Something went wrong.',
+      });
     } finally {
-      setLoading(false);
+      setLoadingStep(null);
     }
   };
 
@@ -122,6 +182,8 @@ export default function AdminMaintenanceScreen({
             Step 2 moves them into company-name folders in Supabase Storage, like accreditations.
           </Text>
 
+          <StatusBanner type={status?.type} message={status?.message} />
+
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
             Your admin password
           </Text>
@@ -142,21 +204,21 @@ export default function AdminMaintenanceScreen({
             autoComplete="current-password"
             value={password}
             onChangeText={setPassword}
-            editable={!loading}
+            editable={!loadingStep}
           />
 
           <TouchableOpacity
             style={{
-              backgroundColor: loading ? '#9CA3AF' : '#3B82F6',
+              backgroundColor: loadingStep ? '#9CA3AF' : '#3B82F6',
               paddingVertical: 14,
               borderRadius: 8,
               alignItems: 'center',
               marginBottom: 12,
             }}
             onPress={() => runMigration(true)}
-            disabled={loading}
+            disabled={!!loadingStep}
           >
-            {loading && !previewResult ? (
+            {loadingStep === 'check' ? (
               <ActivityIndicator color="white" />
             ) : (
               <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
@@ -182,15 +244,15 @@ export default function AdminMaintenanceScreen({
               </Text>
               <TouchableOpacity
                 style={{
-                  backgroundColor: loading ? '#9CA3AF' : '#EC4899',
+                  backgroundColor: loadingStep ? '#9CA3AF' : '#EC4899',
                   paddingVertical: 14,
                   borderRadius: 8,
                   alignItems: 'center',
                 }}
                 onPress={() => runMigration(false)}
-                disabled={loading}
+                disabled={!!loadingStep}
               >
-                {loading ? (
+                {loadingStep === 'move' ? (
                   <ActivityIndicator color="white" />
                 ) : (
                   <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
@@ -204,12 +266,6 @@ export default function AdminMaintenanceScreen({
           {activeResult && (
             <Text style={{ marginTop: 8, fontSize: 14, color: '#374151', lineHeight: 20 }}>
               {formatResult(activeResult)}
-            </Text>
-          )}
-
-          {applyResult && applyResult.records.migrated + applyResult.matrices.migrated > 0 && (
-            <Text style={{ marginTop: 12, fontSize: 14, color: '#059669', lineHeight: 20 }}>
-              Refresh your Supabase Storage browser tab to see folders like company_name/contractor_name/...
             </Text>
           )}
         </View>
