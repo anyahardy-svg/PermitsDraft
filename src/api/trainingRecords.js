@@ -5,6 +5,10 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll, handleError } from '../utils/errorHandler';
+import {
+  buildTrainingRecordStoragePath,
+  extractTrainingRecordsStoragePath,
+} from '../utils/storagePaths';
 
 // Allowed file types
 const ALLOWED_FILE_TYPES = [
@@ -51,11 +55,6 @@ async function updateCompanyTrainingRecordsCounters(companyId) {
   }
 }
 
-/**
- * Validate file type
- * @param {File} file - File to validate
- * @returns {boolean} Valid or not
- */
 function isValidFileType(file) {
   // Check MIME type
   if (ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -65,6 +64,23 @@ function isValidFileType(file) {
   // Check file extension
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   return ALLOWED_EXTENSIONS.includes(ext);
+}
+
+async function getContractorStorageContext(contractorId) {
+  const { data, error } = await supabase
+    .from('contractors')
+    .select('id, name, companies(name)')
+    .eq('id', contractorId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    contractorName: data?.name || 'unknown_contractor',
+    companyName: data?.companies?.name || 'unknown_company',
+  };
 }
 
 /**
@@ -91,9 +107,16 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
       throw new Error('File size exceeds 5MB limit');
     }
 
-    // Generate unique file path
+    const { contractorName, companyName } = await getContractorStorageContext(contractorId);
+
+    // Generate readable file path: company/contractor/training_type/timestamp.ext
     const fileExt = file.name.split('.').pop();
-    const fileName = `${contractorId}/${Date.now()}.${fileExt}`;
+    const fileName = buildTrainingRecordStoragePath({
+      companyName,
+      contractorName,
+      trainingType,
+      fileExt,
+    });
 
     // Upload file to Supabase Storage
     console.log('📁 Uploading to storage:', fileName);
@@ -232,7 +255,7 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
     // Extract file path from URL and delete from storage
     if (fileUrl) {
       try {
-        const filePath = fileUrl.split('/training-records/')[1];
+        const filePath = extractTrainingRecordsStoragePath(fileUrl);
         if (filePath) {
           console.log('🗑️ Deleting file from storage:', filePath);
           await supabase.storage
@@ -586,9 +609,16 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
         throw new Error('File size exceeds 5MB limit');
       }
 
-      // Generate unique file path
+      const { contractorName, companyName } = await getContractorStorageContext(record.contractor_id);
+
+      // Generate readable file path: company/contractor/training_type/timestamp.ext
       const fileExt = file.name.split('.').pop();
-      const fileName = `${record.contractor_id}/${Date.now()}.${fileExt}`;
+      const fileName = buildTrainingRecordStoragePath({
+        companyName,
+        contractorName,
+        trainingType: record.training_type,
+        fileExt,
+      });
 
       // Upload new file to storage
       console.log('📁 Uploading to storage:', fileName);
@@ -609,7 +639,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       // Delete old file from storage if exists
       if (record.file_url) {
         try {
-          const oldFilePath = record.file_url.split('/training-records/')[1];
+          const oldFilePath = extractTrainingRecordsStoragePath(record.file_url);
           if (oldFilePath) {
             console.log('🗑️ Deleting old file from storage:', oldFilePath);
             await supabase.storage

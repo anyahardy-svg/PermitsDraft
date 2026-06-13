@@ -42,7 +42,8 @@ node setup-bucket.js
 ## Security Notes
 
 - The bucket is **private** - only authenticated users can upload/access files
-- Files are stored in paths like: `contractor-id/timestamp.extension`
+- Files are stored in paths like: `company_name/contractor_name/training_type/timestamp.extension`
+- Company training matrices are stored in: `company_name/matrices/timestamp.extension`
 - RLS (Row Level Security) policies ensure users can only access their company's records
 - Service role key should never be committed to version control
 
@@ -56,6 +57,24 @@ Check that the RLS policies are enabled. The app handles authentication automati
 
 ### Files not accessible
 Make sure the bucket is accessible in your Supabase project. You can test in the Storage browser on the dashboard.
+
+## Migrating existing UUID folders to company names
+
+Older uploads may still be stored under contractor or company UUID folders. After deploying the readable-path update, run this one-time script to reorganize existing files in Supabase Storage (same pattern as the accreditations bucket):
+
+```bash
+# Preview changes first
+DRY_RUN=1 SUPABASE_URL="https://your-project.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+  node scripts/migrate-training-records-storage-paths.js
+
+# Apply migration
+SUPABASE_URL="https://your-project.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+  node scripts/migrate-training-records-storage-paths.js
+```
+
+The script moves files to `{company_name}/{contractor_name}/{training_type}/...` (or `{company_name}/matrices/...`) and updates `file_url` in the database.
 
 ## After Setup
 

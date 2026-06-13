@@ -6,6 +6,10 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
+import {
+  buildCompanyTrainingMatrixStoragePath,
+  extractTrainingRecordsStoragePath,
+} from '../utils/storagePaths';
 
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
@@ -28,6 +32,20 @@ function isValidFileType(file) {
 function defaultNameFromFile(file) {
   const baseName = file.name.replace(/\.[^/.]+$/, '');
   return baseName || 'Training Matrix';
+}
+
+async function getCompanyName(companyId) {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('name')
+    .eq('id', companyId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.name || 'unknown_company';
 }
 
 async function updateCompanyTrainingMatricesCounters(companyId) {
@@ -142,8 +160,12 @@ export async function uploadCompanyTrainingMatrix(
     }
 
     const matrixName = (name || '').trim() || defaultNameFromFile(file);
+    const companyName = await getCompanyName(companyId);
     const fileExt = file.name.split('.').pop();
-    const storagePath = `${companyId}/matrices/${Date.now()}.${fileExt}`;
+    const storagePath = buildCompanyTrainingMatrixStoragePath({
+      companyName,
+      fileExt,
+    });
 
     const { error: uploadError } = await supabase.storage
       .from('training-records')
@@ -255,8 +277,12 @@ export async function updateCompanyTrainingMatrix(
         throw new Error('File size exceeds 5MB limit');
       }
 
+      const companyName = await getCompanyName(existing.company_id);
       const fileExt = file.name.split('.').pop();
-      const storagePath = `${existing.company_id}/matrices/${Date.now()}.${fileExt}`;
+      const storagePath = buildCompanyTrainingMatrixStoragePath({
+        companyName,
+        fileExt,
+      });
 
       const { error: uploadError } = await supabase.storage
         .from('training-records')
@@ -270,7 +296,7 @@ export async function updateCompanyTrainingMatrix(
 
       if (existing.file_url) {
         try {
-          const oldFilePath = existing.file_url.split('/training-records/')[1];
+          const oldFilePath = extractTrainingRecordsStoragePath(existing.file_url);
           if (oldFilePath) {
             await supabase.storage.from('training-records').remove([oldFilePath]);
           }
@@ -345,7 +371,7 @@ export async function deleteCompanyTrainingMatrix(matrixId, fileUrl) {
 
     if (fileUrl) {
       try {
-        const filePath = fileUrl.split('/training-records/')[1];
+        const filePath = extractTrainingRecordsStoragePath(fileUrl);
         if (filePath) {
           await supabase.storage.from('training-records').remove([filePath]);
         }
