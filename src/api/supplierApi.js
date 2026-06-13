@@ -1,11 +1,96 @@
 import { supabase } from '../supabaseClient';
 import { sendSupplierInvitation } from './sendgrid';
+import { createEmptyProduct } from '../schemas/supplierSchema';
+
+const SUPPLIER_SELECT_FIELDS = [
+  'id',
+  'company_name',
+  'company_email',
+  'risk_classification',
+  'status',
+  'created_at',
+  'contact_email',
+  'tech_contact_name',
+  'contact_surname',
+  'contact_phone',
+  'nzbn',
+  'address_1',
+  'address_city',
+  'address_postcode',
+  'invitation_sent_at',
+  'accreditation_deadline',
+].join(', ');
+
+const LEGACY_PRODUCT_FIELD_IDS = [
+  'product_name',
+  'product_type',
+  'safety_docs',
+  'test_each_batch',
+  'aligned_standards',
+  'standards_list',
+  'coa_provided',
+  'evidence_of_use',
+  'affect_strength',
+  'affect_set_time',
+  'affect_durability',
+  'affect_testing',
+  'dosage_variance',
+  'limitations_of_use',
+  'complies_nz_standards',
+  'hazard_classification',
+  'third_party_certifications_details',
+  'third_party_certifications_upload',
+];
+
+function hasLegacyProductFields(data) {
+  return LEGACY_PRODUCT_FIELD_IDS.some((fieldId) => data[fieldId] !== undefined && data[fieldId] !== '');
+}
+
+function migrateLegacyFormData(savedData) {
+  if (Array.isArray(savedData.products) && savedData.products.length) {
+    return savedData;
+  }
+
+  if (!hasLegacyProductFields(savedData)) {
+    return {
+      ...savedData,
+      products: [createEmptyProduct(0)],
+    };
+  }
+
+  const migratedProduct = createEmptyProduct(0);
+  LEGACY_PRODUCT_FIELD_IDS.forEach((fieldId) => {
+    if (savedData[fieldId] !== undefined) {
+      migratedProduct[fieldId] = savedData[fieldId];
+    }
+  });
+
+  if (savedData.third_party_certifications_details || savedData.third_party_certifications_upload) {
+    migratedProduct.certifications = {
+      ...migratedProduct.certifications,
+      other: {
+        ...migratedProduct.certifications.other,
+        enabled: Boolean(savedData.third_party_certifications_details || savedData.third_party_certifications_upload),
+        otherLabel: savedData.third_party_certifications_details || '',
+        url: savedData.third_party_certifications_upload?.url || '',
+        fileName: savedData.third_party_certifications_upload?.fileName || '',
+        uploadedAt: savedData.third_party_certifications_upload?.uploadedAt || '',
+      },
+    };
+  }
+
+  const nextData = { ...savedData, products: [migratedProduct] };
+  LEGACY_PRODUCT_FIELD_IDS.forEach((fieldId) => {
+    delete nextData[fieldId];
+  });
+  delete nextData.third_party_certifications_details;
+  delete nextData.third_party_certifications_upload;
+
+  return nextData;
+}
 
 /**
  * Fetch all suppliers from the suppliers table.
- * Tries the server API first (service role bypasses RLS), then falls back to
- * a direct Supabase query once anon read policies are applied.
- * @returns {Promise<Array>}
  */
 export async function getAllSuppliers() {
   if (typeof fetch !== 'undefined') {
@@ -29,7 +114,7 @@ export async function getAllSuppliers() {
 
   const { data, error } = await supabase
     .from('suppliers')
-    .select('id, company_name, risk_classification, status, created_at, contact_email, tech_contact_name, invitation_sent_at, accreditation_deadline')
+    .select(SUPPLIER_SELECT_FIELDS)
     .order('company_name', { ascending: true });
 
   if (error) {
@@ -41,29 +126,22 @@ export async function getAllSuppliers() {
 
 /**
  * Fetch a single supplier by ID from the suppliers table.
- * @param {string} supplierId
- * @returns {Promise<Object|null>}
  */
 export async function getSupplierById(supplierId) {
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
-  }
   if (!supplierId) {
     throw new Error('Supplier ID is required');
   }
 
-  const { data, error } = await supabase
-    .from('suppliers')
-    .select('id, company_name, risk_classification, status, created_at, contact_email, tech_contact_name, invitation_sent_at, accreditation_deadline')
-    .eq('id', supplierId)
-    .maybeSingle();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select(SUPPLIER_SELECT_FIELDS)
+      .eq('id', supplierId)
+      .maybeSingle();
 
-  if (error) {
-    throw error;
-  }
-
-  if (data) {
-    return data;
+    if (!error && data) {
+      return data;
+    }
   }
 
   if (typeof fetch !== 'undefined') {
@@ -80,29 +158,41 @@ export async function getSupplierById(supplierId) {
     }
   }
 
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
+  }
+
   return null;
 }
 
 /**
  * Build default form values from a supplier record.
- * @param {Object|null} supplier
- * @returns {Object}
  */
 export function getSupplierFormDefaults(supplier) {
   if (!supplier) {
-    return {};
+    return {
+      products: [createEmptyProduct(0)],
+    };
   }
 
   return {
     company_name: supplier.company_name || '',
+    company_email: supplier.company_email || supplier.contact_email || '',
+    tech_contact_name: supplier.tech_contact_name || '',
+    contact_surname: supplier.contact_surname || '',
+    contact_email: supplier.contact_email || '',
+    contact_phone: supplier.contact_phone || '',
+    nzbn: supplier.nzbn || '',
+    address_1: supplier.address_1 || '',
+    address_city: supplier.address_city || '',
+    address_postcode: supplier.address_postcode || '',
     risk_classification: supplier.risk_classification || '',
+    products: [createEmptyProduct(0)],
   };
 }
 
 /**
  * Normalise accreditation_data from Supabase (JSONB object or string).
- * @param {unknown} accreditationData
- * @returns {Object}
  */
 export function parseAccreditationData(accreditationData) {
   if (!accreditationData) {
@@ -127,27 +217,33 @@ export function parseAccreditationData(accreditationData) {
 
 /**
  * Merge saved accreditation data with supplier table defaults.
- * Saved accreditation values always take precedence.
- * @param {Object|null} supplier
- * @param {Object|null} accreditationRecord
- * @returns {Object}
  */
 export function buildSupplierFormData(supplier, accreditationRecord) {
-  const savedData = parseAccreditationData(accreditationRecord?.accreditation_data);
+  const savedData = migrateLegacyFormData(parseAccreditationData(accreditationRecord?.accreditation_data));
   const defaults = getSupplierFormDefaults(supplier);
 
   return {
     ...defaults,
     ...savedData,
     company_name: savedData.company_name ?? defaults.company_name ?? '',
+    company_email: savedData.company_email ?? defaults.company_email ?? '',
+    tech_contact_name: savedData.tech_contact_name ?? defaults.tech_contact_name ?? '',
+    contact_surname: savedData.contact_surname ?? defaults.contact_surname ?? '',
+    contact_email: savedData.contact_email ?? defaults.contact_email ?? '',
+    contact_phone: savedData.contact_phone ?? defaults.contact_phone ?? '',
+    nzbn: savedData.nzbn ?? defaults.nzbn ?? '',
+    address_1: savedData.address_1 ?? defaults.address_1 ?? '',
+    address_city: savedData.address_city ?? defaults.address_city ?? '',
+    address_postcode: savedData.address_postcode ?? defaults.address_postcode ?? '',
     risk_classification: savedData.risk_classification ?? defaults.risk_classification ?? '',
+    products: Array.isArray(savedData.products) && savedData.products.length
+      ? savedData.products
+      : defaults.products,
   };
 }
 
 /**
  * Fetch the supplier accreditation record for a given supplier.
- * @param {string} supplierId
- * @returns {Promise<Object|null>}
  */
 export async function getSupplierAccreditation(supplierId) {
   if (!supplierId) {
@@ -191,11 +287,43 @@ export async function getSupplierAccreditation(supplierId) {
 }
 
 /**
+ * Load supplier accreditation using a public access token.
+ */
+export async function getSupplierAccreditationByToken(token) {
+  if (!token) {
+    throw new Error('Accreditation token is required');
+  }
+
+  const response = await fetch(
+    `/api/get-supplier-accreditation-by-token?token=${encodeURIComponent(token)}`
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Invalid or expired accreditation link');
+  }
+
+  return response.json();
+}
+
+/**
+ * Validate a supplier accreditation token.
+ */
+export async function validateSupplierToken(token) {
+  const response = await fetch(
+    `/api/validate-supplier-token?token=${encodeURIComponent(token)}`
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Invalid or expired accreditation link');
+  }
+
+  return response.json();
+}
+
+/**
  * Upsert supplier accreditation form data into supplier_accreditations.
- * @param {string} supplierId
- * @param {Object} formData
- * @param {string} [status='draft']
- * @returns {Promise<Object>}
  */
 export async function saveSupplierAccreditation(supplierId, formData, status = 'draft') {
   if (!supplierId) {
@@ -324,9 +452,65 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
 }
 
 /**
+ * Save supplier accreditation using a public access token.
+ */
+export async function saveSupplierAccreditationByToken(token, formData, status = 'draft') {
+  const response = await fetch('/api/save-supplier-accreditation-by-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      token,
+      formData,
+      status,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to save supplier accreditation');
+  }
+
+  return response.json();
+}
+
+/**
+ * Upload a supplier document via token or admin supplier ID.
+ */
+export async function uploadSupplierDocument({
+  file,
+  documentType,
+  token = null,
+  supplierId = null,
+}) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('documentType', documentType);
+
+  if (token) {
+    formData.append('token', token);
+  } else if (supplierId) {
+    formData.append('supplierId', supplierId);
+  } else {
+    throw new Error('token or supplierId is required for document upload');
+  }
+
+  const response = await fetch('/api/upload-supplier-document', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to upload document');
+  }
+
+  return response.json();
+}
+
+/**
  * Create or update a supplier via the server API (service role).
- * @param {Object} supplierData
- * @returns {Promise<Object>}
  */
 export async function createSupplier(supplierData) {
   if (!supplierData?.company_name?.trim()) {
@@ -351,8 +535,6 @@ export async function createSupplier(supplierData) {
 
 /**
  * Create a supplier and send an accreditation invitation email.
- * @param {Object} params
- * @returns {Promise<{supplier: Object, emailSent: boolean, warning?: string}>}
  */
 export async function inviteSupplier({
   companyName,

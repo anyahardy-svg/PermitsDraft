@@ -80,6 +80,34 @@ function buildSupplierPayload(body) {
   if (body.invitation_sent_at !== undefined) {
     payload.invitation_sent_at = body.invitation_sent_at || null;
   }
+  if (body.company_email !== undefined) {
+    const email = String(body.company_email).trim();
+    payload.company_email = email || null;
+  }
+  if (body.contact_surname !== undefined) {
+    const surname = String(body.contact_surname).trim();
+    payload.contact_surname = surname || null;
+  }
+  if (body.contact_phone !== undefined) {
+    const phone = String(body.contact_phone).trim();
+    payload.contact_phone = phone || null;
+  }
+  if (body.nzbn !== undefined) {
+    const nzbn = String(body.nzbn).trim();
+    payload.nzbn = nzbn || null;
+  }
+  if (body.address_1 !== undefined) {
+    const address = String(body.address_1).trim();
+    payload.address_1 = address || null;
+  }
+  if (body.address_city !== undefined) {
+    const city = String(body.address_city).trim();
+    payload.address_city = city || null;
+  }
+  if (body.address_postcode !== undefined) {
+    const postcode = String(body.address_postcode).trim();
+    payload.address_postcode = postcode || null;
+  }
 
   return payload;
 }
@@ -158,6 +186,13 @@ export default async function handler(req, res) {
         status: payload.status || 'active',
         contact_email: payload.contact_email ?? null,
         tech_contact_name: payload.tech_contact_name ?? null,
+        company_email: payload.company_email ?? null,
+        contact_surname: payload.contact_surname ?? null,
+        contact_phone: payload.contact_phone ?? null,
+        nzbn: payload.nzbn ?? null,
+        address_1: payload.address_1 ?? null,
+        address_city: payload.address_city ?? null,
+        address_postcode: payload.address_postcode ?? null,
         accreditation_deadline: payload.accreditation_deadline ?? null,
         invitation_sent_at: payload.invitation_sent_at ?? null,
       }),
