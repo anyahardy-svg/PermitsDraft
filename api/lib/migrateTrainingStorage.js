@@ -61,6 +61,31 @@ function buildMatrixPath({ companyName, oldPath }) {
   return `${companySegment}/matrices/${fileName}`;
 }
 
+async function fetchRowsByIds(supabase, table, ids, select) {
+  if (!ids.length) {
+    return [];
+  }
+
+  const rows = [];
+  const chunkSize = 100;
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from(table)
+      .select(select)
+      .in('id', chunk);
+
+    if (error) {
+      throw new Error(`${table} lookup failed: ${error.message}`);
+    }
+
+    rows.push(...(data || []));
+  }
+
+  return rows;
+}
+
 async function moveStorageObject(supabase, oldPath, newPath, dryRun) {
   if (oldPath === newPath) {
     return { skipped: true };
@@ -81,20 +106,20 @@ async function moveStorageObject(supabase, oldPath, newPath, dryRun) {
 async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
   const { data: records, error } = await supabase
     .from('training_records')
-    .select(`
-      id,
-      training_type,
-      file_url,
-      contractor:contractors(
-        name,
-        companies(name)
-      )
-    `)
+    .select('id, training_type, file_url, contractor_id')
     .not('file_url', 'is', null);
 
   if (error) {
-    throw error;
+    throw new Error(`training_records lookup failed: ${error.message}`);
   }
+
+  const contractorIds = [...new Set((records || []).map((record) => record.contractor_id).filter(Boolean))];
+  const contractors = await fetchRowsByIds(supabase, 'contractors', contractorIds, 'id, name, company_id');
+  const companyIds = [...new Set(contractors.map((contractor) => contractor.company_id).filter(Boolean))];
+  const companies = await fetchRowsByIds(supabase, 'companies', companyIds, 'id, name');
+
+  const contractorMap = new Map(contractors.map((contractor) => [contractor.id, contractor]));
+  const companyMap = new Map(companies.map((company) => [company.id, company]));
 
   let migrated = 0;
   let skipped = 0;
@@ -107,11 +132,11 @@ async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
       continue;
     }
 
-    const companyName = record.contractor?.companies?.name;
-    const contractorName = record.contractor?.name;
+    const contractor = contractorMap.get(record.contractor_id);
+    const company = contractor?.company_id ? companyMap.get(contractor.company_id) : null;
     const newPath = buildTrainingRecordPath({
-      companyName,
-      contractorName,
+      companyName: company?.name,
+      contractorName: contractor?.name,
       trainingType: record.training_type,
       oldPath,
     });
@@ -133,7 +158,7 @@ async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
       migrated += 1;
     } catch (moveError) {
       failed += 1;
-      console.error(`Training record ${record.id} failed:`, moveError.message);
+      console.error(`Training record ${record.id} failed:`, moveError.message || moveError);
     }
   }
 
@@ -141,57 +166,69 @@ async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
 }
 
 async function migrateMatrices(supabase, { dryRun = false } = {}) {
-  const { data: matrices, error } = await supabase
-    .from('company_training_matrices')
-    .select(`
-      id,
-      file_url,
-      companies(name)
-    `)
-    .not('file_url', 'is', null);
+  try {
+    const { data: matrices, error } = await supabase
+      .from('company_training_matrices')
+      .select('id, file_url, company_id')
+      .not('file_url', 'is', null);
 
-  if (error) {
-    throw error;
-  }
-
-  let migrated = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const matrix of matrices || []) {
-    const oldPath = extractStoragePath(matrix.file_url);
-    if (!needsMigration(oldPath)) {
-      skipped += 1;
-      continue;
+    if (error) {
+      throw error;
     }
 
-    const newPath = buildMatrixPath({
-      companyName: matrix.companies?.name,
-      oldPath,
-    });
+    const companyIds = [...new Set((matrices || []).map((matrix) => matrix.company_id).filter(Boolean))];
+    const companies = await fetchRowsByIds(supabase, 'companies', companyIds, 'id, name');
+    const companyMap = new Map(companies.map((company) => [company.id, company]));
 
-    try {
-      await moveStorageObject(supabase, oldPath, newPath, dryRun);
+    let migrated = 0;
+    let skipped = 0;
+    let failed = 0;
 
-      if (!dryRun) {
-        const { error: updateError } = await supabase
-          .from('company_training_matrices')
-          .update({ file_url: buildPublicUrl(supabase, newPath) })
-          .eq('id', matrix.id);
-
-        if (updateError) {
-          throw updateError;
-        }
+    for (const matrix of matrices || []) {
+      const oldPath = extractStoragePath(matrix.file_url);
+      if (!needsMigration(oldPath)) {
+        skipped += 1;
+        continue;
       }
 
-      migrated += 1;
-    } catch (moveError) {
-      failed += 1;
-      console.error(`Training matrix ${matrix.id} failed:`, moveError.message);
-    }
-  }
+      const company = matrix.company_id ? companyMap.get(matrix.company_id) : null;
+      const newPath = buildMatrixPath({
+        companyName: company?.name,
+        oldPath,
+      });
 
-  return { migrated, skipped, failed, total: (matrices || []).length };
+      try {
+        await moveStorageObject(supabase, oldPath, newPath, dryRun);
+
+        if (!dryRun) {
+          const { error: updateError } = await supabase
+            .from('company_training_matrices')
+            .update({ file_url: buildPublicUrl(supabase, newPath) })
+            .eq('id', matrix.id);
+
+          if (updateError) {
+            throw updateError;
+          }
+        }
+
+        migrated += 1;
+      } catch (moveError) {
+        failed += 1;
+        console.error(`Training matrix ${matrix.id} failed:`, moveError.message || moveError);
+      }
+    }
+
+    return { migrated, skipped, failed, total: (matrices || []).length };
+  } catch (error) {
+    console.error('Training matrices migration skipped:', error.message || error);
+    return {
+      migrated: 0,
+      skipped: 0,
+      failed: 0,
+      total: 0,
+      unavailable: true,
+    };
+  }
 }
 
 async function migrateTrainingStorage(supabase, { dryRun = false } = {}) {

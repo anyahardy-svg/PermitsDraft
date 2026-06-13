@@ -32,6 +32,11 @@ export default function AdminMaintenanceScreen({
   const [lastResult, setLastResult] = useState(null);
 
   const runMigration = async (dryRun) => {
+    if (!adminEmail) {
+      Alert.alert('Session expired', 'Please log out and log back into the Admin Panel.');
+      return;
+    }
+
     if (!password.trim()) {
       Alert.alert('Password required', 'Enter your admin password to continue.');
       return;

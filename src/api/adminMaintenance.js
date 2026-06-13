@@ -8,7 +8,8 @@ export async function migrateTrainingStorage({ email, password, dryRun = false }
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to organize training storage');
+    const message = data.error || `Server error (${response.status})`;
+    throw new Error(message);
   }
 
   return data;
