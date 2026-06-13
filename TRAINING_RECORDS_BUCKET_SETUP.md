@@ -60,32 +60,21 @@ Make sure the bucket is accessible in your Supabase project. You can test in the
 
 ## Migrating existing UUID folders to company names
 
-Older uploads may still be stored under contractor or company UUID folders. After deploying the readable-path update, run this one-time **Node.js script** to reorganize existing files in Supabase Storage (same pattern as the accreditations bucket).
+**Easiest:** After deploying, log in as **super admin** → **Admin Panel** → **Training Storage** → enter your password → click **Organize training files**. No terminal or SQL Editor required.
 
-**Do not paste this into Supabase SQL Editor** — SQL Editor only runs SQL. This script must be run from a terminal on your computer (or any machine with Node.js and this repo).
+Older training files may still be under random ID folders. That one-click action moves them into company-name folders (same as accreditations). New uploads already use company names once this update is live.
 
-1. Open a terminal in the project folder
-2. Run `npm install` if you have not already
-3. Get credentials from Supabase Dashboard → Settings → API:
-   - **Project URL** → `SUPABASE_URL`
-   - **service_role** key (secret) → `SUPABASE_SERVICE_ROLE_KEY`
-4. Preview, then apply:
+### CLI fallback (optional)
+
+Only needed if you cannot use the Admin Panel:
 
 ```bash
-# Preview changes first (no files moved)
 DRY_RUN=1 SUPABASE_URL="https://your-project.supabase.co" \
-  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
-  npm run migrate-training-storage
-
-# Apply migration
-SUPABASE_URL="https://your-project.supabase.co" \
   SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
   npm run migrate-training-storage
 ```
 
-The script moves files to `{company_name}/{contractor_name}/{training_type}/...` (or `{company_name}/matrices/...`) and updates `file_url` in the database.
-
-To only **look up** which company a record belongs to (without moving files), use `scripts/lookup-training-records-storage.sql` in SQL Editor instead.
+To only **look up** which company a record belongs to (without moving files), use `scripts/lookup-training-records-storage.sql` in SQL Editor.
 
 ## After Setup
 

@@ -58,6 +58,7 @@ import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
+import AdminMaintenanceScreen from './src/screens/AdminMaintenanceScreen';
 import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
@@ -23567,6 +23568,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             />
           </ScrollView>
         </View>
+      );
+    case 'admin_training_storage':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Training storage maintenance accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      if (loggedInAdmin?.role !== 'super_admin') {
+        return renderAdminDashboard();
+      }
+      return (
+        <AdminMaintenanceScreen
+          adminEmail={loggedInAdmin?.email}
+          onNavigateBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
       );
     case 'supplier_accreditation':
       if (!adminSessionActive) {
