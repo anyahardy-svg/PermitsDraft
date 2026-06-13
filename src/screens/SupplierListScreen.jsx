@@ -14,6 +14,7 @@ import {
   createSupplier,
   getAllSuppliers,
   inviteSupplier,
+  sendInvitationToSupplier,
 } from '../api/supplierApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 
@@ -89,12 +90,20 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSendInvitationModal, setShowSendInvitationModal] = useState(false);
+  const [selectedSupplierForInvitation, setSelectedSupplierForInvitation] = useState(null);
   const [creatingAndSendingInvitation, setCreatingAndSendingInvitation] = useState(false);
+  const [sendingInvitation, setSendingInvitation] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     companyName: '',
     email: '',
     techContactName: '',
     riskClassification: '',
+    deadline: getDefaultAccreditationDeadline(),
+  });
+  const [sendInvitationForm, setSendInvitationForm] = useState({
+    email: '',
+    techContactName: '',
     deadline: getDefaultAccreditationDeadline(),
   });
   const [importStatus, setImportStatus] = useState('idle');
@@ -145,6 +154,57 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       deadline: getDefaultAccreditationDeadline(),
     });
     setShowInviteModal(true);
+  };
+
+  const openSendInvitationModal = (supplier) => {
+    setSelectedSupplierForInvitation(supplier);
+    setSendInvitationForm({
+      email: supplier.contact_email || '',
+      techContactName: supplier.tech_contact_name || '',
+      deadline: supplier.accreditation_deadline
+        ? formatDate(supplier.accreditation_deadline)
+        : getDefaultAccreditationDeadline(),
+    });
+    setShowSendInvitationModal(true);
+  };
+
+  const handleSendInvitation = async () => {
+    if (!sendInvitationForm.email.trim()) {
+      Alert.alert('Missing Info', 'Please enter a contact email.');
+      return;
+    }
+
+    if (!selectedSupplierForInvitation) {
+      return;
+    }
+
+    setSendingInvitation(true);
+    try {
+      let deadline = null;
+      if (sendInvitationForm.deadline.trim()) {
+        const [day, month, year] = sendInvitationForm.deadline.split('/');
+        if (day && month && year) {
+          deadline = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+        }
+      }
+
+      await sendInvitationToSupplier({
+        supplierId: selectedSupplierForInvitation.id,
+        email: sendInvitationForm.email.trim(),
+        companyName: selectedSupplierForInvitation.company_name,
+        deadline,
+        techContactName: sendInvitationForm.techContactName.trim() || null,
+      });
+
+      Alert.alert('Success', 'Supplier invitation sent successfully!');
+      setShowSendInvitationModal(false);
+      setSelectedSupplierForInvitation(null);
+      await loadSuppliers();
+    } catch (inviteError) {
+      Alert.alert('Error', inviteError?.message || 'Failed to send invitation.');
+    } finally {
+      setSendingInvitation(false);
+    }
   };
 
   const handleCreateAndInvite = async () => {
@@ -437,7 +497,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
               <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Created</Text>
-              <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
+              <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
             </View>
 
             {filteredSuppliers.map((supplier, index) => {
@@ -496,12 +556,25 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                   <Text style={{ width: 120, padding: 12, fontSize: 13, color: '#4B5563', textAlign: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     {formatDate(supplier.created_at)}
                   </Text>
-                  <View style={{ width: 140, padding: 12, alignItems: 'center' }}>
+                  <View style={{ width: 220, flexDirection: 'row', justifyContent: 'center', gap: 6, padding: 8 }}>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        backgroundColor: supplier.invitation_sent_at ? '#F59E0B' : '#8B5CF6',
+                        borderRadius: 4,
+                      }}
+                      onPress={() => openSendInvitationModal(supplier)}
+                    >
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {supplier.invitation_sent_at ? '↻ Resend' : '✉ Invite'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 8, paddingVertical: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
                       onPress={() => handleOpenForm(supplier.id)}
                     >
-                      <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Open Form</Text>
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Open Form</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -509,6 +582,76 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
             })}
           </View>
         </ScrollView>
+      )}
+
+      {showSendInvitationModal && selectedSupplierForInvitation && (
+        <Modal
+          visible={showSendInvitationModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSendInvitationModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
+                Send Supplier Invitation
+              </Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
+                Supplier:{' '}
+                <Text style={{ fontWeight: '600', color: '#1F2937' }}>
+                  {selectedSupplierForInvitation.company_name}
+                </Text>
+              </Text>
+
+              <Text style={[styles?.label, { marginTop: 0 }]}>Contact Email *</Text>
+              <TextInput
+                style={styles?.input}
+                placeholder="Enter email address"
+                value={sendInvitationForm.email}
+                onChangeText={(text) => setSendInvitationForm({ ...sendInvitationForm, email: text })}
+                keyboardType="email-address"
+                editable={!sendingInvitation}
+              />
+
+              <Text style={styles?.label}>Technical Contact Name</Text>
+              <TextInput
+                style={styles?.input}
+                placeholder="Enter technical contact name"
+                value={sendInvitationForm.techContactName}
+                onChangeText={(text) => setSendInvitationForm({ ...sendInvitationForm, techContactName: text })}
+                editable={!sendingInvitation}
+              />
+
+              <Text style={styles?.label}>Accreditation Deadline</Text>
+              <TextInput
+                style={styles?.input}
+                placeholder="DD/MM/YYYY"
+                value={sendInvitationForm.deadline}
+                onChangeText={(text) => setSendInvitationForm({ ...sendInvitationForm, deadline: text })}
+                editable={!sendingInvitation}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                <TouchableOpacity
+                  style={[styles?.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
+                  onPress={() => setShowSendInvitationModal(false)}
+                  disabled={sendingInvitation}
+                >
+                  <Text style={styles?.addButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles?.addButton, { flex: 1, backgroundColor: sendingInvitation ? '#9CA3AF' : '#8B5CF6' }]}
+                  onPress={handleSendInvitation}
+                  disabled={sendingInvitation}
+                >
+                  <Text style={styles?.addButtonText}>
+                    {sendingInvitation ? '⏳ Sending...' : '✉ Send Invitation'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
 
       {showInviteModal && (
