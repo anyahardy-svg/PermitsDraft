@@ -105,15 +105,6 @@ export default function AdminDashboard({
               <Text style={styles.cardLabel}>Add Admin</Text>
             </TouchableOpacity>
           )}
-          {isSuperAdmin && (
-            <TouchableOpacity
-              style={[styles.dashboardCard, { borderLeftColor: '#EC4899' }]}
-              onPress={() => onNavigate('admin_training_storage')}
-            >
-              <Text style={styles.cardNumber}>📁</Text>
-              <Text style={styles.cardLabel}>Training Storage</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
     </View>

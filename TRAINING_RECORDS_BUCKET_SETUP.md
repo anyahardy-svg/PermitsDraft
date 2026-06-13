@@ -58,23 +58,16 @@ Check that the RLS policies are enabled. The app handles authentication automati
 ### Files not accessible
 Make sure the bucket is accessible in your Supabase project. You can test in the Storage browser on the dashboard.
 
-## Migrating existing UUID folders to company names
+## Storage folder layout
 
-**Easiest:** After deploying, log in as **super admin** → **Admin Panel** → **Training Storage** → enter your password → click **Organize training files**. No terminal or SQL Editor required.
+New uploads are stored automatically as:
 
-Older training files may still be under random ID folders. That one-click action moves them into company-name folders (same as accreditations). New uploads already use company names once this update is live.
+- `company_name/contractor_name/training_type/timestamp.extension`
+- `company_name/matrices/timestamp.extension` (training matrices)
 
-### CLI fallback (optional)
+This matches the accreditations bucket pattern. Leftover empty UUID folders from older uploads can be deleted manually in Supabase Storage.
 
-Only needed if you cannot use the Admin Panel:
-
-```bash
-DRY_RUN=1 SUPABASE_URL="https://your-project.supabase.co" \
-  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
-  npm run migrate-training-storage
-```
-
-To only **look up** which company a record belongs to (without moving files), use `scripts/lookup-training-records-storage.sql` in SQL Editor.
+To look up which company a record belongs to, use `scripts/lookup-training-records-storage.sql` in SQL Editor.
 
 ## After Setup
 
