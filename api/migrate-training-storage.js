@@ -12,23 +12,40 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const adminClient = getSupabaseAdmin();
-  if (!adminClient) {
-    return res.status(500).json({ error: 'Supabase service role is not configured on the server' });
-  }
-
-  const { email, password, dryRun = false } = req.body || {};
-
-  const auth = await verifySuperAdmin(email, password);
-  if (!auth.ok) {
-    return res.status(401).json({ error: auth.error });
-  }
-
   try {
+    const adminClient = getSupabaseAdmin();
+    if (!adminClient) {
+      return res.status(500).json({ error: 'Supabase service role is not configured on the server' });
+    }
+
+    const body = (() => {
+      if (typeof req.body === 'string') {
+        try {
+          return JSON.parse(req.body || '{}');
+        } catch (parseError) {
+          return null;
+        }
+      }
+      return req.body || {};
+    })();
+
+    if (!body) {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
+    const { email, password, dryRun = false } = body;
+
+    const auth = await verifySuperAdmin(email, password);
+    if (!auth.ok) {
+      return res.status(401).json({ error: auth.error });
+    }
+
     const result = await migrateTrainingStorage(adminClient, { dryRun: !!dryRun });
     return res.status(200).json(result);
   } catch (error) {
     console.error('migrate-training-storage error:', error);
-    return res.status(500).json({ error: error.message || 'Migration failed' });
+    return res.status(500).json({
+      error: error?.message || 'Migration failed',
+    });
   }
 };
