@@ -1,17 +1,19 @@
 /**
  * Migrate training-records bucket files from UUID folders to readable company names.
  *
+ * IMPORTANT: This is a Node.js script — run it in your terminal, NOT in Supabase SQL Editor.
+ *
  * Before: {contractor_uuid}/{timestamp}.ext
  * After:  {company_name}/{contractor_name}/{training_type}/{timestamp}.ext
  *
  * Before (matrices): {company_uuid}/matrices/{timestamp}.ext
  * After:             {company_name}/matrices/{timestamp}.ext
  *
- * Run once after deploying readable storage paths:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/migrate-training-records-storage-paths.js
+ * From the project folder (after npm install):
+ *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run migrate-training-storage
  *
  * Dry run (no changes):
- *   DRY_RUN=1 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/migrate-training-records-storage-paths.js
+ *   DRY_RUN=1 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run migrate-training-storage
  */
 
 const { createClient } = require('@supabase/supabase-js');
