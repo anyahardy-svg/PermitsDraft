@@ -622,7 +622,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 editable={!sendingInvitation}
               />
 
-              <Text style={styles?.label}>Accreditation Deadline</Text>
+              <Text style={styles?.label}>Submit Form Deadline</Text>
               <TextInput
                 style={styles?.input}
                 placeholder="DD/MM/YYYY"
@@ -713,7 +713,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 </select>
               </View>
 
-              <Text style={styles?.label}>Accreditation Deadline</Text>
+              <Text style={styles?.label}>Submit Form Deadline</Text>
               <TextInput
                 style={styles?.input}
                 placeholder="DD/MM/YYYY"

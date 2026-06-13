@@ -335,7 +335,10 @@ export default function SupplierAccreditationScreen({
             : `Review and manage the supplier accreditation questionnaire for ${meta.companyName || 'this supplier'}.`}
         </p>
         {deadlineLabel && (
-          <span style={screenStyles.deadline}>Deadline: {deadlineLabel}</span>
+          <span style={screenStyles.deadline}>
+            {isPublic ? 'Submit form deadline: ' : 'Deadline: '}
+            {deadlineLabel}
+          </span>
         )}
       </div>
 

@@ -459,7 +459,7 @@ export default async function handler(req, res) {
           <h2>Supplier Accreditation Invitation</h2>
           <p>Dear ${escapeHtml(resolvedContactName)},</p>
           <p>${escapeHtml(companyName)} has been invited to complete a supplier accreditation questionnaire.</p>
-          <p><strong>Deadline:</strong> ${deadlineStr}</p>
+          <p><strong>Submit form deadline:</strong> ${deadlineStr}</p>
           ${formUrl ? `
             <p>Please use the secure link below to open your supplier accreditation form:</p>
             <p><a href="${formUrl}" style="background-color: #0284C7; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Complete Supplier Accreditation</a></p>

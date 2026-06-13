@@ -9,7 +9,7 @@ VALUES (
   '<h2>Supplier Accreditation Invitation</h2>
 <p>Dear {{contactName}},</p>
 <p>{{companyName}} has been invited to complete a supplier accreditation questionnaire.</p>
-<p><strong>Deadline:</strong> {{deadline}}</p>
+<p><strong>Submit form deadline:</strong> {{deadline}}</p>
 <p>Please use the secure link below to open your supplier accreditation form:</p>
 <p><a href="{{formUrl}}" style="background-color: #0284C7; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">Complete Supplier Accreditation</a></p>
 <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
