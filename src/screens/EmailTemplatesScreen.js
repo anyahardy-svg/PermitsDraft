@@ -14,10 +14,11 @@ import { getAllEmailTemplates, updateEmailTemplate, getEmailTemplate } from '../
 const { width } = Dimensions.get('window');
 
 const VARIABLE_DESCRIPTIONS = {
-  contactName: 'Primary contact name. Use as Dear {{contactName}}, — defaults to "Contractor" when no name is set.',
+  contactName: 'Primary contact name. Use as Dear {{contactName}}, — defaults to "Contractor" or "Supplier Contact" when no name is set.',
   companyName: 'Company name',
   deadline: 'Accreditation deadline',
   signupUrl: 'Sign-up link for new contractors',
+  formUrl: 'Secure supplier accreditation form link',
   supportEmail: 'Support email address',
   adminName: 'Admin user name',
   setupUrl: 'Password setup link',
@@ -28,6 +29,9 @@ const getTemplateVariables = (template) => {
   const variables = Array.isArray(template?.variables) ? [...template.variables] : [];
   if (template?.type === 'invitation' && !variables.includes('contactName')) {
     variables.push('contactName');
+  }
+  if (template?.type === 'supplier-invitation' && !variables.includes('formUrl')) {
+    variables.push('formUrl');
   }
   return variables;
 };

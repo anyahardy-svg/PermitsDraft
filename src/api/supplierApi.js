@@ -577,3 +577,28 @@ export async function inviteSupplier({
     emailSent: true,
   };
 }
+
+/**
+ * Send an accreditation invitation to an existing supplier.
+ */
+export async function sendInvitationToSupplier({
+  supplierId,
+  email,
+  companyName,
+  deadline,
+  techContactName,
+}) {
+  const emailResult = await sendSupplierInvitation(
+    email,
+    companyName,
+    deadline,
+    supplierId,
+    techContactName
+  );
+
+  if (!emailResult.success) {
+    throw new Error(emailResult.error || 'Failed to send invitation email');
+  }
+
+  return { emailSent: true };
+}
