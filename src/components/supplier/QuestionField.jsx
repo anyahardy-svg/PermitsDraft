@@ -310,11 +310,14 @@ function CertificationListField({ field, value, onChange, uploadHandler }) {
                   <input
                     type="text"
                     style={fieldStyles.input}
-                    placeholder="Certification name"
+                    placeholder="Enter certification name here"
                     value={certValue.otherLabel || ''}
                     onChange={(event) => updateCertification(certification.key, { otherLabel: event.target.value })}
                   />
                 )}
+                <label style={{ ...fieldStyles.label, marginTop: 0 }}>
+                  Certificate expiry date
+                </label>
                 <input
                   type="date"
                   style={fieldStyles.input}
@@ -356,6 +359,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
               value={value ?? ''}
               onChange={(e) => onChange(e.target.value)}
               required={field.required}
+              placeholder={field.placeholder || ''}
             />
           );
         }
@@ -367,6 +371,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
+            placeholder={field.placeholder || ''}
           />
         );
 
@@ -379,7 +384,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
           >
-            <option value="">Select an option</option>
+            <option value="">{field.placeholder || 'Select an option'}</option>
             {(field.options || []).map((option) => (
               <option key={option} value={option}>
                 {option}

@@ -411,7 +411,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
 
       <TextInput
         style={[styles?.input, { paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB', marginBottom: 12 }]}
-        placeholder="Search suppliers..."
+        placeholder="Search suppliers by company name..."
         value={searchText}
         onChangeText={setSearchText}
       />
@@ -530,7 +530,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
               <Text style={[styles?.label, { marginTop: 0 }]}>Company Name *</Text>
               <TextInput
                 style={styles?.input}
-                placeholder="Enter company name"
+                placeholder="Enter company name here"
                 value={inviteForm.companyName}
                 onChangeText={(text) => setInviteForm({ ...inviteForm, companyName: text })}
                 editable={!creatingAndSendingInvitation}
