@@ -9,14 +9,14 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { getAllEmailTemplates, updateEmailTemplate, getEmailTemplate } from '../api/emailTemplates';
+import { ensureDefaultEmailTemplates, getAllEmailTemplates, updateEmailTemplate, getEmailTemplate } from '../api/emailTemplates';
 
 const { width } = Dimensions.get('window');
 
 const VARIABLE_DESCRIPTIONS = {
   contactName: 'Primary contact name. Use as Dear {{contactName}}, — defaults to "Contractor" or "Supplier Contact" when no name is set.',
   companyName: 'Company name',
-  deadline: 'Accreditation deadline',
+  deadline: 'Submit form deadline (supplier invitations) or accreditation deadline (contractor invitations)',
   signupUrl: 'Sign-up link for new contractors',
   formUrl: 'Secure supplier accreditation form link',
   supportEmail: 'Support email address',
@@ -55,6 +55,7 @@ const EmailTemplatesScreen = () => {
 
   const loadTemplates = async () => {
     setLoading(true);
+    await ensureDefaultEmailTemplates();
     const result = await getAllEmailTemplates();
     if (result.success) {
       setTemplates(result.data);

@@ -288,6 +288,14 @@ export default async function handler(req, res) {
     // Try to fetch template from database first
     let dbTemplate = null;
     if (type !== 'join-request') {
+      if (type === 'supplier-invitation') {
+        try {
+          const { ensureDefaultEmailTemplates } = await import('./lib/ensureEmailTemplates.js');
+          await ensureDefaultEmailTemplates();
+        } catch (ensureError) {
+          console.warn('Could not ensure supplier invitation email template:', ensureError.message);
+        }
+      }
       dbTemplate = await getEmailTemplate(type);
     }
 
