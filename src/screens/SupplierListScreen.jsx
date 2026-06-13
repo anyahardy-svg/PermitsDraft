@@ -490,14 +490,14 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
         <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
           <View>
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
-              <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+              <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
+              <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Actions</Text>
               <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Contact Email</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Risk</Text>
               <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Status</Text>
               <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
-              <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Created</Text>
-              <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
+              <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Created</Text>
             </View>
 
             {filteredSuppliers.map((supplier, index) => {
@@ -517,9 +517,30 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ width: 220, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
+                  <Text style={{ width: 200, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                     {supplier.company_name}
                   </Text>
+                  <View style={{ width: 200, flexDirection: 'row', justifyContent: 'center', gap: 6, padding: 8, borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        backgroundColor: supplier.invitation_sent_at ? '#F59E0B' : '#8B5CF6',
+                        borderRadius: 4,
+                      }}
+                      onPress={() => openSendInvitationModal(supplier)}
+                    >
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {supplier.invitation_sent_at ? '↻ Resend' : '✉ Invite'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 8, paddingVertical: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
+                      onPress={() => handleOpenForm(supplier.id)}
+                    >
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Open Form</Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={{ width: 180, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     {supplier.contact_email || '—'}
                   </Text>
@@ -553,30 +574,9 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                   >
                     {deadlineDate ? `${isOverdue ? '⚠ ' : ''}${formatDate(supplier.accreditation_deadline)}` : '—'}
                   </Text>
-                  <Text style={{ width: 120, padding: 12, fontSize: 13, color: '#4B5563', textAlign: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                  <Text style={{ width: 120, padding: 12, fontSize: 13, color: '#4B5563', textAlign: 'center' }}>
                     {formatDate(supplier.created_at)}
                   </Text>
-                  <View style={{ width: 220, flexDirection: 'row', justifyContent: 'center', gap: 6, padding: 8 }}>
-                    <TouchableOpacity
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 6,
-                        backgroundColor: supplier.invitation_sent_at ? '#F59E0B' : '#8B5CF6',
-                        borderRadius: 4,
-                      }}
-                      onPress={() => openSendInvitationModal(supplier)}
-                    >
-                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                        {supplier.invitation_sent_at ? '↻ Resend' : '✉ Invite'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{ paddingHorizontal: 8, paddingVertical: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
-                      onPress={() => handleOpenForm(supplier.id)}
-                    >
-                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Open Form</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
               );
             })}
@@ -622,7 +622,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 editable={!sendingInvitation}
               />
 
-              <Text style={styles?.label}>Accreditation Deadline</Text>
+              <Text style={styles?.label}>Submit Form Deadline</Text>
               <TextInput
                 style={styles?.input}
                 placeholder="DD/MM/YYYY"
@@ -713,7 +713,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 </select>
               </View>
 
-              <Text style={styles?.label}>Accreditation Deadline</Text>
+              <Text style={styles?.label}>Submit Form Deadline</Text>
               <TextInput
                 style={styles?.input}
                 placeholder="DD/MM/YYYY"
