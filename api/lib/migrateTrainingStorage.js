@@ -95,12 +95,22 @@ async function moveStorageObject(supabase, oldPath, newPath, dryRun) {
     return { dryRun: true, oldPath, newPath };
   }
 
-  const { error } = await supabase.storage.from(BUCKET).move(oldPath, newPath);
-  if (error) {
-    throw error;
+  const { error: moveError } = await supabase.storage.from(BUCKET).move(oldPath, newPath);
+  if (!moveError) {
+    return { moved: true };
   }
 
-  return { moved: true };
+  const { error: copyError } = await supabase.storage.from(BUCKET).copy(oldPath, newPath);
+  if (copyError) {
+    throw new Error(moveError.message || copyError.message || 'Storage move failed');
+  }
+
+  const { error: removeError } = await supabase.storage.from(BUCKET).remove([oldPath]);
+  if (removeError) {
+    throw new Error(`Copied file but could not remove old path: ${removeError.message}`);
+  }
+
+  return { moved: true, copied: true };
 }
 
 async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
@@ -124,6 +134,7 @@ async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
   let migrated = 0;
   let skipped = 0;
   let failed = 0;
+  const errors = [];
 
   for (const record of records || []) {
     const oldPath = extractStoragePath(record.file_url);
@@ -158,11 +169,15 @@ async function migrateTrainingRecords(supabase, { dryRun = false } = {}) {
       migrated += 1;
     } catch (moveError) {
       failed += 1;
-      console.error(`Training record ${record.id} failed:`, moveError.message || moveError);
+      const message = moveError.message || String(moveError);
+      console.error(`Training record ${record.id} failed:`, message);
+      if (errors.length < 5) {
+        errors.push({ id: record.id, message });
+      }
     }
   }
 
-  return { migrated, skipped, failed, total: (records || []).length };
+  return { migrated, skipped, failed, total: (records || []).length, errors };
 }
 
 async function migrateMatrices(supabase, { dryRun = false } = {}) {
@@ -183,6 +198,7 @@ async function migrateMatrices(supabase, { dryRun = false } = {}) {
     let migrated = 0;
     let skipped = 0;
     let failed = 0;
+    const errors = [];
 
     for (const matrix of matrices || []) {
       const oldPath = extractStoragePath(matrix.file_url);
@@ -214,11 +230,15 @@ async function migrateMatrices(supabase, { dryRun = false } = {}) {
         migrated += 1;
       } catch (moveError) {
         failed += 1;
-        console.error(`Training matrix ${matrix.id} failed:`, moveError.message || moveError);
+        const message = moveError.message || String(moveError);
+        console.error(`Training matrix ${matrix.id} failed:`, message);
+        if (errors.length < 5) {
+          errors.push({ id: matrix.id, message });
+        }
       }
     }
 
-    return { migrated, skipped, failed, total: (matrices || []).length };
+    return { migrated, skipped, failed, total: (matrices || []).length, errors };
   } catch (error) {
     console.error('Training matrices migration skipped:', error.message || error);
     return {
