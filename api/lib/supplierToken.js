@@ -23,7 +23,7 @@ export function getSupplierTokenExpiryDate() {
 
 export function getSupplierAccreditationFormUrl(token, baseUrl) {
   const origin = baseUrl || process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz';
-  return `${origin.replace(/\/$/, '')}/supplier-accreditation?token=${encodeURIComponent(token)}`;
+  return `${origin.replace(/\/$/, '')}/supplier-form?token=${encodeURIComponent(token)}`;
 }
 
 export async function issueSupplierAccreditationToken(supplierId) {

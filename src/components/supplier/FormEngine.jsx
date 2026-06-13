@@ -4,64 +4,77 @@ import { createEmptyProduct } from '../../schemas/supplierSchema';
 
 const engineStyles = {
   page: {
+    width: '100%',
+    boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    gap: '1rem',
     backgroundColor: '#F9FAFB',
   },
   basicsCard: {
+    width: '100%',
+    boxSizing: 'border-box',
     border: '1px solid #E5E7EB',
     borderRadius: '8px',
-    padding: '1.25rem',
+    padding: '16px',
+    marginBottom: '12px',
     backgroundColor: '#F9FAFB',
   },
   basicsTitle: {
-    margin: '0 0 1rem 0',
-    fontSize: '1.125rem',
+    margin: '0 0 16px 0',
+    fontSize: '18px',
     fontWeight: 700,
     color: '#1F2937',
   },
-  basicsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: '0.75rem 1rem',
+  basicsFields: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+  },
+  sectionsWrap: {
+    width: '100%',
+    boxSizing: 'border-box',
+    paddingTop: '12px',
+    paddingBottom: '12px',
   },
   sectionHeader: {
     width: '100%',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '0.75rem',
-    padding: '0.875rem 1rem',
+    padding: '14px',
     backgroundColor: '#F0F9FF',
     border: '2px solid #0284C7',
     borderRadius: '8px',
     cursor: 'pointer',
     textAlign: 'left',
+    marginBottom: '12px',
+    marginTop: '16px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)',
   },
   sectionTitle: {
     margin: 0,
-    fontSize: '0.95rem',
+    fontSize: '15px',
     fontWeight: 700,
     color: '#0284C7',
   },
   sectionToggle: {
     color: '#0284C7',
     fontWeight: 700,
-    fontSize: '0.85rem',
+    fontSize: '18px',
     flexShrink: 0,
   },
   sectionContent: {
-    marginTop: '0.75rem',
-    padding: '1rem',
+    marginBottom: '12px',
+    padding: '12px',
     backgroundColor: '#FAFAFA',
     borderRadius: '8px',
-    border: '1px solid #E5E7EB',
   },
   productCard: {
     border: '1px solid #D1D5DB',
     borderRadius: '8px',
-    padding: '1rem',
+    padding: '12px',
     marginBottom: '1rem',
     backgroundColor: '#FFFFFF',
   },
@@ -74,18 +87,20 @@ const engineStyles = {
   },
   productTitle: {
     margin: 0,
-    fontSize: '1rem',
+    fontSize: '18px',
     fontWeight: 700,
     color: '#1F2937',
   },
   addButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#0284C7',
+    width: '100%',
+    boxSizing: 'border-box',
+    backgroundColor: '#2563EB',
     color: '#FFFFFF',
     border: 'none',
-    borderRadius: '8px',
-    padding: '0.625rem 1rem',
+    borderRadius: '6px',
+    padding: '12px 16px',
     fontWeight: 600,
+    fontSize: '16px',
     cursor: 'pointer',
   },
   removeButton: {
@@ -93,9 +108,10 @@ const engineStyles = {
     color: '#991B1B',
     border: '1px solid #FECACA',
     borderRadius: '6px',
-    padding: '0.375rem 0.75rem',
+    padding: '0.5rem 0.75rem',
     fontWeight: 600,
     cursor: 'pointer',
+    fontSize: '14px',
   },
 };
 
@@ -133,7 +149,7 @@ function BasicsSection({ section, formData, onFieldChange, userRole }) {
   return (
     <section style={engineStyles.basicsCard} className="form-engine-basics">
       <h2 style={engineStyles.basicsTitle}>{section.title}</h2>
-      <div style={engineStyles.basicsGrid}>
+      <div style={engineStyles.basicsFields}>
         {visibleFields.map((field) => (
           <QuestionField
             key={field.id}
@@ -216,10 +232,17 @@ function RepeatableGroupSection({
   );
 }
 
-function AccordionSection({ section, expanded, onToggle, children }) {
+function AccordionSection({ section, expanded, onToggle, children, isFirst }) {
   return (
     <section className="form-engine-section" data-section-id={section.id}>
-      <button type="button" style={engineStyles.sectionHeader} onClick={onToggle}>
+      <button
+        type="button"
+        style={{
+          ...engineStyles.sectionHeader,
+          marginTop: isFirst ? 0 : '16px',
+        }}
+        onClick={onToggle}
+      >
         <h2 style={engineStyles.sectionTitle}>{section.title}</h2>
         <span style={engineStyles.sectionToggle}>{expanded ? '▼' : '▶'}</span>
       </button>
@@ -265,6 +288,8 @@ export default function FormEngine({
     }));
   };
 
+  const visibleSections = (schema.sections || []).filter((section) => isVisible(section, formData, userRole));
+
   return (
     <div style={engineStyles.page} className="form-engine">
       {schema.basicsSection && (
@@ -276,59 +301,59 @@ export default function FormEngine({
         />
       )}
 
-      {(schema.sections || []).map((section) => {
-        if (!isVisible(section, formData, userRole)) {
-          return null;
-        }
+      <div style={engineStyles.sectionsWrap}>
+        {visibleSections.map((section, index) => {
+          const expanded = expandedSections[section.id] !== false;
 
-        const expanded = expandedSections[section.id] !== false;
+          if (section.type === 'repeatable-group') {
+            return (
+              <AccordionSection
+                key={section.id}
+                section={section}
+                expanded={expanded}
+                onToggle={() => toggleSection(section.id)}
+                isFirst={index === 0}
+              >
+                <RepeatableGroupSection
+                  section={section}
+                  products={products}
+                  onProductsChange={onProductsChange}
+                  userRole={userRole}
+                  uploadHandler={uploadHandler}
+                />
+              </AccordionSection>
+            );
+          }
 
-        if (section.type === 'repeatable-group') {
           return (
             <AccordionSection
               key={section.id}
               section={section}
               expanded={expanded}
               onToggle={() => toggleSection(section.id)}
+              isFirst={index === 0}
             >
-              <RepeatableGroupSection
-                section={section}
-                products={products}
-                onProductsChange={onProductsChange}
-                userRole={userRole}
-                uploadHandler={uploadHandler}
-              />
+              {(section.fields || []).map((field) => {
+                if (!isVisible(field, formData, userRole)) {
+                  return null;
+                }
+
+                return (
+                  <QuestionField
+                    key={field.id}
+                    field={field}
+                    value={formData?.[field.id]}
+                    onChange={(newValue) => onFieldChange(field.id, newValue)}
+                    uploadHandler={uploadHandler
+                      ? (file, documentType) => uploadHandler(file, documentType, null, field.id)
+                      : null}
+                  />
+                );
+              })}
             </AccordionSection>
           );
-        }
-
-        return (
-          <AccordionSection
-            key={section.id}
-            section={section}
-            expanded={expanded}
-            onToggle={() => toggleSection(section.id)}
-          >
-            {(section.fields || []).map((field) => {
-              if (!isVisible(field, formData, userRole)) {
-                return null;
-              }
-
-              return (
-                <QuestionField
-                  key={field.id}
-                  field={field}
-                  value={formData?.[field.id]}
-                  onChange={(newValue) => onFieldChange(field.id, newValue)}
-                  uploadHandler={uploadHandler
-                    ? (file, documentType) => uploadHandler(file, documentType, null, field.id)
-                    : null}
-                />
-              );
-            })}
-          </AccordionSection>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 }

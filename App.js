@@ -41,6 +41,7 @@ import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
+import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
 import {
   getAccreditationModalStatusLabel,
   getAccreditationStatusDisplay,
@@ -2399,7 +2400,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (pathname.startsWith('/contractor-admin')) {
         return 'contractor_admin';
       }
-      if (pathname === '/supplier-accreditation' || pathname === '/supplier-accreditation/') {
+      if (isSupplierFormRoute(pathname)) {
         return 'supplier_accreditation_public';
       }
     }
@@ -3620,7 +3621,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     // Public supplier accreditation form (token link)
-    if (pathname === '/supplier-accreditation' || pathname === '/supplier-accreditation/') {
+    if (isSupplierFormRoute(pathname)) {
       setCurrentScreen('supplier_accreditation_public');
       return;
     }
@@ -23581,15 +23582,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </TouchableOpacity>
             <Text style={styles.title}>Supplier Accreditation</Text>
           </View>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingHorizontal: 16, paddingBottom: 16 }}>
             <SupplierAccreditationScreen supplierId={selectedSupplierId} userRole="admin" />
           </ScrollView>
         </View>
       );
     case 'supplier_accreditation_public':
       return (
-        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB', width: '100%' }}>
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingHorizontal: 16, paddingBottom: 16 }}>
             <SupplierAccreditationScreen token={initialSupplierToken} isPublic />
           </ScrollView>
         </View>
@@ -24932,7 +24933,7 @@ const AppRouter = ({ initialRoute }) => {
       if (pathname === '/inductions/resume' || pathname === '/inductions/resume/') {
         return 'inductions-resume';
       }
-      if (pathname === '/supplier-accreditation' || pathname === '/supplier-accreditation/') {
+      if (isSupplierFormRoute(pathname)) {
         return 'supplier-accreditation-public';
       }
     }
@@ -25063,7 +25064,7 @@ const AppRouter = ({ initialRoute }) => {
   const getInitialSupplierToken = () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
-      if (pathname === '/supplier-accreditation' || pathname === '/supplier-accreditation/') {
+      if (isSupplierFormRoute(pathname)) {
         return new URLSearchParams(window.location.search).get('token');
       }
     }
@@ -25121,7 +25122,7 @@ const AppRouter = ({ initialRoute }) => {
         console.log('🔗 Full URL:', fullUrl);
         
         // If URL contains admin or contractor-admin routes, always use permit management mode
-        const hasAdminRoute = pathname.includes('/admin/') || pathname.startsWith('/contractor-admin') || pathname.startsWith('/supplier-accreditation');
+        const hasAdminRoute = pathname.includes('/admin/') || pathname.startsWith('/contractor-admin') || isSupplierFormRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
           || pathname.startsWith('/auth/callback');
