@@ -40,7 +40,7 @@ export const createContractor = async (contractorData) => {
     // Prepare data: map services to service_ids if needed
     const dbData = {
       ...contractorData,
-      service_ids: contractorData.service_ids || contractorData.serviceIds || [],
+      service_ids: contractorData.service_ids || contractorData.serviceIds || contractorData.services || [],
     };
     
     const { data, error } = await supabase
