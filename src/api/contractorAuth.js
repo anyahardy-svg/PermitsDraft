@@ -58,24 +58,28 @@ const getJoinRequestCompanyId = async (email) => {
   return joinRequest?.company_id || null;
 };
 
-const getCompanyIdForAuthEmailClient = async (email) => {
+const getCompanyAdminAccessCompanyId = async (email) => {
+  if (!supabase || !email) {
+    return null;
+  }
+
+  const { data: adminAccess } = await supabase
+    .from('company_admin_access')
+    .select('company_id')
+    .ilike('email', email.trim())
+    .order('granted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return adminAccess?.company_id || null;
+};
+
+const getCompanyIdFromContactFields = async (email) => {
   if (!supabase || !email) {
     return null;
   }
 
   const trimmed = email.trim();
-
-  const { data: adminAccess } = await supabase
-    .from('company_admin_access')
-    .select('company_id')
-    .ilike('email', trimmed)
-    .order('granted_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (adminAccess?.company_id) {
-    return adminAccess.company_id;
-  }
 
   const { data: byContact } = await supabase
     .from('companies')
@@ -96,6 +100,15 @@ const getCompanyIdForAuthEmailClient = async (email) => {
     .maybeSingle();
 
   return byEmail?.id || null;
+};
+
+const getCompanyIdForAuthEmailClient = async (email) => {
+  const adminAccessCompanyId = await getCompanyAdminAccessCompanyId(email);
+  if (adminAccessCompanyId) {
+    return adminAccessCompanyId;
+  }
+
+  return getCompanyIdFromContactFields(email);
 };
 
 const getApprovedJoinRequest = async (email) => {
@@ -322,8 +335,15 @@ const enrichProfileFromContractorTable = async (user, accessToken) => {
 
 const resolveAdminStaffProfile = async (user) => {
   const metadata = user?.user_metadata || {};
+  const adminAccessCompanyId = await getCompanyAdminAccessCompanyId(user.email);
+  const contactFieldCompanyId = await getCompanyIdFromContactFields(user.email);
   const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
-  const companyId = joinRequestCompanyId || metadata.company_id || null;
+  const companyId =
+    adminAccessCompanyId ||
+    metadata.company_id ||
+    contactFieldCompanyId ||
+    joinRequestCompanyId ||
+    null;
 
   if (!companyId) {
     return null;

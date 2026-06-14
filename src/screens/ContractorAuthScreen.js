@@ -28,14 +28,16 @@ import { submitJoinRequest } from '../api/joinRequests';
 
 function readInviteParamsFromUrl() {
   if (typeof window === 'undefined') {
-    return { isInvite: false, email: '' };
+    return { isInvite: false, email: '', companyId: null };
   }
 
   const params = new URLSearchParams(window.location.search);
   const isInvite = params.get('type') === 'invited';
   const rawEmail = params.get('email');
   const email = rawEmail ? decodeURIComponent(rawEmail).trim() : '';
-  return { isInvite, email };
+  const rawCompanyId = params.get('companyId') || params.get('company_id');
+  const companyId = rawCompanyId ? decodeURIComponent(rawCompanyId).trim() : null;
+  return { isInvite, email, companyId: companyId || null };
 }
 
 bootstrapPasswordSetupPage();
@@ -57,6 +59,9 @@ export default function ContractorAuthScreen({
   );
   const [lockedInviteEmail, setLockedInviteEmail] = useState(
     initialInvite.isInvite && initialInvite.email ? initialInvite.email : null
+  );
+  const [lockedInviteCompanyId, setLockedInviteCompanyId] = useState(
+    initialInvite.isInvite && initialInvite.companyId ? initialInvite.companyId : null
   );
   const [setupEmail, setSetupEmail] = useState(
     initialInvite.isInvite && initialInvite.email ? initialInvite.email : ''
@@ -210,13 +215,19 @@ export default function ContractorAuthScreen({
     return null;
   };
 
-  const setupInvitedPasswordFlow = async (emailParam) => {
+  const setupInvitedPasswordFlow = async (emailParam, companyIdParam = null) => {
     setPasswordFlowType('newUser');
     setShowPasswordSetup(true);
 
     const targetEmail = emailParam ? decodeURIComponent(emailParam).trim() : null;
+    const targetCompanyId = companyIdParam ? decodeURIComponent(companyIdParam).trim() : null;
 
     await purgeCachedAuthForInvite();
+
+    if (targetCompanyId) {
+      console.log('✅ Invite company locked from URL:', targetCompanyId);
+      setLockedInviteCompanyId(targetCompanyId);
+    }
 
     if (targetEmail) {
       console.log('✅ Invite email locked from URL:', targetEmail);
@@ -333,7 +344,10 @@ export default function ContractorAuthScreen({
 
       if (queryType === 'invited') {
         console.log('✅ Invitation query link detected - showing password form');
-        await setupInvitedPasswordFlow(queryParams.get('email'));
+        await setupInvitedPasswordFlow(
+          queryParams.get('email'),
+          queryParams.get('companyId') || queryParams.get('company_id')
+        );
         return;
       }
 
@@ -627,7 +641,8 @@ export default function ContractorAuthScreen({
           },
           body: JSON.stringify({
             email: emailForSetup,
-            password: newPassword
+            password: newPassword,
+            ...(lockedInviteCompanyId ? { companyId: lockedInviteCompanyId } : {}),
           })
         });
 
