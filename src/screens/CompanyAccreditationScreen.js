@@ -2399,8 +2399,12 @@ export default function CompanyAccreditationScreen({
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     
     const updateData = {
-      // NOTE: Do NOT include 'name' or 'email' - these are company details, not accreditation details
-      // Only update accreditation-specific fields to avoid overwriting company information
+      name: companyDetails.companyName?.trim() || null,
+      email: companyDetails.companyEmail?.trim() || null,
+      nzbn: companyDetails.nzbn?.trim() || null,
+      address_1: companyDetails.address1?.trim() || null,
+      address_city: companyDetails.addressCity?.trim() || null,
+      address_postcode: companyDetails.addressPostcode?.trim() || null,
       contact_name: companyDetails.contactName || null,
       contact_surname: companyDetails.contactSurname || null,
       contact_email: companyDetails.contactEmail || null,
