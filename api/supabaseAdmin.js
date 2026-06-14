@@ -305,15 +305,22 @@ async function syncInvitedAdminAuthUser(adminClient, { email, companyId, company
 
 /**
  * Resolve company for an auth user.
- * Priority: company contact fields → invitation grant table → admin_staff metadata.
+ * Priority: explicit invite companyId → invitation grant table → admin_staff metadata → company contact fields.
  */
-async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
+async function resolveValidatedCompanyIdForAuthUser(adminClient, user, preferredCompanyId = null) {
   const metadata = user.user_metadata || {};
   const trimmed = String(user.email || '').trim();
 
-  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
-  if (emailCompanyId) {
-    return emailCompanyId;
+  if (preferredCompanyId) {
+    const { data: preferredCompany } = await adminClient
+      .from('companies')
+      .select('id')
+      .eq('id', preferredCompanyId)
+      .maybeSingle();
+
+    if (preferredCompany?.id) {
+      return preferredCompany.id;
+    }
   }
 
   const adminAccess = await getCompanyAdminAccessForEmail(adminClient, trimmed);
@@ -322,6 +329,23 @@ async function resolveValidatedCompanyIdForAuthUser(adminClient, user) {
   }
 
   const metadataCompanyId = metadata.company_id;
+  if (metadataCompanyId && metadata.user_type === 'admin_staff') {
+    const { data: metadataCompany } = await adminClient
+      .from('companies')
+      .select('id')
+      .eq('id', metadataCompanyId)
+      .maybeSingle();
+
+    if (metadataCompany?.id) {
+      return metadataCompany.id;
+    }
+  }
+
+  const emailCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
+  if (emailCompanyId) {
+    return emailCompanyId;
+  }
+
   if (!metadataCompanyId) {
     return null;
   }
