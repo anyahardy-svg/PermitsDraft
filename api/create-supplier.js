@@ -7,6 +7,8 @@
  *   Body: { company_name, risk_classification?, status?, contact_email?, tech_contact_name?, accreditation_deadline?, upsert? }
  */
 
+import { ensureSupplierFormRecord } from './lib/supplierFormStorage.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
@@ -205,8 +207,11 @@ export default async function handler(req, res) {
     }
 
     const created = await insertResponse.json();
+    const supplier = created[0] || created;
+    await ensureSupplierFormRecord(supplier.id);
+
     return res.status(200).json({
-      ...(created[0] || created),
+      ...supplier,
       _action: 'created',
     });
   } catch (error) {

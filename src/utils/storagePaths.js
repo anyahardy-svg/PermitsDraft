@@ -1,5 +1,5 @@
 /**
- * Build human-readable Supabase Storage paths (same pattern as accreditations bucket).
+ * Build human-readable Supabase Storage paths.
  */
 
 export function sanitizeStorageSegment(value, fallback = 'unknown') {
@@ -35,6 +35,32 @@ export function buildCompanyTrainingMatrixStoragePath({ companyName, fileExt }) 
   const extension = (fileExt || 'pdf').replace(/^\./, '');
 
   return `${companySegment}/matrices/${Date.now()}.${extension}`;
+}
+
+export const SUPPLIER_DOCUMENTS_BUCKET = 'suppliers';
+
+export function buildSupplierDocumentStoragePath({ companyName, documentType, fileExt }) {
+  const companySegment = sanitizeStorageSegment(companyName, 'unknown_supplier');
+  const documentSegment = sanitizeStorageSegment(documentType, 'document');
+  const extension = (fileExt || 'bin').replace(/^\./, '');
+
+  return `${companySegment}/${documentSegment}/${Date.now()}.${extension}`;
+}
+
+export function extractSupplierDocumentStoragePath(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== 'string') {
+    return null;
+  }
+
+  const markers = [`/${SUPPLIER_DOCUMENTS_BUCKET}/`, '/accreditations/suppliers/'];
+  for (const marker of markers) {
+    const markerIndex = fileUrl.indexOf(marker);
+    if (markerIndex !== -1) {
+      return fileUrl.slice(markerIndex + marker.length).split('?')[0];
+    }
+  }
+
+  return null;
 }
 
 export function extractTrainingRecordsStoragePath(fileUrl) {
