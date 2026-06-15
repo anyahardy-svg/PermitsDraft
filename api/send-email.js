@@ -256,7 +256,8 @@ export default async function handler(req, res) {
       }
     }
 
-    let actuallyNewUser = false; // Will determine based on Supabase Auth
+    let actuallyNewUser = false; // True when no auth user exists yet (controls user creation)
+    let needsPasswordSetup = true; // True when invitee still needs the password-setup link
     
     // For invitations, check if user exists in Supabase Auth FIRST
     if (type === 'invitation') {
@@ -274,12 +275,22 @@ export default async function handler(req, res) {
 
         if (listUsersResponse.ok) {
           const usersData = await listUsersResponse.json();
-          actuallyNewUser = !usersData.users || !usersData.users.some(u => u.email === toEmail);
-          console.log(`✓ User check result: ${actuallyNewUser ? 'NEW USER' : 'EXISTING USER'}`);
+          const normalizedEmail = String(toEmail || '').trim().toLowerCase();
+          const existingUser = usersData.users?.find(
+            (user) => String(user.email || '').trim().toLowerCase() === normalizedEmail
+          );
+          actuallyNewUser = !existingUser;
+          // First invite creates the auth user immediately, so resend must not
+          // switch to the login template until the invitee has actually signed in.
+          needsPasswordSetup = !existingUser || !existingUser.last_sign_in_at;
+          console.log(
+            `✓ User check result: ${actuallyNewUser ? 'NEW USER' : 'EXISTING USER'}, needsPasswordSetup: ${needsPasswordSetup}`
+          );
         }
       } catch (checkErr) {
-        console.warn(`⚠️ Could not check user existence, defaulting to existing user template:`, checkErr.message);
+        console.warn(`⚠️ Could not check user existence, defaulting to password-setup invite link:`, checkErr.message);
         actuallyNewUser = false;
+        needsPasswordSetup = true;
       }
     }
 
@@ -335,13 +346,13 @@ export default async function handler(req, res) {
           day: 'numeric' 
         }) : 'As soon as possible';
 
-        actualSubject = actuallyNewUser 
+        actualSubject = needsPasswordSetup 
           ? `${companyName} - Complete Your Company Accreditation`
           : `Request to Complete ${companyName} Accreditation`;
 
         const greetingName = resolvedContactName || TEMPLATE_VARIABLE_DEFAULTS.contactName;
 
-        actualHtmlContent = actuallyNewUser 
+        actualHtmlContent = needsPasswordSetup 
           ? `
             <h2>Complete Your Company Accreditation</h2>
             <p>Dear ${escapeHtml(greetingName)},</p>
