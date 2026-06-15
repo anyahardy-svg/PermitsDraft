@@ -1,4 +1,8 @@
 import { getSupplierByAccreditationToken } from './lib/supplierToken.js';
+import {
+  SUPPLIER_DOCUMENTS_BUCKET,
+  buildSupplierDocumentStoragePath,
+} from '../src/utils/storagePaths.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
@@ -6,13 +10,6 @@ const SUPABASE_SERVICE_ROLE_KEY =
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx']);
-
-function sanitizePathSegment(value) {
-  return String(value || 'supplier')
-    .trim()
-    .replace(/[^a-zA-Z0-9._-]+/g, '_')
-    .slice(0, 80) || 'supplier';
-}
 
 function parseMultipartBody(req) {
   return new Promise((resolve, reject) => {
@@ -137,12 +134,15 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
     }
-    const companySegment = sanitizePathSegment(supplier.company_name);
-    const docSegment = sanitizePathSegment(documentType);
-    const storagePath = `suppliers/${companySegment}/${docSegment}/${Date.now()}.${extension}`;
+
+    const storagePath = buildSupplierDocumentStoragePath({
+      companyName: supplier.company_name,
+      documentType,
+      fileExt: extension,
+    });
 
     const uploadResponse = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/accreditations/${storagePath}`,
+      `${SUPABASE_URL}/storage/v1/object/${SUPPLIER_DOCUMENTS_BUCKET}/${storagePath}`,
       {
         method: 'POST',
         headers: {
@@ -158,15 +158,21 @@ export default async function handler(req, res) {
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
       console.error('Failed to upload supplier document:', errorText);
+      if (errorText.includes('Bucket not found')) {
+        return res.status(500).json({
+          error: `Storage bucket "${SUPPLIER_DOCUMENTS_BUCKET}" is not configured. Run setup-supplier-storage-bucket.js or create the bucket in Supabase.`,
+        });
+      }
       return res.status(uploadResponse.status).json({ error: 'Failed to upload document' });
     }
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/accreditations/${storagePath}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPPLIER_DOCUMENTS_BUCKET}/${storagePath}`;
 
     return res.status(200).json({
       success: true,
       url: publicUrl,
       path: storagePath,
+      bucket: SUPPLIER_DOCUMENTS_BUCKET,
       uploadedAt: new Date().toISOString(),
     });
   } catch (error) {
