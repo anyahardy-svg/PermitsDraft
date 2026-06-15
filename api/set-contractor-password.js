@@ -16,6 +16,7 @@ const {
   emailsMatch,
   lookupContractorForAuthUser,
   resolveValidatedCompanyIdForAuthUser,
+  grantCompanyAdminAccess,
 } = require('./supabaseAdmin');
 
 export default async function handler(req, res) {
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, password } = req.body;
+    const { email, password, companyId: requestedCompanyId } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Missing email' });
@@ -98,13 +99,22 @@ export default async function handler(req, res) {
       console.log(`✅ Linked contractor metadata for: ${contractor.name}`);
     } else {
       const companyId =
-        (await resolveValidatedCompanyIdForAuthUser(adminClient, user)) ||
+        (await resolveValidatedCompanyIdForAuthUser(adminClient, user, requestedCompanyId || null)) ||
         userMetadata.company_id ||
         null;
       userMetadata.user_type = 'admin_staff';
       userMetadata.company_id = companyId;
       delete userMetadata.contractor_id;
       delete userMetadata.contractor_name;
+
+      if (companyId) {
+        await grantCompanyAdminAccess(adminClient, {
+          email: user.email,
+          companyId,
+          name: userMetadata.name || null,
+        });
+      }
+
       console.log(
         `✅ Company contact (admin staff) password setup for: ${user.email}`,
         companyId ? `company ${companyId}` : '(no company linked yet)'

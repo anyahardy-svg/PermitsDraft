@@ -430,7 +430,7 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
     console.log('📧 STEP 5: Sending approval confirmation email');
     
     const userTypeLabel = request.will_work_on_site ? 'Contractor' : 'Admin Staff';
-    const passwordSetupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(request.email)}`;
+    const passwordSetupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(request.email)}&companyId=${encodeURIComponent(companyIdToUse)}`;
     
     const htmlContent = `
       <html>
