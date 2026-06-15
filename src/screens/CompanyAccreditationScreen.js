@@ -1382,60 +1382,56 @@ export default function CompanyAccreditationScreen({
 
   // Delete accreditation certificate
   const handleDeleteCertificate = async (systemKey, systemLabel) => {
-    Alert.alert(
-      'Delete Certificate',
-      `Are you sure you want to delete the ${systemLabel} certificate? You can upload a new one afterwards.`,
-      [
-        { text: 'Cancel' },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const systemData = accreditedSystems[systemKey];
-              const certificateUrl = systemData?.certificateUrl;
-              const libraryItemId = systemData?.library_item_id;
-              
-              if (!certificateUrl) {
-                Alert.alert('Error', 'No certificate URL found');
-                return;
-              }
-
-              // Only delete file from storage if it's NOT a library item
-              if (!libraryItemId) {
-                const result = await deleteAccreditationCertificate(certificateUrl);
-                if (!result.success) {
-                  Alert.alert('Error', 'Failed to delete certificate: ' + (result.error || 'Unknown error'));
-                  return;
-                }
-              }
-
-              // Clear from state
-              setAccreditedSystems(prev => ({
-                ...prev,
-                [systemKey]: {
-                  ...prev[systemKey],
-                  certificateUrl: null,
-                  library_item_id: null
-                }
-              }));
-              
-              // Save to database
-              setTimeout(async () => {
-                await autoSave();
-              }, 100);
-              
-              const deleteType = libraryItemId ? 'removed' : 'deleted';
-              Alert.alert('Success', `${systemLabel} certificate ${deleteType}`);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete: ' + error.message);
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the ${systemLabel} certificate? You can upload a new one afterwards.`
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const systemData = accreditedSystems[systemKey];
+      const certificateUrl = systemData?.certificateUrl;
+      const libraryItemId = systemData?.library_item_id;
+
+      if (!certificateUrl) {
+        alert('Error: No certificate URL found');
+        return;
+      }
+
+      // Only delete file from storage if it's NOT a library item
+      if (!libraryItemId) {
+        const result = await deleteAccreditationCertificate(certificateUrl);
+        if (!result.success) {
+          alert('Error: Failed to delete certificate: ' + (result.error || 'Unknown error'));
+          return;
+        }
+      }
+
+      // Clear from state
+      setAccreditedSystems(prev => ({
+        ...prev,
+        [systemKey]: {
+          ...prev[systemKey],
+          certificateUrl: null,
+          library_item_id: null
+        }
+      }));
+
+      // Save to database
+      setTimeout(async () => {
+        await autoSave();
+      }, 100);
+
+      const deleteType = libraryItemId ? 'removed' : 'deleted';
+      alert(`Success: ${systemLabel} certificate ${deleteType}`);
+    } catch (error) {
+      alert('Error: Failed to delete: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle uploading policy document
@@ -2039,6 +2035,7 @@ export default function CompanyAccreditationScreen({
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
     const isSection = documentKey.startsWith('section');
+    const supportsExpandActions = isSection || documentKey.startsWith('certificate-');
 
     // Show loading indicator when uploading
     if (isUploading) {
@@ -2057,7 +2054,7 @@ export default function CompanyAccreditationScreen({
         return (
           <View>
             <TouchableOpacity
-              onPress={() => isSection ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : handleUploadFn()}
+              onPress={() => supportsExpandActions ? setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey) : handleUploadFn()}
               style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}
             >
               <View
@@ -2096,6 +2093,11 @@ export default function CompanyAccreditationScreen({
                   }}>
                     <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
+                  {supportsExpandActions && !isSection && (
+                    <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
+                      Click the clip to delete or replace
+                    </Text>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -2127,7 +2129,7 @@ export default function CompanyAccreditationScreen({
             )}
             
             {/* Show action buttons when expanded */}
-            {isDocUIExpanded && isSection && (
+            {isDocUIExpanded && supportsExpandActions && (
               <View style={{ paddingTop: 8, marginLeft: 38, flexDirection: 'row', gap: 8, paddingBottom: 8 }}>
                 {handleDeleteFn && (
                   <TouchableOpacity
@@ -4961,7 +4963,6 @@ export default function CompanyAccreditationScreen({
                         () => handleDeleteCertificate(system.key, system.label),
                         'Certificate',
                         true
-                      )}
                       )}
                     </View>
                   )}
