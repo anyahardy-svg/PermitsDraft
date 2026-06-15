@@ -13030,8 +13030,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
                   {sitesForContractors.length > 0 ? sitesForContractors.map(siteObj => {
                     const siteName = typeof siteObj === 'string' ? siteObj : siteObj.name;
-                    const isSelected = currentContractor.siteIds.includes(siteName) || 
-                      (currentContractor.site_ids && currentContractor.site_ids.some(id => siteIdToNameMap[id] === siteName));
+                    const isSelected = (currentContractor.siteIds || []).includes(siteName);
                     
                     return (
                       <TouchableOpacity
@@ -13313,8 +13312,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   const [year, month, day] = contractor.inductionExpiry.split('-');
                                   formattedDate = `${day}/${month}/${year}`;
                                 }
+                                const { site_ids: _siteIds, ...contractorWithoutSiteIds } = contractor;
                                 const editedContractor = { 
-                                  ...contractor, 
+                                  ...contractorWithoutSiteIds, 
                                   siteIds: siteNames,
                                   services: contractor.serviceIds || contractor.services || [],
                                   company: contractor.companyName || contractor.company,
