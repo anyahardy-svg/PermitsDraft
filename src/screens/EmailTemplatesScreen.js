@@ -18,7 +18,7 @@ const VARIABLE_DESCRIPTIONS = {
   companyName: 'Company name',
   deadline: 'Submit form deadline (supplier invitations) or accreditation deadline (contractor invitations)',
   signupUrl: 'Sign-up link for new contractors',
-  formUrl: 'Secure supplier accreditation form link',
+  formUrl: 'Secure supplier accreditation form link (contractorhq.co.nz/supplier-form?token=...)',
   supportEmail: 'Support email address',
   adminName: 'Admin user name',
   setupUrl: 'Password setup link',
