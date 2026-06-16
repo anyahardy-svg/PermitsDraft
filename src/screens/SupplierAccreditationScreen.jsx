@@ -11,6 +11,7 @@ import {
   uploadSupplierDocument,
 } from '../api/supplierApi';
 import { supplierSchema } from '../schemas/supplierSchema';
+import { getSupplierAccreditationStatusDisplay } from '../utils/supplierAccreditation';
 
 const screenStyles = {
   container: {
@@ -305,6 +306,7 @@ export default function SupplierAccreditationScreen({
 
   const deadlineLabel = useMemo(() => formatDeadline(meta.deadline), [meta.deadline]);
   const isSubmitted = meta.status === 'reviewing' || meta.status === 'approved';
+  const statusDisplay = getSupplierAccreditationStatusDisplay(meta.status);
 
   if (loading) {
     return (
@@ -363,7 +365,7 @@ export default function SupplierAccreditationScreen({
 
       <div style={screenStyles.footer}>
         <span style={screenStyles.statusBadge(isSubmitted ? 'success' : 'draft')}>
-          Status: {isSubmitted ? 'Submitted for review' : 'In progress'}
+          Status: {meta.status === 'draft' ? 'In progress' : statusDisplay.label}
         </span>
 
         <button
