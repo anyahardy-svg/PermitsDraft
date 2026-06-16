@@ -10774,6 +10774,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <CompanyAccreditationScreen 
                   key={selectedCompanyForAccreditation.id}
                   companyId={selectedCompanyForAccreditation.id}
+                  reviewMode={true}
                   styles={styles}
                   onClose={() => {
                     setShowAccreditationModal(false);

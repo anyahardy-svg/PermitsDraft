@@ -57,13 +57,15 @@ const getFullStorageUrl = (storagePath) => {
  * 
  * @param {UUID} companyId - Company ID to load (required when logged in)
  * @param {boolean} isAdmin - Whether user is admin (sees all companies) - not used when companyId provided
+ * @param {boolean} reviewMode - When true, disables auto-save (e.g. admin reviewing a submission)
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
  * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
  */
 export default function CompanyAccreditationScreen({ 
   companyId, 
-  isAdmin = false, 
+  isAdmin = false,
+  reviewMode = false,
   styles,
   onClose,
   onNavigateToTrainingRecords,
@@ -481,7 +483,7 @@ export default function CompanyAccreditationScreen({
 
   // Auto-save Section 26 signature when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode) return;
     
     debugLog('📋 Section 26 state changed:', {
       has_signature: !!section26.hs_agreement_signature,
@@ -500,11 +502,11 @@ export default function CompanyAccreditationScreen({
       
       return () => clearTimeout(timer);
     }
-  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId, loading]);
+  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Auto-save Section 8 (PPE) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading || !section8.ppe_compliance_yesno) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section8.ppe_compliance_yesno) return;
     
     debugLog('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
     
@@ -514,11 +516,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section8, currentCompanyId, loading]);
+  }, [section8, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Auto-save Section 9 (Plant & Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading || !section9.plant_equipment_onsite_yesno) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section9.plant_equipment_onsite_yesno) return;
     
     debugLog('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
     
@@ -528,11 +530,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section9, currentCompanyId, loading]);
+  }, [section9, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Auto-save Section 10 (Electrical Equipment) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading || !section10.electrical_equipment_onsite_yesno) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section10.electrical_equipment_onsite_yesno) return;
     
     debugLog('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
     
@@ -542,11 +544,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section10, currentCompanyId, loading]);
+  }, [section10, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Auto-save Section 11 (Emergency) yes/no answer when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading || !section11.emergency_first_aid_yesno) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section11.emergency_first_aid_yesno) return;
     
     debugLog('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
     
@@ -556,11 +558,11 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section11, currentCompanyId, loading]);
+  }, [section11, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Auto-save Section 11 First Aid Equipment text when it changes
   useEffect(() => {
-    if (!currentCompanyId || loading || !section11.emergency_first_aid_equipment) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section11.emergency_first_aid_equipment) return;
     
     debugLog('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
     
@@ -570,7 +572,7 @@ export default function CompanyAccreditationScreen({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [section11, currentCompanyId, loading]);
+  }, [section11, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
@@ -2711,7 +2713,7 @@ export default function CompanyAccreditationScreen({
   // Auto-save function (silent, no alerts)
   // Optional overrides let callers persist freshly uploaded values before React state settles
   const autoSave = async (overrides = null) => {
-    if (!currentCompanyId || !hasLoadedCompanyData) return;
+    if (!currentCompanyId || !hasLoadedCompanyData || reviewMode) return;
     
     try {
       setAutoSaving(true);
@@ -2839,14 +2841,14 @@ export default function CompanyAccreditationScreen({
   // Auto-save when data changes (debounced)
   // IMPORTANT: Skip autosave while loading to prevent saving empty state before data loads
   useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData) return;
+    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode) return;
     
     const timer = setTimeout(() => {
       autoSave();
     }, 30000); // Auto-save after 30 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading, hasLoadedCompanyData]);
+  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -5191,7 +5193,7 @@ export default function CompanyAccreditationScreen({
           }}>
             Status: {accreditationStatus === 'completed' ? '✓ Completed' : '⏳ In Progress'}
           </Text>
-          {autoSaving && (
+          {autoSaving && !reviewMode && (
             <Text style={{
               fontSize: 18,
               color: '#6B7280',
@@ -5203,6 +5205,7 @@ export default function CompanyAccreditationScreen({
         </View>
 
         {/* Save Button */}
+        {!reviewMode && (
         <TouchableOpacity
           style={[styles.addButton, { marginBottom: 10 }]}
           onPress={handleSave}
@@ -5212,9 +5215,10 @@ export default function CompanyAccreditationScreen({
             {saving ? 'Saving...' : '✓ Save Accreditation'}
           </Text>
         </TouchableOpacity>
+        )}
 
         {/* Submit Button - Only show if not completed */}
-        {accreditationStatus !== 'completed' && (
+        {!reviewMode && accreditationStatus !== 'completed' && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
