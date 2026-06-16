@@ -3544,6 +3544,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
         return;
       }
+
+      // Public supplier accreditation form — token link, no contractor login required
+      if (isSupplierFormRoute(pathname)) {
+        console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
+        return;
+      }
       
       //Skip admin routes - they're handled by admin protection check
       if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
@@ -3806,6 +3812,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
+      if (isSupplierFormRoute(pathname)) {
+        console.log('✅ Setting initial screen to supplier_accreditation_public from URL');
+        setCurrentScreen('supplier_accreditation_public');
+        return;
+      }
+
       // Check for contractor admin routes
       if (pathname.startsWith('/contractor-admin')) {
         console.log('✅ Setting initial screen to contractor_admin from URL');
@@ -3943,6 +3955,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         // Check for permits dashboard (contractor kiosk view)
         if (pathname === '/permits' || pathname === '/permits/') {
           setCurrentScreen('dashboard');
+          return;
+        }
+
+        if (isSupplierFormRoute(pathname)) {
+          setCurrentScreen('supplier_accreditation_public');
           return;
         }
         
