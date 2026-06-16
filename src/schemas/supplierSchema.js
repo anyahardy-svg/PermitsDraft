@@ -257,6 +257,12 @@ export const supplierSchema = {
           multiline: true,
           placeholder: 'Enter assessment comments here',
         },
+        {
+          id: 'assessor_name',
+          label: 'Approved By',
+          type: 'text',
+          placeholder: 'Enter the name of the person approving',
+        },
         { id: 'assessor_signature', label: 'Assessor Signature', type: 'signature-pad' },
       ],
     },

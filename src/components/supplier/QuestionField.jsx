@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { SUPPLIER_CERTIFICATIONS } from '../../schemas/supplierSchema';
+import SignaturePadField from './SignaturePadField';
 
 const fieldStyles = {
   wrapper: {
@@ -431,9 +432,10 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
 
       case 'signature-pad':
         return (
-          <div style={fieldStyles.placeholder}>
-            Signature pad for &ldquo;{field.label}&rdquo; — coming soon.
-          </div>
+          <SignaturePadField
+            value={value ?? ''}
+            onChange={onChange}
+          />
         );
 
       default:
