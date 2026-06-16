@@ -33,6 +33,7 @@ const STATUS_COLORS = {
   draft: { backgroundColor: '#FEF3C7', color: '#92400E' },
   reviewing: { backgroundColor: '#E0E7FF', color: '#3730A3' },
   approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
+  trial_required: { backgroundColor: '#FEF3C7', color: '#92400E' },
   rejected: { backgroundColor: '#FEE2E2', color: '#7F1D1D' },
   active: { backgroundColor: '#D1FAE5', color: '#065F46' },
   inactive: { backgroundColor: '#F3F4F6', color: '#6B7280' },

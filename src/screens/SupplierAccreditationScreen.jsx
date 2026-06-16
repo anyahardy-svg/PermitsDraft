@@ -11,7 +11,7 @@ import {
   uploadSupplierDocument,
 } from '../api/supplierApi';
 import { supplierSchema } from '../schemas/supplierSchema';
-import { getSupplierAccreditationStatusDisplay } from '../utils/supplierAccreditation';
+import { getSupplierAccreditationStatusDisplay, getStatusFromFinalDecision, isSupplierAccreditationCompleted, validateAdminAssessmentCompletion } from '../utils/supplierAccreditation';
 
 const screenStyles = {
   container: {
@@ -198,6 +198,7 @@ export default function SupplierAccreditationScreen({
   const [saveNotice, setSaveNotice] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [meta, setMeta] = useState({
     companyName: '',
@@ -318,14 +319,15 @@ export default function SupplierAccreditationScreen({
     try {
       setSaving(true);
       setSaveNotice(null);
-      const saved = await persistForm('draft');
+      const statusToSave = isPublic ? 'draft' : (meta.status || 'draft');
+      const saved = await persistForm(statusToSave);
       setMeta((previous) => ({
         ...previous,
-        status: saved?.status || 'draft',
+        status: saved?.status || statusToSave,
       }));
       setSaveNotice({
         type: 'success',
-        message: 'Draft saved successfully.',
+        message: isPublic ? 'Draft saved successfully.' : 'Assessment progress saved.',
       });
     } catch (error) {
       console.error('Failed to save supplier accreditation draft:', error);
@@ -335,6 +337,41 @@ export default function SupplierAccreditationScreen({
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCompleteAssessment = async () => {
+    const validationError = validateAdminAssessmentCompletion(formData);
+    if (validationError) {
+      setSaveNotice({
+        type: 'error',
+        message: validationError,
+      });
+      return;
+    }
+
+    const completedStatus = getStatusFromFinalDecision(formData.final_decision);
+
+    try {
+      setCompleting(true);
+      setSaveNotice(null);
+      const saved = await persistForm(completedStatus);
+      setMeta((previous) => ({
+        ...previous,
+        status: saved?.status || completedStatus,
+      }));
+      setSaveNotice({
+        type: 'success',
+        message: `Assessment completed: ${formData.final_decision}.`,
+      });
+    } catch (error) {
+      console.error('Failed to complete supplier assessment:', error);
+      setSaveNotice({
+        type: 'error',
+        message: error?.message || 'Failed to complete assessment. Please try again.',
+      });
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -367,8 +404,13 @@ export default function SupplierAccreditationScreen({
 
   const deadlineLabel = useMemo(() => formatDeadline(meta.deadline), [meta.deadline]);
   const isSubmitted = meta.status === 'reviewing' || meta.status === 'approved';
+  const isAssessmentCompleted = isSupplierAccreditationCompleted(meta.status);
   const showPublicSuccessScreen = isPublic && isSubmitted;
   const statusDisplay = getSupplierAccreditationStatusDisplay(meta.status);
+  const adminSaveLabel = isAssessmentCompleted ? 'Save Changes' : (meta.status === 'reviewing' ? 'Save Progress' : 'Save Draft');
+  const statusBadgeTone = meta.status === 'approved' || meta.status === 'reviewing'
+    ? 'success'
+    : 'draft';
   const submissionSuccessCopy = useMemo(
     () => getPublicSubmissionSuccessCopy(meta.status, meta.companyName),
     [meta.status, meta.companyName],
@@ -449,7 +491,7 @@ export default function SupplierAccreditationScreen({
       />
 
       <div style={screenStyles.footer}>
-        <span style={screenStyles.statusBadge(isSubmitted ? 'success' : 'draft')}>
+        <span style={screenStyles.statusBadge(statusBadgeTone)}>
           Status: {meta.status === 'draft' ? 'In progress' : statusDisplay.label}
         </span>
 
@@ -460,10 +502,26 @@ export default function SupplierAccreditationScreen({
             ...(saving ? screenStyles.disabledButton : {}),
           }}
           onClick={handleSaveDraft}
-          disabled={saving || submitting}
+          disabled={saving || submitting || completing}
         >
-          {saving ? 'Saving...' : 'Save Draft'}
+          {saving ? 'Saving...' : (isPublic ? 'Save Draft' : adminSaveLabel)}
         </button>
+
+        {!isPublic && (
+          <button
+            type="button"
+            style={{
+              ...screenStyles.secondaryButton,
+              ...((completing || saving || submitting) ? screenStyles.disabledButton : {}),
+            }}
+            onClick={handleCompleteAssessment}
+            disabled={completing || saving || submitting}
+          >
+            {completing
+              ? 'Completing...'
+              : (isAssessmentCompleted ? 'Update Assessment' : 'Complete Assessment')}
+          </button>
+        )}
 
         {isPublic && (
           <button
