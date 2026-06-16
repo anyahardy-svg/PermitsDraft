@@ -12776,6 +12776,80 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       fileInput.click();
     };
 
+    const getFilteredContractors = () => contractors.filter(contractor => {
+      const matchesSearch = contractorSearchText === '' ||
+        contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
+        contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
+
+      const matchesCompanyFilter = contractorCompanyFilter === 'All' ||
+        (contractor.companyName || contractor.company) === contractorCompanyFilter;
+
+      const matchesBusinessUnitFilter = contractorBusinessUnitFilter === 'All' ||
+        (contractor.businessUnitIds || contractor.business_unit_ids || []).includes(contractorBusinessUnitFilter);
+
+      return matchesSearch && matchesCompanyFilter && matchesBusinessUnitFilter;
+    });
+
+    const handleExportCSV = () => {
+      const filteredContractors = getFilteredContractors();
+
+      if (filteredContractors.length === 0) {
+        window.alert('No contractors to export. Adjust your filters or add contractors first.');
+        return;
+      }
+
+      const escapeCsvValue = (value) => {
+        const str = String(value ?? '');
+        if (/[",\n\r]/.test(str)) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const getBusinessUnitNames = (businessUnitIds) => (businessUnitIds || [])
+        .map(id => businessUnits.find(bu => bu.id === id)?.name || '')
+        .filter(Boolean)
+        .join('; ');
+
+      const headers = ['name', 'email', 'phone', 'company', 'services', 'available_sites', 'induction_expiry', 'business_units'];
+      const rows = filteredContractors.map(contractor => {
+        const serviceNames = getServiceNames(contractor.serviceIds || []).join('; ');
+        const siteNames = getContractorSites(contractor.id).join('; ');
+        let inductionExpiry = '';
+        if (contractor.inductionExpiry) {
+          const [year, month, day] = contractor.inductionExpiry.split('-');
+          inductionExpiry = `${day}/${month}/${year}`;
+        }
+
+        return [
+          contractor.name,
+          contractor.email,
+          formatPhoneNumber(contractor.phone),
+          contractor.companyName || contractor.company || '',
+          serviceNames,
+          siteNames,
+          inductionExpiry,
+          getBusinessUnitNames(contractor.businessUnitIds || contractor.business_unit_ids),
+        ];
+      });
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(escapeCsvValue).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `contractors-export-${dateStamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -12799,10 +12873,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               fontSize: 13,
               fontWeight: '500',
               textAlign: 'center'
-            }}>00000000000000000000000000000
- 0             {importStatus === 'importing' && '⏳ ' }
-              {importStatus === 'success' && '✓ ' }
-              {importStatus === 'error' && '✕ ' }
+            }}>
+              {importStatus === 'importing' && '⏳ '}
+              {importStatus === 'success' && '✓ '}
+              {importStatus === 'error' && '✕ '}
               {importMessage}
             </Text>
           </View>
@@ -13096,9 +13170,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
               </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleExportCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleImportCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Filter and Search Section */}
@@ -13250,18 +13329,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             ) : (
               (() => {
-                const filteredContractors = contractors.filter(contractor => {
-                  const matchesSearch = contractorSearchText === '' || 
-                    contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-                    contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
-                  
-                  const matchesCompanyFilter = contractorCompanyFilter === 'All' || (contractor.companyName || contractor.company) === contractorCompanyFilter;
-                  
-                  const matchesBusinessUnitFilter = contractorBusinessUnitFilter === 'All' || 
-                    (contractor.businessUnitIds || contractor.business_unit_ids || []).includes(contractorBusinessUnitFilter);
-                  
-                  return matchesSearch && matchesCompanyFilter && matchesBusinessUnitFilter;
-                });
+                const filteredContractors = getFilteredContractors();
 
                 if (filteredContractors.length === 0) {
                   return <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
