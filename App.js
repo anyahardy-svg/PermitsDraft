@@ -10179,7 +10179,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) updateData.accredited_date = parseDateToISO(accreditedDate) || null;
-                  if (nzbn) updateData.nzbn = nzbn;
+                  if (nzbn) updateData.abn_nzbn = nzbn;
                   if (address1) updateData.address_1 = address1;
                   if (addressCity) updateData.address_city = addressCity;
                   if (addressPostcode) updateData.address_postcode = addressPostcode;
@@ -10202,7 +10202,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) createData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) createData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) createData.accredited_date = parseDateToISO(accreditedDate) || null;
-                  if (nzbn) createData.nzbn = nzbn;
+                  if (nzbn) createData.abn_nzbn = nzbn;
                   if (address1) createData.address_1 = address1;
                   if (addressCity) createData.address_city = addressCity;
                   if (addressPostcode) createData.address_postcode = addressPostcode;
@@ -10263,6 +10263,105 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       };
       
       fileInput.click();
+    };
+
+    const getFilteredCompanies = () => companies.filter(company => {
+      const query = companySearchText.toLowerCase();
+      const contactName = `${company.contactName || company.contact_name || ''} ${company.contactSurname || company.contact_surname || ''}`.trim().toLowerCase();
+      const matchesSearch = companySearchText === '' ||
+        company.name.toLowerCase().includes(query) ||
+        contactName.includes(query) ||
+        (company.contactEmail || company.contact_email || '').toLowerCase().includes(query) ||
+        (company.email || '').toLowerCase().includes(query);
+
+      const matchesBUFilter = companyFilterBusinessUnit === 'All' ||
+        (company.business_unit_ids || []).includes(companyFilterBusinessUnit);
+
+      return matchesSearch && matchesBUFilter;
+    });
+
+    const handleExportCSV = () => {
+      const filteredCompanies = getFilteredCompanies();
+
+      if (filteredCompanies.length === 0) {
+        window.alert('No companies to export. Adjust your filters or add companies first.');
+        return;
+      }
+
+      const escapeCsvValue = (value) => {
+        const str = String(value ?? '');
+        if (/[",\n\r]/.test(str)) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const formatDateForCsv = (dateValue) => {
+        if (!dateValue) return '';
+        const datePart = String(dateValue).split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        if (!year || !month || !day) return String(dateValue);
+        return `${day}/${month}/${year}`;
+      };
+
+      const getBusinessUnitNames = (businessUnitIds) => (businessUnitIds || [])
+        .map(id => businessUnits.find(bu => bu.id === id)?.name || '')
+        .filter(Boolean)
+        .join('; ');
+
+      const headers = [
+        'name',
+        'email',
+        'business_units',
+        'contact_name',
+        'contact_surname',
+        'contact_email',
+        'contact_phone',
+        'contractor_type',
+        'public_liability_expiry',
+        'motor_vehicle_insurance_expiry',
+        'review_date',
+        'accredited_date',
+        'nzbn',
+        'address_1',
+        'address_city',
+        'address_postcode',
+      ];
+
+      const rows = filteredCompanies.map(company => [
+        company.name,
+        company.email || '',
+        getBusinessUnitNames(company.business_unit_ids || company.businessUnitIds),
+        company.contact_name || company.contactName || '',
+        company.contact_surname || company.contactSurname || '',
+        company.contact_email || company.contactEmail || '',
+        company.contact_phone || company.contactPhone || '',
+        company.contractor_type || company.contractorType || 'D',
+        formatDateForCsv(company.public_liability_expiry || company.publicLiabilityExpiry),
+        formatDateForCsv(company.motor_vehicle_insurance_expiry || company.motorVehicleInsuranceExpiry),
+        formatDateForCsv(company.review_date || company.reviewDate),
+        formatDateForCsv(company.accredited_date || company.accreditedDate),
+        company.abn_nzbn || company.abnNzbn || '',
+        company.address_1 || company.address1 || '',
+        company.address_city || company.addressCity || '',
+        company.address_postcode || company.addressPostcode || '',
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(escapeCsvValue).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `companies-export-${dateStamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     };
 
     return (
@@ -10459,6 +10558,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleExportCSV}>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportCSV}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV/Excel</Text>
               </TouchableOpacity>
@@ -10492,20 +10594,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             ) : (
               (() => {
-                const filteredCompanies = companies.filter(company => {
-                  const query = companySearchText.toLowerCase();
-                  const contactName = `${company.contactName || company.contact_name || ''} ${company.contactSurname || company.contact_surname || ''}`.trim().toLowerCase();
-                  const matchesSearch = companySearchText === '' ||
-                    company.name.toLowerCase().includes(query) ||
-                    contactName.includes(query) ||
-                    (company.contactEmail || company.contact_email || '').toLowerCase().includes(query) ||
-                    (company.email || '').toLowerCase().includes(query);
-                  
-                  const matchesBUFilter = companyFilterBusinessUnit === 'All' || 
-                    (company.business_unit_ids || []).includes(companyFilterBusinessUnit);
-                  
-                  return matchesSearch && matchesBUFilter;
-                });
+                const filteredCompanies = getFilteredCompanies();
 
                 if (filteredCompanies.length === 0) {
                   return <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
