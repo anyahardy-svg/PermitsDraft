@@ -57,7 +57,7 @@ const getFullStorageUrl = (storagePath) => {
  * 
  * @param {UUID} companyId - Company ID to load (required when logged in)
  * @param {boolean} isAdmin - Whether user is admin (sees all companies) - not used when companyId provided
- * @param {boolean} reviewMode - When true, disables auto-save (e.g. admin reviewing a submission)
+ * @param {boolean} reviewMode - When true, disables background auto-save on load (admin review). Manual Save/Submit and uploads still save.
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
  * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
@@ -1365,7 +1365,7 @@ export default function CompanyAccreditationScreen({
         // Immediately save to database after upload
         setTimeout(async () => {
           debugLog('💾 Auto-saving certificate upload immediately...');
-          await autoSave();
+          await autoSave(null, { force: true });
         }, 100);
         
         // Restore scroll position after state update
@@ -1432,7 +1432,7 @@ export default function CompanyAccreditationScreen({
 
       // Save to database
       setTimeout(async () => {
-        await autoSave();
+        await autoSave(null, { force: true });
       }, 100);
 
       const deleteType = libraryItemId ? 'removed' : 'deleted';
@@ -1503,7 +1503,7 @@ export default function CompanyAccreditationScreen({
         // Immediately save to database after upload
         setTimeout(async () => {
           debugLog('💾 Auto-saving policy upload immediately...');
-          await autoSave();
+          await autoSave(null, { force: true });
         }, 100);
         
         // Restore scroll position after state update
@@ -1570,7 +1570,7 @@ export default function CompanyAccreditationScreen({
               
               // Save to database
               setTimeout(async () => {
-                await autoSave();
+                await autoSave(null, { force: true });
               }, 100);
               
               const deleteType = libraryItemId ? 'removed' : 'deleted';
@@ -1702,7 +1702,7 @@ export default function CompanyAccreditationScreen({
         // Save to database
         setTimeout(async () => {
           debugLog('🔄 Running autoSave');
-          await autoSave();
+          await autoSave(null, { force: true });
           debugLog('✅ autoSave complete');
           // Don't close the UI - keep user in the same place
         }, 100);
@@ -1796,7 +1796,7 @@ export default function CompanyAccreditationScreen({
         // Immediately save to database after upload
         setTimeout(async () => {
           debugLog('💾 Auto-saving insurance document upload immediately...');
-          await autoSave();
+          await autoSave(null, { force: true });
         }, 100);
         
         // Restore scroll position after state update
@@ -1971,7 +1971,7 @@ export default function CompanyAccreditationScreen({
           [`${itemKey}_evidence_url`]: uploadResult.url,
           [`${itemKey}_exists`]: currentItem?.exists ?? true,
           [`${itemKey}_score`]: currentItem?.score ?? 0,
-        });
+        }, { force: true });
         
       } else {
         debugLog('❌ Upload failed:', uploadResult);
@@ -2035,7 +2035,7 @@ export default function CompanyAccreditationScreen({
           [`${itemKey}_evidence_url`]: libraryItem.storage_path,
           [`${itemKey}_exists`]: currentItem?.exists ?? true,
           [`${itemKey}_score`]: currentItem?.score ?? 0,
-        });
+        }, { force: true });
         Alert.alert('Success ✅', `Applied "${libraryItem.item_name}"`);
         setExpandedEvidenceUI(null);
       }
@@ -2711,9 +2711,12 @@ export default function CompanyAccreditationScreen({
   };
 
   // Auto-save function (silent, no alerts)
-  // Optional overrides let callers persist freshly uploaded values before React state settles
-  const autoSave = async (overrides = null) => {
-    if (!currentCompanyId || !hasLoadedCompanyData || reviewMode) return;
+  // Optional overrides let callers persist freshly uploaded values before React state settles.
+  // Pass { force: true } to save during admin review (uploads, explicit user actions).
+  const autoSave = async (overrides = null, options = {}) => {
+    const { force = false } = options;
+    if (!currentCompanyId || !hasLoadedCompanyData) return;
+    if (reviewMode && !force) return;
     
     try {
       setAutoSaving(true);
@@ -5193,7 +5196,7 @@ export default function CompanyAccreditationScreen({
           }}>
             Status: {accreditationStatus === 'completed' ? '✓ Completed' : '⏳ In Progress'}
           </Text>
-          {autoSaving && !reviewMode && (
+          {autoSaving && (
             <Text style={{
               fontSize: 18,
               color: '#6B7280',
@@ -5205,7 +5208,6 @@ export default function CompanyAccreditationScreen({
         </View>
 
         {/* Save Button */}
-        {!reviewMode && (
         <TouchableOpacity
           style={[styles.addButton, { marginBottom: 10 }]}
           onPress={handleSave}
@@ -5215,10 +5217,9 @@ export default function CompanyAccreditationScreen({
             {saving ? 'Saving...' : '✓ Save Accreditation'}
           </Text>
         </TouchableOpacity>
-        )}
 
         {/* Submit Button - Only show if not completed */}
-        {!reviewMode && accreditationStatus !== 'completed' && (
+        {accreditationStatus !== 'completed' && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
