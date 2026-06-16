@@ -48,20 +48,8 @@ function getPublicAppOrigin(origin) {
   }
 }
 
-function getRequestOrigin(req) {
-  let origin = null;
-
-  if (req.headers.origin) {
-    origin = req.headers.origin;
-  } else if (req.headers.referer) {
-    try {
-      origin = new URL(req.headers.referer).origin;
-    } catch {
-      return getPublicAppOrigin();
-    }
-  }
-
-  return getPublicAppOrigin(origin);
+function buildSupplierInvitationFormUrl(token) {
+  return `${getPublicAppOrigin()}/supplier-form?token=${encodeURIComponent(token)}`;
 }
 
 async function issueSupplierAccreditationTokenForEmail(supplierId) {
@@ -474,8 +462,7 @@ export default async function handler(req, res) {
       if (supplierId && SUPABASE_URL && (SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
         try {
           const token = await issueSupplierAccreditationTokenForEmail(supplierId);
-          const origin = getRequestOrigin(req);
-          formUrl = `${origin.replace(/\/$/, '')}/supplier-form?token=${encodeURIComponent(token)}`;
+          formUrl = buildSupplierInvitationFormUrl(token);
         } catch (tokenError) {
           console.error('Failed to issue supplier accreditation token for invitation email:', tokenError);
         }
