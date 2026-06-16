@@ -110,7 +110,65 @@ const screenStyles = {
     border: '1px solid #FECACA',
     color: '#991B1B',
   },
+  successPanel: {
+    maxWidth: '640px',
+    margin: '2rem auto',
+    padding: '2.5rem 2rem',
+    borderRadius: '12px',
+    backgroundColor: '#ECFDF5',
+    border: '1px solid #6EE7B7',
+    textAlign: 'center',
+  },
+  successIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    backgroundColor: '#10B981',
+    color: '#FFFFFF',
+    fontSize: '2rem',
+    fontWeight: 700,
+    marginBottom: '1.25rem',
+  },
+  successTitle: {
+    margin: '0 0 0.75rem 0',
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    color: '#065F46',
+  },
+  successMessage: {
+    margin: '0 0 1rem 0',
+    fontSize: '1.05rem',
+    lineHeight: 1.6,
+    color: '#047857',
+  },
+  successHint: {
+    margin: 0,
+    fontSize: '0.95rem',
+    lineHeight: 1.5,
+    color: '#6B7280',
+  },
 };
+
+function getPublicSubmissionSuccessCopy(status, companyName) {
+  const organisation = companyName || 'your organisation';
+
+  if (status === 'approved') {
+    return {
+      title: 'Accreditation approved',
+      message: `Thank you. The supplier accreditation for ${organisation} has been approved.`,
+      hint: 'You can now close this browser window.',
+    };
+  }
+
+  return {
+    title: 'Form submitted',
+    message: `Thank you. Your supplier accreditation form for ${organisation} has been submitted successfully and is now with our team for review.`,
+    hint: 'You can now close this browser window. If you need to make changes, please contact us.',
+  };
+}
 
 function formatDeadline(deadline) {
   if (!deadline) {
@@ -289,10 +347,13 @@ export default function SupplierAccreditationScreen({
         ...previous,
         status: saved?.status || 'reviewing',
       }));
-      setSaveNotice({
-        type: 'success',
-        message: 'Thank you. Your supplier accreditation has been submitted for review.',
-      });
+      // Public suppliers see a dedicated success screen instead of a transient notice.
+      if (!isPublic) {
+        setSaveNotice({
+          type: 'success',
+          message: 'Thank you. Your supplier accreditation has been submitted for review.',
+        });
+      }
     } catch (error) {
       console.error('Failed to submit supplier accreditation:', error);
       setSaveNotice({
@@ -306,7 +367,12 @@ export default function SupplierAccreditationScreen({
 
   const deadlineLabel = useMemo(() => formatDeadline(meta.deadline), [meta.deadline]);
   const isSubmitted = meta.status === 'reviewing' || meta.status === 'approved';
+  const showPublicSuccessScreen = isPublic && isSubmitted;
   const statusDisplay = getSupplierAccreditationStatusDisplay(meta.status);
+  const submissionSuccessCopy = useMemo(
+    () => getPublicSubmissionSuccessCopy(meta.status, meta.companyName),
+    [meta.status, meta.companyName],
+  );
 
   if (loading) {
     return (
@@ -322,6 +388,25 @@ export default function SupplierAccreditationScreen({
         <div style={screenStyles.errorPanel}>
           <h2 style={{ marginTop: 0 }}>Unable to open form</h2>
           <p style={{ marginBottom: 0 }}>{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showPublicSuccessScreen) {
+    return (
+      <div style={screenStyles.container} className="supplier-accreditation-screen">
+        <div
+          role="status"
+          aria-live="polite"
+          style={screenStyles.successPanel}
+        >
+          <div style={screenStyles.successIcon} aria-hidden="true">
+            ✓
+          </div>
+          <h1 style={screenStyles.successTitle}>{submissionSuccessCopy.title}</h1>
+          <p style={screenStyles.successMessage}>{submissionSuccessCopy.message}</p>
+          <p style={screenStyles.successHint}>{submissionSuccessCopy.hint}</p>
         </div>
       </div>
     );
