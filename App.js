@@ -10772,7 +10772,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               {/* Full Accreditation Screen with padding for buttons */}
               <View style={{ flex: 1, paddingBottom: companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' ? 80 : 0 }}>
                 <CompanyAccreditationScreen 
+                  key={selectedCompanyForAccreditation.id}
                   companyId={selectedCompanyForAccreditation.id}
+                  reviewMode={true}
                   styles={styles}
                   onClose={() => {
                     setShowAccreditationModal(false);
