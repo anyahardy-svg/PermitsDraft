@@ -427,6 +427,14 @@ export default function CompanyAccreditationScreen({
     }
   }, [expandedSections]);
 
+  // Keep currentCompanyId in sync when parent passes a different companyId
+  useEffect(() => {
+    if (companyId && companyId !== currentCompanyId) {
+      setCurrentCompanyId(companyId);
+      setHasLoadedCompanyData(false);
+    }
+  }, [companyId, currentCompanyId]);
+
   // Load company data
   useEffect(() => {
     debugLog('🔄 [ACCREDITATION] currentCompanyId changed');
@@ -1956,10 +1964,12 @@ export default function CompanyAccreditationScreen({
         setShowSaveToLibraryModal(true);
         setLibrarySaveName(file.name);
         
-        // Immediately save to database after upload (don't wait 30 seconds!)
-        setTimeout(async () => {
-          await autoSave();
-        }, 100);
+        const currentItem = sectionUpdater?.get()?.[itemKey];
+        await autoSave({
+          [`${itemKey}_evidence_url`]: uploadResult.url,
+          [`${itemKey}_exists`]: currentItem?.exists ?? true,
+          [`${itemKey}_score`]: currentItem?.score ?? 0,
+        });
         
       } else {
         debugLog('❌ Upload failed:', uploadResult);
@@ -2003,13 +2013,14 @@ export default function CompanyAccreditationScreen({
   };
 
   // Helper to apply library item to a question
-  const applyLibraryItem = (documentKey, libraryItem) => {
+  const applyLibraryItem = async (documentKey, libraryItem) => {
     try {
       const sectionKey = documentKey.split('-')[0];
       const itemKey = documentKey.substring(sectionKey.length + 1);
       const sectionUpdater = sectionStateMap?.[sectionKey];
       
       if (sectionUpdater) {
+        const currentItem = sectionUpdater.get()?.[itemKey];
         sectionUpdater.set(prev => ({
           ...prev,
           [itemKey]: { 
@@ -2018,7 +2029,11 @@ export default function CompanyAccreditationScreen({
             library_item_id: libraryItem.id  // Track that this came from library
           }
         }));
-        setTimeout(() => autoSave(), 100);
+        await autoSave({
+          [`${itemKey}_evidence_url`]: libraryItem.storage_path,
+          [`${itemKey}_exists`]: currentItem?.exists ?? true,
+          [`${itemKey}_score`]: currentItem?.score ?? 0,
+        });
         Alert.alert('Success ✅', `Applied "${libraryItem.item_name}"`);
         setExpandedEvidenceUI(null);
       }
@@ -2694,13 +2709,17 @@ export default function CompanyAccreditationScreen({
   };
 
   // Auto-save function (silent, no alerts)
-  const autoSave = async () => {
+  // Optional overrides let callers persist freshly uploaded values before React state settles
+  const autoSave = async (overrides = null) => {
     if (!currentCompanyId || !hasLoadedCompanyData) return;
     
     try {
       setAutoSaving(true);
       const saveStatus = getAccreditationSaveStatus(accreditationStatus);
-      const updateData = buildUpdateData(saveStatus);
+      const updateData = {
+        ...buildUpdateData(saveStatus),
+        ...(overrides && typeof overrides === 'object' ? overrides : {}),
+      };
       
       // Log section26 data being saved
       if (updateData.hs_agreement_signature || updateData.hs_agreement_accepted_by) {
