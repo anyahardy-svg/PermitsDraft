@@ -13,6 +13,8 @@ const serviceRoleHeaders = (prefer = '') => ({
   ...(prefer ? { Prefer: prefer } : {}),
 });
 
+import { getPublicAppOrigin } from '../../src/utils/publicAppOrigin.js';
+
 export function generateSupplierAccreditationToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -22,8 +24,8 @@ export function getSupplierTokenExpiryDate() {
 }
 
 export function getSupplierAccreditationFormUrl(token, baseUrl) {
-  const origin = baseUrl || process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz';
-  return `${origin.replace(/\/$/, '')}/supplier-form?token=${encodeURIComponent(token)}`;
+  const origin = getPublicAppOrigin(baseUrl);
+  return `${origin}/supplier-form?token=${encodeURIComponent(token)}`;
 }
 
 export async function issueSupplierAccreditationToken(supplierId) {

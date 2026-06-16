@@ -30,20 +30,38 @@ function getSupplierTokenExpiryDate() {
   return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
-function getRequestOrigin(req) {
-  if (req.headers.origin) {
-    return req.headers.origin;
+function getPublicAppOrigin(origin) {
+  const fallback = (process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz').replace(/\/$/, '');
+
+  if (!origin) {
+    return fallback;
   }
 
-  if (req.headers.referer) {
+  try {
+    const { hostname, protocol, host } = new URL(origin);
+    if (hostname.includes('-kiosk.')) {
+      return fallback;
+    }
+    return `${protocol}//${host}`.replace(/\/$/, '');
+  } catch {
+    return fallback;
+  }
+}
+
+function getRequestOrigin(req) {
+  let origin = null;
+
+  if (req.headers.origin) {
+    origin = req.headers.origin;
+  } else if (req.headers.referer) {
     try {
-      return new URL(req.headers.referer).origin;
+      origin = new URL(req.headers.referer).origin;
     } catch {
-      return 'https://contractorhq.co.nz';
+      return getPublicAppOrigin();
     }
   }
 
-  return process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz';
+  return getPublicAppOrigin(origin);
 }
 
 async function issueSupplierAccreditationTokenForEmail(supplierId) {
