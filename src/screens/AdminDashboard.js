@@ -20,6 +20,7 @@ export default function AdminDashboard({
   servicesCount = 0,
   isolationRegistersCount = 0,
   businessUnitsCount = 0,
+  suppliersCount = 0,
   isSuperAdmin = false,
 }) {
   return (
@@ -96,7 +97,7 @@ export default function AdminDashboard({
             style={[styles.dashboardCard, { borderLeftColor: '#6366F1' }]}
             onPress={() => onNavigate('manage_suppliers')}
           >
-            <Text style={styles.cardNumber}>0</Text>
+            <Text style={styles.cardNumber}>{suppliersCount}</Text>
             <Text style={styles.cardLabel}>Suppliers</Text>
           </TouchableOpacity>
           {isSuperAdmin && (

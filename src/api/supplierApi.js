@@ -89,6 +89,46 @@ function migrateLegacyFormData(savedData) {
   return nextData;
 }
 
+async function attachAccreditationStatuses(suppliers = []) {
+  if (!suppliers.length || !supabase) {
+    return suppliers.map((supplier) => ({
+      ...supplier,
+      accreditation_status: supplier.accreditation_status || 'draft',
+    }));
+  }
+
+  const supplierIds = suppliers.map((supplier) => supplier.id).filter(Boolean);
+  if (!supplierIds.length) {
+    return suppliers;
+  }
+
+  const { data: accreditationRecords, error } = await supabase
+    .from('supplier_accreditations')
+    .select('supplier_id, status, updated_at')
+    .in('supplier_id', supplierIds)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.warn('Failed to load supplier accreditation statuses:', error);
+    return suppliers.map((supplier) => ({
+      ...supplier,
+      accreditation_status: supplier.accreditation_status || 'draft',
+    }));
+  }
+
+  const statusBySupplierId = {};
+  for (const record of accreditationRecords || []) {
+    if (!statusBySupplierId[record.supplier_id]) {
+      statusBySupplierId[record.supplier_id] = record.status;
+    }
+  }
+
+  return suppliers.map((supplier) => ({
+    ...supplier,
+    accreditation_status: statusBySupplierId[supplier.id] || supplier.accreditation_status || 'draft',
+  }));
+}
+
 /**
  * Fetch all suppliers from the suppliers table.
  */
@@ -121,7 +161,7 @@ export async function getAllSuppliers() {
     throw error;
   }
 
-  return data || [];
+  return attachAccreditationStatuses(data || []);
 }
 
 /**

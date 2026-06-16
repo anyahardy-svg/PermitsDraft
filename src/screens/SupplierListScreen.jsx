@@ -17,6 +17,10 @@ import {
   sendInvitationToSupplier,
 } from '../api/supplierApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
+import {
+  getSupplierAccreditationStatusDisplay,
+  resolveSupplierAccreditationDisplayStatus,
+} from '../utils/supplierAccreditation';
 
 const RISK_COLORS = {
   Critical: { backgroundColor: '#FCA5A5', color: '#7F1D1D' },
@@ -26,6 +30,10 @@ const RISK_COLORS = {
 };
 
 const STATUS_COLORS = {
+  draft: { backgroundColor: '#FEF3C7', color: '#92400E' },
+  reviewing: { backgroundColor: '#E0E7FF', color: '#3730A3' },
+  approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
+  rejected: { backgroundColor: '#FEE2E2', color: '#7F1D1D' },
   active: { backgroundColor: '#D1FAE5', color: '#065F46' },
   inactive: { backgroundColor: '#F3F4F6', color: '#6B7280' },
 };
@@ -502,7 +510,9 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
 
             {filteredSuppliers.map((supplier, index) => {
               const riskStyle = RISK_COLORS[supplier.risk_classification] || { backgroundColor: '#F3F4F6', color: '#6B7280' };
-              const statusStyle = STATUS_COLORS[supplier.status] || STATUS_COLORS.inactive;
+              const accreditationStatus = resolveSupplierAccreditationDisplayStatus(supplier);
+              const statusDisplay = getSupplierAccreditationStatusDisplay(accreditationStatus);
+              const statusStyle = STATUS_COLORS[accreditationStatus] || STATUS_COLORS.draft;
               const deadlineDate = supplier.accreditation_deadline ? new Date(supplier.accreditation_deadline) : null;
               const isOverdue = deadlineDate && deadlineDate < new Date();
 
@@ -553,8 +563,8 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                   </View>
                   <View style={{ width: 100, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: statusStyle.backgroundColor }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: statusStyle.color, textTransform: 'capitalize' }}>
-                        {supplier.status || '—'}
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: statusStyle.color }}>
+                        {statusDisplay.label}
                       </Text>
                     </View>
                   </View>

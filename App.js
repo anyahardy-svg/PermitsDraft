@@ -37,6 +37,7 @@ import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, 
 import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
 import { handoverPermit } from './src/api/permitHandovers';
 import { getAllPendingJoinRequests } from './src/api/joinRequests';
+import { getAllSuppliers } from './src/api/supplierApi';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
@@ -3004,6 +3005,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setPendingJoinRequestsCount(pendingCount);
           console.log('📋 Pending join requests:', pendingCount);
         }
+
+        const suppliersData = await getAllSuppliers();
+        setSuppliersCount(Array.isArray(suppliersData) ? suppliersData.length : 0);
+        console.log('🏭 Suppliers loaded:', suppliersData?.length || 0);
         
         // Load isolation registers
         const isolationData = await listIsolationRegisters();
@@ -3067,6 +3072,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Contractors state - stores contractor information
   const [contractors, setContractors] = useState([]);
   const [pendingJoinRequestsCount, setPendingJoinRequestsCount] = useState(0);
+  const [suppliersCount, setSuppliersCount] = useState(0);
 
   const [newPermitData, setNewPermitData] = useState({
     id: '',
@@ -8879,6 +8885,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         servicesCount={servicesFromDb && servicesFromDb.length > 0 ? servicesFromDb.length : ALL_SERVICES.length}
         isolationRegistersCount={isolationRegisters.length}
         businessUnitsCount={businessUnits.length}
+        suppliersCount={suppliersCount}
         isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
       />
     );
