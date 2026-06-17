@@ -12,6 +12,7 @@ import {
 
 import {
   createSupplier,
+  deleteSupplier,
   getAllSuppliers,
   inviteSupplier,
   sendInvitationToSupplier,
@@ -117,6 +118,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
   });
   const [importStatus, setImportStatus] = useState('idle');
   const [importMessage, setImportMessage] = useState('');
+  const [deletingSupplierId, setDeletingSupplierId] = useState(null);
 
   const loadSuppliers = useCallback(async () => {
     try {
@@ -151,6 +153,43 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
   const handleOpenForm = (supplierId) => {
     if (onOpenForm) {
       onOpenForm(supplierId);
+    }
+  };
+
+  const confirmDeleteSupplier = (supplier) => {
+    const message = `Delete "${supplier.company_name}"? This will permanently remove the supplier and their accreditation data. This cannot be undone.`;
+
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      return window.confirm(message);
+    }
+
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Delete Supplier',
+        message,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+        ],
+      );
+    });
+  };
+
+  const handleDeleteSupplier = async (supplier) => {
+    const confirmed = await confirmDeleteSupplier(supplier);
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSupplierId(supplier.id);
+    try {
+      await deleteSupplier(supplier.id);
+      Alert.alert('Success', 'Supplier deleted successfully.');
+      await loadSuppliers();
+    } catch (deleteError) {
+      Alert.alert('Error', deleteError?.message || 'Failed to delete supplier.');
+    } finally {
+      setDeletingSupplierId(null);
     }
   };
 
@@ -500,7 +539,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
           <View>
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
               <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
-              <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Actions</Text>
+              <Text style={{ width: 260, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Actions</Text>
               <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Contact Email</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Risk</Text>
               <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Status</Text>
@@ -531,7 +570,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                   <Text style={{ width: 200, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                     {supplier.company_name}
                   </Text>
-                  <View style={{ width: 200, flexDirection: 'row', justifyContent: 'center', gap: 6, padding: 8, borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                  <View style={{ width: 260, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6, padding: 8, borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     <TouchableOpacity
                       style={{
                         paddingHorizontal: 8,
@@ -540,6 +579,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                         borderRadius: 4,
                       }}
                       onPress={() => openSendInvitationModal(supplier)}
+                      disabled={deletingSupplierId === supplier.id}
                     >
                       <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
                         {supplier.invitation_sent_at ? '↻ Resend' : '✉ Invite'}
@@ -548,8 +588,23 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                     <TouchableOpacity
                       style={{ paddingHorizontal: 8, paddingVertical: 6, backgroundColor: '#3B82F6', borderRadius: 4 }}
                       onPress={() => handleOpenForm(supplier.id)}
+                      disabled={deletingSupplierId === supplier.id}
                     >
                       <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Open Form</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        backgroundColor: deletingSupplierId === supplier.id ? '#9CA3AF' : '#EF4444',
+                        borderRadius: 4,
+                      }}
+                      onPress={() => handleDeleteSupplier(supplier)}
+                      disabled={deletingSupplierId === supplier.id}
+                    >
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {deletingSupplierId === supplier.id ? 'Deleting...' : 'Delete'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <Text style={{ width: 180, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>

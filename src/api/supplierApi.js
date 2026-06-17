@@ -619,6 +619,30 @@ export async function inviteSupplier({
 }
 
 /**
+ * Delete a supplier via the server API (service role).
+ */
+export async function deleteSupplier(supplierId) {
+  if (!supplierId) {
+    throw new Error('Supplier ID is required');
+  }
+
+  const response = await fetch('/api/delete-supplier', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ supplierId }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to delete supplier (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
  * Send an accreditation invitation to an existing supplier.
  */
 export async function sendInvitationToSupplier({
