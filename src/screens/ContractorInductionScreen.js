@@ -35,6 +35,8 @@ import { listServicesByBusinessUnit } from '../api/services';
 import {
   validateInductionAnswers,
   getInductionAnswerValidationMessage,
+  getInductionQuestionContainerStyle,
+  getInductionOptionStyles,
 } from '../utils/inductionAnswerValidation';
 
 /**
@@ -182,6 +184,8 @@ export default function ContractorInductionScreen({
   const [modalStep, setModalStep] = useState('video'); // video, questions, complete
   const [modalAnswers, setModalAnswers] = useState({}); // Answers for current modal induction
   const [modalAnswerValidation, setModalAnswerValidation] = useState({ missing: [], incorrect: [] });
+  const [showModalAnswerFeedback, setShowModalAnswerFeedback] = useState(false);
+  const [revealedQuestionNums, setRevealedQuestionNums] = useState([]);
 
   // Step 3: Video
   const [videoWatched, setVideoWatched] = useState(false);
@@ -843,6 +847,10 @@ export default function ContractorInductionScreen({
           missing: validationResult.missing,
           incorrect: validationResult.incorrect,
         });
+        setShowModalAnswerFeedback(true);
+        setRevealedQuestionNums([
+          ...new Set([...validationResult.missing, ...validationResult.incorrect]),
+        ]);
       }
       Alert.alert('Please try again', getInductionAnswerValidationMessage(validationResult));
       return false;
@@ -850,6 +858,8 @@ export default function ContractorInductionScreen({
 
     if (showInlineErrors) {
       setModalAnswerValidation({ missing: [], incorrect: [] });
+      setShowModalAnswerFeedback(false);
+      setRevealedQuestionNums([]);
     }
 
     return true;
@@ -2130,6 +2140,8 @@ export default function ContractorInductionScreen({
         setModalStep('video');
         setModalAnswers(savedAnswers);
         setModalAnswerValidation({ missing: [], incorrect: [] });
+        setShowModalAnswerFeedback(false);
+        setRevealedQuestionNums([]);
         setModalVisible(true);
       } catch (error) {
         Alert.alert('Error', 'Failed to start induction: ' + error.message);
@@ -2207,6 +2219,98 @@ export default function ContractorInductionScreen({
       } finally {
         setLoading(false);
       }
+    };
+
+    const renderModalInductionQuestion = (questionNum) => {
+      const questionText = currentModalInduction?.[`question_${questionNum}_text`];
+      if (!questionText?.trim()) {
+        return null;
+      }
+
+      const qType = currentModalInduction[`question_${questionNum}_type`] || 'single-select';
+      const isSingleSelect = qType === 'single-select';
+      const answerKey = `q${questionNum}`;
+      const selectedAnswers = modalAnswers[answerKey] ?? (isSingleSelect ? null : []);
+      const correctAnswer = currentModalInduction[`question_${questionNum}_correct_answer`];
+      const options = currentModalInduction[`question_${questionNum}_options`]?.filter((opt) => opt && opt.trim()) || [];
+      const questionRevealed = revealedQuestionNums.includes(questionNum);
+      const containerStyle = getInductionQuestionContainerStyle({
+        questionNum,
+        validation: modalAnswerValidation,
+        showFeedback: showModalAnswerFeedback,
+        revealedQuestionNums,
+        answers: modalAnswers,
+        induction: currentModalInduction,
+      });
+
+      const handleOptionPress = (idx) => {
+        if (isSingleSelect) {
+          setModalAnswers({ ...modalAnswers, [answerKey]: idx });
+          return;
+        }
+
+        const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
+        if (current.includes(idx)) {
+          setModalAnswers({ ...modalAnswers, [answerKey]: current.filter((value) => value !== idx) });
+        } else {
+          current.push(idx);
+          setModalAnswers({ ...modalAnswers, [answerKey]: current });
+        }
+      };
+
+      return (
+        <View key={questionNum} style={containerStyle}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+            {questionText}
+          </Text>
+          <View style={{ gap: 6 }}>
+            {options.map((option, idx) => {
+              const optionStyles = getInductionOptionStyles({
+                optionIndex: idx,
+                selectedAnswers,
+                correctAnswer,
+                questionType: qType,
+                showAnswerFeedback: showModalAnswerFeedback,
+                questionRevealed,
+              });
+
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => handleOptionPress(idx)}
+                  style={optionStyles.container}
+                >
+                  <View
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: optionStyles.isSingleSelect ? 8 : 3,
+                      borderWidth: 2,
+                      borderColor: optionStyles.indicatorBorderColor,
+                      backgroundColor: optionStyles.indicatorBackgroundColor,
+                      marginRight: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {optionStyles.showIndicator && (
+                      <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                        {optionStyles.isSingleSelect ? '•' : '✓'}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ color: optionStyles.textColor, fontSize: 13, flex: 1 }}>{option}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {getQuestionValidationFeedback(questionNum, modalAnswerValidation) && (
+            <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
+              {getQuestionValidationFeedback(questionNum, modalAnswerValidation)}
+            </Text>
+          )}
+        </View>
+      );
     };
 
     return (
@@ -2368,377 +2472,7 @@ export default function ContractorInductionScreen({
                           Questions
                         </Text>
                         
-                        {currentModalInduction.question_1_text && (
-                          <View style={{
-                            marginBottom: 16,
-                            ...(modalAnswerValidation.missing.includes(1) || modalAnswerValidation.incorrect.includes(1)
-                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
-                              : {}),
-                          }}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                              {currentModalInduction.question_1_text}
-                            </Text>
-                            {(() => {
-                              const qType = currentModalInduction.question_1_type || 'single-select';
-                              const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q1 ?? (isSingleSelect ? null : []);
-                              const correctAnswer = currentModalInduction.question_1_correct_answer;
-                              const options = currentModalInduction.question_1_options?.filter(opt => opt && opt.trim()) || [];
-                              
-                              console.log('🔍 Q1 Full Debug:', { 
-                                qType, 
-                                isSingleSelect,
-                                selectedAnswers,
-                                correctAnswer,
-                                options,
-                                optionsLen: options?.length,
-                                optionsType: typeof options,
-                              });
-                              
-                              return (
-                                <View style={{ gap: 6 }}>
-                                  {Array.isArray(options) && options.map((option, idx) => {
-                                    const isSelected = isSingleSelect 
-                                      ? selectedAnswers === idx 
-                                      : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
-                                    
-                                    console.log(`   Option ${idx}: "${option}", isSelected=${isSelected}, selectedAnswers=${selectedAnswers}`);
-                                    
-                                    if (isSingleSelect) {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            console.log(`   ➡️ User clicked option ${idx}`);
-                                            setModalAnswers({ ...modalAnswers, q1: idx });
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 8,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#3B82F6' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>•</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    } else {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
-                                            if (current.includes(idx)) {
-                                              setModalAnswers({ ...modalAnswers, q1: current.filter(i => i !== idx) });
-                                            } else {
-                                              current.push(idx);
-                                              setModalAnswers({ ...modalAnswers, q1: current });
-                                            }
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#DCFCE7' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#10B981' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 3,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#10B981' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>✓</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    }
-                                  })}
-                                </View>
-                              );
-                            })()}
-                            {getQuestionValidationFeedback(1, modalAnswerValidation) && (
-                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
-                                {getQuestionValidationFeedback(1, modalAnswerValidation)}
-                              </Text>
-                            )}
-                          </View>
-                        )}
-
-                        {currentModalInduction.question_2_text && (
-                          <View style={{
-                            marginBottom: 16,
-                            ...(modalAnswerValidation.missing.includes(2) || modalAnswerValidation.incorrect.includes(2)
-                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
-                              : {}),
-                          }}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                              {currentModalInduction.question_2_text}
-                            </Text>
-                            {(() => {
-                              const qType = currentModalInduction.question_2_type || 'single-select';
-                              const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q2 ?? (isSingleSelect ? null : []);
-                              const correctAnswer = currentModalInduction.question_2_correct_answer;
-                              const options = currentModalInduction.question_2_options?.filter(opt => opt && opt.trim()) || [];
-                              
-                              console.log('🔍 Q2 Full Debug:', { 
-                                qType, 
-                                isSingleSelect,
-                                selectedAnswers,
-                                correctAnswer,
-                                options,
-                                optionsLen: options?.length,
-                              });
-                              
-                              return (
-                                <View style={{ gap: 6 }}>
-                                  {Array.isArray(options) && options.map((option, idx) => {
-                                    const isSelected = isSingleSelect 
-                                      ? selectedAnswers === idx 
-                                      : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
-                                    
-                                    console.log(`   Q2 Option ${idx}: "${option}", isSelected=${isSelected}`);
-                                    
-                                    if (isSingleSelect) {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            console.log(`   ➡️ User clicked Q2 option ${idx}`);
-                                            setModalAnswers({ ...modalAnswers, q2: idx });
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 8,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#3B82F6' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>•</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    } else {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            console.log(`   ➡️ User clicked Q2 option ${idx} (multi-select)`);
-                                            const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
-                                            if (current.includes(idx)) {
-                                              setModalAnswers({ ...modalAnswers, q2: current.filter(i => i !== idx) });
-                                            } else {
-                                              current.push(idx);
-                                              setModalAnswers({ ...modalAnswers, q2: current });
-                                            }
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#DCFCE7' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#10B981' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 3,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#10B981' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>✓</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    }
-                                  })}
-                                </View>
-                              );
-                            })()}
-                            {getQuestionValidationFeedback(2, modalAnswerValidation) && (
-                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
-                                {getQuestionValidationFeedback(2, modalAnswerValidation)}
-                              </Text>
-                            )}
-                          </View>
-                        )}
-
-                        {currentModalInduction.question_3_text && (
-                          <View style={{
-                            marginBottom: 16,
-                            ...(modalAnswerValidation.missing.includes(3) || modalAnswerValidation.incorrect.includes(3)
-                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
-                              : {}),
-                          }}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                              {currentModalInduction.question_3_text}
-                            </Text>
-                            {(() => {
-                              const qType = currentModalInduction.question_3_type || 'single-select';
-                              const isSingleSelect = qType === 'single-select';
-                              const selectedAnswers = modalAnswers.q3 ?? (isSingleSelect ? null : []);
-                              const correctAnswer = currentModalInduction.question_3_correct_answer;
-                              const options = currentModalInduction.question_3_options?.filter(opt => opt && opt.trim()) || [];
-                              
-                              console.log('🔍 Q3 Full Debug:', { 
-                                qType, 
-                                isSingleSelect,
-                                selectedAnswers,
-                                correctAnswer,
-                                options,
-                                optionsLen: options?.length,
-                              });
-                              
-                              return (
-                                <View style={{ gap: 6 }}>
-                                  {Array.isArray(options) && options.map((option, idx) => {
-                                    const isSelected = isSingleSelect 
-                                      ? selectedAnswers === idx 
-                                      : Array.isArray(selectedAnswers) && selectedAnswers.includes(idx);
-                                    
-                                    console.log(`   Q3 Option ${idx}: "${option}", isSelected=${isSelected}`);
-                                    
-                                    if (isSingleSelect) {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            console.log(`   ➡️ User clicked Q3 option ${idx}`);
-                                            setModalAnswers({ ...modalAnswers, q3: idx });
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 8,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#3B82F6' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>•</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    } else {
-                                      return (
-                                        <TouchableOpacity
-                                          key={idx}
-                                          onPress={() => {
-                                            console.log(`   ➡️ User clicked Q3 option ${idx} (multi-select)`);
-                                            const current = Array.isArray(selectedAnswers) ? [...selectedAnswers] : [];
-                                            if (current.includes(idx)) {
-                                              setModalAnswers({ ...modalAnswers, q3: current.filter(i => i !== idx) });
-                                            } else {
-                                              current.push(idx);
-                                              setModalAnswers({ ...modalAnswers, q3: current });
-                                            }
-                                          }}
-                                          style={{
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 6,
-                                            backgroundColor: isSelected ? '#DCFCE7' : '#F3F4F6',
-                                            borderLeftWidth: 3,
-                                            borderLeftColor: isSelected ? '#10B981' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                          }}
-                                        >
-                                          <View style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderRadius: 3,
-                                            borderWidth: 2,
-                                            borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                                            backgroundColor: isSelected ? '#10B981' : 'white',
-                                            marginRight: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}>
-                                            {isSelected && <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>✓</Text>}
-                                          </View>
-                                          <Text style={{ color: '#1F2937', fontSize: 13, flex: 1 }}>{option}</Text>
-                                        </TouchableOpacity>
-                                      );
-                                    }
-                                  })}
-                                </View>
-                              );
-                            })()}
-                            {getQuestionValidationFeedback(3, modalAnswerValidation) && (
-                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
-                                {getQuestionValidationFeedback(3, modalAnswerValidation)}
-                              </Text>
-                            )}
-                          </View>
-                        )}
+                        {[1, 2, 3].map(renderModalInductionQuestion)}
 
                         <TouchableOpacity
                           style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
