@@ -21,6 +21,7 @@ export default function AdminDashboard({
   isolationRegistersCount = 0,
   businessUnitsCount = 0,
   suppliersCount = 0,
+  accreditedCompaniesCount = 0,
   isSuperAdmin = false,
 }) {
   return (
@@ -99,6 +100,13 @@ export default function AdminDashboard({
           >
             <Text style={styles.cardNumber}>{suppliersCount}</Text>
             <Text style={styles.cardLabel}>Suppliers</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#059669' }]}
+            onPress={() => onNavigate('manage_accredited_companies')}
+          >
+            <Text style={styles.cardNumber}>{accreditedCompaniesCount}</Text>
+            <Text style={styles.cardLabel}>Accredited Companies</Text>
           </TouchableOpacity>
           {isSuperAdmin && (
             <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={onShowAddAdminModal}>

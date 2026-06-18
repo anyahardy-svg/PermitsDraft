@@ -66,6 +66,7 @@ import AdminPasswordResetScreen from './src/screens/AdminPasswordResetScreen';
 import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
 import SupplierAccreditationScreen from './src/screens/SupplierAccreditationScreen.jsx';
 import SupplierListScreen from './src/screens/SupplierListScreen.jsx';
+import AccreditedCompaniesScreen from './src/screens/AccreditedCompaniesScreen.jsx';
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
@@ -3684,6 +3685,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'inductions': 'manage_inductions',
         'business-units': 'manage_business_units',
         'suppliers': 'manage_suppliers',
+        'accredited-companies': 'manage_accredited_companies',
       };
       
       const screen = routeMap[routeWithoutTrailingSlash];
@@ -3740,6 +3742,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_inductions': '/admin/inductions/',
         'manage_business_units': '/admin/business-units/',
         'manage_suppliers': '/admin/suppliers/',
+        'manage_accredited_companies': '/admin/accredited-companies/',
         'supplier_accreditation': selectedSupplierId
           ? `/admin/suppliers/${selectedSupplierId}/accreditation/`
           : '/admin/suppliers/',
@@ -3943,6 +3946,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'inductions': 'manage_inductions',
             'business-units': 'manage_business_units',
             'suppliers': 'manage_suppliers',
+            'accredited-companies': 'manage_accredited_companies',
           };
           
           const screen = routeMap[routeWithoutTrailingSlash];
@@ -8887,6 +8891,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Admin Dashboard - choose between Permit Issuers or Contractors
   const renderAdminDashboard = () => {
+    const accreditedCompaniesCount = companies.filter((company) => {
+      const status = resolveAccreditationDisplayStatus(company);
+      return status === 'approved' || status === 'completed';
+    }).length;
+
     return (
       <AdminDashboard
         adminSessionActive={adminSessionActive}
@@ -8903,6 +8912,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         isolationRegistersCount={isolationRegisters.length}
         businessUnitsCount={businessUnits.length}
         suppliersCount={suppliersCount}
+        accreditedCompaniesCount={accreditedCompaniesCount}
         isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
       />
     );
@@ -23751,6 +23761,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </ScrollView>
         </View>
       );
+    case 'manage_accredited_companies':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Accredited companies accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setCurrentScreen('admin')}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Accredited Companies</Text>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <AccreditedCompaniesScreen />
+          </ScrollView>
+        </View>
+      );
     case 'supplier_accreditation':
       if (!adminSessionActive) {
         console.log('🔒 [SECURITY] Supplier accreditation accessed without session - showing login');
@@ -25175,6 +25204,7 @@ const AppRouter = ({ initialRoute }) => {
           'inductions': 'manage_inductions',
           'business-units': 'manage_business_units',
           'suppliers': 'manage_suppliers',
+          'accredited-companies': 'manage_accredited_companies',
         };
         
         return routeMap[routeWithoutTrailingSlash] || null;

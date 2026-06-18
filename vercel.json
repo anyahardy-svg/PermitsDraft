@@ -163,6 +163,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/accredited-companies",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/accredited-companies/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/reset-password",
       "destination": "/index.html"
     },
