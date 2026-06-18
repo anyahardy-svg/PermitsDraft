@@ -117,6 +117,137 @@ export const validateInductionAnswers = (induction, answers = {}) => {
   };
 };
 
+export const getCorrectAnswerIndices = (correctAnswer, questionType = 'single-select') => {
+  const normalized = normalizeCorrectAnswer(correctAnswer, questionType);
+
+  if (questionType === 'multi-select') {
+    return normalized;
+  }
+
+  return normalized === null || normalized === undefined ? [] : [normalized];
+};
+
+export const isInductionOptionSelected = (optionIndex, selectedAnswers, questionType = 'single-select') => {
+  if (questionType === 'multi-select') {
+    return Array.isArray(selectedAnswers) && selectedAnswers.includes(optionIndex);
+  }
+
+  return selectedAnswers === optionIndex;
+};
+
+export const getInductionQuestionContainerStyle = ({
+  questionNum,
+  validation,
+  showFeedback,
+  revealedQuestionNums,
+  answers,
+  induction,
+}) => {
+  const baseStyle = { marginBottom: 16 };
+  const hasError = validation.missing.includes(questionNum) || validation.incorrect.includes(questionNum);
+
+  if (hasError) {
+    return {
+      ...baseStyle,
+      borderWidth: 1,
+      borderColor: '#DC2626',
+      borderRadius: 8,
+      padding: 12,
+      backgroundColor: '#FEF2F2',
+    };
+  }
+
+  const question = getInductionQuestions(induction).find((item) => item.num === questionNum);
+  const wasRevealed = revealedQuestionNums.includes(questionNum);
+
+  if (
+    showFeedback &&
+    !wasRevealed &&
+    question &&
+    isInductionAnswerProvided(answers[question.answerKey], question.type)
+  ) {
+    return {
+      ...baseStyle,
+      borderWidth: 1,
+      borderColor: '#10B981',
+      borderRadius: 8,
+      padding: 12,
+      backgroundColor: '#F0FDF4',
+    };
+  }
+
+  return baseStyle;
+};
+
+export const getInductionOptionStyles = ({
+  optionIndex,
+  selectedAnswers,
+  correctAnswer,
+  questionType,
+  showAnswerFeedback,
+  questionRevealed,
+}) => {
+  const isSingleSelect = questionType === 'single-select';
+  const isSelected = isInductionOptionSelected(optionIndex, selectedAnswers, questionType);
+  const isCorrectOption = getCorrectAnswerIndices(correctAnswer, questionType).includes(optionIndex);
+  const showFeedback = showAnswerFeedback && questionRevealed;
+  const baseContainer = {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  };
+
+  if (showFeedback) {
+    if (isSelected && !isCorrectOption) {
+      return {
+        container: {
+          ...baseContainer,
+          backgroundColor: '#FEF2F2',
+          borderWidth: 1,
+          borderColor: '#DC2626',
+        },
+        indicatorBorderColor: '#DC2626',
+        indicatorBackgroundColor: '#DC2626',
+        showIndicator: true,
+        textColor: '#991B1B',
+        isSingleSelect,
+      };
+    }
+
+    if (isCorrectOption) {
+      return {
+        container: {
+          ...baseContainer,
+          backgroundColor: '#F0FDF4',
+          borderWidth: 1,
+          borderColor: '#10B981',
+        },
+        indicatorBorderColor: '#10B981',
+        indicatorBackgroundColor: isSelected ? '#10B981' : 'white',
+        showIndicator: isSelected,
+        textColor: '#065F46',
+        isSingleSelect,
+      };
+    }
+  }
+
+  return {
+    container: {
+      ...baseContainer,
+      backgroundColor: isSelected ? (isSingleSelect ? '#E0E7FF' : '#DCFCE7') : '#F3F4F6',
+      borderLeftWidth: 3,
+      borderLeftColor: isSelected ? (isSingleSelect ? '#3B82F6' : '#10B981') : '#E5E7EB',
+    },
+    indicatorBorderColor: isSelected ? (isSingleSelect ? '#3B82F6' : '#10B981') : '#D1D5DB',
+    indicatorBackgroundColor: isSelected ? (isSingleSelect ? '#3B82F6' : '#10B981') : 'white',
+    showIndicator: isSelected,
+    textColor: '#1F2937',
+    isSingleSelect,
+  };
+};
+
 export const getInductionAnswerValidationMessage = ({ missing = [], incorrect = [] } = {}) => {
   if (missing.length > 0 && incorrect.length > 0) {
     return `Please answer all questions. Questions ${incorrect.join(', ')} are incorrect — review the induction and try again.`;
