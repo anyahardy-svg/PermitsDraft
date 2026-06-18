@@ -32,6 +32,10 @@ import { listContractors, createContractor, getContractor, updateContractor } fr
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
 import { listServicesByBusinessUnit } from '../api/services';
+import {
+  validateInductionAnswers,
+  getInductionAnswerValidationMessage,
+} from '../utils/inductionAnswerValidation';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -168,6 +172,7 @@ export default function ContractorInductionScreen({
   const [currentModalInduction, setCurrentModalInduction] = useState(null); // Current induction in modal
   const [modalStep, setModalStep] = useState('video'); // video, questions, complete
   const [modalAnswers, setModalAnswers] = useState({}); // Answers for current modal induction
+  const [modalAnswerValidation, setModalAnswerValidation] = useState({ missing: [], incorrect: [] });
 
   // Step 3: Video
   const [videoWatched, setVideoWatched] = useState(false);
@@ -814,6 +819,43 @@ export default function ContractorInductionScreen({
     }
   };
 
+  useEffect(() => {
+    if (modalAnswerValidation.missing.length > 0 || modalAnswerValidation.incorrect.length > 0) {
+      setModalAnswerValidation({ missing: [], incorrect: [] });
+    }
+  }, [modalAnswers]);
+
+  const checkInductionAnswers = (induction, currentAnswers, { showInlineErrors = false } = {}) => {
+    const validationResult = validateInductionAnswers(induction, currentAnswers);
+
+    if (!validationResult.valid) {
+      if (showInlineErrors) {
+        setModalAnswerValidation({
+          missing: validationResult.missing,
+          incorrect: validationResult.incorrect,
+        });
+      }
+      Alert.alert('Please try again', getInductionAnswerValidationMessage(validationResult));
+      return false;
+    }
+
+    if (showInlineErrors) {
+      setModalAnswerValidation({ missing: [], incorrect: [] });
+    }
+
+    return true;
+  };
+
+  const getQuestionValidationFeedback = (questionNum, validation) => {
+    if (validation.missing.includes(questionNum)) {
+      return 'Please answer this question.';
+    }
+    if (validation.incorrect.includes(questionNum)) {
+      return 'Incorrect answer. Please review the induction and try again.';
+    }
+    return null;
+  };
+
   const finalizeContractorInductionStatus = async (completedIds = completedInductionIds) => {
     const completedInductions = inductionQueue.filter(ind => completedIds.includes(ind.id));
     const earnedServiceIds = completedInductions
@@ -860,15 +902,7 @@ export default function ContractorInductionScreen({
   };
 
   const handleQuestionsComplete = () => {
-    // Validate answers
-    const questions = [
-      currentInduction.question_1_text,
-      currentInduction.question_2_text,
-      currentInduction.question_3_text,
-    ].filter(q => q?.trim());
-
-    if (questions.length > 0 && Object.keys(answers).length < questions.length) {
-      Alert.alert('Error', 'Please answer all questions');
+    if (!checkInductionAnswers(currentInduction, answers)) {
       return;
     }
 
@@ -2086,6 +2120,7 @@ export default function ContractorInductionScreen({
         setSelectedInductionId(induction.id);
         setModalStep('video');
         setModalAnswers(savedAnswers);
+        setModalAnswerValidation({ missing: [], incorrect: [] });
         setModalVisible(true);
       } catch (error) {
         Alert.alert('Error', 'Failed to start induction: ' + error.message);
@@ -2096,6 +2131,11 @@ export default function ContractorInductionScreen({
 
     const handleCompleteInduction = async () => {
       if (!currentModalInduction || !contractorInfo.id) return;
+
+      if (!checkInductionAnswers(currentModalInduction, modalAnswers, { showInlineErrors: true })) {
+        setModalStep('questions');
+        return;
+      }
       
       try {
         setLoading(true);
@@ -2320,7 +2360,12 @@ export default function ContractorInductionScreen({
                         </Text>
                         
                         {currentModalInduction.question_1_text && (
-                          <View style={{ marginBottom: 16 }}>
+                          <View style={{
+                            marginBottom: 16,
+                            ...(modalAnswerValidation.missing.includes(1) || modalAnswerValidation.incorrect.includes(1)
+                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
+                              : {}),
+                          }}>
                             <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
                               {currentModalInduction.question_1_text}
                             </Text>
@@ -2430,11 +2475,21 @@ export default function ContractorInductionScreen({
                                 </View>
                               );
                             })()}
+                            {getQuestionValidationFeedback(1, modalAnswerValidation) && (
+                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
+                                {getQuestionValidationFeedback(1, modalAnswerValidation)}
+                              </Text>
+                            )}
                           </View>
                         )}
 
                         {currentModalInduction.question_2_text && (
-                          <View style={{ marginBottom: 16 }}>
+                          <View style={{
+                            marginBottom: 16,
+                            ...(modalAnswerValidation.missing.includes(2) || modalAnswerValidation.incorrect.includes(2)
+                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
+                              : {}),
+                          }}>
                             <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
                               {currentModalInduction.question_2_text}
                             </Text>
@@ -2544,11 +2599,21 @@ export default function ContractorInductionScreen({
                                 </View>
                               );
                             })()}
+                            {getQuestionValidationFeedback(2, modalAnswerValidation) && (
+                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
+                                {getQuestionValidationFeedback(2, modalAnswerValidation)}
+                              </Text>
+                            )}
                           </View>
                         )}
 
                         {currentModalInduction.question_3_text && (
-                          <View style={{ marginBottom: 16 }}>
+                          <View style={{
+                            marginBottom: 16,
+                            ...(modalAnswerValidation.missing.includes(3) || modalAnswerValidation.incorrect.includes(3)
+                              ? { borderWidth: 1, borderColor: '#DC2626', borderRadius: 8, padding: 12, backgroundColor: '#FEF2F2' }
+                              : {}),
+                          }}>
                             <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
                               {currentModalInduction.question_3_text}
                             </Text>
@@ -2658,12 +2723,22 @@ export default function ContractorInductionScreen({
                                 </View>
                               );
                             })()}
+                            {getQuestionValidationFeedback(3, modalAnswerValidation) && (
+                              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
+                                {getQuestionValidationFeedback(3, modalAnswerValidation)}
+                              </Text>
+                            )}
                           </View>
                         )}
 
                         <TouchableOpacity
                           style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-                          onPress={() => setModalStep('complete')}
+                          onPress={() => {
+                            if (!checkInductionAnswers(currentModalInduction, modalAnswers, { showInlineErrors: true })) {
+                              return;
+                            }
+                            setModalStep('complete');
+                          }}
                         >
                           <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
                             Next: Complete
