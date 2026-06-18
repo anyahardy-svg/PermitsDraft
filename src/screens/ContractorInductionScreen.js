@@ -158,6 +158,15 @@ export default function ContractorInductionScreen({
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
 
+  const handleExitWithContractor = () => {
+    if (onComplete) {
+      onComplete({
+        contractorId: contractorInfo.id || null,
+        contractorName: contractorInfo.name || '',
+      });
+    }
+  };
+
   // Step 2: Inductions List
   const [allInductions, setAllInductions] = useState([]);
   const [compulsoryInductions, setCompulsoryInductions] = useState([]);
@@ -2180,14 +2189,14 @@ export default function ContractorInductionScreen({
             'Success',
             standalone
               ? 'All inductions completed. You can close this page.'
-              : 'All inductions completed. You can now sign in at the kiosk.',
+              : 'All inductions completed. You can now sign in.',
             [
             {
               text: 'OK',
               onPress: () => {
                 setCurrentModalInduction(null);
                 setModalAnswers({});
-                onCancel(); // Go back to kiosk
+                handleExitWithContractor();
               }
             }
           ]);
@@ -2257,10 +2266,10 @@ export default function ContractorInductionScreen({
           {inductionQueue.filter(ind => !completedInductionIds.includes(ind.id)).length === 0 && (
             <TouchableOpacity
               style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-              onPress={() => onCancel()} 
+              onPress={handleExitWithContractor}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                {standalone ? 'All Inductions Complete' : 'All Inductions Complete - Return to Kiosk'}
+                {standalone ? 'All Inductions Complete' : 'All Inductions Complete - Sign In'}
               </Text>
             </TouchableOpacity>
           )}
@@ -2956,16 +2965,18 @@ export default function ContractorInductionScreen({
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={{ fontSize: 32, marginBottom: 16 }}>✅</Text>
         <Text style={{ fontSize: 20, fontWeight: '700', color: '#10B981', marginBottom: 8, textAlign: 'center' }}>
-          All Done!
+          {contractorInfo.name ? `All Done, ${contractorInfo.name}!` : 'All Done!'}
         </Text>
         <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
           Your inductions have been submitted successfully.
         </Text>
         <TouchableOpacity
           style={{ backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 }}
-          onPress={onComplete}
+          onPress={handleExitWithContractor}
         >
-          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Close</Text>
+          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+            {standalone ? 'Close' : 'Continue to Sign In'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -3198,14 +3209,14 @@ export default function ContractorInductionScreen({
         <View style={{ paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 32, textAlign: 'center', marginBottom: 16 }}>✓</Text>
           <Text style={{ fontSize: 24, fontWeight: '700', textAlign: 'center', color: '#10B981', marginBottom: 8 }}>
-            Inductions Complete!
+            {contractorInfo.name ? `Inductions Complete, ${contractorInfo.name}!` : 'Inductions Complete!'}
           </Text>
           <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
             You have successfully completed all selected inductions.
           </Text>
-          <TouchableOpacity style={styles.button} onPress={onComplete}>
+          <TouchableOpacity style={styles.button} onPress={handleExitWithContractor}>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
-              {standalone ? 'Done' : 'Return to Kiosk'}
+              {standalone ? 'Done' : 'Continue to Sign In'}
             </Text>
           </TouchableOpacity>
         </View>
