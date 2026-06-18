@@ -33,8 +33,8 @@ const transformCompany = (dbCompany) => {
     company_active: dbCompany.company_active !== false,
     preQualificationApproved: dbCompany.pre_qualification_approved || false,
     pre_qualification_approved: dbCompany.pre_qualification_approved || false,
-    abnNzbn: dbCompany.abn_nzbn || '',
-    abn_nzbn: dbCompany.abn_nzbn || '',
+    abnNzbn: dbCompany.abn_nzbn || dbCompany.nzbn || '',
+    abn_nzbn: dbCompany.abn_nzbn || dbCompany.nzbn || '',
     address1: dbCompany.address_1 || '',
     address_1: dbCompany.address_1 || '',
     addressCity: dbCompany.address_city || '',
@@ -88,7 +88,7 @@ export const createCompany = async (companyData) => {
       accredited_date: companyData.accredited_date || companyData.accreditedDate || null,
       company_active: companyData.company_active !== undefined ? companyData.company_active : (companyData.companyActive !== undefined ? companyData.companyActive : true),
       pre_qualification_approved: companyData.pre_qualification_approved || companyData.preQualificationApproved || false,
-      abn_nzbn: companyData.abn_nzbn || companyData.abnNzbn || null,
+      nzbn: companyData.nzbn || companyData.abn_nzbn || companyData.abnNzbn || null,
       address_1: companyData.address_1 || companyData.address1 || null,
       address_city: companyData.address_city || companyData.addressCity || null,
       address_postcode: companyData.address_postcode || companyData.addressPostcode || null,
@@ -114,7 +114,7 @@ export const listCompanies = async () => {
   try {
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type')
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -136,7 +136,7 @@ export const getCompany = async (companyId) => {
 
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, abn_nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved')
       .eq('id', companyId)
       .single();
 
@@ -156,7 +156,7 @@ export const updateCompany = async (companyId, updates) => {
       console.warn('⚠️ updateCompany called with null/undefined companyId');
       return null;
     }
-    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       // Support both camelCase and snake_case
@@ -167,6 +167,12 @@ export const updateCompany = async (companyId, updates) => {
         validUpdates[key] = updates[key];
       }
     });
+
+    // Production DB uses nzbn; map legacy abn_nzbn writes to nzbn
+    if (validUpdates.abn_nzbn && !validUpdates.nzbn) {
+      validUpdates.nzbn = validUpdates.abn_nzbn;
+    }
+    delete validUpdates.abn_nzbn;
 
     const { data, error } = await supabase
       .from('companies')
