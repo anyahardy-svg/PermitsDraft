@@ -116,6 +116,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [inductionInitialRoute, setInductionInitialRoute] = useState(null);
   const [inductionPrefillContractorId, setInductionPrefillContractorId] = useState(null);
   const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
+  const [returnedFromInduction, setReturnedFromInduction] = useState(false);
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -327,6 +328,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }, [permitsLoading, currentScreen, siteId, currentContractor?.companyId]);
 
   const handleContractorSearch = (text) => {
+    setReturnedFromInduction(false);
     setContractorSearch(text);
     if (text.trim().length > 0) {
       const filtered = contractors.filter(c => {
@@ -421,6 +423,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleSelectContractor = async (contractor) => {
     setSelectedContractor(contractor);
+    setContractorSearch(contractor.name || '');
     setFilteredContractors([]); // Clear the list so it collapses
     
     console.log('🔍 Contractor selected:', contractor.name);
@@ -872,12 +875,31 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setCurrentScreen(inductionReturnScreen === 'contractor-signin' ? 'contractor-signin' : 'inductions');
     };
 
-    const handleExitInductions = async () => {
+    const handleCompleteInductions = async (completedContractor = null) => {
+      const priorReturnScreen = inductionReturnScreen || 'welcome';
+      const contractorIdToRefresh = completedContractor?.contractorId || inductionPrefillContractorId;
+      setInductionPrefillContractorId(null);
+      setInductionReturnScreen('welcome');
+
+      const returnScreen = contractorIdToRefresh ? 'contractor-signin' : priorReturnScreen;
+
+      if (returnScreen === 'contractor-signin' && contractorIdToRefresh) {
+        await refreshContractorsForCurrentSite(contractorIdToRefresh);
+        if (completedContractor?.contractorName) {
+          setContractorSearch(completedContractor.contractorName);
+        }
+        setReturnedFromInduction(true);
+      }
+
+      setCurrentScreen(returnScreen);
+    };
+
+    const handleCancelInductions = async () => {
       const returnScreen = inductionReturnScreen || 'welcome';
       const contractorIdToRefresh = inductionPrefillContractorId;
       setInductionPrefillContractorId(null);
       setInductionReturnScreen('welcome');
-      if (returnScreen === 'contractor-signin') {
+      if (returnScreen === 'contractor-signin' && contractorIdToRefresh) {
         await refreshContractorsForCurrentSite(contractorIdToRefresh);
       }
       setCurrentScreen(returnScreen);
@@ -891,8 +913,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         initialContractorId={inductionPrefillContractorId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
-        onComplete={handleExitInductions}
-        onCancel={handleExitInductions}
+        onComplete={handleCompleteInductions}
+        onCancel={handleCancelInductions}
       />
     );
   }
@@ -902,13 +924,34 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+          <TouchableOpacity onPress={() => {
+            setReturnedFromInduction(false);
+            setCurrentScreen('welcome');
+          }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sign In Contractor</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
+          {returnedFromInduction && selectedContractor && (
+            <View style={{
+              backgroundColor: '#DCFCE7',
+              borderLeftWidth: 4,
+              borderLeftColor: '#10B981',
+              padding: 14,
+              borderRadius: 8,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#166534', marginBottom: 4 }}>
+                Welcome back, {selectedContractor.name}!
+              </Text>
+              <Text style={{ fontSize: 13, color: '#15803D', lineHeight: 18 }}>
+                Your induction is complete. Review the details below and check in when ready.
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.label}>Search for Contractor:</Text>
           <TextInput
             style={styles.input}
