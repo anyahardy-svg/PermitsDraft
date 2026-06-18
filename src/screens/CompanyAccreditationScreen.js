@@ -35,6 +35,22 @@ const debugWarn = (...args) => {
   }
 };
 
+const drawStoredSignatureOnCanvas = (canvas, ctx, signatureData, onSuccess) => {
+  if (!canvas || !ctx || !signatureData) return;
+
+  const img = new Image();
+  img.onload = () => {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    onSuccess?.();
+  };
+  img.onerror = (err) => {
+    console.error('Failed to load signature image:', err);
+  };
+  img.src = signatureData;
+};
+
 // Helper function to convert storage paths to full Supabase URLs
 const getFullStorageUrl = (storagePath) => {
   if (!storagePath) return null;
@@ -73,6 +89,7 @@ export default function CompanyAccreditationScreen({
 }) {
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
+  const storedSignatureRef = useRef(null);
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // If companyId is provided (logged-in contractor), use it directly
@@ -369,6 +386,10 @@ export default function CompanyAccreditationScreen({
   const [hasSignature, setHasSignature] = useState(false);
   // Track isDrawing with useRef like HSAgreementModal (not useState)
   const isDrawingRef = useRef(false);
+
+  useEffect(() => {
+    storedSignatureRef.current = section26.hs_agreement_signature;
+  }, [section26.hs_agreement_signature]);
 
   // Company information state (for verification/updates)
   const [companyDetails, setCompanyDetails] = useState({
@@ -4240,6 +4261,16 @@ export default function CompanyAccreditationScreen({
 
       contextRef.current = ctx;
       debugLog('✅ Canvas initialized');
+
+      if (storedSignatureRef.current) {
+        debugLog('🖼️ Drawing stored signature after canvas init');
+        drawStoredSignatureOnCanvas(
+          canvas,
+          ctx,
+          storedSignatureRef.current,
+          () => setHasSignature(true)
+        );
+      }
     };
 
     // Start the initialization
@@ -4252,19 +4283,19 @@ export default function CompanyAccreditationScreen({
     };
   }, [expandedSections[26]]);  // ONLY depends on section visibility
 
-  // Separate effect to redraw signature when it changes
+  // Redraw signature when data changes or section 26 is expanded (canvas mounts)
   useEffect(() => {
-    // IMPORTANT: Do NOT skip redraw based on expandedSections
-    // Keep canvas in sync even if section is collapsed
-    // When user expands section later, the signature will already be drawn
-    
+    if (!expandedSections[26]) {
+      debugLog('🖼️ REDRAW: Section 26 collapsed, skipping');
+      return;
+    }
+
     if (!section26.hs_agreement_signature) {
       debugLog('🖼️ REDRAW: No signature data, skipping');
       return;
     }
 
     debugLog('🖼️ REDRAW TRIGGERED - Signature data changed, length:', section26.hs_agreement_signature.length);
-    debugLog('🖼️ Section 26 expanded?:', expandedSections[26], '(will redraw regardless)');
     
     const canvas = canvasRef.current;
     const container = canvasContainerRef.current;
@@ -4276,7 +4307,6 @@ export default function CompanyAccreditationScreen({
 
     debugLog('🖼️ Canvas and container exist, proceeding with redraw');
 
-    // ALWAYS reset and reinitialize context - component re-render may have invalidated it
     const rect = container.getBoundingClientRect();
     const actualWidth = Math.max(rect.width, 300);
     const actualHeight = 150;
@@ -4292,7 +4322,6 @@ export default function CompanyAccreditationScreen({
       return;
     }
     
-    // Reconfigure context styles
     ctx.strokeStyle = '#1F2937';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
@@ -4300,53 +4329,23 @@ export default function CompanyAccreditationScreen({
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, actualWidth, actualHeight);
     
-    // IMPORTANT: Update the ref to ensure we have the fresh context
     contextRef.current = ctx;
     debugLog('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
 
-    // Get current canvas dimensions before drawing
-    const canvasDimensions = { w: canvas.width, h: canvas.height, clientW: container.clientWidth };
-    debugLog('🖼️ About to draw, canvas dimensions:', canvasDimensions);
-
-    // Use requestAnimationFrame to ensure canvas is ready
     let rafId = requestAnimationFrame(() => {
-      debugLog('🖼️ RAF callback - creating Image object');
-      const img = new Image();
-      
-      img.onload = () => {
-        const currentCtx = contextRef.current;
-        const currentCanvas = canvasRef.current;
-        debugLog('📸 Image loaded, currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
-        debugLog('📸 Canvas dimensions now:', {w: currentCanvas?.width, h: currentCanvas?.height});
-        if (currentCtx && currentCanvas) {
-          debugLog('🖼️ Clearing canvas and drawing signature');
-          // Clear canvas first to ensure clean draw
-          currentCtx.fillStyle = 'white';
-          currentCtx.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
-          debugLog('🖼️ Canvas cleared');
-          // Then draw signature
-          currentCtx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
-          setHasSignature(true);
-          debugLog('✅ Signature drawn successfully to canvas');
-        } else {
-          console.error('❌ Missing context or canvas in img.onload - currentCtx:', !!currentCtx, 'currentCanvas:', !!currentCanvas);
-        }
-      };
-      
-      img.onerror = (err) => {
-        console.error('❌ Failed to load signature image, error:', err);
-        console.error('❌ Image src first 50 chars:', section26.hs_agreement_signature.substring(0, 50));
-      };
-      
-      debugLog('🖼️ Setting img.src, signature length:', section26.hs_agreement_signature.length);
-      img.src = section26.hs_agreement_signature;
+      drawStoredSignatureOnCanvas(
+        canvas,
+        contextRef.current,
+        section26.hs_agreement_signature,
+        () => setHasSignature(true)
+      );
     });
 
     return () => {
       debugLog('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [section26.hs_agreement_signature]);  // ONLY depend on signature data, not expandedSections
+  }, [section26.hs_agreement_signature, expandedSections[26]]);
 
   // Setup canvas event listeners
   useEffect(() => {
