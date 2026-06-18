@@ -78,16 +78,22 @@ function getExpiryPrefix(dateValue) {
 
 export default function AccreditedCompaniesScreen() {
   const [companies, setCompanies] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('All');
+  const [siteFilter, setSiteFilter] = useState('All');
 
   const loadCompanies = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await listAccreditedCompaniesReport();
-      setCompanies(data);
+      setCompanies(data.companies || []);
+      setBusinessUnits(data.businessUnits || []);
+      setSites(data.sites || []);
     } catch (loadError) {
       console.error('Failed to load accredited companies:', loadError);
       setError(loadError?.message || 'Failed to load accredited companies. Please try again.');
@@ -100,22 +106,28 @@ export default function AccreditedCompaniesScreen() {
     loadCompanies();
   }, [loadCompanies]);
 
-  const filteredCompanies = companies.filter((company) => {
-    if (!searchText) {
-      return true;
-    }
+  const hasActiveFilters = searchText || businessUnitFilter !== 'All' || siteFilter !== 'All';
 
+  const filteredCompanies = companies.filter((company) => {
     const query = searchText.toLowerCase();
-    return (
+    const matchesSearch = !searchText || (
       company.companyName?.toLowerCase().includes(query)
       || company.businessUnits?.toLowerCase().includes(query)
       || company.sites?.toLowerCase().includes(query)
     );
+
+    const matchesBusinessUnit = businessUnitFilter === 'All'
+      || (company.businessUnitIds || []).includes(businessUnitFilter);
+
+    const matchesSite = siteFilter === 'All'
+      || (company.siteIds || []).includes(siteFilter);
+
+    return matchesSearch && matchesBusinessUnit && matchesSite;
   });
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ marginBottom: 16 }}>
+      <View style={{ marginBottom: 16, gap: 12 }}>
         <TextInput
           placeholder="Search by company, business unit, or site..."
           value={searchText}
@@ -130,7 +142,53 @@ export default function AccreditedCompaniesScreen() {
             backgroundColor: 'white',
           }}
         />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <select
+            style={{
+              flex: 1,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderColor: '#D1D5DB',
+              borderWidth: 1,
+              borderRadius: 8,
+              backgroundColor: 'white',
+              fontSize: 14,
+            }}
+            value={businessUnitFilter}
+            onChange={(e) => setBusinessUnitFilter(e.target.value)}
+          >
+            <option value="All">All Business Units</option>
+            {businessUnits.map((bu) => (
+              <option key={bu.id} value={bu.id}>{bu.name}</option>
+            ))}
+          </select>
+          <select
+            style={{
+              flex: 1,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderColor: '#D1D5DB',
+              borderWidth: 1,
+              borderRadius: 8,
+              backgroundColor: 'white',
+              fontSize: 14,
+            }}
+            value={siteFilter}
+            onChange={(e) => setSiteFilter(e.target.value)}
+          >
+            <option value="All">All Sites</option>
+            {sites.map((site) => (
+              <option key={site.id} value={site.id}>{site.name}</option>
+            ))}
+          </select>
+        </View>
       </View>
+
+      {!loading && !error && (
+        <Text style={{ color: '#6B7280', marginBottom: 12 }}>
+          Showing {filteredCompanies.length} of {companies.length} accredited companies
+        </Text>
+      )}
 
       {loading ? (
         <View style={{ padding: 40, alignItems: 'center' }}>
@@ -144,7 +202,7 @@ export default function AccreditedCompaniesScreen() {
       ) : filteredCompanies.length === 0 ? (
         <View style={{ padding: 40, alignItems: 'center' }}>
           <Text style={{ color: '#6B7280', fontSize: 15 }}>
-            {searchText ? 'No accredited companies match your search.' : 'No accredited companies found.'}
+            {hasActiveFilters ? 'No accredited companies match your filters.' : 'No accredited companies found.'}
           </Text>
         </View>
       ) : (

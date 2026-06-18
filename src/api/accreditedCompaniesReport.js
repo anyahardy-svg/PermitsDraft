@@ -21,7 +21,7 @@ function isAccreditedCompany(company) {
 
 export async function listAccreditedCompaniesReport() {
   const [
-    { data: companies, error: companiesError },
+    { data: companiesData, error: companiesError },
     { data: contractors, error: contractorsError },
     { data: businessUnits, error: businessUnitsError },
     { data: sites, error: sitesError },
@@ -53,6 +53,7 @@ export async function listAccreditedCompaniesReport() {
   const siteMap = Object.fromEntries((sites || []).map((site) => [site.id, site.name]));
 
   const companySitesMap = {};
+  const companySiteIdsMap = {};
   (contractors || []).forEach((contractor) => {
     if (!contractor.company_id) {
       return;
@@ -60,17 +61,19 @@ export async function listAccreditedCompaniesReport() {
 
     if (!companySitesMap[contractor.company_id]) {
       companySitesMap[contractor.company_id] = new Set();
+      companySiteIdsMap[contractor.company_id] = new Set();
     }
 
     (contractor.site_ids || []).forEach((siteId) => {
       const siteName = siteMap[siteId];
       if (siteName) {
         companySitesMap[contractor.company_id].add(siteName);
+        companySiteIdsMap[contractor.company_id].add(siteId);
       }
     });
   });
 
-  return (companies || [])
+  const companies = (companiesData || [])
     .filter(isAccreditedCompany)
     .map((company) => {
       const businessUnitNames = (company.business_unit_ids || [])
@@ -78,13 +81,16 @@ export async function listAccreditedCompaniesReport() {
         .filter(Boolean);
 
       const siteNames = Array.from(companySitesMap[company.id] || []).sort();
+      const siteIds = Array.from(companySiteIdsMap[company.id] || []);
 
       return {
         id: company.id,
         companyName: company.name,
         accreditationDate: company.accredited_date || '',
         accreditationDateDisplay: formatDate(company.accredited_date),
+        businessUnitIds: company.business_unit_ids || [],
         businessUnits: businessUnitNames.join('; '),
+        siteIds,
         sites: siteNames.join('; '),
         plInsuranceExpiry: company.public_liability_expiry || '',
         plInsuranceExpiryDisplay: formatDate(company.public_liability_expiry),
@@ -92,4 +98,10 @@ export async function listAccreditedCompaniesReport() {
         vehicleInsuranceExpiryDisplay: formatDate(company.motor_vehicle_insurance_expiry),
       };
     });
+
+  return {
+    companies,
+    businessUnits: businessUnits || [],
+    sites: sites || [],
+  };
 }
