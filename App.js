@@ -2921,40 +2921,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setPermits(permitsData);
         
         // Load companies
-        const companiesData = await listCompanies();
-        setCompanies(companiesData);
+        try {
+          const companiesData = await listCompanies();
+          setCompanies(companiesData);
         
-        // Initialize empty training records statuses
-        setTrainingRecordsStatuses({});
-        setTrainingMatricesStatuses({});
+          // Initialize empty training records statuses
+          setTrainingRecordsStatuses({});
+          setTrainingMatricesStatuses({});
         
-        // Load training records statuses in background (non-blocking)
-        // This runs asynchronously after UI renders
-        // NOTE: Use batch query for performance - single query instead of N+1
-        setTimeout(() => {
-          (async () => {
-            try {
-              // PERFORMANCE FIX: Use batch endpoint instead of individual queries
-              // Before: 100 companies = 100 separate queries (N+1 problem)
-              // After:  100 companies = 1 batch query
-              const statusResults = await getCompanyTrainingRecordsStatusBatch(
-                companiesData.map(c => c.id)
-              );
-              
-              setTrainingRecordsStatuses(statusResults);
+          // Load training records statuses in background (non-blocking)
+          setTimeout(() => {
+            (async () => {
+              try {
+                const statusResults = await getCompanyTrainingRecordsStatusBatch(
+                  companiesData.map(c => c.id)
+                );
+                setTrainingRecordsStatuses(statusResults);
 
-              const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
-                companiesData.map(c => c.id)
-              );
-              setTrainingMatricesStatuses(matrixStatusResults);
-              if (process.env.NODE_ENV === 'development') {
-                console.log('✅ All training records statuses loaded (batch query)');
+                const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
+                  companiesData.map(c => c.id)
+                );
+                setTrainingMatricesStatuses(matrixStatusResults);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('✅ All training records statuses loaded (batch query)');
+                }
+              } catch (error) {
+                console.error('❌ Error loading training records statuses:', error);
               }
-            } catch (error) {
-              console.error('❌ Error loading training records statuses:', error);
-            }
-          })();
-        }, 500); // Small delay to ensure UI is rendered first
+            })();
+          }, 500);
+        } catch (companiesError) {
+          console.error('❌ Error loading companies:', companiesError);
+          setCompanies([]);
+        }
         
         // Load services from database
         const servicesData = await listAllServices();
@@ -2991,13 +2990,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
         
         // Load contractors LAST (after mappings are ready)
-        const contractorsData = await listContractors();
-        console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
-        console.log('📊 Contractor data:', contractorsData);
-        // Cache contractors for permit filtering
-        window._contractorsCache = contractorsData;
-        setContractors(contractorsData);
-        console.log('🎯 Contractors state should now be:', contractorsData);
+        try {
+          const contractorsData = await listContractors();
+          console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
+          window._contractorsCache = contractorsData;
+          setContractors(contractorsData);
+        } catch (contractorsError) {
+          console.error('❌ Error loading contractors:', contractorsError);
+          setContractors([]);
+        }
         
         // Load pending join requests count
         const joinRequestsResult = await getAllPendingJoinRequests();
@@ -3057,18 +3058,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [currentScreen]);
 
   // Permit Issuers state - stores system permit issuers with sites they can work at
-  const [permitIssuers, setPermitIssuers] = useState([
-    { id: 'user-001', name: 'John Smith', email: 'john.smith@company.com', sites: ['Amisfield Quarry', 'Belmont Quarry'], company: 'ABC Contractors', isAdmin: true },
-    { id: 'user-002', name: 'Jane Doe', email: 'jane.doe@company.com', sites: ['Wheatsheaf Quarry'], company: 'ABC Contractors', isAdmin: false },
-    { id: 'user-003', name: 'Bob Wilson', email: 'bob.wilson@company.com', sites: ['Otaki Quarry', 'Petone Quarry'], company: 'XYZ Services', isAdmin: false }
-  ]);
+  const [permitIssuers, setPermitIssuers] = useState([]);
 
   // Companies state - stores contractor company information
-  const [companies, setCompanies] = useState([
-    { id: 'company-001', name: 'ABC Contractors Ltd' },
-    { id: 'company-002', name: 'XYZ Services Inc' },
-    { id: 'company-003', name: 'SafeWork Solutions' }
-  ]);
+  const [companies, setCompanies] = useState([]);
 
   // Contractors state - stores contractor information
   const [contractors, setContractors] = useState([]);
@@ -10206,7 +10199,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) updateData.accredited_date = parseDateToISO(accreditedDate) || null;
-                  if (nzbn) updateData.abn_nzbn = nzbn;
+                  if (nzbn) updateData.nzbn = nzbn;
                   if (address1) updateData.address_1 = address1;
                   if (addressCity) updateData.address_city = addressCity;
                   if (addressPostcode) updateData.address_postcode = addressPostcode;
@@ -10229,7 +10222,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (motorVehicleExpiry) createData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
                   if (reviewDate) createData.review_date = parseDateToISO(reviewDate) || null;
                   if (accreditedDate) createData.accredited_date = parseDateToISO(accreditedDate) || null;
-                  if (nzbn) createData.abn_nzbn = nzbn;
+                  if (nzbn) createData.nzbn = nzbn;
                   if (address1) createData.address_1 = address1;
                   if (addressCity) createData.address_city = addressCity;
                   if (addressPostcode) createData.address_postcode = addressPostcode;
@@ -10368,7 +10361,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         formatDateForCsv(company.motor_vehicle_insurance_expiry || company.motorVehicleInsuranceExpiry),
         formatDateForCsv(company.review_date || company.reviewDate),
         formatDateForCsv(company.accredited_date || company.accreditedDate),
-        company.abn_nzbn || company.abnNzbn || '',
+        company.nzbn || company.abn_nzbn || company.abnNzbn || '',
         company.address_1 || company.address1 || '',
         company.address_city || company.addressCity || '',
         company.address_postcode || company.addressPostcode || '',
