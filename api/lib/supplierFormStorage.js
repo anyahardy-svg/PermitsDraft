@@ -7,7 +7,6 @@ export const SUPPLIER_PROFILE_FIELDS = [
   'company_name',
   'company_email',
   'tech_contact_name',
-  'contact_surname',
   'contact_phone',
   'nzbn',
   'address_1',

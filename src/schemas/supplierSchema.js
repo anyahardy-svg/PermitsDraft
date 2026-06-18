@@ -50,7 +50,6 @@ export const supplierSchema = {
       { id: 'company_name', label: 'Company Name', type: 'text', required: true, placeholder: 'Enter company name here' },
       { id: 'company_email', label: 'Company Email', type: 'email', placeholder: 'Enter company email address here' },
       { id: 'tech_contact_name', label: 'Primary Contact Name', type: 'text', placeholder: 'Enter full name here' },
-      { id: 'contact_surname', label: 'Primary Contact Surname', type: 'text', placeholder: 'Enter surname here' },
       { id: 'contact_email', label: 'Primary Contact Email', type: 'email', placeholder: 'Enter contact email address here' },
       { id: 'contact_phone', label: 'Primary Contact Phone', type: 'tel', placeholder: 'Enter contact phone number here' },
       { id: 'nzbn', label: 'NZBN', type: 'text', placeholder: 'Enter New Zealand Business Number here' },

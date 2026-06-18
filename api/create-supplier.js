@@ -86,10 +86,6 @@ function buildSupplierPayload(body) {
     const email = String(body.company_email).trim();
     payload.company_email = email || null;
   }
-  if (body.contact_surname !== undefined) {
-    const surname = String(body.contact_surname).trim();
-    payload.contact_surname = surname || null;
-  }
   if (body.contact_phone !== undefined) {
     const phone = String(body.contact_phone).trim();
     payload.contact_phone = phone || null;
@@ -189,7 +185,6 @@ export default async function handler(req, res) {
         contact_email: payload.contact_email ?? null,
         tech_contact_name: payload.tech_contact_name ?? null,
         company_email: payload.company_email ?? null,
-        contact_surname: payload.contact_surname ?? null,
         contact_phone: payload.contact_phone ?? null,
         nzbn: payload.nzbn ?? null,
         address_1: payload.address_1 ?? null,

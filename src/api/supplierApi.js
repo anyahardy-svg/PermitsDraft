@@ -11,7 +11,6 @@ const SUPPLIER_SELECT_FIELDS = [
   'created_at',
   'contact_email',
   'tech_contact_name',
-  'contact_surname',
   'contact_phone',
   'nzbn',
   'address_1',
@@ -44,6 +43,11 @@ const LEGACY_PRODUCT_FIELD_IDS = [
 
 function hasLegacyProductFields(data) {
   return LEGACY_PRODUCT_FIELD_IDS.some((fieldId) => data[fieldId] !== undefined && data[fieldId] !== '');
+}
+
+function mergeSupplierContactName(firstName, surname) {
+  const parts = [firstName, surname].map((part) => (part || '').trim()).filter(Boolean);
+  return parts.join(' ');
 }
 
 function migrateLegacyFormData(savedData) {
@@ -218,8 +222,7 @@ export function getSupplierFormDefaults(supplier) {
   return {
     company_name: supplier.company_name || '',
     company_email: supplier.company_email || supplier.contact_email || '',
-    tech_contact_name: supplier.tech_contact_name || '',
-    contact_surname: supplier.contact_surname || '',
+    tech_contact_name: mergeSupplierContactName(supplier.tech_contact_name, supplier.contact_surname) || '',
     contact_email: supplier.contact_email || '',
     contact_phone: supplier.contact_phone || '',
     nzbn: supplier.nzbn || '',
@@ -267,8 +270,10 @@ export function buildSupplierFormData(supplier, accreditationRecord) {
     ...savedData,
     company_name: savedData.company_name ?? defaults.company_name ?? '',
     company_email: savedData.company_email ?? defaults.company_email ?? '',
-    tech_contact_name: savedData.tech_contact_name ?? defaults.tech_contact_name ?? '',
-    contact_surname: savedData.contact_surname ?? defaults.contact_surname ?? '',
+    tech_contact_name: mergeSupplierContactName(
+      savedData.tech_contact_name ?? defaults.tech_contact_name,
+      savedData.contact_surname
+    ) || '',
     contact_email: savedData.contact_email ?? defaults.contact_email ?? '',
     contact_phone: savedData.contact_phone ?? defaults.contact_phone ?? '',
     nzbn: savedData.nzbn ?? defaults.nzbn ?? '',

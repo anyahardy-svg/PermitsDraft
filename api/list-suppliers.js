@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/suppliers?select=id,company_name,risk_classification,status,created_at,contact_email,tech_contact_name,company_email,contact_surname,contact_phone,nzbn,address_1,address_city,address_postcode,invitation_sent_at,accreditation_deadline&order=company_name.asc`,
+      `${SUPABASE_URL}/rest/v1/suppliers?select=id,company_name,risk_classification,status,created_at,contact_email,tech_contact_name,company_email,contact_phone,nzbn,address_1,address_city,address_postcode,invitation_sent_at,accreditation_deadline&order=company_name.asc`,
       {
         headers: serviceRoleHeaders(),
       }
