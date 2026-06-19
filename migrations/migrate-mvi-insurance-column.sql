@@ -1,30 +1,34 @@
--- Migration: Migrate Motor Vehicle Insurance URL to evidence_url column
--- Purpose: Copy data from legacy motor_vehicle_insurance_url to motor_vehicle_insurance_evidence_url
--- Reason: App reads motor_vehicle_insurance_evidence_url only; PLI was migrated but MVI was missed
+-- Migration: Ensure motor vehicle insurance evidence column exists
+-- Purpose: Create motor_vehicle_insurance_evidence_url if missing and show current data state
+-- Note: This database does not use the legacy motor_vehicle_insurance_url column.
+--       If files exist in storage but URLs are empty, run:
+--       node scripts/backfill-section-evidence-urls.js
 
 -- ============================================================================
--- Migrate Motor Vehicle Insurance URL
+-- Ensure required insurance columns exist
 -- ============================================================================
 
-UPDATE companies
-SET motor_vehicle_insurance_evidence_url = motor_vehicle_insurance_url
-WHERE motor_vehicle_insurance_url IS NOT NULL
-  AND motor_vehicle_insurance_evidence_url IS NULL;
+ALTER TABLE companies
+ADD COLUMN IF NOT EXISTS motor_vehicle_insurance_evidence_url TEXT;
 
--- Verify the migration worked
-SELECT
-  COUNT(*) AS companies_with_mvi_url,
-  COUNT(CASE WHEN motor_vehicle_insurance_evidence_url IS NOT NULL THEN 1 END) AS migrated_count
-FROM companies
-WHERE motor_vehicle_insurance_url IS NOT NULL
-   OR motor_vehicle_insurance_evidence_url IS NOT NULL;
+ALTER TABLE companies
+ADD COLUMN IF NOT EXISTS public_liability_insurance_evidence_url TEXT;
 
--- Display sample of migrated data
+-- ============================================================================
+-- Diagnostic: show which companies have MVI data in the database
+-- ============================================================================
+
 SELECT
   id,
   name,
-  motor_vehicle_insurance_url AS old_column,
-  motor_vehicle_insurance_evidence_url AS new_column
+  motor_vehicle_insurance_expiry,
+  motor_vehicle_insurance_evidence_url,
+  CASE
+    WHEN motor_vehicle_insurance_evidence_url IS NOT NULL THEN 'has_document'
+    WHEN motor_vehicle_insurance_expiry IS NOT NULL THEN 'expiry_only'
+    ELSE 'missing'
+  END AS mvi_status
 FROM companies
 WHERE motor_vehicle_insurance_evidence_url IS NOT NULL
-LIMIT 10;
+   OR motor_vehicle_insurance_expiry IS NOT NULL
+ORDER BY name;
