@@ -4,8 +4,9 @@
  * Backfill accreditation evidence URLs from storage when files were uploaded
  * but the companies table evidence_url columns were not updated.
  *
- * Targets section 21/22 folders like:
+ * Targets section 21/22 folders and insurance folders like:
  *   {company_slug}/section22_environmental_aspects_assessment_evidence/{timestamp}.pdf
+ *   {company_slug}/insurance_mvi/{timestamp}.pdf
  *
  * Usage:
  *   node scripts/backfill-section-evidence-urls.js
@@ -42,12 +43,22 @@ const SECTION_EVIDENCE_PREFIXES = [
   'section22_',
 ];
 
+const INSURANCE_FOLDER_TO_COLUMN = {
+  insurance_pli: 'public_liability_insurance_evidence_url',
+  insurance_mvi: 'motor_vehicle_insurance_evidence_url',
+  insurance_pii: 'professional_indemnity_insurance_url',
+};
+
 function sanitizeCompanyName(name) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
+}
+
+function insuranceFolderToColumn(folderName) {
+  return INSURANCE_FOLDER_TO_COLUMN[folderName] || null;
 }
 
 function folderNameToColumn(folderName) {
@@ -120,33 +131,34 @@ async function main() {
 
   const updatesByCompany = new Map();
 
+  const registerFileUpdate = (company, filePath, column) => {
+    if (!column) {
+      return;
+    }
+
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/accreditations/${filePath}`;
+    const companyUpdates = updatesByCompany.get(company.id) || {};
+    const existing = companyUpdates[column];
+
+    if (!existing || filePath > existing.filePath) {
+      companyUpdates[column] = { publicUrl, filePath, companyName: company.name };
+      updatesByCompany.set(company.id, companyUpdates);
+    }
+  };
+
   for (const company of companies || []) {
     const companySlug = sanitizeCompanyName(company.name);
     const allFiles = await listAllFiles(companySlug);
-    const sectionEvidenceFiles = allFiles.filter((filePath) =>
-      SECTION_EVIDENCE_PREFIXES.some((prefix) => filePath.includes(`/${prefix}`))
-    );
 
-    for (const filePath of sectionEvidenceFiles) {
+    for (const filePath of allFiles) {
       const parts = filePath.split('/');
       if (parts.length < 3) {
         continue;
       }
 
       const folderName = parts[parts.length - 2];
-      const column = folderNameToColumn(folderName);
-      if (!column) {
-        continue;
-      }
-
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/accreditations/${filePath}`;
-      const companyUpdates = updatesByCompany.get(company.id) || {};
-      const existing = companyUpdates[column];
-
-      if (!existing || filePath > existing.filePath) {
-        companyUpdates[column] = { publicUrl, filePath, companyName: company.name };
-        updatesByCompany.set(company.id, companyUpdates);
-      }
+      const column = folderNameToColumn(folderName) || insuranceFolderToColumn(folderName);
+      registerFileUpdate(company, filePath, column);
     }
   }
 

@@ -67,6 +67,8 @@ const getFullStorageUrl = (storagePath) => {
   return `${supabaseUrl}/storage/v1/object/public/accreditations/${storagePath}`;
 };
 
+const resolveInsuranceEvidenceUrl = (evidenceUrl, legacyUrl) => evidenceUrl || legacyUrl || null;
+
 /**
  * CompanyAccreditationScreen
  * Contractor accreditation form with auto-filtered company data
@@ -1049,21 +1051,31 @@ export default function CompanyAccreditationScreen({
         pli_url_truthy: !!data.public_liability_insurance_evidence_url,
         pli_url_value: data.public_liability_insurance_evidence_url,
         mvi_url_truthy: !!data.motor_vehicle_insurance_evidence_url,
-        mvi_url_value: data.motor_vehicle_insurance_evidence_url
+        mvi_url_value: data.motor_vehicle_insurance_evidence_url,
+        mvi_legacy_url: data.motor_vehicle_insurance_url
       });
+
+      const publicLiabilityEvidenceUrl = resolveInsuranceEvidenceUrl(
+        data.public_liability_insurance_evidence_url,
+        data.public_liability_insurance_url
+      );
+      const motorVehicleEvidenceUrl = resolveInsuranceEvidenceUrl(
+        data.motor_vehicle_insurance_evidence_url,
+        data.motor_vehicle_insurance_url
+      );
       
       setSection24({
         public_liability_insurance: {
           expiry_date: data.public_liability_expiry || '',
-          url: data.public_liability_insurance_evidence_url || null,
+          url: publicLiabilityEvidenceUrl,
           uploaded_at: null,
-          has_document: !!data.public_liability_insurance_evidence_url
+          has_document: !!publicLiabilityEvidenceUrl
         },
         motor_vehicle_insurance: {
           expiry_date: data.motor_vehicle_insurance_expiry || '',
-          url: data.motor_vehicle_insurance_evidence_url || null,
+          url: motorVehicleEvidenceUrl,
           uploaded_at: null,
-          has_document: !!data.motor_vehicle_insurance_evidence_url
+          has_document: !!motorVehicleEvidenceUrl
         },
         professional_indemnity_insurance: {
           expiry_date: data.professional_indemnity_insurance_expiry || '',
@@ -1072,6 +1084,10 @@ export default function CompanyAccreditationScreen({
           has_document: !!data.professional_indemnity_insurance_url
         }
       });
+
+      if (reviewMode && (publicLiabilityEvidenceUrl || motorVehicleEvidenceUrl || data.professional_indemnity_insurance_url)) {
+        setExpandedSections(prev => ({ ...prev, 24: true }));
+      }
 
       // Load section 25 (Contact Information)
       debugLog('📋 [LOAD] Contact information from DB:', {
@@ -1814,11 +1830,15 @@ export default function CompanyAccreditationScreen({
           return updated;
         });
         
-        // Immediately save to database after upload
-        setTimeout(async () => {
-          debugLog('💾 Auto-saving insurance document upload immediately...');
-          await autoSave(null, { force: true });
-        }, 100);
+        const evidenceUrlField = insuranceType === 'pli'
+          ? 'public_liability_insurance_evidence_url'
+          : insuranceType === 'mvi'
+            ? 'motor_vehicle_insurance_evidence_url'
+            : 'professional_indemnity_insurance_url';
+
+        // Persist immediately so admin review and storage stay in sync
+        debugLog('💾 Auto-saving insurance document upload immediately...');
+        await autoSave({ [evidenceUrlField]: uploadResult.url }, { force: true });
         
         // Restore scroll position after state update
         setTimeout(() => {
@@ -3804,6 +3824,30 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const renderInsuranceViewLink = (insuranceData) => {
+    if (!insuranceData?.has_document || !insuranceData?.url) {
+      return null;
+    }
+
+    return (
+      <TouchableOpacity
+        style={{ marginTop: 8, paddingVertical: 6 }}
+        onPress={() => {
+          const fullUrl = getFullStorageUrl(insuranceData.url);
+          if (fullUrl) {
+            Linking.openURL(fullUrl);
+          } else {
+            Alert.alert('Error', 'Cannot open document - URL not available');
+          }
+        }}
+      >
+        <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>
+          📄 View / Download Certificate
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderInsuranceSection = () => {
     return (
       <View key={24}>
@@ -3903,14 +3947,17 @@ export default function CompanyAccreditationScreen({
                   </Text>
                 </TouchableOpacity>
                 {section24.public_liability_insurance.has_document && (
-                  <TouchableOpacity
-                    style={{ marginTop: 8, paddingVertical: 6 }}
-                    onPress={() => handleDeleteInsuranceDocument('pli', 'Public Liability Insurance')}
-                  >
-                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
-                      🗑️ Remove Document
-                    </Text>
-                  </TouchableOpacity>
+                  <>
+                    {renderInsuranceViewLink(section24.public_liability_insurance)}
+                    <TouchableOpacity
+                      style={{ marginTop: 8, paddingVertical: 6 }}
+                      onPress={() => handleDeleteInsuranceDocument('pli', 'Public Liability Insurance')}
+                    >
+                      <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
+                        🗑️ Remove Document
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </View>
@@ -3980,14 +4027,17 @@ export default function CompanyAccreditationScreen({
                   </Text>
                 </TouchableOpacity>
                 {section24.motor_vehicle_insurance.has_document && (
-                  <TouchableOpacity
-                    style={{ marginTop: 8, paddingVertical: 6 }}
-                    onPress={() => handleDeleteInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
-                  >
-                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
-                      🗑️ Remove Document
-                    </Text>
-                  </TouchableOpacity>
+                  <>
+                    {renderInsuranceViewLink(section24.motor_vehicle_insurance)}
+                    <TouchableOpacity
+                      style={{ marginTop: 8, paddingVertical: 6 }}
+                      onPress={() => handleDeleteInsuranceDocument('mvi', 'Motor Vehicle Insurance')}
+                    >
+                      <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
+                        🗑️ Remove Document
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </View>
@@ -4057,14 +4107,17 @@ export default function CompanyAccreditationScreen({
                   </Text>
                 </TouchableOpacity>
                 {section24.professional_indemnity_insurance.has_document && (
-                  <TouchableOpacity
-                    style={{ marginTop: 8, paddingVertical: 6 }}
-                    onPress={() => handleDeleteInsuranceDocument('pii', 'Professional Indemnity Insurance')}
-                  >
-                    <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
-                      🗑️ Remove Document
-                    </Text>
-                  </TouchableOpacity>
+                  <>
+                    {renderInsuranceViewLink(section24.professional_indemnity_insurance)}
+                    <TouchableOpacity
+                      style={{ marginTop: 8, paddingVertical: 6 }}
+                      onPress={() => handleDeleteInsuranceDocument('pii', 'Professional Indemnity Insurance')}
+                    >
+                      <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>
+                        🗑️ Remove Document
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </View>

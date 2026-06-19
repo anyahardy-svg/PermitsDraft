@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Script to run migration for old insurance columns
-# This migrates data from public_liability_insurance_url to public_liability_insurance_evidence_url
+# This migrates data from legacy insurance URL columns to evidence_url columns:
+# - public_liability_insurance_url → public_liability_insurance_evidence_url
+# - motor_vehicle_insurance_url → motor_vehicle_insurance_evidence_url
 
 set -e
 

@@ -1,6 +1,7 @@
 -- Migration: Migrate Old Insurance Columns to New Column Names
 -- Purpose: Move data from old column names to new standardized column names
 -- Reason: public_liability_insurance_url → public_liability_insurance_evidence_url
+--         motor_vehicle_insurance_url → motor_vehicle_insurance_evidence_url
 
 -- ============================================================================
 -- Migrate Public Liability Insurance URL
@@ -11,6 +12,15 @@ UPDATE companies
 SET public_liability_insurance_evidence_url = public_liability_insurance_url
 WHERE public_liability_insurance_url IS NOT NULL
   AND public_liability_insurance_evidence_url IS NULL;
+
+-- ============================================================================
+-- Migrate Motor Vehicle Insurance URL
+-- ============================================================================
+
+UPDATE companies
+SET motor_vehicle_insurance_evidence_url = motor_vehicle_insurance_url
+WHERE motor_vehicle_insurance_url IS NOT NULL
+  AND motor_vehicle_insurance_evidence_url IS NULL;
 
 -- Verify the migration worked
 SELECT 
