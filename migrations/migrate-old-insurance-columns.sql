@@ -1,26 +1,26 @@
 -- Migration: Migrate Old Insurance Columns to New Column Names
 -- Purpose: Move data from old column names to new standardized column names
 -- Reason: public_liability_insurance_url → public_liability_insurance_evidence_url
---         motor_vehicle_insurance_url → motor_vehicle_insurance_evidence_url
+-- Note: Only runs if legacy columns exist in this database.
 
 -- ============================================================================
--- Migrate Public Liability Insurance URL
+-- Migrate Public Liability Insurance URL (legacy column may not exist)
 -- ============================================================================
 
--- Copy data from old column to new column where new is empty but old has data
-UPDATE companies
-SET public_liability_insurance_evidence_url = public_liability_insurance_url
-WHERE public_liability_insurance_url IS NOT NULL
-  AND public_liability_insurance_evidence_url IS NULL;
-
--- ============================================================================
--- Migrate Motor Vehicle Insurance URL
--- ============================================================================
-
-UPDATE companies
-SET motor_vehicle_insurance_evidence_url = motor_vehicle_insurance_url
-WHERE motor_vehicle_insurance_url IS NOT NULL
-  AND motor_vehicle_insurance_evidence_url IS NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'companies'
+      AND column_name = 'public_liability_insurance_url'
+  ) THEN
+    UPDATE companies
+    SET public_liability_insurance_evidence_url = public_liability_insurance_url
+    WHERE public_liability_insurance_url IS NOT NULL
+      AND public_liability_insurance_evidence_url IS NULL;
+  END IF;
+END $$;
 
 -- Verify the migration worked
 SELECT 

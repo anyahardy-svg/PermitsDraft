@@ -67,8 +67,6 @@ const getFullStorageUrl = (storagePath) => {
   return `${supabaseUrl}/storage/v1/object/public/accreditations/${storagePath}`;
 };
 
-const resolveInsuranceEvidenceUrl = (evidenceUrl, legacyUrl) => evidenceUrl || legacyUrl || null;
-
 /**
  * CompanyAccreditationScreen
  * Contractor accreditation form with auto-filtered company data
@@ -1051,18 +1049,11 @@ export default function CompanyAccreditationScreen({
         pli_url_truthy: !!data.public_liability_insurance_evidence_url,
         pli_url_value: data.public_liability_insurance_evidence_url,
         mvi_url_truthy: !!data.motor_vehicle_insurance_evidence_url,
-        mvi_url_value: data.motor_vehicle_insurance_evidence_url,
-        mvi_legacy_url: data.motor_vehicle_insurance_url
+        mvi_url_value: data.motor_vehicle_insurance_evidence_url
       });
 
-      const publicLiabilityEvidenceUrl = resolveInsuranceEvidenceUrl(
-        data.public_liability_insurance_evidence_url,
-        data.public_liability_insurance_url
-      );
-      const motorVehicleEvidenceUrl = resolveInsuranceEvidenceUrl(
-        data.motor_vehicle_insurance_evidence_url,
-        data.motor_vehicle_insurance_url
-      );
+      const publicLiabilityEvidenceUrl = data.public_liability_insurance_evidence_url || null;
+      const motorVehicleEvidenceUrl = data.motor_vehicle_insurance_evidence_url || null;
       
       setSection24({
         public_liability_insurance: {
