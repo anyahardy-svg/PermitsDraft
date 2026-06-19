@@ -28,7 +28,7 @@ export async function listAccreditedCompaniesReport() {
   ] = await Promise.all([
     supabase
       .from('companies')
-      .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated')
+      .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar')
       .order('name', { ascending: true }),
     supabase
       .from('contractors')
@@ -96,6 +96,8 @@ export async function listAccreditedCompaniesReport() {
         plInsuranceExpiryDisplay: formatDate(company.public_liability_expiry),
         vehicleInsuranceExpiry: company.motor_vehicle_insurance_expiry || '',
         vehicleInsuranceExpiryDisplay: formatDate(company.motor_vehicle_insurance_expiry),
+        inRadar: company.in_radar !== false,
+        inRadarDisplay: company.in_radar !== false ? 'Yes' : 'No',
       };
     });
 

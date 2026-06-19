@@ -16,6 +16,7 @@ const COLUMNS = [
   { key: 'sites', label: 'Site', width: 180 },
   { key: 'plInsuranceExpiryDisplay', label: 'PL Insurance Expiry', width: 160 },
   { key: 'vehicleInsuranceExpiryDisplay', label: 'Vehicle Insurance Expiry', width: 180 },
+  { key: 'inRadarDisplay', label: 'In RADAR', width: 100 },
 ];
 
 function isExpired(dateValue) {
@@ -267,12 +268,24 @@ export default function AccreditedCompaniesScreen() {
                   width: 180,
                   padding: 12,
                   fontSize: 13,
+                  borderRightWidth: 1,
+                  borderRightColor: '#E5E7EB',
                   ...getExpiryStyle(company.vehicleInsuranceExpiry),
                 }}
                 >
                   {company.vehicleInsuranceExpiryDisplay
                     ? `${getExpiryPrefix(company.vehicleInsuranceExpiry)}${company.vehicleInsuranceExpiryDisplay}`
                     : '—'}
+                </Text>
+                <Text style={{
+                  width: 100,
+                  padding: 12,
+                  fontSize: 13,
+                  color: company.inRadar ? '#92400E' : '#4B5563',
+                  fontWeight: company.inRadar ? '600' : '400',
+                }}
+                >
+                  {company.inRadarDisplay || '—'}
                 </Text>
               </View>
             ))}
