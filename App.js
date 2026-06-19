@@ -3106,7 +3106,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     motorVehicleInsuranceExpiry: '', 
     reviewDate: '', 
     accreditedDate: '', 
-    contractor_type: 'D' 
+    contractor_type: 'D',
+    inRadar: true,
   });
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
@@ -9961,6 +9962,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
+            in_radar: currentCompany.inRadar !== false,
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -9983,6 +9985,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
+            in_radar: currentCompany.inRadar !== false,
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -9994,7 +9997,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('✅ [COMPANY] New company business_unit_ids:', newCompany.business_unit_ids);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D' });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -10554,11 +10557,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 keyboardType="numeric"
               />
 
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Switch
+                  value={currentCompany.inRadar !== false}
+                  onValueChange={(value) => setCurrentCompany({ ...currentCompany, inRadar: value })}
+                />
+                <Text style={{ marginLeft: 8, fontSize: 14, color: '#374151', fontWeight: '600' }}>In RADAR</Text>
+              </View>
+
               <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
                 <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D' }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true }); setSelectedCompany(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -10821,6 +10832,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     reviewDate: formatDateToDDMMYYYY(company.review_date) || '',
                                     accreditedDate: formatDateToDDMMYYYY(company.accredited_date) || '',
                                     contractor_type: company.contractor_type || 'D',
+                                    inRadar: company.in_radar !== false,
                                   };
                                   setCurrentCompany(formattedCompany);
                                   setEditingCompany(true);
