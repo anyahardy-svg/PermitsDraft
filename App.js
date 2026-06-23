@@ -12668,7 +12668,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
             let newCompanyCount = 0;
-            const processedEmails = new Set();
+            const processedRowKeys = new Set();
             const processedCompanies = new Set();
 
             const parseDelimitedList = (value) => (
@@ -12770,6 +12770,39 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx, inductionIdx, businessUnitIdx,
             });
 
+            setImportMessage('Loading current contractors...');
+            const existingContractors = await listContractors();
+            const sitesForImport = sites.length > 0 ? sites : await listSites();
+            const businessUnitsForImport = businessUnits.length > 0 ? businessUnits : await listBusinessUnits();
+            const siteNameLookup = {};
+            sitesForImport.forEach(site => {
+              siteNameLookup[site.name.toLowerCase()] = site.id;
+            });
+            Object.entries(siteNameToIdMap).forEach(([name, id]) => {
+              siteNameLookup[name.toLowerCase()] = id;
+            });
+
+            const findExistingContractor = (email, name, company) => {
+              const normalizedName = name.trim().toLowerCase();
+              const normalizedCompany = company.trim().toLowerCase();
+              if (email) {
+                const byEmail = existingContractors.find(
+                  c => c.email && c.email.toLowerCase() === email.toLowerCase()
+                );
+                if (byEmail) return byEmail;
+              }
+              return existingContractors.find(c =>
+                c.name?.trim().toLowerCase() === normalizedName
+                && (c.companyName || c.company || '').trim().toLowerCase() === normalizedCompany
+              ) || null;
+            };
+
+            const getRowKey = (email, name, company) => (
+              email
+                ? email.toLowerCase()
+                : `${name.trim().toLowerCase()}|${company.trim().toLowerCase()}`
+            );
+
             // Helper: Check if value looks like invalid data (UUID, all zeros, etc)
             const isValidName = (name) => {
               if (!name || name.length === 0) return false;
@@ -12787,7 +12820,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               
               const values = parseCsvLine(line);
               
-              if (nameIdx >= 0 && emailIdx >= 0 && companyIdx >= 0) {
+              if (nameIdx >= 0 && companyIdx >= 0) {
                 const name = (values[nameIdx] || '').trim();
                 const email = (values[emailIdx] || '').trim();
                 const phone = phoneIdx >= 0 ? (values[phoneIdx] || '').trim() : '';
@@ -12797,23 +12830,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const businessUnitNames = businessUnitIdx >= 0 ? parseDelimitedList(values[businessUnitIdx]) : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
-                // Validate name is not invalid/garbage data
-                if (isValidName(name) && email && company) {
-                  // Skip duplicate emails within the same CSV file
-                  if (processedEmails.has(email.toLowerCase())) {
+                // Validate name and company (email is optional)
+                if (isValidName(name) && company) {
+                  const rowKey = getRowKey(email, name, company);
+                  if (processedRowKeys.has(rowKey)) {
                     duplicateCount++;
                     continue;
                   }
                   
-                  processedEmails.add(email.toLowerCase());
+                  processedRowKeys.add(rowKey);
                   
-                  const existingContractor = contractors.find(
-                    c => c.email && c.email.toLowerCase() === email.toLowerCase()
-                  );
+                  const existingContractor = findExistingContractor(email, name, company);
                   
                   rowsToProcess.push({
                     name,
-                    email,
+                    email: email || null,
                     phone,
                     company,
                     services,
@@ -12830,7 +12861,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               setImportStatus('error');
               const missingColumns = [];
               if (nameIdx < 0) missingColumns.push('name/contact name');
-              if (emailIdx < 0) missingColumns.push('email');
               if (companyIdx < 0) missingColumns.push('company/company name');
 
               let errorMsg = 'No valid contractors to import.';
@@ -12840,7 +12870,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               } else if (duplicateCount > 0) {
                 errorMsg += ` ${duplicateCount} duplicate row(s) in file.`;
               } else {
-                errorMsg += ' Check that each row has a name, email, and company.';
+                errorMsg += ' Check that each row has a name and company.';
               }
               console.warn('❌ Contractor CSV import found no valid rows:', {
                 missingColumns,
@@ -12859,7 +12889,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
               const resolvedIds = [];
               for (const serviceName of serviceNames) {
-                const lowerName = serviceName.toLowerCase();
+                const trimmedName = serviceName.trim();
+                if (!trimmedName) continue;
+                const lowerName = trimmedName.toLowerCase();
                 const candidates = allServicesForImport.filter(
                   s => s.name.toLowerCase() === lowerName || s.id === serviceName
                 );
@@ -12884,6 +12916,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return [...new Set(resolvedIds)];
             };
 
+            let unresolvedSiteCount = 0;
+            let failedSaveCount = 0;
+
+            const resolveSiteIds = (siteNames) => {
+              const ids = [];
+              for (const siteName of siteNames) {
+                const siteId = siteNameLookup[siteName.toLowerCase()];
+                if (siteId) {
+                  ids.push(siteId);
+                } else {
+                  unresolvedSiteCount++;
+                  console.warn(`Site not found during import: "${siteName}"`);
+                }
+              }
+              return [...new Set(ids)];
+            };
+
             // Save all contractors to Supabase
             for (let idx = 0; idx < rowsToProcess.length; idx++) {
               const contractor = rowsToProcess[idx];
@@ -12904,23 +12953,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
                 
                 // Convert site names to site IDs
-                const siteIds = [];
-                if (contractor.siteNames && contractor.siteNames.length > 0) {
-                  for (const siteName of contractor.siteNames) {
-                    const site = sites.find(s => s.name.toLowerCase() === siteName.toLowerCase());
-                    if (site) {
-                      siteIds.push(site.id);
-                    }
-                  }
-                }
+                const siteIds = contractor.siteNames?.length > 0
+                  ? resolveSiteIds(contractor.siteNames)
+                  : [];
                 
                 // Convert business unit names to business unit IDs
                 const businessUnitIds = [];
                 if (contractor.businessUnitNames && contractor.businessUnitNames.length > 0) {
                   for (const buName of contractor.businessUnitNames) {
-                    const bu = businessUnits.find(b => b.name.toLowerCase() === buName.toLowerCase());
+                    const bu = businessUnitsForImport.find(b => b.name.toLowerCase() === buName.toLowerCase());
                     if (bu) {
                       businessUnitIds.push(bu.id);
+                    } else {
+                      console.warn(`Business unit not found during import: "${buName}"`);
                     }
                   }
                 }
@@ -12935,9 +12980,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
                 if (contractor.existingContractor) {
                   const existing = contractor.existingContractor;
-                  await updateContractor(existing.id, {
+                  const saved = await updateContractor(existing.id, {
                     name: formattedName,
-                    email: contractor.email,
+                    email: contractor.email || existing.email || null,
                     phone: formattedPhone || existing.phone || null,
                     company_id: company.id,
                     service_ids: mergeUniqueIds(existing.serviceIds || existing.service_ids, serviceIds),
@@ -12951,11 +12996,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       || existing.induction_expiry
                       || null,
                   });
+                  if (!saved?.id) {
+                    failedSaveCount++;
+                    console.error(`Update returned no contractor for ${contractor.name}`);
+                    continue;
+                  }
                   updatedCount++;
                 } else {
-                  await createContractor({
+                  const saved = await createContractor({
                     name: formattedName,
-                    email: contractor.email,
+                    email: contractor.email || null,
                     phone: formattedPhone,
                     service_ids: serviceIds,
                     site_ids: siteIds,
@@ -12963,6 +13013,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     business_unit_ids: businessUnitIds,
                     induction_expiry: contractor.inductionExpiry
                   });
+                  if (!saved?.id) {
+                    failedSaveCount++;
+                    console.error(`Create returned no contractor for ${contractor.name}`);
+                    continue;
+                  }
                   newCount++;
                 }
               } catch (err) {
@@ -12978,11 +13033,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setImportMessage('Refreshing data...');
             const freshContractors = await listContractors();
             setContractors(freshContractors);
+            setContractorSearchText('');
+            setContractorCompanyFilter('All');
+            setContractorCompanyFilterSearch('');
+            setContractorBusinessUnitFilter('All');
             
             let message = '✓ Import complete.';
             if (newCount > 0) message += ` ${newCount} new contractor(s) created.`;
             if (updatedCount > 0) message += ` ${updatedCount} contractor(s) updated.`;
+            message += ` ${freshContractors.length} total in database.`;
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate row(s) in file skipped.`;
+            if (failedSaveCount > 0) message += ` ${failedSaveCount} row(s) failed to save.`;
+            if (unresolvedSiteCount > 0) message += ` ${unresolvedSiteCount} site name(s) not matched.`;
             if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
@@ -13004,9 +13066,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const getFilteredContractors = () => contractors.filter(contractor => {
+      const contractorEmail = contractor.email || '';
       const matchesSearch = contractorSearchText === '' ||
         contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-        contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
+        contractorEmail.toLowerCase().includes(contractorSearchText.toLowerCase());
 
       const matchesCompanyFilter = contractorCompanyFilter === 'All' ||
         (contractor.companyName || contractor.company) === contractorCompanyFilter;
