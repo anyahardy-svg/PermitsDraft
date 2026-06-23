@@ -12635,7 +12635,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
-                                         if (!file) return;
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+          setImportStatus('error');
+          setImportMessage('Please save your spreadsheet as a .csv file before importing.');
+          setTimeout(() => setImportStatus('idle'), 4000);
+          return;
+        }
 
         const reader = new FileReader();
         reader.onload = async (event) => {
@@ -12643,8 +12650,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setImportStatus('importing');
             setImportMessage('Reading CSV file...');
 
-            const csvText = event.target.result;
-            const lines = csvText.trim().split('\n');
+            const csvText = event.target.result.replace(/^\ufeff/, '');
+            const rawLines = csvText.trim().split(/\r?\n/);
+            const delimiter = rawLines[0]?.includes('\t') && !rawLines[0]?.includes(',') ? '\t' : ',';
+            const lines = rawLines;
             
             if (lines.length < 2) {
               setImportStatus('error');
@@ -12659,7 +12668,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let duplicateCount = 0;
             let companyNotFoundCount = 0;
             let newCompanyCount = 0;
-            const processedEmails = new Set();
+            const processedRowKeys = new Set();
             const processedCompanies = new Set();
 
             const parseDelimitedList = (value) => (
@@ -12683,45 +12692,115 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             // Parse header row to get column indices
             setImportMessage('Parsing CSV file...');
-            const headerLine = lines[0];
-            const headerValues = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let j = 0; j < headerLine.length; j++) {
-              const char = headerLine[j];
-              if (char === '"') {
-                inQuotes = !inQuotes;
-              } else if (char === ',' && !inQuotes) {
-                headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
-                current = '';
-              } else {
-                current += char;
+            const parseCsvLine = (line) => {
+              const values = [];
+              let cell = '';
+              let inQuotes = false;
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === delimiter && !inQuotes) {
+                  values.push(cell.trim().replace(/^"|"$/g, ''));
+                  cell = '';
+                } else {
+                  cell += char;
+                }
               }
-            }
-            headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
+              values.push(cell.trim().replace(/^"|"$/g, ''));
+              return values;
+            };
+
+            const headerValues = parseCsvLine(lines[0]).map(value => value.toLowerCase());
+
+            const normalizeHeader = (header) => (
+              header.replace(/^\ufeff/, '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+            );
+            const normalizedHeaders = headerValues.map(normalizeHeader);
+
+            const findColumnIndex = (matchers) => {
+              for (const matcher of matchers) {
+                const idx = normalizedHeaders.findIndex(matcher);
+                if (idx >= 0) return idx;
+              }
+              return -1;
+            };
 
             // Find column indices — support export headers and common spreadsheet variants
-            let nameIdx = headerValues.findIndex(h => h.match(/^(contractor_)?name$|^full_name$|^contractor$/i));
-            if (nameIdx < 0) {
-              nameIdx = headerValues.findIndex(h =>
-                (h.includes('contact') && h.includes('name') && !h.includes('company')) ||
-                h === 'contractor name'
-              );
-            }
-            const emailIdx = headerValues.findIndex(h => h === 'email' || h === 'email_address');
-            const phoneIdx = headerValues.findIndex(h => h === 'phone' || h === 'phone_number');
-            const companyIdx = headerValues.findIndex(h => h === 'company' || h === 'company_name');
-            const servicesIdx = headerValues.findIndex(h => h.includes('service'));
-            const sitesIdx = headerValues.findIndex(h =>
-              (h.includes('site') || h.includes('available')) && !h.includes('website')
-            );
-            const inductionIdx = headerValues.findIndex(h => h.includes('induction') || h.includes('expiry'));
-            const businessUnitIdx = headerValues.findIndex(h =>
-              h.includes('business_unit') ||
-              h.includes('business unit') ||
-              h === 'bu' ||
-              h === 'businessunit'
+            const companyIdx = findColumnIndex([
+              h => h === 'company',
+              h => h === 'company_name',
+              h => h.includes('company') && h.includes('name'),
+            ]);
+            const emailIdx = findColumnIndex([
+              h => h === 'email',
+              h => h === 'email_address',
+              h => h.includes('email') && !h.includes('company'),
+            ]);
+            const nameIdx = findColumnIndex([
+              h => h === 'name',
+              h => h === 'contractor_name',
+              h => h === 'full_name',
+              h => h === 'contractor',
+              h => h === 'contact_name',
+              h => h.includes('contact') && h.includes('name') && !h.includes('company'),
+              h => h === 'contact',
+              h => h.includes('name') && !h.includes('company') && !h.includes('business') && !h.includes('site'),
+            ]);
+            const phoneIdx = findColumnIndex([
+              h => h === 'phone',
+              h => h === 'phone_number',
+              h => h.includes('phone'),
+            ]);
+            const servicesIdx = findColumnIndex([h => h.includes('service')]);
+            const sitesIdx = findColumnIndex([
+              h => (h.includes('site') || h.includes('available')) && !h.includes('website'),
+            ]);
+            const inductionIdx = findColumnIndex([
+              h => h.includes('induction') || h.includes('expiry') || h === 'date',
+            ]);
+            const businessUnitIdx = findColumnIndex([
+              h => h.includes('business_unit'),
+              h => h.includes('businessunit'),
+              h => h === 'bu',
+            ]);
+
+            console.log('📋 Contractor CSV headers:', headerValues);
+            console.log('🔍 Contractor CSV column map:', {
+              nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx, inductionIdx, businessUnitIdx,
+            });
+
+            setImportMessage('Loading current contractors...');
+            const existingContractors = await listContractors();
+            const sitesForImport = sites.length > 0 ? sites : await listSites();
+            const businessUnitsForImport = businessUnits.length > 0 ? businessUnits : await listBusinessUnits();
+            const siteNameLookup = {};
+            sitesForImport.forEach(site => {
+              siteNameLookup[site.name.toLowerCase()] = site.id;
+            });
+            Object.entries(siteNameToIdMap).forEach(([name, id]) => {
+              siteNameLookup[name.toLowerCase()] = id;
+            });
+
+            const findExistingContractor = (email, name, company) => {
+              const normalizedName = name.trim().toLowerCase();
+              const normalizedCompany = company.trim().toLowerCase();
+              if (email) {
+                const byEmail = existingContractors.find(
+                  c => c.email && c.email.toLowerCase() === email.toLowerCase()
+                );
+                if (byEmail) return byEmail;
+              }
+              return existingContractors.find(c =>
+                c.name?.trim().toLowerCase() === normalizedName
+                && (c.companyName || c.company || '').trim().toLowerCase() === normalizedCompany
+              ) || null;
+            };
+
+            const getRowKey = (email, name, company) => (
+              email
+                ? email.toLowerCase()
+                : `${name.trim().toLowerCase()}|${company.trim().toLowerCase()}`
             );
 
             // Helper: Check if value looks like invalid data (UUID, all zeros, etc)
@@ -12739,51 +12818,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const line = lines[i].trim();
               if (!line) continue;
               
-              // Simple CSV parsing
-              const values = [];
-              current = '';
-              inQuotes = false;
+              const values = parseCsvLine(line);
               
-              for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                if (char === '"') {
-                  inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                  values.push(current.trim().replace(/^"|"$/g, ''));
-                  current = '';
-                } else {
-                  current += char;
-                }
-              }
-              values.push(current.trim().replace(/^"|"$/g, ''));
-              
-              if (nameIdx >= 0 && emailIdx >= 0 && companyIdx >= 0) {
-                const name = values[nameIdx] || '';
-                const email = values[emailIdx] || '';
-                const phone = phoneIdx >= 0 ? values[phoneIdx] : '';
-                const company = values[companyIdx] || '';
+              if (nameIdx >= 0 && companyIdx >= 0) {
+                const name = (values[nameIdx] || '').trim();
+                const email = (values[emailIdx] || '').trim();
+                const phone = phoneIdx >= 0 ? (values[phoneIdx] || '').trim() : '';
+                const company = (values[companyIdx] || '').trim();
                 const services = servicesIdx >= 0 ? parseDelimitedList(values[servicesIdx]) : [];
                 const siteNames = sitesIdx >= 0 ? parseDelimitedList(values[sitesIdx]) : [];
                 const businessUnitNames = businessUnitIdx >= 0 ? parseDelimitedList(values[businessUnitIdx]) : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
-                // Validate name is not invalid/garbage data
-                if (isValidName(name) && email && company) {
-                  // Skip duplicate emails within the same CSV file
-                  if (processedEmails.has(email.toLowerCase())) {
+                // Validate name and company (email is optional)
+                if (isValidName(name) && company) {
+                  const rowKey = getRowKey(email, name, company);
+                  if (processedRowKeys.has(rowKey)) {
                     duplicateCount++;
                     continue;
                   }
                   
-                  processedEmails.add(email.toLowerCase());
+                  processedRowKeys.add(rowKey);
                   
-                  const existingContractor = contractors.find(
-                    c => c.email && c.email.toLowerCase() === email.toLowerCase()
-                  );
+                  const existingContractor = findExistingContractor(email, name, company);
                   
                   rowsToProcess.push({
                     name,
-                    email,
+                    email: email || null,
                     phone,
                     company,
                     services,
@@ -12798,10 +12859,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             if (rowsToProcess.length === 0) {
               setImportStatus('error');
+              const missingColumns = [];
+              if (nameIdx < 0) missingColumns.push('name/contact name');
+              if (companyIdx < 0) missingColumns.push('company/company name');
+
               let errorMsg = 'No valid contractors to import.';
-              if (duplicateCount > 0) errorMsg += ` ${duplicateCount} duplicate row(s) in file.`;
+              if (missingColumns.length > 0) {
+                errorMsg += ` Missing required column(s): ${missingColumns.join(', ')}.`;
+                errorMsg += ` Found headers: ${headerValues.filter(Boolean).join(', ') || '(none)'}.`;
+              } else if (duplicateCount > 0) {
+                errorMsg += ` ${duplicateCount} duplicate row(s) in file.`;
+              } else {
+                errorMsg += ' Check that each row has a name and company.';
+              }
+              console.warn('❌ Contractor CSV import found no valid rows:', {
+                missingColumns,
+                headers: headerValues,
+                dataRowCount: lines.length - 1,
+              });
               setImportMessage(errorMsg);
-              setTimeout(() => setImportStatus('idle'), 3000);
+              setTimeout(() => setImportStatus('idle'), 5000);
               return;
             }
 
@@ -12812,7 +12889,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
               const resolvedIds = [];
               for (const serviceName of serviceNames) {
-                const lowerName = serviceName.toLowerCase();
+                const trimmedName = serviceName.trim();
+                if (!trimmedName) continue;
+                const lowerName = trimmedName.toLowerCase();
                 const candidates = allServicesForImport.filter(
                   s => s.name.toLowerCase() === lowerName || s.id === serviceName
                 );
@@ -12837,6 +12916,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return [...new Set(resolvedIds)];
             };
 
+            let unresolvedSiteCount = 0;
+            let failedSaveCount = 0;
+
+            const resolveSiteIds = (siteNames) => {
+              const ids = [];
+              for (const siteName of siteNames) {
+                const siteId = siteNameLookup[siteName.toLowerCase()];
+                if (siteId) {
+                  ids.push(siteId);
+                } else {
+                  unresolvedSiteCount++;
+                  console.warn(`Site not found during import: "${siteName}"`);
+                }
+              }
+              return [...new Set(ids)];
+            };
+
             // Save all contractors to Supabase
             for (let idx = 0; idx < rowsToProcess.length; idx++) {
               const contractor = rowsToProcess[idx];
@@ -12857,23 +12953,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
                 
                 // Convert site names to site IDs
-                const siteIds = [];
-                if (contractor.siteNames && contractor.siteNames.length > 0) {
-                  for (const siteName of contractor.siteNames) {
-                    const site = sites.find(s => s.name.toLowerCase() === siteName.toLowerCase());
-                    if (site) {
-                      siteIds.push(site.id);
-                    }
-                  }
-                }
+                const siteIds = contractor.siteNames?.length > 0
+                  ? resolveSiteIds(contractor.siteNames)
+                  : [];
                 
                 // Convert business unit names to business unit IDs
                 const businessUnitIds = [];
                 if (contractor.businessUnitNames && contractor.businessUnitNames.length > 0) {
                   for (const buName of contractor.businessUnitNames) {
-                    const bu = businessUnits.find(b => b.name.toLowerCase() === buName.toLowerCase());
+                    const bu = businessUnitsForImport.find(b => b.name.toLowerCase() === buName.toLowerCase());
                     if (bu) {
                       businessUnitIds.push(bu.id);
+                    } else {
+                      console.warn(`Business unit not found during import: "${buName}"`);
                     }
                   }
                 }
@@ -12888,9 +12980,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
                 if (contractor.existingContractor) {
                   const existing = contractor.existingContractor;
-                  await updateContractor(existing.id, {
+                  const saved = await updateContractor(existing.id, {
                     name: formattedName,
-                    email: contractor.email,
+                    email: contractor.email || existing.email || null,
                     phone: formattedPhone || existing.phone || null,
                     company_id: company.id,
                     service_ids: mergeUniqueIds(existing.serviceIds || existing.service_ids, serviceIds),
@@ -12904,11 +12996,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       || existing.induction_expiry
                       || null,
                   });
+                  if (!saved?.id) {
+                    failedSaveCount++;
+                    console.error(`Update returned no contractor for ${contractor.name}`);
+                    continue;
+                  }
                   updatedCount++;
                 } else {
-                  await createContractor({
+                  const saved = await createContractor({
                     name: formattedName,
-                    email: contractor.email,
+                    email: contractor.email || null,
                     phone: formattedPhone,
                     service_ids: serviceIds,
                     site_ids: siteIds,
@@ -12916,6 +13013,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     business_unit_ids: businessUnitIds,
                     induction_expiry: contractor.inductionExpiry
                   });
+                  if (!saved?.id) {
+                    failedSaveCount++;
+                    console.error(`Create returned no contractor for ${contractor.name}`);
+                    continue;
+                  }
                   newCount++;
                 }
               } catch (err) {
@@ -12931,11 +13033,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setImportMessage('Refreshing data...');
             const freshContractors = await listContractors();
             setContractors(freshContractors);
+            setContractorSearchText('');
+            setContractorCompanyFilter('All');
+            setContractorCompanyFilterSearch('');
+            setContractorBusinessUnitFilter('All');
             
             let message = '✓ Import complete.';
             if (newCount > 0) message += ` ${newCount} new contractor(s) created.`;
             if (updatedCount > 0) message += ` ${updatedCount} contractor(s) updated.`;
+            message += ` ${freshContractors.length} total in database.`;
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate row(s) in file skipped.`;
+            if (failedSaveCount > 0) message += ` ${failedSaveCount} row(s) failed to save.`;
+            if (unresolvedSiteCount > 0) message += ` ${unresolvedSiteCount} site name(s) not matched.`;
             if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
@@ -12957,9 +13066,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const getFilteredContractors = () => contractors.filter(contractor => {
+      const contractorEmail = contractor.email || '';
       const matchesSearch = contractorSearchText === '' ||
         contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-        contractor.email.toLowerCase().includes(contractorSearchText.toLowerCase());
+        contractorEmail.toLowerCase().includes(contractorSearchText.toLowerCase());
 
       const matchesCompanyFilter = contractorCompanyFilter === 'All' ||
         (contractor.companyName || contractor.company) === contractorCompanyFilter;
