@@ -28,7 +28,7 @@ import { getCompanyAccreditation } from './src/api/accreditations';
 import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
-import { createContractor, listContractors, updateContractor, deleteContractor } from './src/api/contractors';
+import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesByBusinessUnit, listAllServices, createService, updateService, deleteService } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
@@ -9571,7 +9571,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           let newCount = 0;
           let updatedCount = 0;
           let duplicateCount = 0;
-          const processedNames = new Set();
+          const processedRowKeys = new Set();
+          const importContractorsCache = await listContractors();
 
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -9609,12 +9610,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 : [];
               const inductionExpiry = inductionExpiryIdx >= 0 ? values[inductionExpiryIdx] : '';
               
-              // Skip if already processed in this CSV
-              if (processedNames.has(contractorName.toLowerCase())) {
+              if (!companyName) continue;
+
+              const rowKey = `${contractorName.toLowerCase()}|${companyName.toLowerCase()}`;
+              if (processedRowKeys.has(rowKey)) {
                 duplicateCount++;
                 continue;
               }
-              processedNames.add(contractorName.toLowerCase());
+              processedRowKeys.add(rowKey);
               
               // Convert business unit names to IDs
               const businessUnitIds = [];
@@ -9645,34 +9648,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
               }
               
-              // Find company by name
-              let companyId = null;
-              if (companyName) {
-                const foundCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
-                if (foundCompany) {
-                  companyId = foundCompany.id;
-                }
-              }
-              
-              // Check if contractor already exists
-              const existingContractor = contractors.find(c => c.name.toLowerCase() === contractorName.toLowerCase());
+              // Ensure company exists, then match contractor within that company
+              const company = await upsertCompany({ name: companyName });
+              if (!company) continue;
+
+              const existingContractor = findContractorInCompany(importContractorsCache, {
+                companyId: company.id,
+                email: email || null,
+                name: contractorName,
+                phone,
+              });
               
               const contractorData = {
                 name: contractorName,
                 email: email || null,
                 phone: phone || null,
-                company_id: companyId,
+                company_id: company.id,
                 service_ids: serviceIds.length > 0 ? serviceIds : []
               };
               
               if (existingContractor) {
-                // Update existing contractor
-                await updateContractor(existingContractor.id, contractorData);
-                updatedCount++;
+                const saved = await updateContractor(existingContractor.id, contractorData);
+                if (saved?.id) {
+                  const existingIndex = importContractorsCache.findIndex((c) => c.id === saved.id);
+                  if (existingIndex >= 0) {
+                    importContractorsCache[existingIndex] = saved;
+                  } else {
+                    importContractorsCache.push(saved);
+                  }
+                  updatedCount++;
+                }
               } else {
-                // Create new contractor
-                await createContractor(contractorData);
-                newCount++;
+                const saved = await createContractor(contractorData);
+                if (saved?.id) {
+                  importContractorsCache.push(saved);
+                  newCount++;
+                }
               }
             }
           }
@@ -12771,7 +12782,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             });
 
             setImportMessage('Loading current contractors...');
-            const existingContractors = await listContractors();
+            const importContractorsCache = await listContractors();
             const sitesForImport = sites.length > 0 ? sites : await listSites();
             const businessUnitsForImport = businessUnits.length > 0 ? businessUnits : await listBusinessUnits();
             const siteNameLookup = {};
@@ -12782,25 +12793,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               siteNameLookup[name.toLowerCase()] = id;
             });
 
-            const findExistingContractor = (email, name, company) => {
-              const normalizedName = name.trim().toLowerCase();
-              const normalizedCompany = company.trim().toLowerCase();
-              if (email) {
-                const byEmail = existingContractors.find(
-                  c => c.email && c.email.toLowerCase() === email.toLowerCase()
-                );
-                if (byEmail) return byEmail;
-              }
-              return existingContractors.find(c =>
-                c.name?.trim().toLowerCase() === normalizedName
-                && (c.companyName || c.company || '').trim().toLowerCase() === normalizedCompany
-              ) || null;
-            };
-
             const getRowKey = (email, name, company) => (
-              email
-                ? email.toLowerCase()
-                : `${name.trim().toLowerCase()}|${company.trim().toLowerCase()}`
+              `${name.trim().toLowerCase()}|${company.trim().toLowerCase()}`
             );
 
             // Helper: Check if value looks like invalid data (UUID, all zeros, etc)
@@ -12840,8 +12834,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   processedRowKeys.add(rowKey);
                   
-                  const existingContractor = findExistingContractor(email, name, company);
-                  
                   rowsToProcess.push({
                     name,
                     email: email || null,
@@ -12851,7 +12843,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     siteNames,
                     businessUnitNames,
                     inductionExpiry,
-                    existingContractor: existingContractor || null
                   });
                 }
               }
@@ -12936,15 +12927,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             // Save all contractors to Supabase
             for (let idx = 0; idx < rowsToProcess.length; idx++) {
               const contractor = rowsToProcess[idx];
-              const actionLabel = contractor.existingContractor ? 'Updating' : 'Importing';
-              setImportMessage(`${actionLabel} ${idx + 1} of ${rowsToProcess.length}: ${contractor.name}...`);
               try {
-                // Ensure company exists (upsert)
+                // Ensure company exists (upsert) — reuse existing company when name matches
                 const company = await upsertCompany({ name: contractor.company });
                 if (!company) {
                   companyNotFoundCount++;
                   continue;
                 }
+
+                const formattedPhone = contractor.phone ? formatPhoneNumber(contractor.phone) : null;
+                const formattedName = formatNameToTitleCase(contractor.name);
+
+                const existingContractor = findContractorInCompany(importContractorsCache, {
+                  companyId: company.id,
+                  email: contractor.email,
+                  name: formattedName,
+                  phone: formattedPhone,
+                });
+
+                const actionLabel = existingContractor ? 'Updating' : 'Importing';
+                setImportMessage(`${actionLabel} ${idx + 1} of ${rowsToProcess.length}: ${contractor.name}...`);
                 
                 // Track if this is a newly created company
                 if (company.manually_created && !processedCompanies.has(company.id)) {
@@ -12975,11 +12977,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ? resolveServiceIds(serviceNames, businessUnitIds)
                   : [];
 
-                const formattedPhone = contractor.phone ? formatPhoneNumber(contractor.phone) : null;
-                const formattedName = formatNameToTitleCase(contractor.name);
-
-                if (contractor.existingContractor) {
-                  const existing = contractor.existingContractor;
+                if (existingContractor) {
+                  const existing = existingContractor;
+                  console.log(`🔄 Updating contractor in ${company.name}: ${formattedName}`);
                   const saved = await updateContractor(existing.id, {
                     name: formattedName,
                     email: contractor.email || existing.email || null,
@@ -13001,8 +13001,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Update returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  const existingIndex = importContractorsCache.findIndex((c) => c.id === saved.id);
+                  if (existingIndex >= 0) {
+                    importContractorsCache[existingIndex] = saved;
+                  } else {
+                    importContractorsCache.push(saved);
+                  }
                   updatedCount++;
                 } else {
+                  console.log(`✨ Creating contractor in ${company.name}: ${formattedName}`);
                   const saved = await createContractor({
                     name: formattedName,
                     email: contractor.email || null,
@@ -13018,6 +13025,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Create returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  importContractorsCache.push(saved);
                   newCount++;
                 }
               } catch (err) {
