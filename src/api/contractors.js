@@ -243,6 +243,52 @@ export const deleteContractor = async (contractorId) => {
   }
 };
 
+const normalizePhoneForMatch = (phone) => {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.replace(/^0+/, '') || digits;
+};
+
+const normalizeNameForMatch = (name) => (name || '').trim().toLowerCase();
+
+// Find an existing contractor within a specific company by email, name, or phone
+export const findContractorInCompany = (contractors, { companyId, email, name, phone }) => {
+  if (!companyId || !Array.isArray(contractors)) return null;
+
+  const companyContractors = contractors.filter(
+    (contractor) => (contractor.companyId || contractor.company_id) === companyId
+  );
+
+  if (email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const byEmail = companyContractors.find(
+      (contractor) => contractor.email && contractor.email.toLowerCase() === normalizedEmail
+    );
+    if (byEmail) return byEmail;
+  }
+
+  if (name) {
+    const normalizedName = normalizeNameForMatch(name);
+    const byName = companyContractors.find(
+      (contractor) => normalizeNameForMatch(contractor.name) === normalizedName
+    );
+    if (byName) return byName;
+  }
+
+  if (phone) {
+    const normalizedPhone = normalizePhoneForMatch(phone);
+    if (normalizedPhone) {
+      const byPhone = companyContractors.find(
+        (contractor) => normalizePhoneForMatch(contractor.phone) === normalizedPhone
+      );
+      if (byPhone) return byPhone;
+    }
+  }
+
+  return null;
+};
+
 // Get contractors by company
 export const listContractorsByCompany = async (companyId) => {
   try {
