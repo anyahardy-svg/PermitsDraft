@@ -1,5 +1,59 @@
 import { supabase } from '../supabaseClient';
 
+// PostgREST returns at most 1000 rows per request unless paginated with .range()
+const PAGE_SIZE = 1000;
+const IN_QUERY_BATCH_SIZE = 200;
+
+const fetchAllPaginated = async (buildQuery) => {
+  const allRows = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await buildQuery(from, to);
+    if (error) throw error;
+    if (!data?.length) break;
+
+    allRows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return allRows;
+};
+
+const fetchCompanyNameMap = async (companyIds) => {
+  const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) return {};
+
+  const companyMap = {};
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const { data: companies, error } = await supabase
+      .from('companies')
+      .select('id, name')
+      .in('id', batch);
+
+    if (error) throw error;
+
+    for (const company of companies || []) {
+      companyMap[company.id] = company.name;
+    }
+  }
+
+  return companyMap;
+};
+
+const attachCompanyNames = async (contractors) => {
+  const companyIds = (contractors || []).map((contractor) => contractor.company_id);
+  const companyMap = await fetchCompanyNameMap(companyIds);
+
+  return (contractors || []).map((contractor) => ({
+    ...contractor,
+    company_name: companyMap[contractor.company_id] || contractor.company_name || '',
+  }));
+};
+
 // Helper function to transform Supabase data to app format
 const transformContractor = (dbContractor) => {
   // Get company name from either direct column or joined companies table
@@ -81,50 +135,21 @@ export const createContractor = async (contractorData) => {
 export const listContractors = async () => {
   try {
     // Fetch contractors without join to avoid relationship ambiguity
-    const { data, error } = await supabase
-      .from('contractors')
-      .select()
-      .order('name', { ascending: true });
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select()
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
 
-    if (error) {
-      console.error('❌ Supabase error loading contractors:', error.code, error.message);
-      throw error;
-    }
-    
-    console.log('✅ Raw contractors data from Supabase:', data?.length || 0, 'contractors');
-    console.log('📋 First contractor sample:', data?.[0]);
-    
-    // Get unique company IDs that need lookup
-    const companyIds = [...new Set((data || [])
-      .map(c => c.company_id)
-      .filter(Boolean))];
+    console.log('✅ Raw contractors data from Supabase:', data.length, 'contractors');
+    console.log('📋 First contractor sample:', data[0]);
 
-    let companyMap = {};
-    if (companyIds.length > 0) {
-      try {
-        const { data: companies } = await supabase
-          .from('companies')
-          .select('id, name')
-          .in('id', companyIds);
-        
-        companyMap = (companies || []).reduce((map, comp) => {
-          map[comp.id] = comp.name;
-          return map;
-        }, {});
-      } catch (err) {
-        console.warn('Could not fetch company names:', err.message);
-      }
-    }
-    
-    // Map company names to contractors
-    const contractorsWithCompanies = (data || []).map(contractor => ({
-      ...contractor,
-      company_name: companyMap[contractor.company_id] || contractor.company_name || '',
-    }));
-    
-    const transformed = (contractorsWithCompanies || []).map(transformContractor);
+    const contractorsWithCompanies = await attachCompanyNames(data);
+    const transformed = contractorsWithCompanies.map(transformContractor);
     console.log('✅ Transformed contractors:', transformed.length);
-    
+
     return transformed;
   } catch (error) {
     console.error('❌ Error fetching contractors:', error.message);
@@ -292,14 +317,16 @@ export const findContractorInCompany = (contractors, { companyId, email, name, p
 // Get contractors by company
 export const listContractorsByCompany = async (companyId) => {
   try {
-    const { data, error } = await supabase
-      .from('contractors')
-      .select('*, companies(name)')
-      .eq('company_id', companyId)
-      .order('name', { ascending: true });
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*, companies(name)')
+        .eq('company_id', companyId)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
 
-    if (error) throw error;
-    return (data || []).map(transformContractor);
+    return data.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors by company:', error.message);
     throw error;
@@ -310,14 +337,16 @@ export const listContractorsByCompany = async (companyId) => {
 export const listContractorsWithExpiredInductions = async () => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
-      .from('contractors')
-      .select('*, companies(name)')
-      .lt('induction_expiry', today)
-      .order('induction_expiry', { ascending: false });
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*, companies(name)')
+        .lt('induction_expiry', today)
+        .order('induction_expiry', { ascending: false })
+        .range(from, to)
+    );
 
-    if (error) throw error;
-    return (data || []).map(transformContractor);
+    return data.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors with expired inductions:', error.message);
     throw error;
@@ -328,48 +357,9 @@ export const listContractorsWithExpiredInductions = async () => {
 export const listContractorsBySite = async (siteId) => {
   try {
     console.log('🔍 Loading contractors for site:', siteId);
-    // Get ALL contractors for this site (not filtered by induction status)
-    const { data, error } = await supabase
-      .from('contractors')
-      .select()
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.error('❌ Error fetching contractors:', error.code, error.message);
-      throw error;
-    }
-    
-    console.log('✅ Contractors loaded:', data?.length || 0);
-    
-    // Get unique company IDs that need lookup
-    const companyIds = [...new Set((data || [])
-      .map(c => c.company_id)
-      .filter(Boolean))];
-
-    let companyMap = {};
-    if (companyIds.length > 0) {
-      try {
-        const { data: companies } = await supabase
-          .from('companies')
-          .select('id, name')
-          .in('id', companyIds);
-        
-        companyMap = (companies || []).reduce((map, comp) => {
-          map[comp.id] = comp.name;
-          return map;
-        }, {});
-      } catch (err) {
-        console.warn('Could not fetch company names:', err.message);
-      }
-    }
-    
-    // Map company names to contractors
-    const contractorsWithCompanies = (data || []).map(contractor => ({
-      ...contractor,
-      company_name: companyMap[contractor.company_id] || contractor.company_name || '',
-    }));
-    
-    return contractorsWithCompanies.map(transformContractor);
+    const contractors = await listContractors();
+    console.log('✅ Contractors loaded:', contractors.length);
+    return contractors;
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;
