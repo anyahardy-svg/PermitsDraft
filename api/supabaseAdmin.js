@@ -103,8 +103,17 @@ function emailsMatch(left, right) {
   return String(left).trim().toLowerCase() === String(right).trim().toLowerCase();
 }
 
-function contractorBelongsToAuthUser(contractor, user) {
-  return !!contractor && emailsMatch(contractor.email, user?.email);
+function contractorBelongsToAuthUser(contractor, user, options = {}) {
+  if (!contractor || !user?.email) {
+    return false;
+  }
+
+  const contractorEmail = String(contractor.email || '').trim();
+  if (!contractorEmail) {
+    return options.trustedMetadataLink === true;
+  }
+
+  return emailsMatch(contractor.email, user.email);
 }
 
 function pickBestContractorRow(rows) {
@@ -186,11 +195,15 @@ async function lookupContractorForAuthUser(adminClient, user) {
       .eq('id', metadata.contractor_id)
       .maybeSingle();
 
-    if (contractorById && contractorBelongsToAuthUser(contractorById, user)) {
+    const trustedMetadataLink = contractorById?.id === metadata.contractor_id;
+    if (
+      contractorById &&
+      contractorBelongsToAuthUser(contractorById, user, { trustedMetadataLink })
+    ) {
       return contractorById;
     }
 
-    if (contractorById && !contractorBelongsToAuthUser(contractorById, user)) {
+    if (contractorById && !contractorBelongsToAuthUser(contractorById, user, { trustedMetadataLink })) {
       console.warn(
         `⚠️ Ignoring mismatched contractor_id for ${user.email}: linked to ${contractorById.email}`
       );
@@ -400,7 +413,8 @@ async function syncAuthUserContractorMetadata(adminClient, user, contractor) {
     return;
   }
 
-  if (!contractorBelongsToAuthUser(contractor, user)) {
+  const trustedMetadataLink = metadata.contractor_id === contractor.id;
+  if (!contractorBelongsToAuthUser(contractor, user, { trustedMetadataLink })) {
     console.warn(
       `⚠️ Refusing to sync metadata for ${user.email} with contractor ${contractor.id} (${contractor.email})`
     );
@@ -411,6 +425,21 @@ async function syncAuthUserContractorMetadata(adminClient, user, contractor) {
   const companyIdMatches = metadata.company_id === contractor.company_id;
   if (contractorIdMatches && companyIdMatches) {
     return;
+  }
+
+  const contractorEmail = String(contractor.email || '').trim();
+  if (!contractorEmail && user.email) {
+    const { error: contractorEmailError } = await adminClient
+      .from('contractors')
+      .update({ email: user.email })
+      .eq('id', contractor.id);
+
+    if (contractorEmailError) {
+      console.warn('⚠️ Failed to backfill contractor email:', contractorEmailError.message);
+    } else {
+      contractor.email = user.email;
+      console.log(`✅ Backfilled contractor email for ${contractor.id}`);
+    }
   }
 
   const { error } = await adminClient.auth.admin.updateUserById(user.id, {

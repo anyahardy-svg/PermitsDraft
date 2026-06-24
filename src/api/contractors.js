@@ -46,7 +46,13 @@ const fetchCompanyNameMap = async (companyIds) => {
 
 const attachCompanyNames = async (contractors) => {
   const companyIds = (contractors || []).map((contractor) => contractor.company_id);
-  const companyMap = await fetchCompanyNameMap(companyIds);
+  let companyMap = {};
+
+  try {
+    companyMap = await fetchCompanyNameMap(companyIds);
+  } catch (error) {
+    console.warn('⚠️ Could not fetch company names for contractors:', error.message);
+  }
 
   return (contractors || []).map((contractor) => ({
     ...contractor,

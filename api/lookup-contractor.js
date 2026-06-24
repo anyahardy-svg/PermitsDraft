@@ -125,9 +125,10 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Contractor record not found' });
     }
 
-    if (!contractorBelongsToAuthUser(contractor, user)) {
+    const trustedMetadataLink = metadata.contractor_id === contractor.id;
+    if (!contractorBelongsToAuthUser(contractor, user, { trustedMetadataLink })) {
       console.error(
-        '❌ Contractor email mismatch for authenticated user:',
+        '❌ Contractor profile mismatch for authenticated user:',
         user.email,
         contractor.email
       );
