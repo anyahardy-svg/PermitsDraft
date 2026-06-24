@@ -45,9 +45,12 @@ export function clearContractorSessionStorage() {
   purgeSupabaseAuthStorage();
 }
 
-function contractorBelongsToAuthUser(contractor, user) {
+function contractorBelongsToAuthUser(contractor, user, options = {}) {
   if (!contractor?.email || !user?.email) {
-    return false;
+    if (!contractor || !user?.email) {
+      return false;
+    }
+    return options.trustedMetadataLink === true;
   }
 
   return normalizeEmailForComparison(contractor.email) === normalizeEmailForComparison(user.email);
@@ -374,7 +377,9 @@ const resolveAuthUserProfile = async (user, accessToken) => {
       return resolveAdminStaffProfile(user);
     }
 
-    if (!contractorBelongsToAuthUser(contractorData, user)) {
+    if (!contractorBelongsToAuthUser(contractorData, user, {
+      trustedMetadataLink: metadata.contractor_id === contractorData.id,
+    })) {
       console.error(
         '❌ Contractor row email does not match authenticated user:',
         user.email,

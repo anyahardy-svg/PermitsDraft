@@ -12518,6 +12518,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         if (editingContractor && c.id === currentContractor.id) {
           return false;
         }
+        if (!c.email || !currentContractor.email) {
+          return false;
+        }
         return c.email.toLowerCase() === currentContractor.email.toLowerCase();
       });
       

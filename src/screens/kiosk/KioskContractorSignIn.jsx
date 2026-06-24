@@ -24,10 +24,15 @@ const KioskContractorSignIn = () => {
   const handleContractorSearch = (text) => {
     setContractorSearch(text);
     if (text.trim()) {
-      const filtered = contractors.filter(c =>
-        c.name.toLowerCase().includes(text.toLowerCase()) ||
-        c.email.toLowerCase().includes(text.toLowerCase())
-      );
+      const searchLower = text.toLowerCase();
+      const filtered = contractors.filter((c) => {
+        const contractorName = (c.name || '').toLowerCase();
+        const contractorEmail = (c.email || '').toLowerCase();
+        return (
+          contractorName.includes(searchLower) ||
+          (contractorEmail && contractorEmail.includes(searchLower))
+        );
+      });
       setFilteredContractors(filtered);
     } else {
       setFilteredContractors([]);

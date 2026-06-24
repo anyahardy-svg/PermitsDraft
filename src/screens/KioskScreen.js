@@ -331,14 +331,19 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setReturnedFromInduction(false);
     setContractorSearch(text);
     if (text.trim().length > 0) {
-      const filtered = contractors.filter(c => {
-        // Filter by business unit - contractor must have businessUnitId in their business_unit_ids array
-        const hasBusinessUnit = (c.business_unit_ids || []).includes(businessUnitId);
-        
-        // Also filter by search text (name or email)
-        const matchesSearch = c.name.toLowerCase().includes(text.toLowerCase()) ||
-                             c.email.toLowerCase().includes(text.toLowerCase());
-        
+      const searchLower = text.toLowerCase();
+      const filtered = contractors.filter((c) => {
+        const businessUnits = c.business_unit_ids || c.businessUnitIds || [];
+        // Contractors with no BU assigned are still searchable; otherwise must match site BU
+        const hasBusinessUnit =
+          businessUnits.length === 0 || !businessUnitId || businessUnits.includes(businessUnitId);
+
+        const contractorName = (c.name || '').toLowerCase();
+        const contractorEmail = (c.email || '').toLowerCase();
+        const matchesSearch =
+          contractorName.includes(searchLower) ||
+          (contractorEmail && contractorEmail.includes(searchLower));
+
         return hasBusinessUnit && matchesSearch;
       });
       setFilteredContractors(filtered);
@@ -975,7 +980,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 >
                   <Text style={styles.contractorName}>{item.name}</Text>
                   <Text style={styles.contractorEmail}>{item.email}</Text>
-                  {item.company && <Text style={styles.contractorCompany}>{item.company}</Text>}
+                  {(item.companyName || item.company_name || item.company) && (
+                    <Text style={styles.contractorCompany}>
+                      {item.companyName || item.company_name || item.company}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               )}
             />

@@ -291,20 +291,32 @@ export const deleteCompany = async (companyId, options = {}) => {
 // Get a company by name (case-insensitive)
 export const getCompanyByName = async (companyName) => {
   try {
-    const { data, error } = await supabase
+    const trimmedName = String(companyName || '').trim();
+    if (!trimmedName) {
+      return null;
+    }
+
+    const { data: exactMatches, error: exactError } = await supabase
       .from('companies')
       .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
-      .ilike('name', companyName)
-      .single();
+      .ilike('name', trimmedName)
+      .order('name', { ascending: true })
+      .limit(5);
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No results found
-        return null;
-      }
-      throw error;
+    if (exactError) {
+      throw exactError;
     }
-    return data ? transformCompany(data) : null;
+
+    if (!exactMatches?.length) {
+      return null;
+    }
+
+    const normalizedTarget = trimmedName.toLowerCase();
+    const exactNameMatch = exactMatches.find(
+      (company) => company.name?.trim().toLowerCase() === normalizedTarget
+    );
+
+    return transformCompany(exactNameMatch || exactMatches[0]);
   } catch (error) {
     console.error('Error fetching company by name:', error.message);
     throw error;
