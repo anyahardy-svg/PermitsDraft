@@ -1,5 +1,8 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
+import { fetchAllPaginated } from './pagination';
+
+const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type';
 
 // Helper function to transform Supabase data to app format
 const transformCompany = (dbCompany) => {
@@ -111,18 +114,43 @@ export const createCompany = async (companyData) => {
   }
 };
 
-// Get all companies
+// Get all companies (paginated to exceed PostgREST 1000-row limit)
 export const listCompanies = async () => {
   try {
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select(COMPANY_LIST_COLUMNS)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+
+    return (data || []).map(transformCompany);
+  } catch (error) {
+    console.error('Error fetching companies:', error.message);
+    throw error;
+  }
+};
+
+// Search companies by name for autocomplete/lookup (server-side, avoids loading full list)
+export const searchCompanies = async (query, { limit = 50 } = {}) => {
+  try {
+    const trimmedQuery = String(query || '').trim();
+    if (!trimmedQuery) {
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type')
-      .order('name', { ascending: true });
+      .select(COMPANY_LIST_COLUMNS)
+      .ilike('name', `%${trimmedQuery}%`)
+      .order('name', { ascending: true })
+      .limit(limit);
 
     if (error) throw error;
     return (data || []).map(transformCompany);
   } catch (error) {
-    console.error('Error fetching companies:', error.message);
+    console.error('Error searching companies:', error.message);
     throw error;
   }
 };
@@ -199,12 +227,14 @@ export const getContractorsByCompany = async (companyId) => {
       return [];
     }
 
-    const { data, error } = await supabase
-      .from('contractors')
-      .select('id, name, email')
-      .eq('company_id', companyId);
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('id, name, email')
+        .eq('company_id', companyId)
+        .range(from, to)
+    );
 
-    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching contractors for company:', error.message);
