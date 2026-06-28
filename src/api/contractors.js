@@ -1,26 +1,5 @@
 import { supabase } from '../supabaseClient';
-
-// PostgREST returns at most 1000 rows per request unless paginated with .range()
-const PAGE_SIZE = 1000;
-const IN_QUERY_BATCH_SIZE = 200;
-
-const fetchAllPaginated = async (buildQuery) => {
-  const allRows = [];
-  let from = 0;
-
-  while (true) {
-    const to = from + PAGE_SIZE - 1;
-    const { data, error } = await buildQuery(from, to);
-    if (error) throw error;
-    if (!data?.length) break;
-
-    allRows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-
-  return allRows;
-};
+import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];

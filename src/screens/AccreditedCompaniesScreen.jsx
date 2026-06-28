@@ -5,6 +5,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 
 import { listAccreditedCompaniesReport } from '../api/accreditedCompaniesReport';
@@ -86,6 +87,8 @@ export default function AccreditedCompaniesScreen() {
   const [searchText, setSearchText] = useState('');
   const [businessUnitFilter, setBusinessUnitFilter] = useState('All');
   const [siteFilter, setSiteFilter] = useState('All');
+  const [tablePage, setTablePage] = useState(1);
+  const TABLE_PAGE_SIZE = 100;
 
   const loadCompanies = useCallback(async () => {
     try {
@@ -126,13 +129,21 @@ export default function AccreditedCompaniesScreen() {
     return matchesSearch && matchesBusinessUnit && matchesSite;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / TABLE_PAGE_SIZE));
+  const currentPage = Math.min(tablePage, totalPages);
+  const startIndex = (currentPage - 1) * TABLE_PAGE_SIZE;
+  const paginatedCompanies = filteredCompanies.slice(startIndex, startIndex + TABLE_PAGE_SIZE);
+
   return (
     <View style={{ flex: 1 }}>
       <View style={{ marginBottom: 16, gap: 12 }}>
         <TextInput
           placeholder="Search by company, business unit, or site..."
           value={searchText}
-          onChangeText={setSearchText}
+          onChangeText={(text) => {
+            setSearchText(text);
+            setTablePage(1);
+          }}
           style={{
             borderWidth: 1,
             borderColor: '#D1D5DB',
@@ -156,7 +167,10 @@ export default function AccreditedCompaniesScreen() {
               fontSize: 14,
             }}
             value={businessUnitFilter}
-            onChange={(e) => setBusinessUnitFilter(e.target.value)}
+            onChange={(e) => {
+              setBusinessUnitFilter(e.target.value);
+              setTablePage(1);
+            }}
           >
             <option value="All">All Business Units</option>
             {businessUnits.map((bu) => (
@@ -175,7 +189,10 @@ export default function AccreditedCompaniesScreen() {
               fontSize: 14,
             }}
             value={siteFilter}
-            onChange={(e) => setSiteFilter(e.target.value)}
+            onChange={(e) => {
+              setSiteFilter(e.target.value);
+              setTablePage(1);
+            }}
           >
             <option value="All">All Sites</option>
             {sites.map((site) => (
@@ -187,7 +204,7 @@ export default function AccreditedCompaniesScreen() {
 
       {!loading && !error && (
         <Text style={{ color: '#6B7280', marginBottom: 12 }}>
-          Showing {filteredCompanies.length} of {companies.length} accredited companies
+          Showing {filteredCompanies.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + paginatedCompanies.length, filteredCompanies.length)} of {filteredCompanies.length} accredited companies (total loaded: {companies.length})
         </Text>
       )}
 
@@ -207,6 +224,7 @@ export default function AccreditedCompaniesScreen() {
           </Text>
         </View>
       ) : (
+        <>
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View>
             <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6' }}>
@@ -228,7 +246,7 @@ export default function AccreditedCompaniesScreen() {
               ))}
             </View>
 
-            {filteredCompanies.map((company, index) => (
+            {paginatedCompanies.map((company, index) => (
               <View
                 key={company.id}
                 style={{
@@ -291,6 +309,38 @@ export default function AccreditedCompaniesScreen() {
             ))}
           </View>
         </ScrollView>
+        {totalPages > 1 && (
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 12 }}>
+            <TouchableOpacity
+              disabled={currentPage <= 1}
+              onPress={() => setTablePage((page) => Math.max(1, page - 1))}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                backgroundColor: currentPage <= 1 ? '#E5E7EB' : '#3B82F6',
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ color: currentPage <= 1 ? '#9CA3AF' : 'white', fontWeight: '600' }}>Previous</Text>
+            </TouchableOpacity>
+            <Text style={{ color: '#374151', fontSize: 14 }}>
+              Page {currentPage} of {totalPages}
+            </Text>
+            <TouchableOpacity
+              disabled={currentPage >= totalPages}
+              onPress={() => setTablePage((page) => Math.min(totalPages, page + 1))}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                backgroundColor: currentPage >= totalPages ? '#E5E7EB' : '#3B82F6',
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ color: currentPage >= totalPages ? '#9CA3AF' : 'white', fontWeight: '600' }}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        </>
       )}
     </View>
   );

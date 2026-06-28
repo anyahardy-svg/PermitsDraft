@@ -23,7 +23,7 @@ import { createPermit, listPermits, updatePermit, deletePermit } from './src/api
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
-import { createCompany, listCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation, getContractorsByCompany } from './src/api/companies';
+import { createCompany, listCompanies, searchCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation, getContractorsByCompany } from './src/api/companies';
 import { getCompanyAccreditation } from './src/api/accreditations';
 import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
@@ -3175,6 +3175,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorBusinessUnitFilter, setContractorBusinessUnitFilter] = useState('All');
   const [companySearchText, setCompanySearchText] = useState('');
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
+  const [companiesTablePage, setCompaniesTablePage] = useState(1);
+  const COMPANIES_TABLE_PAGE_SIZE = 100;
   const [permitIssuerSearchText, setPermitIssuerSearchText] = useState('');
   const [permitIssuerCompanyFilter, setPermitIssuerCompanyFilter] = useState('All');
   const [permitIssuerBusinessUnitFilter, setPermitIssuerBusinessUnitFilter] = useState('All');
@@ -10314,6 +10316,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return matchesSearch && matchesBUFilter;
     });
 
+    const getPaginatedCompanies = () => {
+      const filtered = getFilteredCompanies();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / COMPANIES_TABLE_PAGE_SIZE));
+      const safePage = Math.min(companiesTablePage, totalPages);
+      const startIndex = (safePage - 1) * COMPANIES_TABLE_PAGE_SIZE;
+      return {
+        filteredCompanies: filtered,
+        paginatedCompanies: filtered.slice(startIndex, startIndex + COMPANIES_TABLE_PAGE_SIZE),
+        totalPages,
+        currentPage: safePage,
+        startIndex,
+      };
+    };
+
     const handleExportCSV = () => {
       const filteredCompanies = getFilteredCompanies();
 
@@ -10614,12 +10630,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 style={[styles.input, { flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB' }]}
                 placeholder="Search by company, contact name, or email..."
                 value={companySearchText}
-                onChangeText={setCompanySearchText}
+                onChangeText={(text) => {
+                  setCompanySearchText(text);
+                  setCompaniesTablePage(1);
+                }}
               />
               <select 
                 style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white' }} 
                 value={companyFilterBusinessUnit}
-                onChange={(e) => setCompanyFilterBusinessUnit(e.target.value)}
+                onChange={(e) => {
+                  setCompanyFilterBusinessUnit(e.target.value);
+                  setCompaniesTablePage(1);
+                }}
               >
                 <option value="All">All Business Units</option>
                 {businessUnits.map(bu => (
@@ -10636,7 +10658,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             ) : (
               (() => {
-                const filteredCompanies = getFilteredCompanies();
+                const {
+                  filteredCompanies,
+                  paginatedCompanies,
+                  totalPages,
+                  currentPage,
+                  startIndex,
+                } = getPaginatedCompanies();
 
                 if (filteredCompanies.length === 0) {
                   return <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
@@ -10645,6 +10673,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
 
                 return (
+                  <>
+                  <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                    Showing {startIndex + 1}-{Math.min(startIndex + paginatedCompanies.length, filteredCompanies.length)} of {filteredCompanies.length} matching companies
+                  </Text>
                   <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
                     <View>
                       {/* Table Header */}
@@ -10661,7 +10693,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </View>
 
                       {/* Table Rows */}
-                      {filteredCompanies.map((company, index) => {
+                      {paginatedCompanies.map((company, index) => {
                         const companyBUs = businessUnits.filter(bu => 
                           (company.business_unit_ids || []).includes(bu.id)
                         ).map(bu => bu.name).join(', ') || 'No BUs assigned';
@@ -10863,6 +10895,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       })}
                     </View>
                   </ScrollView>
+                  {totalPages > 1 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          backgroundColor: currentPage <= 1 ? '#E5E7EB' : '#3B82F6',
+                          borderRadius: 6,
+                        }}
+                        disabled={currentPage <= 1}
+                        onPress={() => setCompaniesTablePage((page) => Math.max(1, page - 1))}
+                      >
+                        <Text style={{ color: currentPage <= 1 ? '#9CA3AF' : 'white', fontWeight: '600' }}>Previous</Text>
+                      </TouchableOpacity>
+                      <Text style={{ color: '#374151', fontSize: 14 }}>
+                        Page {currentPage} of {totalPages}
+                      </Text>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          backgroundColor: currentPage >= totalPages ? '#E5E7EB' : '#3B82F6',
+                          borderRadius: 6,
+                        }}
+                        disabled={currentPage >= totalPages}
+                        onPress={() => setCompaniesTablePage((page) => Math.min(totalPages, page + 1))}
+                      >
+                        <Text style={{ color: currentPage >= totalPages ? '#9CA3AF' : 'white', fontWeight: '600' }}>Next</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  </>
                 );
               })()
             )}
@@ -13249,27 +13313,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <TextInput 
                   style={styles.input} 
                   value={currentContractor.company} 
-                  onChangeText={text => {
+                  onChangeText={async (text) => {
                     setCurrentContractor({ ...currentContractor, company: text, companyManuallyEntered: true });
-                    // Filter companies based on input
                     if (text.trim().length > 0) {
-                      const filtered = companies.filter(c => 
-                        c.name.toLowerCase().includes(text.toLowerCase())
-                      );
-                      setFilteredCompanies(filtered);
-                      setShowCompanyDropdown(filtered.length > 0);
+                      try {
+                        const results = await searchCompanies(text, { limit: 50 });
+                        setFilteredCompanies(results);
+                        setShowCompanyDropdown(results.length > 0);
+                      } catch (searchError) {
+                        const filtered = companies
+                          .filter((c) => c.name.toLowerCase().includes(text.toLowerCase()))
+                          .slice(0, 50);
+                        setFilteredCompanies(filtered);
+                        setShowCompanyDropdown(filtered.length > 0);
+                      }
                     } else {
                       setShowCompanyDropdown(false);
                       setFilteredCompanies([]);
                     }
                   }}
-                  onFocus={() => {
+                  onFocus={async () => {
                     if (currentContractor.company.trim().length > 0) {
-                      const filtered = companies.filter(c => 
-                        c.name.toLowerCase().includes(currentContractor.company.toLowerCase())
-                      );
-                      setFilteredCompanies(filtered);
-                      setShowCompanyDropdown(filtered.length > 0);
+                      try {
+                        const results = await searchCompanies(currentContractor.company, { limit: 50 });
+                        setFilteredCompanies(results);
+                        setShowCompanyDropdown(results.length > 0);
+                      } catch (searchError) {
+                        const filtered = companies
+                          .filter((c) => c.name.toLowerCase().includes(currentContractor.company.toLowerCase()))
+                          .slice(0, 50);
+                        setFilteredCompanies(filtered);
+                        setShowCompanyDropdown(filtered.length > 0);
+                      }
                     }
                   }}
                   onBlur={() => {

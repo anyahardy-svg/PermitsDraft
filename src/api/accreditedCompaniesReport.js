@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
+import { fetchAllPaginated } from './pagination';
 
 function formatDate(dateValue) {
   if (!dateValue) {
@@ -21,19 +22,25 @@ function isAccreditedCompany(company) {
 
 export async function listAccreditedCompaniesReport() {
   const [
-    { data: companiesData, error: companiesError },
-    { data: contractors, error: contractorsError },
+    companiesData,
+    contractors,
     { data: businessUnits, error: businessUnitsError },
     { data: sites, error: sitesError },
   ] = await Promise.all([
-    supabase
-      .from('companies')
-      .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar')
-      .order('name', { ascending: true }),
-    supabase
-      .from('contractors')
-      .select('company_id, site_ids')
-      .not('company_id', 'is', null),
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar')
+        .order('name', { ascending: true })
+        .range(from, to)
+    ),
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('company_id, site_ids')
+        .not('company_id', 'is', null)
+        .range(from, to)
+    ),
     supabase
       .from('business_units')
       .select('id, name')
@@ -44,8 +51,6 @@ export async function listAccreditedCompaniesReport() {
       .order('name', { ascending: true }),
   ]);
 
-  if (companiesError) throw companiesError;
-  if (contractorsError) throw contractorsError;
   if (businessUnitsError) throw businessUnitsError;
   if (sitesError) throw sitesError;
 

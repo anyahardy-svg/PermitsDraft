@@ -27,7 +27,7 @@ import {
   getForceCompulsoryServiceIds,
 } from '../api/inductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
-import { listCompanies, createCompany } from '../api/companies';
+import { listCompanies, createCompany, searchCompanies } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
@@ -156,6 +156,7 @@ export default function ContractorInductionScreen({
   const [businessUnits, setBusinessUnits] = useState([]);
   const [sites, setSites] = useState([]);
   const [companySearchText, setCompanySearchText] = useState('');
+  const [companySearchResults, setCompanySearchResults] = useState([]);
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -312,6 +313,40 @@ export default function ContractorInductionScreen({
       setError('Failed to load data');
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const runSearch = async () => {
+      if (!companySearchText.trim()) {
+        setCompanySearchResults(companies.slice(0, 50));
+        return;
+      }
+
+      try {
+        const results = await searchCompanies(companySearchText, { limit: 50 });
+        if (!cancelled) {
+          setCompanySearchResults(results);
+        }
+      } catch (searchError) {
+        if (!cancelled) {
+          setCompanySearchResults(
+            companies
+              .filter((company) => company.name.toLowerCase().includes(companySearchText.toLowerCase()))
+              .slice(0, 50)
+          );
+        }
+      }
+    };
+
+    if (showCompanyDropdown) {
+      runSearch();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companySearchText, companies, showCompanyDropdown]);
 
   const getSitesForBUFilter = (businessUnitId) => {
     if (!businessUnitId) return allSites;
@@ -1707,9 +1742,7 @@ export default function ContractorInductionScreen({
           />
           {showCompanyDropdown && (
             <View style={{ backgroundColor: '#F9FAFB', borderRadius: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 0, marginTop: 0 }}>
-              {companies
-                .filter(company => company.name.toLowerCase().includes(companySearchText.toLowerCase()))
-                .map(company => (
+              {companySearchResults.map(company => (
                   <TouchableOpacity
                     key={company.id}
                     onPress={() => {
@@ -1723,7 +1756,7 @@ export default function ContractorInductionScreen({
                     <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{company.name}</Text>
                   </TouchableOpacity>
                 ))}
-              {companies.filter(company => company.name.toLowerCase().includes(companySearchText.toLowerCase())).length === 0 && companySearchText.trim() && (
+              {companySearchResults.length === 0 && companySearchText.trim() && (
                 <TouchableOpacity
                   onPress={() => {
                     setNewCompanyName(companySearchText);

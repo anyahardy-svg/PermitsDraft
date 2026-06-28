@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
 import { compressImage } from '../utils/imageCompression';
+import { fetchAllPaginated } from './pagination';
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -350,23 +351,25 @@ export const getAllCompaniesAccreditation = async () => {
       throw new Error('Supabase client is not configured');
     }
 
-    const { data, error } = await supabase
-      .from('companies')
-      .select(`
-        id,
-        name,
-        nzbn,
-        approved_services,
-        aep_accredited,
-        aep_certificate_expiry,
-        iso_45001_certified,
-        iso_45001_certificate_expiry,
-        accreditation_last_updated,
-        accreditation_expiry_date
-      `)
-      .order('name', { ascending: true });
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select(`
+          id,
+          name,
+          nzbn,
+          approved_services,
+          aep_accredited,
+          aep_certificate_expiry,
+          iso_45001_certified,
+          iso_45001_certificate_expiry,
+          accreditation_last_updated,
+          accreditation_expiry_date
+        `)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
 
-    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching all accreditations:', error.message);

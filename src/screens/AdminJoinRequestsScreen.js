@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { supabase } from '../supabaseClient';
 import { getAllPendingJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { listCompanies } from '../api/companies';
+import { listCompanies, searchCompanies } from '../api/companies';
 
 export default function AdminJoinRequestsScreen({
   onNavigateBack,
@@ -30,6 +30,8 @@ export default function AdminJoinRequestsScreen({
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [companySearchText, setCompanySearchText] = useState('');
+  const [companySearchResults, setCompanySearchResults] = useState([]);
+  const [isSearchingCompanies, setIsSearchingCompanies] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
   // Modal states for rejection
@@ -160,10 +162,44 @@ export default function AdminJoinRequestsScreen({
     }
   };
 
-  // Filter companies based on search
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(companySearchText.toLowerCase())
-  );
+  // Search companies for approval modal (server-side to support full dataset)
+  useEffect(() => {
+    let cancelled = false;
+
+    const runSearch = async () => {
+      if (!companySearchText.trim()) {
+        setCompanySearchResults(companies.slice(0, 50));
+        return;
+      }
+
+      setIsSearchingCompanies(true);
+      try {
+        const results = await searchCompanies(companySearchText, { limit: 50 });
+        if (!cancelled) {
+          setCompanySearchResults(results);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCompanySearchResults(
+            companies
+              .filter((company) => company.name.toLowerCase().includes(companySearchText.toLowerCase()))
+              .slice(0, 50)
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearchingCompanies(false);
+        }
+      }
+    };
+
+    runSearch();
+    return () => {
+      cancelled = true;
+    };
+  }, [companySearchText, companies]);
+
+  const filteredCompanies = companySearchResults;
 
   if (loadingJoinRequests) {
     return (
@@ -374,7 +410,7 @@ export default function AdminJoinRequestsScreen({
 
             {/* Company List */}
             <ScrollView style={{ maxHeight: 250, marginBottom: 16 }}>
-              {loadingCompanies ? (
+              {loadingCompanies || isSearchingCompanies ? (
                 <ActivityIndicator color="#3B82F6" />
               ) : (
                 filteredCompanies.map(company => (
