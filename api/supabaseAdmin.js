@@ -223,6 +223,7 @@ async function getCompanyIdForAuthEmail(adminClient, email) {
     .from('companies')
     .select('id')
     .ilike('contact_email', trimmed)
+    .order('name', { ascending: true })
     .limit(1)
     .maybeSingle();
 
@@ -234,6 +235,7 @@ async function getCompanyIdForAuthEmail(adminClient, email) {
     .from('companies')
     .select('id')
     .ilike('email', trimmed)
+    .order('name', { ascending: true })
     .limit(1)
     .maybeSingle();
 
@@ -345,12 +347,22 @@ async function resolveValidatedCompanyIdForAuthUser(adminClient, user, preferred
   if (metadataCompanyId && metadata.user_type === 'admin_staff') {
     const { data: metadataCompany } = await adminClient
       .from('companies')
-      .select('id')
+      .select('id, contact_email, email')
       .eq('id', metadataCompanyId)
       .maybeSingle();
 
-    if (metadataCompany?.id) {
+    if (
+      metadataCompany?.id &&
+      (emailsMatch(metadataCompany.contact_email, trimmed) ||
+        emailsMatch(metadataCompany.email, trimmed))
+    ) {
       return metadataCompany.id;
+    }
+
+    if (metadataCompany?.id) {
+      console.warn(
+        `⚠️ Ignoring stale metadata.company_id for ${trimmed}: does not match company contact email`
+      );
     }
   }
 

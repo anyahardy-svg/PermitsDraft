@@ -10,7 +10,6 @@
 const {
   getSupabaseAdmin,
   lookupContractorForAuthUser,
-  getLatestApprovedJoinRequestCompanyId,
   getLatestApprovedJoinRequest,
   resolveValidatedCompanyIdForAuthUser,
   syncAuthUserContractorMetadata,
@@ -44,23 +43,42 @@ module.exports = async function handler(req, res) {
     }
 
     const metadata = user.user_metadata || {};
-    const userType = metadata.user_type || 'contractor';
 
-    if (userType === 'admin_staff') {
-      const companyId =
-        (await resolveValidatedCompanyIdForAuthUser(adminClient, user)) ||
-        (await getLatestApprovedJoinRequestCompanyId(adminClient, user.email));
-
-      if (!companyId) {
-        console.error('❌ No company for admin_staff user:', user.email);
-        return res.status(404).json({ error: 'Company assignment not found' });
+    const contractor = await lookupContractorForAuthUser(adminClient, user);
+    if (contractor) {
+      const trustedMetadataLink = metadata.contractor_id === contractor.id;
+      if (!contractorBelongsToAuthUser(contractor, user, { trustedMetadataLink })) {
+        console.error(
+          '❌ Contractor profile mismatch for authenticated user:',
+          user.email,
+          contractor.email
+        );
+        return res.status(403).json({ error: 'Contractor profile does not match authenticated user' });
       }
 
-      if (metadata.company_id !== companyId || metadata.user_type !== 'admin_staff') {
+      await syncAuthUserContractorMetadata(adminClient, user, contractor);
+
+      return res.status(200).json({
+        success: true,
+        contractor: {
+          ...contractor,
+          email: user.email,
+        },
+      });
+    }
+
+    const validatedCompanyId = await resolveValidatedCompanyIdForAuthUser(adminClient, user);
+    if (validatedCompanyId) {
+      console.log(
+        `✅ Company contact (admin staff) for ${user.email} — company:`,
+        validatedCompanyId
+      );
+
+      if (metadata.company_id !== validatedCompanyId || metadata.user_type !== 'admin_staff') {
         await adminClient.auth.admin.updateUserById(user.id, {
           user_metadata: {
             ...metadata,
-            company_id: companyId,
+            company_id: validatedCompanyId,
             user_type: 'admin_staff',
           },
         });
@@ -70,80 +88,39 @@ module.exports = async function handler(req, res) {
         success: true,
         contractor: {
           id: null,
-          name: metadata.name || user.email,
-          company_id: companyId,
+          name: metadata.name || metadata.contractor_name || user.email,
+          company_id: validatedCompanyId,
           email: user.email,
           user_type: 'admin_staff',
         },
       });
     }
 
-    const contractor = await lookupContractorForAuthUser(adminClient, user);
-    if (!contractor) {
-      const validatedCompanyId = await resolveValidatedCompanyIdForAuthUser(adminClient, user);
-      if (validatedCompanyId) {
-        console.log(
-          `✅ Company contact (admin staff) for ${user.email} — company:`,
-          validatedCompanyId
-        );
-        return res.status(200).json({
-          success: true,
-          contractor: {
-            id: null,
-            name: metadata.name || metadata.contractor_name || user.email,
-            company_id: validatedCompanyId,
-            email: user.email,
-            user_type: 'admin_staff',
-          },
-        });
-      }
-
-      const joinRequest = await getLatestApprovedJoinRequest(adminClient, user.email);
-      if (joinRequest?.company_id) {
-        const joinUserType =
-          joinRequest.user_type ||
-          (joinRequest.will_work_on_site === false ? 'admin_staff' : 'contractor');
-        console.log(
-          `✅ Approved join request for ${user.email} — company:`,
-          joinRequest.company_id,
-          'role:',
-          joinUserType
-        );
-        return res.status(200).json({
-          success: true,
-          contractor: {
-            id: null,
-            name: metadata.name || user.email,
-            company_id: joinRequest.company_id,
-            email: user.email,
-            user_type: joinUserType,
-          },
-        });
-      }
-
-      console.error('❌ No contractor row for authenticated user:', user.email);
-      return res.status(404).json({ error: 'Contractor record not found' });
-    }
-
-    const trustedMetadataLink = metadata.contractor_id === contractor.id;
-    if (!contractorBelongsToAuthUser(contractor, user, { trustedMetadataLink })) {
-      console.error(
-        '❌ Contractor profile mismatch for authenticated user:',
-        user.email,
-        contractor.email
+    const joinRequest = await getLatestApprovedJoinRequest(adminClient, user.email);
+    if (joinRequest?.company_id) {
+      const joinUserType =
+        joinRequest.user_type ||
+        (joinRequest.will_work_on_site === false ? 'admin_staff' : 'contractor');
+      console.log(
+        `✅ Approved join request for ${user.email} — company:`,
+        joinRequest.company_id,
+        'role:',
+        joinUserType
       );
-      return res.status(403).json({ error: 'Contractor profile does not match authenticated user' });
+      return res.status(200).json({
+        success: true,
+        contractor: {
+          id: null,
+          name: metadata.name || user.email,
+          company_id: joinRequest.company_id,
+          email: user.email,
+          user_type: joinUserType,
+        },
+      });
     }
 
-    await syncAuthUserContractorMetadata(adminClient, user, contractor);
-
-    return res.status(200).json({
-      success: true,
-      contractor: {
-        ...contractor,
-        email: user.email,
-      },
-    });
+    console.error('❌ No contractor row for authenticated user:', user.email);
+    return res.status(404).json({ error: 'Contractor record not found' });
   } catch (error) {
     console.error('❌ lookup-contractor error:', error);
     return res.status(500).json({ error: error.message || 'Server error' });

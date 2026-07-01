@@ -42,6 +42,8 @@ export function clearContractorSessionStorage() {
   localStorage.removeItem('contractor_session');
   localStorage.removeItem('contractor_token');
   localStorage.removeItem('contractor_id');
+  // Prevent admin-selected company bleeding into contractor accreditation views.
+  localStorage.removeItem('accreditation_selected_company');
   purgeSupabaseAuthStorage();
 }
 
@@ -88,6 +90,7 @@ const getCompanyIdFromContactFields = async (email) => {
     .from('companies')
     .select('id')
     .ilike('contact_email', trimmed)
+    .order('name', { ascending: true })
     .limit(1)
     .maybeSingle();
 
@@ -99,6 +102,7 @@ const getCompanyIdFromContactFields = async (email) => {
     .from('companies')
     .select('id')
     .ilike('email', trimmed)
+    .order('name', { ascending: true })
     .limit(1)
     .maybeSingle();
 
@@ -232,25 +236,12 @@ const signInWithEmailCaseInsensitive = async (email, password) => {
   return { data: { user: null, session: null }, error: lastError };
 };
 
-const lookupContractorByEmail = async (email, preferredCompanyId = null) => {
+const lookupContractorByEmail = async (email) => {
   if (!supabase || !email) {
     return null;
   }
 
   const normalizedEmail = email.trim();
-
-  if (preferredCompanyId) {
-    const { data: companyMatch } = await supabase
-      .from('contractors')
-      .select('id, name, company_id, email')
-      .ilike('email', normalizedEmail)
-      .eq('company_id', preferredCompanyId)
-      .maybeSingle();
-
-    if (companyMatch) {
-      return companyMatch;
-    }
-  }
 
   const pickBestContractorRow = (rows) => {
     if (!rows?.length) {
@@ -333,7 +324,7 @@ const enrichProfileFromContractorTable = async (user, accessToken) => {
     return apiContractor;
   }
 
-  return lookupContractorByEmail(user.email, user.user_metadata?.company_id || null);
+  return lookupContractorByEmail(user.email);
 };
 
 const resolveAdminStaffProfile = async (user) => {
@@ -341,9 +332,9 @@ const resolveAdminStaffProfile = async (user) => {
   const adminAccessCompanyId = await getCompanyAdminAccessCompanyId(user.email);
   const contactFieldCompanyId = await getCompanyIdFromContactFields(user.email);
   const joinRequestCompanyId = await getJoinRequestCompanyId(user.email);
+  // Do not trust metadata.company_id here — it is often stale after profile bleed.
   const companyId =
     adminAccessCompanyId ||
-    metadata.company_id ||
     contactFieldCompanyId ||
     joinRequestCompanyId ||
     null;
@@ -363,20 +354,12 @@ const resolveAdminStaffProfile = async (user) => {
 
 const resolveAuthUserProfile = async (user, accessToken) => {
   const metadata = user?.user_metadata || {};
-  const userType = metadata.user_type || 'contractor';
+  const metadataUserType = metadata.user_type || 'contractor';
 
-  if (userType === 'admin_staff') {
-    return resolveAdminStaffProfile(user);
-  }
-
-  // Always resolve contractor company from the database — JWT metadata can be stale
-  // after join approval, re-invite, or duplicate contractor rows for the same email.
+  // Always resolve from the contractors table / lookup API first — JWT metadata can be
+  // stale or copied from another user (e.g. admin_staff + wrong company_id on everyone).
   const contractorData = await enrichProfileFromContractorTable(user, accessToken);
-  if (contractorData) {
-    if (contractorData.user_type === 'admin_staff') {
-      return resolveAdminStaffProfile(user);
-    }
-
+  if (contractorData?.id) {
     if (!contractorBelongsToAuthUser(contractorData, user, {
       trustedMetadataLink: metadata.contractor_id === contractorData.id,
     })) {
@@ -393,12 +376,22 @@ const resolveAuthUserProfile = async (user, accessToken) => {
       contractorName: contractorData.name,
       companyId: contractorData.company_id,
       email: user.email,
-      userType,
+      userType: metadataUserType === 'admin_staff' ? 'contractor' : metadataUserType,
+    };
+  }
+
+  if (contractorData?.company_id && contractorData.user_type === 'admin_staff') {
+    return {
+      contractorId: null,
+      contractorName: contractorData.name || metadata.name || user.email,
+      companyId: contractorData.company_id,
+      email: user.email,
+      userType: 'admin_staff',
     };
   }
 
   // Company contacts (accreditation invites) — admin staff, no contractors row required
-  if (metadata.user_type === 'admin_staff' && metadata.company_id) {
+  if (metadata.user_type === 'admin_staff') {
     return resolveAdminStaffProfile(user);
   }
 
