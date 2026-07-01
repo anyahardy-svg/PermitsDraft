@@ -118,6 +118,44 @@ const getCompanyIdForAuthEmailClient = async (email) => {
   return getCompanyIdFromContactFields(email);
 };
 
+const resolveContactCompanyOverrideClient = async (email, contractorCompanyId) => {
+  if (!email || !contractorCompanyId) {
+    return null;
+  }
+
+  const adminAccessCompanyId = await getCompanyAdminAccessCompanyId(email);
+  if (adminAccessCompanyId && adminAccessCompanyId !== contractorCompanyId) {
+    return adminAccessCompanyId;
+  }
+
+  const contactCompanyId = await getCompanyIdFromContactFields(email);
+  if (!contactCompanyId || contactCompanyId === contractorCompanyId) {
+    return null;
+  }
+
+  if (!supabase) {
+    return contactCompanyId;
+  }
+
+  const { data: company } = await supabase
+    .from('companies')
+    .select('id, contact_email, email')
+    .eq('id', contactCompanyId)
+    .maybeSingle();
+
+  if (!company) {
+    return null;
+  }
+
+  const trimmed = email.trim();
+  const matchesContact =
+    normalizeEmailForComparison(company.contact_email || '') ===
+      normalizeEmailForComparison(trimmed) ||
+    normalizeEmailForComparison(company.email || '') === normalizeEmailForComparison(trimmed);
+
+  return matchesContact ? contactCompanyId : null;
+};
+
 const getApprovedJoinRequest = async (email) => {
   if (!supabase || !email) {
     return null;
@@ -369,6 +407,23 @@ const resolveAuthUserProfile = async (user, accessToken) => {
         contractorData.email
       );
       return null;
+    }
+
+    const contactCompanyOverride = await resolveContactCompanyOverrideClient(
+      user.email,
+      contractorData.company_id
+    );
+    if (contactCompanyOverride) {
+      console.warn(
+        `⚠️ Company contact override for ${user.email}: contractor row company ${contractorData.company_id} → contact company ${contactCompanyOverride}`
+      );
+      return {
+        contractorId: null,
+        contractorName: metadata.name || contractorData.name || user.email,
+        companyId: contactCompanyOverride,
+        email: user.email,
+        userType: 'admin_staff',
+      };
     }
 
     return {

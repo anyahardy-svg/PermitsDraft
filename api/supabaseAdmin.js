@@ -242,6 +242,43 @@ async function getCompanyIdForAuthEmail(adminClient, email) {
   return byEmail?.id || null;
 }
 
+/**
+ * When a user's email is a company contact (or has admin access) but their
+ * contractors row points at a different company, return the contact company id.
+ */
+async function resolveContactCompanyOverride(adminClient, email, contractorCompanyId) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed || !contractorCompanyId) {
+    return null;
+  }
+
+  const adminAccess = await getCompanyAdminAccessForEmail(adminClient, trimmed);
+  if (adminAccess?.company_id && adminAccess.company_id !== contractorCompanyId) {
+    return adminAccess.company_id;
+  }
+
+  const contactCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
+  if (!contactCompanyId || contactCompanyId === contractorCompanyId) {
+    return null;
+  }
+
+  const { data: company } = await adminClient
+    .from('companies')
+    .select('id, contact_email, email')
+    .eq('id', contactCompanyId)
+    .maybeSingle();
+
+  if (!company) {
+    return null;
+  }
+
+  if (emailsMatch(company.contact_email, trimmed) || emailsMatch(company.email, trimmed)) {
+    return contactCompanyId;
+  }
+
+  return null;
+}
+
 async function getCompanyAdminAccessForEmail(adminClient, email) {
   const trimmed = String(email || '').trim();
   if (!trimmed) {
@@ -489,6 +526,7 @@ module.exports = {
   getLatestApprovedJoinRequestCompanyId,
   getLatestApprovedJoinRequest,
   getCompanyIdForAuthEmail,
+  resolveContactCompanyOverride,
   getCompanyAdminAccessForEmail,
   grantCompanyAdminAccess,
   syncInvitedAdminAuthUser,

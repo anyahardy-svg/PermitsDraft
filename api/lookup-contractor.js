@@ -12,6 +12,7 @@ const {
   lookupContractorForAuthUser,
   getLatestApprovedJoinRequest,
   resolveValidatedCompanyIdForAuthUser,
+  resolveContactCompanyOverride,
   syncAuthUserContractorMetadata,
   contractorBelongsToAuthUser,
 } = require('./supabaseAdmin');
@@ -54,6 +55,38 @@ module.exports = async function handler(req, res) {
           contractor.email
         );
         return res.status(403).json({ error: 'Contractor profile does not match authenticated user' });
+      }
+
+      const contactCompanyOverride = await resolveContactCompanyOverride(
+        adminClient,
+        user.email,
+        contractor.company_id
+      );
+      if (contactCompanyOverride) {
+        console.log(
+          `✅ Company contact override for ${user.email} — using company ${contactCompanyOverride} instead of contractor row company ${contractor.company_id}`
+        );
+
+        await adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...metadata,
+            company_id: contactCompanyOverride,
+            user_type: 'admin_staff',
+            contractor_id: null,
+            contractor_name: null,
+          },
+        });
+
+        return res.status(200).json({
+          success: true,
+          contractor: {
+            id: null,
+            name: metadata.name || user.email,
+            company_id: contactCompanyOverride,
+            email: user.email,
+            user_type: 'admin_staff',
+          },
+        });
       }
 
       await syncAuthUserContractorMetadata(adminClient, user, contractor);
