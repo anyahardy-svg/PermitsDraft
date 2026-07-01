@@ -455,6 +455,21 @@ export default function CompanyAccreditationScreen({
     if (companyId && companyId !== currentCompanyId) {
       setCurrentCompanyId(companyId);
       setHasLoadedCompanyData(false);
+      setCompany(null);
+      setCompanyDetails({
+        companyName: '',
+        companyEmail: '',
+        contactName: '',
+        contactSurname: '',
+        contactEmail: '',
+        contactPhone: '',
+        contractorName: '',
+        contractorEmail: '',
+        nzbn: '',
+        address1: '',
+        addressCity: '',
+        addressPostcode: '',
+      });
     }
   }, [companyId, currentCompanyId]);
 

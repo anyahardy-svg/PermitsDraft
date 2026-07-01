@@ -2436,6 +2436,7 @@ export default function ContractorAdminScreen({
         ) : activeTab === 'accreditation' ? (
           <View style={{ flex: 1 }}>
             <CompanyAccreditationScreen
+              key={`accreditation-${loggedInCompanyId || 'none'}-${loggedInContractorId || 'none'}`}
               companyId={loggedInCompanyId}
               isAdmin={false}
               styles={styles}
