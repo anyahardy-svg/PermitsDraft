@@ -75,6 +75,7 @@ export default function ContractorAdminScreen({
   const [editingJseaTemplate, setEditingJseaTemplate] = useState(null);
   const [jseaTemplateName, setJseaTemplateName] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [jseaEditorCompanyId, setJseaEditorCompanyId] = useState(null);
   const [selectedBusinessUnitIds, setSelectedBusinessUnitIds] = useState([]);
   const [currentJseaSteps, setCurrentJseaSteps] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -142,6 +143,13 @@ export default function ContractorAdminScreen({
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
+
+  const getActiveCompanyId = () => {
+    if (isLoggedIn && loggedInCompanyId) {
+      return loggedInCompanyId;
+    }
+    return selectedCompanyId;
+  };
 
   // Handle successful login
   const handleLoginSuccess = async (contractorInfo) => {
@@ -422,9 +430,8 @@ export default function ContractorAdminScreen({
 
   // Load inductions for selected company or logged in contractor's company
   const loadInductions = async () => {
-    // Use logged in company if contractor is logged in, otherwise use selected company
-    const companyToUse = isLoggedIn && loggedInCompanyId ? loggedInCompanyId : selectedCompanyId;
-    
+    const companyToUse = getActiveCompanyId();
+
     if (!companyToUse) {
       setInductedContractors([]);
       return;
@@ -442,9 +449,8 @@ export default function ContractorAdminScreen({
   };
 
   const loadJoinRequests = async () => {
-    // Use logged in company if contractor is logged in, otherwise use selected company
-    const companyToUse = isLoggedIn && loggedInCompanyId ? loggedInCompanyId : selectedCompanyId;
-    
+    const companyToUse = getActiveCompanyId();
+
     if (!companyToUse) {
       setJoinRequests([]);
       return;
@@ -492,13 +498,13 @@ export default function ContractorAdminScreen({
     if (activeTab === 'inductions') {
       loadInductions();
     }
-  }, [activeTab, selectedCompanyId]);
+  }, [activeTab, isLoggedIn, loggedInCompanyId, selectedCompanyId]);
 
   useEffect(() => {
     if (activeTab === 'join-requests') {
       loadJoinRequests();
     }
-  }, [activeTab, selectedCompanyId]);
+  }, [activeTab, isLoggedIn, loggedInCompanyId, selectedCompanyId]);
 
   // Auto-load inductions when contractor logs in (for dashboard count)
   useEffect(() => {
@@ -570,7 +576,7 @@ export default function ContractorAdminScreen({
       jseaTemplateName,
       currentJseaSteps_length: currentJseaSteps.length,
       selectedBusinessUnitIds,
-      selectedCompanyId
+      jseaEditorCompanyId
     });
 
     // Check validation 1
@@ -605,7 +611,7 @@ export default function ContractorAdminScreen({
         name: jseaTemplateName,
         steps: currentJseaSteps.length,
         businessUnits: selectedBusinessUnitIds,
-        company: selectedCompanyId,
+        company: jseaEditorCompanyId,
         isEditing: !!editingJseaTemplate
       });
 
@@ -618,7 +624,7 @@ export default function ContractorAdminScreen({
           jseaTemplateName,
           currentJseaSteps,
           selectedBusinessUnitIds,
-          selectedCompanyId,
+          jseaEditorCompanyId,
           [] // No sites enabled for JSEA templates
         );
       } else {
@@ -628,7 +634,7 @@ export default function ContractorAdminScreen({
           jseaTemplateName,
           currentJseaSteps,
           selectedBusinessUnitIds,
-          selectedCompanyId,
+          jseaEditorCompanyId,
           [] // No sites enabled for JSEA templates
         );
       }
@@ -790,7 +796,7 @@ export default function ContractorAdminScreen({
     setCurrentJseaSteps([]);
     setEditingJseaTemplate(null);
     setSelectedBusinessUnitIds([]);
-    setSelectedCompanyId(null);
+    setJseaEditorCompanyId(isLoggedIn ? loggedInCompanyId : null);
     setOpenDropdown(null);
     setJseaCompanySearch('');
     setJseaBusinessUnitSearch('');
@@ -800,6 +806,9 @@ export default function ContractorAdminScreen({
   // Open JSEA editor for new template
   const handleNewJseaTemplate = () => {
     resetJseaForm();
+    if (isLoggedIn && loggedInCompanyId) {
+      setJseaEditorCompanyId(loggedInCompanyId);
+    }
     setShowJseaEditor(true);
   };
 
@@ -825,8 +834,8 @@ export default function ContractorAdminScreen({
     // Populate business units and company from template
     console.log('✅ Setting selectedBusinessUnitIds to:', template.business_units || []);
     setSelectedBusinessUnitIds(template.business_units || []);
-    console.log('✅ Setting selectedCompanyId to:', template.company_id || null);
-    setSelectedCompanyId(template.company_id || null);
+    console.log('✅ Setting jseaEditorCompanyId to:', template.company_id || null);
+    setJseaEditorCompanyId(template.company_id || null);
     
     console.log('✅ Opening JSEA editor, calling setShowJseaEditor(true)');
     setShowJseaEditor(true);
@@ -1171,7 +1180,7 @@ export default function ContractorAdminScreen({
       );
     }
 
-    if (!selectedCompanyId) {
+    if (!getActiveCompanyId()) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>
@@ -2825,7 +2834,7 @@ export default function ContractorAdminScreen({
                       {/* All Companies option */}
                       <TouchableOpacity
                         onPress={() => {
-                          setSelectedCompanyId(null);
+                          setJseaEditorCompanyId(null);
                         }}
                         style={{
                           flexDirection: 'row',
@@ -2837,14 +2846,14 @@ export default function ContractorAdminScreen({
                           width: 18,
                           height: 18,
                           borderWidth: 1.5,
-                          borderColor: selectedCompanyId === null ? '#F97316' : '#D1D5DB',
+                          borderColor: jseaEditorCompanyId === null ? '#F97316' : '#D1D5DB',
                           borderRadius: 3,
                           marginRight: 10,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: selectedCompanyId === null ? '#F97316' : 'white'
+                          backgroundColor: jseaEditorCompanyId === null ? '#F97316' : 'white'
                         }}>
-                          {selectedCompanyId === null && (
+                          {jseaEditorCompanyId === null && (
                             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
                           )}
                         </View>
@@ -2857,7 +2866,7 @@ export default function ContractorAdminScreen({
                           <TouchableOpacity
                             key={company.id}
                             onPress={() => {
-                              setSelectedCompanyId(selectedCompanyId === company.id ? null : company.id);
+                              setJseaEditorCompanyId(jseaEditorCompanyId === company.id ? null : company.id);
                             }}
                             style={{
                               flexDirection: 'row',
@@ -2869,14 +2878,14 @@ export default function ContractorAdminScreen({
                               width: 18,
                               height: 18,
                               borderWidth: 1.5,
-                              borderColor: selectedCompanyId === company.id ? '#F97316' : '#D1D5DB',
+                              borderColor: jseaEditorCompanyId === company.id ? '#F97316' : '#D1D5DB',
                               borderRadius: 3,
                               marginRight: 10,
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: selectedCompanyId === company.id ? '#F97316' : 'white'
+                              backgroundColor: jseaEditorCompanyId === company.id ? '#F97316' : 'white'
                             }}>
-                              {selectedCompanyId === company.id && (
+                              {jseaEditorCompanyId === company.id && (
                                 <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
                               )}
                             </View>

@@ -5,6 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
+import { fetchAllPaginated } from './pagination';
 
 // ============================================================================
 // TIMEZONE UTILITY
@@ -724,14 +725,15 @@ export async function getContractorInductionsForCompany(companyId) {
       });
     }
 
-    // Get all contractors from the company
-    const { data: contractors, error: contractorError } = await supabase
-      .from('contractors')
-      .select('id, name, email, phone, service_ids, induction_expiry')
-      .eq('company_id', companyId)
-      .order('name', { ascending: true });
-
-    if (contractorError) throw contractorError;
+    // Get all contractors from the company (paginated past PostgREST 1000-row cap)
+    const contractors = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('id, name, email, phone, service_ids, induction_expiry')
+        .eq('company_id', companyId)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
 
     // For each contractor, get their completed inductions
     // Use safePromiseAll for better error handling - partial success even if some queries fail
