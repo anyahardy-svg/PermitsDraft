@@ -5,6 +5,11 @@
 
 import { supabase } from '../supabaseClient';
 import { normalizeEmailInput, uniqueEmailCandidates, normalizeEmailForComparison } from '../utils/emailNormalization';
+import {
+  emailsMatchInsensitive,
+  mergeCompanyRowsById,
+  pickBestContactCompany,
+} from '../utils/companyContactMatch';
 
 const CONTRACTOR_CONTEXT_KEY = '_contractorContext';
 
@@ -79,34 +84,43 @@ const getCompanyAdminAccessCompanyId = async (email) => {
   return adminAccess?.company_id || null;
 };
 
-const getCompanyIdFromContactFields = async (email) => {
+const listCompaniesMatchingContactEmailClient = async (email) => {
   if (!supabase || !email) {
-    return null;
+    return [];
   }
 
   const trimmed = email.trim();
+  const companyFields = 'id, name, contact_email, email';
 
-  const { data: byContact } = await supabase
+  const { data: byContact, error: contactError } = await supabase
     .from('companies')
-    .select('id')
-    .ilike('contact_email', trimmed)
-    .order('name', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .select(companyFields)
+    .ilike('contact_email', trimmed);
 
-  if (byContact?.id) {
-    return byContact.id;
+  if (contactError) {
+    console.warn('⚠️ companies contact_email lookup error:', contactError.message);
   }
 
-  const { data: byEmail } = await supabase
+  const { data: byEmail, error: emailError } = await supabase
     .from('companies')
-    .select('id')
-    .ilike('email', trimmed)
-    .order('name', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .select(companyFields)
+    .ilike('email', trimmed);
 
-  return byEmail?.id || null;
+  if (emailError) {
+    console.warn('⚠️ companies email lookup error:', emailError.message);
+  }
+
+  return mergeCompanyRowsById(byContact, byEmail).filter(
+    (company) =>
+      emailsMatchInsensitive(company.contact_email, trimmed) ||
+      emailsMatchInsensitive(company.email, trimmed)
+  );
+};
+
+const getCompanyIdFromContactFields = async (email) => {
+  const matches = await listCompaniesMatchingContactEmailClient(email);
+  const best = pickBestContactCompany(matches, email);
+  return best?.id || null;
 };
 
 const getCompanyIdForAuthEmailClient = async (email) => {
@@ -128,32 +142,9 @@ const resolveContactCompanyOverrideClient = async (email, contractorCompanyId) =
     return adminAccessCompanyId;
   }
 
-  const contactCompanyId = await getCompanyIdFromContactFields(email);
-  if (!contactCompanyId || contactCompanyId === contractorCompanyId) {
-    return null;
-  }
-
-  if (!supabase) {
-    return contactCompanyId;
-  }
-
-  const { data: company } = await supabase
-    .from('companies')
-    .select('id, contact_email, email')
-    .eq('id', contactCompanyId)
-    .maybeSingle();
-
-  if (!company) {
-    return null;
-  }
-
-  const trimmed = email.trim();
-  const matchesContact =
-    normalizeEmailForComparison(company.contact_email || '') ===
-      normalizeEmailForComparison(trimmed) ||
-    normalizeEmailForComparison(company.email || '') === normalizeEmailForComparison(trimmed);
-
-  return matchesContact ? contactCompanyId : null;
+  const matches = await listCompaniesMatchingContactEmailClient(email);
+  const best = pickBestContactCompany(matches, email, contractorCompanyId);
+  return best?.id || null;
 };
 
 const getApprovedJoinRequest = async (email) => {

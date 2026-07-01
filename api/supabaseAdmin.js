@@ -103,6 +103,97 @@ function emailsMatch(left, right) {
   return String(left).trim().toLowerCase() === String(right).trim().toLowerCase();
 }
 
+function normalizeCompanyToken(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function scoreCompanyForAuthEmail(company, email) {
+  const trimmed = String(email || '').trim();
+  let score = 0;
+
+  if (emailsMatch(company.contact_email, trimmed)) {
+    score += 100;
+  } else if (emailsMatch(company.email, trimmed)) {
+    score += 50;
+  }
+
+  const domainRoot = normalizeCompanyToken(trimmed.split('@')[1]?.split('.')[0] || '');
+  const companyToken = normalizeCompanyToken(company.name);
+  if (domainRoot && companyToken && (companyToken.includes(domainRoot) || domainRoot.includes(companyToken))) {
+    score += 80;
+  }
+
+  return score;
+}
+
+function pickBestContactCompany(companies, email, excludeCompanyId = null) {
+  const trimmed = String(email || '').trim();
+  const candidates = (companies || []).filter(
+    (company) => company?.id && company.id !== excludeCompanyId
+  );
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  const ranked = candidates
+    .map((company) => ({
+      company,
+      score: scoreCompanyForAuthEmail(company, trimmed),
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return String(left.company.name || '').localeCompare(String(right.company.name || ''));
+    });
+
+  return ranked[0]?.company || null;
+}
+
+async function listCompaniesMatchingContactEmail(adminClient, email) {
+  const trimmed = String(email || '').trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const companyFields = 'id, name, contact_email, email, contact_name, contact_surname';
+  const { data: byContact, error: contactError } = await adminClient
+    .from('companies')
+    .select(companyFields)
+    .ilike('contact_email', trimmed);
+
+  if (contactError) {
+    console.error('❌ companies contact_email lookup error:', contactError.message);
+  }
+
+  const { data: byEmail, error: emailError } = await adminClient
+    .from('companies')
+    .select(companyFields)
+    .ilike('email', trimmed);
+
+  if (emailError) {
+    console.error('❌ companies email lookup error:', emailError.message);
+  }
+
+  const merged = new Map();
+  for (const company of [...(byContact || []), ...(byEmail || [])]) {
+    if (!company?.id) {
+      continue;
+    }
+    if (
+      emailsMatch(company.contact_email, trimmed) ||
+      emailsMatch(company.email, trimmed)
+    ) {
+      merged.set(company.id, company);
+    }
+  }
+
+  return [...merged.values()];
+}
+
 function contractorBelongsToAuthUser(contractor, user, options = {}) {
   if (!contractor || !user?.email) {
     return false;
@@ -219,27 +310,9 @@ async function getCompanyIdForAuthEmail(adminClient, email) {
     return null;
   }
 
-  const { data: byContact } = await adminClient
-    .from('companies')
-    .select('id')
-    .ilike('contact_email', trimmed)
-    .order('name', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (byContact?.id) {
-    return byContact.id;
-  }
-
-  const { data: byEmail } = await adminClient
-    .from('companies')
-    .select('id')
-    .ilike('email', trimmed)
-    .order('name', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  return byEmail?.id || null;
+  const matches = await listCompaniesMatchingContactEmail(adminClient, trimmed);
+  const best = pickBestContactCompany(matches, trimmed);
+  return best?.id || null;
 }
 
 /**
@@ -257,26 +330,9 @@ async function resolveContactCompanyOverride(adminClient, email, contractorCompa
     return adminAccess.company_id;
   }
 
-  const contactCompanyId = await getCompanyIdForAuthEmail(adminClient, trimmed);
-  if (!contactCompanyId || contactCompanyId === contractorCompanyId) {
-    return null;
-  }
-
-  const { data: company } = await adminClient
-    .from('companies')
-    .select('id, contact_email, email')
-    .eq('id', contactCompanyId)
-    .maybeSingle();
-
-  if (!company) {
-    return null;
-  }
-
-  if (emailsMatch(company.contact_email, trimmed) || emailsMatch(company.email, trimmed)) {
-    return contactCompanyId;
-  }
-
-  return null;
+  const matches = await listCompaniesMatchingContactEmail(adminClient, trimmed);
+  const best = pickBestContactCompany(matches, trimmed, contractorCompanyId);
+  return best?.id || null;
 }
 
 async function getCompanyAdminAccessForEmail(adminClient, email) {
