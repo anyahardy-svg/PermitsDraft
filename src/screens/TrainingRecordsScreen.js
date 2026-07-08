@@ -103,7 +103,8 @@ export default function TrainingRecordsScreen({
       if (response.success && response.data) {
         setTrainingRecords(response.data.map(record => ({
           ...record,
-          contractor_name: record.contractor?.name || 'Unknown'
+          contractor_name: record.contractor?.name || 'Unknown',
+          service_name: record.service?.name || 'Unknown',
         })));
       }
 
@@ -203,9 +204,9 @@ export default function TrainingRecordsScreen({
     try {
       const response = await uploadTrainingRecord(
         selectedContractorId,
-        trainingName,
+        trainingName.trim(),
         selectedFile,
-        expiryDate ? new Date(parseNZDate(expiryDate)) : null,
+        expiryDate ? parseNZDate(expiryDate) : null,
         selectedServiceId
       );
 
@@ -313,7 +314,7 @@ export default function TrainingRecordsScreen({
       const response = await updateTrainingRecord(
         editingRecordId,
         updateSelectedFile,
-        updateExpiryDate ? new Date(parseNZDate(updateExpiryDate)) : null
+        updateExpiryDate ? parseNZDate(updateExpiryDate) : null
       );
 
       if (response?.success) {
@@ -568,9 +569,10 @@ export default function TrainingRecordsScreen({
               borderBottomColor: '#D1D5DB',
               paddingVertical: 10,
               paddingHorizontal: 8,
-              minWidth: 1200,
+              minWidth: 1320,
             }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Service</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Training Name</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
@@ -587,10 +589,11 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#E5E7EB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1200,
+                  minWidth: 1320,
                 }}
               >
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>{record.contractor_name}</Text>
+                <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{record.service_name}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 180, paddingRight: 8 }}>{record.training_type}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{formatDateNZ(record.expiry_date)}</Text>
                 <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => window.open(record.file_url, '_blank')}>

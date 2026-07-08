@@ -5,6 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll, handleError } from '../utils/errorHandler';
+import { fetchAllPaginated, fetchAllBatchedByIds } from './pagination';
 import {
   buildTrainingRecordStoragePath,
   extractTrainingRecordsStoragePath,
@@ -55,6 +56,20 @@ async function updateCompanyTrainingRecordsCounters(companyId) {
   }
 }
 
+function formatDateForDb(date) {
+  if (!date) return null;
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+
+  const parsed = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString().split('T')[0];
+}
+
 function isValidFileType(file) {
   // Check MIME type
   if (ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -88,11 +103,19 @@ async function getContractorStorageContext(contractorId) {
  * @param {UUID} contractorId - Contractor ID
  * @param {string} trainingType - Type of training (free text)
  * @param {File} file - File to upload
- * @param {Date} expiryDate - Optional expiry date
+ * @param {Date|string} expiryDate - Optional expiry date
+ * @param {UUID|null} serviceId - Optional service ID
  * @param {string} notes - Optional notes
  * @returns {Object} Upload result
  */
-export async function uploadTrainingRecord(contractorId, trainingType, file, expiryDate = null, notes = '') {
+export async function uploadTrainingRecord(
+  contractorId,
+  trainingType,
+  file,
+  expiryDate = null,
+  serviceId = null,
+  notes = ''
+) {
   try {
     console.log('📤 Uploading training record:', { contractorId, trainingType, fileName: file.name });
 
@@ -148,8 +171,9 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
         file_url: publicUrl,
         file_size: file.size,
         file_type: file.type || 'application/pdf',
-        expiry_date: expiryDate,
-        notes: notes,
+        expiry_date: formatDateForDb(expiryDate),
+        service_id: serviceId || null,
+        notes: notes || null,
         status: 'pending'
       }])
       .select()
@@ -214,21 +238,36 @@ export async function getTrainingRecordsByCompany(companyId) {
   try {
     console.log('📋 Fetching training records for company:', companyId);
 
-    const { data, error } = await supabase
-      .from('training_records')
-      .select(`
-        *,
-        contractor:contractors(id, name, company_id)
-      `)
-      .order('uploaded_at', { ascending: false });
+    const contractors = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('id')
+        .eq('company_id', companyId)
+        .range(from, to)
+    );
 
-    if (error) throw error;
+    const contractorIds = (contractors || []).map((contractor) => contractor.id);
+    if (contractorIds.length === 0) {
+      return { success: true, data: [] };
+    }
 
-    // Filter by company ID client-side (nested filter not supported in Supabase)
-    const filteredData = data.filter(record => record.contractor?.company_id === companyId);
+    const records = await fetchAllBatchedByIds(contractorIds, (batch) =>
+      supabase
+        .from('training_records')
+        .select(`
+          *,
+          contractor:contractors(id, name, company_id),
+          service:services(id, name)
+        `)
+        .in('contractor_id', batch)
+    );
 
-    console.log(`✅ Fetched ${filteredData.length} training records for company`);
-    return { success: true, data: filteredData };
+    const sortedRecords = (records || []).sort(
+      (a, b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0)
+    );
+
+    console.log(`✅ Fetched ${sortedRecords.length} training records for company`);
+    return { success: true, data: sortedRecords };
   } catch (error) {
     console.error('❌ Get company training records error:', error);
     return { success: false, error: error.message };
@@ -555,6 +594,8 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
 
     if (companyError) throw companyError;
 
+    await updateCompanyTrainingRecordsCounters(companyId);
+
     console.log(`✅ Approved ${pendingRecords.length} training records for company`);
     return {
       success: true,
@@ -667,7 +708,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
 
     // Update expiry date if provided
     if (expiryDate) {
-      updateData.expiry_date = expiryDate;
+      updateData.expiry_date = formatDateForDb(expiryDate);
     }
 
     // Update record in database
