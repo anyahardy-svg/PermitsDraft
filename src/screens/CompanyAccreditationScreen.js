@@ -67,6 +67,27 @@ const getFullStorageUrl = (storagePath) => {
   return `${supabaseUrl}/storage/v1/object/public/accreditations/${storagePath}`;
 };
 
+const getAccreditationBaseName = (systemKey) =>
+  systemKey
+    .replace('_accredited', '')
+    .replace('_certified', '')
+    .replace('_qualified', '')
+    .replace('_prequalified', '');
+
+const buildCertificateSaveOverrides = (systemKey, { url, checked } = {}) => {
+  const baseName = getAccreditationBaseName(systemKey);
+  const overrides = {};
+
+  if (url !== undefined) {
+    overrides[`${baseName}_certificate_url`] = url;
+  }
+  if (checked !== undefined) {
+    overrides[systemKey] = checked;
+  }
+
+  return overrides;
+};
+
 /**
  * CompanyAccreditationScreen
  * Contractor accreditation form with auto-filtered company data
@@ -716,24 +737,26 @@ export default function CompanyAccreditationScreen({
       // Populate accredited systems
       const systems = {};
       ACCREDITED_SYSTEMS.forEach(sys => {
-        // Get base name by removing status suffixes
-        const baseName = sys.key
-          .replace('_accredited', '')
-          .replace('_certified', '')
-          .replace('_qualified', '')
-          .replace('_prequalified', '');
-
+        const baseName = getAccreditationBaseName(sys.key);
+        const certificateUrl = data[`${baseName}_certificate_url`] || null;
         const expiryKeyName = `${baseName}_certificate_expiry`;
         const isoDate = data[expiryKeyName] || null;
         // Convert ISO date (yyyy-mm-dd) to NZ format (dd/mm/yyyy) for display
         const nzDate = formatDateForDisplay(isoDate);
         systems[sys.key] = {
-          checked: data[sys.key] || false,
+          checked: data[sys.key] || !!certificateUrl,
           expiryDate: nzDate,
-          certificateUrl: data[`${baseName}_certificate_url`] || null
+          certificateUrl
         };
       });
       setAccreditedSystems(systems);
+
+      if (reviewMode && ACCREDITED_SYSTEMS.some(sys => {
+        const baseName = getAccreditationBaseName(sys.key);
+        return data[sys.key] || data[`${baseName}_certificate_url`];
+      })) {
+        setExpandedSections(prev => ({ ...prev, 3: true }));
+      }
       
       // Set accreditation status
       const status = data.accreditation_status || 'none';
@@ -1400,16 +1423,18 @@ export default function CompanyAccreditationScreen({
           ...prev,
           [systemKey]: {
             ...prev[systemKey],
+            checked: true,
             certificateUrl: uploadResult.url,
             library_item_id: null  // Clear library reference since this is a direct upload
           }
         }));
         
-        // Immediately save to database after upload
-        setTimeout(async () => {
-          debugLog('💾 Auto-saving certificate upload immediately...');
-          await autoSave(null, { force: true });
-        }, 100);
+        // Persist immediately so admin review and storage stay in sync
+        debugLog('💾 Auto-saving certificate upload immediately...');
+        await autoSave(
+          buildCertificateSaveOverrides(systemKey, { url: uploadResult.url, checked: true }),
+          { force: true }
+        );
         
         // Restore scroll position after state update
         setTimeout(() => {
@@ -1473,10 +1498,11 @@ export default function CompanyAccreditationScreen({
         }
       }));
 
-      // Save to database
-      setTimeout(async () => {
-        await autoSave(null, { force: true });
-      }, 100);
+      // Save to database immediately with explicit overrides
+      await autoSave(
+        buildCertificateSaveOverrides(systemKey, { url: null }),
+        { force: true }
+      );
 
       const deleteType = libraryItemId ? 'removed' : 'deleted';
       alert(`Success: ${systemLabel} certificate ${deleteType}`);
@@ -2483,14 +2509,9 @@ export default function CompanyAccreditationScreen({
 
     // Add accredited systems
     ACCREDITED_SYSTEMS.forEach(sys => {
-      updateData[sys.key] = accreditedSystems[sys.key]?.checked || false;
-      
-      // Get base name by removing status suffixes
-      const baseName = sys.key
-        .replace('_accredited', '')
-        .replace('_certified', '')
-        .replace('_qualified', '')
-        .replace('_prequalified', '');
+      const baseName = getAccreditationBaseName(sys.key);
+      const certificateUrl = accreditedSystems[sys.key]?.certificateUrl || null;
+      updateData[sys.key] = accreditedSystems[sys.key]?.checked || !!certificateUrl;
       
       // Save certificate URL with correct column name pattern
       const urlKeyName = `${baseName}_certificate_url`;
@@ -5008,7 +5029,7 @@ export default function CompanyAccreditationScreen({
                     </Text>
                   </View>
 
-                  {accreditedSystems[system.key]?.checked && (
+                  {(accreditedSystems[system.key]?.checked || accreditedSystems[system.key]?.certificateUrl) && (
                     <View style={{ paddingLeft: 36 }}>
                       <Text style={styles.label}>Expiry Date (dd/mm/yyyy):</Text>
                       <TextInput
