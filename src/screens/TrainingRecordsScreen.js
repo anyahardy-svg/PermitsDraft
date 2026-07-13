@@ -33,7 +33,6 @@ import {
   defaultNameFromFile,
 } from '../api/companyTrainingMatrices';
 import { getContractorInductionsForCompany } from '../api/inductions';
-import { listAllServices } from '../api/services';
 
 export default function TrainingRecordsScreen({
   loggedInCompanyId,
@@ -56,11 +55,8 @@ export default function TrainingRecordsScreen({
   const [updateExpiryDate, setUpdateExpiryDate] = useState('');
 
   const [inductedContractors, setInductedContractors] = useState([]);
-  const [allServices, setAllServices] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState(null);
   const [selectedContractorName, setSelectedContractorName] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState(null);
-  const [selectedServiceName, setSelectedServiceName] = useState('');
   const [trainingName, setTrainingName] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -75,7 +71,6 @@ export default function TrainingRecordsScreen({
   const [editMatrixContractorIds, setEditMatrixContractorIds] = useState([]);
 
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
-  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
 
   useEffect(() => {
     if (loggedInCompanyId) {
@@ -96,15 +91,11 @@ export default function TrainingRecordsScreen({
       const contractors = await getContractorInductionsForCompany(loggedInCompanyId);
       setInductedContractors(contractors || []);
 
-      const services = await listAllServices();
-      setAllServices(services || []);
-
       const response = await getTrainingRecordsByCompany(loggedInCompanyId);
       if (response.success && response.data) {
         setTrainingRecords(response.data.map(record => ({
           ...record,
           contractor_name: record.contractor?.name || 'Unknown',
-          service_name: record.service?.name || 'Unknown',
         })));
       }
 
@@ -122,13 +113,10 @@ export default function TrainingRecordsScreen({
   const resetForm = () => {
     setSelectedContractorId(null);
     setSelectedContractorName('');
-    setSelectedServiceId(null);
-    setSelectedServiceName('');
     setTrainingName('');
     setExpiryDate('');
     setSelectedFile(null);
     setShowContractorDropdown(false);
-    setShowServiceDropdown(false);
   };
 
   const resetMatrixForm = () => {
@@ -187,10 +175,6 @@ export default function TrainingRecordsScreen({
       Alert.alert('Validation', 'Please select a contractor');
       return;
     }
-    if (!selectedServiceId) {
-      Alert.alert('Validation', 'Please select a service');
-      return;
-    }
     if (!trainingName.trim()) {
       Alert.alert('Validation', 'Please enter a training name');
       return;
@@ -206,8 +190,7 @@ export default function TrainingRecordsScreen({
         selectedContractorId,
         trainingName.trim(),
         selectedFile,
-        expiryDate ? parseNZDate(expiryDate) : null,
-        selectedServiceId
+        expiryDate ? parseNZDate(expiryDate) : null
       );
 
       if (response?.success) {
@@ -569,10 +552,9 @@ export default function TrainingRecordsScreen({
               borderBottomColor: '#D1D5DB',
               paddingVertical: 10,
               paddingHorizontal: 8,
-              minWidth: 1320,
+              minWidth: 1200,
             }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Contractor</Text>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Service</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Training Name</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 100, paddingRight: 8 }}>File</Text>
@@ -589,11 +571,10 @@ export default function TrainingRecordsScreen({
                   borderBottomColor: '#E5E7EB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1320,
+                  minWidth: 1200,
                 }}
               >
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>{record.contractor_name}</Text>
-                <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{record.service_name}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 180, paddingRight: 8 }}>{record.training_type}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{formatDateNZ(record.expiry_date)}</Text>
                 <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => window.open(record.file_url, '_blank')}>
@@ -721,39 +702,6 @@ export default function TrainingRecordsScreen({
                           setSelectedContractorId(item.id);
                           setSelectedContractorName(item.name);
                           setShowContractorDropdown(false);
-                        }}
-                      >
-                        <Text style={{ fontSize: 14, color: '#1F2937' }}>{item.name}</Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              )}
-            </View>
-
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Service *</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'white' }}
-                onPress={() => setShowServiceDropdown(!showServiceDropdown)}
-              >
-                <Text style={{ fontSize: 14, color: selectedServiceId ? '#1F2937' : '#9CA3AF' }}>
-                  {selectedServiceName || 'Select a service'}
-                </Text>
-              </TouchableOpacity>
-              {showServiceDropdown && (
-                <View style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, marginTop: 4, backgroundColor: 'white', maxHeight: 200 }}>
-                  <FlatList
-                    data={allServices}
-                    keyExtractor={(item) => item.id}
-                    scrollEnabled
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
-                        onPress={() => {
-                          setSelectedServiceId(item.id);
-                          setSelectedServiceName(item.name);
-                          setShowServiceDropdown(false);
                         }}
                       >
                         <Text style={{ fontSize: 14, color: '#1F2937' }}>{item.name}</Text>

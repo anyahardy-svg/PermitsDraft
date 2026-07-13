@@ -104,18 +104,10 @@ async function getContractorStorageContext(contractorId) {
  * @param {string} trainingType - Type of training (free text)
  * @param {File} file - File to upload
  * @param {Date|string} expiryDate - Optional expiry date
- * @param {UUID|null} serviceId - Optional service ID
  * @param {string} notes - Optional notes
  * @returns {Object} Upload result
  */
-export async function uploadTrainingRecord(
-  contractorId,
-  trainingType,
-  file,
-  expiryDate = null,
-  serviceId = null,
-  notes = ''
-) {
+export async function uploadTrainingRecord(contractorId, trainingType, file, expiryDate = null, notes = '') {
   try {
     console.log('📤 Uploading training record:', { contractorId, trainingType, fileName: file.name });
 
@@ -172,7 +164,6 @@ export async function uploadTrainingRecord(
         file_size: file.size,
         file_type: file.type || 'application/pdf',
         expiry_date: formatDateForDb(expiryDate),
-        service_id: serviceId || null,
         notes: notes || null,
         status: 'pending'
       }])
@@ -256,8 +247,7 @@ export async function getTrainingRecordsByCompany(companyId) {
         .from('training_records')
         .select(`
           *,
-          contractor:contractors(id, name, company_id),
-          service:services(id, name)
+          contractor:contractors(id, name, company_id)
         `)
         .in('contractor_id', batch)
     );
