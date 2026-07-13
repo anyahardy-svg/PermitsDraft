@@ -94,7 +94,7 @@ const buildCertificateSaveOverrides = (systemKey, { url, checked } = {}) => {
  * 
  * @param {UUID} companyId - Company ID to load (required when logged in)
  * @param {boolean} isAdmin - Whether user is admin (sees all companies) - not used when companyId provided
- * @param {boolean} reviewMode - When true, disables background auto-save on load (admin review). Manual Save/Submit and uploads still save.
+ * @param {boolean} reviewMode - When true, blocks incidental saves during admin review. Manual Save/Submit and upload/delete actions still persist.
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
  * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
@@ -137,7 +137,7 @@ export default function CompanyAccreditationScreen({
   const [loading, setLoading] = useState(false);
   const [hasLoadedCompanyData, setHasLoadedCompanyData] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [autoSaving, setAutoSaving] = useState(false);
+  const [isPersistingChanges, setIsPersistingChanges] = useState(false);
   const [uploadingDocumentKey, setUploadingDocumentKey] = useState(null); // Track which document is uploading
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
   const [confirmationModal, setConfirmationModal] = useState({ visible: false, title: '', message: '', onConfirm: null, onCancel: null });
@@ -537,99 +537,6 @@ export default function CompanyAccreditationScreen({
     };
     loadHSAgreement();
   }, []);
-
-  // Auto-save Section 26 signature when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode) return;
-    
-    debugLog('📋 Section 26 state changed:', {
-      has_signature: !!section26.hs_agreement_signature,
-      signature_size: section26.hs_agreement_signature?.length || 0,
-      accepted_by: section26.hs_agreement_accepted_by,
-      acknowledged: section26.hs_agreement_acknowledged
-    });
-    
-    // Only auto-save if signature exists
-    if (section26.hs_agreement_signature && section26.hs_agreement_accepted_by) {
-      debugLog('⏱️ Setting auto-save timer for Section 26...');
-      const timer = setTimeout(() => {
-        debugLog('💾 Auto-saving Section 26 signature data...');
-        autoSave();
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [section26.hs_agreement_signature, section26.hs_agreement_accepted_by, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
-
-  // Auto-save Section 8 (PPE) yes/no answer when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section8.ppe_compliance_yesno) return;
-    
-    debugLog('📋 Section 8 PPE compliance yes/no changed:', section8.ppe_compliance_yesno);
-    
-    const timer = setTimeout(() => {
-      debugLog('💾 Auto-saving Section 8 PPE compliance answer...');
-      autoSave();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [section8, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
-
-  // Auto-save Section 9 (Plant & Equipment) yes/no answer when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section9.plant_equipment_onsite_yesno) return;
-    
-    debugLog('📋 Section 9 Plant & Equipment yes/no changed:', section9.plant_equipment_onsite_yesno);
-    
-    const timer = setTimeout(() => {
-      debugLog('💾 Auto-saving Section 9 Plant & Equipment answer...');
-      autoSave();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [section9, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
-
-  // Auto-save Section 10 (Electrical Equipment) yes/no answer when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section10.electrical_equipment_onsite_yesno) return;
-    
-    debugLog('📋 Section 10 Electrical Equipment yes/no changed:', section10.electrical_equipment_onsite_yesno);
-    
-    const timer = setTimeout(() => {
-      debugLog('💾 Auto-saving Section 10 Electrical Equipment answer...');
-      autoSave();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [section10, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
-
-  // Auto-save Section 11 (Emergency) yes/no answer when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section11.emergency_first_aid_yesno) return;
-    
-    debugLog('📋 Section 11 Emergency First Aid yes/no changed:', section11.emergency_first_aid_yesno);
-    
-    const timer = setTimeout(() => {
-      debugLog('💾 Auto-saving Section 11 Emergency First Aid answer...');
-      autoSave();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [section11, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
-
-  // Auto-save Section 11 First Aid Equipment text when it changes
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode || !section11.emergency_first_aid_equipment) return;
-    
-    debugLog('📋 Section 11 Emergency First Aid Equipment text changed:', section11.emergency_first_aid_equipment);
-    
-    const timer = setTimeout(() => {
-      debugLog('💾 Auto-saving Section 11 Emergency First Aid Equipment text...');
-      autoSave();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [section11, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Format date to NZ format (dd/mm/yyyy)
   const formatDateNZ = (date) => {
@@ -1430,8 +1337,8 @@ export default function CompanyAccreditationScreen({
         }));
         
         // Persist immediately so admin review and storage stay in sync
-        debugLog('💾 Auto-saving certificate upload immediately...');
-        await autoSave(
+        debugLog('💾 Persisting certificate upload immediately...');
+        await persistAccreditationChanges(
           buildCertificateSaveOverrides(systemKey, { url: uploadResult.url, checked: true }),
           { force: true }
         );
@@ -1499,7 +1406,7 @@ export default function CompanyAccreditationScreen({
       }));
 
       // Save to database immediately with explicit overrides
-      await autoSave(
+      await persistAccreditationChanges(
         buildCertificateSaveOverrides(systemKey, { url: null }),
         { force: true }
       );
@@ -1569,11 +1476,12 @@ export default function CompanyAccreditationScreen({
           }
         }));
         
-        // Immediately save to database after upload
-        setTimeout(async () => {
-          debugLog('💾 Auto-saving policy upload immediately...');
-          await autoSave(null, { force: true });
-        }, 100);
+        // Persist immediately so admin review and storage stay in sync
+        debugLog('💾 Persisting policy upload immediately...');
+        await persistAccreditationChanges({
+          [`${policyKey}_policy_url`]: uploadResult.url,
+          [`${policyKey}_policy_exists`]: policies[policyKey]?.exists ?? true,
+        }, { force: true });
         
         // Restore scroll position after state update
         setTimeout(() => {
@@ -1637,10 +1545,10 @@ export default function CompanyAccreditationScreen({
                 }
               }));
               
-              // Save to database
-              setTimeout(async () => {
-                await autoSave(null, { force: true });
-              }, 100);
+              // Save to database immediately with explicit overrides
+              await persistAccreditationChanges({
+                [`${policyKey}_policy_url`]: null,
+              }, { force: true });
               
               const deleteType = libraryItemId ? 'removed' : 'deleted';
               Alert.alert('Success', `${policyLabel} document ${deleteType}`);
@@ -1767,14 +1675,10 @@ export default function CompanyAccreditationScreen({
           return updated;
         });
         
-        debugLog('💾 Scheduling autoSave after 100ms');
-        // Save to database
-        setTimeout(async () => {
-          debugLog('🔄 Running autoSave');
-          await autoSave(null, { force: true });
-          debugLog('✅ autoSave complete');
-          // Don't close the UI - keep user in the same place
-        }, 100);
+        debugLog('💾 Persisting evidence deletion immediately...');
+        await persistAccreditationChanges({
+          [`${itemKey}_evidence_url`]: null,
+        }, { force: true });
         
         const deleteType = libraryItemId ? 'removed' : 'deleted';
         alert(`Success: ${itemLabel} evidence ${deleteType}`);
@@ -1869,8 +1773,8 @@ export default function CompanyAccreditationScreen({
             : 'professional_indemnity_insurance_url';
 
         // Persist immediately so admin review and storage stay in sync
-        debugLog('💾 Auto-saving insurance document upload immediately...');
-        await autoSave({ [evidenceUrlField]: uploadResult.url }, { force: true });
+        debugLog('💾 Persisting insurance document upload immediately...');
+        await persistAccreditationChanges({ [evidenceUrlField]: uploadResult.url }, { force: true });
         
         // Restore scroll position after state update
         setTimeout(() => {
@@ -2040,7 +1944,7 @@ export default function CompanyAccreditationScreen({
         setLibrarySaveName(file.name);
         
         const currentItem = sectionUpdater?.get()?.[itemKey];
-        await autoSave({
+        await persistAccreditationChanges({
           [`${itemKey}_evidence_url`]: uploadResult.url,
           [`${itemKey}_exists`]: currentItem?.exists ?? true,
           [`${itemKey}_score`]: currentItem?.score ?? 0,
@@ -2104,7 +2008,7 @@ export default function CompanyAccreditationScreen({
             library_item_id: libraryItem.id  // Track that this came from library
           }
         }));
-        await autoSave({
+        await persistAccreditationChanges({
           [`${itemKey}_evidence_url`]: libraryItem.storage_path,
           [`${itemKey}_exists`]: currentItem?.exists ?? true,
           [`${itemKey}_score`]: currentItem?.score ?? 0,
@@ -2778,16 +2682,16 @@ export default function CompanyAccreditationScreen({
     return updateData;
   };
 
-  // Auto-save function (silent, no alerts)
-  // Optional overrides let callers persist freshly uploaded values before React state settles.
+  // Persist accreditation changes — explicit saves only (uploads, deletes, manual Save/Submit).
+  // Do NOT add background/timer-based saves. Pass field overrides for upload/delete handlers.
   // Pass { force: true } to save during admin review (uploads, explicit user actions).
-  const autoSave = async (overrides = null, options = {}) => {
+  const persistAccreditationChanges = async (overrides = null, options = {}) => {
     const { force = false } = options;
     if (!currentCompanyId || !hasLoadedCompanyData) return;
     if (reviewMode && !force) return;
     
     try {
-      setAutoSaving(true);
+      setIsPersistingChanges(true);
       const saveStatus = getAccreditationSaveStatus(accreditationStatus);
       const updateData = {
         ...buildUpdateData(saveStatus),
@@ -2810,7 +2714,7 @@ export default function CompanyAccreditationScreen({
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       
       if (result.success) {
-        debugLog('✨ Auto-saved successfully!', result);
+        debugLog('✨ Accreditation changes persisted', result);
         if (saveStatus !== accreditationStatus) {
           setAccreditationStatus(saveStatus);
           if (onStatusUpdate) {
@@ -2818,12 +2722,12 @@ export default function CompanyAccreditationScreen({
           }
         }
       } else {
-        console.error('❌ Auto-save failed:', result.error);
+        console.error('❌ Persist failed:', result.error);
       }
     } catch (error) {
-      console.error('❌ Auto-save error:', error);
+      console.error('❌ Persist error:', error);
     } finally {
-      setAutoSaving(false);
+      setIsPersistingChanges(false);
     }
   };
 
@@ -2908,18 +2812,6 @@ export default function CompanyAccreditationScreen({
       }
     });
   };
-
-  // Auto-save when data changes (debounced)
-  // IMPORTANT: Skip autosave while loading to prevent saving empty state before data loads
-  useEffect(() => {
-    if (!currentCompanyId || loading || !hasLoadedCompanyData || reviewMode) return;
-    
-    const timer = setTimeout(() => {
-      autoSave();
-    }, 30000); // Auto-save after 30 seconds of inactivity
-    
-    return () => clearTimeout(timer);
-  }, [companyDetails, selectedServices, selectedBusinessUnits, accreditedSystems, policies, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, section16, section17, section18, section19, section20, section21, section22, section24, section25, section26, currentCompanyId, loading, hasLoadedCompanyData, reviewMode]);
 
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
@@ -5275,13 +5167,13 @@ export default function CompanyAccreditationScreen({
           }}>
             Status: {accreditationStatus === 'completed' ? '✓ Completed' : '⏳ In Progress'}
           </Text>
-          {autoSaving && (
+          {isPersistingChanges && (
             <Text style={{
               fontSize: 18,
               color: '#6B7280',
               marginTop: 4
             }}>
-              Auto-saving...
+              Saving...
             </Text>
           )}
         </View>

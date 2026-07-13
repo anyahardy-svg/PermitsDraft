@@ -1,0 +1,30 @@
+---
+description: Accreditation form save behaviour — no background autosave
+globs: src/screens/CompanyAccreditationScreen.js, src/api/accreditations.js
+alwaysApply: false
+---
+
+# Accreditation save policy
+
+The contractor accreditation form (`CompanyAccreditationScreen`) is used on **ContractorHQ** (`contractorhq.co.nz`) for both contractors (`ContractorAdminScreen`) and admins (`App.js` review modal).
+
+## Do NOT add background autosave
+
+Never add:
+- Timer/debounce `useEffect` saves (e.g. 30s inactivity, 500ms field-change)
+- `useEffect` hooks that call `persistAccreditationChanges()` when form state changes
+- Renamed or new helpers that reintroduce "auto-save on change" behaviour
+
+Background autosave has repeatedly wiped evidence URLs and accreditation data. It was intentionally removed.
+
+## Allowed persistence paths
+
+1. **Manual Save / Submit** — `handleSave()` and submit workflow
+2. **Upload/delete actions** — call `persistAccreditationChanges(overrides, { force: true })` with **explicit field overrides** for only the fields that changed (never `null` overrides that dump the whole form)
+3. **Admin review** — `reviewMode` blocks incidental saves; uploads/deletes still use `{ force: true }`
+
+## When fixing "data not showing in admin"
+
+- Fix load/display logic and explicit upload persistence with field overrides
+- Do NOT re-add background autosave as the fix
+- Mirror the insurance/certificate pattern: `persistAccreditationChanges({ field_name: url }, { force: true })`
