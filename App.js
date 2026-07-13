@@ -2936,12 +2936,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const statusResults = await getCompanyTrainingRecordsStatusBatch(
                   companiesData.map(c => c.id)
                 );
-                setTrainingRecordsStatuses(statusResults);
+                setTrainingRecordsStatuses(
+                  Object.fromEntries(
+                    Object.entries(statusResults).map(([companyId, result]) => [
+                      companyId,
+                      result?.status || 'none',
+                    ])
+                  )
+                );
 
                 const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
                   companiesData.map(c => c.id)
                 );
-                setTrainingMatricesStatuses(matrixStatusResults);
+                setTrainingMatricesStatuses(
+                  Object.fromEntries(
+                    Object.entries(matrixStatusResults).map(([companyId, result]) => [
+                      companyId,
+                      result?.status || 'none',
+                    ])
+                  )
+                );
                 if (process.env.NODE_ENV === 'development') {
                   console.log('✅ All training records statuses loaded (batch query)');
                 }
