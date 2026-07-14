@@ -552,20 +552,42 @@ export default function CompanyAccreditationScreen({
     }
   };
 
-  // Parse NZ date format (dd/mm/yyyy) to ISO string
+  // Parse NZ date format (d/m/yyyy or dd/mm/yyyy) to ISO string (yyyy-mm-dd)
   const parseNZDate = (dateString) => {
     if (!dateString) return null;
-    const [day, month, year] = dateString.split('/');
-    if (!day || !month || !year) return null;
+    const match = String(dateString).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    const dateObj = new Date(year, month - 1, day);
+    if (
+      dateObj.getFullYear() !== year ||
+      dateObj.getMonth() !== month - 1 ||
+      dateObj.getDate() !== day
+    ) {
+      return null;
+    }
+
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  // Convert user-entered or stored dates to ISO for database DATE columns
+  const normalizeExpiryDateForStorage = (dateString) => {
+    if (!dateString) return null;
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+    return parseNZDate(dateString);
   };
 
   // Format ISO date (yyyy-mm-dd) to NZ display format (dd/mm/yyyy)
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return '';
     
-    // If already in NZ format, return as-is
-    if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    // If already in NZ format, return as-is (allow single-digit day/month while typing)
+    if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
       return dateString;
     }
     
@@ -1002,19 +1024,19 @@ export default function CompanyAccreditationScreen({
       
       setSection24({
         public_liability_insurance: {
-          expiry_date: data.public_liability_expiry || '',
+          expiry_date: formatDateForDisplay(data.public_liability_expiry) || '',
           url: publicLiabilityEvidenceUrl,
           uploaded_at: null,
           has_document: !!publicLiabilityEvidenceUrl
         },
         motor_vehicle_insurance: {
-          expiry_date: data.motor_vehicle_insurance_expiry || '',
+          expiry_date: formatDateForDisplay(data.motor_vehicle_insurance_expiry) || '',
           url: motorVehicleEvidenceUrl,
           uploaded_at: null,
           has_document: !!motorVehicleEvidenceUrl
         },
         professional_indemnity_insurance: {
-          expiry_date: data.professional_indemnity_insurance_expiry || '',
+          expiry_date: formatDateForDisplay(data.professional_indemnity_insurance_expiry) || '',
           url: data.professional_indemnity_insurance_url || null,
           uploaded_at: data.professional_indemnity_insurance_uploaded_at || null,
           has_document: !!data.professional_indemnity_insurance_url
@@ -1258,6 +1280,29 @@ export default function CompanyAccreditationScreen({
         checked: !(prev[key]?.checked || false)
       }
     }));
+  };
+
+  // Normalize insurance expiry dates to ISO when the user leaves the field
+  const handleInsuranceExpiryDateBlur = (insuranceKey) => {
+    setSection24(prev => {
+      const rawDate = prev[insuranceKey]?.expiry_date || '';
+      if (!rawDate || !rawDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        return prev;
+      }
+
+      const isoDate = parseNZDate(rawDate);
+      if (!isoDate) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [insuranceKey]: {
+          ...prev[insuranceKey],
+          expiry_date: isoDate
+        }
+      };
+    });
   };
 
   // Handle expiry date input - accepts dd/mm/yyyy and converts to ISO for storage
@@ -2582,11 +2627,11 @@ export default function CompanyAccreditationScreen({
     });
 
     // Add Section 24 data (Insurance Documents)
-    updateData.public_liability_expiry = section24.public_liability_insurance.expiry_date || null;
+    updateData.public_liability_expiry = normalizeExpiryDateForStorage(section24.public_liability_insurance.expiry_date);
     updateData.public_liability_insurance_evidence_url = section24.public_liability_insurance.url || null;
-    updateData.motor_vehicle_insurance_expiry = section24.motor_vehicle_insurance.expiry_date || null;
+    updateData.motor_vehicle_insurance_expiry = normalizeExpiryDateForStorage(section24.motor_vehicle_insurance.expiry_date);
     updateData.motor_vehicle_insurance_evidence_url = section24.motor_vehicle_insurance.url || null;
-    updateData.professional_indemnity_insurance_expiry = section24.professional_indemnity_insurance.expiry_date || null;
+    updateData.professional_indemnity_insurance_expiry = normalizeExpiryDateForStorage(section24.professional_indemnity_insurance.expiry_date);
     updateData.professional_indemnity_insurance_url = section24.professional_indemnity_insurance.url || null;
     updateData.professional_indemnity_insurance_uploaded_at = section24.professional_indemnity_insurance.uploaded_at || null;
 
@@ -3837,6 +3882,7 @@ export default function CompanyAccreditationScreen({
                       expiry_date: text
                     }
                   }))}
+                  onBlur={() => handleInsuranceExpiryDateBlur('public_liability_insurance')}
                   keyboardType="numeric"
                 />
               </View>
@@ -3917,6 +3963,7 @@ export default function CompanyAccreditationScreen({
                       expiry_date: text
                     }
                   }))}
+                  onBlur={() => handleInsuranceExpiryDateBlur('motor_vehicle_insurance')}
                   keyboardType="numeric"
                 />
               </View>
@@ -3997,6 +4044,7 @@ export default function CompanyAccreditationScreen({
                       expiry_date: text
                     }
                   }))}
+                  onBlur={() => handleInsuranceExpiryDateBlur('professional_indemnity_insurance')}
                   keyboardType="numeric"
                 />
               </View>
