@@ -111,6 +111,7 @@ export default function CompanyAccreditationScreen({
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
   const storedSignatureRef = useRef(null);
+  const signatureUpdateSourceRef = useRef('load');
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // If companyId is provided (logged-in contractor), use it directly
@@ -600,7 +601,7 @@ export default function CompanyAccreditationScreen({
     return dateString;
   };
 
-  const loadCompanyData = async () => {
+  const loadCompanyData = async ({ silent = false } = {}) => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
       debugLog('⚠️ [ACCREDITATION] No currentCompanyId set, skipping load');
@@ -609,8 +610,10 @@ export default function CompanyAccreditationScreen({
       return;
     }
 
-    setLoading(true);
-    setHasLoadedCompanyData(false);
+    if (!silent) {
+      setLoading(true);
+      setHasLoadedCompanyData(false);
+    }
     try {
       debugLog('🔄 [ACCREDITATION LOAD] Starting load for company');
       // Load accreditation data
@@ -1176,15 +1179,15 @@ export default function CompanyAccreditationScreen({
       });
 
       // Load section 26 (H&S Agreement)
+      signatureUpdateSourceRef.current = 'load';
       setSection26(prev => ({
         ...prev,
         hs_agreement_signature: data.hs_agreement_signature || null,
         hs_agreement_accepted_by: data.hs_agreement_accepted_by || '',
         hs_agreement_acknowledged: data.hs_agreement_acknowledged || false
       }));
-      // Set hasSignature if signature exists
+      setHasSignature(!!data.hs_agreement_signature);
       if (data.hs_agreement_signature) {
-        setHasSignature(true);
         debugLog('🔄 [LOAD] Section 26 signature loaded from DB');
       } else {
         debugLog('🔄 [LOAD] Section 26: No signature in database');
@@ -1209,10 +1212,14 @@ export default function CompanyAccreditationScreen({
 
       setHasLoadedCompanyData(true);
     } catch (error) {
-      setHasLoadedCompanyData(false);
+      if (!silent) {
+        setHasLoadedCompanyData(false);
+      }
       Alert.alert('Error', 'Failed to load accreditation data: ' + error.message);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -2801,8 +2808,8 @@ export default function CompanyAccreditationScreen({
       
       if (result.success) {
         debugLog('💾 Save successful, reloading data from database...');
-        // Wait for data to reload before showing success - ensures signature is visible after save
-        await loadCompanyData();
+        // Silent reload keeps the form mounted so the signature canvas can redraw
+        await loadCompanyData({ silent: true });
         Alert.alert('Success ✅', 'Accreditation saved successfully');
       } else {
         Alert.alert('Error', 'Failed to save: ' + result.error);
@@ -2840,8 +2847,7 @@ export default function CompanyAccreditationScreen({
           if (result.success) {
             debugLog('🟢 Update successful, setting status to completed');
             setAccreditationStatus('completed');
-            // Wait for data to reload before considering operation fully complete
-            await loadCompanyData();
+            await loadCompanyData({ silent: true });
           } else {
             console.error('🔥 Failed to submit:', result.error);
           }
@@ -4227,10 +4233,10 @@ export default function CompanyAccreditationScreen({
   const contextRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  // Initialize canvas - runs ONLY when section is opened/closed, NOT when signature data changes
+  // Initialize canvas - runs when section is opened/closed or after a loading cycle remounts the canvas
   useEffect(() => {
-    if (!expandedSections[26]) {
-      debugLog('📋 Section 26 not expanded, skipping canvas init');
+    if (!expandedSections[26] || loading) {
+      debugLog('📋 Section 26 not expanded or form loading, skipping canvas init');
       return;
     }
 
@@ -4301,12 +4307,18 @@ export default function CompanyAccreditationScreen({
         cancelAnimationFrame(animFrameId);
       }
     };
-  }, [expandedSections[26]]);  // ONLY depends on section visibility
+  }, [expandedSections[26], loading]);
 
-  // Redraw signature when data changes or section 26 is expanded (canvas mounts)
+  // Redraw signature when data is loaded from the database or section 26 is expanded
   useEffect(() => {
-    if (!expandedSections[26]) {
-      debugLog('🖼️ REDRAW: Section 26 collapsed, skipping');
+    if (!expandedSections[26] || loading) {
+      debugLog('🖼️ REDRAW: Section 26 collapsed or form loading, skipping');
+      return;
+    }
+
+    if (signatureUpdateSourceRef.current === 'draw') {
+      signatureUpdateSourceRef.current = 'load';
+      debugLog('🖼️ REDRAW: Skipping - signature was just drawn on canvas');
       return;
     }
 
@@ -4365,11 +4377,11 @@ export default function CompanyAccreditationScreen({
       debugLog('🖼️ Redraw effect cleanup, cancelling RAF:', rafId);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [section26.hs_agreement_signature, expandedSections[26]]);
+  }, [section26.hs_agreement_signature, expandedSections[26], loading]);
 
   // Setup canvas event listeners
   useEffect(() => {
-    if (!expandedSections[26]) {
+    if (!expandedSections[26] || loading) {
       return;
     }
 
@@ -4400,6 +4412,7 @@ export default function CompanyAccreditationScreen({
         isDrawingRef.current = false;
         ctx.closePath();
         const signatureData = canvas.toDataURL('image/png');
+        signatureUpdateSourceRef.current = 'draw';
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
         setHasSignature(true);
       }
@@ -4432,6 +4445,7 @@ export default function CompanyAccreditationScreen({
         isDrawingRef.current = false;
         ctx.closePath();
         const signatureData = canvas.toDataURL('image/png');
+        signatureUpdateSourceRef.current = 'draw';
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
         setHasSignature(true);
       }
@@ -4491,13 +4505,14 @@ export default function CompanyAccreditationScreen({
         canvas._handlers = null;
       }
     };
-  }, [expandedSections[26]]);
+  }, [expandedSections[26], loading]);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
       const ctx = contextRef.current;
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      signatureUpdateSourceRef.current = 'draw';
       setSection26(prev => ({
         ...prev,
         hs_agreement_signature: null
