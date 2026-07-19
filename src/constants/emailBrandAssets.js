@@ -2,6 +2,8 @@
  * Branding assets hosted in Supabase Storage (email-assets bucket).
  */
 
+import { SUPABASE_URL } from '../config';
+
 export const EMAIL_ASSETS_BUCKET = 'email-assets';
 
 export const PARTNER_LOGOS = [
@@ -32,10 +34,10 @@ export const CONTRACTOR_HQ_CONTACT = {
 /**
  * Build a public Supabase Storage URL for an email asset path.
  * @param {string} storagePath - Path inside the email-assets bucket
- * @param {string} [supabaseUrl] - Defaults to VITE_SUPABASE_URL
+ * @param {string} [supabaseUrl] - Defaults to configured Supabase project URL
  * @returns {string|null}
  */
-export function getEmailAssetPublicUrl(storagePath, supabaseUrl = process.env.VITE_SUPABASE_URL) {
+export function getEmailAssetPublicUrl(storagePath, supabaseUrl = SUPABASE_URL) {
   if (!storagePath || !supabaseUrl) {
     return null;
   }
@@ -45,12 +47,12 @@ export function getEmailAssetPublicUrl(storagePath, supabaseUrl = process.env.VI
   return `${baseUrl}/storage/v1/object/public/${EMAIL_ASSETS_BUCKET}/${normalizedPath}`;
 }
 
-export function getEmailLogoUrl(brandKey, supabaseUrl = process.env.VITE_SUPABASE_URL) {
+export function getEmailLogoUrl(brandKey, supabaseUrl = SUPABASE_URL) {
   const storagePath = EMAIL_LOGO_PATHS[brandKey];
   return storagePath ? getEmailAssetPublicUrl(storagePath, supabaseUrl) : null;
 }
 
-export function getPartnerLogoUrls(supabaseUrl = process.env.VITE_SUPABASE_URL) {
+export function getPartnerLogoUrls(supabaseUrl = SUPABASE_URL) {
   return PARTNER_LOGOS.map((logo) => ({
     ...logo,
     url: getEmailAssetPublicUrl(logo.file, supabaseUrl),
