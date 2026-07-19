@@ -50,18 +50,6 @@ export default function ContractorSiteFooter() {
       borderTopWidth: 1,
       borderTopColor: '#E5E7EB',
     }}>
-      <Text style={{
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#6B7280',
-        textAlign: 'center',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        marginBottom: 16,
-      }}>
-        Fletcher Building Business Units
-      </Text>
-
       <View style={{
         flexDirection: 'row',
         flexWrap: 'wrap',
