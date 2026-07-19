@@ -38,9 +38,6 @@ function buildPartnerLogosHtml() {
     .join('');
 
   return `
-    <p style="margin: 0 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6B7280; text-align: center;">
-      Fletcher Building Business Units
-    </p>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 0 auto 24px;">
       ${rows}
     </table>
@@ -88,8 +85,6 @@ function buildEmailFooterText() {
   const { addressLine1, addressLine2, email, contactName, phone } = CONTRACTOR_HQ_CONTACT;
 
   return [
-    'Fletcher Building Business Units',
-    '',
     'Contact Us',
     addressLine1,
     addressLine2,
