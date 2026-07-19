@@ -148,6 +148,44 @@ const TEMPLATE_VARIABLE_DEFAULTS = {
  * Replace variables in email template
  * Variables use {{variableName}} format
  */
+/**
+ * Send a one-off test accreditation reminder email (includes logos + footer).
+ * Does not update company reminder tracking or affect the cron batch.
+ */
+export const sendTestAccreditationReminderEmail = async ({
+  toEmail,
+  companyName,
+  contactName,
+  companyId,
+  deadline,
+}) => {
+  try {
+    const response = await fetch('/api/send-test-accreditation-reminder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        toEmail,
+        companyName,
+        contactName,
+        companyId,
+        deadline,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to send test reminder email' };
+    }
+
+    return { success: true, message: data.message, messageId: data.messageId };
+  } catch (error) {
+    console.error('Error sending test accreditation reminder:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
 export const renderEmailTemplate = (template, variables = {}) => {
   let subject = template.subject;
   let content = template.html_content;

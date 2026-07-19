@@ -9,7 +9,12 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { ensureDefaultEmailTemplates, getAllEmailTemplates, updateEmailTemplate, getEmailTemplate } from '../api/emailTemplates';
+import {
+  ensureDefaultEmailTemplates,
+  getAllEmailTemplates,
+  updateEmailTemplate,
+  sendTestAccreditationReminderEmail,
+} from '../api/emailTemplates';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +52,10 @@ const EmailTemplatesScreen = () => {
     html_content: '',
     description: '',
   });
+  const [testEmail, setTestEmail] = useState('');
+  const [testCompanyName, setTestCompanyName] = useState('Test Company Ltd');
+  const [testContactName, setTestContactName] = useState('Test Contact');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   // Load templates on mount
   useEffect(() => {
@@ -107,6 +116,36 @@ const EmailTemplatesScreen = () => {
   const handleCancel = () => {
     if (selectedTemplate) {
       selectTemplate(selectedTemplate);
+    }
+  };
+
+  const handleSendTestReminder = async () => {
+    const email = testEmail.trim();
+    if (!email) {
+      Alert.alert('Missing email', 'Enter your email address to receive the test.');
+      return;
+    }
+
+    setSendingTestEmail(true);
+    try {
+      const result = await sendTestAccreditationReminderEmail({
+        toEmail: email,
+        companyName: testCompanyName.trim() || 'Test Company Ltd',
+        contactName: testContactName.trim() || 'Test Contact',
+      });
+
+      if (result.success) {
+        Alert.alert(
+          'Test email sent',
+          `A test reminder was sent to ${email}. Check your inbox and spam folder. The email includes the automatic logos and Contact Us footer.`
+        );
+      } else {
+        Alert.alert('Send failed', result.error || 'Could not send test reminder email.');
+      }
+    } catch (error) {
+      Alert.alert('Send failed', error.message || 'Could not send test reminder email.');
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -280,6 +319,56 @@ const EmailTemplatesScreen = () => {
                     <Text style={styles.htmlPreviewText}>{formData.html_content.substring(0, 500)}...</Text>
                   </View>
                 </View>
+
+                {selectedTemplate.type === 'invitation-reminder' && (
+                  <View style={styles.testEmailBox}>
+                    <Text style={styles.testEmailTitle}>Send test email</Text>
+                    <Text style={styles.testEmailHelp}>
+                      Sends one reminder to your inbox using the saved template plus the automatic logos and Contact Us footer. This does not affect the daily cron batch or any customer records.
+                    </Text>
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Your email address</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={testEmail}
+                        onChangeText={setTestEmail}
+                        placeholder="you@example.com"
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        editable={!sendingTestEmail}
+                      />
+                    </View>
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Sample company name (optional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={testCompanyName}
+                        onChangeText={setTestCompanyName}
+                        placeholder="Test Company Ltd"
+                        editable={!sendingTestEmail}
+                      />
+                    </View>
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Sample contact name (optional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={testContactName}
+                        onChangeText={setTestContactName}
+                        placeholder="Test Contact"
+                        editable={!sendingTestEmail}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.button, styles.testEmailButton]}
+                      onPress={handleSendTestReminder}
+                      disabled={sendingTestEmail}
+                    >
+                      <Text style={styles.buttonText}>
+                        {sendingTestEmail ? 'Sending test...' : 'Send test reminder email'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -541,6 +630,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     fontFamily: 'monospace',
+  },
+  testEmailBox: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  testEmailTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e3a8a',
+    marginBottom: 8,
+  },
+  testEmailHelp: {
+    fontSize: 12,
+    color: '#1d4ed8',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  testEmailButton: {
+    backgroundColor: '#2563eb',
+    marginTop: 4,
   },
   loadingText: {
     fontSize: 14,
