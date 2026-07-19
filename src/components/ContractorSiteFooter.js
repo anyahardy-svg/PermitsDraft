@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Linking, Platform } from 'react-native';
 import {
   CONTRACTOR_HQ_CONTACT,
   getPartnerLogoUrls,
@@ -7,6 +7,36 @@ import {
 
 function openExternalUrl(url) {
   Linking.openURL(url).catch(() => {});
+}
+
+function PartnerLogo({ logo }) {
+  if (Platform.OS === 'web') {
+    return (
+      <img
+        src={logo.url}
+        alt={logo.name}
+        style={{
+          height: 52,
+          maxWidth: 150,
+          width: 'auto',
+          objectFit: 'contain',
+          display: 'block',
+        }}
+      />
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: logo.url }}
+      accessibilityLabel={logo.name}
+      resizeMode="contain"
+      style={{
+        height: 52,
+        width: 150,
+      }}
+    />
+  );
 }
 
 export default function ContractorSiteFooter() {
@@ -42,17 +72,7 @@ export default function ContractorSiteFooter() {
         paddingHorizontal: 8,
       }}>
         {partnerLogos.map((logo) => (
-          <Image
-            key={logo.file}
-            source={{ uri: logo.url }}
-            accessibilityLabel={logo.name}
-            resizeMode="contain"
-            style={{
-              height: 42,
-              width: 120,
-              maxWidth: '45%',
-            }}
-          />
+          <PartnerLogo key={logo.file} logo={logo} />
         ))}
       </View>
 
