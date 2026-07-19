@@ -25,6 +25,7 @@ import {
   resetContractorPasswordWithToken,
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
+import ContractorSiteFooter from '../components/ContractorSiteFooter';
 
 function readInviteParamsFromUrl() {
   if (typeof window === 'undefined') {
@@ -877,6 +878,8 @@ export default function ContractorAuthScreen({
                 </Text>
               </TouchableOpacity>
             </View>
+
+            <ContractorSiteFooter />
           </View>
         </ScrollView>
       </View>
@@ -1156,6 +1159,8 @@ export default function ContractorAuthScreen({
                 </Text>
               </View>
             </View>
+
+            <ContractorSiteFooter />
           </View>
         </ScrollView>
       </View>
@@ -1267,6 +1272,8 @@ export default function ContractorAuthScreen({
                 </Text>
               </TouchableOpacity>
             </View>
+
+            <ContractorSiteFooter />
           </View>
         </ScrollView>
       </View>
@@ -1727,6 +1734,8 @@ export default function ContractorAuthScreen({
                 </>
               )}
             </View>
+
+            <ContractorSiteFooter />
           </View>
         </ScrollView>
       </View>
@@ -1773,15 +1782,6 @@ export default function ContractorAuthScreen({
             textAlign: 'center'
           }}>
             Manage your company profile
-          </Text>
-          <Text style={{ 
-            color: '#6B7280', 
-            fontSize: 13, 
-            marginTop: 12,
-            textAlign: 'center',
-            lineHeight: 20
-          }}>
-            Firth Industries • Winstone Aggregates • Rodney Aggregates Supply • Rangitikei Aggregates • Roys Hill Aggregates
           </Text>
         </View>
       </View>
@@ -2070,16 +2070,7 @@ export default function ContractorAuthScreen({
             </View>
           </View>
 
-          {/* Footer */}
-          <Text style={{ 
-            fontSize: 11, 
-            color: '#9CA3AF', 
-            textAlign: 'center',
-            marginTop: 24,
-            fontWeight: '500'
-          }}>
-            © 2026 Contractor HQ. All rights reserved.
-          </Text>
+          <ContractorSiteFooter />
         </View>
       </ScrollView>
     </View>
