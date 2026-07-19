@@ -2,6 +2,12 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "crons": [
+    {
+      "path": "/api/cron/accreditation-reminders",
+      "schedule": "0 19 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/admin",
