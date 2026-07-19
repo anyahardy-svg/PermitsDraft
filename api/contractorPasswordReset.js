@@ -10,6 +10,7 @@ const {
   findAuthUserCaseInsensitive,
   lookupContractorForAuthUser,
 } = require('./supabaseAdmin');
+const { wrapEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
 
 function generateResetCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -59,7 +60,7 @@ async function sendPasswordResetEmail(toEmail, resetCode) {
   }
 
   const resetUrl = `https://contractorhq.co.nz/sign-in-contractor?type=recovery&email=${encodeURIComponent(toEmail)}`;
-  const htmlContent = `
+  const emailBody = `
     <h2>Reset Your Contractor HQ Password</h2>
     <p>Use the code below to reset your password. This code is valid for 48 hours.</p>
     <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; margin: 24px 0;">${resetCode}</p>
@@ -68,6 +69,8 @@ async function sendPasswordResetEmail(toEmail, resetCode) {
     <p>If you did not request this, you can ignore this email.</p>
     <p>Need help? Contact ${SUPPORT_EMAIL}</p>
   `;
+  const htmlContent = wrapEmailHtml(emailBody);
+  const textContent = `Reset Your Contractor HQ Password\n\nYour code: ${resetCode}\n\n${resetUrl}\n\n${buildEmailFooterText()}`;
 
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -80,6 +83,7 @@ async function sendPasswordResetEmail(toEmail, resetCode) {
       to: [{ email: toEmail }],
       subject: 'Your Contractor HQ password reset code',
       htmlContent,
+      textContent,
     }),
   });
 
