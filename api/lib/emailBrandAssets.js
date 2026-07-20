@@ -26,13 +26,19 @@ function getSupabaseUrl() {
   ).replace(/\/$/, '');
 }
 
-function getEmailAssetPublicUrl(storagePath, supabaseUrl = getSupabaseUrl()) {
-  if (!storagePath || !supabaseUrl) {
+function getPublicAppOrigin() {
+  return (process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz').replace(/\/$/, '');
+}
+
+function getEmailAssetPublicUrl(storagePath) {
+  if (!storagePath) {
     return null;
   }
 
   const normalizedPath = storagePath.replace(/^\//, '');
-  return `${supabaseUrl}/storage/v1/object/public/${EMAIL_ASSETS_BUCKET}/${normalizedPath}`;
+  // Serve through the main app domain so email clients (e.g. Outlook) are more
+  // likely to load images than when hotlinking supabase.co directly.
+  return `${getPublicAppOrigin()}/email-assets/${normalizedPath}`;
 }
 
 function getPartnerLogoUrls(supabaseUrl = getSupabaseUrl()) {

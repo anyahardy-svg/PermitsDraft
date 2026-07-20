@@ -258,6 +258,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/email-assets/:path*",
+      "destination": "https://nszkuoxibzcbiqaqdfml.supabase.co/storage/v1/object/public/email-assets/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
