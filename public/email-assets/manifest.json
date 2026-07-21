@@ -1,0 +1,32 @@
+[
+  {
+    "file": "Firth-logo.jpg",
+    "width": 48,
+    "height": 48,
+    "bytes": 984
+  },
+  {
+    "file": "WA-logo.jpg",
+    "width": 50,
+    "height": 48,
+    "bytes": 1297
+  },
+  {
+    "file": "RAL-logo.jpg",
+    "width": 108,
+    "height": 48,
+    "bytes": 2632
+  },
+  {
+    "file": "RASL-logo.jpg",
+    "width": 132,
+    "height": 48,
+    "bytes": 2207
+  },
+  {
+    "file": "TUQ-logo.jpg",
+    "width": 76,
+    "height": 48,
+    "bytes": 1410
+  }
+]

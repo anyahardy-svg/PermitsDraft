@@ -2,11 +2,11 @@ const EMAIL_ASSETS_BUCKET = 'email-assets';
 const DEFAULT_SUPABASE_URL = 'https://nszkuoxibzcbiqaqdfml.supabase.co';
 
 const PARTNER_LOGOS = [
-  { name: 'Firth Industries', file: 'Firth-logo.jpg' },
-  { name: 'Winstone Aggregates', file: 'WA-logo.jpg' },
-  { name: 'Rodney Aggregates Ltd', file: 'RAL-logo.jpg' },
-  { name: 'Rangitikei Aggregates', file: 'RASL-logo.jpg' },
-  { name: 'The Urban Quarry', file: 'TUQ-logo.jpg' },
+  { name: 'Firth Industries', file: 'Firth-logo.jpg', width: 48, height: 48 },
+  { name: 'Winstone Aggregates', file: 'WA-logo.jpg', width: 50, height: 48 },
+  { name: 'Rodney Aggregates Ltd', file: 'RAL-logo.jpg', width: 108, height: 48 },
+  { name: 'Rangitikei Aggregates', file: 'RASL-logo.jpg', width: 132, height: 48 },
+  { name: 'The Urban Quarry', file: 'TUQ-logo.jpg', width: 76, height: 48 },
 ];
 
 const CONTRACTOR_HQ_CONTACT = {
@@ -36,15 +36,14 @@ function getEmailAssetPublicUrl(storagePath) {
   }
 
   const normalizedPath = storagePath.replace(/^\//, '');
-  // Serve through the main app domain so email clients (e.g. Outlook) are more
-  // likely to load images than when hotlinking supabase.co directly.
+  // Serve from the main app domain as static files copied to /public/email-assets.
   return `${getPublicAppOrigin()}/email-assets/${normalizedPath}`;
 }
 
-function getPartnerLogoUrls(supabaseUrl = getSupabaseUrl()) {
+function getPartnerLogoUrls() {
   return PARTNER_LOGOS.map((logo) => ({
     ...logo,
-    url: getEmailAssetPublicUrl(logo.file, supabaseUrl),
+    url: getEmailAssetPublicUrl(logo.file),
   })).filter((logo) => logo.url);
 }
 
