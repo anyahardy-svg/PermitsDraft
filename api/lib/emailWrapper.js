@@ -1,10 +1,10 @@
 const {
   CONTRACTOR_HQ_CONTACT,
-  getPartnerLogoUrls,
+  getPartnerLogosForEmail,
 } = require('./emailBrandAssets');
 
 function buildPartnerLogosHtml() {
-  const logos = getPartnerLogoUrls();
+  const logos = getPartnerLogosForEmail();
   if (logos.length === 0) {
     return '';
   }
@@ -17,7 +17,7 @@ function buildPartnerLogosHtml() {
       return `
         <td align="center" valign="middle" style="padding: 8px 6px;">
           <img
-            src="${logo.url}"
+            src="${logo.src}"
             alt="${logo.name}"
             width="${width}"
             height="${height}"

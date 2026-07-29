@@ -50,6 +50,7 @@ async function main() {
   }
 
   fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  require('./generate-email-logo-base64').generateEmailLogoBase64Module();
 }
 
 main().catch((error) => {

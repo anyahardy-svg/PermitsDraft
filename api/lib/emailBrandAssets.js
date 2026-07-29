@@ -1,3 +1,5 @@
+const EMAIL_LOGO_BASE64 = require('./emailLogoBase64');
+
 const EMAIL_ASSETS_BUCKET = 'email-assets';
 const DEFAULT_SUPABASE_URL = 'https://nszkuoxibzcbiqaqdfml.supabase.co';
 
@@ -47,6 +49,22 @@ function getPartnerLogoUrls() {
   })).filter((logo) => logo.url);
 }
 
+function getPartnerLogosForEmail() {
+  return PARTNER_LOGOS.map((logo) => {
+    const embedded = EMAIL_LOGO_BASE64[logo.file];
+    if (!embedded?.dataUri) {
+      return null;
+    }
+
+    return {
+      ...logo,
+      width: embedded.width || logo.width,
+      height: embedded.height || logo.height,
+      src: embedded.dataUri,
+    };
+  }).filter(Boolean);
+}
+
 module.exports = {
   EMAIL_ASSETS_BUCKET,
   PARTNER_LOGOS,
@@ -54,4 +72,5 @@ module.exports = {
   getSupabaseUrl,
   getEmailAssetPublicUrl,
   getPartnerLogoUrls,
+  getPartnerLogosForEmail,
 };
