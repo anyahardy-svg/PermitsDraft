@@ -1,40 +1,15 @@
 const {
   CONTRACTOR_HQ_CONTACT,
-  getPartnerLogoUrls,
+  PARTNER_LOGOS,
 } = require('./emailBrandAssets');
 
-function buildPartnerLogosHtml() {
-  const logos = getPartnerLogoUrls();
-  if (logos.length === 0) {
-    return '';
-  }
-
-  const cells = logos
-    .map((logo) => {
-      const width = logo.width || 100;
-      const height = logo.height || 48;
-
-      return `
-        <td align="center" valign="middle" style="padding: 8px 6px;">
-          <img
-            src="${logo.url}"
-            alt="${logo.name}"
-            width="${width}"
-            height="${height}"
-            border="0"
-            norescale="norescale"
-            style="display: block; width: ${width}px; height: ${height}px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;"
-          />
-        </td>`;
-    })
-    .join('');
+function buildPartnerNamesHtml() {
+  const names = PARTNER_LOGOS.map((logo) => logo.name).join(' &nbsp;&middot;&nbsp; ');
 
   return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 24px;">
-      <tr>
-        ${cells}
-      </tr>
-    </table>
+    <p style="margin: 0 0 24px; font-size: 13px; line-height: 22px; color: #4B5563; text-align: center; font-family: Arial, sans-serif;">
+      ${names}
+    </p>
   `;
 }
 
@@ -63,7 +38,7 @@ function buildContactFooterHtml() {
 
 function buildEmailFooterHtml() {
   return `
-    ${buildPartnerLogosHtml()}
+    ${buildPartnerNamesHtml()}
     ${buildContactFooterHtml()}
     <p style="margin: 0; font-size: 11px; color: #9CA3AF; text-align: center; font-family: Arial, sans-serif;">
       © 2026 Contractor HQ Limited. All rights reserved.
@@ -82,7 +57,11 @@ function buildEmailFooterHtml() {
 function buildEmailFooterText() {
   const { addressLine1, addressLine2, email, contactName, phone } = CONTRACTOR_HQ_CONTACT;
 
+  const partnerNames = PARTNER_LOGOS.map((logo) => logo.name).join(' · ');
+
   return [
+    partnerNames,
+    '',
     'Contact Us',
     addressLine1,
     addressLine2,
@@ -145,6 +124,6 @@ module.exports = {
   buildContactFooterHtml,
   buildEmailFooterHtml,
   buildEmailFooterText,
-  buildPartnerLogosHtml,
+  buildPartnerNamesHtml,
   wrapEmailHtml,
 };
