@@ -37,6 +37,92 @@ function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+function getAucklandDateInfo(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-NZ', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  });
+
+  const parts = {};
+  formatter.formatToParts(date).forEach((part) => {
+    if (part.type === 'literal') {
+      return;
+    }
+    if (part.type === 'weekday') {
+      parts.weekday = part.value;
+      return;
+    }
+    parts[part.type] = parseInt(part.value, 10);
+  });
+
+  return parts;
+}
+
+function isWeekendWeekday(weekday = '') {
+  const normalized = String(weekday).slice(0, 3).toLowerCase();
+  return normalized === 'sat' || normalized === 'sun';
+}
+
+function findAucklandMiddayInstant(year, month, day) {
+  const base = Date.UTC(year, month - 1, day, 1, 0, 0);
+
+  for (let offsetHours = 0; offsetHours < 48; offsetHours += 1) {
+    const probe = new Date(base + offsetHours * 60 * 60 * 1000);
+    const parts = getAucklandDateParts(probe);
+    if (parts.year === year && parts.month === month && parts.day === day) {
+      return probe;
+    }
+  }
+
+  throw new Error(`Could not resolve Auckland date for ${year}-${month}-${day}`);
+}
+
+function countWeekdaysInMonth(year, month) {
+  const daysInMonth = getDaysInMonth(year, month);
+  let count = 0;
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function countWeekdaysUpTo(year, month, dayOfMonth) {
+  let count = 0;
+
+  for (let day = 1; day <= dayOfMonth; day += 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function isLastWeekdayOfMonth(year, month, dayOfMonth) {
+  const daysInMonth = getDaysInMonth(year, month);
+
+  for (let day = daysInMonth; day >= dayOfMonth; day -= 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      return day === dayOfMonth;
+    }
+  }
+
+  return false;
+}
+
 function isSameAucklandDate(left, right) {
   const leftParts = getAucklandDateParts(left);
   const rightParts = getAucklandDateParts(right);
@@ -49,18 +135,34 @@ function isSameAucklandDate(left, right) {
 
 function getBatchRangesForToday(date = new Date()) {
   const batchSize = getBatchSize();
-  const { year, month, day } = getAucklandDateParts(date);
-  const daysInMonth = getDaysInMonth(year, month);
-  const dayOfMonth = day;
+  const todayInfo = getAucklandDateInfo(date);
+  const { year, month, day: dayOfMonth, weekday } = todayInfo;
+
+  if (isWeekendWeekday(weekday)) {
+    return {
+      batchSize,
+      weekdayOnly: true,
+      skipped: true,
+      skipReason: 'weekend',
+      weekdayIndex: null,
+      weekdayName: weekday,
+      dayOfMonth,
+      daysInMonth: getDaysInMonth(year, month),
+      ranges: [],
+    };
+  }
+
+  const weekdayIndex = countWeekdaysUpTo(year, month, dayOfMonth);
+  const totalWeekdaysInMonth = countWeekdaysInMonth(year, month);
 
   const ranges = [{
-    start: (dayOfMonth - 1) * batchSize + 1,
-    end: dayOfMonth * batchSize,
-    label: `${(dayOfMonth - 1) * batchSize + 1}-${dayOfMonth * batchSize}`,
+    start: (weekdayIndex - 1) * batchSize + 1,
+    end: weekdayIndex * batchSize,
+    label: `${(weekdayIndex - 1) * batchSize + 1}-${weekdayIndex * batchSize}`,
   }];
 
-  if (dayOfMonth === daysInMonth) {
-    const overflowStart = daysInMonth * batchSize + 1;
+  if (isLastWeekdayOfMonth(year, month, dayOfMonth)) {
+    const overflowStart = totalWeekdaysInMonth * batchSize + 1;
     ranges.push({
       start: overflowStart,
       end: Number.POSITIVE_INFINITY,
@@ -70,8 +172,13 @@ function getBatchRangesForToday(date = new Date()) {
 
   return {
     batchSize,
+    weekdayOnly: true,
+    skipped: false,
+    weekdayIndex,
+    weekdayName: weekday,
+    totalWeekdaysInMonth,
     dayOfMonth,
-    daysInMonth,
+    daysInMonth: getDaysInMonth(year, month),
     ranges,
   };
 }
@@ -186,6 +293,11 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
   const summary = {
     dryRun,
     batchSize: batchInfo.batchSize,
+    weekdayOnly: batchInfo.weekdayOnly,
+    runSkipped: batchInfo.skipped || false,
+    skipReason: batchInfo.skipReason || null,
+    weekdayIndex: batchInfo.weekdayIndex,
+    weekdayName: batchInfo.weekdayName || null,
     dayOfMonth: batchInfo.dayOfMonth,
     batchRanges: batchInfo.ranges.map((range) => range.label),
     eligibleTotal: eligibleCompanies.length,
