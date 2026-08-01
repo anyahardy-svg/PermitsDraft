@@ -37,6 +37,7 @@ import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSi
 import { listServicesByBusinessUnit, listAllServices, createService, updateService, deleteService } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
+import { getCompletedInductionsByContractor } from './src/api/inductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
 import { handoverPermit } from './src/api/permitHandovers';
@@ -3179,6 +3180,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
+  const [contractorCompletedInductions, setContractorCompletedInductions] = useState({});
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ 
@@ -3604,6 +3606,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.log('ℹ️ Skipping contractorAdminTab - value is:', initialContractorAdminTab);
     }
   }, [initialContractorAdminTab]);
+
+  useEffect(() => {
+    if (currentScreen !== 'manage_contractors') {
+      return;
+    }
+
+    let isCancelled = false;
+
+    getCompletedInductionsByContractor()
+      .then((completedMap) => {
+        if (!isCancelled) {
+          setContractorCompletedInductions(completedMap || {});
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading contractor completed inductions:', error);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentScreen, contractors]);
 
   // Contractor context is restored from the authenticated Supabase session only.
   // Do not hydrate from localStorage here — stale entries caused cross-user name/company bleed.
@@ -4067,13 +4091,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const getColumnWidths = () => {
     if (isMobile) {
       // Mobile: more compact
-      return { name: 80, email: 100, phone: 80, company: 80, services: 80, sites: 70, inductionExpiry: 90, actions: 50 };
+      return { name: 80, email: 100, phone: 80, company: 80, services: 80, completedInductions: 100, sites: 70, inductionExpiry: 90, actions: 50 };
     } else if (isTablet) {
       // Tablet: medium
-      return { name: 100, email: 130, phone: 100, company: 100, services: 120, sites: 100, inductionExpiry: 110, actions: 70 };
+      return { name: 100, email: 130, phone: 100, company: 100, services: 120, completedInductions: 140, sites: 100, inductionExpiry: 110, actions: 70 };
     } else {
       // Desktop: full size
-      return { name: 120, email: 150, phone: 110, company: 120, services: 150, sites: 140, inductionExpiry: 130, actions: 80 };
+      return { name: 120, email: 150, phone: 110, company: 120, services: 150, completedInductions: 180, sites: 140, inductionExpiry: 130, actions: 80 };
     }
   };
   
@@ -13249,6 +13273,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       fileInput.click();
     };
 
+    const getContractorCompletedInductionNames = (contractorId) => (
+      contractorCompletedInductions[contractorId] || []
+    );
+
     const getFilteredContractors = () => contractors.filter(contractor => {
       const contractorEmail = contractor.email || '';
       const matchesSearch = contractorSearchText === '' ||
@@ -13285,9 +13313,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         .filter(Boolean)
         .join('; ');
 
-      const headers = ['name', 'email', 'phone', 'company', 'services', 'available_sites', 'induction_expiry', 'business_units'];
+      const headers = ['name', 'email', 'phone', 'company', 'services', 'completed_inductions', 'available_sites', 'induction_expiry', 'business_units'];
       const rows = filteredContractors.map(contractor => {
         const serviceNames = getServiceNames(contractor.serviceIds || []).join('; ');
+        const completedInductionNames = getContractorCompletedInductionNames(contractor.id).join('; ');
         const siteNames = getContractorSites(contractor.id).join('; ');
         let inductionExpiry = '';
         if (contractor.inductionExpiry) {
@@ -13301,6 +13330,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           formatPhoneNumber(contractor.phone),
           contractor.companyName || contractor.company || '',
           serviceNames,
+          completedInductionNames,
           siteNames,
           inductionExpiry,
           getBusinessUnitNames(contractor.businessUnitIds || contractor.business_unit_ids),
@@ -13832,6 +13862,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={[{ width: columns.phone, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Phone</Text>
                         <Text style={[{ width: columns.company, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Company</Text>
                         <Text style={[{ width: columns.services, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Services</Text>
+                        <Text style={[{ width: columns.completedInductions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Inductions Completed</Text>
                         <Text style={[{ width: columns.sites, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Available Sites</Text>
                         <Text style={[{ width: columns.inductionExpiry, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 11 }, styles.tableBorder]}>Induction Exp</Text>
                         <Text style={[{ width: columns.actions, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }]}>Actions</Text>
@@ -13855,6 +13886,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           <Text style={[{ width: columns.company, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>{contractor.companyName || contractor.company || '-'}</Text>
                           <Text style={[{ width: columns.services, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
                             {(contractor.serviceIds || []).length > 0 ? getServiceNames(contractor.serviceIds).slice(0, 2).join(', ') + ((contractor.serviceIds || []).length > 2 ? '...' : '') : 'None'}
+                          </Text>
+                          <Text style={[{ width: columns.completedInductions, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
+                            {(() => {
+                              const completedNames = getContractorCompletedInductionNames(contractor.id);
+                              if (completedNames.length === 0) return 'None';
+                              return completedNames.slice(0, 2).join(', ') + (completedNames.length > 2 ? '...' : '');
+                            })()}
                           </Text>
                           <Text style={[{ width: columns.sites, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
                             {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}

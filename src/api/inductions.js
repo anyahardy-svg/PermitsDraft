@@ -705,6 +705,42 @@ export async function getCompletedInductions(contractorId) {
 }
 
 /**
+ * Get completed induction names grouped by contractor ID.
+ * @returns {Object} Map of contractor_id -> induction name[]
+ */
+export async function getCompletedInductionsByContractor() {
+  try {
+    const progressRows = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractor_induction_progress')
+        .select('contractor_id, completed_at, inductions(induction_name)')
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false })
+        .range(from, to)
+    );
+
+    const completedByContractor = {};
+    for (const row of progressRows) {
+      const inductionName = row.inductions?.induction_name;
+      if (!row.contractor_id || !inductionName) continue;
+
+      if (!completedByContractor[row.contractor_id]) {
+        completedByContractor[row.contractor_id] = [];
+      }
+
+      if (!completedByContractor[row.contractor_id].includes(inductionName)) {
+        completedByContractor[row.contractor_id].push(inductionName);
+      }
+    }
+
+    return completedByContractor;
+  } catch (error) {
+    console.error('Error fetching completed inductions by contractor:', error);
+    throw error;
+  }
+}
+
+/**
  * Get all contractors' induction completion data for a company
  * @param {UUID} companyId 
  * @returns {Array} Contractors with their induction completion status
