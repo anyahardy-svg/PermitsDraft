@@ -3,30 +3,36 @@
     "file": "Firth-logo.jpg",
     "width": 48,
     "height": 48,
-    "bytes": 984
+    "bytes": 974
   },
   {
     "file": "WA-logo.jpg",
     "width": 50,
     "height": 48,
-    "bytes": 1297
+    "bytes": 1235
   },
   {
     "file": "RAL-logo.jpg",
     "width": 108,
     "height": 48,
-    "bytes": 2632
+    "bytes": 2511
   },
   {
     "file": "RASL-logo.jpg",
     "width": 132,
     "height": 48,
-    "bytes": 2207
+    "bytes": 2136
+  },
+  {
+    "file": "RHA.png",
+    "width": 51,
+    "height": 48,
+    "bytes": 4122
   },
   {
     "file": "TUQ-logo.jpg",
     "width": 76,
     "height": 48,
-    "bytes": 1410
+    "bytes": 1341
   }
 ]

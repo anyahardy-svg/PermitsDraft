@@ -6,6 +6,7 @@ const PARTNER_LOGOS = [
   { name: 'Winstone Aggregates', file: 'WA-logo.jpg', width: 50, height: 48 },
   { name: 'Rodney Aggregates Ltd', file: 'RAL-logo.jpg', width: 108, height: 48 },
   { name: 'Rangitikei Aggregates', file: 'RASL-logo.jpg', width: 132, height: 48 },
+  { name: 'Roys Hill Aggregates', file: 'RHA.png', width: 51, height: 48 },
   { name: 'The Urban Quarry', file: 'TUQ-logo.jpg', width: 76, height: 48 },
 ];
 

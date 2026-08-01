@@ -12,7 +12,7 @@ const path = require('path');
 
 const SOURCE_BASE = (process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz').replace(/\/$/, '');
 const OUTPUT_DIR = path.join(__dirname, '..', 'public', 'email-assets');
-const FILES = ['Firth-logo.jpg', 'WA-logo.jpg', 'RAL-logo.jpg', 'RASL-logo.jpg', 'TUQ-logo.jpg'];
+const FILES = ['Firth-logo.jpg', 'WA-logo.jpg', 'RAL-logo.jpg', 'RASL-logo.jpg', 'RHA.png', 'TUQ-logo.jpg'];
 const MAX_HEIGHT = 48;
 
 async function main() {
@@ -38,11 +38,16 @@ async function main() {
     const metadata = await image.metadata();
     const width = Math.max(1, Math.round((metadata.width / metadata.height) * MAX_HEIGHT));
     const outputPath = path.join(OUTPUT_DIR, file);
+    const isPng = file.toLowerCase().endsWith('.png');
+    let pipeline = image.resize({ height: MAX_HEIGHT, withoutEnlargement: true });
 
-    await image
-      .resize({ height: MAX_HEIGHT, withoutEnlargement: true })
-      .jpeg({ quality: 85, mozjpeg: true })
-      .toFile(outputPath);
+    if (isPng) {
+      pipeline = pipeline.png({ compressionLevel: 9 });
+    } else {
+      pipeline = pipeline.jpeg({ quality: 85, mozjpeg: true });
+    }
+
+    await pipeline.toFile(outputPath);
 
     const stats = fs.statSync(outputPath);
     manifest.push({ file, width, height: MAX_HEIGHT, bytes: stats.size });
