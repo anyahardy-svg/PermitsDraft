@@ -9,6 +9,7 @@ export const KIOSK_PREFIX_LOGO_FILES = {
   firth: 'Firth-logo.jpg',
   ral: 'RAL-logo.jpg',
   rasl: 'RASL-logo.jpg',
+  rha: 'RHA-logo.jpg',
   tuq: 'TUQ-logo.jpg',
 };
 
