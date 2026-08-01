@@ -12,7 +12,7 @@ const path = require('path');
 
 const SOURCE_BASE = (process.env.REACT_APP_BASE_URL || 'https://contractorhq.co.nz').replace(/\/$/, '');
 const OUTPUT_DIR = path.join(__dirname, '..', 'public', 'email-assets');
-const FILES = ['Firth-logo.jpg', 'WA-logo.jpg', 'RAL-logo.jpg', 'RASL-logo.jpg', 'RHA.png', 'TUQ-logo.jpg'];
+const FILES = ['Firth-logo.jpg', 'WA-logo.jpg', 'RAL-logo.jpg', 'RASL-logo.jpg', 'RHA-logo.jpg', 'TUQ-logo.jpg'];
 const MAX_HEIGHT = 48;
 
 async function main() {
