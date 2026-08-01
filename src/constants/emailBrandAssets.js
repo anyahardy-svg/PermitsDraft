@@ -11,6 +11,7 @@ export const PARTNER_LOGOS = [
   { name: 'Winstone Aggregates', file: 'WA-logo.jpg' },
   { name: 'Rodney Aggregates Ltd', file: 'RAL-logo.jpg' },
   { name: 'Rangitikei Aggregates', file: 'RASL-logo.jpg' },
+  { name: 'Roys Hill Aggregates', file: 'RHA.png' },
   { name: 'The Urban Quarry', file: 'TUQ-logo.jpg' },
 ];
 
@@ -19,6 +20,7 @@ export const EMAIL_LOGO_PATHS = {
   winstone: 'WA-logo.jpg',
   rodney: 'RAL-logo.jpg',
   rangitikei: 'RASL-logo.jpg',
+  roysHill: 'RHA.png',
   urbanQuarry: 'TUQ-logo.jpg',
 };
 
