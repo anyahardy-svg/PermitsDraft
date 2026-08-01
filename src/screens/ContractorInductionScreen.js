@@ -141,6 +141,7 @@ export default function ContractorInductionScreen({
   const [showAddPartsBUDropdown, setShowAddPartsBUDropdown] = useState(false);
   const [showAddPartsSiteDropdown, setShowAddPartsSiteDropdown] = useState(false);
   const [allSites, setAllSites] = useState([]);
+  const [availableServices, setAvailableServices] = useState([]);
 
   // Step 1: Contractor Info
   const [contractorInfo, setContractorInfo] = useState({
@@ -151,6 +152,7 @@ export default function ContractorInductionScreen({
     companyId: '',
     selectedBusinessUnitIds: [],
     selectedSiteIds: [],
+    service_ids: [],
   });
   const [companies, setCompanies] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
@@ -387,6 +389,104 @@ export default function ContractorInductionScreen({
     );
   };
 
+  const renderResumeDialog = () => (
+    <Modal
+      visible={showResumeDialog}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowResumeDialog(false)}
+    >
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+      }}>
+        <View style={{
+          backgroundColor: 'white',
+          borderRadius: 12,
+          padding: 24,
+          width: '100%',
+          maxWidth: 400,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 5,
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: '#1F2937',
+            marginBottom: 12,
+          }}>
+            Resume Inductions?
+          </Text>
+
+          <Text style={{
+            fontSize: 14,
+            color: '#6B7280',
+            marginBottom: 24,
+            lineHeight: 20,
+          }}>
+            You have {resumeInductionData ? resumeInductionData.inProgressCount || 0 : 0} induction(s) in progress. Do you want to resume where you left off?
+          </Text>
+
+          <View style={{ gap: 12, flexDirection: 'row' }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setShowResumeDialog(false);
+                setLoadSavedAnswersOnOpen(false);
+                setCompletedInductionIds([]);
+                setSelectedOptionalIds([]);
+                setStep('inductionsList');
+              }}
+            >
+              <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>
+                Start Over
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                backgroundColor: '#3B82F6',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setShowResumeDialog(false);
+                setLoadSavedAnswersOnOpen(true);
+                if (resumeInductionData?.completedIds) {
+                  setCompletedInductionIds(resumeInductionData.completedIds);
+                }
+                if (resumeInductionData?.resumeQueue) {
+                  setInductionQueue(resumeInductionData.resumeQueue);
+                }
+                setStep('inductionBoard');
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
+                Resume
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   const handleAddCompany = async () => {
     if (!newCompanyName.trim()) {
       Alert.alert('Error', 'Please enter a company name');
@@ -464,6 +564,7 @@ export default function ContractorInductionScreen({
       companyId: '',
       selectedBusinessUnitIds: [],
       selectedSiteIds: [],
+      service_ids: [],
     });
   };
 
@@ -592,7 +693,7 @@ export default function ContractorInductionScreen({
       ? currentBUs.filter(id => id !== buId)
       : [...currentBUs, buId];
 
-    setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [] });
+    setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [], service_ids: [] });
     
     // Load sites for all selected business units
     if (newSelectedBUs.length > 0) {
@@ -614,6 +715,144 @@ export default function ContractorInductionScreen({
         ? (prev.selectedSiteIds || []).filter(id => id !== siteId)
         : [...(prev.selectedSiteIds || []), siteId]
     }));
+  };
+
+  const loadServicesForBusinessUnits = async (buIds) => {
+    let allServices = [];
+    for (const buId of buIds) {
+      const servicesForBU = await listServicesByBusinessUnit(buId);
+      if (Array.isArray(servicesForBU)) {
+        allServices = [...allServices, ...servicesForBU];
+      }
+    }
+
+    const uniqueServices = Array.from(new Map(allServices.map(service => [service.id, service])).values());
+    uniqueServices.sort((a, b) => {
+      const aIsGeneral = a.name?.toLowerCase() === 'general';
+      const bIsGeneral = b.name?.toLowerCase() === 'general';
+      if (aIsGeneral && !bIsGeneral) return -1;
+      if (!aIsGeneral && bIsGeneral) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    return uniqueServices;
+  };
+
+  const getServiceDisplayName = (service) => {
+    const selectedBUIds = contractorInfo.selectedBusinessUnitIds || [];
+    const applicableServices = availableServices.filter(s => selectedBUIds.includes(s.business_unit_id));
+    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
+    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
+    if (hasDuplicateName && businessUnit) {
+      return `${service.name} (${businessUnit.name})`;
+    }
+    return service.name;
+  };
+
+  const toggleServiceSelection = (serviceId) => {
+    setContractorInfo(prev => {
+      const currentIds = prev.service_ids || [];
+      const updatedIds = currentIds.includes(serviceId)
+        ? currentIds.filter(id => id !== serviceId)
+        : [...currentIds, serviceId];
+      return { ...prev, service_ids: updatedIds };
+    });
+    setValidationErrors(prev => ({ ...prev, services: undefined }));
+  };
+
+  const loadInductionsForContractor = async (contractorId, selectedBUs, selectedSites, contractorServiceIds) => {
+    let allInductionsData = [];
+
+    for (const buId of selectedBUs) {
+      const inductionsForBU = await getInductionsByBusinessUnit(buId, contractorServiceIds);
+      console.log('📚 Got inductions for BU', buId, 'with services:', contractorServiceIds, ':', inductionsForBU?.length || 0);
+      if (Array.isArray(inductionsForBU)) {
+        allInductionsData = [...allInductionsData, ...inductionsForBU];
+      }
+    }
+
+    console.log('📊 Total inductions loaded:', allInductionsData.length);
+
+    const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+
+    const compulsory = [];
+    const optional = [];
+
+    uniqueInductions.forEach(ind => {
+      const isSiteSpecific = ind.site_id !== null;
+      const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
+
+      const statusStr = isSiteSpecific ? `(site-specific: ${ind.site_id}, selected: ${selectedSites.join(',')})` : '(applies to all sites)';
+      console.log(`   Induction: "${ind.induction_name}" ${statusStr} → ${isApplicableToSelectedSites ? '✅ SHOWN' : '❌ FILTERED OUT'}`);
+
+      if (ind.is_compulsory && isApplicableToSelectedSites) {
+        compulsory.push(ind);
+      } else if (!ind.is_compulsory && isApplicableToSelectedSites) {
+        optional.push(ind);
+      }
+    });
+
+    const serviceTriggeredCompulsory = optional.filter(ind =>
+      inductionForcedByContractorServices(ind, contractorServiceIds)
+    );
+
+    if (serviceTriggeredCompulsory.length > 0) {
+      serviceTriggeredCompulsory.forEach(ind => {
+        console.log(`🔗 Service-triggered compulsory: "${ind.induction_name}" is now compulsory due to contractor's service selection`);
+      });
+      compulsory.push(...serviceTriggeredCompulsory);
+
+      const serviceTriggeredIds = new Set(serviceTriggeredCompulsory.map(ind => ind.id));
+      const remainingOptional = optional.filter(ind => !serviceTriggeredIds.has(ind.id));
+      optional.length = 0;
+      optional.push(...remainingOptional);
+    }
+
+    console.log('📋 Separated: Compulsory:', compulsory.length, 'Optional:', optional.length);
+    console.log('   Total loaded:', uniqueInductions.length, '| After filtering:', compulsory.length + optional.length, '| Filtered out:', uniqueInductions.length - (compulsory.length + optional.length));
+
+    setCompulsoryInductions(compulsory);
+    setOptionalInductions(optional);
+    setAllInductions(uniqueInductions);
+    setSelectedOptionalIds([]);
+
+    const existingProgress = await getContractorInductionProgress(contractorId);
+    console.log('🔍 Existing progress records:', existingProgress?.length || 0);
+
+    if (!isNewContractor && existingProgress && existingProgress.length > 0) {
+      const completedInductions = existingProgress.filter(p => p.status === 'completed');
+      const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
+
+      if (inProgressInductions.length > 0) {
+        console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
+        const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
+        const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
+        const completedIds = existingProgress
+          .filter(p => p.status === 'completed')
+          .map(p => p.induction_id);
+
+        setResumeInductionData({
+          resumeQueue,
+          completedIds,
+          inProgressCount: inProgressInductions.length
+        });
+        setShowResumeDialog(true);
+        return false;
+      }
+
+      if (completedInductions.length > 0) {
+        console.log('✅ Returning contractor with', completedInductions.length, 'completed inductions - pre-selecting for redo');
+        const completedIds = completedInductions.map(p => p.induction_id);
+        const preSelectedOptionals = optional
+          .filter(ind => completedIds.includes(ind.id))
+          .map(ind => ind.id);
+
+        console.log('📋 Pre-selecting', preSelectedOptionals.length, 'completed optional inductions');
+        setSelectedOptionalIds(preSelectedOptionals);
+      }
+    }
+
+    return true;
   };
 
   const handleInfoContinue = async () => {
@@ -662,7 +901,7 @@ export default function ContractorInductionScreen({
     setValidationErrors({});
 
     try {
-      console.log('🚀 Starting induction load for BUs:', selectedBUs);
+      console.log('🚀 Continuing to service selection for BUs:', selectedBUs);
       setLoading(true);
       
       // If new contractor, create them first
@@ -693,120 +932,65 @@ export default function ContractorInductionScreen({
         throw new Error('Contractor record not found. Please go back and select your profile again.');
       }
 
-      // Get inductions for all selected business units
-      let allInductionsData = [];
-      const contractorServiceIds = contractorInfo.service_ids || [];
-      
-      for (const buId of selectedBUs) {
-        const inductionsForBU = await getInductionsByBusinessUnit(buId, contractorServiceIds);
-        console.log('📚 Got inductions for BU', buId, 'with services:', contractorServiceIds, ':', inductionsForBU?.length || 0);
-        if (Array.isArray(inductionsForBU)) {
-          allInductionsData = [...allInductionsData, ...inductionsForBU];
-        }
-      }
+      const servicesData = await loadServicesForBusinessUnits(selectedBUs);
+      setAvailableServices(servicesData);
 
-      console.log('📊 Total inductions loaded:', allInductionsData.length);
+      const validServiceIds = new Set(servicesData.map(service => service.id));
+      const currentServiceIds = (contractorInfo.service_ids || []).filter(id => validServiceIds.has(id));
+      setContractorInfo(prev => ({ ...prev, id: contractorId, service_ids: currentServiceIds }));
 
-      // Remove duplicates (in case same induction applies to multiple BUs)
-      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
-      
-      // Separate compulsory and optional, considering site-specific rules
-      const compulsory = [];
-      const optional = [];
-
-      uniqueInductions.forEach(ind => {
-        const isSiteSpecific = ind.site_id !== null;
-        const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
-
-        const statusStr = isSiteSpecific ? `(site-specific: ${ind.site_id}, selected: ${selectedSites.join(',')})` : '(applies to all sites)';
-        console.log(`   Induction: "${ind.induction_name}" ${statusStr} → ${isApplicableToSelectedSites ? '✅ SHOWN' : '❌ FILTERED OUT'}`);
-
-        if (ind.is_compulsory && isApplicableToSelectedSites) {
-          compulsory.push(ind);
-        } else if (!ind.is_compulsory && isApplicableToSelectedSites) {
-          optional.push(ind);
-        }
-      });
-
-      // Apply service-triggered compulsory rules: if contractor has a service that forces this induction to be compulsory, move it
-      const serviceTriggeredCompulsory = optional.filter(ind =>
-        inductionForcedByContractorServices(ind, contractorServiceIds)
-      );
-      
-      if (serviceTriggeredCompulsory.length > 0) {
-        serviceTriggeredCompulsory.forEach(ind => {
-          console.log(`🔗 Service-triggered compulsory: "${ind.induction_name}" is now compulsory due to contractor's service selection`);
-        });
-        compulsory.push(...serviceTriggeredCompulsory);
-        
-        // Remove these from optional
-        const serviceTriggeredIds = new Set(serviceTriggeredCompulsory.map(ind => ind.id));
-        const remainingOptional = optional.filter(ind => !serviceTriggeredIds.has(ind.id));
-        optional.length = 0;
-        optional.push(...remainingOptional);
-      }
-
-      console.log('📋 Separated: Compulsory:', compulsory.length, 'Optional:', optional.length);
-      console.log('   Total loaded:', uniqueInductions.length, '| After filtering:', compulsory.length + optional.length, '| Filtered out:', uniqueInductions.length - (compulsory.length + optional.length));
-
-      setCompulsoryInductions(compulsory);
-      setOptionalInductions(optional);
-      setAllInductions(uniqueInductions);
-      setSelectedOptionalIds([]);
-      
-      // Check for existing inductions in progress
-      const existingProgress = await getContractorInductionProgress(contractorId);
-      console.log('🔍 Existing progress records:', existingProgress?.length || 0);
-      
-      // For RETURNING contractors (not new), pre-select their completed inductions
-      if (!isNewContractor && existingProgress && existingProgress.length > 0) {
-        const completedInductions = existingProgress.filter(p => p.status === 'completed');
-        const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
-        
-        if (inProgressInductions.length > 0) {
-          // They have incomplete inductions - offer resume or start over
-          console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
-          console.log('📋 In-progress induction IDs:', inProgressInductions.map(p => p.induction_id));
-          console.log('📚 Available inductions to resume from:', uniqueInductions.map(ind => ({ id: ind.id, name: ind.induction_name })));
-          setLoading(false);
-          
-          // Store data for resume choice and show modal dialog
-          const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
-          const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
-          const completedIds = existingProgress
-            .filter(p => p.status === 'completed')
-            .map(p => p.induction_id);
-          
-          setResumeInductionData({
-            resumeQueue,
-            completedIds,
-            inProgressCount: inProgressInductions.length
-          });
-          setShowResumeDialog(true);
-          return;
-        } else if (completedInductions.length > 0) {
-          // They have completed inductions but nothing in progress - pre-select the completed ones for redo
-          console.log('✅ Returning contractor with', completedInductions.length, 'completed inductions - pre-selecting for redo');
-          const completedIds = completedInductions.map(p => p.induction_id);
-          
-          // Filter to find which optional inductions are in their completed list
-          const preSelectedOptionals = optional
-            .filter(ind => completedIds.includes(ind.id))
-            .map(ind => ind.id);
-          
-          console.log('📋 Pre-selecting', preSelectedOptionals.length, 'completed optional inductions');
-          setSelectedOptionalIds(preSelectedOptionals);
-        }
-      }
-      
-      console.log('✅ Ready to continue to inductions list');
+      console.log('✅ Ready to select services');
       setLoading(false);
-      setStep('inductionsList');
+      setStep('selectServices');
       
     } catch (err) {
       console.error('❌ ERROR in handleInfoContinue:', err);
       setLoading(false);
+      Alert.alert('Error', 'Failed to continue: ' + err.message);
+    }
+  };
+
+  const handleServicesContinue = async () => {
+    const selectedServiceIds = contractorInfo.service_ids || [];
+    if (selectedServiceIds.length === 0) {
+      setValidationErrors(prev => ({ ...prev, services: '⚠️ Please select at least one service' }));
+      Alert.alert('Missing Information', 'Please select at least one service you will provide on site');
+      return;
+    }
+
+    setValidationErrors(prev => ({ ...prev, services: undefined }));
+
+    const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
+    const selectedSites = contractorInfo.selectedSiteIds || [];
+    const contractorId = contractorInfo.id;
+
+    if (!contractorId) {
+      Alert.alert('Error', 'Contractor record not found. Please go back and try again.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await updateContractor(contractorId, { service_ids: selectedServiceIds });
+      setContractorInfo(prev => ({ ...prev, service_ids: selectedServiceIds }));
+
+      const shouldContinue = await loadInductionsForContractor(
+        contractorId,
+        selectedBUs,
+        selectedSites,
+        selectedServiceIds
+      );
+
+      if (shouldContinue) {
+        console.log('✅ Ready to continue to inductions list');
+        setStep('inductionsList');
+      }
+    } catch (err) {
+      console.error('❌ ERROR in handleServicesContinue:', err);
       Alert.alert('Error', 'Failed to load inductions: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1887,113 +2071,83 @@ export default function ContractorInductionScreen({
           </View>
         </Modal>
 
-        {/* Resume Inductions Dialog */}
-        <Modal
-          visible={showResumeDialog}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowResumeDialog(false)}
-        >
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 16,
-          }}>
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 12,
-              padding: 24,
-              width: '100%',
-              maxWidth: 400,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: '700',
-                color: '#1F2937',
-                marginBottom: 12,
-              }}>
-                Resume Inductions?
-              </Text>
+        {renderResumeDialog()}
+      </View>
+    );
+  }
 
-              <Text style={{
-                fontSize: 14,
-                color: '#6B7280',
-                marginBottom: 24,
-                lineHeight: 20,
-              }}>
-                You have {resumeInductionData ? resumeInductionData.inProgressCount || 0 : 0} induction(s) in progress. Do you want to resume where you left off?
-              </Text>
+  // STEP 1b: SELECT SERVICES
+  if (step === 'selectServices') {
+    return (
+      <View style={styles.container}>
+        {renderHeader('Your Services', () => setStep('info'))}
 
-              <View style={{ gap: 12, flexDirection: 'row' }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: '#F3F4F6',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    console.log('💾 User chose: Start Over');
-                    setShowResumeDialog(false);
-                    setLoadSavedAnswersOnOpen(false);
-                    // Reset induction progress to start fresh
-                    setCompletedInductionIds([]);
-                    setSelectedOptionalIds([]);
-                    setStep('inductionsList');
-                  }}
-                >
-                  <Text style={{
-                    color: '#374151',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}>
-                    Start Over
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: '#3B82F6',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    console.log('💾 User chose: Resume');
-                    setShowResumeDialog(false);
-                    setLoadSavedAnswersOnOpen(true);
-                    if (resumeInductionData && resumeInductionData.completedIds) {
-                      setCompletedInductionIds(resumeInductionData.completedIds);
-                    }
-                    if (resumeInductionData && resumeInductionData.resumeQueue) {
-                      setInductionQueue(resumeInductionData.resumeQueue);
-                    }
-                    setStep('inductionBoard');
-                  }}
-                >
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}>
-                    Resume
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
+              Select the service or services you will provide on site. This determines which inductions you need to complete.
+            </Text>
           </View>
-        </Modal>
+
+          <Text style={[styles.label, { marginTop: 0 }]}>Services (select one or more) *</Text>
+
+          {availableServices.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 12 }}>
+              No services found for the selected business units.
+            </Text>
+          ) : (
+            <View style={{ gap: 8, paddingBottom: validationErrors.services ? 4 : 0 }}>
+              {availableServices.map(service => {
+                const isSelected = (contractorInfo.service_ids || []).includes(service.id);
+                return (
+                  <TouchableOpacity
+                    key={service.id}
+                    onPress={() => toggleServiceSelection(service.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                      borderWidth: validationErrors.services ? 1 : 0,
+                      borderColor: validationErrors.services ? '#DC2626' : 'transparent',
+                    }}
+                  >
+                    <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#3B82F6', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3B82F6' : 'white', marginRight: 10 }}>
+                      {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400', flex: 1 }}>
+                      {getServiceDisplayName(service)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+          {validationErrors.services && (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>
+              {validationErrors.services}
+            </Text>
+          )}
+
+          <View style={{ marginTop: 24, backgroundColor: loading ? '#9CA3AF' : '#3B82F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={handleServicesContinue}
+              disabled={loading}
+              style={{ width: '100%', alignItems: 'center' }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Continue</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+        {renderResumeDialog()}
       </View>
     );
   }
@@ -2005,7 +2159,7 @@ export default function ContractorInductionScreen({
 
     return (
       <View style={styles.container}>
-        {renderHeader('Select Inductions', () => setStep('info'))}
+        {renderHeader('Select Inductions', () => setStep('selectServices'))}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
