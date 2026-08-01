@@ -371,7 +371,7 @@ const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValu
                 pickerStyles.monthText,
                 month === i && pickerStyles.selectedMonthText
               ]}>
-                {new Date(year, i, 1).toLocaleString('default', { month: 'short' })}
+                {new Date(year, i, 1).toLocaleString('en-NZ', { month: 'short' })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -5923,7 +5923,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {attachment.name}
                           </Text>
                           <Text style={{ fontSize: 14, color: '#6B7280' }}>
-                            {new Date(attachment.uploadedAt).toLocaleString()}
+                            {new Date(attachment.uploadedAt).toLocaleString('en-NZ')}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -8327,7 +8327,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ color: '#3B82F6', fontWeight: '500', marginBottom: 2 }}>📎 {attachment.name || 'Unnamed'}</Text>
                 </TouchableOpacity>
                 <Text style={{ fontSize: 14, color: '#6B7280' }}>
-                  {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                  {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString('en-NZ') : 'Date unknown'}
                 </Text>
               </View>
             ))}
@@ -17135,7 +17135,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           </Text>
                         </TouchableOpacity>
                         <Text style={{ fontSize: 14, color: '#6B7280' }}>
-                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString('en-NZ') : 'Date unknown'}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -17410,7 +17410,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 )}
 
                 <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString('en-NZ') : 'Unknown date'}
                 </Text>
 
                 <TouchableOpacity
@@ -20096,7 +20096,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           </Text>
                         </TouchableOpacity>
                         <Text style={{ fontSize: 14, color: '#6B7280' }}>
-                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString('en-NZ') : 'Date unknown'}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -20354,7 +20354,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 )}
 
                 <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString('en-NZ') : 'Unknown date'}
                 </Text>
 
                 <TouchableOpacity
@@ -22723,7 +22723,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           </Text>
                         </TouchableOpacity>
                         <Text style={{ fontSize: 14, color: '#6B7280' }}>
-                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString() : 'Date unknown'}
+                          {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleString('en-NZ') : 'Date unknown'}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -23585,7 +23585,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 )}
 
                 <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString() : 'Unknown date'}
+                  Uploaded: {previewAttachment.uploadedAt ? new Date(previewAttachment.uploadedAt).toLocaleString('en-NZ') : 'Unknown date'}
                 </Text>
 
                 <TouchableOpacity

@@ -481,7 +481,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
                         {doc.document_title}
                       </Text>
                       <Text style={styles.documentListItemSubtitle}>
-                        v{doc.version_number || 1} · Updated {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
+                        v{doc.version_number || 1} · Updated {new Date(doc.updated_at || doc.created_at).toLocaleDateString('en-NZ')}
                       </Text>
                     </View>
                     <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
@@ -676,7 +676,7 @@ export default function LegalDocumentsAdminScreen({ onNavigateBack, isSuperAdmin
                     <Text style={styles.versionText}>
                       <Text style={{ fontWeight: '600' }}>Version {item.version_number}</Text>
                       {' · '}
-                      {new Date(item.created_at).toLocaleDateString()} {new Date(item.created_at).toLocaleTimeString()}
+                      {new Date(item.created_at).toLocaleDateString('en-NZ')} {new Date(item.created_at).toLocaleTimeString('en-NZ')}
                     </Text>
                     {item.is_active && (
                       <View style={styles.activeVersionBadge}>

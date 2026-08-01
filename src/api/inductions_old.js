@@ -199,7 +199,7 @@ export async function getInductionStatus(contractorId, siteId) {
           ...data,
           status: 'expired',
           message: 'Induction expired - renewal required',
-          expiresOn: new Date(data.expires_at).toLocaleDateString(),
+          expiresOn: new Date(data.expires_at).toLocaleDateString('en-NZ'),
         },
       };
     }
@@ -286,7 +286,7 @@ export async function getContractorInductionStatus(siteId) {
           contractor_name: contractor?.name,
           company_name: company?.name,
           status,
-          expires_on: induction.expires_at ? new Date(induction.expires_at).toLocaleDateString() : null,
+          expires_on: induction.expires_at ? new Date(induction.expires_at).toLocaleDateString('en-NZ') : null,
         };
       })
     );

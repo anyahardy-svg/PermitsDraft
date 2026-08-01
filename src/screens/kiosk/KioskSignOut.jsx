@@ -46,7 +46,7 @@ const KioskSignOut = () => {
       }
 
       const name = selectedPerson.contractor_name || selectedPerson.visitor_name || 'Unknown';
-      Alert.alert('Success', `${name} signed out at ${new Date().toLocaleTimeString()}`);
+      Alert.alert('Success', `${name} signed out at ${new Date().toLocaleTimeString('en-NZ')}`);
       setSelectedPerson(null);
       
       // Reload the list
@@ -87,7 +87,7 @@ const KioskSignOut = () => {
                 onPress={() => setSelectedPerson(person)}
               >
                 <Text style={styles.personName}>{name}</Text>
-                <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
+                <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString('en-NZ')}</Text>
                 <Text style={styles.personDetails}>Type: {type}</Text>
                 <Text style={styles.personDetails}>Company: {company}</Text>
                 <Text style={styles.personDetails}>Phone: {phone}</Text>
