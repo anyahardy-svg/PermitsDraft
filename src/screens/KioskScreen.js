@@ -23,6 +23,7 @@ import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
 import { getAllAdminUsers, loginAdminUser } from '../api/adminAuth';
+import { listPermitIssuers } from '../api/permit_issuers';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -95,6 +96,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
   const [visitorInductionConfirmed, setVisitorInductionConfirmed] = useState(false);
   const [adminUsers, setAdminUsers] = useState([]);
+  const [permitIssuers, setPermitIssuers] = useState([]);
   const [showContractorVisitingDropdown, setShowContractorVisitingDropdown] = useState(false);
   const [showVisitorVisitingDropdown, setShowVisitorVisitingDropdown] = useState(false);
   
@@ -198,6 +200,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           } catch (adminError) {
             console.warn('Could not load admin users for visiting person lookup:', adminError.message);
             setAdminUsers([]);
+          }
+
+          try {
+            const issuers = await listPermitIssuers();
+            setPermitIssuers(issuers || []);
+          } catch (issuerError) {
+            console.warn('Could not load permit issuers for visiting person lookup:', issuerError.message);
+            setPermitIssuers([]);
           }
           
           // Load visitor induction content
@@ -354,15 +364,28 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const getSiteAdminUsers = (searchText = '') => {
     const normalizedSearch = searchText.trim().toLowerCase();
-    return (adminUsers || [])
+    const siteAdmins = (adminUsers || [])
       .filter(admin => {
         const siteIds = admin.site_ids || admin.siteIds || [];
         return Array.isArray(siteIds) && siteIds.includes(siteId);
-      })
-      .filter(admin => {
-        if (!normalizedSearch) return true;
-        return admin.name?.toLowerCase().includes(normalizedSearch) || admin.email?.toLowerCase().includes(normalizedSearch);
       });
+    const siteIssuers = (permitIssuers || [])
+      .filter(issuer => {
+        const siteIds = issuer.site_ids || issuer.siteIds || [];
+        return Array.isArray(siteIds) && siteIds.includes(siteId);
+      });
+    const seenNames = new Set();
+    const merged = [];
+    for (const person of [...siteAdmins, ...siteIssuers]) {
+      const normalizedName = person.name?.trim().toLowerCase();
+      if (normalizedName && seenNames.has(normalizedName)) continue;
+      if (normalizedName) seenNames.add(normalizedName);
+      merged.push(person);
+    }
+    return merged.filter(admin => {
+      if (!normalizedSearch) return true;
+      return admin.name?.toLowerCase().includes(normalizedSearch) || admin.email?.toLowerCase().includes(normalizedSearch);
+    });
   };
 
   const refreshContractorsForCurrentSite = async (selectedContractorId = null) => {
