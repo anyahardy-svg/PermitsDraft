@@ -893,7 +893,7 @@ export default function ContractorAdminScreen({
                     </Text>
                     {template.created_at && (
                       <Text style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
-                        Created: {new Date(template.created_at).toLocaleDateString()}
+                        Created: {new Date(template.created_at).toLocaleDateString('en-NZ')}
                       </Text>
                     )}
                   </View>
@@ -1001,7 +1001,7 @@ export default function ContractorAdminScreen({
                   )}
                   {template.created_at && (
                     <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
-                      Created: {new Date(template.created_at).toLocaleDateString()}
+                      Created: {new Date(template.created_at).toLocaleDateString('en-NZ')}
                     </Text>
                   )}
                 </View>
@@ -3004,10 +3004,10 @@ export default function ContractorAdminScreen({
                   Company: <Text style={{ fontWeight: '600' }}>{editingPermitTemplate.company_name || 'No company specified'}</Text>
                 </Text>
                 <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                  Created: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.created_at).toLocaleDateString()}</Text>
+                  Created: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.created_at).toLocaleDateString('en-NZ')}</Text>
                 </Text>
                 <Text style={{ fontSize: 11, color: '#6B7280' }}>
-                  Last Updated: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.updated_at).toLocaleDateString()}</Text>
+                  Last Updated: <Text style={{ fontWeight: '600' }}>{new Date(editingPermitTemplate.updated_at).toLocaleDateString('en-NZ')}</Text>
                 </Text>
               </View>
 

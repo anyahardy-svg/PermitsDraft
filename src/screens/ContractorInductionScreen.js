@@ -1346,7 +1346,7 @@ export default function ContractorInductionScreen({
                     <Text style={{ fontSize: 13, fontWeight: '500', color: '#15803D' }}>✓ {ind.induction_name}</Text>
                     {progress?.completed_at && (
                       <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-                        Completed: {new Date(progress.completed_at).toLocaleDateString()}
+                        Completed: {new Date(progress.completed_at).toLocaleDateString('en-NZ')}
                       </Text>
                     )}
                   </View>

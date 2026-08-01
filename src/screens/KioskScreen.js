@@ -1023,7 +1023,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               <Text style={styles.selectedName}>{selectedContractor.name}</Text>
               <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
               <Text style={styles.selectedDateTime}>
-                Date & Time: {new Date().toLocaleString('en-US', { 
+                Date & Time: {new Date().toLocaleString('en-NZ', { 
                   year: 'numeric', 
                   month: 'short', 
                   day: 'numeric',
@@ -1477,7 +1477,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                       onPress={() => setSelectedPerson(person)}
                     >
                       <Text style={styles.personName}>{name}</Text>
-                      <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString()}</Text>
+                      <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString('en-NZ')}</Text>
                       <Text style={styles.personDetails}>Type: {type}</Text>
                       <Text style={styles.personDetails}>Company: {company}</Text>
                       

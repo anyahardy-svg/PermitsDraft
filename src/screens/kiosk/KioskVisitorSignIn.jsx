@@ -54,7 +54,7 @@ const KioskVisitorSignIn = () => {
         return;
       }
 
-      Alert.alert('Success', `${visitorName} checked in at ${new Date().toLocaleTimeString()}`);
+      Alert.alert('Success', `${visitorName} checked in at ${new Date().toLocaleTimeString('en-NZ')}`);
       setVisitorName('');
       setVisitorCompany('');
       setVisitorPhone('');

@@ -53,7 +53,7 @@ const KioskContractorSignIn = () => {
         Alert.alert('Error', error);
         return;
       }
-      Alert.alert('Success', `${selectedContractor.name} checked in at ${new Date().toLocaleTimeString()}`);
+      Alert.alert('Success', `${selectedContractor.name} checked in at ${new Date().toLocaleTimeString('en-NZ')}`);
       setContractorSearch('');
       setSelectedContractor(null);
       setFilteredContractors([]);
@@ -113,7 +113,7 @@ const KioskContractorSignIn = () => {
             <Text style={styles.selectedName}>{selectedContractor.name}</Text>
             <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
             <Text style={styles.selectedDateTime}>
-              Date & Time: {new Date().toLocaleString('en-US', { 
+              Date & Time: {new Date().toLocaleString('en-NZ', { 
                 year: 'numeric', 
                 month: 'short', 
                 day: 'numeric',

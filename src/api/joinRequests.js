@@ -137,7 +137,7 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
               <li><strong>Email:</strong> ${email}</li>
               <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
               <li><strong>Company:</strong> ${companyName}</li>
-              <li><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
+              <li><strong>Submitted:</strong> ${new Date().toLocaleString('en-NZ')}</li>
             </ul>
             <p style="text-align: center; margin: 30px 0;">
               <a href="https://contractorhq.co.nz/contractor-admin?tab=join-requests" 
