@@ -753,14 +753,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <View style={{ ...styles.container, position: 'relative' }}>
         <View style={styles.header}>
-          <KioskBrandLogo kioskSubdomain={kioskSubdomain} style={{ marginBottom: 12 }} />
-          <Text style={styles.siteName}>{site.name}</Text>
-          <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
-          {testMode && (
-            <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
-              <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+          <View style={styles.headerBannerRow}>
+            <View style={styles.headerTextColumn}>
+              <Text style={styles.siteName}>{site.name}</Text>
+              <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
+              {testMode && (
+                <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
+                  <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+                </View>
+              )}
             </View>
-          )}
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
@@ -956,16 +960,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.headerBannerRow}>
             <TouchableOpacity onPress={() => {
               setReturnedFromInduction(false);
               setCurrentScreen('welcome');
             }}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
+            <Text style={[styles.headerTitle, styles.headerTitleInRow]}>Sign In Contractor</Text>
             <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
           </View>
-          <Text style={styles.headerTitle}>Sign In Contractor</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
@@ -1306,13 +1310,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.headerBannerRow}>
             <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
+            <Text style={[styles.headerTitle, styles.headerTitleInRow]}>Site Induction</Text>
             <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
           </View>
-          <Text style={styles.headerTitle}>Site Induction</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
@@ -1377,13 +1381,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.headerBannerRow}>
             <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
+            <Text style={[styles.headerTitle, styles.headerTitleInRow]}>Sign In Visitor</Text>
             <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
           </View>
-          <Text style={styles.headerTitle}>Sign In Visitor</Text>
         </View>
 
         <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
@@ -1441,21 +1445,19 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.headerBannerRow}>
             <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <Text style={styles.headerTitle}>Sign Out</Text>
+            <Text style={[styles.headerTitle, styles.headerTitleInRow]}>Sign Out</Text>
             {signedInPeople.length > 0 && revealedPhoneIds.size < signedInPeople.length && (
               <TouchableOpacity
                 style={{
                   backgroundColor: '#DC2626',
                   paddingHorizontal: 12,
                   paddingVertical: 6,
-                  borderRadius: 4
+                  borderRadius: 4,
+                  marginRight: 8,
                 }}
                 onPress={handleRevealAllPhones}
               >
@@ -1463,10 +1465,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               </TouchableOpacity>
             )}
             {signedInPeople.length > 0 && revealedPhoneIds.size === signedInPeople.length && (
-              <View style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+              <View style={{ paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 }}>
                 <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>✓ Unlocked</Text>
               </View>
             )}
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
           </View>
         </View>
 
@@ -1698,13 +1701,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+          <View style={styles.headerBannerRow}>
             <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
+            <Text style={[styles.headerTitle, styles.headerTitleInRow]}>Permits - {site?.name}</Text>
             <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
           </View>
-          <Text style={styles.headerTitle}>Permits - {site?.name}</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
@@ -1814,14 +1817,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       {currentScreen === 'welcome' && (
         <View style={styles.container}>
           <View style={styles.header}>
-            <KioskBrandLogo kioskSubdomain={kioskSubdomain} style={{ marginBottom: 12 }} />
-            <Text style={styles.siteName}>{site.name}</Text>
-            <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
-            {testMode && (
-              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
-                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+            <View style={styles.headerBannerRow}>
+              <View style={styles.headerTextColumn}>
+                <Text style={styles.siteName}>{site.name}</Text>
+                <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
+                {testMode && (
+                  <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 8, alignSelf: 'flex-start' }}>
+                    <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '600' }}>⚠️ TEST MODE</Text>
+                  </View>
+                )}
               </View>
-            )}
+              <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+            </View>
           </View>
 
           <ScrollView contentContainerStyle={styles.mainContent} scrollEnabled={false}>
@@ -1914,12 +1921,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
-  headerTopRow: {
+  headerBannerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 8,
+    gap: 12,
+  },
+  headerTextColumn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTitleInRow: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 8,
   },
   siteName: {
     fontSize: 32,

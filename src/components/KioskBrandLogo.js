@@ -29,7 +29,7 @@ export default function KioskBrandLogo({
           borderRadius: 8,
           paddingHorizontal: 12,
           paddingVertical: 8,
-          alignSelf: 'flex-start',
+          flexShrink: 0,
         },
         style,
       ]}
