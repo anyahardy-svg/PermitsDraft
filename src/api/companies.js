@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
+import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
 
 const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type';
@@ -403,12 +404,23 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
-    // Fetch current accredited_date to check if already approved
-    const { data: currentData } = await supabase
+    const { data: currentData, error: fetchError } = await supabase
       .from('companies')
-      .select('accredited_date')
+      .select(`
+        accredited_date,
+        hs_agreement_signature,
+        hs_agreement_accepted_by,
+        hs_agreement_acknowledged
+      `)
       .eq('id', companyId)
       .single();
+
+    if (fetchError) throw fetchError;
+
+    const hsAgreementError = validateHSAgreementComplete(currentData || {});
+    if (hsAgreementError) {
+      throw new Error(hsAgreementError);
+    }
 
     // Only set accredited_date if this is the first approval
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
