@@ -1,6 +1,6 @@
 -- Migration: Assign kiosk subdomains to all sites
 -- Pattern: [PREFIX]-[site-name]-kiosk
--- Prefixes: wa (Winstone), RAL (Rangitikei), RA (Roys Hill), RASL (Rodney), TUQ (The Urban Quarry)
+-- Prefixes: wa (Winstone), RAL (Rangitikei), RHA (Roys Hill), RASL (Rodney), TUQ (The Urban Quarry)
 
 -- ============================================================================
 -- WINSTONE AGGREGATES (wa prefix)
@@ -24,9 +24,9 @@ UPDATE sites SET kiosk_subdomain = 'ral-bulls-campion-kiosk' WHERE name = 'Bulls
 UPDATE sites SET kiosk_subdomain = 'ral-kakariki-kiosk' WHERE name = 'Kakariki Quarry';
 
 -- ============================================================================
--- ROYS HILL AGGREGATES (RA prefix)
+-- ROYS HILL AGGREGATES (RHA prefix)
 -- ============================================================================
-UPDATE sites SET kiosk_subdomain = 'ra-roys-hill-aggregates-kiosk' WHERE name = 'Roys Hill Aggregates';
+UPDATE sites SET kiosk_subdomain = 'rha-roys-hill-aggregates-kiosk' WHERE name = 'Roys Hill Aggregates';
 
 -- ============================================================================
 -- RODNEY AGGREGATES LTD (RASL prefix)
