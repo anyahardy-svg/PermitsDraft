@@ -99,23 +99,27 @@ export async function getAllAdminUsers() {
     let { data, error } = await supabase
       .from('admin_users')
       .select('id, email, name, role, site_ids, created_at')
-      .order('created_at', { ascending: false });
+      .order('name', { ascending: true });
 
     if (error && isMissingSiteIdsColumn(error)) {
       const retry = await supabase
         .from('admin_users')
         .select('id, email, name, role, created_at')
-        .order('created_at', { ascending: false });
+        .order('name', { ascending: true });
       data = retry.data;
       error = retry.error;
     }
 
     if (error) throw error;
-    return (data || []).map(user => ({
-      ...user,
-      site_ids: user.site_ids || [],
-      siteIds: user.site_ids || []
-    }));
+    return (data || [])
+      .map(user => ({
+        ...user,
+        site_ids: user.site_ids || [],
+        siteIds: user.site_ids || []
+      }))
+      .sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      );
   } catch (error) {
     console.error('❌ Error fetching admin users:', error);
     throw error;
