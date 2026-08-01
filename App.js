@@ -2465,6 +2465,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [adminListLoading, setAdminListLoading] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
+  const [adminSiteFilterBU, setAdminSiteFilterBU] = useState('All');
   
   // Password reset state
   const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
@@ -2714,6 +2715,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   const handleEditAdmin = (admin) => {
     setEditingAdmin({ ...admin, siteIds: admin.site_ids || admin.siteIds || [] });
+    setAdminSiteFilterBU('All');
     setShowEditAdminModal(true);
   };
 
@@ -2780,53 +2782,120 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       .join(', ') || 'No matching sites';
   };
 
-  const renderAdminSiteSelector = (selectedSiteIds = [], onChange) => (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Sites this admin can be visited at</Text>
-      <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
-        Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
-      </Text>
-      <View style={{ gap: 8 }}>
-        {sites.map(site => {
-          const isSelected = selectedSiteIds.includes(site.id);
-          return (
+  const renderAdminSiteSelector = (selectedSiteIds = [], onChange) => {
+    const getSiteBusinessUnitId = (site) => site.business_unit_id || site.businessUnitId;
+
+    const visibleSites = adminSiteFilterBU === 'All'
+      ? sites
+      : sites.filter(site => getSiteBusinessUnitId(site) === adminSiteFilterBU);
+
+    const visibleSiteIds = visibleSites.map(site => site.id);
+    const selectedVisibleCount = selectedSiteIds.filter(id => visibleSiteIds.includes(id)).length;
+
+    const selectAllVisible = () => {
+      onChange([...new Set([...selectedSiteIds, ...visibleSiteIds])]);
+    };
+
+    const clearVisible = () => {
+      onChange(selectedSiteIds.filter(id => !visibleSiteIds.includes(id)));
+    };
+
+    return (
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Sites this admin can be visited at</Text>
+        <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+          Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
+        </Text>
+
+        <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Filter by Business Unit</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          <TouchableOpacity
+            style={[
+              { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+              adminSiteFilterBU === 'All'
+                ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+            ]}
+            onPress={() => setAdminSiteFilterBU('All')}
+          >
+            <Text style={{ color: adminSiteFilterBU === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
+          </TouchableOpacity>
+          {businessUnits.map(bu => (
             <TouchableOpacity
-              key={site.id}
-              onPress={() => {
-                const nextSiteIds = isSelected
-                  ? selectedSiteIds.filter(id => id !== site.id)
-                  : [...selectedSiteIds, site.id];
-                onChange(nextSiteIds);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
-              }}
+              key={bu.id}
+              style={[
+                { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+                adminSiteFilterBU === bu.id
+                  ? { backgroundColor: '#10B981', borderColor: '#10B981' }
+                  : { backgroundColor: 'white', borderColor: '#D1D5DB' }
+              ]}
+              onPress={() => setAdminSiteFilterBU(bu.id)}
             >
-              <View style={{
-                width: 18,
-                height: 18,
-                borderRadius: 3,
-                borderWidth: 2,
-                borderColor: '#3B82F6',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: isSelected ? '#3B82F6' : 'white',
-                marginRight: 10,
-              }}>
-                {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
-              </View>
-              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: isSelected ? '600' : '400' }}>{site.name}</Text>
+              <Text style={{ color: adminSiteFilterBU === bu.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{bu.name}</Text>
             </TouchableOpacity>
-          );
-        })}
+          ))}
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ fontSize: 12, color: '#6B7280' }}>
+            {selectedVisibleCount} of {visibleSites.length} selected
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={selectAllVisible}>
+              <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Select all</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={clearVisible}>
+              <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ gap: 8 }}>
+          {visibleSites.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>No sites in this business unit</Text>
+          ) : (
+            visibleSites.map(site => {
+              const isSelected = selectedSiteIds.includes(site.id);
+              return (
+                <TouchableOpacity
+                  key={site.id}
+                  onPress={() => {
+                    const nextSiteIds = isSelected
+                      ? selectedSiteIds.filter(id => id !== site.id)
+                      : [...selectedSiteIds, site.id];
+                    onChange(nextSiteIds);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: isSelected ? '#E0E7FF' : '#F3F4F6',
+                  }}
+                >
+                  <View style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 3,
+                    borderWidth: 2,
+                    borderColor: '#3B82F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isSelected ? '#3B82F6' : 'white',
+                    marginRight: 10,
+                  }}>
+                    {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: isSelected ? '600' : '400' }}>{site.name}</Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   // Detect invitation flow from email (?type=invited)
   useEffect(() => {
@@ -8911,7 +8980,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         adminSessionActive={adminSessionActive}
         onLogout={handleAdminLogout}
         onNavigate={setCurrentScreen}
-        onShowAddAdminModal={() => setShowAddAdminModal(true)}
+        onShowAddAdminModal={() => {
+          setAdminSiteFilterBU('All');
+          setShowAddAdminModal(true);
+        }}
         styles={styles}
         pendingJoinRequestsCount={pendingJoinRequestsCount}
         permitIssuersCount={permitIssuers.length}
