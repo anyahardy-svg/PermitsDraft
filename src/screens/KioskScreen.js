@@ -27,6 +27,7 @@ import { listPermitIssuers } from '../api/permit_issuers';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import KioskBrandLogo from '../components/KioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
@@ -745,11 +746,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     );
   }
 
+  const kioskSubdomain = site.kiosk_subdomain || site.kioskSubdomain;
+
   // Welcome Screen
   if (currentScreen === 'welcome') {
     return (
       <View style={{ ...styles.container, position: 'relative' }}>
         <View style={styles.header}>
+          <KioskBrandLogo kioskSubdomain={kioskSubdomain} style={{ marginBottom: 12 }} />
           <Text style={styles.siteName}>{site.name}</Text>
           <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
           {testMode && (
@@ -952,12 +956,15 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => {
-            setReturnedFromInduction(false);
-            setCurrentScreen('welcome');
-          }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => {
+              setReturnedFromInduction(false);
+              setCurrentScreen('welcome');
+            }}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
+          </View>
           <Text style={styles.headerTitle}>Sign In Contractor</Text>
         </View>
 
@@ -1299,9 +1306,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
+          </View>
           <Text style={styles.headerTitle}>Site Induction</Text>
         </View>
 
@@ -1367,9 +1377,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
+          </View>
           <Text style={styles.headerTitle}>Sign In Visitor</Text>
         </View>
 
@@ -1428,10 +1441,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <Text style={styles.headerTitle}>Sign Out</Text>
             {signedInPeople.length > 0 && revealedPhoneIds.size < signedInPeople.length && (
               <TouchableOpacity
@@ -1682,9 +1698,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => setCurrentScreen('welcome')}>
+              <Text style={styles.backButton}>← Back</Text>
+            </TouchableOpacity>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} height={36} maxWidth={120} />
+          </View>
           <Text style={styles.headerTitle}>Permits - {site?.name}</Text>
         </View>
 
@@ -1795,6 +1814,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       {currentScreen === 'welcome' && (
         <View style={styles.container}>
           <View style={styles.header}>
+            <KioskBrandLogo kioskSubdomain={kioskSubdomain} style={{ marginBottom: 12 }} />
             <Text style={styles.siteName}>{site.name}</Text>
             <Text style={styles.subtitle}>Kiosk Sign-In System</Text>
             {testMode && (
@@ -1893,6 +1913,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16,
     marginBottom: 20,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
   },
   siteName: {
     fontSize: 32,
