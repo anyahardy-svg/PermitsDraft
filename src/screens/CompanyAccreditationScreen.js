@@ -22,6 +22,7 @@ import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-docu
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { getAccreditationSaveStatus } from '../utils/accreditation';
+import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -2826,6 +2827,13 @@ export default function CompanyAccreditationScreen({
   const handleSubmitAsComplete = async () => {
     if (!hasLoadedCompanyData) {
       Alert.alert('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
+      return;
+    }
+
+    const hsAgreementError = validateHSAgreementComplete(section26);
+    if (hsAgreementError) {
+      Alert.alert('Section 26 required', hsAgreementError);
+      setExpandedSections((prev) => ({ ...prev, 26: true }));
       return;
     }
 

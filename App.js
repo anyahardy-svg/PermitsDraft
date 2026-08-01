@@ -25,6 +25,10 @@ import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachmen
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, searchCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation, getContractorsByCompany } from './src/api/companies';
 import { getCompanyAccreditation } from './src/api/accreditations';
+import {
+  HS_AGREEMENT_REVISION_MESSAGE,
+  validateHSAgreementComplete,
+} from './src/utils/hsAgreementValidation';
 import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
@@ -9965,6 +9969,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handle approving company accreditation
   const handleApproveCompanyAccreditation = async () => {
     if (!selectedCompanyForAccreditation) return;
+
+    const hsAgreementError = validateHSAgreementComplete(companyAccreditationData || {});
+    if (hsAgreementError) {
+      Alert.alert(
+        'Section 26 not signed',
+        `${hsAgreementError}\n\nAsk the contractor to complete Section 26 before approving.`,
+        [
+          { text: 'OK', style: 'cancel' },
+          {
+            text: 'Request Changes',
+            onPress: () => {
+              setRejectionFeedback(HS_AGREEMENT_REVISION_MESSAGE);
+              setShowRejectionFeedbackModal(true);
+            },
+          },
+        ]
+      );
+      return;
+    }
     
     setApprovingAccreditation(true);
     try {
