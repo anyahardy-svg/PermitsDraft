@@ -1,13 +1,45 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, Platform } from 'react-native';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import { inductionScreenStyles } from '../styles/inductionScreenStyles';
+import { getPartnerLogoUrls } from '../constants/emailBrandAssets';
 import {
   getRouteFromInductionPath,
   inductionRouteToPath,
 } from '../utils/inductionLinks';
 
+function PartnerLogo({ logo }) {
+  if (Platform.OS === 'web') {
+    return (
+      <img
+        src={logo.url}
+        alt={logo.name}
+        style={{
+          height: 52,
+          maxWidth: 150,
+          width: 'auto',
+          objectFit: 'contain',
+          display: 'block',
+        }}
+      />
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: logo.url }}
+      accessibilityLabel={logo.name}
+      resizeMode="contain"
+      style={{
+        height: 52,
+        width: 150,
+      }}
+    />
+  );
+}
+
 export default function StandaloneInductionScreen() {
+  const partnerLogos = getPartnerLogoUrls();
   const [routeKey, setRouteKey] = useState(0);
   const [initialRoute, setInitialRoute] = useState(() => {
     if (typeof window === 'undefined') {
@@ -81,6 +113,22 @@ export default function StandaloneInductionScreen() {
           onComplete={handleComplete}
           onCancel={handleComplete}
         />
+      </View>
+      <View style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 20,
+        paddingTop: 28,
+        paddingBottom: 24,
+        paddingHorizontal: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+      }}>
+        {partnerLogos.map((logo) => (
+          <PartnerLogo key={logo.file} logo={logo} />
+        ))}
       </View>
     </View>
   );
