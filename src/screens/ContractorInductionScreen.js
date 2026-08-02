@@ -1094,20 +1094,13 @@ export default function ContractorInductionScreen({
     return null;
   };
 
-  const finalizeContractorInductionStatus = async (completedIds = completedInductionIds) => {
-    const completedInductions = inductionQueue.filter(ind => completedIds.includes(ind.id));
-    const earnedServiceIds = completedInductions
-      .filter(ind => !ind.is_compulsory && ind.service_id)
-      .map(ind => ind.service_id);
-
+  const finalizeContractorInductionStatus = async () => {
     const expiryDate = new Date();
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
     const updatedSiteIds = Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
-    const updatedServiceIds = Array.from(new Set([...(contractorInfo.service_ids || []), ...earnedServiceIds]));
 
     await updateContractor(contractorInfo.id, {
-      service_ids: updatedServiceIds,
       site_ids: updatedSiteIds,
       business_unit_ids: contractorInfo.selectedBusinessUnitIds || [],
       induction_expiry: expiryDate.toISOString(),
@@ -1115,7 +1108,6 @@ export default function ContractorInductionScreen({
 
     setContractorInfo(prev => ({
       ...prev,
-      service_ids: updatedServiceIds,
       selectedSiteIds: updatedSiteIds,
     }));
   };
@@ -2382,7 +2374,7 @@ export default function ContractorInductionScreen({
         } else {
           // All done! Close modal and show completion message
           console.log('🎉 All inductions completed!');
-          await finalizeContractorInductionStatus(newCompletedIds);
+          await finalizeContractorInductionStatus();
           setModalVisible(false);
           Alert.alert(
             'Success',
@@ -2805,29 +2797,14 @@ export default function ContractorInductionScreen({
                 
                 setLoading(true);
                 try {
-                  // Build service_ids from completed optional inductions
-                  // (Compulsory inductions don't earn services, only optional ones do)
-                  const completedInductions = inductionQueue.filter(ind => completedInductionIds.includes(ind.id));
-                  
-                  // Only include optional inductions as earned services
-                  // Use service_id (UUID) from induction table for proper service reference
-                  const serviceIds = completedInductions
-                    .filter(ind => !ind.is_compulsory && ind.service_id) // Only optional inductions with service_id
-                    .map(ind => ind.service_id); // Store UUID reference to service
-
-                  // Calculate induction expiry: current date + 365 days
                   const expiryDate = new Date();
                   expiryDate.setFullYear(expiryDate.getFullYear() + 1);
                   const inductionExpiryIso = expiryDate.toISOString();
 
-                  // Update contractor with earned services from optional inductions
-                  const contractorUpdate = {
-                    service_ids: serviceIds,
+                  await updateContractor(contractorInfo.id, {
                     induction_expiry: inductionExpiryIso,
-                    signature: signatureText, // Store signature
-                  };
-                  
-                  await updateContractor(contractorInfo.id, contractorUpdate);
+                    signature: signatureText,
+                  });
 
                   setStep('complete');
                 } catch (err) {
