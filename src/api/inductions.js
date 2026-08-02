@@ -639,42 +639,7 @@ export async function completeInduction(contractorId, inductionId, signatureText
 
     if (progressError) throw progressError;
 
-    // Get the induction name to add as a service earned
-    // Note: Only select induction_name for now - subsection_name may not exist in all DB versions
-    const { data: inductionData, error: inductionError } = await supabase
-      .from('inductions')
-      .select('induction_name')
-      .eq('id', inductionId)
-      .single();
-
-    if (inductionError) {
-      // If query fails, just log it and continue - don't block induction completion
-      console.warn(`[${getNZTimestamp()}] ⚠️ Could not fetch induction name for service record:`, inductionError);
-    }
-
-    // Add induction as a service earned
-    if (inductionData) {
-      // Use induction_name as the service name (may be enhanced later with subsection_name if available)
-      const serviceName = inductionData.induction_name;
-
-      const { data: contractorData } = await supabase
-        .from('contractors')
-        .select('service_ids')
-        .eq('id', contractorId)
-        .single();
-
-      const currentServiceIds = contractorData?.service_ids || [];
-      // Add as text service name (not UUID)
-      if (!currentServiceIds.includes(serviceName)) {
-        const updatedServiceIds = [...currentServiceIds, serviceName];
-        await supabase
-          .from('contractors')
-          .update({ service_ids: updatedServiceIds })
-          .eq('id', contractorId);
-      }
-    }
-
-    console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId, serviceName: inductionData?.induction_name });
+    console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId });
     return progressData ? progressData[0] : null;
   } catch (error) {
     console.error(`[${getNZTimestamp()}] ❌ Error completing induction:`, error);
@@ -683,7 +648,7 @@ export async function completeInduction(contractorId, inductionId, signatureText
 }
 
 /**
- * Get contractor's completed inductions (to check what services they have)
+ * Get contractor's completed induction progress records.
  * @param {UUID} contractorId
  * @returns {Array} Completed induction data
  */
