@@ -25552,6 +25552,9 @@ const AppRouter = ({ initialRoute }) => {
       if (pathname === '/inductions/resume' || pathname === '/inductions/resume/') {
         return 'inductions-resume';
       }
+      if (pathname === '/inductions/add-parts' || pathname === '/inductions/add-parts/') {
+        return 'inductions-add-parts';
+      }
       if (isSupplierFormRoute(pathname)) {
         return 'supplier-accreditation-public';
       }
