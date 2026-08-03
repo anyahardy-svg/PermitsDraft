@@ -269,6 +269,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           newPath = '/inductions/returning/';
         } else if (currentScreen === 'inductions-resume') {
           newPath = '/inductions/resume/';
+        } else if (currentScreen === 'inductions-add-parts') {
+          newPath = '/inductions/add-parts/';
         }
         
         // Update URL without page reload
@@ -886,7 +888,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }
 
   // Inductions Screen (fullscreen for URL routing)
-  if (currentScreen === 'inductions' || currentScreen === 'inductions-new' || currentScreen === 'inductions-returning' || currentScreen === 'inductions-resume') {
+  if (currentScreen === 'inductions' || currentScreen === 'inductions-new' || currentScreen === 'inductions-returning' || currentScreen === 'inductions-resume' || currentScreen === 'inductions-add-parts') {
     // Map screen to initial state for ContractorInductionScreen
     let inductionInitialState = null;
     if (currentScreen === 'inductions-new') {
@@ -895,6 +897,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       inductionInitialState = 'returning'; // false
     } else if (currentScreen === 'inductions-resume') {
       inductionInitialState = 'resume';
+    } else if (currentScreen === 'inductions-add-parts') {
+      inductionInitialState = 'add-parts';
     }
     
     const handleSelectInductionType = (type) => {
@@ -904,6 +908,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setCurrentScreen('inductions-returning');
       } else if (type === 'resume') {
         setCurrentScreen('inductions-resume');
+      } else if (type === 'add-parts') {
+        setCurrentScreen('inductions-add-parts');
       }
     };
     

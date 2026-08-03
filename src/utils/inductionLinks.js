@@ -7,6 +7,8 @@ export const INDUCTION_ROUTE_PATHS = [
   '/inductions/returning/',
   '/inductions/resume',
   '/inductions/resume/',
+  '/inductions/add-parts',
+  '/inductions/add-parts/',
 ];
 
 export function isInductionRoutePath(pathname) {
@@ -31,6 +33,9 @@ export function getRouteFromInductionPath(pathname) {
   if (pathname === '/inductions/resume' || pathname === '/inductions/resume/') {
     return 'resume';
   }
+  if (pathname === '/inductions/add-parts' || pathname === '/inductions/add-parts/') {
+    return 'add-parts';
+  }
   return null;
 }
 
@@ -43,6 +48,9 @@ export function inductionRouteToPath(route) {
   }
   if (route === 'resume') {
     return '/inductions/resume/';
+  }
+  if (route === 'add-parts') {
+    return '/inductions/add-parts/';
   }
   return '/inductions/';
 }

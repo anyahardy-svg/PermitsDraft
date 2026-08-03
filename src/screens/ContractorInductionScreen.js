@@ -101,10 +101,11 @@ export default function ContractorInductionScreen({
   const [validationErrors, setValidationErrors] = useState({}); // Field-specific errors: { name: 'error message', company: 'error message' }
 
   // Step 0: Select existing or new contractor
-  // initialRoute can be 'new', 'returning', 'resume', or null
+  // initialRoute can be 'new', 'returning', 'resume', 'add-parts', or null
   const getInitialIsNewContractor = () => {
     if (initialRoute === 'new') return true;
     if (initialRoute === 'returning') return 'returning';
+    if (initialRoute === 'add-parts') return 'add-parts';
     if (initialRoute === 'resume') return null; // Loaded via handleLoadIncompleteInductions on mount
     return null; // User chooses
   };
@@ -277,6 +278,13 @@ export default function ContractorInductionScreen({
         .catch((err) => console.error('Failed to load contractors for returning route:', err));
     } else if (initialRoute === 'resume') {
       handleLoadIncompleteInductions();
+    } else if (initialRoute === 'add-parts') {
+      setIsNewContractor('add-parts');
+      listContractors()
+        .then((data) => {
+          setContractors(Array.isArray(data) ? data : []);
+        })
+        .catch((err) => console.error('Failed to load contractors for add-parts route:', err));
     }
   }, []);
 
@@ -304,6 +312,9 @@ export default function ContractorInductionScreen({
     } else if (initialRoute === 'resume' && isNewContractor !== 'choose-contractor-for-resume' && !loading) {
       setStep('info');
       handleLoadIncompleteInductions();
+    } else if (initialRoute === 'add-parts') {
+      setIsNewContractor('add-parts');
+      setStep('info');
     }
   }, [initialRoute, isNewContractor, loading]);
 
@@ -1220,6 +1231,9 @@ export default function ContractorInductionScreen({
               setReturningFilterBUId('');
               setReturningFilterSiteId('');
               setReturningFilterName('');
+              if (onSelectInductionType) {
+                onSelectInductionType('returning');
+              }
               try {
                 const allContractors = await listContractors();
                 const contractorList = Array.isArray(allContractors) ? allContractors : [];
@@ -1228,9 +1242,6 @@ export default function ContractorInductionScreen({
               } catch (err) {
                 console.error('Error loading contractors:', err);
                 setReturningFilteredContractors(contractors);
-              }
-              if (onSelectInductionType) {
-                onSelectInductionType('returning');
               }
             }}
             style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
@@ -1241,10 +1252,10 @@ export default function ContractorInductionScreen({
 
           <TouchableOpacity 
             onPress={() => {
-              handleLoadIncompleteInductions();
               if (onSelectInductionType) {
                 onSelectInductionType('resume');
               }
+              handleLoadIncompleteInductions();
             }}
             style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
           >
@@ -1261,15 +1272,14 @@ export default function ContractorInductionScreen({
               setAddPartsFilterBUId('');
               setAddPartsFilterSiteId('');
               setAddPartsFilterName('');
-              // Load contractors
-              try {
-                const allContractors = await listContractors();
-                setContractors(allContractors);
-              } catch (err) {
-                console.error('Error loading contractors:', err);
-              }
               if (onSelectInductionType) {
                 onSelectInductionType('add-parts');
+              }
+              try {
+                const allContractors = await listContractors();
+                setContractors(Array.isArray(allContractors) ? allContractors : []);
+              } catch (err) {
+                console.error('Error loading contractors:', err);
               }
             }}
             style={{ backgroundColor: '#F3E8FF', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#A855F7' }}
