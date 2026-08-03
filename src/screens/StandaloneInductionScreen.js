@@ -40,7 +40,6 @@ function PartnerLogo({ logo }) {
 
 export default function StandaloneInductionScreen() {
   const partnerLogos = getPartnerLogoUrls();
-  const [routeKey, setRouteKey] = useState(0);
   const [initialRoute, setInitialRoute] = useState(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -53,7 +52,6 @@ export default function StandaloneInductionScreen() {
       return;
     }
     setInitialRoute(getRouteFromInductionPath(window.location.pathname));
-    setRouteKey((current) => current + 1);
   }, []);
 
   const updatePath = useCallback((route) => {
@@ -66,7 +64,6 @@ export default function StandaloneInductionScreen() {
       window.history.pushState(null, '', newPath);
     }
     setInitialRoute(route);
-    setRouteKey((current) => current + 1);
   }, []);
 
   useEffect(() => {
@@ -104,7 +101,6 @@ export default function StandaloneInductionScreen() {
       </View>
       <View style={styles.content}>
         <ContractorInductionScreen
-          key={routeKey}
           styles={inductionScreenStyles}
           initialRoute={initialRoute}
           standalone

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -279,6 +279,33 @@ export default function ContractorInductionScreen({
       handleLoadIncompleteInductions();
     }
   }, []);
+
+  const hasSyncedInitialRouteRef = useRef(false);
+
+  // Sync parent route changes (e.g. browser back to /inductions/) without remounting.
+  useEffect(() => {
+    if (!hasSyncedInitialRouteRef.current) {
+      hasSyncedInitialRouteRef.current = true;
+      return;
+    }
+
+    if (initialRoute === null) {
+      setIsNewContractor(null);
+      setStep('info');
+      return;
+    }
+
+    if (initialRoute === 'new') {
+      setIsNewContractor(true);
+      setStep('info');
+    } else if (initialRoute === 'returning') {
+      setIsNewContractor('returning');
+      setStep('info');
+    } else if (initialRoute === 'resume' && isNewContractor !== 'choose-contractor-for-resume' && !loading) {
+      setStep('info');
+      handleLoadIncompleteInductions();
+    }
+  }, [initialRoute, isNewContractor, loading]);
 
   // Load sites when business units are selected (for pre-filled returning contractors)
   useEffect(() => {
