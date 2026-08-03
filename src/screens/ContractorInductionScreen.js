@@ -97,6 +97,8 @@ export default function ContractorInductionScreen({
 }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
+  const [contractorsLoading, setContractorsLoading] = useState(false);
+  const [resumeContractorsLoading, setResumeContractorsLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({}); // Field-specific errors: { name: 'error message', company: 'error message' }
 
@@ -120,7 +122,6 @@ export default function ContractorInductionScreen({
   const [returningFilterBUId, setReturningFilterBUId] = useState('');
   const [returningFilterSiteId, setReturningFilterSiteId] = useState('');
   const [returningFilterName, setReturningFilterName] = useState('');
-  const [returningFilteredContractors, setReturningFilteredContractors] = useState([]);
   const [showReturningBUDropdown, setShowReturningBUDropdown] = useState(false);
   const [showReturningCompanyDropdown, setShowReturningCompanyDropdown] = useState(false);
   const [showReturningSiteDropdown, setShowReturningSiteDropdown] = useState(false);
@@ -190,6 +191,40 @@ export default function ContractorInductionScreen({
   const [modalAnswerValidation, setModalAnswerValidation] = useState({ missing: [], incorrect: [] });
   const [showModalAnswerFeedback, setShowModalAnswerFeedback] = useState(false);
   const [revealedQuestionNums, setRevealedQuestionNums] = useState([]);
+
+  const contractorsLoadPromiseRef = useRef(null);
+  const allContractorsLoadedRef = useRef(false);
+
+  const loadAllContractors = async () => {
+    if (allContractorsLoadedRef.current) {
+      return;
+    }
+
+    if (contractorsLoadPromiseRef.current) {
+      await contractorsLoadPromiseRef.current;
+      return;
+    }
+
+    setContractorsLoading(true);
+    const promise = listContractors()
+      .then((data) => {
+        const contractorList = Array.isArray(data) ? data : [];
+        setContractors(contractorList);
+        allContractorsLoadedRef.current = true;
+        return contractorList;
+      })
+      .catch((err) => {
+        console.error('Error loading contractors:', err);
+        return [];
+      })
+      .finally(() => {
+        setContractorsLoading(false);
+        contractorsLoadPromiseRef.current = null;
+      });
+
+    contractorsLoadPromiseRef.current = promise;
+    await promise;
+  };
 
   // Step 3: Video
   const [videoWatched, setVideoWatched] = useState(false);
@@ -269,22 +304,12 @@ export default function ContractorInductionScreen({
   useEffect(() => {
     if (initialRoute === 'returning') {
       setIsNewContractor('returning');
-      listContractors()
-        .then((data) => {
-          const allContractors = Array.isArray(data) ? data : [];
-          setContractors(allContractors);
-          setReturningFilteredContractors(allContractors);
-        })
-        .catch((err) => console.error('Failed to load contractors for returning route:', err));
+      loadAllContractors();
     } else if (initialRoute === 'resume') {
       handleLoadIncompleteInductions();
     } else if (initialRoute === 'add-parts') {
       setIsNewContractor('add-parts');
-      listContractors()
-        .then((data) => {
-          setContractors(Array.isArray(data) ? data : []);
-        })
-        .catch((err) => console.error('Failed to load contractors for add-parts route:', err));
+      loadAllContractors();
     }
   }, []);
 
@@ -309,14 +334,14 @@ export default function ContractorInductionScreen({
     } else if (initialRoute === 'returning') {
       setIsNewContractor('returning');
       setStep('info');
-    } else if (initialRoute === 'resume' && isNewContractor !== 'choose-contractor-for-resume' && !loading) {
+    } else if (initialRoute === 'resume' && isNewContractor !== 'choose-contractor-for-resume' && !resumeContractorsLoading && !loading) {
       setStep('info');
       handleLoadIncompleteInductions();
     } else if (initialRoute === 'add-parts') {
       setIsNewContractor('add-parts');
       setStep('info');
     }
-  }, [initialRoute, isNewContractor, loading]);
+  }, [initialRoute, isNewContractor, loading, resumeContractorsLoading]);
 
   // Load sites when business units are selected (for pre-filled returning contractors)
   useEffect(() => {
@@ -339,15 +364,14 @@ export default function ContractorInductionScreen({
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [companiesData, buData, contractorsData, sitesData] = await Promise.all([
+      const [companiesData, buData, , sitesData] = await Promise.all([
         listCompanies(),
         listBusinessUnits(),
-        listContractors(),
+        loadAllContractors(),
         listSites(),
       ]);
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
-      setContractors(Array.isArray(contractorsData) ? contractorsData : []);
       setAllSites(Array.isArray(sitesData) ? sitesData : []);
     } catch (err) {
       setError('Failed to load data');
@@ -607,27 +631,27 @@ export default function ContractorInductionScreen({
   };
 
   const handleLoadIncompleteInductions = async () => {
+    setIsNewContractor('choose-contractor-for-resume');
+
     try {
-      setLoading(true);
-      setError('Loading contractors with incomplete inductions...');
+      setResumeContractorsLoading(true);
+      allContractorsLoadedRef.current = false;
 
       const contractorsWithIncomplete = await listContractorsWithIncompleteInductions();
 
-      setError('');
-
       if (contractorsWithIncomplete.length === 0) {
         Alert.alert('No Saved Inductions', 'No contractors have incomplete inductions to resume.');
+        setIsNewContractor(null);
         return;
       }
 
       setContractors(contractorsWithIncomplete);
-      setIsNewContractor('choose-contractor-for-resume');
     } catch (err) {
-      setError('');
       Alert.alert('Error', 'Failed to load contractors: ' + err.message);
       console.error(err);
+      setIsNewContractor(null);
     } finally {
-      setLoading(false);
+      setResumeContractorsLoading(false);
     }
   };
 
@@ -1181,6 +1205,13 @@ export default function ContractorInductionScreen({
   // RENDER STEPS
   // ============================================================================
 
+  const renderContractorListLoading = () => (
+    <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
+      <ActivityIndicator size="small" color="#3B82F6" />
+      <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>Loading contractors...</Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -1225,7 +1256,7 @@ export default function ContractorInductionScreen({
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={async () => {
+            onPress={() => {
               setIsNewContractor('returning');
               setReturningFilterCompanyId('');
               setReturningFilterBUId('');
@@ -1234,15 +1265,7 @@ export default function ContractorInductionScreen({
               if (onSelectInductionType) {
                 onSelectInductionType('returning');
               }
-              try {
-                const allContractors = await listContractors();
-                const contractorList = Array.isArray(allContractors) ? allContractors : [];
-                setContractors(contractorList);
-                setReturningFilteredContractors(contractorList);
-              } catch (err) {
-                console.error('Error loading contractors:', err);
-                setReturningFilteredContractors(contractors);
-              }
+              loadAllContractors();
             }}
             style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
           >
@@ -1264,7 +1287,7 @@ export default function ContractorInductionScreen({
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={async () => {
+            onPress={() => {
               setIsNewContractor('add-parts');
               setAddPartsContractorFilterBUId('');
               setAddPartsContractorFilterSiteId('');
@@ -1275,12 +1298,7 @@ export default function ContractorInductionScreen({
               if (onSelectInductionType) {
                 onSelectInductionType('add-parts');
               }
-              try {
-                const allContractors = await listContractors();
-                setContractors(Array.isArray(allContractors) ? allContractors : []);
-              } catch (err) {
-                console.error('Error loading contractors:', err);
-              }
+              loadAllContractors();
             }}
             style={{ backgroundColor: '#F3E8FF', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#A855F7' }}
           >
@@ -1332,27 +1350,31 @@ export default function ContractorInductionScreen({
           </Text>
 
           <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, maxHeight: 400 }}>
-            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
-              {contractors.map(contractor => (
-                <TouchableOpacity
-                  key={contractor.id}
-                  onPress={() => handleResumeContractorSelected(contractor.id)}
-                  style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
-                  </View>
-                  {contractor.incompleteCount > 0 && (
-                    <View style={{ backgroundColor: '#FCD34D', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginLeft: 8 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#78350F' }}>
-                        {contractor.incompleteCount} saved
-                      </Text>
+            {resumeContractorsLoading ? (
+              renderContractorListLoading()
+            ) : (
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {contractors.map(contractor => (
+                  <TouchableOpacity
+                    key={contractor.id}
+                    onPress={() => handleResumeContractorSelected(contractor.id)}
+                    style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
                     </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                    {contractor.incompleteCount > 0 && (
+                      <View style={{ backgroundColor: '#FCD34D', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginLeft: 8 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#78350F' }}>
+                          {contractor.incompleteCount} saved
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -1442,7 +1464,9 @@ export default function ContractorInductionScreen({
           </Text>
 
           <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', maxHeight: 400 }}>
-            {addPartsContractorList.length > 0 ? (
+            {contractorsLoading ? (
+              renderContractorListLoading()
+            ) : addPartsContractorList.length > 0 ? (
               <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
                 {addPartsContractorList.map(contractor => (
                   <TouchableOpacity
@@ -1664,7 +1688,7 @@ export default function ContractorInductionScreen({
   // RETURNING CONTRACTOR FILTER SCREEN - Select contractor to redo induction
   if (step === 'info' && isNewContractor === 'returning') {
     const returningSiteOptions = getSitesForBUFilter(returningFilterBUId);
-    const filteredList = returningFilteredContractors.filter(contractor =>
+    const filteredList = contractors.filter(contractor =>
       matchesContractorFilters(contractor, {
         buId: returningFilterBUId,
         companyId: returningFilterCompanyId,
@@ -1852,7 +1876,9 @@ export default function ContractorInductionScreen({
           </Text>
 
           <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', maxHeight: 400 }}>
-            {filteredList.length === 0 ? (
+            {contractorsLoading ? (
+              renderContractorListLoading()
+            ) : filteredList.length === 0 ? (
               <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
                 <Text style={{ color: '#9CA3AF', fontSize: 14 }}>No contractors found</Text>
               </View>
