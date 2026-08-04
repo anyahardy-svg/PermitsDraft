@@ -99,6 +99,7 @@ export default function ContractorInductionScreen({
   const [loading, setLoading] = useState(false);
   const [contractorsLoading, setContractorsLoading] = useState(false);
   const [resumeContractorsLoading, setResumeContractorsLoading] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({}); // Field-specific errors: { name: 'error message', company: 'error message' }
 
@@ -317,13 +318,21 @@ export default function ContractorInductionScreen({
   }, []);
 
   const hasSyncedInitialRouteRef = useRef(false);
+  const prevInitialRouteRef = useRef(initialRoute);
 
-  // Sync parent route changes (e.g. browser back to /inductions/) without remounting.
+  // Sync parent route changes (e.g. browser back/forward) without remounting.
   useEffect(() => {
     if (!hasSyncedInitialRouteRef.current) {
       hasSyncedInitialRouteRef.current = true;
+      prevInitialRouteRef.current = initialRoute;
       return;
     }
+
+    if (initialRoute === prevInitialRouteRef.current) {
+      return;
+    }
+
+    prevInitialRouteRef.current = initialRoute;
 
     if (initialRoute === null) {
       setIsNewContractor(null);
@@ -337,14 +346,14 @@ export default function ContractorInductionScreen({
     } else if (initialRoute === 'returning') {
       setIsNewContractor('returning');
       setStep('info');
-    } else if (initialRoute === 'resume' && isNewContractor !== 'choose-contractor-for-resume' && !resumeContractorsLoading && !loading) {
+    } else if (initialRoute === 'resume') {
       setStep('info');
       handleLoadIncompleteInductions();
     } else if (initialRoute === 'add-parts') {
       setIsNewContractor('add-parts');
       setStep('info');
     }
-  }, [initialRoute, isNewContractor, loading, resumeContractorsLoading]);
+  }, [initialRoute]);
 
   // Load sites when business units are selected (for pre-filled returning contractors)
   useEffect(() => {
@@ -998,6 +1007,10 @@ export default function ContractorInductionScreen({
         throw new Error('Contractor record not found. Please go back and select your profile again.');
       }
 
+      setLoading(false);
+      setStep('selectServices');
+      setServicesLoading(true);
+
       const servicesData = await loadServicesForBusinessUnits(selectedBUs);
       setAvailableServices(servicesData);
 
@@ -1006,12 +1019,12 @@ export default function ContractorInductionScreen({
       setContractorInfo(prev => ({ ...prev, id: contractorId, service_ids: currentServiceIds }));
 
       console.log('✅ Ready to select services');
-      setLoading(false);
-      setStep('selectServices');
+      setServicesLoading(false);
       
     } catch (err) {
       console.error('❌ ERROR in handleInfoContinue:', err);
       setLoading(false);
+      setServicesLoading(false);
       Alert.alert('Error', 'Failed to continue: ' + err.message);
     }
   };
@@ -1209,10 +1222,10 @@ export default function ContractorInductionScreen({
   // RENDER STEPS
   // ============================================================================
 
-  const renderContractorListLoading = () => (
+  const renderContractorListLoading = (message = 'Loading contractors...') => (
     <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
       <ActivityIndicator size="small" color="#3B82F6" />
-      <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>Loading contractors...</Text>
+      <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>{message}</Text>
     </View>
   );
 
@@ -1246,8 +1259,9 @@ export default function ContractorInductionScreen({
                 email: '',
                 phone: '',
                 companyId: '',
-                businessUnitId: '',
+                selectedBusinessUnitIds: [],
                 selectedSiteIds: [],
+                service_ids: [],
               });
               if (onSelectInductionType) {
                 onSelectInductionType('new');
@@ -1281,8 +1295,9 @@ export default function ContractorInductionScreen({
             onPress={() => {
               if (onSelectInductionType) {
                 onSelectInductionType('resume');
+              } else {
+                handleLoadIncompleteInductions();
               }
-              handleLoadIncompleteInductions();
             }}
             style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
           >
@@ -2172,7 +2187,9 @@ export default function ContractorInductionScreen({
 
           <Text style={[styles.label, { marginTop: 0 }]}>Services (select one or more) *</Text>
 
-          {availableServices.length === 0 ? (
+          {servicesLoading ? (
+            renderContractorListLoading('Loading services...')
+          ) : availableServices.length === 0 ? (
             <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 12 }}>
               No services found for the selected business units.
             </Text>
