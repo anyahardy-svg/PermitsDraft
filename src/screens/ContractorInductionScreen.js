@@ -244,6 +244,7 @@ export default function ContractorInductionScreen({
   const [pendingResumeChoice, setPendingResumeChoice] = useState(null); // Will be set when resume dialog needs to appear
   const [resumeInductionData, setResumeInductionData] = useState(null); // Data to use when they choose resume
   const [loadSavedAnswersOnOpen, setLoadSavedAnswersOnOpen] = useState(false);
+  const [isRedoSession, setIsRedoSession] = useState(false);
 
   // ============================================================================
   // HANDLERS FOR ADD PARTS TO EXISTING INDUCTION
@@ -519,7 +520,8 @@ export default function ContractorInductionScreen({
               }}
               onPress={() => {
                 setShowResumeDialog(false);
-                setLoadSavedAnswersOnOpen(false);
+                setLoadSavedAnswersOnOpen(isNewContractor === false);
+                setIsRedoSession(false);
                 setCompletedInductionIds([]);
                 setSelectedOptionalIds([]);
                 setStep('inductionsList');
@@ -542,6 +544,7 @@ export default function ContractorInductionScreen({
               onPress={() => {
                 setShowResumeDialog(false);
                 setLoadSavedAnswersOnOpen(true);
+                setIsRedoSession(false);
                 if (resumeInductionData?.completedIds) {
                   setCompletedInductionIds(resumeInductionData.completedIds);
                 }
@@ -604,6 +607,7 @@ export default function ContractorInductionScreen({
       setSelectedContractorId(contractorId);
       setShowContractorDropdown(false);
       setLoadSavedAnswersOnOpen(false);
+      setIsRedoSession(false);
       
       // Show their info screen so they can review/update details before inductions
       // For returning contractors, show info screen first
@@ -630,6 +634,7 @@ export default function ContractorInductionScreen({
   const handleNewContractor = () => {
     setIsNewContractor(true);
     setLoadSavedAnswersOnOpen(false);
+    setIsRedoSession(false);
     setContractorInfo({
       id: '',
       name: '',
@@ -725,6 +730,7 @@ export default function ContractorInductionScreen({
         setCompletedInductionIds(completedIds);
         setModalAnswers({});
         setLoadSavedAnswersOnOpen(true);
+        setIsRedoSession(false);
         setStep('inductionBoard');
         setIsNewContractor(null);
       }
@@ -1092,7 +1098,9 @@ export default function ContractorInductionScreen({
       return;
     }
 
-    setLoadSavedAnswersOnOpen(false);
+    const isRedo = isNewContractor === false;
+    setLoadSavedAnswersOnOpen(isRedo);
+    setIsRedoSession(isRedo);
     setLoading(true);
     try {
       // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
@@ -1109,7 +1117,7 @@ export default function ContractorInductionScreen({
       // Create progress records for ALL inductions upfront
       // Use Promise.allSettled to continue even if some fail (unlikely to happen)
       const promises = sortedQueue.map(induction => 
-        startInduction(contractorInfo.id, induction.id).catch(err => {
+        startInduction(contractorInfo.id, induction.id, { redo: isRedo }).catch(err => {
           console.error('Error starting induction', induction.id, ':', err);
           return null; // Continue anyway
         })
@@ -1703,6 +1711,7 @@ export default function ContractorInductionScreen({
                 });
                 setSelectedContractorId(addPartsContractor.id);
                 setLoadSavedAnswersOnOpen(false);
+                setIsRedoSession(false);
                 setIsNewContractor(false);
                 
                 // Set inductions as optional (user can review/deselect if needed)
@@ -2387,7 +2396,7 @@ export default function ContractorInductionScreen({
       try {
         setLoading(true);
         
-        // Only load saved answers when explicitly resuming — not for fresh starts or redos
+        // Load saved answers when resuming or redoing (redo still requires completing every induction)
         let savedAnswers = {};
         if (loadSavedAnswersOnOpen) {
           const progressRecord = await getInductionProgress(contractorInfo.id, induction.id);
@@ -2418,7 +2427,7 @@ export default function ContractorInductionScreen({
         }
         
         // Start the induction in the database if not already started
-        await startInduction(contractorInfo.id, induction.id);
+        await startInduction(contractorInfo.id, induction.id, { redo: isRedoSession });
         
         setCurrentModalInduction(normalizedInduction);
         setSelectedInductionId(induction.id);
