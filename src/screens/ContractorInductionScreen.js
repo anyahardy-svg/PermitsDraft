@@ -126,6 +126,9 @@ export default function ContractorInductionScreen({
   const [showReturningCompanyDropdown, setShowReturningCompanyDropdown] = useState(false);
   const [showReturningSiteDropdown, setShowReturningSiteDropdown] = useState(false);
 
+  // Resume contractor filter state
+  const [resumeFilterName, setResumeFilterName] = useState('');
+
   // Add Parts to Existing Induction state
   const [addPartsContractorId, setAddPartsContractorId] = useState(''); // Contractor to add parts to
   const [addPartsContractor, setAddPartsContractor] = useState(null); // Full contractor data
@@ -631,6 +634,7 @@ export default function ContractorInductionScreen({
   };
 
   const handleLoadIncompleteInductions = async () => {
+    setResumeFilterName('');
     setIsNewContractor('choose-contractor-for-resume');
 
     try {
@@ -1337,6 +1341,12 @@ export default function ContractorInductionScreen({
 
   // STEP 0: Choose contractor to resume induction for
   if (step === 'info' && isNewContractor === 'choose-contractor-for-resume') {
+    const resumeContractorList = contractors.filter(contractor =>
+      matchesContractorFilters(contractor, {
+        nameQuery: resumeFilterName,
+      })
+    );
+
     return (
       <View style={styles.container}>
         {renderHeader('Select Contractor - Resume', () => {
@@ -1344,17 +1354,33 @@ export default function ContractorInductionScreen({
           if (onBackToSelection) onBackToSelection();
         })}
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
             Which contractor would you like to resume an induction for?
           </Text>
 
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, maxHeight: 400 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8 }}>
+            Search by Name
+          </Text>
+          <TextInput
+            style={[styles.input, { marginTop: 0, marginBottom: 12 }]}
+            placeholder="Search contractor name or email..."
+            value={resumeFilterName}
+            onChangeText={setResumeFilterName}
+          />
+
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 4 }}>
+            Contractors ({resumeContractorList.length})
+          </Text>
+
+          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', maxHeight: 400 }}>
             {resumeContractorsLoading ? (
               renderContractorListLoading()
+            ) : resumeContractorList.length === 0 ? (
+              <Text style={{ padding: 12, color: '#9CA3AF' }}>No contractors found</Text>
             ) : (
               <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                {contractors.map(contractor => (
+                {resumeContractorList.map(contractor => (
                   <TouchableOpacity
                     key={contractor.id}
                     onPress={() => handleResumeContractorSelected(contractor.id)}
