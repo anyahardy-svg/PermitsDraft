@@ -521,7 +521,6 @@ export default function ContractorInductionScreen({
                 setShowResumeDialog(false);
                 setLoadSavedAnswersOnOpen(false);
                 setCompletedInductionIds([]);
-                setSelectedOptionalIds([]);
                 setStep('inductionsList');
               }}
             >
@@ -835,6 +834,22 @@ export default function ContractorInductionScreen({
     setValidationErrors(prev => ({ ...prev, services: undefined }));
   };
 
+  const getPreviouslySelectedOptionalIds = (optionalInductionList, existingProgress) => {
+    if (!existingProgress?.length) {
+      return [];
+    }
+
+    const previousInductionIds = new Set(
+      existingProgress
+        .filter(progress => progress.status === 'completed' || progress.status === 'in_progress')
+        .map(progress => progress.induction_id)
+    );
+
+    return optionalInductionList
+      .filter(induction => previousInductionIds.has(induction.id))
+      .map(induction => induction.id);
+  };
+
   const loadInductionsForContractor = async (contractorId, selectedBUs, selectedSites, contractorServiceIds) => {
     let allInductionsData = [];
 
@@ -889,42 +904,16 @@ export default function ContractorInductionScreen({
     setCompulsoryInductions(compulsory);
     setOptionalInductions(optional);
     setAllInductions(uniqueInductions);
-    setSelectedOptionalIds([]);
 
     const existingProgress = await getContractorInductionProgress(contractorId);
     console.log('🔍 Existing progress records:', existingProgress?.length || 0);
 
-    if (!isNewContractor && existingProgress && existingProgress.length > 0) {
-      const completedInductions = existingProgress.filter(p => p.status === 'completed');
-      const inProgressInductions = existingProgress.filter(p => p.status === 'in_progress');
-
-      if (inProgressInductions.length > 0) {
-        console.log('⏸️ Found', inProgressInductions.length, 'inductions in progress - offering to resume');
-        const resumeInductionIds = new Set(inProgressInductions.map(p => p.induction_id));
-        const resumeQueue = uniqueInductions.filter(ind => resumeInductionIds.has(ind.id));
-        const completedIds = existingProgress
-          .filter(p => p.status === 'completed')
-          .map(p => p.induction_id);
-
-        setResumeInductionData({
-          resumeQueue,
-          completedIds,
-          inProgressCount: inProgressInductions.length
-        });
-        setShowResumeDialog(true);
-        return false;
-      }
-
-      if (completedInductions.length > 0) {
-        console.log('✅ Returning contractor with', completedInductions.length, 'completed inductions - pre-selecting for redo');
-        const completedIds = completedInductions.map(p => p.induction_id);
-        const preSelectedOptionals = optional
-          .filter(ind => completedIds.includes(ind.id))
-          .map(ind => ind.id);
-
-        console.log('📋 Pre-selecting', preSelectedOptionals.length, 'completed optional inductions');
-        setSelectedOptionalIds(preSelectedOptionals);
-      }
+    if (!isNewContractor && existingProgress?.length > 0) {
+      const preSelectedOptionals = getPreviouslySelectedOptionalIds(optional, existingProgress);
+      console.log('✅ Returning contractor redo — pre-selecting', preSelectedOptionals.length, 'previously selected optional inductions');
+      setSelectedOptionalIds(preSelectedOptionals);
+    } else {
+      setSelectedOptionalIds([]);
     }
 
     return true;
@@ -1001,6 +990,14 @@ export default function ContractorInductionScreen({
         console.log('✅ Contractor created:', contractorId);
       } else {
         console.log('♻️ Using existing contractor:', contractorId);
+        await updateContractor(contractorId, {
+          name: formatNameToTitleCase(contractorInfo.name),
+          email: contractorInfo.email,
+          phone: contractorInfo.phone,
+          company_id: contractorInfo.companyId,
+          business_unit_ids: selectedBUs,
+          site_ids: selectedSites,
+        });
       }
 
       if (!contractorId) {
@@ -1095,6 +1092,7 @@ export default function ContractorInductionScreen({
     setLoadSavedAnswersOnOpen(false);
     setLoading(true);
     try {
+      const isRedo = isNewContractor === false;
       // Build queue: company-wide inductions first (site_id = null), then site-specific (site_id != null)
       const selectedOptional = optionalInductions.filter(ind => selectedOptionalIds.includes(ind.id));
       const allInductions = [...compulsoryInductions, ...selectedOptional];
@@ -1109,7 +1107,7 @@ export default function ContractorInductionScreen({
       // Create progress records for ALL inductions upfront
       // Use Promise.allSettled to continue even if some fail (unlikely to happen)
       const promises = sortedQueue.map(induction => 
-        startInduction(contractorInfo.id, induction.id).catch(err => {
+        startInduction(contractorInfo.id, induction.id, { redo: isRedo }).catch(err => {
           console.error('Error starting induction', induction.id, ':', err);
           return null; // Continue anyway
         })
@@ -2269,10 +2267,10 @@ export default function ContractorInductionScreen({
           {!isNewContractor && selectedOptionalIds.length > 0 && (
             <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
               <Text style={{ fontSize: 13, color: '#166534', fontWeight: '600' }}>
-                ↩️ Previously Completed - Ready to Redo
+                ↩️ Previously Selected
               </Text>
               <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>
-                {selectedOptionalIds.length} induction(s) selected for redo. You can add more or remove any.
+                {selectedOptionalIds.length} optional induction(s) from your last visit are pre-selected. You can add more or remove any.
               </Text>
             </View>
           )}
@@ -2387,7 +2385,7 @@ export default function ContractorInductionScreen({
       try {
         setLoading(true);
         
-        // Only load saved answers when explicitly resuming — not for fresh starts or redos
+        // Only load saved answers when explicitly resuming
         let savedAnswers = {};
         if (loadSavedAnswersOnOpen) {
           const progressRecord = await getInductionProgress(contractorInfo.id, induction.id);
@@ -2418,7 +2416,7 @@ export default function ContractorInductionScreen({
         }
         
         // Start the induction in the database if not already started
-        await startInduction(contractorInfo.id, induction.id);
+        await startInduction(contractorInfo.id, induction.id, { redo: isNewContractor === false });
         
         setCurrentModalInduction(normalizedInduction);
         setSelectedInductionId(induction.id);

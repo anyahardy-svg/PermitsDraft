@@ -474,13 +474,32 @@ export async function getInductionProgress(contractorId, inductionId) {
  * Start or get an induction for a contractor
  * @param {UUID} contractorId
  * @param {UUID} inductionId
+ * @param {Object} options
+ * @param {boolean} options.redo - When true, reset completed records to in_progress while keeping saved answers
  * @returns {Object} Progress record
  */
-export async function startInduction(contractorId, inductionId) {
+export async function startInduction(contractorId, inductionId, { redo = false } = {}) {
   try {
     // Check if already exists
     const existing = await getInductionProgress(contractorId, inductionId);
     if (existing) {
+      if (redo && existing.status === 'completed') {
+        const { data, error } = await supabase
+          .from('contractor_induction_progress')
+          .update({
+            status: 'in_progress',
+            completed_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('contractor_id', contractorId)
+          .eq('induction_id', inductionId)
+          .select();
+
+        if (error) throw error;
+        console.log(`[${getNZTimestamp()}] 🔄 Induction reset for redo (answers preserved)`, { contractorId, inductionId });
+        return data ? data[0] : existing;
+      }
+
       console.log(`[${getNZTimestamp()}] ℹ️ Induction already started, resuming`, { contractorId, inductionId, status: existing.status });
       return existing;
     }
