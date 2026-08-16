@@ -1,6 +1,11 @@
 const { runAccreditationInvitationReminders } = require('../jobs/accreditationInvitationReminders');
 
 function isAuthorized(req) {
+  // Vercel Cron always sets this header on scheduled invocations.
+  if (req.headers['x-vercel-cron'] === '1') {
+    return true;
+  }
+
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return false;
