@@ -5,7 +5,6 @@ const {
 } = require('../lib/accreditationInvitationReminderEmail');
 
 const DEFAULT_BATCH_SIZE = 200;
-const DEFAULT_REMINDER_INTERVAL_DAYS = 7;
 const TIMEZONE = 'Pacific/Auckland';
 
 function getBatchSize() {
@@ -16,28 +15,47 @@ function getBatchSize() {
   return Math.min(parsed, 300);
 }
 
-function getReminderIntervalDays() {
-  const parsed = parseInt(
-    process.env.REMINDER_INTERVAL_DAYS || String(DEFAULT_REMINDER_INTERVAL_DAYS),
-    10,
-  );
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return DEFAULT_REMINDER_INTERVAL_DAYS;
-  }
-  return parsed;
+function getAucklandDateParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-NZ', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+
+  const parts = {};
+  formatter.formatToParts(date).forEach((part) => {
+    if (part.type !== 'literal') {
+      parts[part.type] = parseInt(part.value, 10);
+    }
+  });
+
+  return parts;
+}
+
+function getDaysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
 }
 
 function getAucklandDateInfo(date = new Date()) {
   const formatter = new Intl.DateTimeFormat('en-NZ', {
     timeZone: TIMEZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
     weekday: 'short',
   });
 
   const parts = {};
   formatter.formatToParts(date).forEach((part) => {
+    if (part.type === 'literal') {
+      return;
+    }
     if (part.type === 'weekday') {
       parts.weekday = part.value;
+      return;
     }
+    parts[part.type] = parseInt(part.value, 10);
   });
 
   return parts;
@@ -48,18 +66,128 @@ function isWeekendWeekday(weekday = '') {
   return normalized === 'sat' || normalized === 'sun';
 }
 
-function addDays(date, days) {
-  const next = new Date(date);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
+function findAucklandMiddayInstant(year, month, day) {
+  const base = Date.UTC(year, month - 1, day, 1, 0, 0);
+
+  for (let offsetHours = 0; offsetHours < 48; offsetHours += 1) {
+    const probe = new Date(base + offsetHours * 60 * 60 * 1000);
+    const parts = getAucklandDateParts(probe);
+    if (parts.year === year && parts.month === month && parts.day === day) {
+      return probe;
+    }
+  }
+
+  throw new Error(`Could not resolve Auckland date for ${year}-${month}-${day}`);
 }
 
-function buildNextReminderAt(fromDate = new Date()) {
-  return addDays(fromDate, getReminderIntervalDays()).toISOString();
+function countWeekdaysInMonth(year, month) {
+  const daysInMonth = getDaysInMonth(year, month);
+  let count = 0;
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
-async function fetchDueCompanies(adminClient) {
-  const nowIso = new Date().toISOString();
+function countWeekdaysUpTo(year, month, dayOfMonth) {
+  let count = 0;
+
+  for (let day = 1; day <= dayOfMonth; day += 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function isLastWeekdayOfMonth(year, month, dayOfMonth) {
+  const daysInMonth = getDaysInMonth(year, month);
+
+  for (let day = daysInMonth; day >= dayOfMonth; day -= 1) {
+    const instant = findAucklandMiddayInstant(year, month, day);
+    const { weekday } = getAucklandDateInfo(instant);
+    if (!isWeekendWeekday(weekday)) {
+      return day === dayOfMonth;
+    }
+  }
+
+  return false;
+}
+
+function isSameAucklandDate(left, right) {
+  const leftParts = getAucklandDateParts(left);
+  const rightParts = getAucklandDateParts(right);
+  return (
+    leftParts.year === rightParts.year
+    && leftParts.month === rightParts.month
+    && leftParts.day === rightParts.day
+  );
+}
+
+function getBatchRangesForToday(date = new Date()) {
+  const batchSize = getBatchSize();
+  const todayInfo = getAucklandDateInfo(date);
+  const { year, month, day: dayOfMonth, weekday } = todayInfo;
+
+  if (isWeekendWeekday(weekday)) {
+    return {
+      batchSize,
+      weekdayOnly: true,
+      skipped: true,
+      skipReason: 'weekend',
+      weekdayIndex: null,
+      weekdayName: weekday,
+      dayOfMonth,
+      daysInMonth: getDaysInMonth(year, month),
+      ranges: [],
+    };
+  }
+
+  const weekdayIndex = countWeekdaysUpTo(year, month, dayOfMonth);
+  const totalWeekdaysInMonth = countWeekdaysInMonth(year, month);
+
+  const ranges = [{
+    start: (weekdayIndex - 1) * batchSize + 1,
+    end: weekdayIndex * batchSize,
+    label: `${(weekdayIndex - 1) * batchSize + 1}-${weekdayIndex * batchSize}`,
+  }];
+
+  if (isLastWeekdayOfMonth(year, month, dayOfMonth)) {
+    const overflowStart = totalWeekdaysInMonth * batchSize + 1;
+    ranges.push({
+      start: overflowStart,
+      end: Number.POSITIVE_INFINITY,
+      label: `${overflowStart}+`,
+    });
+  }
+
+  return {
+    batchSize,
+    weekdayOnly: true,
+    skipped: false,
+    weekdayIndex,
+    weekdayName: weekday,
+    totalWeekdaysInMonth,
+    dayOfMonth,
+    daysInMonth: getDaysInMonth(year, month),
+    ranges,
+  };
+}
+
+function companyIsInBatch(position, ranges) {
+  return ranges.some((range) => position >= range.start && position <= range.end);
+}
+
+async function fetchEligibleCompanies(adminClient) {
   const { data, error } = await adminClient
     .from('companies')
     .select(`
@@ -71,7 +199,6 @@ async function fetchDueCompanies(adminClient) {
       accreditation_invitation_sent_at,
       accreditation_invitation_reminder_sent_at,
       accreditation_invitation_reminder_count,
-      accreditation_next_reminder_at,
       accreditation_status,
       accreditation_last_updated,
       accredited_date,
@@ -82,14 +209,11 @@ async function fetchDueCompanies(adminClient) {
     .is('accredited_date', null)
     .in('accreditation_status', ['none', 'started'])
     .or('company_active.is.null,company_active.eq.true')
-    .lte('accreditation_next_reminder_at', nowIso)
-    .order('accreditation_next_reminder_at', { ascending: true })
     .order('accreditation_invitation_sent_at', { ascending: true })
-    .order('id', { ascending: true })
-    .limit(getBatchSize());
+    .order('id', { ascending: true });
 
   if (error) {
-    throw new Error(`Failed to fetch due companies: ${error.message}`);
+    throw new Error(`Failed to fetch eligible companies: ${error.message}`);
   }
 
   return data || [];
@@ -136,13 +260,11 @@ async function logEmailSend(adminClient, entry) {
 
 async function markReminderSent(adminClient, company) {
   const nextCount = (company.accreditation_invitation_reminder_count || 0) + 1;
-  const nowIso = new Date().toISOString();
   const { error } = await adminClient
     .from('companies')
     .update({
-      accreditation_invitation_reminder_sent_at: nowIso,
+      accreditation_invitation_reminder_sent_at: new Date().toISOString(),
       accreditation_invitation_reminder_count: nextCount,
-      accreditation_next_reminder_at: buildNextReminderAt(),
     })
     .eq('id', company.id);
 
@@ -151,78 +273,60 @@ async function markReminderSent(adminClient, company) {
   }
 }
 
-async function deferReminder(adminClient, company, reason) {
-  const { error } = await adminClient
-    .from('companies')
-    .update({
-      accreditation_next_reminder_at: buildNextReminderAt(),
-    })
-    .eq('id', company.id);
-
-  if (error) {
-    console.warn(`Failed to defer reminder for company ${company.id}:`, error.message);
-  }
-
-  await logEmailSend(adminClient, {
-    email_type: TEMPLATE_TYPE,
-    company_id: company.id,
-    recipient_email: company.contact_email || 'unknown',
-    status: 'skipped',
-    error_message: reason,
-    metadata: { stage: 'defer_reminder' },
-  });
-}
-
 async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
   const adminClient = getSupabaseAdmin();
   if (!adminClient) {
     throw new Error('Supabase service role is not configured on the server');
   }
 
-  const { weekday } = getAucklandDateInfo();
-  const weekendInNz = isWeekendWeekday(weekday);
+  const batchInfo = getBatchRangesForToday();
+  const eligibleCompanies = await fetchEligibleCompanies(adminClient);
+  const todaysCompanies = [];
 
-  if (weekendInNz) {
-    return {
-      dryRun,
-      batchSize: getBatchSize(),
-      reminderIntervalDays: getReminderIntervalDays(),
-      weekdayOnly: true,
-      runSkipped: true,
-      skipReason: 'weekend',
-      weekdayName: weekday,
-      dueTotal: 0,
-      scheduledToday: 0,
-      sent: 0,
-      failed: 0,
-      skipped: 0,
-      results: [],
-    };
-  }
-
-  const dueCompanies = await fetchDueCompanies(adminClient);
+  eligibleCompanies.forEach((company, index) => {
+    const position = index + 1;
+    if (companyIsInBatch(position, batchInfo.ranges)) {
+      todaysCompanies.push({ company, position });
+    }
+  });
 
   const summary = {
     dryRun,
-    batchSize: getBatchSize(),
-    reminderIntervalDays: getReminderIntervalDays(),
-    weekdayOnly: true,
-    runSkipped: false,
-    weekdayName: weekday,
-    dueTotal: dueCompanies.length,
-    scheduledToday: dueCompanies.length,
+    batchSize: batchInfo.batchSize,
+    weekdayOnly: batchInfo.weekdayOnly,
+    runSkipped: batchInfo.skipped || false,
+    skipReason: batchInfo.skipReason || null,
+    weekdayIndex: batchInfo.weekdayIndex,
+    weekdayName: batchInfo.weekdayName || null,
+    dayOfMonth: batchInfo.dayOfMonth,
+    batchRanges: batchInfo.ranges.map((range) => range.label),
+    eligibleTotal: eligibleCompanies.length,
+    scheduledToday: todaysCompanies.length,
     sent: 0,
     failed: 0,
     skipped: 0,
     results: [],
   };
 
-  for (const company of dueCompanies) {
+  for (const { company, position } of todaysCompanies) {
     const baseResult = {
       companyId: company.id,
       companyName: company.name,
-      nextReminderAt: company.accreditation_next_reminder_at,
+      position,
     };
+
+    if (
+      company.accreditation_invitation_reminder_sent_at
+      && isSameAucklandDate(company.accreditation_invitation_reminder_sent_at, new Date())
+    ) {
+      summary.skipped += 1;
+      summary.results.push({
+        ...baseResult,
+        status: 'skipped',
+        reason: 'already_sent_today',
+      });
+      continue;
+    }
 
     let recipient;
     try {
@@ -240,7 +344,7 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
         recipient_email: company.contact_email || 'unknown',
         status: 'failed',
         error_message: error.message,
-        metadata: { stage: 'resolve_recipient' },
+        metadata: { position, stage: 'resolve_recipient' },
       });
       continue;
     }
@@ -252,9 +356,14 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
         status: 'skipped',
         reason: 'no_recipient_email',
       });
-      if (!dryRun) {
-        await deferReminder(adminClient, company, 'No recipient email found');
-      }
+      await logEmailSend(adminClient, {
+        email_type: TEMPLATE_TYPE,
+        company_id: company.id,
+        recipient_email: 'unknown',
+        status: 'skipped',
+        error_message: 'No recipient email found',
+        metadata: { position, stage: 'resolve_recipient' },
+      });
       continue;
     }
 
@@ -284,6 +393,7 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
         recipient_email: recipient.email,
         status: 'sent',
         metadata: {
+          position,
           recipientSource: recipient.source,
           messageId: sendResult.messageId || null,
         },
@@ -311,7 +421,7 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
         recipient_email: recipient.email,
         status: 'failed',
         error_message: error.message,
-        metadata: { recipientSource: recipient.source },
+        metadata: { position, recipientSource: recipient.source },
       });
     }
   }
@@ -320,7 +430,6 @@ async function runAccreditationInvitationReminders({ dryRun = false } = {}) {
 }
 
 module.exports = {
-  buildNextReminderAt,
-  getReminderIntervalDays,
+  getBatchRangesForToday,
   runAccreditationInvitationReminders,
 };

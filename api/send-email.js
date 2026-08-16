@@ -579,15 +579,8 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                accreditation_invitation_sent_at: new Date().toISOString(),
+                accreditation_invitation_sent_at: new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' }),
                 accreditation_deadline: deadlineDate,
-                accreditation_next_reminder_at: (() => {
-                  const days = parseInt(process.env.REMINDER_INTERVAL_DAYS || '7', 10);
-                  const intervalDays = Number.isFinite(days) && days > 0 ? days : 7;
-                  const next = new Date();
-                  next.setUTCDate(next.getUTCDate() + intervalDays);
-                  return next.toISOString();
-                })(),
               }),
             });
 

@@ -324,7 +324,7 @@ const EmailTemplatesScreen = () => {
                   <View style={styles.testEmailBox}>
                     <Text style={styles.testEmailTitle}>Send test email</Text>
                     <Text style={styles.testEmailHelp}>
-                      Sends one reminder to your inbox using the saved template plus the automatic logos and Contact Us footer. This does not affect the scheduled reminder job or any customer records.
+                      Sends one reminder to your inbox using the saved template plus the automatic logos and Contact Us footer. This does not affect the daily cron batch or any customer records.
                     </Text>
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>Your email address</Text>
