@@ -13,6 +13,7 @@ const {
   syncInvitedAdminAuthUser,
 } = require('./supabaseAdmin');
 const { wrapEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const { buildNextReminderAt } = require('./lib/reminderScheduler');
 
 const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
 const crypto = require('crypto');
@@ -579,8 +580,9 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                accreditation_invitation_sent_at: new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' }),
+                accreditation_invitation_sent_at: new Date().toISOString(),
                 accreditation_deadline: deadlineDate,
+                accreditation_next_reminder_at: buildNextReminderAt(),
               }),
             });
 
