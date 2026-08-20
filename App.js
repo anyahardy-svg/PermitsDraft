@@ -245,9 +245,10 @@ const formatDateToDDMMYYYY = (dateInput) => {
     if (dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
       return dateInput;
     }
-    // ISO format (yyyy-mm-dd)
-    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      const [year, month, day] = dateInput.split('-');
+    // ISO format (yyyy-mm-dd) or ISO datetime (yyyy-mm-ddTHH:mm:ss...)
+    const isoDateMatch = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoDateMatch) {
+      const [, year, month, day] = isoDateMatch;
       return `${day}/${month}/${year}`;
     }
     return '';
@@ -10199,6 +10200,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     };
 
+    const handleSaveNextReminderAt = async (companyId, dateText) => {
+      const trimmed = String(dateText || '').trim();
+      const company = companies.find((item) => item.id === companyId);
+      const existingFormatted = formatDateToDDMMYYYY(
+        company?.accreditation_next_reminder_at || company?.accreditationNextReminderAt
+      );
+
+      if (trimmed === existingFormatted) {
+        return;
+      }
+
+      try {
+        if (!trimmed) {
+          await updateCompany(companyId, { accreditation_next_reminder_at: null });
+        } else {
+          if (!isValidDateFormat(trimmed)) {
+            window.alert('Invalid date format. Use dd/mm/yyyy');
+            return;
+          }
+
+          const isoDate = parseDateToISO(trimmed);
+          if (!isoDate) {
+            window.alert('Invalid date. Use dd/mm/yyyy');
+            return;
+          }
+
+          await updateCompany(companyId, {
+            accreditation_next_reminder_at: `${isoDate}T00:00:00.000Z`,
+          });
+        }
+
+        const freshCompanies = await listCompanies();
+        setCompanies(freshCompanies);
+      } catch (error) {
+        window.alert('Failed to save next reminder date: ' + error.message);
+      }
+    };
+
     const handleImportCSV = () => {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -10823,6 +10862,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Matrices</Text>
                         <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
+                        <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Next Reminder Email</Text>
                         <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                       </View>
 
@@ -10968,6 +11008,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     : new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' }))
                                   : '—'}
                               </Text>
+                            </View>
+
+                            {/* Next Reminder Email Column */}
+                            <View style={{ width: 160, padding: 8, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <TextInput
+                                key={`next-reminder-${company.id}-${company.accreditation_next_reminder_at || 'empty'}`}
+                                defaultValue={formatDateToDDMMYYYY(company.accreditation_next_reminder_at || company.accreditationNextReminderAt) || ''}
+                                placeholder="dd/mm/yyyy"
+                                placeholderTextColor="#9CA3AF"
+                                onEndEditing={(event) => handleSaveNextReminderAt(company.id, event.nativeEvent.text)}
+                                style={{
+                                  borderWidth: 1,
+                                  borderColor: '#D1D5DB',
+                                  borderRadius: 4,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 6,
+                                  fontSize: 13,
+                                  color: '#374151',
+                                  backgroundColor: 'white',
+                                  textAlign: 'center',
+                                }}
+                              />
                             </View>
                             
                             <View style={{ width: 160, flexDirection: 'row', justifyContent: 'center', gap: 3, padding: 8 }}>
