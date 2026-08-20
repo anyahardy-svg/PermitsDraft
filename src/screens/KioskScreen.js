@@ -590,8 +590,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setContractorVisitingPerson('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
-        
-        // Then show status alert based on induction status
+        showTransientMessage('You are signed in');
+
         if (result?.isExpired) {
           Alert.alert(
             '⚠️ Induction Expired',
@@ -602,8 +602,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             '⚠️ Induction Required',
             `${contractorName} is not inducted at ${site.name}. They have been checked in but induction is required.`
           );
-        } else {
-          showTransientMessage('You are signed in');
         }
       } else {
         Alert.alert('Error', result?.error || 'Check-in failed');
