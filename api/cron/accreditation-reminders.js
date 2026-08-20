@@ -1,30 +1,12 @@
 const { runDailyReminders } = require('../jobs/runDailyReminders');
-
-function isAuthorized(req) {
-  if (req.headers['x-vercel-cron'] === '1') {
-    return true;
-  }
-
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    return false;
-  }
-
-  const authHeader = req.headers.authorization || '';
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  const headerSecret = req.headers['x-cron-secret'];
-  return headerSecret === cronSecret;
-}
+const { isAuthorizedCronRequest } = require('../lib/cronAuth');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!isAuthorized(req)) {
+  if (!isAuthorizedCronRequest(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
