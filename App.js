@@ -79,6 +79,7 @@ import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, upd
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
+import { showTransientMessage } from './src/utils/transientMessage';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
 // List of all available sites
@@ -23981,9 +23982,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'contractorAuth':
       return (
         <ContractorAuthScreen
-          onLoginSuccess={({ contractorId, contractorName, companyId, email }) => {
+          onLoginSuccess={({ contractorId, contractorName, companyId, email }, options) => {
             // Contractor logged in successfully
             console.log('✅ Contractor logged in:', contractorName, 'Company:', companyId);
+            if (options?.showSignedInToast) {
+              showTransientMessage('You are signed in');
+            }
             // Store company ID so auth checks pass
             setSelectedCompanyId(companyId);
             console.log('✅ selectedCompanyId set to:', companyId);
