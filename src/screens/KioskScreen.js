@@ -29,6 +29,7 @@ import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import KioskBrandLogo from '../components/KioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
+import { showTransientMessage } from '../utils/transientMessage';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -602,7 +603,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             `${contractorName} is not inducted at ${site.name}. They have been checked in but induction is required.`
           );
         } else {
-          Alert.alert('Success', `${contractorName} signed in successfully`);
+          showTransientMessage('You are signed in');
         }
       } else {
         Alert.alert('Error', result?.error || 'Check-in failed');
@@ -624,7 +625,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone, visitingPerson || null);
       
       if (result?.success) {
-        Alert.alert('Success', `${formattedName} signed in successfully`);
+        showTransientMessage('You are signed in');
         // Clear all visitor form state
         setVisitorName('');
         setVisitorCompany('');

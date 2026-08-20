@@ -78,6 +78,7 @@ import MarkdownRenderer from './src/components/MarkdownRenderer';
 import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
+import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
 // List of all available sites
@@ -25860,10 +25861,11 @@ const AppRouter = ({ initialRoute }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       {mainContent}
       {renderFloatingButton()}
-    </>
+      <TransientMessageOverlay />
+    </View>
   );
 };
 

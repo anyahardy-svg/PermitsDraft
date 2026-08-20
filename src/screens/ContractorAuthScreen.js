@@ -26,6 +26,7 @@ import {
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
 import ContractorSiteFooter from '../components/ContractorSiteFooter';
+import { showTransientMessage } from '../utils/transientMessage';
 
 function readInviteParamsFromUrl() {
   if (typeof window === 'undefined') {
@@ -477,7 +478,7 @@ export default function ContractorAuthScreen({
       const response = await loginWithEmailPassword(email, password);
 
       if (response.success && response.data) {
-        // Login successful
+        showTransientMessage('You are signed in');
         onLoginSuccess({
           contractorId: response.data?.contractorId,
           contractorName: response.data?.contractorName,
