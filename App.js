@@ -55,6 +55,7 @@ import {
   resolveAccreditationDisplayStatus,
 } from './src/utils/accreditation';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
+import JseaAdminScreen from './src/screens/JseaAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
 import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
@@ -3793,6 +3794,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'isolation-register': 'manage_isolations',
         'visitor-inductions': 'manage_visitor_inductions',
         'inductions': 'manage_inductions',
+        'jsea-templates': 'manage_jsea_templates',
         'business-units': 'manage_business_units',
         'suppliers': 'manage_suppliers',
         'accredited-companies': 'manage_accredited_companies',
@@ -3850,6 +3852,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_isolations': '/admin/isolation-register/',
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
+        'manage_jsea_templates': '/admin/jsea-templates/',
         'manage_business_units': '/admin/business-units/',
         'manage_suppliers': '/admin/suppliers/',
         'manage_accredited_companies': '/admin/accredited-companies/',
@@ -4054,6 +4057,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'isolation-register': 'manage_isolations',
             'visitor-inductions': 'manage_visitor_inductions',
             'inductions': 'manage_inductions',
+            'jsea-templates': 'manage_jsea_templates',
             'business-units': 'manage_business_units',
             'suppliers': 'manage_suppliers',
             'accredited-companies': 'manage_accredited_companies',
@@ -24041,6 +24045,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           styles={styles}
         />
       );
+    case 'manage_jsea_templates':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <JseaAdminScreen
+          onBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
+      );
     case 'contractorAuth':
       return (
         <ContractorAuthScreen
@@ -25679,6 +25695,7 @@ const AppRouter = ({ initialRoute }) => {
           'isolation-register': 'manage_isolations',
           'visitor-inductions': 'manage_visitor_inductions',
           'inductions': 'manage_inductions',
+          'jsea-templates': 'manage_jsea_templates',
           'business-units': 'manage_business_units',
           'suppliers': 'manage_suppliers',
           'accredited-companies': 'manage_accredited_companies',

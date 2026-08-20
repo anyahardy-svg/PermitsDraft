@@ -162,6 +162,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/jsea-templates",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/jsea-templates/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/business-units",
       "destination": "/index.html"
     },

@@ -82,6 +82,10 @@ export default function AdminDashboard({
             <Text style={styles.cardNumber}>📚</Text>
             <Text style={styles.cardLabel}>Inductions</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F59E0B' }]} onPress={() => onNavigate('manage_jsea_templates')}>
+            <Text style={styles.cardNumber}>📝</Text>
+            <Text style={styles.cardLabel}>JSEA Templates</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => onNavigate('manage_business_units')}>
             <Text style={styles.cardNumber}>{businessUnitsCount}</Text>
             <Text style={styles.cardLabel}>Business Units</Text>
