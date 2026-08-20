@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { registerTransientMessageOverlay } from '../utils/transientMessage';
 
 const TransientMessageOverlay = () => {
@@ -41,7 +41,7 @@ const TransientMessageOverlay = () => {
     };
   }, [showMessage]);
 
-  if (Platform.OS === 'android' || !message) {
+  if (!message) {
     return null;
   }
 
@@ -63,25 +63,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 48,
+    paddingTop: 56,
     zIndex: 99999,
     elevation: 99999,
   },
   banner: {
     backgroundColor: '#10B981',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 22,
+    paddingHorizontal: 36,
+    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    maxWidth: '90%',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    maxWidth: '92%',
+    minWidth: 280,
   },
   text: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     textAlign: 'center',
   },
 });

@@ -11,13 +11,13 @@ export function registerTransientMessageOverlay(handler) {
 export function showTransientMessage(message, durationMs = DEFAULT_DURATION_MS) {
   if (!message) return;
 
-  if (Platform.OS === 'android') {
-    ToastAndroid.show(message, ToastAndroid.SHORT);
+  if (overlayHandler) {
+    overlayHandler(message, durationMs);
     return;
   }
 
-  if (overlayHandler) {
-    overlayHandler(message, durationMs);
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
     return;
   }
 
