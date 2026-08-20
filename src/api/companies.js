@@ -3,7 +3,7 @@ import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
 
-const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type';
+const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type';
 
 // Helper function to transform Supabase data to app format
 const transformCompany = (dbCompany) => {
@@ -51,6 +51,8 @@ const transformCompany = (dbCompany) => {
     accreditation_invitation_sent_at: dbCompany.accreditation_invitation_sent_at || null,
     accreditationDeadline: dbCompany.accreditation_deadline || null,
     accreditation_deadline: dbCompany.accreditation_deadline || null,
+    accreditationNextReminderAt: dbCompany.accreditation_next_reminder_at || null,
+    accreditation_next_reminder_at: dbCompany.accreditation_next_reminder_at || null,
     createdAt: dbCompany.created_at,
     created_at: dbCompany.created_at,
     updatedAt: dbCompany.updated_at,
@@ -187,7 +189,7 @@ export const updateCompany = async (companyId, updates) => {
       console.warn('⚠️ updateCompany called with null/undefined companyId');
       return null;
     }
-    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'accreditation_next_reminder_at', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       // Support both camelCase and snake_case
