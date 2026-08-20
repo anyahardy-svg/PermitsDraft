@@ -305,6 +305,58 @@ export async function saveJseaTemplate(jseaName, jseaSteps, businessUnitIds, com
 }
 
 /**
+ * Get all JSEA templates (for admin management)
+ * @returns {Array} All JSEA templates with business unit associations
+ */
+export async function getAllJseaTemplates() {
+  try {
+    const { data: allTemplates, error: listError } = await supabase
+      .from('templates')
+      .select('id, name, data, company_id, created_at, updated_at')
+      .eq('template_type', 'jsea')
+      .order('name', { ascending: true });
+
+    if (listError) throw listError;
+
+    const templateIds = (allTemplates || []).map((template) => template.id);
+    let allBUAssociations = {};
+
+    if (templateIds.length > 0) {
+      const { data: buAssociations } = await supabase
+        .from('template_business_units')
+        .select('template_id, business_unit_id')
+        .in('template_id', templateIds);
+
+      if (buAssociations) {
+        buAssociations.forEach((row) => {
+          if (!allBUAssociations[row.template_id]) {
+            allBUAssociations[row.template_id] = [];
+          }
+          allBUAssociations[row.template_id].push(row.business_unit_id);
+        });
+      }
+    }
+
+    const transformedData = (allTemplates || []).map((template) => ({
+      id: template.id,
+      template_name: template.name,
+      name: template.name,
+      jsea: template.data?.steps || [],
+      company_id: template.data?.company_id || template.company_id || null,
+      business_unit_ids: allBUAssociations[template.id] || template.data?.business_unit_ids || [],
+      site_ids: template.data?.site_ids || [],
+      created_at: template.created_at,
+      updated_at: template.updated_at,
+    }));
+
+    return { success: true, data: transformedData };
+  } catch (error) {
+    console.error('Get all JSEA templates error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get all JSEA templates for a business unit
  * @param {UUID} businessUnitId
  * @returns {Array} JSEA templates
