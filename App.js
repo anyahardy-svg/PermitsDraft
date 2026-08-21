@@ -57,6 +57,7 @@ import {
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
+import JseaSummaryTable, { buildJseaSummaryGroups } from './src/components/JseaSummaryTable';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
 import ContractorAuthScreen from './src/screens/ContractorAuthScreen';
 import AuthCallbackScreen from './src/screens/AuthCallbackScreen';
@@ -5641,55 +5642,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   );
                 })()}
                 {/* JSEA Task Controls Summary */}
-                {(() => {
-                  const allControls = [];
-                  
-                  // Include saved JSEAs from formData.jseas
-                  if (formData.jseas && formData.jseas.length > 0) {
-                    formData.jseas.forEach((jsea, jseaIdx) => {
-                      if (jsea.taskSteps && jsea.taskSteps.length > 0) {
-                        jsea.taskSteps.forEach((step, stepIdx) => {
-                          if (step.controls) {
-                            allControls.push({
-                              jseaIdx,
-                              stepIdx,
-                              step: step.description || step.step || 'No description',
-                              controls: step.controls,
-                              isSaved: true
-                            });
-                          }
-                        });
-                      }
-                    });
-                  }
-                  
-                  // ALSO include currently editing JSEA (currentJseaData) even before it's saved
-                  if (currentJseaData && currentJseaData.taskSteps && currentJseaData.taskSteps.length > 0) {
-                    currentJseaData.taskSteps.forEach((step, stepIdx) => {
-                      if (step.controls) {
-                        allControls.push({
-                          jseaIdx: '(current)',
-                          stepIdx,
-                          step: step.description || step.step || 'No description',
-                          controls: step.controls,
-                          isSaved: false
-                        });
-                      }
-                    });
-                  }
-                  
-                  return allControls.length > 0 && (
-                    <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>JSEA Task Controls</Text>
-                      {allControls.map((item, idx) => (
-                        <View key={idx} style={{ marginBottom: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: item.isSaved ? '#2563EB' : '#F59E0B' }}>
-                          <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 2 }}>JSEA {item.jseaIdx}, Step {item.stepIdx + 1}: {item.step} {!item.isSaved ? '(editing)' : ''}</Text>
-                          <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '500', marginBottom: 4 }}>Control: {item.controls}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  );
-                })()}
+                <JseaSummaryTable
+                  jseas={formData.jseas}
+                  currentJsea={currentJseaData}
+                  title="JSEA Task Controls"
+                  style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 12 }}
+                />
 
                 {/* Safety Watches & Firewatch */}
                 {(() => {
@@ -5741,7 +5699,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 {!Object.keys(formData.specializedPermits).some(permitKey => formData.specializedPermits[permitKey].required && permitQuestionnaires[permitKey]?.some(q => formData.specializedPermits[permitKey].questionnaire[q.id]?.controls)) &&
                  !Object.keys(formData.singleHazards).some(hazardKey => formData.singleHazards[hazardKey].present && formData.singleHazards[hazardKey].controls) &&
                  !(formData.jsea?.additionalPrecautions) &&
-                 (!formData.jseas || formData.jseas.length === 0) && (
+                 buildJseaSummaryGroups({ jseas: formData.jseas, currentJsea: currentJseaData }).length === 0 && (
                   <Text style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 14 }}>No controls have been filled in yet.</Text>
                 )}
               </View>
@@ -7324,27 +7282,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             )}
 
             {/* JSEA Controls */}
-            {permit.jseas && permit.jseas.length > 0 && (
-              <View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#B45309', marginBottom: 10 }}>Job Safety & Environmental Analysis (JSEA):</Text>
-                {permit.jseas.map((jsea, jIdx) => (
-                  <View key={jIdx} style={{ marginLeft: 12, marginBottom: 16 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E' }}>JSEA {jIdx + 1}: {jsea.id || 'N/A'}</Text>
-                    {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
-                      jsea.taskSteps.map((step, sIdx) => (
-                        <View key={sIdx} style={{ marginLeft: 16, marginTop: 10, paddingBottom: 10, borderBottomWidth: sIdx < jsea.taskSteps.length - 1 ? 1 : 0, borderBottomColor: '#FED7AA' }}>
-                          <Text style={{ fontSize: 13, color: '#92400E', fontWeight: '600' }}>Step {sIdx + 1}: {step.task}</Text>
-                          <Text style={{ fontSize: 13, color: '#B45309', marginTop: 4 }}>→ Hazards: {step.hazards || 'None identified'}</Text>
-                          <Text style={{ fontSize: 13, color: '#78350F', marginTop: 4 }}>→ Controls: {step.controls || 'None specified'}</Text>
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 16, fontStyle: 'italic' }}>No steps recorded</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
+            <JseaSummaryTable
+              jseas={permit.jseas}
+              title="Job Safety & Environmental Analysis (JSEA):"
+              variant="completed"
+            />
           </View>
         )}
 
@@ -8055,98 +7997,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             })()}
 
             {/* JSEA Task Steps - Full Details */}
-            {editData.jseas && editData.jseas.length > 0 && (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
-                {editData.jseas.map((jsea, jseaIdx) => (
-                  <View key={jsea.id || jseaIdx} style={{ marginBottom: 8, marginLeft: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>JSEA {jseaIdx + 1}: {jsea.title || 'Untitled'}</Text>
-                    {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
-                      <View style={{ marginBottom: 8 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
-                        {jsea.taskSteps.map((step, idx) => (
-                          <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                            <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.description || step.step}</Text>
-                            {step.hazards && (
-                              <View style={{ marginBottom: 3 }}>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Hazards:</Text>
-                                <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.hazards}</Text>
-                              </View>
-                            )}
-                            {step.controls && (
-                              <View style={{ marginBottom: 3 }}>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Controls:</Text>
-                                <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.controls}</Text>
-                              </View>
-                            )}
-                            {step.riskLevel && (
-                              <View>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Risk Level:</Text>
-                                <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', fontSize: 14, marginLeft: 4 }]}>{step.riskLevel}</Text>
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                      </View>
-                    ) : (
-                      <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic', fontSize: 11 }]}>No task steps added</Text>
-                    )}
-                    {jsea.additionalPrecautions && (
-                      <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        <Text style={[styles.detailText, { fontWeight: '500', color: '#6B7280', fontSize: 14, marginBottom: 3 }]}>Additional Precautions:</Text>
-                        <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                          <Text style={[styles.detailText, { color: '#1F2937', fontWeight: '500', fontSize: 11 }]}>{jsea.additionalPrecautions}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* JSEA from jsea field (single JSEA, not array) */}
-            {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
-                <View style={{ marginBottom: 8, marginLeft: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F2937', marginBottom: 6 }}>JSEA: {editData.jsea.title || 'Untitled'}</Text>
-                  <View style={{ marginBottom: 8 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 4 }}>Task Steps:</Text>
-                    {editData.jsea.taskSteps.map((step, idx) => (
-                      <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#2563EB' }}>
-                        <Text style={[styles.detailText, { fontWeight: '600', color: '#1F2937', marginBottom: 4 }]}>Step {idx + 1}: {step.description || step.step}</Text>
-                        {step.hazards && (
-                          <View style={{ marginBottom: 3 }}>
-                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Hazards:</Text>
-                            <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.hazards}</Text>
-                          </View>
-                        )}
-                        {step.controls && (
-                          <View style={{ marginBottom: 3 }}>
-                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Controls:</Text>
-                            <Text style={[styles.detailText, { color: '#374151', fontSize: 14, marginLeft: 4 }]}>{step.controls}</Text>
-                          </View>
-                        )}
-                        {step.riskLevel && (
-                          <View>
-                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 13, marginBottom: 1 }]}>Risk Level:</Text>
-                            <Text style={[styles.detailText, { color: step.riskLevel === 'HIGH' ? '#DC2626' : step.riskLevel === 'MEDIUM' ? '#EA580C' : '#059669', fontWeight: '600', fontSize: 14, marginLeft: 4 }]}>{step.riskLevel}</Text>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                  {editData.jsea.additionalPrecautions && (
-                    <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                      <Text style={[styles.detailText, { fontWeight: '500', color: '#6B7280', fontSize: 14, marginBottom: 3 }]}>Additional Precautions:</Text>
-                      <View style={{ paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#F59E0B' }}>
-                        <Text style={[styles.detailText, { color: '#1F2937', fontWeight: '500', fontSize: 11 }]}>{editData.jsea.additionalPrecautions}</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
+            <JseaSummaryTable
+              jseas={editData.jseas}
+              jsea={editData.jsea}
+              title="JSEA Details:"
+              showRiskLevel
+              detailTextStyle={styles.detailText}
+            />
 
             {/* Safety Watches & Firewatch */}
             {(() => {
@@ -17003,42 +16860,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
 
                 {/* JSEA Task Steps - Compact View */}
-                {(editData.jsea?.taskSteps || (editData.jseas && editData.jseas.length > 0)) && (
-                  <View style={{ marginTop: 12 }}>
-                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
-                    
-                    {/* Display singular jsea first if it has task steps */}
-                    {editData.jsea && editData.jsea.taskSteps && editData.jsea.taskSteps.length > 0 && (
-                      <View style={{ marginBottom: 12 }}>
-                        {editData.jsea.taskSteps.map((step, idx) => (
-                          <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                            <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA 1, Step {idx + 1}: {step.description || step.step}</Text>
-                            {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                    
-                    {/* Display jseas array if it exists */}
-                    {editData.jseas && editData.jseas.length > 0 && (
-                      editData.jseas.map((jsea, jseaIdx) => (
-                        <View key={jsea.id || jseaIdx} style={{ marginBottom: 12 }}>
-                          {jsea.taskSteps && jsea.taskSteps.length > 0 ? (
-                            jsea.taskSteps.map((step, idx) => (
-                              <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                                <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA {jseaIdx + 1}, Step {idx + 1}: {step.description || step.step}</Text>
-                                {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
-                              </View>
-                            ))
-                          ) : (
-                            <Text style={[styles.detailText, { color: '#9CA3AF', fontSize: 14, fontStyle: 'italic', marginLeft: 8 }]}>No task steps added</Text>
-                          )}
-                        </View>
-                      ))
-                    )}
-                  </View>
-                )}
-
+                <JseaSummaryTable
+                  jseas={editData.jseas}
+                  jsea={editData.jsea}
+                  title="JSEA Details:"
+                  detailTextStyle={styles.detailText}
+                />
 
                 {/* Safety Watches & Firewatch */}
                 {(() => {
@@ -20107,17 +19934,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
-                  <View>
-                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
-                    {editData.jsea?.taskSteps?.map((step, idx) => (
-                      <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                        <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA 1, Step {idx + 1}: {step.description || step.step || step.task}</Text>
-                        {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <JseaSummaryTable
+                  jseas={editData.jseas}
+                  jsea={editData.jsea}
+                  title="JSEA Details:"
+                  detailTextStyle={styles.detailText}
+                />
 
                 {/* Safety Watches & Firewatch Summary */}
                 {(() => {
@@ -22734,17 +22556,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 })()}
 
                 {/* JSEA Task Steps Controls */}
-                {editData.jsea?.taskSteps && editData.jsea.taskSteps.length > 0 && (
-                  <View>
-                    <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>JSEA Details:</Text>
-                    {editData.jsea?.taskSteps?.map((step, idx) => (
-                      <View key={idx} style={{ marginLeft: 8, marginBottom: 6 }}>
-                        <Text style={[styles.detailText, { color: '#6B7280', fontSize: 11 }]}>JSEA 1, Step {idx + 1}: {step.description || step.step || step.task}</Text>
-                        {step.controls && <Text style={[styles.detailText, { color: '#374151', fontWeight: '500' }]}>• Control: {step.controls}</Text>}
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <JseaSummaryTable
+                  jseas={editData.jseas}
+                  jsea={editData.jsea}
+                  title="JSEA Details:"
+                  detailTextStyle={styles.detailText}
+                />
 
                 {/* Safety Watches & Firewatch Summary */}
                 {(() => {
