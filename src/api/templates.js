@@ -952,6 +952,23 @@ async function logAudit(action, details, permitId = null) {
   }
 }
 
+/**
+ * Filter JSEA templates for the permit template loader modal.
+ * Matches admin JSEA screen: business unit, optional company, and name search.
+ */
+export function filterJseaTemplatesForLoader(templates, { businessUnitId, companyId = '', searchQuery = '' } = {}) {
+  if (!businessUnitId) return [];
+
+  const query = searchQuery.trim().toLowerCase();
+
+  return (templates || []).filter((template) => {
+    const matchesBu = (template.business_unit_ids || []).includes(businessUnitId);
+    const matchesCompany = !companyId || template.company_id === companyId;
+    const matchesSearch = !query || template.name?.toLowerCase().includes(query);
+    return matchesBu && matchesCompany && matchesSearch;
+  });
+}
+
 export default {
   savePermitAsTemplate,
   getTemplates,
