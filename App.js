@@ -10879,7 +10879,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 defaultValue={formatDateToDDMMYYYY(company.accreditation_next_reminder_at || company.accreditationNextReminderAt) || ''}
                                 placeholder="dd/mm/yyyy"
                                 placeholderTextColor="#9CA3AF"
-                                onEndEditing={(event) => handleSaveNextReminderAt(company.id, event.nativeEvent.text)}
+                                onBlur={(event) => handleSaveNextReminderAt(company.id, event.nativeEvent.text)}
+                                onSubmitEditing={(event) => handleSaveNextReminderAt(company.id, event.nativeEvent.text)}
                                 style={{
                                   borderWidth: 1,
                                   borderColor: '#D1D5DB',
