@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
-import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates } from './src/api/templates';
+import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates, filterJseaTemplatesForLoader } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
 import { createCompany, listCompanies, searchCompanies, updateCompany, deleteCompany, getCompanyByName, upsertCompany, approveCompanyAccreditation, rejectCompanyAccreditation, getContractorsByCompany } from './src/api/companies';
@@ -1193,6 +1193,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedCompanyForTemplate, setSelectedCompanyForTemplate] = useState('');
   const [selectedBuForLoader, setSelectedBuForLoader] = useState('');
   const [selectedCompanyForLoader, setSelectedCompanyForLoader] = useState('');
+  const [jseaTemplateSearchQuery, setJseaTemplateSearchQuery] = useState('');
   const [showPermitTemplateLoader, setShowPermitTemplateLoader] = useState(false);
   const [permitTemplatesAvailable, setPermitTemplatesAvailable] = useState([]);
   const [loadingPermitTemplates, setLoadingPermitTemplates] = useState(false);
@@ -4351,6 +4352,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentJseaData(initialJSEA);
     }
     setSelectedBuForLoader(businessUnitId || '');
+    setJseaTemplateSearchQuery('');
     setShowJseaTemplateLoader(true);
     loadJseaTemplatesForLoader(businessUnitId);
   }, [businessUnitId, currentJseaData, initialJSEA]);
@@ -6092,32 +6094,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               </View>
 
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: 8
+                }}>Search</Text>
+                <TextInput
+                  value={jseaTemplateSearchQuery}
+                  onChangeText={setJseaTemplateSearchQuery}
+                  placeholder="Search templates..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#1F2937',
+                    backgroundColor: 'white'
+                  }}
+                />
+              </View>
+
               {loadingJseaTemplates ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading templates...</Text>
                 </View>
-              ) : jseaTemplatesAvailable.filter(t => {
-                // Filter by BU
-                const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoader);
-                // Filter by company if selected
-                const matchesCompany = !selectedCompanyForLoader || t.company_id === selectedCompanyForLoader;
-                return matchesBu && matchesCompany;
+              ) : filterJseaTemplatesForLoader(jseaTemplatesAvailable, {
+                businessUnitId: selectedBuForLoader,
+                companyId: selectedCompanyForLoader,
+                searchQuery: jseaTemplateSearchQuery,
               }).length === 0 ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#9CA3AF', fontSize: 14, fontStyle: 'italic' }}>
-                    No templates available for this business unit.
+                    {jseaTemplateSearchQuery.trim()
+                      ? 'No templates match your search.'
+                      : 'No templates available for this business unit.'}
                   </Text>
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 400, marginBottom: 16 }}>
-                  {jseaTemplatesAvailable
-                    .filter(t => {
-                      // Filter by BU
-                      const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoader);
-                      // Filter by company if selected
-                      const matchesCompany = !selectedCompanyForLoader || t.company_id === selectedCompanyForLoader;
-                      return matchesBu && matchesCompany;
-                    })
+                  {filterJseaTemplatesForLoader(jseaTemplatesAvailable, {
+                    businessUnitId: selectedBuForLoader,
+                    companyId: selectedCompanyForLoader,
+                    searchQuery: jseaTemplateSearchQuery,
+                  })
                     .map((template) => {
                     // Get company name if company_id exists
                     const companyName = template.company_id 
@@ -15226,6 +15250,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [loadingJseaTemplatesDraft, setLoadingJseaTemplatesDraft] = React.useState(false);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
     const [selectedCompanyForLoaderDraft, setSelectedCompanyForLoaderDraft] = React.useState('');
+    const [jseaTemplateSearchQueryDraft, setJseaTemplateSearchQueryDraft] = React.useState('');
     const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
@@ -15601,6 +15626,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const handleLoadTemplateDraft = useCallback(() => {
       console.log('handleLoadTemplateDraft callback executing');
       setSelectedBuForLoaderDraft(businessUnitId || '');
+      setJseaTemplateSearchQueryDraft('');
       setShowJseaTemplateLoaderDraft(true);
       loadJseaTemplatesForLoaderDraft(businessUnitId);
     }, [businessUnitId]);
@@ -17530,26 +17556,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             </View>
 
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 8
+              }}>Search</Text>
+              <TextInput
+                value={jseaTemplateSearchQueryDraft}
+                onChangeText={setJseaTemplateSearchQueryDraft}
+                placeholder="Search templates..."
+                placeholderTextColor="#9CA3AF"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                  backgroundColor: 'white'
+                }}
+              />
+            </View>
+
             {loadingJseaTemplatesDraft ? (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
-            ) : jseaTemplatesAvailableDraft.filter(t => {
-              const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
-              const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
-              return matchesBu && matchesCompany;
+            ) : filterJseaTemplatesForLoader(jseaTemplatesAvailableDraft, {
+              businessUnitId: selectedBuForLoaderDraft,
+              companyId: selectedCompanyForLoaderDraft,
+              searchQuery: jseaTemplateSearchQueryDraft,
             }).length > 0 ? (
               <ScrollView 
                 style={{ maxHeight: 300 }}
                 scrollEnabled={true}
                 pointerEvents="box-none"
               >
-                {jseaTemplatesAvailableDraft
-                  .filter(t => {
-                    const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
-                    const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
-                    return matchesBu && matchesCompany;
-                  })
+                {filterJseaTemplatesForLoader(jseaTemplatesAvailableDraft, {
+                  businessUnitId: selectedBuForLoaderDraft,
+                  companyId: selectedCompanyForLoaderDraft,
+                  searchQuery: jseaTemplateSearchQueryDraft,
+                })
                   .map((template, idx) => (
                   <TouchableOpacity
                     key={`template-${template.id}-${idx}`}
@@ -17576,7 +17626,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </ScrollView>
             ) : (
               <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
-                No templates available
+                {jseaTemplateSearchQueryDraft.trim()
+                  ? 'No templates match your search.'
+                  : 'No templates available'}
               </Text>
             )}
           </View>
@@ -18551,6 +18603,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const [filteredCsSafetyWatchContractorsInspection, setFilteredCsSafetyWatchContractorsInspection] = React.useState([]);
     const [selectedBuForLoaderDraft, setSelectedBuForLoaderDraft] = React.useState(businessUnitId || '');
     const [selectedCompanyForLoaderDraft, setSelectedCompanyForLoaderDraft] = React.useState('');
+    const [jseaTemplateSearchQueryDraft, setJseaTemplateSearchQueryDraft] = React.useState('');
     const [showRiskMatrixDraft, setShowRiskMatrixDraft] = React.useState(false);
     const [selectedLikelihoodDraft, setSelectedLikelihoodDraft] = React.useState('');
     const [selectedSeverityDraft, setSelectedSeverityDraft] = React.useState('');
@@ -18763,6 +18816,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const handleLoadTemplateDraft = useCallback(() => {
       console.log('handleLoadTemplateDraft callback executing');
       setSelectedBuForLoaderDraft(businessUnitId || '');
+      setJseaTemplateSearchQueryDraft('');
       setShowJseaTemplateLoaderDraft(true);
       loadJseaTemplatesForLoaderDraft(businessUnitId);
     }, [businessUnitId]);
@@ -20469,26 +20523,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
             </View>
 
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: 8
+              }}>Search</Text>
+              <TextInput
+                value={jseaTemplateSearchQueryDraft}
+                onChangeText={setJseaTemplateSearchQueryDraft}
+                placeholder="Search templates..."
+                placeholderTextColor="#9CA3AF"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  color: '#1F2937',
+                  backgroundColor: 'white'
+                }}
+              />
+            </View>
+
             {loadingJseaTemplatesDraft ? (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                 <ActivityIndicator size="large" color="#3B82F6" />
               </View>
-            ) : jseaTemplatesAvailableDraft.filter(t => {
-              const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
-              const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
-              return matchesBu && matchesCompany;
+            ) : filterJseaTemplatesForLoader(jseaTemplatesAvailableDraft, {
+              businessUnitId: selectedBuForLoaderDraft,
+              companyId: selectedCompanyForLoaderDraft,
+              searchQuery: jseaTemplateSearchQueryDraft,
             }).length > 0 ? (
               <ScrollView 
                 style={{ maxHeight: 300 }}
                 scrollEnabled={true}
                 pointerEvents="box-none"
               >
-                {jseaTemplatesAvailableDraft
-                  .filter(t => {
-                    const matchesBu = (t.business_unit_ids || []).includes(selectedBuForLoaderDraft);
-                    const matchesCompany = !selectedCompanyForLoaderDraft || t.company_id === selectedCompanyForLoaderDraft;
-                    return matchesBu && matchesCompany;
-                  })
+                {filterJseaTemplatesForLoader(jseaTemplatesAvailableDraft, {
+                  businessUnitId: selectedBuForLoaderDraft,
+                  companyId: selectedCompanyForLoaderDraft,
+                  searchQuery: jseaTemplateSearchQueryDraft,
+                })
                   .map((template, idx) => (
                   <TouchableOpacity
                     key={`template-${template.id}-${idx}`}
@@ -20514,7 +20592,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 ))}
               </ScrollView>
             ) : (
-              <Text style={{ textAlign: 'center', color: '#9CA3AF' }}>No templates available</Text>
+              <Text style={{ textAlign: 'center', color: '#9CA3AF' }}>
+                {jseaTemplateSearchQueryDraft.trim()
+                  ? 'No templates match your search.'
+                  : 'No templates available'}
+              </Text>
             )}
           </View>
         </View>
