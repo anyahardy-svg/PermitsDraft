@@ -6,6 +6,7 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
+import { fetchAllBatchedByIds } from './pagination';
 import {
   buildCompanyTrainingMatrixStoragePath,
   extractTrainingRecordsStoragePath,
@@ -520,12 +521,12 @@ export async function getCompanyTrainingMatricesStatusBatch(companyIds) {
   }
 
   try {
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('id, training_matrices_total, training_matrices_approved')
-      .in('id', companyIds);
-
-    if (error) throw error;
+    const companies = await fetchAllBatchedByIds(companyIds, (batch) =>
+      supabase
+        .from('companies')
+        .select('id, training_matrices_total, training_matrices_approved')
+        .in('id', batch)
+    );
 
     const statusMap = {};
     companyIds.forEach(id => {

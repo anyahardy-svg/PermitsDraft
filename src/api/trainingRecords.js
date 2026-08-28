@@ -71,30 +71,71 @@ function formatDateForDb(date) {
 }
 
 function isValidFileType(file) {
-  // Check MIME type
-  if (ALLOWED_FILE_TYPES.includes(file.type)) {
+  if (!file?.name) {
+    return false;
+  }
+
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (ALLOWED_EXTENSIONS.includes(ext)) {
     return true;
   }
 
-  // Check file extension
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  return ALLOWED_EXTENSIONS.includes(ext);
+  return Boolean(file.type && ALLOWED_FILE_TYPES.includes(file.type));
 }
 
-async function getContractorStorageContext(contractorId) {
-  const { data, error } = await supabase
+function normalizeFileType(file) {
+  if (file?.type && ALLOWED_FILE_TYPES.includes(file.type)) {
+    return file.type;
+  }
+
+  const ext = '.' + (file?.name?.split('.').pop() || '').toLowerCase();
+  const mimeByExtension = {
+    '.pdf': 'application/pdf',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+  };
+
+  return mimeByExtension[ext] || 'application/pdf';
+}
+
+function getErrorMessage(error, fallback = 'Upload failed') {
+  if (!error) return fallback;
+  if (typeof error === 'string') return error;
+  return error.message || error.error_description || error.details || fallback;
+}
+
+async function getContractorStorageContext(contractorId, companyId = null) {
+  const { data: contractor, error: contractorError } = await supabase
     .from('contractors')
-    .select('id, name, companies(name)')
+    .select('id, name, company_id')
     .eq('id', contractorId)
     .single();
 
-  if (error) {
-    throw error;
+  if (contractorError) {
+    throw contractorError;
+  }
+
+  let companyName = 'unknown_company';
+  const resolvedCompanyId = companyId || contractor?.company_id;
+
+  if (resolvedCompanyId) {
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('name')
+      .eq('id', resolvedCompanyId)
+      .single();
+
+    if (!companyError && company?.name) {
+      companyName = company.name;
+    }
   }
 
   return {
-    contractorName: data?.name || 'unknown_contractor',
-    companyName: data?.companies?.name || 'unknown_company',
+    contractorName: contractor?.name || 'unknown_contractor',
+    companyName,
   };
 }
 
@@ -107,13 +148,20 @@ async function getContractorStorageContext(contractorId) {
  * @param {string} notes - Optional notes
  * @returns {Object} Upload result
  */
-export async function uploadTrainingRecord(contractorId, trainingType, file, expiryDate = null, notes = '') {
+export async function uploadTrainingRecord(
+  contractorId,
+  trainingType,
+  file,
+  expiryDate = null,
+  notes = '',
+  companyId = null
+) {
   try {
     console.log('📤 Uploading training record:', { contractorId, trainingType, fileName: file.name });
 
     // Validate file type
     if (!isValidFileType(file)) {
-      throw new Error('Only PDF and image files (JPG, PNG, GIF) are allowed');
+      throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
     }
 
     // Check file size (max 5MB)
@@ -122,7 +170,8 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
       throw new Error('File size exceeds 5MB limit');
     }
 
-    const { contractorName, companyName } = await getContractorStorageContext(contractorId);
+    const { contractorName, companyName } = await getContractorStorageContext(contractorId, companyId);
+    const fileType = normalizeFileType(file);
 
     // Generate readable file path: company/contractor/training_type/timestamp.ext
     const fileExt = file.name.split('.').pop();
@@ -137,7 +186,7 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
     console.log('📁 Uploading to storage:', fileName);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('training-records')
-      .upload(fileName, file);
+      .upload(fileName, file, { contentType: fileType });
 
     if (uploadError) {
       console.error('❌ Storage upload error:', uploadError);
@@ -162,7 +211,7 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
         file_name: file.name,
         file_url: publicUrl,
         file_size: file.size,
-        file_type: file.type || 'application/pdf',
+        file_type: fileType,
         expiry_date: formatDateForDb(expiryDate),
         notes: notes || null,
         status: 'pending'
@@ -178,20 +227,24 @@ export async function uploadTrainingRecord(contractorId, trainingType, file, exp
     console.log('✅ Training record created:', record.id);
     
     // Update company counters
-    const { data: contractor } = await supabase
-      .from('contractors')
-      .select('company_id')
-      .eq('id', contractorId)
-      .single();
-    
-    if (contractor?.company_id) {
-      await updateCompanyTrainingRecordsCounters(contractor.company_id);
+    let counterCompanyId = companyId;
+    if (!counterCompanyId) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('company_id')
+        .eq('id', contractorId)
+        .single();
+      counterCompanyId = contractor?.company_id;
+    }
+
+    if (counterCompanyId) {
+      await updateCompanyTrainingRecordsCounters(counterCompanyId);
     }
     
     return { success: true, data: record, message: `Training record uploaded for ${trainingType}` };
   } catch (error) {
     console.error('❌ Upload training record error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error, 'Failed to upload training record') };
   }
 }
 
@@ -452,13 +505,12 @@ export async function getCompanyTrainingRecordsStatusBatch(companyIds) {
   // Retry logic for transient network failures
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Single query for all companies instead of N separate queries
-      const { data: companies, error } = await supabase
-        .from('companies')
-        .select('id, training_records_total, training_records_approved')
-        .in('id', companyIds);
-
-      if (error) throw error;
+      const companies = await fetchAllBatchedByIds(companyIds, (batch) =>
+        supabase
+          .from('companies')
+          .select('id, training_records_total, training_records_approved')
+          .in('id', batch)
+      );
 
       // Map results to status objects
       const statusMap = {};
@@ -641,6 +693,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       }
 
       const { contractorName, companyName } = await getContractorStorageContext(record.contractor_id);
+      const fileType = normalizeFileType(file);
 
       // Generate readable file path: company/contractor/training_type/timestamp.ext
       const fileExt = file.name.split('.').pop();
@@ -655,7 +708,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       console.log('📁 Uploading to storage:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('training-records')
-        .upload(fileName, file);
+        .upload(fileName, file, { contentType: fileType });
 
       if (uploadError) {
         console.error('❌ Storage upload error:', uploadError);
@@ -687,7 +740,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       updateData.file_url = publicUrl;
       updateData.file_name = file.name;
       updateData.file_size = file.size;
-      updateData.file_type = file.type || 'application/pdf';
+      updateData.file_type = fileType;
 
       // Reset status to pending since new file uploaded
       updateData.status = 'pending';
@@ -730,7 +783,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
     return { success: true, data: updatedRecord, message: 'Training record updated' };
   } catch (error) {
     console.error('❌ Update training record error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error, 'Failed to update training record') };
   }
 }
 

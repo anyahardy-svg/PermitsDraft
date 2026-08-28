@@ -190,7 +190,9 @@ export default function TrainingRecordsScreen({
         selectedContractorId,
         trainingName.trim(),
         selectedFile,
-        expiryDate ? parseNZDate(expiryDate) : null
+        expiryDate ? parseNZDate(expiryDate) : null,
+        '',
+        loggedInCompanyId
       );
 
       if (response?.success) {
