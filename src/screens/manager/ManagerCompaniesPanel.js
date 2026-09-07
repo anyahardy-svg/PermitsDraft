@@ -39,7 +39,7 @@ function isInsuranceExpired(value) {
   return date < today;
 }
 
-export default function ManagerCompaniesPanel({ siteId, mode = 'at_site', onBack, styles }) {
+export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'at_site', onBack, styles, onCompanyAdded }) {
   const [companiesAtSite, setCompaniesAtSite] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +107,10 @@ export default function ManagerCompaniesPanel({ siteId, mode = 'at_site', onBack
     setAddingId(company.id);
     try {
       await addSiteToAccreditedCompany(company.id, siteId);
-      Alert.alert('Site added', `${company.name} is now linked to this site.`);
+      Alert.alert('Site added', `${company.name} is now linked to ${siteName || 'this site'}.`);
+      if (onCompanyAdded) {
+        onCompanyAdded();
+      }
       await runSearch();
     } catch (addError) {
       Alert.alert('Could not add site', addError?.message || 'Please try again.');
@@ -188,6 +191,14 @@ export default function ManagerCompaniesPanel({ siteId, mode = 'at_site', onBack
       ) : (
         <View style={{ flex: 1 }}>
           <View style={{ padding: 16, gap: 8 }}>
+            {siteName ? (
+              <Text style={{ color: '#374151', fontWeight: '600' }}>
+                Adding to site: {siteName}
+              </Text>
+            ) : null}
+            <Text style={{ color: '#6B7280', fontSize: 13 }}>
+              Shows accredited companies not yet linked to this site in companies.site_ids.
+            </Text>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}

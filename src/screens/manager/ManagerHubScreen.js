@@ -149,8 +149,10 @@ export default function ManagerHubScreen({
     return (
       <ManagerCompaniesPanel
         siteId={selectedSiteId}
+        siteName={selectedSiteName}
         mode="add"
         onBack={goToDashboard}
+        onCompanyAdded={loadCounts}
         styles={styles}
       />
     );

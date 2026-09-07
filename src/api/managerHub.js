@@ -43,26 +43,26 @@ export async function listAccreditedCompaniesAtSite(siteId) {
   return (data || []).filter(isAccreditedCompany).map(transformManagerCompany);
 }
 
-export async function searchAccreditedCompaniesNotAtSite(siteId, query = '', { limit = 50 } = {}) {
+export async function searchAccreditedCompaniesNotAtSite(siteId, query = '') {
   if (!siteId) {
     return [];
   }
 
   const trimmed = String(query || '').trim();
-  let request = supabase
-    .from('companies')
-    .select(COMPANY_MANAGER_COLUMNS)
-    .order('name', { ascending: true })
-    .limit(limit);
 
-  if (trimmed) {
-    request = request.ilike('name', `%${trimmed}%`);
-  }
+  const data = await fetchAllPaginated((from, to) => {
+    let request = supabase
+      .from('companies')
+      .select(COMPANY_MANAGER_COLUMNS)
+      .order('name', { ascending: true })
+      .range(from, to);
 
-  const { data, error } = await request;
-  if (error) {
-    throw error;
-  }
+    if (trimmed) {
+      request = request.ilike('name', `%${trimmed}%`);
+    }
+
+    return request;
+  });
 
   return (data || [])
     .filter(isAccreditedCompany)
@@ -97,6 +97,10 @@ export async function addSiteToAccreditedCompany(companyId, siteId) {
   const updated = await updateCompany(companyId, {
     site_ids: [...existingSiteIds, siteId],
   });
+
+  if (!updated) {
+    throw new Error('Failed to update company site list');
+  }
 
   return updated;
 }
