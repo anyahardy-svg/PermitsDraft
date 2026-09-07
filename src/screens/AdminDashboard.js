@@ -112,6 +112,13 @@ export default function AdminDashboard({
             <Text style={styles.cardNumber}>{accreditedCompaniesCount}</Text>
             <Text style={styles.cardLabel}>Accredited Companies</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#1D4ED8' }]}
+            onPress={() => onNavigate('manager_hub')}
+          >
+            <Text style={styles.cardNumber}>🏗️</Text>
+            <Text style={styles.cardLabel}>Site Manager Hub</Text>
+          </TouchableOpacity>
           {isSuperAdmin && (
             <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#F97316' }]} onPress={onShowAddAdminModal}>
               <Text style={styles.cardNumber}>+</Text>

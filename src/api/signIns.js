@@ -259,6 +259,21 @@ export async function getSignedInPeople(siteId) {
   }
 }
 
+function enrichSignInRecord(record) {
+  const checkInTime = new Date(record.check_in_time);
+  const checkOutTime = record.check_out_time ? new Date(record.check_out_time) : new Date();
+  const durationMinutes = Math.round((checkOutTime - checkInTime) / 60000);
+  const isContractor = Boolean(record.contractor_id);
+
+  return {
+    ...record,
+    personType: isContractor ? 'Contractor' : 'Visitor',
+    displayName: isContractor ? (record.contractor_name || 'Unknown contractor') : (record.visitor_name || 'Unknown visitor'),
+    displayCompany: isContractor ? (record.contractor_company || '') : (record.visitor_company || ''),
+    duration_minutes: durationMinutes,
+  };
+}
+
 /**
  * Get sign-in history for a site (date range)
  * @param {UUID} siteId
@@ -267,33 +282,56 @@ export async function getSignedInPeople(siteId) {
  * @returns {Array} Sign-in records
  */
 export async function getSignInHistory(siteId, startDate, endDate) {
+  return searchSignInHistory(siteId, { startDate, endDate });
+}
+
+/**
+ * Search sign-in history for a site with optional filters.
+ * @param {UUID} siteId
+ * @param {Object} filters
+ * @param {string} [filters.startDate] - ISO datetime
+ * @param {string} [filters.endDate] - ISO datetime
+ * @param {string} [filters.personQuery] - visitor or contractor name
+ * @param {string} [filters.companyQuery] - visitor or contractor company
+ */
+export async function searchSignInHistory(siteId, filters = {}) {
   try {
-    const { data, error } = await supabase
+    if (!siteId) {
+      return { success: true, data: [] };
+    }
+
+    let query = supabase
       .from('sign_ins')
       .select('*')
-      .eq('site_id', siteId)
-      .gte('check_in_time', startDate)
-      .lte('check_in_time', endDate)
-      .order('check_in_time', { ascending: false });
+      .eq('site_id', siteId);
+
+    if (filters.startDate) {
+      query = query.gte('check_in_time', filters.startDate);
+    }
+    if (filters.endDate) {
+      query = query.lte('check_in_time', filters.endDate);
+    }
+
+    const personQuery = String(filters.personQuery || '').trim();
+    if (personQuery) {
+      query = query.or(`visitor_name.ilike.%${personQuery}%,contractor_name.ilike.%${personQuery}%`);
+    }
+
+    const companyQuery = String(filters.companyQuery || '').trim();
+    if (companyQuery) {
+      query = query.or(`visitor_company.ilike.%${companyQuery}%,contractor_company.ilike.%${companyQuery}%`);
+    }
+
+    const { data, error } = await query.order('check_in_time', { ascending: false }).limit(500);
 
     if (error) throw error;
 
-    // Enrich with names and duration
-    const enriched = data.map((record) => {
-      const checkInTime = new Date(record.check_in_time);
-      const checkOutTime = record.check_out_time ? new Date(record.check_out_time) : new Date();
-      const durationMinutes = Math.round((checkOutTime - checkInTime) / 60000);
-
-      return {
-        ...record,
-        name: record.contractor_id ? `Contractor: ${record.contractor_company}` : record.visitor_name,
-        duration_minutes: durationMinutes,
-      };
-    });
-
-    return { success: true, data: enriched };
+    return {
+      success: true,
+      data: (data || []).map(enrichSignInRecord),
+    };
   } catch (error) {
-    console.error('Get history error:', error);
+    console.error('Search sign-in history error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -341,5 +379,6 @@ export default {
   checkOut,
   getSignedInPeople,
   getSignInHistory,
+  searchSignInHistory,
   getContractorHours,
 };

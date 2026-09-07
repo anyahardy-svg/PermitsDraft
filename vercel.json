@@ -18,6 +18,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/manager",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/manager/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/sign-in-contractor",
       "destination": "/index.html"
     },
@@ -286,4 +294,3 @@
     }
   ]
 }
-

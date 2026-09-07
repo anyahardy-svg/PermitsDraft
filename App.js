@@ -66,6 +66,8 @@ import RequestAccreditationScreen from './src/screens/RequestAccreditationScreen
 import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
+import ManagerHubScreen from './src/screens/manager/ManagerHubScreen';
+import { getPostAdminLoginScreen, isAdminPanelPath, isManagerHubPath } from './src/utils/managerHubRoutes';
 import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
@@ -2586,8 +2588,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setLoggedInAdmin(adminData);
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
-    setCurrentScreen('admin');
     setLastActivityTime(Date.now()); // Reset activity timer
+
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    const nextScreen = getPostAdminLoginScreen(adminData, pathname);
+    setCurrentScreen(nextScreen);
+
+    if (typeof window !== 'undefined') {
+      const nextUrl = nextScreen === 'manager_hub' ? '/manager/' : '/admin/';
+      if (window.location.pathname !== nextUrl) {
+        window.history.pushState({}, '', nextUrl);
+      }
+    }
     
     // Persist admin session to localStorage (device-aware)
     try {
@@ -2665,7 +2677,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.warn('⚠️ Could not restore admin session from localStorage:', e);
       setDeviceType(getDeviceType());
     }
-  }, []);
+  }, [adminSessionActive, loggedInAdmin]);
+
+  // Managers use the site hub only — keep them off /admin/* URLs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!adminSessionActive || !loggedInAdmin) return;
+
+    const pathname = window.location.pathname;
+    if (loggedInAdmin.role === 'manager' && isAdminPanelPath(pathname)) {
+      setCurrentScreen('manager_hub');
+      window.history.replaceState({}, '', '/manager/');
+    }
+  }, [adminSessionActive, loggedInAdmin]);
 
   const handleAddAdmin = async () => {
     if (!newAdminForm.email || !newAdminForm.name) {
@@ -3665,9 +3689,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
       
-      //Skip admin routes - they're handled by admin protection check
+      //Skip admin and manager routes - they're handled by admin protection check
       if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
         console.log('ℹ️ Admin route detected - will be handled by admin protection check');
+        return;
+      }
+
+      if (isManagerHubPath(pathname)) {
+        console.log('ℹ️ Manager hub route detected - will be handled by admin protection check');
         return;
       }
       
@@ -3752,9 +3781,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return;
     }
     
-    // Only check if we're currently not in admin and not already showing login
-    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public') {
+    // Only check if we're currently not in admin/manager and not already showing login
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public') {
       console.log('ℹ️ Already in admin context, skipping check');
+      return;
+    }
+    
+    if (pathname === '/manager' || pathname === '/manager/') {
+      if (!adminSessionActive) {
+        setShowAdminLoginModal(true);
+      } else {
+        setCurrentScreen('manager_hub');
+      }
       return;
     }
     
@@ -3862,6 +3900,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           ? `/admin/suppliers/${selectedSupplierId}/accreditation/`
           : '/admin/suppliers/',
         'admin': '/admin/',
+        'manager_hub': '/manager/',
         'contractor_admin': '/contractor-admin/',
         'contractorAuth': '/sign-in-contractor/',
         'authCallback': '/auth/callback/',
@@ -3965,6 +4004,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
+      // Check for manager hub route
+      if (pathname === '/manager' || pathname === '/manager/') {
+        console.log('✅ Setting initial screen to manager_hub from URL');
+        setCurrentScreen('manager_hub');
+        return;
+      }
+
       // Check for admin routes
       if (pathname === '/admin' || pathname === '/admin/') {
         console.log('✅ Setting initial screen to admin from URL');
@@ -4007,6 +4053,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           return;
         }
         
+        // Check for manager hub route
+        if (pathname === '/manager' || pathname === '/manager/') {
+          if (!adminSessionActive) {
+            console.log('❌ No admin session - showing login modal');
+            setShowAdminLoginModal(true);
+            return;
+          }
+          setCurrentScreen('manager_hub');
+          return;
+        }
+
         // Check for main admin dashboard
         if (pathname === '/admin' || pathname === '/admin/') {
           if (!adminSessionActive) {
@@ -23648,12 +23705,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         if (typeof window !== 'undefined') {
           const pathname = window.location.pathname;
           const isAdminRoute = pathname.startsWith('/admin');
+          const isManagerRoute = isManagerHubPath(pathname);
           const isContractorRoute = pathname.startsWith('/contractor-admin');
           
           // AUTH GUARD - check permissions silently
           
-          // Block admin routes without admin session
-          if (isAdminRoute && !adminSessionActive && !showAdminLoginModal) {
+          // Block admin/manager routes without admin session
+          if ((isAdminRoute || isManagerRoute) && !adminSessionActive && !showAdminLoginModal) {
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
                 <View style={{ alignItems: 'center' }}>
@@ -23662,7 +23720,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     Authentication Required
                   </Text>
                   <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>
-                    You must log in to access the admin panel. Please sign in with your credentials.
+                    You must log in to access this area. Please sign in with your credentials.
                   </Text>
                   <TouchableOpacity
                     style={{ backgroundColor: '#3B82F6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
@@ -23861,6 +23919,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return renderEditPermit();
     case 'new_permit':
       return renderNewPermitForm();
+    case 'manager_hub':
+      if (!adminSessionActive) {
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <ManagerHubScreen
+          loggedInAdmin={loggedInAdmin}
+          sites={sites}
+          onLogout={handleAdminLogout}
+          onOpenAdminPanel={() => {
+            setCurrentScreen('admin');
+            if (typeof window !== 'undefined') {
+              window.history.pushState({}, '', '/admin/');
+            }
+          }}
+          isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
+        />
+      );
     case 'admin':
       // CRITICAL: Prevent admin dashboard from rendering without auth
       if (!adminSessionActive) {
