@@ -5,13 +5,17 @@ import { fetchAllPaginated } from './pagination';
 
 const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids';
 
+const escapeLikePattern = (value) => String(value).replace(/[%_\\]/g, '\\$&');
+
+const normalizeCompanyName = (name) => String(name || '').trim().toLowerCase();
+
 // Helper function to transform Supabase data to app format
 const transformCompany = (dbCompany) => {
   const accreditationStatus = resolveAccreditationDisplayStatus(dbCompany);
 
   return {
     id: dbCompany.id,
-    name: dbCompany.name,
+    name: String(dbCompany.name || '').trim(),
     email: dbCompany.email,
     businessUnitIds: dbCompany.business_unit_ids || [],
     business_unit_ids: dbCompany.business_unit_ids || [],
@@ -326,7 +330,7 @@ export const deleteCompany = async (companyId, options = {}) => {
   }
 };
 
-// Get a company by name (case-insensitive)
+// Get a company by name (case-insensitive, ignores leading/trailing whitespace in DB values)
 export const getCompanyByName = async (companyName) => {
   try {
     const trimmedName = String(companyName || '').trim();
@@ -334,27 +338,27 @@ export const getCompanyByName = async (companyName) => {
       return null;
     }
 
-    const { data: exactMatches, error: exactError } = await supabase
+    const normalizedTarget = normalizeCompanyName(trimmedName);
+    const { data: candidates, error } = await supabase
       .from('companies')
       .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
-      .ilike('name', trimmedName)
+      .ilike('name', `%${escapeLikePattern(trimmedName)}%`)
       .order('name', { ascending: true })
-      .limit(5);
+      .limit(25);
 
-    if (exactError) {
-      throw exactError;
+    if (error) {
+      throw error;
     }
 
-    if (!exactMatches?.length) {
+    if (!candidates?.length) {
       return null;
     }
 
-    const normalizedTarget = trimmedName.toLowerCase();
-    const exactNameMatch = exactMatches.find(
-      (company) => company.name?.trim().toLowerCase() === normalizedTarget
+    const exactNameMatch = candidates.find(
+      (company) => normalizeCompanyName(company.name) === normalizedTarget
     );
 
-    return transformCompany(exactNameMatch || exactMatches[0]);
+    return exactNameMatch ? transformCompany(exactNameMatch) : null;
   } catch (error) {
     console.error('Error fetching company by name:', error.message);
     throw error;

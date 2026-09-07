@@ -3208,6 +3208,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const skipCompanyInputSyncRef = useRef(false);
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
   const [contractorCompletedInductions, setContractorCompletedInductions] = useState({});
@@ -13466,12 +13467,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   style={styles.input} 
                   value={currentContractor.company} 
                   onChangeText={async (text) => {
-                    setCurrentContractor({
-                      ...currentContractor,
+                    if (skipCompanyInputSyncRef.current) {
+                      return;
+                    }
+
+                    setCurrentContractor((prev) => ({
+                      ...prev,
                       company: text,
                       company_id: '',
                       companyManuallyEntered: true,
-                    });
+                    }));
                     if (text.trim().length > 0) {
                       try {
                         const results = await searchCompanies(text, { limit: 50 });
@@ -13541,14 +13546,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             }
                           }}
                           onPress={() => {
+                            skipCompanyInputSyncRef.current = true;
                             setCurrentContractor((prev) => ({
                               ...prev,
-                              company: company.name,
+                              company: String(company.name || '').trim(),
                               company_id: company.id,
                               companyManuallyEntered: false,
                             }));
                             setShowCompanyDropdown(false);
                             setFilteredCompanies([]);
+                            setTimeout(() => {
+                              skipCompanyInputSyncRef.current = false;
+                            }, 0);
                           }}
                         >
                           <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{company.name}</Text>
