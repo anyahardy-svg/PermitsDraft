@@ -82,7 +82,7 @@ function toInputDate(date) {
   return `${d}/${m}/${y}`;
 }
 
-export default function ManagerSignInsPanel({ siteId }) {
+export default function ManagerSignInsPanel({ siteId, onBack, styles }) {
   const [mode, setMode] = useState('week');
   const [weekStartInput, setWeekStartInput] = useState(toInputDate(getDefaultWeekStart()));
   const [singleDateInput, setSingleDateInput] = useState(toInputDate(new Date()));
@@ -214,14 +214,30 @@ export default function ManagerSignInsPanel({ siteId }) {
 
   if (!siteId) {
     return (
-      <View style={{ padding: 24 }}>
-        <Text style={{ color: '#6B7280' }}>Select a site to search sign-in history.</Text>
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack}>
+            <Text style={styles.backButton}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Sign-in History</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ padding: 24 }}>
+          <Text style={{ color: '#6B7280' }}>Select a site to search sign-in history.</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack}>
+          <Text style={styles.backButton}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Sign-in History</Text>
+        <View style={{ width: 40 }} />
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 48, marginTop: 12 }}>
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
           {SEARCH_MODES.map((item) => {

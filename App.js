@@ -23936,6 +23936,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
           }}
           isSuperAdmin={loggedInAdmin?.role === 'super_admin'}
+          styles={styles}
         />
       );
     case 'admin':
