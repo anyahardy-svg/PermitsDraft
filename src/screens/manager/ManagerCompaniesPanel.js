@@ -14,6 +14,7 @@ import {
   searchCompaniesNotAtSite,
 } from '../../api/managerHub';
 import { getAccreditationStatusDisplay } from '../../utils/accreditation';
+import { exportCompaniesCsv } from '../../utils/managerHubExport';
 
 function formatDate(value) {
   if (!value) {
@@ -50,6 +51,13 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
   const [error, setError] = useState('');
 
   const title = mode === 'add' ? 'Add Company to Site' : 'Companies at Site';
+
+  const handleExport = () => {
+    exportCompaniesCsv({
+      companies: companiesAtSite,
+      siteName: siteName || 'site',
+    });
+  };
 
   const loadAtSite = useCallback(async () => {
     if (!siteId) {
@@ -127,7 +135,23 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
-        <View style={{ width: 40 }} />
+        {mode === 'at_site' ? (
+          <TouchableOpacity
+            onPress={handleExport}
+            disabled={!siteId || loading || companiesAtSite.length === 0}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              borderRadius: 6,
+              opacity: !siteId || loading || companiesAtSite.length === 0 ? 0.5 : 1,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 12 }}>Export</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {!siteId ? (

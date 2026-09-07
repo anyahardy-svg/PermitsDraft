@@ -1,3 +1,5 @@
+export const INDUCTION_EXPIRING_SOON_DAYS = 30;
+
 /**
  * Site-scoped contractor induction status (matches kiosk logic in KioskScreen.js).
  */
@@ -45,4 +47,28 @@ export function getOtherSiteNames(contractor, currentSiteId, siteIdToName) {
     .filter((id) => id !== currentSiteId)
     .map((id) => siteIdToName[id] || id)
     .filter(Boolean);
+}
+
+export function isExpiringWithinDays(contractor, siteId, days = INDUCTION_EXPIRING_SOON_DAYS) {
+  if (getSiteInductionStatus(contractor, siteId) !== 'inducted') {
+    return false;
+  }
+
+  const expiryRaw = contractor.induction_expiry || contractor.inductionExpiry;
+  if (!expiryRaw) {
+    return false;
+  }
+
+  const expiry = new Date(expiryRaw);
+  if (Number.isNaN(expiry.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + days);
+  expiry.setHours(0, 0, 0, 0);
+
+  return expiry <= cutoff;
 }

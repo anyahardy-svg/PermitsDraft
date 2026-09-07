@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { listContractorsBySite } from '../../api/contractors';
 import { listCompaniesAtSite } from '../../api/managerHub';
-import { getSiteInductionStatus } from '../../utils/siteInductionStatus';
+import { getSiteInductionStatus, isExpiringWithinDays } from '../../utils/siteInductionStatus';
 import ManagerContractorsPanel from './ManagerContractorsPanel';
 import ManagerSignInsPanel from './ManagerSignInsPanel';
 import ManagerCompaniesPanel from './ManagerCompaniesPanel';
@@ -26,7 +26,8 @@ export default function ManagerHubScreen({
   const [selectedSiteId, setSelectedSiteId] = useState('');
   const [showSitePicker, setShowSitePicker] = useState(false);
   const [countsLoading, setCountsLoading] = useState(false);
-  const [counts, setCounts] = useState({ inducted: 0, expired: 0, companies: 0 });
+  const [counts, setCounts] = useState({ inducted: 0, expired: 0, expiringSoon: 0, companies: 0 });
+  const [contractorInductionTab, setContractorInductionTab] = useState('all');
 
   const availableSites = useMemo(() => {
     const adminSiteIds = loggedInAdmin?.site_ids || loggedInAdmin?.siteIds || [];
@@ -58,7 +59,7 @@ export default function ManagerHubScreen({
 
   const loadCounts = useCallback(async () => {
     if (!selectedSiteId) {
-      setCounts({ inducted: 0, expired: 0, companies: 0 });
+      setCounts({ inducted: 0, expired: 0, expiringSoon: 0, companies: 0 });
       return;
     }
 
@@ -71,20 +72,23 @@ export default function ManagerHubScreen({
 
       let inducted = 0;
       let expired = 0;
+      let expiringSoon = 0;
       contractors.forEach((contractor) => {
         const status = getSiteInductionStatus(contractor, selectedSiteId);
         if (status === 'inducted') inducted += 1;
         if (status === 'expired') expired += 1;
+        if (isExpiringWithinDays(contractor, selectedSiteId)) expiringSoon += 1;
       });
 
       setCounts({
         inducted,
         expired,
+        expiringSoon,
         companies: companies.length,
       });
     } catch (error) {
       console.error('Failed to load manager hub counts:', error);
-      setCounts({ inducted: 0, expired: 0, companies: 0 });
+      setCounts({ inducted: 0, expired: 0, expiringSoon: 0, companies: 0 });
     } finally {
       setCountsLoading(false);
     }
@@ -105,7 +109,10 @@ export default function ManagerHubScreen({
       <ManagerContractorsPanel
         siteId={selectedSiteId}
         siteIdToName={siteIdToName}
+        siteName={selectedSiteName}
         mode="inducted"
+        inductionTab={contractorInductionTab}
+        onInductionTabChange={setContractorInductionTab}
         onBack={goToDashboard}
         styles={styles}
       />
@@ -117,6 +124,7 @@ export default function ManagerHubScreen({
       <ManagerContractorsPanel
         siteId={selectedSiteId}
         siteIdToName={siteIdToName}
+        siteName={selectedSiteName}
         mode="expired"
         onBack={goToDashboard}
         styles={styles}
@@ -138,6 +146,7 @@ export default function ManagerHubScreen({
     return (
       <ManagerCompaniesPanel
         siteId={selectedSiteId}
+        siteName={selectedSiteName}
         mode="at_site"
         onBack={goToDashboard}
         styles={styles}
@@ -224,11 +233,26 @@ export default function ManagerHubScreen({
         <View style={styles.dashboardGrid}>
           <TouchableOpacity
             style={[styles.dashboardCard, { borderLeftColor: '#10B981' }]}
-            onPress={() => setCurrentView('inducted')}
+            onPress={() => {
+              setContractorInductionTab('all');
+              setCurrentView('inducted');
+            }}
             disabled={!selectedSiteId}
           >
             <Text style={styles.cardNumber}>{counts.inducted}</Text>
             <Text style={styles.cardLabel}>Inducted Contractors</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#F59E0B' }]}
+            onPress={() => {
+              setContractorInductionTab('expiring_soon');
+              setCurrentView('inducted');
+            }}
+            disabled={!selectedSiteId}
+          >
+            <Text style={styles.cardNumber}>{counts.expiringSoon}</Text>
+            <Text style={styles.cardLabel}>Due in 30 Days</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
