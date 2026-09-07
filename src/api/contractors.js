@@ -338,13 +338,31 @@ export const listContractorsWithExpiredInductions = async () => {
   }
 };
 
-// Get contractors for a specific site
+// Get contractors assigned to a specific site (site_ids contains siteId)
 export const listContractorsBySite = async (siteId) => {
   try {
-    console.log('🔍 Loading contractors for site:', siteId);
-    const contractors = await listContractors();
-    console.log('✅ Contractors loaded:', contractors.length);
-    return contractors;
+    if (!siteId) {
+      return [];
+    }
+
+    const data = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*, companies(name)')
+        .contains('site_ids', [siteId])
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+
+    const withCompanies = (data || []).map((row) => {
+      const companyName = row.companies?.name || '';
+      return {
+        ...row,
+        company_name: companyName,
+      };
+    });
+
+    return withCompanies.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;
