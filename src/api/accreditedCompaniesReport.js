@@ -23,22 +23,14 @@ function isAccreditedCompany(company) {
 export async function listAccreditedCompaniesReport() {
   const [
     companiesData,
-    contractors,
     { data: businessUnits, error: businessUnitsError },
     { data: sites, error: sitesError },
   ] = await Promise.all([
     fetchAllPaginated((from, to) =>
       supabase
         .from('companies')
-        .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar')
+        .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar, site_ids')
         .order('name', { ascending: true })
-        .range(from, to)
-    ),
-    fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select('company_id, site_ids')
-        .not('company_id', 'is', null)
         .range(from, to)
     ),
     supabase
@@ -57,27 +49,6 @@ export async function listAccreditedCompaniesReport() {
   const businessUnitMap = Object.fromEntries((businessUnits || []).map((bu) => [bu.id, bu.name]));
   const siteMap = Object.fromEntries((sites || []).map((site) => [site.id, site.name]));
 
-  const companySitesMap = {};
-  const companySiteIdsMap = {};
-  (contractors || []).forEach((contractor) => {
-    if (!contractor.company_id) {
-      return;
-    }
-
-    if (!companySitesMap[contractor.company_id]) {
-      companySitesMap[contractor.company_id] = new Set();
-      companySiteIdsMap[contractor.company_id] = new Set();
-    }
-
-    (contractor.site_ids || []).forEach((siteId) => {
-      const siteName = siteMap[siteId];
-      if (siteName) {
-        companySitesMap[contractor.company_id].add(siteName);
-        companySiteIdsMap[contractor.company_id].add(siteId);
-      }
-    });
-  });
-
   const companies = (companiesData || [])
     .filter(isAccreditedCompany)
     .map((company) => {
@@ -85,8 +56,11 @@ export async function listAccreditedCompaniesReport() {
         .map((id) => businessUnitMap[id])
         .filter(Boolean);
 
-      const siteNames = Array.from(companySitesMap[company.id] || []).sort();
-      const siteIds = Array.from(companySiteIdsMap[company.id] || []);
+      const siteIds = company.site_ids || [];
+      const siteNames = siteIds
+        .map((siteId) => siteMap[siteId])
+        .filter(Boolean)
+        .sort();
 
       return {
         id: company.id,
