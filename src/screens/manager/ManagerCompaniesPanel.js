@@ -9,10 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import {
-  addSiteToAccreditedCompany,
-  listAccreditedCompaniesAtSite,
-  searchAccreditedCompaniesNotAtSite,
+  addSiteToCompany,
+  listCompaniesAtSite,
+  searchCompaniesNotAtSite,
 } from '../../api/managerHub';
+import { getAccreditationStatusDisplay } from '../../utils/accreditation';
 
 function formatDate(value) {
   if (!value) {
@@ -48,7 +49,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
   const [addingId, setAddingId] = useState(null);
   const [error, setError] = useState('');
 
-  const title = mode === 'add' ? 'Add Company to Site' : 'Accredited Companies';
+  const title = mode === 'add' ? 'Add Company to Site' : 'Companies at Site';
 
   const loadAtSite = useCallback(async () => {
     if (!siteId) {
@@ -59,7 +60,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
     setLoading(true);
     setError('');
     try {
-      const rows = await listAccreditedCompaniesAtSite(siteId);
+      const rows = await listCompaniesAtSite(siteId);
       setCompaniesAtSite(rows);
     } catch (loadError) {
       setError(loadError?.message || 'Failed to load companies');
@@ -83,7 +84,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
     setSearchLoading(true);
     setError('');
     try {
-      const rows = await searchAccreditedCompaniesNotAtSite(siteId, searchQuery);
+      const rows = await searchCompaniesNotAtSite(siteId, searchQuery);
       setSearchResults(rows);
     } catch (searchError) {
       setSearchResults([]);
@@ -106,7 +107,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
 
     setAddingId(company.id);
     try {
-      await addSiteToAccreditedCompany(company.id, siteId);
+      await addSiteToCompany(company.id, siteId);
       Alert.alert('Site added', `${company.name} is now linked to ${siteName || 'this site'}.`);
       if (onCompanyAdded) {
         onCompanyAdded();
@@ -131,7 +132,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
 
       {!siteId ? (
         <View style={{ padding: 24 }}>
-          <Text style={{ color: '#6B7280' }}>Select a site to manage accredited companies.</Text>
+          <Text style={{ color: '#6B7280' }}>Select a site to manage companies.</Text>
         </View>
       ) : mode === 'at_site' ? (
         loading ? (
@@ -145,7 +146,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
         ) : companiesAtSite.length === 0 ? (
           <View style={{ padding: 16 }}>
             <Text style={{ color: '#6B7280' }}>
-              No accredited companies linked to this site yet. Use “Add Company to Site” from the hub.
+              No companies linked to this site yet. Use “Add Company to Site” from the hub.
             </Text>
           </View>
         ) : (
@@ -164,7 +165,10 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
               >
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>{company.name}</Text>
                 <Text style={{ color: '#6B7280', marginTop: 4, fontSize: 13 }}>
-                  Accredited: {formatDate(company.accreditedDate)}
+                  Accreditation: {company.accreditationStatusLabel || getAccreditationStatusDisplay(company.accreditationStatus).label}
+                </Text>
+                <Text style={{ color: '#6B7280', marginTop: 2, fontSize: 13 }}>
+                  Accredited date: {formatDate(company.accreditedDate)}
                 </Text>
                 <Text
                   style={{
@@ -197,12 +201,12 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
               </Text>
             ) : null}
             <Text style={{ color: '#6B7280', fontSize: 13 }}>
-              Shows accredited companies not yet linked to this site in companies.site_ids.
+              Shows all companies not yet linked to this site in companies.site_ids.
             </Text>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search accredited companies"
+              placeholder="Search companies"
               style={{
                 borderWidth: 1,
                 borderColor: '#D1D5DB',
@@ -235,7 +239,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
             </View>
           ) : searchResults.length === 0 ? (
             <View style={{ paddingHorizontal: 16 }}>
-              <Text style={{ color: '#6B7280' }}>No accredited companies found to add.</Text>
+              <Text style={{ color: '#6B7280' }}>No companies found to add.</Text>
             </View>
           ) : (
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
@@ -258,7 +262,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: '700', color: '#111827' }}>{company.name}</Text>
                     <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
-                      Accredited: {formatDate(company.accreditedDate)}
+                      Accreditation: {company.accreditationStatusLabel || getAccreditationStatusDisplay(company.accreditationStatus).label}
                     </Text>
                   </View>
                   <TouchableOpacity

@@ -1,22 +1,20 @@
 import { supabase } from '../supabaseClient';
 import { fetchAllPaginated } from './pagination';
-import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
+import { getAccreditationStatusDisplay, resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { updateCompany } from './companies';
 
 const COMPANY_MANAGER_COLUMNS =
   'id, name, accredited_date, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, public_liability_expiry, motor_vehicle_insurance_expiry, site_ids, in_radar';
 
-function isAccreditedCompany(company) {
-  const status = resolveAccreditationDisplayStatus(company);
-  return status === 'approved' || status === 'completed';
-}
-
 function transformManagerCompany(company) {
   const status = resolveAccreditationDisplayStatus(company);
+  const statusDisplay = getAccreditationStatusDisplay(status);
+
   return {
     id: company.id,
     name: company.name,
     accreditationStatus: status,
+    accreditationStatusLabel: statusDisplay.label,
     accreditedDate: company.accredited_date || '',
     siteIds: company.site_ids || [],
     site_ids: company.site_ids || [],
@@ -26,7 +24,7 @@ function transformManagerCompany(company) {
   };
 }
 
-export async function listAccreditedCompaniesAtSite(siteId) {
+export async function listCompaniesAtSite(siteId) {
   if (!siteId) {
     return [];
   }
@@ -40,10 +38,13 @@ export async function listAccreditedCompaniesAtSite(siteId) {
       .range(from, to)
   );
 
-  return (data || []).filter(isAccreditedCompany).map(transformManagerCompany);
+  return (data || []).map(transformManagerCompany);
 }
 
-export async function searchAccreditedCompaniesNotAtSite(siteId, query = '') {
+// Backwards-compatible alias
+export const listAccreditedCompaniesAtSite = listCompaniesAtSite;
+
+export async function searchCompaniesNotAtSite(siteId, query = '') {
   if (!siteId) {
     return [];
   }
@@ -65,12 +66,14 @@ export async function searchAccreditedCompaniesNotAtSite(siteId, query = '') {
   });
 
   return (data || [])
-    .filter(isAccreditedCompany)
     .filter((company) => !(company.site_ids || []).includes(siteId))
     .map(transformManagerCompany);
 }
 
-export async function addSiteToAccreditedCompany(companyId, siteId) {
+// Backwards-compatible alias
+export const searchAccreditedCompaniesNotAtSite = searchCompaniesNotAtSite;
+
+export async function addSiteToCompany(companyId, siteId) {
   if (!companyId || !siteId) {
     throw new Error('Company and site are required');
   }
@@ -83,10 +86,6 @@ export async function addSiteToAccreditedCompany(companyId, siteId) {
 
   if (error) {
     throw error;
-  }
-
-  if (!isAccreditedCompany(company)) {
-    throw new Error('Only accredited companies can be linked to a site');
   }
 
   const existingSiteIds = company.site_ids || [];
@@ -104,3 +103,6 @@ export async function addSiteToAccreditedCompany(companyId, siteId) {
 
   return updated;
 }
+
+// Backwards-compatible alias
+export const addSiteToAccreditedCompany = addSiteToCompany;

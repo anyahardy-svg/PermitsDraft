@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { listContractorsBySite } from '../../api/contractors';
-import { listAccreditedCompaniesAtSite } from '../../api/managerHub';
+import { listCompaniesAtSite } from '../../api/managerHub';
 import { getSiteInductionStatus } from '../../utils/siteInductionStatus';
 import ManagerContractorsPanel from './ManagerContractorsPanel';
 import ManagerSignInsPanel from './ManagerSignInsPanel';
@@ -66,7 +66,7 @@ export default function ManagerHubScreen({
     try {
       const [contractors, companies] = await Promise.all([
         listContractorsBySite(selectedSiteId),
-        listAccreditedCompaniesAtSite(selectedSiteId),
+        listCompaniesAtSite(selectedSiteId),
       ]);
 
       let inducted = 0;
@@ -255,7 +255,7 @@ export default function ManagerHubScreen({
             disabled={!selectedSiteId}
           >
             <Text style={styles.cardNumber}>{counts.companies}</Text>
-            <Text style={styles.cardLabel}>Accredited Companies</Text>
+            <Text style={styles.cardLabel}>Companies at Site</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
