@@ -1,5 +1,5 @@
 /**
- * Server-side Brevo Email API Route
+ * Server-side Resend Email API Route
  * Handles email sending securely on the backend
  * Also handles database updates and user creation
  * 
@@ -14,14 +14,18 @@ const {
 } = require('./supabaseAdmin');
 const { wrapEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
 const { buildNextReminderAt } = require('./lib/reminderScheduler');
-
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
+const {
+  DEFAULT_FROM_EMAIL,
+  DEFAULT_FROM_NAME,
+  getResendApiKey,
+  sendEmailViaResend,
+} = require('./lib/resend');
 const crypto = require('crypto');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-const FROM_EMAIL = 'noreply@contractorhq.co.nz';
-const FROM_NAME = 'Contractor HQ';
+const FROM_EMAIL = DEFAULT_FROM_EMAIL;
+const FROM_NAME = DEFAULT_FROM_NAME;
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
 
 function generateSupplierAccreditationToken() {
@@ -211,8 +215,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!BREVO_API_KEY) {
-      console.error('❌ Brevo API key not configured');
+    if (!getResendApiKey()) {
+      console.error('❌ Resend API key not configured');
       return res.status(500).json({ error: 'Email service not configured' });
     }
 
@@ -522,42 +526,26 @@ export default async function handler(req, res) {
 
     const wrappedHtmlContent = wrapEmailHtml(actualHtmlContent);
 
-    const emailPayload = {
-      to: [{ email: type === 'request' ? SUPPORT_EMAIL : toEmail, name: type === 'join-request' ? toName : undefined }],
+    const recipientEmail = type === 'request' ? SUPPORT_EMAIL : toEmail;
+    const recipientName = type === 'join-request' ? toName : undefined;
+
+    const data = await sendEmailViaResend({
+      toEmail: recipientEmail,
+      toName: recipientName,
       subject: actualSubject,
-      sender: { email: FROM_EMAIL, name: FROM_NAME },
-      replyTo: { email: SUPPORT_EMAIL, name: 'Support' },
       htmlContent: wrappedHtmlContent,
       textContent: plainTextContent,
+      fromEmail: FROM_EMAIL,
+      fromName: FROM_NAME,
+      replyTo: SUPPORT_EMAIL,
       headers: {
         'List-Unsubscribe': `<mailto:${SUPPORT_EMAIL}?subject=unsubscribe>`,
         'X-Priority': '3',
         'X-Mailer': 'Contractor HQ',
       },
-      params: {
-        // These are Brevo template variables
-        type: type,
-        timestamp: new Date().toISOString(),
-      },
-    };
-
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('❌ Brevo API error:', error);
-      return res.status(500).json({ error: error.message || 'Failed to send email' });
-    }
-
-    const data = await response.json();
-    console.log(`✅ Email sent (${type}) to:`, type === 'request' ? SUPPORT_EMAIL : toEmail);
+    console.log(`✅ Email sent (${type}) to:`, recipientEmail);
 
     // For invitation emails, update the company record and create user if needed
     if (type === 'invitation') {

@@ -1,11 +1,15 @@
 const { wrapEmailHtml, buildEmailFooterText } = require('./emailWrapper');
 const { fetchAuthUserByEmail } = require('../supabaseAdmin');
-
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
+const {
+  DEFAULT_FROM_EMAIL,
+  DEFAULT_FROM_NAME,
+  getResendApiKey,
+  sendEmailViaResend,
+} = require('./resend');
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const FROM_EMAIL = 'noreply@contractorhq.co.nz';
-const FROM_NAME = 'Contractor HQ';
+const FROM_EMAIL = DEFAULT_FROM_EMAIL;
+const FROM_NAME = DEFAULT_FROM_NAME;
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
 const TEMPLATE_TYPE = 'invitation-reminder';
 
@@ -186,7 +190,7 @@ async function sendAccreditationInvitationReminderEmail({
   deadline,
   contactName,
 }) {
-  if (!BREVO_API_KEY) {
+  if (!getResendApiKey()) {
     throw new Error('Email service not configured');
   }
 
@@ -201,37 +205,21 @@ async function sendAccreditationInvitationReminderEmail({
   const plainTextContent = `${stripHtmlTags(content)}\n\n${buildEmailFooterText()}`;
   const wrappedHtmlContent = wrapEmailHtml(content);
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
+  const data = await sendEmailViaResend({
+    toEmail,
+    subject,
+    htmlContent: wrappedHtmlContent,
+    textContent: plainTextContent,
+    fromEmail: FROM_EMAIL,
+    fromName: FROM_NAME,
+    replyTo: SUPPORT_EMAIL,
     headers: {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
+      'List-Unsubscribe': `<mailto:${SUPPORT_EMAIL}?subject=unsubscribe>`,
+      'X-Priority': '3',
+      'X-Mailer': 'Contractor HQ',
     },
-    body: JSON.stringify({
-      to: [{ email: toEmail }],
-      subject,
-      sender: { email: FROM_EMAIL, name: FROM_NAME },
-      replyTo: { email: SUPPORT_EMAIL, name: 'Support' },
-      htmlContent: wrappedHtmlContent,
-      textContent: plainTextContent,
-      headers: {
-        'List-Unsubscribe': `<mailto:${SUPPORT_EMAIL}?subject=unsubscribe>`,
-        'X-Priority': '3',
-        'X-Mailer': 'Contractor HQ',
-      },
-      params: {
-        type: TEMPLATE_TYPE,
-        timestamp: new Date().toISOString(),
-      },
-    }),
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to send reminder email');
-  }
-
-  const data = await response.json();
   return { messageId: data.messageId };
 }
 
