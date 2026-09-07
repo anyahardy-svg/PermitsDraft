@@ -348,20 +348,13 @@ export const listContractorsBySite = async (siteId) => {
     const data = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractors')
-        .select('*, companies(name)')
+        .select('*')
         .contains('site_ids', [siteId])
         .order('name', { ascending: true })
         .range(from, to)
     );
 
-    const withCompanies = (data || []).map((row) => {
-      const companyName = row.companies?.name || '';
-      return {
-        ...row,
-        company_name: companyName,
-      };
-    });
-
+    const withCompanies = await attachCompanyNames(data || []);
     return withCompanies.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);

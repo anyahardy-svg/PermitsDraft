@@ -39,8 +39,7 @@ function isInsuranceExpired(value) {
   return date < today;
 }
 
-export default function ManagerCompaniesPanel({ siteId }) {
-  const [subTab, setSubTab] = useState('at_site');
+export default function ManagerCompaniesPanel({ siteId, mode = 'at_site', onBack, styles }) {
   const [companiesAtSite, setCompaniesAtSite] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +47,8 @@ export default function ManagerCompaniesPanel({ siteId }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [error, setError] = useState('');
+
+  const title = mode === 'add' ? 'Add Company to Site' : 'Accredited Companies';
 
   const loadAtSite = useCallback(async () => {
     if (!siteId) {
@@ -69,8 +70,10 @@ export default function ManagerCompaniesPanel({ siteId }) {
   }, [siteId]);
 
   useEffect(() => {
-    loadAtSite();
-  }, [loadAtSite]);
+    if (mode === 'at_site') {
+      loadAtSite();
+    }
+  }, [loadAtSite, mode]);
 
   const runSearch = useCallback(async () => {
     if (!siteId) {
@@ -91,10 +94,10 @@ export default function ManagerCompaniesPanel({ siteId }) {
   }, [searchQuery, siteId]);
 
   useEffect(() => {
-    if (subTab === 'add' && siteId) {
+    if (mode === 'add' && siteId) {
       runSearch();
     }
-  }, [subTab, siteId, runSearch]);
+  }, [mode, siteId, runSearch]);
 
   const handleAddSite = async (company) => {
     if (!siteId || !company?.id) {
@@ -105,7 +108,6 @@ export default function ManagerCompaniesPanel({ siteId }) {
     try {
       await addSiteToAccreditedCompany(company.id, siteId);
       Alert.alert('Site added', `${company.name} is now linked to this site.`);
-      await loadAtSite();
       await runSearch();
     } catch (addError) {
       Alert.alert('Could not add site', addError?.message || 'Please try again.');
@@ -114,46 +116,21 @@ export default function ManagerCompaniesPanel({ siteId }) {
     }
   };
 
-  if (!siteId) {
-    return (
-      <View style={{ padding: 24 }}>
-        <Text style={{ color: '#6B7280' }}>Select a site to manage accredited companies.</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 }}>
-        <TouchableOpacity
-          onPress={() => setSubTab('at_site')}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            borderRadius: 8,
-            backgroundColor: subTab === 'at_site' ? '#2563EB' : '#E5E7EB',
-          }}
-        >
-          <Text style={{ color: subTab === 'at_site' ? '#FFFFFF' : '#374151', fontWeight: '600' }}>
-            At this site ({companiesAtSite.length})
-          </Text>
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack}>
+          <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSubTab('add')}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            borderRadius: 8,
-            backgroundColor: subTab === 'add' ? '#2563EB' : '#E5E7EB',
-          }}
-        >
-          <Text style={{ color: subTab === 'add' ? '#FFFFFF' : '#374151', fontWeight: '600' }}>
-            Add company
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.title}>{title}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      {subTab === 'at_site' ? (
+      {!siteId ? (
+        <View style={{ padding: 24 }}>
+          <Text style={{ color: '#6B7280' }}>Select a site to manage accredited companies.</Text>
+        </View>
+      ) : mode === 'at_site' ? (
         loading ? (
           <View style={{ padding: 24, alignItems: 'center' }}>
             <ActivityIndicator color="#2563EB" />
@@ -165,7 +142,7 @@ export default function ManagerCompaniesPanel({ siteId }) {
         ) : companiesAtSite.length === 0 ? (
           <View style={{ padding: 16 }}>
             <Text style={{ color: '#6B7280' }}>
-              No accredited companies linked to this site yet. Use “Add company” to link one.
+              No accredited companies linked to this site yet. Use “Add Company to Site” from the hub.
             </Text>
           </View>
         ) : (
@@ -240,6 +217,10 @@ export default function ManagerCompaniesPanel({ siteId }) {
           {searchLoading ? (
             <View style={{ padding: 24, alignItems: 'center' }}>
               <ActivityIndicator color="#2563EB" />
+            </View>
+          ) : error ? (
+            <View style={{ paddingHorizontal: 16 }}>
+              <Text style={{ color: '#B91C1C' }}>{error}</Text>
             </View>
           ) : searchResults.length === 0 ? (
             <View style={{ paddingHorizontal: 16 }}>
