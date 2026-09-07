@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,7 @@ function isInsuranceExpired(value) {
 export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'at_site', onBack, styles, onCompanyAdded }) {
   const [companiesAtSite, setCompaniesAtSite] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
+  const [atSiteFilter, setAtSiteFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -52,9 +53,34 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
 
   const title = mode === 'add' ? 'Add Company to Site' : 'Companies at Site';
 
+  const filteredCompaniesAtSite = useMemo(() => {
+    const query = atSiteFilter.trim().toLowerCase();
+    if (!query) {
+      return companiesAtSite;
+    }
+
+    return companiesAtSite.filter((company) => {
+      const name = (company.name || '').toLowerCase();
+      const accreditation = (
+        company.accreditationStatusLabel
+        || getAccreditationStatusDisplay(company.accreditationStatus).label
+        || ''
+      ).toLowerCase();
+      const email = (company.email || '').toLowerCase();
+      const contactName = (company.contactName || company.contact_name || '').toLowerCase();
+
+      return (
+        name.includes(query)
+        || accreditation.includes(query)
+        || email.includes(query)
+        || contactName.includes(query)
+      );
+    });
+  }, [atSiteFilter, companiesAtSite]);
+
   const handleExport = () => {
     exportCompaniesCsv({
-      companies: companiesAtSite,
+      companies: filteredCompaniesAtSite,
       siteName: siteName || 'site',
     });
   };
@@ -80,6 +106,7 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
 
   useEffect(() => {
     if (mode === 'at_site') {
+      setAtSiteFilter('');
       loadAtSite();
     }
   }, [loadAtSite, mode]);
@@ -174,8 +201,30 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
             </Text>
           </View>
         ) : (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
-            {companiesAtSite.map((company) => (
+          <>
+            <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+              <TextInput
+                value={atSiteFilter}
+                onChangeText={setAtSiteFilter}
+                placeholder="Search companies by name, accreditation, or contact"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+            </View>
+
+            {filteredCompaniesAtSite.length === 0 ? (
+              <View style={{ padding: 16 }}>
+                <Text style={{ color: '#6B7280' }}>No companies match your search.</Text>
+              </View>
+            ) : (
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+                {filteredCompaniesAtSite.map((company) => (
               <View
                 key={company.id}
                 style={{
@@ -213,8 +262,10 @@ export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'a
                   Vehicle insurance expiry: {formatDate(company.motorVehicleInsuranceExpiry)}
                 </Text>
               </View>
-            ))}
-          </ScrollView>
+                ))}
+              </ScrollView>
+            )}
+          </>
         )
       ) : (
         <View style={{ flex: 1 }}>
