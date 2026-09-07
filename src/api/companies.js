@@ -3,7 +3,7 @@ import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
 
-const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids';
+const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids';
 
 // Helper function to transform Supabase data to app format
 const transformCompany = (dbCompany) => {
@@ -47,6 +47,8 @@ const transformCompany = (dbCompany) => {
     address_postcode: dbCompany.address_postcode || '',
     manuallyCreated: dbCompany.manually_created || false,
     manually_created: dbCompany.manually_created || false,
+    createdByContractorId: dbCompany.created_by_contractor_id || null,
+    created_by_contractor_id: dbCompany.created_by_contractor_id || null,
     accreditationInvitationSentAt: dbCompany.accreditation_invitation_sent_at || null,
     accreditation_invitation_sent_at: dbCompany.accreditation_invitation_sent_at || null,
     accreditationDeadline: dbCompany.accreditation_deadline || null,
@@ -86,6 +88,7 @@ export const createCompany = async (companyData) => {
       name: companyData.name,
       email: companyData.email || null,
       manually_created: companyData.manually_created || companyData.manuallyCreated || false,
+      created_by_contractor_id: companyData.created_by_contractor_id || companyData.createdByContractorId || null,
       contact_name: companyData.contact_name || companyData.contactName || null,
       contact_surname: companyData.contact_surname || companyData.contactSurname || null,
       contact_email: companyData.contact_email || companyData.contactEmail || null,
@@ -333,7 +336,7 @@ export const getCompanyByName = async (companyName) => {
 
     const { data: exactMatches, error: exactError } = await supabase
       .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
+      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
       .ilike('name', trimmedName)
       .order('name', { ascending: true })
       .limit(5);
@@ -373,7 +376,8 @@ export const upsertCompany = async (companyData) => {
     const created = await createCompany({
       name: companyData.name,
       email: companyData.email || null,
-      manually_created: true,
+      manually_created: companyData.manuallyCreated || companyData.manually_created || true,
+      created_by_contractor_id: companyData.createdByContractorId || companyData.created_by_contractor_id || null,
     });
     return created;
   } catch (error) {

@@ -12739,30 +12739,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       try {
         console.log('🍎 Looking up company:', currentContractor.company, ', manuallyEntered:', currentContractor.companyManuallyEntered);
         
-        let companyId;
-        if (currentContractor.companyManuallyEntered) {
-          // Company was manually entered - upsert with tracking flags
-          console.log('📝 Manually entered company - upserting with tracking');
-          const company = await upsertCompany({
-            name: currentContractor.company,
-            manuallyCreated: true,
-            createdByContractorId: currentContractor.id || null
-          });
-          if (!company) {
-            window.alert('Error: Could not create company.');
-            return;
+        let companyId = currentContractor.company_id || currentContractor.companyId;
+
+        if (!companyId) {
+          if (currentContractor.companyManuallyEntered) {
+            // Company was manually entered - upsert with tracking flags
+            console.log('📝 Manually entered company - upserting with tracking');
+            const company = await upsertCompany({
+              name: currentContractor.company,
+              manuallyCreated: true,
+              createdByContractorId: currentContractor.id || null
+            });
+            if (!company) {
+              window.alert('Error: Could not create company.');
+              return;
+            }
+            companyId = company.id;
+          } else {
+            // Company was selected from dropdown - look up by name
+            console.log('✅ Company from dropdown - looking up');
+            const company = await getCompanyByName(currentContractor.company);
+            console.log('✅ Company lookup result:', company);
+            if (!company) {
+              window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
+              return;
+            }
+            companyId = company.id;
           }
-          companyId = company.id;
         } else {
-          // Company was selected from dropdown - just get it
-          console.log('✅ Company from dropdown - looking up');
-          const company = await getCompanyByName(currentContractor.company);
-          console.log('✅ Company lookup result:', company);
-          if (!company) {
-            window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
-            return;
-          }
-          companyId = company.id;
+          console.log('✅ Using selected company_id:', companyId);
         }
 
         // Convert site names to site IDs
@@ -12795,6 +12800,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           site_ids: siteIds,
           company_id: companyId,
           business_unit_ids: currentContractor.businessUnitIds,
+          company_manually_entered: Boolean(currentContractor.companyManuallyEntered),
           induction_expiry: isoDate
         };
         console.log('📤 Contractor payload:', contractorPayload);
@@ -13460,7 +13466,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   style={styles.input} 
                   value={currentContractor.company} 
                   onChangeText={async (text) => {
-                    setCurrentContractor({ ...currentContractor, company: text, companyManuallyEntered: true });
+                    setCurrentContractor({
+                      ...currentContractor,
+                      company: text,
+                      company_id: '',
+                      companyManuallyEntered: true,
+                    });
                     if (text.trim().length > 0) {
                       try {
                         const results = await searchCompanies(text, { limit: 50 });
@@ -13524,8 +13535,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           key={company.id}
                           style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: 'white' }}
                           activeOpacity={0.7}
+                          onMouseDown={(event) => {
+                            if (event?.preventDefault) {
+                              event.preventDefault();
+                            }
+                          }}
                           onPress={() => {
-                            setCurrentContractor({ ...currentContractor, company: company.name, companyManuallyEntered: false });
+                            setCurrentContractor((prev) => ({
+                              ...prev,
+                              company: company.name,
+                              company_id: company.id,
+                              companyManuallyEntered: false,
+                            }));
                             setShowCompanyDropdown(false);
                             setFilteredCompanies([]);
                           }}
@@ -13925,6 +13946,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   siteIds: siteNames,
                                   services: contractor.serviceIds || contractor.services || [],
                                   company: contractor.companyName || contractor.company,
+                                  company_id: contractor.company_id || contractor.companyId || '',
+                                  companyManuallyEntered: false,
                                   inductionExpiry: formattedDate
                                 };
                                 
