@@ -6,18 +6,32 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { listContractorsBySite } from '../../api/contractors';
 import {
   formatInductionExpiry,
   getOtherSiteNames,
   getSiteInductionStatus,
+  isExpiringWithinDays,
+  INDUCTION_EXPIRING_SOON_DAYS,
 } from '../../utils/siteInductionStatus';
+import { exportContractorsCsv } from '../../utils/managerHubExport';
+
+const EXPORT_OPTIONS = [
+  { key: 'all_at_site', label: 'All contractors at site' },
+  { key: 'inducted', label: 'Inducted contractors' },
+  { key: 'expired', label: 'Expired contractors' },
+  { key: 'expiring_soon', label: `Due in ${INDUCTION_EXPIRING_SOON_DAYS} days` },
+];
 
 export default function ManagerContractorsPanel({
   siteId,
   siteIdToName,
+  siteName = '',
   mode = 'inducted',
+  inductionTab = 'all',
+  onInductionTabChange,
   onBack,
   styles,
 }) {
@@ -25,6 +39,7 @@ export default function ManagerContractorsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const loadContractors = useCallback(async () => {
     if (!siteId) {
@@ -60,6 +75,9 @@ export default function ManagerContractorsPanel({
       if (mode === 'expired' && status !== 'expired') {
         return false;
       }
+      if (mode === 'inducted' && inductionTab === 'expiring_soon' && !isExpiringWithinDays(contractor, siteId)) {
+        return false;
+      }
       if (!query) {
         return true;
       }
@@ -70,9 +88,36 @@ export default function ManagerContractorsPanel({
         || company.includes(query)
       );
     });
-  }, [contractors, mode, search, siteId]);
+  }, [contractors, inductionTab, mode, search, siteId]);
 
   const title = mode === 'expired' ? 'Expired Inductions' : 'Inducted Contractors';
+
+  const emptyMessage = useMemo(() => {
+    if (mode === 'expired') {
+      return 'No expired inductions at this site.';
+    }
+    if (inductionTab === 'expiring_soon') {
+      return `No inductions due in the next ${INDUCTION_EXPIRING_SOON_DAYS} days at this site.`;
+    }
+    return 'No inducted contractors at this site.';
+  }, [inductionTab, mode]);
+
+  const handleExport = (filter) => {
+    setShowExportMenu(false);
+    exportContractorsCsv({
+      contractors,
+      siteId,
+      siteIdToName,
+      siteName,
+      filter,
+    });
+  };
+
+  const setInductionTab = (tab) => {
+    if (onInductionTabChange) {
+      onInductionTabChange(tab);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -81,7 +126,19 @@ export default function ManagerContractorsPanel({
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowExportMenu(true)}
+          disabled={!siteId || loading}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            borderRadius: 6,
+            opacity: !siteId || loading ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 12 }}>Export</Text>
+        </TouchableOpacity>
       </View>
 
       {!siteId ? (
@@ -90,6 +147,50 @@ export default function ManagerContractorsPanel({
         </View>
       ) : (
         <>
+          {mode === 'inducted' ? (
+            <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setInductionTab('all')}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  backgroundColor: inductionTab === 'all' ? '#2563EB' : '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: inductionTab === 'all' ? '#2563EB' : '#D1D5DB',
+                }}
+              >
+                <Text style={{ color: inductionTab === 'all' ? '#FFFFFF' : '#374151', fontWeight: '700', fontSize: 13 }}>
+                  All inducted
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setInductionTab('expiring_soon')}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  backgroundColor: inductionTab === 'expiring_soon' ? '#D97706' : '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: inductionTab === 'expiring_soon' ? '#D97706' : '#D1D5DB',
+                }}
+              >
+                <Text
+                  style={{
+                    color: inductionTab === 'expiring_soon' ? '#FFFFFF' : '#374151',
+                    fontWeight: '700',
+                    fontSize: 13,
+                    textAlign: 'center',
+                  }}
+                >
+                  Due in {INDUCTION_EXPIRING_SOON_DAYS} days
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <View style={{ padding: 16 }}>
             <TextInput
               value={search}
@@ -116,17 +217,19 @@ export default function ManagerContractorsPanel({
             </View>
           ) : filtered.length === 0 ? (
             <View style={{ padding: 16 }}>
-              <Text style={{ color: '#6B7280' }}>
-                {mode === 'inducted' ? 'No inducted contractors at this site.' : 'No expired inductions at this site.'}
-              </Text>
+              <Text style={{ color: '#6B7280' }}>{emptyMessage}</Text>
             </View>
           ) : (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
               {filtered.map((contractor) => {
                 const otherSites = getOtherSiteNames(contractor, siteId, siteIdToName);
                 const status = getSiteInductionStatus(contractor, siteId);
-                const statusColor = status === 'inducted' ? '#065F46' : '#7F1D1D';
-                const statusBg = status === 'inducted' ? '#D1FAE5' : '#FEE2E2';
+                const expiringSoon = isExpiringWithinDays(contractor, siteId);
+                const statusColor = status === 'inducted' ? (expiringSoon ? '#92400E' : '#065F46') : '#7F1D1D';
+                const statusBg = status === 'inducted' ? (expiringSoon ? '#FEF3C7' : '#D1FAE5') : '#FEE2E2';
+                const statusLabel = status === 'inducted'
+                  ? (expiringSoon ? `Due in ${INDUCTION_EXPIRING_SOON_DAYS}d` : 'Inducted')
+                  : 'Expired';
 
                 return (
                   <View
@@ -146,7 +249,7 @@ export default function ManagerContractorsPanel({
                       </Text>
                       <View style={{ backgroundColor: statusBg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                         <Text style={{ color: statusColor, fontWeight: '600', fontSize: 12 }}>
-                          {status === 'inducted' ? 'Inducted' : 'Expired'}
+                          {statusLabel}
                         </Text>
                       </View>
                     </View>
@@ -171,6 +274,36 @@ export default function ManagerContractorsPanel({
           )}
         </>
       )}
+
+      <Modal visible={showExportMenu} transparent animationType="fade" onRequestClose={() => setShowExportMenu(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              Export contractors
+            </Text>
+            {EXPORT_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.key}
+                onPress={() => handleExport(option.key)}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#F3F4F6',
+                }}
+              >
+                <Text style={{ color: '#111827', fontWeight: '600' }}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              onPress={() => setShowExportMenu(false)}
+              style={{ padding: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
+            >
+              <Text style={{ color: '#2563EB', fontWeight: '700' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
