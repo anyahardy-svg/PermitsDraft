@@ -4866,6 +4866,25 @@ export default function CompanyAccreditationScreen({
         {/* Section Navigation */}
         {/* Collapsible Sections */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+          {isTypeDAccreditation && (
+            <View style={{
+              backgroundColor: '#EFF6FF',
+              borderLeftWidth: 4,
+              borderLeftColor: '#3B82F6',
+              borderRadius: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E40AF', marginBottom: 6 }}>
+                Type D (Low Risk) accreditation
+              </Text>
+              <Text style={{ fontSize: 14, color: '#1E3A8A', lineHeight: 20 }}>
+                Sections 5–25 are not applicable for Type D contractors. Please complete Sections 1–4 below, then sign the Health & Safety Agreement in Section 26.
+              </Text>
+            </View>
+          )}
+
           {/* SECTION 1: Business Units */}
           <TouchableOpacity
             onPress={() => toggleSection(1)}
@@ -5249,6 +5268,22 @@ export default function CompanyAccreditationScreen({
               {!isTypeDAccreditation && renderInsuranceSection()}
               
               {!isTypeDAccreditation && renderContactInfoSection()}
+
+              {isTypeDAccreditation && (
+                <View style={{
+                  backgroundColor: '#F9FAFB',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  marginBottom: 12,
+                }}>
+                  <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>
+                    Sections 5–25 do not apply to Type D contractors. Continue to Section 26 to sign the Health & Safety Agreement.
+                  </Text>
+                </View>
+              )}
               
               {renderSection26HSAgreement()}
         </View>
