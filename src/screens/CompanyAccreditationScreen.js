@@ -2514,10 +2514,6 @@ export default function CompanyAccreditationScreen({
     const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     const selectedSiteIdList = [...selectedSiteIds];
-    const availableSiteIdSet = new Set(availableSites.map((site) => site.id));
-    const preservedSiteIds = (company?.site_ids || []).filter(
-      (siteId) => !availableSiteIdSet.has(siteId),
-    );
     
     const updateData = {
       name: companyDetails.companyName?.trim() || null,
@@ -2533,7 +2529,7 @@ export default function CompanyAccreditationScreen({
       approved_services: selectedServiceIds,
       fletcher_business_units: selectedBusinessUnitIds,
       business_unit_ids: selectedBusinessUnitIds,
-      site_ids: mergeSiteIds(preservedSiteIds, selectedSiteIdList),
+      site_ids: mergeSiteIds(company?.site_ids, selectedSiteIdList),
       accreditation_status: status
     };
 
