@@ -83,7 +83,6 @@ export const getCompanyAccreditation = async (companyId) => {
         fletcher_business_units,
         business_unit_ids,
         site_ids,
-        accreditation_site_ids,
         aep_accredited,
         aep_certificate_url,
         aep_certificate_expiry,
