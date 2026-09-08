@@ -15,12 +15,40 @@ export function isSection2Complete(selectedServices = {}) {
   return Object.values(selectedServices).some(Boolean);
 }
 
+export function isSiteSelectionComplete(selectedSiteIds = []) {
+  return Array.isArray(selectedSiteIds) && selectedSiteIds.length > 0;
+}
+
+export function getSiteSelectionValidationError({
+  selectedBusinessUnits,
+  selectedSiteIds,
+}) {
+  if (!isSection1Complete(selectedBusinessUnits)) {
+    return null;
+  }
+
+  if (!isSiteSelectionComplete(selectedSiteIds)) {
+    return 'Please select at least one site in Section 1 before submitting.';
+  }
+
+  return null;
+}
+
 export function getTypeDSubmitValidationError({
   selectedBusinessUnits,
   selectedServices,
+  selectedSiteIds,
 }) {
   if (!isSection1Complete(selectedBusinessUnits)) {
     return 'Please select at least one business unit in Section 1 before submitting.';
+  }
+
+  const siteError = getSiteSelectionValidationError({
+    selectedBusinessUnits,
+    selectedSiteIds,
+  });
+  if (siteError) {
+    return siteError;
   }
 
   if (!isSection2Complete(selectedServices)) {

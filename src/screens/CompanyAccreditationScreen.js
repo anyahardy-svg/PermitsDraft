@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, u
 import { listCompanies, approveCompanyAccreditation } from '../api/companies';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
+import { getSitesByBusinessUnits } from '../api/sites';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -25,9 +26,11 @@ import { getAccreditationSaveStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import {
   canAutoApproveTypeDAccreditation,
+  getSiteSelectionValidationError,
   getTypeDSubmitValidationError,
   isTypeDContractor,
 } from '../utils/contractorAccreditationRequirements';
+import { mergeSiteIds } from '../utils/siteIds';
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -188,6 +191,8 @@ export default function CompanyAccreditationScreen({
   const [hoveredRequiredTooltip, setHoveredRequiredTooltip] = useState(null); // Track which "required" warning is hovered
   const [services, setServices] = useState([]); // Services from database
   const [businessUnits, setBusinessUnits] = useState([]); // Business units from database
+  const [availableSites, setAvailableSites] = useState([]);
+  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
 
   // Section 1 state (Business Units)
   const [selectedBusinessUnits, setSelectedBusinessUnits] = useState({});
@@ -538,6 +543,42 @@ export default function CompanyAccreditationScreen({
     loadData();
   }, []);
 
+  const getSelectedBusinessUnitIds = () =>
+    Object.keys(selectedBusinessUnits).filter(id => selectedBusinessUnits[id]);
+
+  const getSelectedSiteIdsForValidation = () => {
+    if (selectedSiteIds.length > 0) {
+      return selectedSiteIds;
+    }
+    return company?.accreditation_site_ids || [];
+  };
+
+  const loadSitesForSelectedBusinessUnits = useCallback(async (businessUnitIds) => {
+    if (!businessUnitIds.length) {
+      setAvailableSites([]);
+      return [];
+    }
+
+    try {
+      const sitesData = await getSitesByBusinessUnits(businessUnitIds);
+      const sites = Array.isArray(sitesData) ? sitesData : [];
+      setAvailableSites(sites);
+      return sites;
+    } catch (error) {
+      console.error('Failed to load sites for business units:', error);
+      setAvailableSites([]);
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    const businessUnitIds = getSelectedBusinessUnitIds();
+    loadSitesForSelectedBusinessUnits(businessUnitIds).then((sites) => {
+      const validSiteIds = new Set((sites || []).map((site) => site.id));
+      setSelectedSiteIds((current) => current.filter((siteId) => validSiteIds.has(siteId)));
+    });
+  }, [selectedBusinessUnits, loadSitesForSelectedBusinessUnits]);
+
   // Load H&S Agreement document
   useEffect(() => {
     const loadHSAgreement = async () => {
@@ -684,6 +725,9 @@ export default function CompanyAccreditationScreen({
         buMap[unitId] = true;
       });
       setSelectedBusinessUnits(buMap);
+
+      const accreditationSiteIds = data.accreditation_site_ids || [];
+      setSelectedSiteIds(accreditationSiteIds);
 
       // Populate accredited systems
       const systems = {};
@@ -1258,9 +1302,6 @@ export default function CompanyAccreditationScreen({
     }));
   };
 
-  const getSelectedBusinessUnitIds = () =>
-    Object.keys(selectedBusinessUnits).filter(id => selectedBusinessUnits[id]);
-
   const getApplicableServices = () => {
     const selectedBUIds = getSelectedBusinessUnitIds();
     if (selectedBUIds.length === 0) return [];
@@ -1296,6 +1337,14 @@ export default function CompanyAccreditationScreen({
       );
       return updated;
     });
+  };
+
+  const toggleSiteSelection = (siteId) => {
+    setSelectedSiteIds((current) => (
+      current.includes(siteId)
+        ? current.filter((id) => id !== siteId)
+        : [...current, siteId]
+    ));
   };
 
   const handleAccreditationToggle = (key) => {
@@ -2464,6 +2513,7 @@ export default function CompanyAccreditationScreen({
     debugLog('🔧 buildUpdateData called with status:', status);
     const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
+    const selectedSiteIdList = [...selectedSiteIds];
     
     const updateData = {
       name: companyDetails.companyName?.trim() || null,
@@ -2479,8 +2529,13 @@ export default function CompanyAccreditationScreen({
       approved_services: selectedServiceIds,
       fletcher_business_units: selectedBusinessUnitIds,
       business_unit_ids: selectedBusinessUnitIds,
+      accreditation_site_ids: selectedSiteIdList,
       accreditation_status: status
     };
+
+    if (status === 'completed' || status === 'approved') {
+      updateData.site_ids = mergeSiteIds(company?.site_ids, selectedSiteIdList);
+    }
 
     // Add accredited systems
     ACCREDITED_SYSTEMS.forEach(sys => {
@@ -2950,9 +3005,20 @@ export default function CompanyAccreditationScreen({
       const sectionError = getTypeDSubmitValidationError({
         selectedBusinessUnits: businessUnitsForValidation,
         selectedServices: servicesForValidation,
+        selectedSiteIds: getSelectedSiteIdsForValidation(),
       });
       if (sectionError) {
         showUserMessage('Sections required', sectionError);
+        return;
+      }
+    } else {
+      const siteError = getSiteSelectionValidationError({
+        selectedBusinessUnits: businessUnitsForValidation,
+        selectedSiteIds: getSelectedSiteIdsForValidation(),
+      });
+      if (siteError) {
+        showUserMessage('Section 1 required', siteError);
+        setExpandedSections((prev) => ({ ...prev, 1: true }));
         return;
       }
     }
@@ -5040,6 +5106,43 @@ export default function CompanyAccreditationScreen({
               ) : (
                 <Text style={{ fontSize: 18, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
                   Loading business units...
+                </Text>
+              )}
+
+              <Text style={[styles.label, { margin: 12, marginBottom: 12, marginTop: 20 }]}>
+                Which sites will you work at?
+              </Text>
+              {getSelectedBusinessUnitIds().length === 0 ? (
+                <Text style={{ fontSize: 16, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Select at least one business unit to choose sites.
+                </Text>
+              ) : availableSites.length > 0 ? (
+                availableSites.map((site) => {
+                  const isSelected = selectedSiteIds.includes(site.id);
+                  const siteBusinessUnit = businessUnits.find((unit) => unit.id === site.business_unit_id);
+                  const siteLabel = siteBusinessUnit
+                    ? `${site.name} (${siteBusinessUnit.name})`
+                    : site.name;
+
+                  return (
+                    <View
+                      key={site.id}
+                      style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                      pointerEvents="auto"
+                    >
+                      <CheckBox
+                        value={isSelected}
+                        onValueChange={() => toggleSiteSelection(site.id)}
+                        style={{ marginRight: 12 }}
+                        pointerEvents="auto"
+                      />
+                      <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{siteLabel}</Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={{ fontSize: 16, color: '#9CA3AF', fontStyle: 'italic', marginHorizontal: 12 }}>
+                  Loading sites...
                 </Text>
               )}
             </View>
