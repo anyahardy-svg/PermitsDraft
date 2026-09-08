@@ -1,11 +1,5 @@
 const assert = require('assert');
-const {
-  isEligibleForAccreditationReminder,
-  shouldScheduleAccreditationReminder,
-} = require('../api/lib/accreditationReminderEligibility');
-
-assert.strictEqual(shouldScheduleAccreditationReminder('D'), false);
-assert.strictEqual(shouldScheduleAccreditationReminder('A'), true);
+const { isEligibleForAccreditationReminder } = require('../api/lib/accreditationReminderEligibility');
 
 const dueAt = new Date('2026-01-01T00:00:00.000Z');
 const now = new Date('2026-02-01T00:00:00.000Z');
@@ -33,7 +27,7 @@ assert.strictEqual(
     },
     now,
   ),
-  false,
+  true,
 );
 
 assert.strictEqual(

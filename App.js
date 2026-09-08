@@ -10158,22 +10158,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
 
       try {
-        const updateData = { contractor_type: normalized };
-
-        if (normalized === 'D') {
-          updateData.accreditation_next_reminder_at = null;
-        } else if (
-          company?.accreditation_invitation_sent_at
-          && !company?.accredited_date
-          && !['approved', 'completed'].includes(company?.accreditation_status || '')
-          && !company?.accreditation_next_reminder_at
-        ) {
-          const nextReminderAt = new Date();
-          nextReminderAt.setUTCDate(nextReminderAt.getUTCDate() + 30);
-          updateData.accreditation_next_reminder_at = nextReminderAt.toISOString();
-        }
-
-        await updateCompany(companyId, updateData);
+        await updateCompany(companyId, { contractor_type: normalized });
         const freshCompanies = await listCompanies();
         setCompanies(freshCompanies);
       } catch (error) {

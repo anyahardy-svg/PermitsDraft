@@ -14,7 +14,6 @@ const {
 } = require('./supabaseAdmin');
 const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
 const { buildNextReminderAt } = require('./lib/reminderScheduler');
-const { shouldScheduleAccreditationReminder } = require('./lib/accreditationReminderEligibility');
 const {
   DEFAULT_FROM_EMAIL,
   DEFAULT_FROM_NAME,
@@ -557,35 +556,9 @@ export default async function handler(req, res) {
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
           console.error('❌ Supabase credentials not available for DB update');
         } else {
-          const adminClient = getSupabaseAdmin();
-
           // Update companies table with invitation sent timestamp and deadline
           if (companyId) {
             const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
-            let contractorType = 'D';
-
-            if (adminClient) {
-              const { data: companyRow, error: companyLookupError } = await adminClient
-                .from('companies')
-                .select('contractor_type')
-                .eq('id', companyId)
-                .maybeSingle();
-
-              if (companyLookupError) {
-                console.warn(`Could not load contractor type for company ${companyId}:`, companyLookupError.message);
-              } else {
-                contractorType = companyRow?.contractor_type || 'D';
-              }
-            }
-
-            const updatePayload = {
-              accreditation_invitation_sent_at: new Date().toISOString(),
-              accreditation_deadline: deadlineDate,
-              accreditation_next_reminder_at: shouldScheduleAccreditationReminder(contractorType)
-                ? buildNextReminderAt()
-                : null,
-            };
-
             const updateUrl = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`;
             const updateResponse = await fetch(updateUrl, {
               method: 'PATCH',
@@ -594,7 +567,11 @@ export default async function handler(req, res) {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
-              body: JSON.stringify(updatePayload),
+              body: JSON.stringify({
+                accreditation_invitation_sent_at: new Date().toISOString(),
+                accreditation_deadline: deadlineDate,
+                accreditation_next_reminder_at: buildNextReminderAt(),
+              }),
             });
 
             if (updateResponse.ok) {
@@ -604,6 +581,8 @@ export default async function handler(req, res) {
               console.error(`❌ Failed to update company: ${updateResponse.status} - ${dbError}`);
             }
           }
+
+          const adminClient = getSupabaseAdmin();
 
           const resolvedContactName = (contactName || '').trim() || null;
 
