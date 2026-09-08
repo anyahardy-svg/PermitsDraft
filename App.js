@@ -10158,7 +10158,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
 
       try {
-        await updateCompany(companyId, { contractor_type: normalized });
+        const updateData = { contractor_type: normalized };
+
+        if (normalized === 'D') {
+          updateData.accreditation_next_reminder_at = null;
+        } else if (
+          company?.accreditation_invitation_sent_at
+          && !company?.accredited_date
+          && !['approved', 'completed'].includes(company?.accreditation_status || '')
+          && !company?.accreditation_next_reminder_at
+        ) {
+          const nextReminderAt = new Date();
+          nextReminderAt.setUTCDate(nextReminderAt.getUTCDate() + 30);
+          updateData.accreditation_next_reminder_at = nextReminderAt.toISOString();
+        }
+
+        await updateCompany(companyId, updateData);
         const freshCompanies = await listCompanies();
         setCompanies(freshCompanies);
       } catch (error) {
@@ -10821,7 +10836,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       {/* Table Header */}
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
-                        <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Type</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Type</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
