@@ -147,6 +147,7 @@ export default function CompanyAccreditationScreen({
   const [loading, setLoading] = useState(false);
   const [hasLoadedCompanyData, setHasLoadedCompanyData] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [isPersistingChanges, setIsPersistingChanges] = useState(false);
   const [uploadingDocumentKey, setUploadingDocumentKey] = useState(null); // Track which document is uploading
   const [accreditationStatus, setAccreditationStatus] = useState('in-progress'); // 'in-progress' or 'completed'
@@ -2834,8 +2835,62 @@ export default function CompanyAccreditationScreen({
   const contractorType = company?.contractor_type || 'D';
   const isTypeDAccreditation = isTypeDContractor(contractorType);
 
+  const performSubmitAsComplete = async () => {
+    debugLog('🟢 performSubmitAsComplete called, current status:', accreditationStatus);
+    setSubmitting(true);
+    try {
+      const updateData = buildUpdateData('completed');
+      debugLog('🟢 Update data built, status will be: completed');
+      const result = await updateCompanyAccreditation(currentCompanyId, updateData);
+      debugLog('🟢 API result:', result);
+
+      if (result.success) {
+        if (canAutoApproveTypeDAccreditation({
+          contractorType,
+          selectedBusinessUnits,
+          selectedServices,
+        })) {
+          await approveCompanyAccreditation(currentCompanyId, 'type-d-auto-approve');
+          setAccreditationStatus('approved');
+          if (onStatusUpdate) {
+            onStatusUpdate('approved');
+          }
+          Alert.alert(
+            'Success',
+            reviewMode
+              ? 'Type D accreditation submitted and automatically approved.'
+              : 'Your Type D accreditation has been submitted and automatically approved.'
+          );
+        } else {
+          debugLog('🟢 Update successful, setting status to completed');
+          setAccreditationStatus('completed');
+          if (onStatusUpdate) {
+            onStatusUpdate('completed');
+          }
+          if (reviewMode) {
+            Alert.alert('Success', 'Accreditation submitted as complete.');
+          }
+        }
+        await loadCompanyData({ silent: true });
+      } else {
+        console.error('🔥 Failed to submit:', result.error);
+        Alert.alert('Error', result.error || 'Failed to submit accreditation');
+      }
+    } catch (error) {
+      console.error('🔥 Submit error:', error);
+      Alert.alert('Error', error.message || 'Failed to submit accreditation');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
+    if (!currentCompanyId) {
+      Alert.alert('Error', 'No company selected');
+      return;
+    }
+
     if (!hasLoadedCompanyData) {
       Alert.alert('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
       return;
@@ -2860,6 +2915,13 @@ export default function CompanyAccreditationScreen({
     }
 
     debugLog('🟢 handleSubmitAsComplete called, current status:', accreditationStatus);
+
+    // Admin review uses the outer modal; skip nested confirmation so submit actually runs.
+    if (reviewMode) {
+      await performSubmitAsComplete();
+      return;
+    }
+
     setConfirmationModal({
       visible: true,
       title: 'Submit Accreditation',
@@ -2868,48 +2930,12 @@ export default function CompanyAccreditationScreen({
         : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
-        setConfirmationModal({ ...confirmationModal, visible: false });
-        setSaving(true);
-        try {
-          const updateData = buildUpdateData('completed');
-          debugLog('🟢 Update data built, status will be: completed');
-          const result = await updateCompanyAccreditation(currentCompanyId, updateData);
-          debugLog('🟢 API result:', result);
-          
-          if (result.success) {
-            if (canAutoApproveTypeDAccreditation({
-              contractorType,
-              selectedBusinessUnits,
-              selectedServices,
-            })) {
-              await approveCompanyAccreditation(currentCompanyId, 'type-d-auto-approve');
-              setAccreditationStatus('approved');
-              if (onStatusUpdate) {
-                onStatusUpdate('approved');
-              }
-              Alert.alert('Success', 'Your Type D accreditation has been submitted and automatically approved.');
-            } else {
-              debugLog('🟢 Update successful, setting status to completed');
-              setAccreditationStatus('completed');
-              if (onStatusUpdate) {
-                onStatusUpdate('completed');
-              }
-            }
-            await loadCompanyData({ silent: true });
-          } else {
-            console.error('🔥 Failed to submit:', result.error);
-            Alert.alert('Error', result.error || 'Failed to submit accreditation');
-          }
-        } catch (error) {
-          console.error('🔥 Submit error:', error);
-          Alert.alert('Error', error.message || 'Failed to submit accreditation');
-        } finally {
-          setSaving(false);
-        }
+        setConfirmationModal((prev) => ({ ...prev, visible: false }));
+        await performSubmitAsComplete();
       },
       onCancel: () => {
         debugLog('🟡 User cancelled submission');
-        setConfirmationModal({ ...confirmationModal, visible: false });
+        setConfirmationModal((prev) => ({ ...prev, visible: false }));
       }
     });
   };
@@ -2926,6 +2952,7 @@ export default function CompanyAccreditationScreen({
       save: () => handleSaveRef.current(),
       submitAsComplete: () => handleSubmitAsCompleteRef.current(),
       saving,
+      submitting,
       hasLoadedCompanyData,
       canSubmit: !['completed', 'approved'].includes(accreditationStatus),
     });
@@ -2935,6 +2962,7 @@ export default function CompanyAccreditationScreen({
     reviewMode,
     onAdminActionsReady,
     saving,
+    submitting,
     hasLoadedCompanyData,
     accreditationStatus,
   ]);
@@ -5369,10 +5397,10 @@ export default function CompanyAccreditationScreen({
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
-            disabled={saving || !hasLoadedCompanyData}
+            disabled={saving || submitting || !hasLoadedCompanyData}
           >
             <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
-              {saving ? 'Submitting...' : '✓ Submit as Complete'}
+              {submitting ? 'Submitting...' : '✓ Submit as Complete'}
             </Text>
           </TouchableOpacity>
         )}

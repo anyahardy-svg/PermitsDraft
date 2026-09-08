@@ -11187,10 +11187,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         backgroundColor: '#3B82F6',
                         borderRadius: 8,
                         alignItems: 'center',
-                        opacity: (!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
+                        opacity: (!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
                       }}
                       onPress={() => accreditationAdminActions?.save?.()}
-                      disabled={!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData}
+                      disabled={!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData}
                     >
                       <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
                         {accreditationAdminActions?.saving ? 'Saving...' : 'Save'}
@@ -11204,13 +11204,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           backgroundColor: '#059669',
                           borderRadius: 8,
                           alignItems: 'center',
-                          opacity: (!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
+                          opacity: (!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
                         }}
                         onPress={() => accreditationAdminActions?.submitAsComplete?.()}
-                        disabled={!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData}
+                        disabled={!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData}
                       >
                         <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                          {accreditationAdminActions?.saving ? 'Submitting...' : 'Submit as Complete'}
+                          {accreditationAdminActions?.submitting ? 'Submitting...' : 'Submit as Complete'}
                         </Text>
                       </TouchableOpacity>
                     )}
