@@ -1,6 +1,11 @@
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY || process.env.BREVO_API_KEY;
-const FROM_EMAIL = 'noreply@contractorhq.co.nz';
-const FROM_NAME = 'Contractor HQ';
+const {
+  DEFAULT_FROM_EMAIL,
+  DEFAULT_FROM_NAME,
+  getResendApiKey,
+  sendEmailViaResend,
+} = require('./lib/resend');
+const FROM_EMAIL = DEFAULT_FROM_EMAIL;
+const FROM_NAME = DEFAULT_FROM_NAME;
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
 
 const PASSWORD_RESET_CODE_EXPIRY_MS = 48 * 60 * 60 * 1000;
@@ -55,7 +60,7 @@ async function clearStoredResetCode(adminClient, user) {
 }
 
 async function sendPasswordResetEmail(toEmail, resetCode) {
-  if (!BREVO_API_KEY) {
+  if (!getResendApiKey()) {
     throw new Error('Email service not configured');
   }
 
@@ -72,25 +77,14 @@ async function sendPasswordResetEmail(toEmail, resetCode) {
   const htmlContent = wrapEmailHtml(emailBody);
   const textContent = `Reset Your Contractor HQ Password\n\nYour code: ${resetCode}\n\n${resetUrl}\n\n${buildEmailFooterText()}`;
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: { name: FROM_NAME, email: FROM_EMAIL },
-      to: [{ email: toEmail }],
-      subject: 'Your Contractor HQ password reset code',
-      htmlContent,
-      textContent,
-    }),
+  await sendEmailViaResend({
+    toEmail,
+    subject: 'Your Contractor HQ password reset code',
+    htmlContent,
+    textContent,
+    fromEmail: FROM_EMAIL,
+    fromName: FROM_NAME,
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to send password reset email');
-  }
 }
 
 async function issuePasswordResetCode(email) {

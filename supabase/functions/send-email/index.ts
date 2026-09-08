@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-const supabaseUrl = Deno.env.get('SUPABASE_URL')
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const resendApiKey = Deno.env.get('RESEND_API_KEY')
 
 interface EmailRequest {
   toEmail: string
@@ -12,29 +9,42 @@ interface EmailRequest {
   htmlContent: string
 }
 
-async function sendEmailViaBrevo(options: EmailRequest) {
-  if (!brevoApiKey) {
-    throw new Error('BREVO_API_KEY not configured')
+function formatEmailAddress(email: string, name?: string) {
+  const trimmedEmail = String(email || '').trim()
+  const trimmedName = String(name || '').trim()
+
+  if (!trimmedName) {
+    return trimmedEmail
   }
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+  const escapedName = trimmedName.replace(/"/g, '\\"')
+  return `"${escapedName}" <${trimmedEmail}>`
+}
+
+async function sendEmailViaResend(options: EmailRequest) {
+  if (!resendApiKey) {
+    throw new Error('RESEND_API_KEY not configured')
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'api-key': brevoApiKey
+      'Authorization': `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      to: [{ email: options.toEmail, name: options.toName }],
-      sender: { email: 'noreply@contractorhq.co.nz', name: 'Contractor Hub' },
+      from: formatEmailAddress('noreply@contractorhq.co.nz', 'Contractor Hub'),
+      to: [formatEmailAddress(options.toEmail, options.toName)],
       subject: options.subject,
-      htmlContent: options.htmlContent
+      html: options.htmlContent,
     })
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(`Brevo error: ${JSON.stringify(errorData)}`)
+    const errorData = await response.json().catch(() => ({}))
+    const message = errorData.message || errorData.error || response.statusText
+    throw new Error(`Resend error: ${message}`)
   }
 
   return { success: true }
@@ -47,7 +57,7 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { toEmail, toName, subject, htmlContent, type } = body
+    const { toEmail, toName, subject, htmlContent } = body
 
     if (!toEmail || !subject || !htmlContent) {
       return new Response(
@@ -56,8 +66,7 @@ serve(async (req) => {
       )
     }
 
-    // Send email via Brevo
-    await sendEmailViaBrevo({
+    await sendEmailViaResend({
       toEmail,
       toName: toName || 'Recipient',
       subject,

@@ -1,6 +1,6 @@
 /**
  * Email Service - Uses backend API for secure email sending
- * The backend handles Brevo integration securely (API key not exposed to client)
+ * The backend handles Resend integration securely (API key not exposed to client)
  */
 
 /**
