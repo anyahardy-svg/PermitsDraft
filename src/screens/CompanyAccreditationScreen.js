@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
-import { listCompanies } from '../api/companies';
+import { listCompanies, approveCompanyAccreditation } from '../api/companies';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
@@ -23,6 +23,11 @@ import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-librar
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { getAccreditationSaveStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
+import {
+  canAutoApproveTypeDAccreditation,
+  getTypeDSubmitValidationError,
+  isTypeDContractor,
+} from '../utils/contractorAccreditationRequirements';
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -2823,11 +2828,25 @@ export default function CompanyAccreditationScreen({
     }
   };
 
+  const contractorType = company?.contractor_type || 'D';
+  const isTypeDAccreditation = isTypeDContractor(contractorType);
+
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
     if (!hasLoadedCompanyData) {
       Alert.alert('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
       return;
+    }
+
+    if (isTypeDAccreditation) {
+      const sectionError = getTypeDSubmitValidationError({
+        selectedBusinessUnits,
+        selectedServices,
+      });
+      if (sectionError) {
+        Alert.alert('Sections required', sectionError);
+        return;
+      }
     }
 
     const hsAgreementError = validateHSAgreementComplete(section26);
@@ -2841,7 +2860,9 @@ export default function CompanyAccreditationScreen({
     setConfirmationModal({
       visible: true,
       title: 'Submit Accreditation',
-      message: 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
+      message: isTypeDAccreditation
+        ? 'Submit your Type D accreditation? Sections 1 and 2, plus the H&S agreement, will be reviewed and approved automatically.'
+        : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
         setConfirmationModal({ ...confirmationModal, visible: false });
@@ -2853,14 +2874,32 @@ export default function CompanyAccreditationScreen({
           debugLog('🟢 API result:', result);
           
           if (result.success) {
-            debugLog('🟢 Update successful, setting status to completed');
-            setAccreditationStatus('completed');
+            if (canAutoApproveTypeDAccreditation({
+              contractorType,
+              selectedBusinessUnits,
+              selectedServices,
+            })) {
+              await approveCompanyAccreditation(currentCompanyId, 'type-d-auto-approve');
+              setAccreditationStatus('approved');
+              if (onStatusUpdate) {
+                onStatusUpdate('approved');
+              }
+              Alert.alert('Success', 'Your Type D accreditation has been submitted and automatically approved.');
+            } else {
+              debugLog('🟢 Update successful, setting status to completed');
+              setAccreditationStatus('completed');
+              if (onStatusUpdate) {
+                onStatusUpdate('completed');
+              }
+            }
             await loadCompanyData({ silent: true });
           } else {
             console.error('🔥 Failed to submit:', result.error);
+            Alert.alert('Error', result.error || 'Failed to submit accreditation');
           }
         } catch (error) {
           console.error('🔥 Submit error:', error);
+          Alert.alert('Error', error.message || 'Failed to submit accreditation');
         } finally {
           setSaving(false);
         }
@@ -5037,8 +5076,8 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 4: Policies - Only show if NO accreditation systems selected */}
-          {!Object.values(accreditedSystems).some(sys => sys.checked) && (
+          {/* SECTION 4: Policies - show for Type D, otherwise only when no accreditation systems selected */}
+          {(!Object.values(accreditedSystems).some(sys => sys.checked) || isTypeDAccreditation) && (
             <>
               <TouchableOpacity
                 onPress={() => toggleSection(4)}
@@ -5203,18 +5242,14 @@ export default function CompanyAccreditationScreen({
           )}
 
               {/* Sections 5-19 (Dynamic Rendering - hide sections 5-19 when safety accreditations are checked) */}
-              {renderSections__719()}
+              {!isTypeDAccreditation && renderSections__719()}
               
-              {/* Section 20: Always Show */}
-              {renderSection20()}
+              {!isTypeDAccreditation && renderSection20()}
               
-              {/* Section 24: Insurance Documents */}
-              {renderInsuranceSection()}
+              {!isTypeDAccreditation && renderInsuranceSection()}
               
-              {/* Section 25: Contact Information */}
-              {renderContactInfoSection()}
+              {!isTypeDAccreditation && renderContactInfoSection()}
               
-              {/* Section 26: H&S Agreement - INSIDE ScrollView now */}
               {renderSection26HSAgreement()}
         </View>
       </ScrollView>
@@ -5223,9 +5258,9 @@ export default function CompanyAccreditationScreen({
       <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}>
         {/* Status Badge */}
         <View style={{
-          backgroundColor: accreditationStatus === 'completed' ? '#D1FAE5' : '#FEF3C7',
+          backgroundColor: ['completed', 'approved'].includes(accreditationStatus) ? '#D1FAE5' : '#FEF3C7',
           borderLeftWidth: 4,
-          borderLeftColor: accreditationStatus === 'completed' ? '#10B981' : '#FBBF24',
+          borderLeftColor: ['completed', 'approved'].includes(accreditationStatus) ? '#10B981' : '#FBBF24',
           paddingHorizontal: 12,
           paddingVertical: 10,
           borderRadius: 6,
@@ -5234,9 +5269,13 @@ export default function CompanyAccreditationScreen({
           <Text style={{
             fontSize: 18,
             fontWeight: '600',
-            color: accreditationStatus === 'completed' ? '#065F46' : '#92400E'
+            color: ['completed', 'approved'].includes(accreditationStatus) ? '#065F46' : '#92400E'
           }}>
-            Status: {accreditationStatus === 'completed' ? '✓ Completed' : '⏳ In Progress'}
+            Status: {accreditationStatus === 'approved'
+              ? '✓ Approved'
+              : accreditationStatus === 'completed'
+                ? '✓ Completed'
+                : '⏳ In Progress'}
           </Text>
           {isPersistingChanges && (
             <Text style={{
@@ -5261,7 +5300,7 @@ export default function CompanyAccreditationScreen({
         </TouchableOpacity>
 
         {/* Submit Button - Only show if not completed */}
-        {accreditationStatus !== 'completed' && (
+        {!['completed', 'approved'].includes(accreditationStatus) && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
@@ -5273,8 +5312,7 @@ export default function CompanyAccreditationScreen({
           </TouchableOpacity>
         )}
 
-        {/* Completed Badge - Show if submitted */}
-        {accreditationStatus === 'completed' && (
+        {['completed', 'approved'].includes(accreditationStatus) && (
           <View style={{ gap: 12, marginTop: 8 }}>
             <View style={{
               backgroundColor: '#D1FAE5',
@@ -5290,7 +5328,7 @@ export default function CompanyAccreditationScreen({
                 color: '#065F46',
                 textAlign: 'center'
               }}>
-                ✓ This accreditation is complete
+                ✓ {accreditationStatus === 'approved' ? 'This accreditation is approved' : 'This accreditation is complete'}
               </Text>
             </View>
             {onNavigateToTrainingRecords && (
