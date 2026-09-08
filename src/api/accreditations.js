@@ -78,6 +78,7 @@ export const getCompanyAccreditation = async (companyId) => {
         address_1,
         address_city,
         address_postcode,
+        contractor_type,
         approved_services,
         fletcher_business_units,
         business_unit_ids,
