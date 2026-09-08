@@ -1,7 +1,7 @@
-import assert from 'node:assert/strict';
-import { mergeSiteIds } from '../src/utils/siteIds.js';
+const assert = require('assert');
+const { mergeSiteIds } = require('../src/utils/siteIds');
 
-assert.deepEqual(mergeSiteIds(['site-1'], ['site-2', 'site-1']), ['site-1', 'site-2']);
-assert.deepEqual(mergeSiteIds(null, undefined, []), []);
+assert.deepStrictEqual(mergeSiteIds(['site-1'], ['site-2', 'site-1']), ['site-1', 'site-2']);
+assert.deepStrictEqual(mergeSiteIds(null, undefined, []), []);
 
 console.log('siteIds tests passed');

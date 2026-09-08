@@ -550,7 +550,7 @@ export default function CompanyAccreditationScreen({
     if (selectedSiteIds.length > 0) {
       return selectedSiteIds;
     }
-    return company?.accreditation_site_ids || [];
+    return company?.site_ids || [];
   };
 
   const loadSitesForSelectedBusinessUnits = useCallback(async (businessUnitIds) => {
@@ -726,8 +726,8 @@ export default function CompanyAccreditationScreen({
       });
       setSelectedBusinessUnits(buMap);
 
-      const accreditationSiteIds = data.accreditation_site_ids || [];
-      setSelectedSiteIds(accreditationSiteIds);
+      const existingSiteIds = data.site_ids || [];
+      setSelectedSiteIds(existingSiteIds);
 
       // Populate accredited systems
       const systems = {};
@@ -2514,6 +2514,10 @@ export default function CompanyAccreditationScreen({
     const selectedServiceIds = Object.keys(selectedServices).filter(s => selectedServices[s]);
     const selectedBusinessUnitIds = Object.keys(selectedBusinessUnits).filter(u => selectedBusinessUnits[u]);
     const selectedSiteIdList = [...selectedSiteIds];
+    const availableSiteIdSet = new Set(availableSites.map((site) => site.id));
+    const preservedSiteIds = (company?.site_ids || []).filter(
+      (siteId) => !availableSiteIdSet.has(siteId),
+    );
     
     const updateData = {
       name: companyDetails.companyName?.trim() || null,
@@ -2529,13 +2533,9 @@ export default function CompanyAccreditationScreen({
       approved_services: selectedServiceIds,
       fletcher_business_units: selectedBusinessUnitIds,
       business_unit_ids: selectedBusinessUnitIds,
-      accreditation_site_ids: selectedSiteIdList,
+      site_ids: mergeSiteIds(preservedSiteIds, selectedSiteIdList),
       accreditation_status: status
     };
-
-    if (status === 'completed' || status === 'approved') {
-      updateData.site_ids = mergeSiteIds(company?.site_ids, selectedSiteIdList);
-    }
 
     // Add accredited systems
     ACCREDITED_SYSTEMS.forEach(sys => {

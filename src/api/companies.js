@@ -1,10 +1,9 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
-import { mergeSiteIds } from '../utils/siteIds';
 import { fetchAllPaginated } from './pagination';
 
-const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids, accreditation_site_ids';
+const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids';
 
 const escapeLikePattern = (value) => String(value).replace(/[%_\\]/g, '\\$&');
 
@@ -82,8 +81,6 @@ const transformCompany = (dbCompany) => {
     in_radar: dbCompany.in_radar !== false,
     siteIds: dbCompany.site_ids || [],
     site_ids: dbCompany.site_ids || [],
-    accreditationSiteIds: dbCompany.accreditation_site_ids || [],
-    accreditation_site_ids: dbCompany.accreditation_site_ids || [],
   };
 };
 
@@ -425,9 +422,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
         accredited_date,
         hs_agreement_signature,
         hs_agreement_accepted_by,
-        hs_agreement_acknowledged,
-        site_ids,
-        accreditation_site_ids
+        hs_agreement_acknowledged
       `)
       .eq('id', companyId)
       .single();
@@ -441,14 +436,9 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
 
     // Only set accredited_date if this is the first approval
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    const mergedSiteIds = mergeSiteIds(
-      currentData?.site_ids,
-      currentData?.accreditation_site_ids,
-    );
     const updateData = {
       accreditation_status: 'approved',
       in_radar: false,
-      site_ids: mergedSiteIds,
       ...(currentData && !currentData.accredited_date && { accredited_date: today })
     };
 
@@ -465,9 +455,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       id: company.id,
       name: company.name,
       status: company.accreditation_status,
-      accreditedDate: company.accredited_date,
-      siteIds: company.site_ids || [],
-      site_ids: company.site_ids || [],
+      accreditedDate: company.accredited_date
     };
   } catch (error) {
     console.error('Error approving company accreditation:', error.message);
