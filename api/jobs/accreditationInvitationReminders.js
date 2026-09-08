@@ -3,37 +3,39 @@ const {
   TEMPLATE_TYPE,
   sendAccreditationInvitationReminderEmail,
 } = require('../lib/accreditationInvitationReminderEmail');
+const { applyAccreditationReminderQueryFilters } = require('../lib/accreditationReminderEligibility');
 const { buildNextReminderAt } = require('../lib/reminderScheduler');
+
+const COMPANY_SELECT = `
+  id,
+  name,
+  contact_name,
+  contact_email,
+  contractor_type,
+  accreditation_deadline,
+  accreditation_invitation_sent_at,
+  accreditation_invitation_reminder_sent_at,
+  accreditation_invitation_reminder_count,
+  accreditation_next_reminder_at,
+  accreditation_status,
+  accreditation_last_updated,
+  accredited_date,
+  company_active
+`;
 
 async function fetchDueCompanies(adminClient, limit) {
   const nowIso = new Date().toISOString();
-  const { data, error } = await adminClient
+  let query = adminClient
     .from('companies')
-    .select(`
-      id,
-      name,
-      contact_name,
-      contact_email,
-      accreditation_deadline,
-      accreditation_invitation_sent_at,
-      accreditation_invitation_reminder_sent_at,
-      accreditation_invitation_reminder_count,
-      accreditation_next_reminder_at,
-      accreditation_status,
-      accreditation_last_updated,
-      accredited_date,
-      company_active
-    `)
-    .not('accreditation_invitation_sent_at', 'is', null)
-    .is('accreditation_last_updated', null)
-    .is('accredited_date', null)
-    .in('accreditation_status', ['none', 'started'])
-    .or('company_active.is.null,company_active.eq.true')
-    .lte('accreditation_next_reminder_at', nowIso)
+    .select(COMPANY_SELECT)
     .order('accreditation_next_reminder_at', { ascending: true })
     .order('accreditation_invitation_sent_at', { ascending: true })
     .order('id', { ascending: true })
     .limit(limit);
+
+  query = applyAccreditationReminderQueryFilters(query, nowIso);
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to fetch due companies: ${error.message}`);
@@ -44,15 +46,13 @@ async function fetchDueCompanies(adminClient, limit) {
 
 async function countDueCompanies(adminClient) {
   const nowIso = new Date().toISOString();
-  const { count, error } = await adminClient
+  let query = adminClient
     .from('companies')
-    .select('id', { count: 'exact', head: true })
-    .not('accreditation_invitation_sent_at', 'is', null)
-    .is('accreditation_last_updated', null)
-    .is('accredited_date', null)
-    .in('accreditation_status', ['none', 'started'])
-    .or('company_active.is.null,company_active.eq.true')
-    .lte('accreditation_next_reminder_at', nowIso);
+    .select('id', { count: 'exact', head: true });
+
+  query = applyAccreditationReminderQueryFilters(query, nowIso);
+
+  const { count, error } = await query;
 
   if (error) {
     throw new Error(`Failed to count due companies: ${error.message}`);
@@ -174,6 +174,7 @@ async function runAccreditationInvitationReminders({
     const baseResult = {
       companyId: company.id,
       companyName: company.name,
+      contractorType: company.contractor_type || 'D',
       nextReminderAt: company.accreditation_next_reminder_at,
     };
 
@@ -238,6 +239,7 @@ async function runAccreditationInvitationReminders({
         status: 'sent',
         metadata: {
           recipientSource: recipient.source,
+          contractorType: company.contractor_type || 'D',
           messageId: sendResult.messageId || null,
         },
       });

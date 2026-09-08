@@ -583,6 +583,7 @@ export default async function handler(req, res) {
           }
 
           const adminClient = getSupabaseAdmin();
+
           const resolvedContactName = (contactName || '').trim() || null;
 
           if (adminClient && companyId) {
