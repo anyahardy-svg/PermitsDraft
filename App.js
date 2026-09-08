@@ -3232,6 +3232,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
+  const [accreditationAdminActions, setAccreditationAdminActions] = useState(null);
   const [displayedAccreditationStatus, setDisplayedAccreditationStatus] = useState('Not Submitted');
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
@@ -11135,24 +11136,30 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <TouchableOpacity onPress={() => {
                   setShowAccreditationModal(false);
                   setSelectedCompanyAccreditationId(null);
+                  setAccreditationAdminActions(null);
                 }} style={{ padding: 8 }}>
                   <Text style={{ fontSize: 24, color: 'white', fontWeight: '600' }}>✕</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Full Accreditation Screen with padding for buttons */}
-              <View style={{ flex: 1, paddingBottom: companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' ? 80 : 0 }}>
+              <View style={{ flex: 1, paddingBottom: companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' ? 120 : 0 }}>
                 <CompanyAccreditationScreen 
                   key={selectedCompanyForAccreditation.id}
                   companyId={selectedCompanyForAccreditation.id}
                   reviewMode={true}
                   styles={styles}
+                  onAdminActionsReady={setAccreditationAdminActions}
                   onClose={() => {
                     setShowAccreditationModal(false);
                     setSelectedCompanyAccreditationId(null);
+                    setAccreditationAdminActions(null);
                   }}
                   onStatusUpdate={(status) => {
                     setDisplayedAccreditationStatus(status);
+                    setCompanyAccreditationData((prev) => (
+                      prev ? { ...prev, accreditation_status: status } : prev
+                    ));
                   }}
                 />
               </View>
@@ -11170,42 +11177,79 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   paddingBottom: 16,
-                  flexDirection: 'row',
                   gap: 10
                 }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      backgroundColor: '#F59E0B',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    onPress={() => {
-                      setRejectionFeedback('');
-                      setShowRejectionFeedbackModal(true);
-                    }}
-                    disabled={approvingAccreditation}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      {approvingAccreditation ? 'Processing...' : 'Request Changes'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      backgroundColor: '#10B981',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    onPress={handleApproveCompanyAccreditation}
-                    disabled={approvingAccreditation}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      {approvingAccreditation ? 'Processing...' : 'Approve'}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        backgroundColor: '#3B82F6',
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        opacity: (!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
+                      }}
+                      onPress={() => accreditationAdminActions?.save?.()}
+                      disabled={!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                        {accreditationAdminActions?.saving ? 'Saving...' : 'Save'}
+                      </Text>
+                    </TouchableOpacity>
+                    {accreditationAdminActions?.canSubmit && (
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          paddingVertical: 12,
+                          backgroundColor: '#059669',
+                          borderRadius: 8,
+                          alignItems: 'center',
+                          opacity: (!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
+                        }}
+                        onPress={() => accreditationAdminActions?.submitAsComplete?.()}
+                        disabled={!accreditationAdminActions || accreditationAdminActions.saving || !accreditationAdminActions.hasLoadedCompanyData}
+                      >
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                          {accreditationAdminActions?.saving ? 'Submitting...' : 'Submit as Complete'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 8,
+                        alignItems: 'center'
+                      }}
+                      onPress={() => {
+                        setRejectionFeedback('');
+                        setShowRejectionFeedbackModal(true);
+                      }}
+                      disabled={approvingAccreditation}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                        {approvingAccreditation ? 'Processing...' : 'Request Changes'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        backgroundColor: '#10B981',
+                        borderRadius: 8,
+                        alignItems: 'center'
+                      }}
+                      onPress={handleApproveCompanyAccreditation}
+                      disabled={approvingAccreditation}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                        {approvingAccreditation ? 'Processing...' : 'Approve'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
