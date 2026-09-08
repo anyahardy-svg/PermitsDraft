@@ -41,6 +41,15 @@ const debugWarn = (...args) => {
   }
 };
 
+const showUserMessage = (title, message) => {
+  const text = title ? `${title}: ${message}` : message;
+  if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(text);
+    return;
+  }
+  Alert.alert(title || 'Notice', message);
+};
+
 const drawStoredSignatureOnCanvas = (canvas, ctx, signatureData, onSuccess) => {
   if (!canvas || !ctx || !signatureData) return;
 
@@ -2796,11 +2805,11 @@ export default function CompanyAccreditationScreen({
   // Manual save with user feedback
   const handleSave = async () => {
     if (!currentCompanyId) {
-      Alert.alert('Error', 'No company selected');
+      showUserMessage('Error', 'No company selected');
       return;
     }
     if (!hasLoadedCompanyData) {
-      Alert.alert('Please wait', 'Accreditation data is still loading. Try saving again once the form has loaded.');
+      showUserMessage('Please wait', 'Accreditation data is still loading. Try saving again once the form has loaded.');
       return;
     }
 
@@ -2820,13 +2829,13 @@ export default function CompanyAccreditationScreen({
         debugLog('💾 Save successful, reloading data from database...');
         // Silent reload keeps the form mounted so the signature canvas can redraw
         await loadCompanyData({ silent: true });
-        Alert.alert('Success ✅', 'Accreditation saved successfully');
+        showUserMessage('Success', 'Accreditation saved successfully');
       } else {
-        Alert.alert('Error', 'Failed to save: ' + result.error);
+        showUserMessage('Error', 'Failed to save: ' + result.error);
       }
     } catch (error) {
       console.error('🔥 Save error:', error);
-      Alert.alert('Error', 'Save failed: ' + error.message);
+      showUserMessage('Error', 'Save failed: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -2834,6 +2843,40 @@ export default function CompanyAccreditationScreen({
 
   const contractorType = company?.contractor_type || 'D';
   const isTypeDAccreditation = isTypeDContractor(contractorType);
+
+  const getSelectedBusinessUnitsForValidation = () => {
+    if (Object.values(selectedBusinessUnits).some(Boolean)) {
+      return selectedBusinessUnits;
+    }
+    const ids = [
+      ...(company?.fletcher_business_units || []),
+      ...(company?.business_unit_ids || []),
+    ];
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (uniqueIds.length === 0) {
+      return selectedBusinessUnits;
+    }
+    return Object.fromEntries(uniqueIds.map((id) => [id, true]));
+  };
+
+  const getSelectedServicesForValidation = () => {
+    if (Object.values(selectedServices).some(Boolean)) {
+      return selectedServices;
+    }
+    const ids = company?.approved_services || [];
+    if (ids.length === 0) {
+      return selectedServices;
+    }
+    return Object.fromEntries(ids.filter(Boolean).map((id) => [id, true]));
+  };
+
+  const getHSAgreementDataForValidation = () => ({
+    hs_agreement_signature: section26.hs_agreement_signature || company?.hs_agreement_signature || null,
+    hs_agreement_accepted_by: section26.hs_agreement_accepted_by || company?.hs_agreement_accepted_by || '',
+    hs_agreement_acknowledged: !!(
+      section26.hs_agreement_acknowledged || company?.hs_agreement_acknowledged
+    ),
+  });
 
   const performSubmitAsComplete = async () => {
     debugLog('🟢 performSubmitAsComplete called, current status:', accreditationStatus);
@@ -2844,18 +2887,21 @@ export default function CompanyAccreditationScreen({
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       debugLog('🟢 API result:', result);
 
+      const businessUnitsForApproval = getSelectedBusinessUnitsForValidation();
+      const servicesForApproval = getSelectedServicesForValidation();
+
       if (result.success) {
         if (canAutoApproveTypeDAccreditation({
           contractorType,
-          selectedBusinessUnits,
-          selectedServices,
+          selectedBusinessUnits: businessUnitsForApproval,
+          selectedServices: servicesForApproval,
         })) {
           await approveCompanyAccreditation(currentCompanyId, 'type-d-auto-approve');
           setAccreditationStatus('approved');
           if (onStatusUpdate) {
             onStatusUpdate('approved');
           }
-          Alert.alert(
+          showUserMessage(
             'Success',
             reviewMode
               ? 'Type D accreditation submitted and automatically approved.'
@@ -2868,17 +2914,17 @@ export default function CompanyAccreditationScreen({
             onStatusUpdate('completed');
           }
           if (reviewMode) {
-            Alert.alert('Success', 'Accreditation submitted as complete.');
+            showUserMessage('Success', 'Accreditation submitted as complete.');
           }
         }
         await loadCompanyData({ silent: true });
       } else {
         console.error('🔥 Failed to submit:', result.error);
-        Alert.alert('Error', result.error || 'Failed to submit accreditation');
+        showUserMessage('Error', result.error || 'Failed to submit accreditation');
       }
     } catch (error) {
       console.error('🔥 Submit error:', error);
-      Alert.alert('Error', error.message || 'Failed to submit accreditation');
+      showUserMessage('Error', error.message || 'Failed to submit accreditation');
     } finally {
       setSubmitting(false);
     }
@@ -2887,29 +2933,33 @@ export default function CompanyAccreditationScreen({
   // Submit accreditation as complete
   const handleSubmitAsComplete = async () => {
     if (!currentCompanyId) {
-      Alert.alert('Error', 'No company selected');
+      showUserMessage('Error', 'No company selected');
       return;
     }
 
     if (!hasLoadedCompanyData) {
-      Alert.alert('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
+      showUserMessage('Please wait', 'Accreditation data is still loading. Try submitting again once the form has loaded.');
       return;
     }
 
+    const businessUnitsForValidation = getSelectedBusinessUnitsForValidation();
+    const servicesForValidation = getSelectedServicesForValidation();
+    const hsAgreementData = getHSAgreementDataForValidation();
+
     if (isTypeDAccreditation) {
       const sectionError = getTypeDSubmitValidationError({
-        selectedBusinessUnits,
-        selectedServices,
+        selectedBusinessUnits: businessUnitsForValidation,
+        selectedServices: servicesForValidation,
       });
       if (sectionError) {
-        Alert.alert('Sections required', sectionError);
+        showUserMessage('Sections required', sectionError);
         return;
       }
     }
 
-    const hsAgreementError = validateHSAgreementComplete(section26);
+    const hsAgreementError = validateHSAgreementComplete(hsAgreementData);
     if (hsAgreementError) {
-      Alert.alert('Section 26 required', hsAgreementError);
+      showUserMessage('Section 26 required', hsAgreementError);
       setExpandedSections((prev) => ({ ...prev, 26: true }));
       return;
     }
