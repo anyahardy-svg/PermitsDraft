@@ -10144,6 +10144,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
     };
 
+    const handleSaveContractorType = async (companyId, contractorType) => {
+      const normalized = String(contractorType || 'D').trim().toUpperCase();
+      if (!['A', 'B', 'C', 'D'].includes(normalized)) {
+        window.alert('Invalid contractor type.');
+        return;
+      }
+
+      const company = companies.find((item) => item.id === companyId);
+      const existingType = company?.contractor_type || company?.contractorType || 'D';
+      if (normalized === existingType) {
+        return;
+      }
+
+      try {
+        await updateCompany(companyId, { contractor_type: normalized });
+        const freshCompanies = await listCompanies();
+        setCompanies(freshCompanies);
+      } catch (error) {
+        window.alert('Failed to save contractor type: ' + error.message);
+      }
+    };
+
     const handleSaveNextReminderAt = async (companyId, dateText) => {
       const trimmed = String(dateText || '').trim();
       const company = companies.find((item) => item.id === companyId);
@@ -10830,21 +10852,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             <Text style={{ width: 250, padding: 12, fontSize: 13, color: '#1F2937', borderRightWidth: 1, borderRightColor: '#E5E7EB', fontWeight: '500' }}>
                               {company.name}
                             </Text>
-                            <View style={{ width: 100, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
-                              <View style={{
-                                paddingHorizontal: 8,
-                                paddingVertical: 4,
-                                borderRadius: 4,
-                                backgroundColor: company.contractor_type === 'A' ? '#FED7AA' : company.contractor_type === 'B' ? '#FCA5A5' : company.contractor_type === 'C' ? '#C7D2FE' : '#DBEAFE'
-                              }}>
-                                <Text style={{
-                                  fontSize: 12,
-                                  fontWeight: '600',
-                                  color: company.contractor_type === 'A' ? '#92400E' : company.contractor_type === 'B' ? '#7F1D1D' : company.contractor_type === 'C' ? '#3730A3' : '#0C4A6E'
-                                }}>
-                                  {company.contractor_type === 'A' ? 'A - Major' : company.contractor_type === 'B' ? 'B - High' : company.contractor_type === 'C' ? 'C - Medium' : 'D - Low'}
-                                </Text>
-                              </View>
+                            <View style={{ width: 120, padding: 8, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <select
+                                key={`contractor-type-${company.id}-${company.contractor_type || company.contractorType || 'D'}`}
+                                defaultValue={company.contractor_type || company.contractorType || 'D'}
+                                onChange={(event) => handleSaveContractorType(company.id, event.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  fontSize: 13,
+                                  color: '#374151',
+                                  backgroundColor: 'white',
+                                  border: '1px solid #D1D5DB',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                <option value="A">A - Major</option>
+                                <option value="B">B - High</option>
+                                <option value="C">C - Medium</option>
+                                <option value="D">D - Low</option>
+                              </select>
                             </View>
                             <Text style={{ width: 300, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               {companyBUs}
