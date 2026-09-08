@@ -112,12 +112,15 @@ export default function CompanyAccreditationScreen({
   styles,
   onClose,
   onNavigateToTrainingRecords,
-  onStatusUpdate
+  onStatusUpdate,
+  onAdminActionsReady,
 }) {
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
   const storedSignatureRef = useRef(null);
   const signatureUpdateSourceRef = useRef('load');
+  const handleSaveRef = useRef(async () => {});
+  const handleSubmitAsCompleteRef = useRef(async () => {});
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // If companyId is provided (logged-in contractor), use it directly
@@ -2911,6 +2914,31 @@ export default function CompanyAccreditationScreen({
     });
   };
 
+  handleSaveRef.current = handleSave;
+  handleSubmitAsCompleteRef.current = handleSubmitAsComplete;
+
+  useEffect(() => {
+    if (!reviewMode || !onAdminActionsReady) {
+      return undefined;
+    }
+
+    onAdminActionsReady({
+      save: () => handleSaveRef.current(),
+      submitAsComplete: () => handleSubmitAsCompleteRef.current(),
+      saving,
+      hasLoadedCompanyData,
+      canSubmit: !['completed', 'approved'].includes(accreditationStatus),
+    });
+
+    return () => onAdminActionsReady(null);
+  }, [
+    reviewMode,
+    onAdminActionsReady,
+    saving,
+    hasLoadedCompanyData,
+    accreditationStatus,
+  ]);
+
   // Helper function to render sections 4-19
   const renderSections__719 = () => {
     const sections = [
@@ -5324,18 +5352,20 @@ export default function CompanyAccreditationScreen({
         </View>
 
         {/* Save Button */}
-        <TouchableOpacity
-          style={[styles.addButton, { marginBottom: 10 }]}
-          onPress={handleSave}
-          disabled={saving || !hasLoadedCompanyData}
-        >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
-            {saving ? 'Saving...' : '✓ Save Accreditation'}
-          </Text>
-        </TouchableOpacity>
+        {!reviewMode && (
+          <TouchableOpacity
+            style={[styles.addButton, { marginBottom: 10 }]}
+            onPress={handleSave}
+            disabled={saving || !hasLoadedCompanyData}
+          >
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 18 }}>
+              {saving ? 'Saving...' : '✓ Save Accreditation'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Submit Button - Only show if not completed */}
-        {!['completed', 'approved'].includes(accreditationStatus) && (
+        {!reviewMode && !['completed', 'approved'].includes(accreditationStatus) && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
