@@ -15,7 +15,7 @@ const {
   findAuthUserCaseInsensitive,
   lookupContractorForAuthUser,
 } = require('./supabaseAdmin');
-const { wrapEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
 
 function generateResetCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -74,7 +74,7 @@ async function sendPasswordResetEmail(toEmail, resetCode) {
     <p>If you did not request this, you can ignore this email.</p>
     <p>Need help? Contact ${SUPPORT_EMAIL}</p>
   `;
-  const htmlContent = wrapEmailHtml(emailBody);
+  const htmlContent = prepareEmailHtml(emailBody);
   const textContent = `Reset Your Contractor HQ Password\n\nYour code: ${resetCode}\n\n${resetUrl}\n\n${buildEmailFooterText()}`;
 
   await sendEmailViaResend({

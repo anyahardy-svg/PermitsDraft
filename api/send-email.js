@@ -12,7 +12,7 @@ const {
   grantCompanyAdminAccess,
   syncInvitedAdminAuthUser,
 } = require('./supabaseAdmin');
-const { wrapEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
 const { buildNextReminderAt } = require('./lib/reminderScheduler');
 const {
   DEFAULT_FROM_EMAIL,
@@ -524,7 +524,7 @@ export default async function handler(req, res) {
 
     const plainTextContent = `${stripHtmlTags(actualHtmlContent)}\n\n${buildEmailFooterText()}`;
 
-    const wrappedHtmlContent = wrapEmailHtml(actualHtmlContent);
+    const wrappedHtmlContent = prepareEmailHtml(actualHtmlContent);
 
     const recipientEmail = type === 'request' ? SUPPORT_EMAIL : toEmail;
     const recipientName = type === 'join-request' ? toName : undefined;

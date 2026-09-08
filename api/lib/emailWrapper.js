@@ -74,6 +74,24 @@ function buildEmailFooterText() {
   ].join('\n');
 }
 
+function isCompleteHtmlDocument(contentHtml = '') {
+  const trimmed = String(contentHtml).trim();
+
+  if (/^<!doctype\s+html/i.test(trimmed)) {
+    return true;
+  }
+
+  return /<html[\s>]/i.test(trimmed);
+}
+
+function prepareEmailHtml(contentHtml) {
+  if (isCompleteHtmlDocument(contentHtml)) {
+    return String(contentHtml).trim();
+  }
+
+  return wrapEmailHtml(contentHtml);
+}
+
 function wrapEmailHtml(contentHtml) {
   return `
 <!DOCTYPE html>
@@ -125,5 +143,7 @@ module.exports = {
   buildEmailFooterHtml,
   buildEmailFooterText,
   buildPartnerNamesHtml,
+  isCompleteHtmlDocument,
+  prepareEmailHtml,
   wrapEmailHtml,
 };
