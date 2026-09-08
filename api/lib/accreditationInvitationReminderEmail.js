@@ -1,4 +1,4 @@
-const { wrapEmailHtml, buildEmailFooterText } = require('./emailWrapper');
+const { prepareEmailHtml, buildEmailFooterText } = require('./emailWrapper');
 const { fetchAuthUserByEmail } = require('../supabaseAdmin');
 const {
   DEFAULT_FROM_EMAIL,
@@ -203,7 +203,7 @@ async function sendAccreditationInvitationReminderEmail({
   });
 
   const plainTextContent = `${stripHtmlTags(content)}\n\n${buildEmailFooterText()}`;
-  const wrappedHtmlContent = wrapEmailHtml(content);
+  const wrappedHtmlContent = prepareEmailHtml(content);
 
   const data = await sendEmailViaResend({
     toEmail,
