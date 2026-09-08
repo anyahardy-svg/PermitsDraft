@@ -2,7 +2,7 @@ const assert = require('assert');
 const {
   isEligibleForAccreditationReminder,
   shouldScheduleAccreditationReminder,
-} = require('./api/lib/accreditationReminderEligibility');
+} = require('../api/lib/accreditationReminderEligibility');
 
 assert.strictEqual(shouldScheduleAccreditationReminder('D'), false);
 assert.strictEqual(shouldScheduleAccreditationReminder('A'), true);
