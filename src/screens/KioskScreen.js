@@ -585,6 +585,30 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     await performCheckIn(selectedContractor, null, null);
   };
 
+  const applyContractorPhoneLocally = (contractorId, phoneToSave) => {
+    setContractors((prev) =>
+      prev.map((c) => (c.id === contractorId ? { ...c, phone: phoneToSave } : c))
+    );
+    setSelectedContractor((prev) =>
+      prev?.id === contractorId ? { ...prev, phone: phoneToSave } : prev
+    );
+  };
+
+  const saveContractorPhoneIfNeeded = async (contractor) => {
+    if (!contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
+      return contractor.phone;
+    }
+
+    const phoneToSave = normalizePhoneForSave(contractorPhone);
+    console.log('📱 Updating contractor phone before check-in:', contractor.id);
+    const updatedContractor = await updateContractor(contractor.id, { phone: phoneToSave });
+    const savedPhone = updatedContractor?.phone ?? phoneToSave;
+    applyContractorPhoneLocally(contractor.id, savedPhone);
+    setContractorPhone(formatPhoneForDisplay(savedPhone));
+    await refreshContractorsForCurrentSite(contractor.id);
+    return savedPhone;
+  };
+
   const performCheckIn = async (contractor, flagData, rtData) => {
     console.log('📞 Calling checkInContractor for:', contractor.name);
     try {
@@ -594,17 +618,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         return;
       }
 
-      if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
-        const phoneToSave = normalizePhoneForSave(contractorPhone);
-        console.log('📱 Updating contractor phone before check-in:', contractor.id);
-        await updateContractor(contractor.id, { phone: phoneToSave });
-      }
+      await saveContractorPhoneIfNeeded(contractor);
 
       const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData, contractorVisitingPerson || null);
       
       console.log('📊 Check-in result:', result);
       
       if (result?.success) {
+        await refreshContractorsForCurrentSite();
         // Clear the form immediately since check-in was recorded
         const contractorName = contractor.name;
         setSelectedContractor(null);
