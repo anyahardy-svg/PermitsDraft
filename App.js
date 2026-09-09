@@ -70,6 +70,7 @@ import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import ManagerHubScreen from './src/screens/manager/ManagerHubScreen';
 import { getPostAdminLoginScreen, isAdminPanelPath, isManagerHubPath } from './src/utils/managerHubRoutes';
+import { buildAdminPasswordSetupUrl, resolveAdminInviteRedirectUrl } from './src/utils/adminSetupRoute';
 import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
@@ -82,7 +83,7 @@ import AccreditationApprovalScreen from './src/screens/AccreditationApprovalScre
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
-import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
+import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken, resendAdminSetupEmail } from './src/api/adminAuth';
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
@@ -2482,6 +2483,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [adminList, setAdminList] = useState([]);
   const [adminListLoading, setAdminListLoading] = useState(false);
+  const [resendingSetupEmailId, setResendingSetupEmailId] = useState(null);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [adminSiteFilterBU, setAdminSiteFilterBU] = useState('All');
@@ -2719,9 +2721,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (result.success) {
         console.log('✅ Admin created successfully');
         
-        // Send setup email
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const setupUrl = `${baseUrl}?type=invited`;
+        // Send setup email on the main app domain (never a kiosk subdomain)
+        const setupUrl = buildAdminPasswordSetupUrl(
+          newAdminForm.email,
+          newAdminForm.role
+        );
         await sendAdminSetupEmail(newAdminForm.email, newAdminForm.name, setupUrl);
         
         Alert.alert('Success', 'Admin user created and setup email sent. They can set their password via the email link or on first login.');
@@ -2751,6 +2755,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       Alert.alert('Error', 'Failed to load admin list');
     } finally {
       setAdminListLoading(false);
+    }
+  };
+
+  const handleResendAdminSetupEmail = async (admin) => {
+    setResendingSetupEmailId(admin.id);
+    try {
+      const result = await resendAdminSetupEmail(admin.email);
+      if (result.success) {
+        Alert.alert('Email Sent', result.message || `Setup email resent to ${admin.email}`);
+      } else {
+        Alert.alert('Unable to Resend', result.error || 'Failed to resend setup email');
+      }
+    } catch (error) {
+      console.error('Error resending admin setup email:', error);
+      Alert.alert('Error', 'Failed to resend setup email');
+    } finally {
+      setResendingSetupEmailId(null);
     }
   };
 
@@ -2938,14 +2959,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     );
   };
 
-  // Detect invitation flow from email (?type=invited)
+  // Detect contractor invitation flow from email (?type=invited on contractor routes only)
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
       const queryParams = new URLSearchParams(window.location.search);
       const inviteType = queryParams.get('type');
-      
-      if (inviteType === 'invited') {
-        console.log('✅ Invitation link detected from email - setting up password form');
+      const isAdminInvitePath = pathname === '/admin'
+        || pathname === '/admin/'
+        || pathname === '/manager'
+        || pathname === '/manager/'
+        || pathname.startsWith('/admin/');
+
+      if (inviteType === 'invited' && !isAdminInvitePath) {
+        console.log('✅ Contractor invitation link detected from email');
         setInvitationFlow(true);
       }
     }
@@ -24745,7 +24772,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Sites: {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                      <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {admin.needsPasswordSetup && (
+                          <TouchableOpacity
+                            style={{
+                              padding: 8,
+                              backgroundColor: '#10B981',
+                              borderRadius: 6,
+                              opacity: resendingSetupEmailId === admin.id ? 0.6 : 1,
+                            }}
+                            onPress={() => handleResendAdminSetupEmail(admin)}
+                            disabled={resendingSetupEmailId === admin.id}
+                          >
+                            {resendingSetupEmailId === admin.id ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Resend Invite</Text>
+                            )}
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
                           onPress={() => handleEditAdmin(admin)}
@@ -26070,12 +26115,25 @@ const AppRouter = ({ initialRoute }) => {
         const hostname = window.location.hostname;
         const fullUrl = window.location.href;
         const pathname = window.location.pathname;
+
+        const inviteRedirectUrl = resolveAdminInviteRedirectUrl(fullUrl);
+        if (inviteRedirectUrl) {
+          console.log('🔀 Redirecting admin invite link away from kiosk/root:', inviteRedirectUrl);
+          window.location.replace(inviteRedirectUrl);
+          return;
+        }
         
         console.log('🌐 Hostname detected:', hostname);
         console.log('🔗 Full URL:', fullUrl);
         
         // If URL contains admin or contractor-admin routes, always use permit management mode
-        const hasAdminRoute = pathname.includes('/admin/') || pathname.startsWith('/contractor-admin') || isSupplierFormRoute(pathname);
+        const hasAdminRoute = pathname === '/admin'
+          || pathname === '/admin/'
+          || pathname === '/manager'
+          || pathname === '/manager/'
+          || pathname.includes('/admin/')
+          || pathname.startsWith('/contractor-admin')
+          || isSupplierFormRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
           || pathname.startsWith('/auth/callback');

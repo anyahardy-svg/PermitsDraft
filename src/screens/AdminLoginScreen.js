@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,18 +12,67 @@ import {
 import { loginAdminUser, checkAdminPasswordSetup } from '../api/adminAuth';
 import { sendAdminPasswordResetEmail } from '../api/sendgrid';
 import AdminPasswordSetupScreen from './AdminPasswordSetupScreen';
+import { readAdminInviteParamsFromUrl } from '../utils/adminSetupRoute';
 
 export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
-  const [email, setEmail] = useState('');
+  const initialInvite = readAdminInviteParamsFromUrl();
+  const [email, setEmail] = useState(initialInvite.isInvite && initialInvite.email ? initialInvite.email : '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
-  const [setupEmail, setSetupEmail] = useState('');
+  const [setupEmail, setSetupEmail] = useState(initialInvite.isInvite && initialInvite.email ? initialInvite.email : '');
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [inviteChecked, setInviteChecked] = useState(false);
+
+  useEffect(() => {
+    if (!initialInvite.isInvite || !initialInvite.email || inviteChecked) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const openInvitePasswordSetup = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const setupCheck = await checkAdminPasswordSetup(initialInvite.email);
+        if (cancelled) {
+          return;
+        }
+
+        if (setupCheck.needsSetup) {
+          setSetupEmail(setupCheck.email || initialInvite.email);
+          setEmail(setupCheck.email || initialInvite.email);
+          setShowPasswordSetup(true);
+        } else if (setupCheck.adminId) {
+          setEmail(setupCheck.email || initialInvite.email);
+          setEmailSubmitted(true);
+        } else {
+          setError('Admin account not found for this invitation link');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('❌ Error checking invitation email:', err);
+          setError('An error occurred while opening your invitation link');
+        }
+      } finally {
+        if (!cancelled) {
+          setInviteChecked(true);
+          setLoading(false);
+        }
+      }
+    };
+
+    openInvitePasswordSetup();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialInvite.email, initialInvite.isInvite, inviteChecked]);
 
   const handleEmailSubmit = async () => {
     setError('');
