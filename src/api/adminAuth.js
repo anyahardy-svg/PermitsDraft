@@ -7,6 +7,8 @@ import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
 import { normalizeEmailInput } from '../utils/emailNormalization';
 import { getPublicAppOrigin } from '../utils/publicAppOrigin';
+import { buildAdminPasswordSetupUrl } from '../utils/adminSetupRoute';
+import { sendAdminSetupEmail } from './sendgrid';
 
 const isMissingSiteIdsColumn = (error) =>
   error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
@@ -99,13 +101,13 @@ export async function getAllAdminUsers() {
   try {
     let { data, error } = await supabase
       .from('admin_users')
-      .select('id, email, name, role, site_ids, created_at')
+      .select('id, email, name, role, site_ids, created_at, password_hash')
       .order('name', { ascending: true });
 
     if (error && isMissingSiteIdsColumn(error)) {
       const retry = await supabase
         .from('admin_users')
-        .select('id, email, name, role, created_at')
+        .select('id, email, name, role, created_at, password_hash')
         .order('name', { ascending: true });
       data = retry.data;
       error = retry.error;
@@ -114,9 +116,14 @@ export async function getAllAdminUsers() {
     if (error) throw error;
     return (data || [])
       .map(user => ({
-        ...user,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        created_at: user.created_at,
         site_ids: user.site_ids || [],
-        siteIds: user.site_ids || []
+        siteIds: user.site_ids || [],
+        needsPasswordSetup: !user.password_hash || user.password_hash.trim() === '',
       }))
       .sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
@@ -383,6 +390,54 @@ export async function checkAdminPasswordSetup(email) {
   } catch (error) {
     console.error('❌ Error checking password setup:', error);
     return { needsSetup: false };
+  }
+}
+
+/**
+ * Resend the admin/manager password setup email
+ * @param {string} email - Admin email
+ * @returns {Object} { success: boolean, message?: string, error?: string }
+ */
+export async function resendAdminSetupEmail(email) {
+  try {
+    const normalizedEmail = normalizeEmailInput(email);
+    const { data: adminUser, error } = await findAdminUserByEmail(
+      normalizedEmail,
+      'id, email, name, role, password_hash'
+    );
+
+    if (error || !adminUser) {
+      return { success: false, error: 'Admin user not found' };
+    }
+
+    const needsSetup = !adminUser.password_hash || adminUser.password_hash.trim() === '';
+    if (!needsSetup) {
+      return {
+        success: false,
+        error: 'This user has already set their password. Use password reset instead.',
+      };
+    }
+
+    const setupUrl = buildAdminPasswordSetupUrl(adminUser.email, adminUser.role);
+    const emailResult = await sendAdminSetupEmail(adminUser.email, adminUser.name, setupUrl);
+
+    if (!emailResult.success) {
+      return {
+        success: false,
+        error: emailResult.error || 'Failed to send setup email',
+      };
+    }
+
+    return {
+      success: true,
+      message: `Setup email resent to ${adminUser.email}`,
+    };
+  } catch (error) {
+    console.error('❌ Error resending admin setup email:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to resend setup email',
+    };
   }
 }
 

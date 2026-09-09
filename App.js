@@ -83,7 +83,7 @@ import AccreditationApprovalScreen from './src/screens/AccreditationApprovalScre
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
-import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
+import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken, resendAdminSetupEmail } from './src/api/adminAuth';
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
@@ -2483,6 +2483,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [adminList, setAdminList] = useState([]);
   const [adminListLoading, setAdminListLoading] = useState(false);
+  const [resendingSetupEmailId, setResendingSetupEmailId] = useState(null);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [adminSiteFilterBU, setAdminSiteFilterBU] = useState('All');
@@ -2754,6 +2755,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       Alert.alert('Error', 'Failed to load admin list');
     } finally {
       setAdminListLoading(false);
+    }
+  };
+
+  const handleResendAdminSetupEmail = async (admin) => {
+    setResendingSetupEmailId(admin.id);
+    try {
+      const result = await resendAdminSetupEmail(admin.email);
+      if (result.success) {
+        Alert.alert('Email Sent', result.message || `Setup email resent to ${admin.email}`);
+      } else {
+        Alert.alert('Unable to Resend', result.error || 'Failed to resend setup email');
+      }
+    } catch (error) {
+      console.error('Error resending admin setup email:', error);
+      Alert.alert('Error', 'Failed to resend setup email');
+    } finally {
+      setResendingSetupEmailId(null);
     }
   };
 
@@ -24754,7 +24772,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Sites: {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                      <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {admin.needsPasswordSetup && (
+                          <TouchableOpacity
+                            style={{
+                              padding: 8,
+                              backgroundColor: '#10B981',
+                              borderRadius: 6,
+                              opacity: resendingSetupEmailId === admin.id ? 0.6 : 1,
+                            }}
+                            onPress={() => handleResendAdminSetupEmail(admin)}
+                            disabled={resendingSetupEmailId === admin.id}
+                          >
+                            {resendingSetupEmailId === admin.id ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Resend Invite</Text>
+                            )}
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
                           onPress={() => handleEditAdmin(admin)}
