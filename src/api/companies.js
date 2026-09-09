@@ -3,7 +3,7 @@ import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
 
-const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids';
+const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids, assigned_manager_id, assigned_hs_person_id, manager_approved_at, manager_approved_by, hs_approved_at, hs_approved_by, accreditation_rejection_reason';
 
 const escapeLikePattern = (value) => String(value).replace(/[%_\\]/g, '\\$&');
 
@@ -81,6 +81,20 @@ const transformCompany = (dbCompany) => {
     in_radar: dbCompany.in_radar !== false,
     siteIds: dbCompany.site_ids || [],
     site_ids: dbCompany.site_ids || [],
+    assignedManagerId: dbCompany.assigned_manager_id || null,
+    assigned_manager_id: dbCompany.assigned_manager_id || null,
+    assignedHsPersonId: dbCompany.assigned_hs_person_id || null,
+    assigned_hs_person_id: dbCompany.assigned_hs_person_id || null,
+    managerApprovedAt: dbCompany.manager_approved_at || null,
+    manager_approved_at: dbCompany.manager_approved_at || null,
+    managerApprovedBy: dbCompany.manager_approved_by || null,
+    manager_approved_by: dbCompany.manager_approved_by || null,
+    hsApprovedAt: dbCompany.hs_approved_at || null,
+    hs_approved_at: dbCompany.hs_approved_at || null,
+    hsApprovedBy: dbCompany.hs_approved_by || null,
+    hs_approved_by: dbCompany.hs_approved_by || null,
+    accreditationRejectionReason: dbCompany.accreditation_rejection_reason || '',
+    accreditation_rejection_reason: dbCompany.accreditation_rejection_reason || '',
   };
 };
 
@@ -111,6 +125,8 @@ export const createCompany = async (companyData) => {
       address_postcode: companyData.address_postcode || companyData.addressPostcode || null,
       contractor_type: companyData.contractor_type || companyData.contractorType || 'D',
       accreditation_status: 'none',
+      assigned_manager_id: companyData.assigned_manager_id || companyData.assignedManagerId || null,
+      assigned_hs_person_id: companyData.assigned_hs_person_id || companyData.assignedHsPersonId || null,
     };
 
     const { data, error } = await supabase
@@ -198,7 +214,7 @@ export const updateCompany = async (companyId, updates) => {
       console.warn('⚠️ updateCompany called with null/undefined companyId');
       return null;
     }
-    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'accreditation_next_reminder_at', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type', 'site_ids'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'accreditation_next_reminder_at', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type', 'site_ids', 'assigned_manager_id', 'assigned_hs_person_id'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       // Support both camelCase and snake_case
@@ -475,7 +491,8 @@ export const rejectCompanyAccreditation = async (companyId, reason) => {
     const { data, error } = await supabase
       .from('companies')
       .update({
-        accreditation_status: 'needs_revision'
+        accreditation_status: 'needs_revision',
+        accreditation_rejection_reason: reason || null,
       })
       .eq('id', companyId)
       .select();

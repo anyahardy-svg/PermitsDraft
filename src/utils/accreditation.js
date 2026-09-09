@@ -9,6 +9,8 @@ const EXPLICIT_ACCREDITATION_STATUSES = new Set([
   'completed',
   'needs_revision',
   'pending',
+  'pending_manager',
+  'pending_hs',
 ]);
 
 /**
@@ -58,6 +60,8 @@ const ACCREDITATION_STATUS_DISPLAY = {
   approved: { label: '✓ Approved', backgroundColor: '#D1FAE5', color: '#065F46' },
   completed: { label: '✓ Completed', backgroundColor: '#D1FAE5', color: '#065F46' },
   pending: { label: '⟳ Pending', backgroundColor: '#E0E7FF', color: '#3730A3' },
+  pending_manager: { label: '⏳ Pending Manager', backgroundColor: '#E0E7FF', color: '#3730A3' },
+  pending_hs: { label: '⏳ Pending H&S', backgroundColor: '#E0E7FF', color: '#3730A3' },
   needs_revision: { label: '⚠ Needs Revision', backgroundColor: '#FEE2E2', color: '#7F1D1D' },
   'in-progress': { label: '→ In Progress', backgroundColor: '#FEF3C7', color: '#92400E' },
   started: { label: '→ Started', backgroundColor: '#E0E7FF', color: '#3730A3' },
@@ -75,6 +79,12 @@ export function getAccreditationModalStatusLabel(status) {
   }
   if (status === 'in-progress') {
     return '⏳ In Progress';
+  }
+  if (status === 'pending_manager') {
+    return '⏳ Pending Manager Approval';
+  }
+  if (status === 'pending_hs') {
+    return '⏳ Pending H&S Approval';
   }
   return display.label;
 }

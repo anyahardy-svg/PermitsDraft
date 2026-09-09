@@ -16,6 +16,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
 import { listCompanies, approveCompanyAccreditation } from '../api/companies';
+import { startAccreditationApproval, notifyAccreditationApproved } from '../api/accreditationApproval';
 import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
@@ -2933,21 +2934,27 @@ export default function CompanyAccreditationScreen({
     debugLog('🟢 performSubmitAsComplete called, current status:', accreditationStatus);
     setSubmitting(true);
     try {
-      const updateData = buildUpdateData('completed');
-      debugLog('🟢 Update data built, status will be: completed');
+      const businessUnitsForApproval = getSelectedBusinessUnitsForValidation();
+      const servicesForApproval = getSelectedServicesForValidation();
+      const isAutoApproveTypeD = canAutoApproveTypeDAccreditation({
+        contractorType,
+        selectedBusinessUnits: businessUnitsForApproval,
+        selectedServices: servicesForApproval,
+      });
+      const submitStatus = isAutoApproveTypeD ? 'completed' : 'pending_manager';
+      const updateData = buildUpdateData(submitStatus);
+      debugLog('🟢 Update data built, status will be:', submitStatus);
       const result = await updateCompanyAccreditation(currentCompanyId, updateData);
       debugLog('🟢 API result:', result);
 
-      const businessUnitsForApproval = getSelectedBusinessUnitsForValidation();
-      const servicesForApproval = getSelectedServicesForValidation();
-
       if (result.success) {
-        if (canAutoApproveTypeDAccreditation({
-          contractorType,
-          selectedBusinessUnits: businessUnitsForApproval,
-          selectedServices: servicesForApproval,
-        })) {
+        if (isAutoApproveTypeD) {
           await approveCompanyAccreditation(currentCompanyId, 'type-d-auto-approve');
+          try {
+            await notifyAccreditationApproved(currentCompanyId);
+          } catch (emailError) {
+            console.error('Failed to send Type D approved email:', emailError);
+          }
           setAccreditationStatus('approved');
           if (onStatusUpdate) {
             onStatusUpdate('approved');
@@ -2959,13 +2966,27 @@ export default function CompanyAccreditationScreen({
               : 'Your Type D accreditation has been submitted and automatically approved.'
           );
         } else {
-          debugLog('🟢 Update successful, setting status to completed');
-          setAccreditationStatus('completed');
+          try {
+            await startAccreditationApproval(currentCompanyId);
+          } catch (approvalError) {
+            console.error('Failed to start accreditation approval chain:', approvalError);
+            showUserMessage(
+              'Submitted with warning',
+              approvalError.message || 'Accreditation was submitted but the approval email could not be sent. Please contact support.'
+            );
+          }
+          debugLog('🟢 Update successful, setting status to pending_manager');
+          setAccreditationStatus('pending_manager');
           if (onStatusUpdate) {
-            onStatusUpdate('completed');
+            onStatusUpdate('pending_manager');
           }
           if (reviewMode) {
-            showUserMessage('Success', 'Accreditation submitted as complete.');
+            showUserMessage('Success', 'Accreditation submitted and sent to the assigned manager for approval.');
+          } else {
+            showUserMessage(
+              'Success',
+              'Your accreditation has been submitted and sent to your assigned manager for approval.'
+            );
           }
         }
         await loadCompanyData({ silent: true });
@@ -3066,7 +3087,7 @@ export default function CompanyAccreditationScreen({
       saving,
       submitting,
       hasLoadedCompanyData,
-      canSubmit: !['completed', 'approved'].includes(accreditationStatus),
+      canSubmit: !['completed', 'approved', 'pending_manager', 'pending_hs'].includes(accreditationStatus),
     });
 
     return () => onAdminActionsReady(null);

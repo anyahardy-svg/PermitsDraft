@@ -4,7 +4,7 @@ import { getAccreditationStatusDisplay, resolveAccreditationDisplayStatus } from
 import { updateCompany } from './companies';
 
 const COMPANY_MANAGER_COLUMNS =
-  'id, name, accredited_date, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, public_liability_expiry, motor_vehicle_insurance_expiry, site_ids, in_radar';
+  'id, name, accredited_date, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, public_liability_expiry, motor_vehicle_insurance_expiry, site_ids, in_radar, assigned_manager_id, assigned_hs_person_id, accreditation_rejection_reason';
 
 function transformManagerCompany(company) {
   const status = resolveAccreditationDisplayStatus(company);
@@ -106,3 +106,45 @@ export async function addSiteToCompany(companyId, siteId) {
 
 // Backwards-compatible alias
 export const addSiteToAccreditedCompany = addSiteToCompany;
+
+export async function listPendingAccreditationApprovals(adminUserId) {
+  if (!adminUserId) {
+    return { managerApprovals: [], hsApprovals: [] };
+  }
+
+  const [managerData, hsData] = await Promise.all([
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select('id, name, accreditation_status, accreditation_last_updated, assigned_manager_id, assigned_hs_person_id')
+        .eq('assigned_manager_id', adminUserId)
+        .eq('accreditation_status', 'pending_manager')
+        .order('accreditation_last_updated', { ascending: false })
+        .range(from, to)
+    ),
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select('id, name, accreditation_status, accreditation_last_updated, assigned_manager_id, assigned_hs_person_id')
+        .eq('assigned_hs_person_id', adminUserId)
+        .eq('accreditation_status', 'pending_hs')
+        .order('accreditation_last_updated', { ascending: false })
+        .range(from, to)
+    ),
+  ]);
+
+  const mapApproval = (company, stage) => ({
+    id: company.id,
+    name: company.name,
+    stage,
+    stageLabel: stage === 'manager' ? 'Manager' : 'H&S',
+    status: resolveAccreditationDisplayStatus(company),
+    statusLabel: getAccreditationStatusDisplay(resolveAccreditationDisplayStatus(company)).label,
+    lastUpdated: company.accreditation_last_updated || null,
+  });
+
+  return {
+    managerApprovals: (managerData || []).map((company) => mapApproval(company, 'manager')),
+    hsApprovals: (hsData || []).map((company) => mapApproval(company, 'hs')),
+  };
+}
