@@ -56,6 +56,11 @@ import {
   getDefaultAccreditationDeadline,
   resolveAccreditationDisplayStatus,
 } from './src/utils/accreditation';
+import {
+  formatAdminUserOptionLabel,
+  getAdminUserEmailById,
+  resolveAdminUserIdFromList,
+} from './src/utils/approverAssignment';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -3270,7 +3275,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // New Company Invitation States
   const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
-  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
+  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({
+    companyName: '',
+    email: '',
+    deadline: '',
+    contractor_type: 'D',
+    assignedManagerId: '',
+    assignedHsPersonId: '',
+  });
   const [creatingAndSendingInvitation, setCreatingAndSendingInvitation] = useState(false);
   
   const [selectedSite, setSelectedSite] = useState(null);
@@ -10368,13 +10380,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const address1Idx = headerValues.findIndex(h => h.includes('address') && h.includes('1'));
             const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
             const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
+            const operationalApproverEmailIdx = headerValues.findIndex((h) =>
+              (h.includes('operational') && h.includes('approver'))
+              || h === 'operational_approver_email'
+              || (h.includes('operational') && h.includes('email'))
+            );
+            const regionalHsEmailIdx = headerValues.findIndex((h) =>
+              (h.includes('regional') && (h.includes('hs') || h.includes('h&s')))
+              || h === 'regional_hs_email'
+              || (h.includes('hs') && h.includes('advisor'))
+            );
             
-            console.log('📊 CSV Headers found:', headerValues);
-            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx });
+            let adminsForImport = companyAdminUsers;
+            if (!adminsForImport?.length) {
+              adminsForImport = await getAllAdminUsers();
+              setCompanyAdminUsers(adminsForImport || []);
+            }
 
             let newCount = 0;
             let updatedCount = 0;
             let duplicateCount = 0;
+            let approverLookupFailedCount = 0;
             const processedNames = new Set();
 
             for (let i = 1; i < lines.length; i++) {
@@ -10418,6 +10444,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const address1 = address1Idx >= 0 ? values[address1Idx] : '';
                 const addressCity = addressCityIdx >= 0 ? values[addressCityIdx] : '';
                 const addressPostcode = addressPostcodeIdx >= 0 ? values[addressPostcodeIdx] : '';
+                const operationalApproverEmail = operationalApproverEmailIdx >= 0 ? values[operationalApproverEmailIdx] : '';
+                const regionalHsEmail = regionalHsEmailIdx >= 0 ? values[regionalHsEmailIdx] : '';
+
+                const approverUpdateData = {};
+                if (operationalApproverEmail) {
+                  const managerId = resolveAdminUserIdFromList(adminsForImport, operationalApproverEmail);
+                  if (managerId) {
+                    approverUpdateData.assigned_manager_id = managerId;
+                  } else {
+                    approverLookupFailedCount += 1;
+                    console.warn(`⚠️ Operational approver not found in admin users: ${operationalApproverEmail} (${companyName})`);
+                  }
+                }
+                if (regionalHsEmail) {
+                  const hsPersonId = resolveAdminUserIdFromList(adminsForImport, regionalHsEmail);
+                  if (hsPersonId) {
+                    approverUpdateData.assigned_hs_person_id = hsPersonId;
+                  } else {
+                    approverLookupFailedCount += 1;
+                    console.warn(`⚠️ Regional H&S advisor not found in admin users: ${regionalHsEmail} (${companyName})`);
+                  }
+                }
                 
                 // Skip if already processed in this CSV
                 if (processedNames.has(companyName.toLowerCase())) {
@@ -10458,6 +10506,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) updateData.address_1 = address1;
                   if (addressCity) updateData.address_city = addressCity;
                   if (addressPostcode) updateData.address_postcode = addressPostcode;
+                  Object.assign(updateData, approverUpdateData);
                   
                   if (Object.keys(updateData).length > 0) {
                     console.log('📝 Updating existing company:', existingCompany.name, 'with fields:', Object.keys(updateData));
@@ -10481,6 +10530,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) createData.address_1 = address1;
                   if (addressCity) createData.address_city = addressCity;
                   if (addressPostcode) createData.address_postcode = addressPostcode;
+                  Object.assign(createData, approverUpdateData);
                   
                   console.log('✨ Creating new company:', companyName, 'with data:', createData);
                   await createCompany(createData);
@@ -10520,7 +10570,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               message += `📝 ${updatedCount} company(ies) updated\n`;
             }
             if (duplicateCount > 0) {
-              message += `⏭️ ${duplicateCount} duplicate(s) skipped`;
+              message += `⏭️ ${duplicateCount} duplicate(s) skipped\n`;
+            }
+            if (approverLookupFailedCount > 0) {
+              message += `⚠️ ${approverLookupFailedCount} approver email(s) not found in Admin Users (rows skipped for those fields)`;
             }
             
             console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount });
@@ -10615,6 +10668,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'address_1',
         'address_city',
         'address_postcode',
+        'operational_approver_email',
+        'regional_hs_email',
       ];
 
       const rows = filteredCompanies.map(company => [
@@ -10634,6 +10689,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         company.address_1 || company.address1 || '',
         company.address_city || company.addressCity || '',
         company.address_postcode || company.addressPostcode || '',
+        getAdminUserEmailById(companyAdminUsers, company.assigned_manager_id || company.assignedManagerId),
+        getAdminUserEmailById(companyAdminUsers, company.assigned_hs_person_id || company.assignedHsPersonId),
       ]);
 
       const csvContent = [
@@ -10753,7 +10810,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
-              <Text style={styles.label}>Assigned Manager</Text>
+              <Text style={styles.label}>Email address for the operational approver</Text>
               <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                 <select
                   style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
@@ -10769,7 +10826,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
-              <Text style={styles.label}>Assigned H&amp;S Person</Text>
+              <Text style={styles.label}>Email address for the regional H&amp;S advisor</Text>
               <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                 <select
                   style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
@@ -10883,7 +10940,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
               <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { 
                 setShowNewCompanyInvitationModal(true); 
-                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: getDefaultAccreditationDeadline(), contractor_type: 'D' }); 
+                setNewCompanyInvitationForm({
+                  companyName: '',
+                  email: '',
+                  deadline: getDefaultAccreditationDeadline(),
+                  contractor_type: 'D',
+                  assignedManagerId: '',
+                  assignedHsPersonId: '',
+                });
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
@@ -11878,6 +11942,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </select>
                 </View>
 
+                <Text style={styles.label}>Email address for the operational approver</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedManagerId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedManagerId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select operational approver...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-manager-${admin.id}`} value={admin.id}>
+                        {formatAdminUserOptionLabel(admin)}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
+                <Text style={styles.label}>Email address for the regional H&amp;S advisor</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedHsPersonId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedHsPersonId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select regional H&amp;S advisor...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-hs-${admin.id}`} value={admin.id}>
+                        {formatAdminUserOptionLabel(admin)}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
                 {/* Deadline Field */}
                 <Text style={styles.label}>Accreditation Deadline</Text>
                 <TextInput
@@ -11914,7 +12012,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         // Step 1: Create the new company
                         const newCompany = await createCompany({ 
                           name: newCompanyInvitationForm.companyName,
-                          contractor_type: newCompanyInvitationForm.contractor_type || 'D'
+                          contractor_type: newCompanyInvitationForm.contractor_type || 'D',
+                          contact_email: newCompanyInvitationForm.email.trim(),
+                          assigned_manager_id: newCompanyInvitationForm.assignedManagerId || null,
+                          assigned_hs_person_id: newCompanyInvitationForm.assignedHsPersonId || null,
                         });
 
                         if (!newCompany || !newCompany.id) {
@@ -11943,7 +12044,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         if (result.success) {
                           Alert.alert('Success', 'Company created and invitation sent successfully!');
                           setShowNewCompanyInvitationModal(false);
-                          setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
+                          setNewCompanyInvitationForm({
+                            companyName: '',
+                            email: '',
+                            deadline: '',
+                            contractor_type: 'D',
+                            assignedManagerId: '',
+                            assignedHsPersonId: '',
+                          });
                           
                           // Refresh companies to show the new company
                           const freshCompanies = await listCompanies();
