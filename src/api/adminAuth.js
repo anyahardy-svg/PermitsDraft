@@ -6,6 +6,7 @@
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
 import { normalizeEmailInput } from '../utils/emailNormalization';
+import { getPublicAppOrigin } from '../utils/publicAppOrigin';
 
 const isMissingSiteIdsColumn = (error) =>
   error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
@@ -436,11 +437,10 @@ export async function requestPasswordReset(email) {
       };
     }
 
-    // Build reset URL (includes token)
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.REACT_APP_BASE_URL || 'https://base-url.com';
-    
+    // Build reset URL on the main app domain (never a kiosk subdomain)
+    const baseUrl = getPublicAppOrigin(
+      typeof window !== 'undefined' ? window.location.origin : process.env.REACT_APP_BASE_URL
+    );
     const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
 
     console.log('✅ Password reset token generated and saved');
