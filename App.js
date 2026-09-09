@@ -48,6 +48,8 @@ import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
+import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
+import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
   getAccreditationStatusDisplay,
@@ -76,6 +78,7 @@ import LegalDocumentsAdminScreen from './src/screens/LegalDocumentsAdminScreen';
 import SupplierAccreditationScreen from './src/screens/SupplierAccreditationScreen.jsx';
 import SupplierListScreen from './src/screens/SupplierListScreen.jsx';
 import AccreditedCompaniesScreen from './src/screens/AccreditedCompaniesScreen.jsx';
+import AccreditationApprovalScreen from './src/screens/AccreditationApprovalScreen.jsx';
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
@@ -675,7 +678,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialContractorAdminTab, initialContractorParams }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialAccreditationApprovalToken, initialContractorAdminTab, initialContractorParams }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -2418,6 +2421,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (isSupplierFormRoute(pathname)) {
         return 'supplier_accreditation_public';
       }
+      if (isAccreditationApprovalRoute(pathname)) {
+        return 'accreditation_approval_public';
+      }
     }
     if (initialAdminRoute && !initialAdminRoute.startsWith('admin') && !initialAdminRoute.startsWith('manage_') && !initialAdminRoute.startsWith('services_') && !initialAdminRoute.startsWith('company_')) {
       return initialAdminRoute; // Non-admin routes like contractor_admin
@@ -3228,7 +3234,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     accreditedDate: '', 
     contractor_type: 'D',
     inRadar: true,
+    assignedManagerId: '',
+    assignedHsPersonId: '',
   });
+  const [companyAdminUsers, setCompanyAdminUsers] = useState([]);
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
@@ -3782,9 +3791,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentScreen('supplier_accreditation_public');
       return;
     }
+
+    // Public accreditation approval form (magic link)
+    if (isAccreditationApprovalRoute(pathname)) {
+      setCurrentScreen('accreditation_approval_public');
+      return;
+    }
     
     // Only check if we're currently not in admin/manager and not already showing login
-    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public') {
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public') {
       console.log('ℹ️ Already in admin context, skipping check');
       return;
     }
@@ -3881,7 +3896,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
-      if (currentScreen === 'supplier_accreditation_public') {
+      if (currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public') {
         return;
       }
 
@@ -3974,6 +3989,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (isSupplierFormRoute(pathname)) {
         console.log('✅ Setting initial screen to supplier_accreditation_public from URL');
         setCurrentScreen('supplier_accreditation_public');
+        return;
+      }
+
+      if (isAccreditationApprovalRoute(pathname)) {
+        console.log('✅ Setting initial screen to accreditation_approval_public from URL');
+        setCurrentScreen('accreditation_approval_public');
         return;
       }
 
@@ -4139,6 +4160,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         if (isSupplierFormRoute(pathname)) {
           setCurrentScreen('supplier_accreditation_public');
+          return;
+        }
+
+        if (isAccreditationApprovalRoute(pathname)) {
+          setCurrentScreen('accreditation_approval_public');
           return;
         }
         
@@ -9938,6 +9964,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   // Handle approving company accreditation
+  const getAccreditationApprovalStage = (status) => {
+    if (status === 'pending_hs') {
+      return 'hs';
+    }
+    if (status === 'pending_manager' || status === 'completed') {
+      return 'manager';
+    }
+    return null;
+  };
+
   const handleApproveCompanyAccreditation = async () => {
     if (!selectedCompanyForAccreditation) return;
 
@@ -9959,31 +9995,53 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       );
       return;
     }
+
+    const status = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
+    const stage = getAccreditationApprovalStage(status);
+    if (!stage) {
+      Alert.alert('Cannot approve', 'This accreditation is not awaiting manager or H&S approval.');
+      return;
+    }
+
+    if (!loggedInAdmin?.id) {
+      Alert.alert('Error', 'You must be logged in as an admin to approve accreditation.');
+      return;
+    }
     
     setApprovingAccreditation(true);
     try {
-      console.log('✅ Approving accreditation for:', selectedCompanyForAccreditation.name);
-      const result = await approveCompanyAccreditation(selectedCompanyForAccreditation.id, 'admin');
+      console.log('✅ Approving accreditation for:', selectedCompanyForAccreditation.name, 'stage:', stage);
+      await submitAccreditationApprovalAction({
+        companyId: selectedCompanyForAccreditation.id,
+        stage,
+        action: 'approve',
+        adminUserId: loggedInAdmin.id,
+      });
       
-      // Refresh companies list and wait for it to complete
       const updatedCompanies = await listCompanies();
       setCompanies(updatedCompanies);
       
-      // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       const resolvedStatus = resolveAccreditationDisplayStatus({
         ...selectedCompanyForAccreditation,
         ...updatedAccred,
-        accreditation_status: updatedAccred?.accreditation_status ?? 'approved',
+        accreditation_status: updatedAccred?.accreditation_status ?? status,
       });
       setCompanyAccreditationData({ ...updatedAccred, accreditation_status: resolvedStatus });
       setDisplayedAccreditationStatus(resolvedStatus);
       
-      Alert.alert('Success', 'Accreditation approved successfully', [
+      const successMessage = resolvedStatus === 'approved'
+        ? 'Accreditation approved successfully. The company contact has been notified.'
+        : stage === 'manager'
+          ? 'Manager approval recorded. The H&S reviewer has been notified.'
+          : 'Approval recorded successfully.';
+
+      Alert.alert('Success', successMessage, [
         { text: 'OK', onPress: () => {
-          // Close the modal after user confirms
-          setShowAccreditationModal(false);
-          setSelectedCompanyAccreditationId(null);
+          if (resolvedStatus === 'approved') {
+            setShowAccreditationModal(false);
+            setSelectedCompanyAccreditationId(null);
+          }
         }}
       ]);
     } catch (error) {
@@ -9996,17 +10054,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handle rejecting company accreditation
   const handleRejectCompanyAccreditation = async (reason) => {
     if (!selectedCompanyForAccreditation) return;
+
+    const status = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
+    const stage = getAccreditationApprovalStage(status);
+    if (!stage) {
+      Alert.alert('Cannot request changes', 'This accreditation is not awaiting manager or H&S approval.');
+      return;
+    }
+
+    if (!loggedInAdmin?.id) {
+      Alert.alert('Error', 'You must be logged in as an admin to request changes.');
+      return;
+    }
     
     setApprovingAccreditation(true);
     try {
-      console.log('❌ Rejecting accreditation for:', selectedCompanyForAccreditation.name);
-      const result = await rejectCompanyAccreditation(selectedCompanyForAccreditation.id, reason || '');
+      console.log('❌ Rejecting accreditation for:', selectedCompanyForAccreditation.name, 'stage:', stage);
+      await submitAccreditationApprovalAction({
+        companyId: selectedCompanyForAccreditation.id,
+        stage,
+        action: 'reject',
+        notes: reason || '',
+        adminUserId: loggedInAdmin.id,
+      });
       
-      // Refresh companies list and wait for it to complete
       const updatedCompanies = await listCompanies();
       setCompanies(updatedCompanies);
       
-      // Refresh the accreditation data
       const updatedAccred = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
       const resolvedStatus = resolveAccreditationDisplayStatus({
         ...selectedCompanyForAccreditation,
@@ -10016,9 +10090,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCompanyAccreditationData({ ...updatedAccred, accreditation_status: resolvedStatus });
       setDisplayedAccreditationStatus(resolvedStatus);
       
-      Alert.alert('Success', 'Accreditation marked as needing revision', [
+      Alert.alert('Success', 'Accreditation marked as needing revision. The company contact has been notified.', [
         { text: 'OK', onPress: () => {
-          // Close the modal after user confirms
           setShowAccreditationModal(false);
           setSelectedCompanyAccreditationId(null);
         }}
@@ -10031,6 +10104,28 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   // Manage Companies Screen
+  useEffect(() => {
+    if (currentScreen !== 'manage_companies') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const admins = await getAllAdminUsers();
+        if (!cancelled) {
+          setCompanyAdminUsers(admins || []);
+        }
+      } catch (error) {
+        console.error('Failed to load admin users for company form:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentScreen]);
+
   const renderManageCompanies = () => {
     const handleAddCompany = async () => {
       if (!currentCompany.name) {
@@ -10056,6 +10151,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
             in_radar: currentCompany.inRadar !== false,
+            assigned_manager_id: currentCompany.assignedManagerId || null,
+            assigned_hs_person_id: currentCompany.assignedHsPersonId || null,
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -10079,6 +10176,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
             contractor_type: currentCompany.contractor_type || 'D',
             in_radar: currentCompany.inRadar !== false,
+            assigned_manager_id: currentCompany.assignedManagerId || null,
+            assigned_hs_person_id: currentCompany.assignedHsPersonId || null,
           });
           const freshCompanies = await listCompanies();
           setCompanies(freshCompanies);
@@ -10090,7 +10189,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('✅ [COMPANY] New company business_unit_ids:', newCompany.business_unit_ids);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true, assignedManagerId: '', assignedHsPersonId: '' });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -10654,6 +10753,38 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
+              <Text style={styles.label}>Assigned Manager</Text>
+              <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                <select
+                  style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                  value={currentCompany.assignedManagerId || ''}
+                  onChange={(e) => setCurrentCompany({ ...currentCompany, assignedManagerId: e.target.value })}
+                >
+                  <option value="">Select manager...</option>
+                  {companyAdminUsers.map((admin) => (
+                    <option key={`manager-${admin.id}`} value={admin.id}>
+                      {admin.name} ({admin.email}) - {admin.role}
+                    </option>
+                  ))}
+                </select>
+              </View>
+
+              <Text style={styles.label}>Assigned H&amp;S Person</Text>
+              <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                <select
+                  style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                  value={currentCompany.assignedHsPersonId || ''}
+                  onChange={(e) => setCurrentCompany({ ...currentCompany, assignedHsPersonId: e.target.value })}
+                >
+                  <option value="">Select H&amp;S person...</option>
+                  {companyAdminUsers.map((admin) => (
+                    <option key={`hs-${admin.id}`} value={admin.id}>
+                      {admin.name} ({admin.email}) - {admin.role}
+                    </option>
+                  ))}
+                </select>
+              </View>
+
               <Text style={styles.label}>Contact Name</Text>
               <TextInput 
                 style={styles.input} 
@@ -11045,6 +11176,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     accreditedDate: formatDateToDDMMYYYY(company.accredited_date) || '',
                                     contractor_type: company.contractor_type || 'D',
                                     inRadar: company.in_radar !== false,
+                                    assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
+                                    assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',
                                   };
                                   setCurrentCompany(formattedCompany);
                                   setEditingCompany(true);
@@ -11165,7 +11298,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
 
               {/* Admin Action Buttons - Floating */}
-              {companyAccreditationData && companyAccreditationData.accreditation_status !== 'approved' && companyAccreditationData.accreditation_status !== 'needs_revision' && (
+              {(() => {
+                const reviewStatus = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
+                const showEditorActions = companyAccreditationData && !['approved', 'needs_revision'].includes(reviewStatus);
+                const showApprovalActions = companyAccreditationData && getAccreditationApprovalStage(reviewStatus);
+                const approvalButtonLabel = reviewStatus === 'pending_hs' ? 'Approve (H&S)' : 'Approve (Manager)';
+
+                if (!showEditorActions && !showApprovalActions) {
+                  return null;
+                }
+
+                return (
                 <View style={{
                   position: 'absolute',
                   bottom: 0,
@@ -11179,6 +11322,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   paddingBottom: 16,
                   gap: 10
                 }}>
+                  {showEditorActions && (
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
                       style={{
@@ -11215,6 +11359,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       </TouchableOpacity>
                     )}
                   </View>
+                  )}
+                  {showApprovalActions && (
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
                       style={{
@@ -11246,12 +11392,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       disabled={approvingAccreditation}
                     >
                       <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                        {approvingAccreditation ? 'Processing...' : 'Approve'}
+                        {approvingAccreditation ? 'Processing...' : approvalButtonLabel}
                       </Text>
                     </TouchableOpacity>
                   </View>
+                  )}
                 </View>
-              )}
+                );
+              })()}
             </View>
           </Modal>
         )}
@@ -24378,6 +24526,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </ScrollView>
         </View>
       );
+    case 'accreditation_approval_public':
+      return (
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB', width: '100%' }}>
+          <AccreditationApprovalScreen token={initialAccreditationApprovalToken} />
+        </View>
+      );
     default:
       return renderDashboard();
         }
@@ -25859,6 +26013,16 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  const getInitialAccreditationApprovalToken = () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (isAccreditationApprovalRoute(pathname)) {
+        return new URLSearchParams(window.location.search).get('token');
+      }
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(false); // Disabled - admin key button removed
@@ -25869,6 +26033,7 @@ const AppRouter = ({ initialRoute }) => {
   const initialCompanyAccreditationId = getInitialCompanyAccreditationId();
   const initialSupplierId = getInitialSupplierId();
   const initialSupplierToken = getInitialSupplierToken();
+  const initialAccreditationApprovalToken = getInitialAccreditationApprovalToken();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
   // Extract contractor details from URL query params if present
@@ -25988,7 +26153,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialAccreditationApprovalToken={initialAccreditationApprovalToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle

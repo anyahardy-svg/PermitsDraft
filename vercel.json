@@ -278,6 +278,14 @@
       "destination": "https://nszkuoxibzcbiqaqdfml.supabase.co/storage/v1/object/public/email-assets/:path*"
     },
     {
+      "source": "/approve-accreditation",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/approve-accreditation/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

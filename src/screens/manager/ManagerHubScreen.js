@@ -8,11 +8,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { listContractorsBySite } from '../../api/contractors';
-import { listCompaniesAtSite } from '../../api/managerHub';
+import { listCompaniesAtSite, listPendingAccreditationApprovals } from '../../api/managerHub';
 import { getSiteInductionStatus, isExpiringWithinDays } from '../../utils/siteInductionStatus';
 import ManagerContractorsPanel from './ManagerContractorsPanel';
 import ManagerSignInsPanel from './ManagerSignInsPanel';
 import ManagerCompaniesPanel from './ManagerCompaniesPanel';
+import ManagerApprovalsPanel from './ManagerApprovalsPanel';
 
 export default function ManagerHubScreen({
   loggedInAdmin,
@@ -26,7 +27,7 @@ export default function ManagerHubScreen({
   const [selectedSiteId, setSelectedSiteId] = useState('');
   const [showSitePicker, setShowSitePicker] = useState(false);
   const [countsLoading, setCountsLoading] = useState(false);
-  const [counts, setCounts] = useState({ inducted: 0, expired: 0, expiringSoon: 0, companies: 0 });
+  const [counts, setCounts] = useState({ inducted: 0, expired: 0, expiringSoon: 0, companies: 0, pendingApprovals: 0 });
   const [contractorInductionTab, setContractorInductionTab] = useState('all');
 
   const availableSites = useMemo(() => {
@@ -65,9 +66,10 @@ export default function ManagerHubScreen({
 
     setCountsLoading(true);
     try {
-      const [contractors, companies] = await Promise.all([
+      const [contractors, companies, pendingApprovals] = await Promise.all([
         listContractorsBySite(selectedSiteId),
         listCompaniesAtSite(selectedSiteId),
+        listPendingAccreditationApprovals(loggedInAdmin?.id),
       ]);
 
       let inducted = 0;
@@ -85,6 +87,7 @@ export default function ManagerHubScreen({
         expired,
         expiringSoon,
         companies: companies.length,
+        pendingApprovals: (pendingApprovals.managerApprovals?.length || 0) + (pendingApprovals.hsApprovals?.length || 0),
       });
     } catch (error) {
       console.error('Failed to load manager hub counts:', error);
@@ -92,7 +95,7 @@ export default function ManagerHubScreen({
     } finally {
       setCountsLoading(false);
     }
-  }, [selectedSiteId]);
+  }, [selectedSiteId, loggedInAdmin?.id]);
 
   useEffect(() => {
     if (currentView === 'dashboard') {
@@ -162,6 +165,16 @@ export default function ManagerHubScreen({
         mode="add"
         onBack={goToDashboard}
         onCompanyAdded={loadCounts}
+        styles={styles}
+      />
+    );
+  }
+
+  if (currentView === 'approvals') {
+    return (
+      <ManagerApprovalsPanel
+        adminUser={loggedInAdmin}
+        onBack={goToDashboard}
         styles={styles}
       />
     );
@@ -280,6 +293,14 @@ export default function ManagerHubScreen({
           >
             <Text style={styles.cardNumber}>{counts.companies}</Text>
             <Text style={styles.cardLabel}>Companies at Site</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#6366F1' }]}
+            onPress={() => setCurrentView('approvals')}
+          >
+            <Text style={styles.cardNumber}>{counts.pendingApprovals}</Text>
+            <Text style={styles.cardLabel}>Pending Approvals</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
