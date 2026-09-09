@@ -17,7 +17,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { listContractorsBySite } from '../api/contractors';
+import { listContractorsBySite, updateContractor } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
@@ -30,6 +30,12 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 import KioskBrandLogo from '../components/KioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
 import { showTransientMessage } from '../utils/transientMessage';
+import {
+  formatPhoneForDisplay,
+  normalizePhoneForSave,
+  validateContractorPhone,
+  contractorPhoneNeedsUpdate,
+} from '../utils/contractorPhone';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -41,7 +47,7 @@ const formatNameToTitleCase = (name) => {
     .join(' ');
 };
 
-// Mask phone number - show only last 3 digits (e.g., "+64 2 XXXX-XXXX" or "0211 XXXX-XXXX")
+// Mask phone number
 const maskPhoneNumber = (phone) => {
   if (!phone) return 'N/A';
   // Remove all non-digit characters for processing
@@ -88,6 +94,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
+  const [contractorPhone, setContractorPhone] = useState('');
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
@@ -457,6 +464,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setSelectedContractor(contractor);
     setContractorSearch(contractor.name || '');
     setFilteredContractors([]); // Clear the list so it collapses
+    setContractorPhone(formatPhoneForDisplay(contractor.phone));
     
     console.log('🔍 Contractor selected:', contractor.name);
     console.log('   Services:', contractor.services);
@@ -512,6 +520,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     if (!selectedContractor) {
       console.log('❌ No contractor selected - showing alert');
       Alert.alert('Error', 'Please select a contractor');
+      return;
+    }
+
+    const phoneValidationError = validateContractorPhone(contractorPhone);
+    if (phoneValidationError) {
+      Alert.alert('Error', phoneValidationError);
       return;
     }
     
@@ -574,6 +588,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const performCheckIn = async (contractor, flagData, rtData) => {
     console.log('📞 Calling checkInContractor for:', contractor.name);
     try {
+      const phoneValidationError = validateContractorPhone(contractorPhone);
+      if (phoneValidationError) {
+        Alert.alert('Error', phoneValidationError);
+        return;
+      }
+
+      if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
+        const phoneToSave = normalizePhoneForSave(contractorPhone);
+        console.log('📱 Updating contractor phone before check-in:', contractor.id);
+        await updateContractor(contractor.id, { phone: phoneToSave });
+      }
+
       const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData, contractorVisitingPerson || null);
       
       console.log('📊 Check-in result:', result);
@@ -588,6 +614,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setContractorInductionExpired(false);
         setAllContractorInductions([]);
         setContractorVisitingPerson('');
+        setContractorPhone('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
         showTransientMessage('You are signed in');
@@ -779,6 +806,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               setContractorInductionExpired(false);
               setAllContractorInductions([]);
               setContractorVisitingPerson('');
+              setContractorPhone('');
             }}
           >
             <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -1126,6 +1154,24 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                     </TouchableOpacity>
                   </View>
                 )}
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                  Phone Number *
+                </Text>
+                {!formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() && (
+                  <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
+                    Please add your phone number before checking in.
+                  </Text>
+                )}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your phone number"
+                  value={contractorPhone}
+                  onChangeText={setContractorPhone}
+                  keyboardType="phone-pad"
+                />
               </View>
 
               <View style={{ marginTop: 12 }}>
@@ -1846,6 +1892,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 setContractorInductionExpired(false);
                 setAllContractorInductions([]);
                 setContractorVisitingPerson('');
+                setContractorPhone('');
               }}
             >
               <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
