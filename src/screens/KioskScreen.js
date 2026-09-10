@@ -798,6 +798,45 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const kioskSubdomain = site.kiosk_subdomain || site.kioskSubdomain;
   const showPermits = kioskPermitsEnabled(kioskSubdomain);
 
+  const openAdminLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/';
+    }
+  };
+
+  const renderKioskAdminButton = () => {
+    if (showPermits) {
+      return null;
+    }
+
+    return (
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 20,
+          backgroundColor: '#7C3AED',
+          padding: 16,
+          borderRadius: 50,
+          elevation: 10,
+          zIndex: 1000,
+          width: 70,
+          height: 70,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 5,
+        }}
+        onPress={openAdminLogin}
+      >
+        <Text style={{ fontSize: 28 }}>⚙️</Text>
+        <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Admin</Text>
+      </TouchableOpacity>
+    );
+  };
+
   // Welcome Screen
   if (currentScreen === 'welcome') {
     return (
@@ -891,6 +930,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
         )}
+
+        {renderKioskAdminButton()}
 
         {/* Contractor Induction Button */}
         <TouchableOpacity
@@ -1980,6 +2021,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
       )}
+
+      {renderKioskAdminButton()}
     </View>
   );
 };
