@@ -47,6 +47,7 @@ import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
+import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
 import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
 import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
@@ -24086,6 +24087,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             return (
               <KioskScreen 
                 onViewPermits={(siteId) => {
+                  const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+                  if (!kioskPermitsEnabled(subdomain)) {
+                    return;
+                  }
                   setInitialSiteId(siteId);
                   setCurrentScreen('permit');
                 }}
@@ -26201,11 +26206,27 @@ const AppRouter = ({ initialRoute }) => {
   if (standaloneInductionActive) {
     mainContent = <StandaloneInductionScreen />;
   } else if (isKiosk && kioskViewingPermits) {
-    // In kiosk mode viewing permits - render main app with site auto-selected
-    mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
+    const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+    if (kioskPermitsEnabled(subdomain)) {
+      // In kiosk mode viewing permits - render main app with site auto-selected
+      mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
+    } else {
+      mainContent = <KioskScreen onViewPermits={(siteId) => {
+        const kioskSubdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+        if (!kioskPermitsEnabled(kioskSubdomain)) {
+          return;
+        }
+        setKioskSiteId(siteId);
+        setKioskViewingPermits(true);
+      }} initialRoute={forceRoute} />;
+    }
   } else if (isKiosk) {
     // In kiosk mode - render kiosk screen
     mainContent = <KioskScreen onViewPermits={(siteId) => {
+      const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+      if (!kioskPermitsEnabled(subdomain)) {
+        return;
+      }
       setKioskSiteId(siteId);
       setKioskViewingPermits(true);
     }} initialRoute={forceRoute} />;
