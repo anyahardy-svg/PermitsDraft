@@ -28,6 +28,7 @@ import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import KioskBrandLogo from '../components/KioskBrandLogo';
+import { kioskPermitsEnabled } from '../utils/kioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
 import { showTransientMessage } from '../utils/transientMessage';
 
@@ -241,10 +242,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   // Handle initialRoute changes from URL path detection
   useEffect(() => {
     if (initialRoute && initialRoute !== 'welcome') {
+      if (initialRoute === 'permits-kiosk' && site) {
+        const subdomain = site.kiosk_subdomain || site.kioskSubdomain;
+        if (!kioskPermitsEnabled(subdomain)) {
+          setCurrentScreen('welcome');
+          return;
+        }
+      }
       setCurrentScreen(initialRoute);
       console.log('🔗 Route detected from URL:', initialRoute);
     }
-  }, [initialRoute]);
+  }, [initialRoute, site]);
+
+  // Redirect away from permits screen when disabled for this kiosk
+  useEffect(() => {
+    if (!site || currentScreen !== 'permits-kiosk') {
+      return;
+    }
+
+    const subdomain = site.kiosk_subdomain || site.kioskSubdomain;
+    if (!kioskPermitsEnabled(subdomain)) {
+      setCurrentScreen('welcome');
+    }
+  }, [site, currentScreen]);
 
   // Update URL when currentScreen changes
   useEffect(() => {
@@ -261,7 +281,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         } else if (currentScreen === 'signout') {
           newPath = '/sign-out/';
         } else if (currentScreen === 'permits-kiosk') {
-          newPath = '/permits/';
+          const subdomain = site?.kiosk_subdomain || site?.kioskSubdomain;
+          newPath = kioskPermitsEnabled(subdomain) ? '/permits/' : '/';
         } else if (currentScreen === 'inductions') {
           newPath = '/inductions/';
         } else if (currentScreen === 'inductions-new') {
@@ -748,6 +769,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }
 
   const kioskSubdomain = site.kiosk_subdomain || site.kioskSubdomain;
+  const showPermits = kioskPermitsEnabled(kioskSubdomain);
 
   // Welcome Screen
   if (currentScreen === 'welcome') {
@@ -811,6 +833,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </ScrollView>
 
         {/* Floating Permits button */}
+        {showPermits && (
         <TouchableOpacity
           style={{
             position: 'absolute',
@@ -839,6 +862,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
+        )}
 
         {/* Contractor Induction Button */}
         <TouchableOpacity
@@ -1693,7 +1717,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }
 
   // Permits Kiosk View Screen - matches main dashboard
-  if (currentScreen === 'permits-kiosk') {
+  if (currentScreen === 'permits-kiosk' && showPermits) {
     if (permitsLoading) {
       return (
         <View style={styles.container}>
@@ -1880,7 +1904,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       )}
       
       {/* Floating Permits button - visible on all screens except permits-kiosk */}
-      {currentScreen !== 'permits-kiosk' && (
+      {showPermits && currentScreen !== 'permits-kiosk' && (
         <TouchableOpacity
           style={{
             position: 'absolute',

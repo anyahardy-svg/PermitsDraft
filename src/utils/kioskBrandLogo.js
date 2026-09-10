@@ -28,6 +28,17 @@ export function getKioskSubdomainPrefix(kioskSubdomain) {
 }
 
 /**
+ * Whether the permits feature should be shown on this kiosk.
+ * Firth kiosks do not use permits.
+ * @param {string} kioskSubdomain - e.g. "firth-takanini-quarry-kiosk"
+ * @returns {boolean}
+ */
+export function kioskPermitsEnabled(kioskSubdomain) {
+  const prefix = getKioskSubdomainPrefix(kioskSubdomain);
+  return prefix !== 'firth';
+}
+
+/**
  * Resolve the brand logo URL for a kiosk subdomain.
  * @param {string} kioskSubdomain
  * @returns {string|null}
