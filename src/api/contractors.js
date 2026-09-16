@@ -338,6 +338,29 @@ export const listContractorsWithExpiredInductions = async () => {
   }
 };
 
+// Remove a contractor from a specific site (does not delete the contractor record)
+export const removeContractorFromSite = async (contractorId, siteId) => {
+  try {
+    if (!contractorId || !siteId) {
+      throw new Error('Contractor and site are required');
+    }
+
+    const contractor = await getContractor(contractorId);
+    const existingSiteIds = contractor.site_ids || contractor.siteIds || [];
+
+    if (!existingSiteIds.includes(siteId)) {
+      return contractor;
+    }
+
+    return updateContractor(contractorId, {
+      site_ids: existingSiteIds.filter((id) => id !== siteId),
+    });
+  } catch (error) {
+    console.error('Error removing contractor from site:', error.message);
+    throw error;
+  }
+};
+
 // Get contractors assigned to a specific site (site_ids contains siteId)
 export const listContractorsBySite = async (siteId) => {
   try {
