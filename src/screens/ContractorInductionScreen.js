@@ -38,6 +38,8 @@ import {
   getInductionQuestionContainerStyle,
   getInductionOptionStyles,
 } from '../utils/inductionAnswerValidation';
+import { sanitizePhoneInput, validateContractorPhone, normalizePhoneForSave } from '../utils/contractorPhone';
+import { validateContractorFullName } from '../utils/contractorName';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -905,9 +907,14 @@ export default function ContractorInductionScreen({
     // Clear previous errors
     const newValidationErrors = {};
     
-    // Validate name
-    if (!contractorInfo.name?.trim()) {
-      newValidationErrors.name = '⚠️ Full name is required';
+    const fullNameError = validateContractorFullName(contractorInfo.name);
+    if (fullNameError) {
+      newValidationErrors.name = `⚠️ ${fullNameError}`;
+    }
+
+    const phoneError = validateContractorPhone(contractorInfo.phone);
+    if (phoneError) {
+      newValidationErrors.phone = `⚠️ ${phoneError}`;
     }
     
     // Validate email
@@ -952,10 +959,11 @@ export default function ContractorInductionScreen({
       if (isNewContractor && !contractorId) {
         console.log('📝 Creating new contractor...');
         const formattedName = formatNameToTitleCase(contractorInfo.name);
+        const phoneToSave = normalizePhoneForSave(contractorInfo.phone);
         const newContractor = await createContractor({
           name: formattedName,
           email: contractorInfo.email,
-          phone: contractorInfo.phone,
+          phone: phoneToSave,
           company_id: contractorInfo.companyId,
           business_unit_ids: selectedBUs,
           site_ids: selectedSites,
@@ -972,7 +980,7 @@ export default function ContractorInductionScreen({
         await updateContractor(contractorId, {
           name: formatNameToTitleCase(contractorInfo.name),
           email: contractorInfo.email,
-          phone: contractorInfo.phone,
+          phone: normalizePhoneForSave(contractorInfo.phone),
           company_id: contractorInfo.companyId,
           business_unit_ids: selectedBUs,
           site_ids: selectedSites,
@@ -1954,7 +1962,7 @@ export default function ContractorInductionScreen({
             value={contractorInfo.name}
             onChangeText={(text) => {
               setContractorInfo({ ...contractorInfo, name: text });
-              if (text.trim()) {
+              if (!validateContractorFullName(text)) {
                 setValidationErrors(prev => ({ ...prev, name: undefined }));
               }
             }}
@@ -1976,14 +1984,21 @@ export default function ContractorInductionScreen({
           />
           {validationErrors.email && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.email}</Text>}
 
-          <Text style={[styles.label, { marginTop: 16 }]}>Phone</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>Phone Number *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="021 123 4567"
+            style={[styles.input, validationErrors.phone ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
+            placeholder="0211234567"
             keyboardType="phone-pad"
             value={contractorInfo.phone}
-            onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: text })}
+            onChangeText={(text) => {
+              const phone = sanitizePhoneInput(text);
+              setContractorInfo({ ...contractorInfo, phone });
+              if (!validateContractorPhone(phone)) {
+                setValidationErrors(prev => ({ ...prev, phone: undefined }));
+              }
+            }}
           />
+          {validationErrors.phone && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.phone}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
           <TextInput

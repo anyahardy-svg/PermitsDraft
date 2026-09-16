@@ -14,6 +14,8 @@ export const normalizePhoneForSave = (phone) => {
 
 export const normalizePhoneDigits = (phone) => String(phone || '').replace(/\D/g, '');
 
+export const sanitizePhoneInput = (phone) => normalizePhoneDigits(phone);
+
 export const validateContractorPhone = (phone) => {
   const trimmed = String(phone || '').trim();
   if (!trimmed) {

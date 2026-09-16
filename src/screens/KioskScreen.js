@@ -36,6 +36,7 @@ import {
   normalizePhoneForSave,
   validateContractorPhone,
   contractorPhoneNeedsUpdate,
+  sanitizePhoneInput,
 } from '../utils/contractorPhone';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
@@ -1234,7 +1235,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   style={styles.input}
                   placeholder="Enter your phone number"
                   value={contractorPhone}
-                  onChangeText={setContractorPhone}
+                  onChangeText={(text) => setContractorPhone(sanitizePhoneInput(text))}
                   keyboardType="phone-pad"
                 />
               </View>
