@@ -130,6 +130,7 @@ export default function ManagerHubScreen({
         siteName={selectedSiteName}
         mode="expired"
         onBack={goToDashboard}
+        onContractorRemoved={loadCounts}
         styles={styles}
       />
     );

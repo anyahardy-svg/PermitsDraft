@@ -7,8 +7,9 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
-import { listContractorsBySite } from '../../api/contractors';
+import { listContractorsBySite, removeContractorFromSite } from '../../api/contractors';
 import {
   formatInductionExpiry,
   getOtherSiteNames,
@@ -33,6 +34,7 @@ export default function ManagerContractorsPanel({
   inductionTab = 'all',
   onInductionTabChange,
   onBack,
+  onContractorRemoved,
   styles,
 }) {
   const [contractors, setContractors] = useState([]);
@@ -40,6 +42,7 @@ export default function ManagerContractorsPanel({
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [removingId, setRemovingId] = useState('');
 
   const loadContractors = useCallback(async () => {
     if (!siteId) {
@@ -117,6 +120,49 @@ export default function ManagerContractorsPanel({
     if (onInductionTabChange) {
       onInductionTabChange(tab);
     }
+  };
+
+  const handleRemoveFromSite = async (contractor) => {
+    if (!siteId || !contractor?.id) {
+      return;
+    }
+
+    setRemovingId(contractor.id);
+    try {
+      await removeContractorFromSite(contractor.id, siteId);
+      Alert.alert(
+        'Contractor removed',
+        `${contractor.name} has been removed from ${siteName || 'this site'}.`
+      );
+      await loadContractors();
+      if (onContractorRemoved) {
+        onContractorRemoved();
+      }
+    } catch (removeError) {
+      Alert.alert('Could not remove contractor', removeError?.message || 'Please try again.');
+    } finally {
+      setRemovingId('');
+    }
+  };
+
+  const confirmRemoveFromSite = (contractor) => {
+    const otherSites = getOtherSiteNames(contractor, siteId, siteIdToName);
+    const otherSitesNote = otherSites.length > 0
+      ? ` They will remain linked to: ${otherSites.join(', ')}.`
+      : '';
+
+    Alert.alert(
+      'Remove contractor from site?',
+      `${contractor.name} will no longer be linked to ${siteName || 'this site'}.${otherSitesNote}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove from site',
+          style: 'destructive',
+          onPress: () => handleRemoveFromSite(contractor),
+        },
+      ]
+    );
   };
 
   return (
@@ -230,6 +276,7 @@ export default function ManagerContractorsPanel({
                 const statusLabel = status === 'inducted'
                   ? (expiringSoon ? `Due in ${INDUCTION_EXPIRING_SOON_DAYS}d` : 'Inducted')
                   : 'Expired';
+                const isRemoving = removingId === contractor.id;
 
                 return (
                   <View
@@ -266,6 +313,31 @@ export default function ManagerContractorsPanel({
                       <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12 }}>
                         Also on: {otherSites.join(', ')}
                       </Text>
+                    ) : null}
+                    {mode === 'expired' ? (
+                      <TouchableOpacity
+                        onPress={() => confirmRemoveFromSite(contractor)}
+                        disabled={isRemoving}
+                        style={{
+                          marginTop: 12,
+                          alignSelf: 'flex-start',
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: '#FCA5A5',
+                          backgroundColor: '#FEF2F2',
+                          opacity: isRemoving ? 0.6 : 1,
+                        }}
+                      >
+                        {isRemoving ? (
+                          <ActivityIndicator color="#B91C1C" size="small" />
+                        ) : (
+                          <Text style={{ color: '#B91C1C', fontWeight: '700', fontSize: 13 }}>
+                            Remove from site
+                          </Text>
+                        )}
+                      </TouchableOpacity>
                     ) : null}
                   </View>
                 );
