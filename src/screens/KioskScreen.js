@@ -97,6 +97,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
   const [contractorPhone, setContractorPhone] = useState('');
+  const [contractorPhoneError, setContractorPhoneError] = useState('');
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
@@ -487,6 +488,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setContractorSearch(contractor.name || '');
     setFilteredContractors([]); // Clear the list so it collapses
     setContractorPhone(formatPhoneForDisplay(contractor.phone));
+    setContractorPhoneError('');
     
     console.log('🔍 Contractor selected:', contractor.name);
     console.log('   Services:', contractor.services);
@@ -547,9 +549,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
     const phoneValidationError = validateContractorPhone(contractorPhone);
     if (phoneValidationError) {
-      Alert.alert('Error', phoneValidationError);
+      setContractorPhoneError(phoneValidationError);
+      showTransientMessage(phoneValidationError);
       return;
     }
+    setContractorPhoneError('');
     
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
@@ -612,9 +616,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     try {
       const phoneValidationError = validateContractorPhone(contractorPhone);
       if (phoneValidationError) {
-        Alert.alert('Error', phoneValidationError);
+        setContractorPhoneError(phoneValidationError);
+        showTransientMessage(phoneValidationError);
         return;
       }
+      setContractorPhoneError('');
 
       if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
         const phoneToSave = normalizePhoneForSave(contractorPhone);
@@ -1226,16 +1232,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
                   Phone Number *
                 </Text>
-                {!formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() && (
+                {contractorPhoneError ? (
+                  <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
+                    {contractorPhoneError}
+                  </Text>
+                ) : !formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() ? (
                   <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
                     Please add your phone number before checking in.
                   </Text>
-                )}
+                ) : null}
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    contractorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null,
+                  ]}
                   placeholder="Enter your phone number"
                   value={contractorPhone}
-                  onChangeText={(text) => setContractorPhone(sanitizePhoneInput(text))}
+                  onChangeText={(text) => {
+                    const phone = sanitizePhoneInput(text);
+                    setContractorPhone(phone);
+                    if (!validateContractorPhone(phone)) {
+                      setContractorPhoneError('');
+                    }
+                  }}
                   keyboardType="phone-pad"
                 />
               </View>
