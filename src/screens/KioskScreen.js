@@ -103,6 +103,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [visitorName, setVisitorName] = useState('');
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
+  const [visitorNameError, setVisitorNameError] = useState('');
+  const [visitorCompanyError, setVisitorCompanyError] = useState('');
+  const [visitorPhoneError, setVisitorPhoneError] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
@@ -668,14 +671,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInVisitor = async () => {
-    if (!visitorName.trim() || !visitorCompany.trim() || !visitorPhone.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
+    const phoneError = validateContractorPhone(visitorPhone) || '';
+
+    setVisitorNameError(nameError);
+    setVisitorCompanyError(companyError);
+    setVisitorPhoneError(phoneError);
+
+    if (nameError || companyError || phoneError) {
+      showTransientMessage(nameError || companyError || phoneError);
       return;
     }
     
     try {
       const formattedName = formatNameToTitleCase(visitorName);
-      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone, visitingPerson || null);
+      const result = await checkInVisitor(
+        formattedName,
+        visitorCompany,
+        siteId,
+        businessUnitId,
+        normalizePhoneForSave(visitorPhone),
+        visitingPerson || null
+      );
       
       if (result?.success) {
         showTransientMessage('You are signed in');
@@ -683,6 +701,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setVisitorName('');
         setVisitorCompany('');
         setVisitorPhone('');
+        setVisitorNameError('');
+        setVisitorCompanyError('');
+        setVisitorPhoneError('');
         setVisitingPerson('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
@@ -1528,28 +1549,53 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your name"
             value={visitorName}
-            onChangeText={setVisitorName}
+            onChangeText={(text) => {
+              setVisitorName(text);
+              if (text.trim()) {
+                setVisitorNameError('');
+              }
+            }}
           />
+          {visitorNameError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorNameError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Company *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorCompanyError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your company"
             value={visitorCompany}
-            onChangeText={setVisitorCompany}
+            onChangeText={(text) => {
+              setVisitorCompany(text);
+              if (text.trim()) {
+                setVisitorCompanyError('');
+              }
+            }}
           />
+          {visitorCompanyError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorCompanyError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Phone Number *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your phone number"
             value={visitorPhone}
-            onChangeText={setVisitorPhone}
+            onChangeText={(text) => {
+              const phone = sanitizePhoneInput(text);
+              setVisitorPhone(phone);
+              if (!validateContractorPhone(phone)) {
+                setVisitorPhoneError('');
+              }
+            }}
             keyboardType="phone-pad"
           />
+          {visitorPhoneError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorPhoneError}</Text>
+          ) : null}
 
           {renderVisitingPersonLookup({
             value: visitingPerson,

@@ -13,6 +13,12 @@ import { useNavigate } from 'react-router-dom';
 
 import { KioskContext } from '../KioskScreen';
 import { checkInVisitor } from '../../api/signIns';
+import {
+  sanitizePhoneInput,
+  validateContractorPhone,
+  normalizePhoneForSave,
+} from '../../utils/contractorPhone';
+import { showTransientMessage } from '../../utils/transientMessage';
 
 // Format name to proper title case
 const formatNameToTitleCase = (name) => {
@@ -32,10 +38,21 @@ const KioskVisitorSignIn = () => {
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
+  const [visitorNameError, setVisitorNameError] = useState('');
+  const [visitorCompanyError, setVisitorCompanyError] = useState('');
+  const [visitorPhoneError, setVisitorPhoneError] = useState('');
 
   const handleCheckInVisitor = async () => {
-    if (!visitorName.trim() || !visitorCompany.trim() || !visitorPhone.trim()) {
-      Alert.alert('Missing Info', 'Please fill in all required fields');
+    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
+    const phoneError = validateContractorPhone(visitorPhone) || '';
+
+    setVisitorNameError(nameError);
+    setVisitorCompanyError(companyError);
+    setVisitorPhoneError(phoneError);
+
+    if (nameError || companyError || phoneError) {
+      showTransientMessage(nameError || companyError || phoneError);
       return;
     }
 
@@ -45,7 +62,7 @@ const KioskVisitorSignIn = () => {
         visitorCompany,
         siteId,
         null,
-        visitorPhone,
+        normalizePhoneForSave(visitorPhone),
         visitingPerson || null
       );
       
@@ -59,6 +76,9 @@ const KioskVisitorSignIn = () => {
       setVisitorCompany('');
       setVisitorPhone('');
       setVisitingPerson('');
+      setVisitorNameError('');
+      setVisitorCompanyError('');
+      setVisitorPhoneError('');
       
       // Navigate back to welcome after 1 second
       setTimeout(() => navigate('/'), 1000);
@@ -79,28 +99,53 @@ const KioskVisitorSignIn = () => {
       <ScrollView contentContainerStyle={styles.formContent}>
         <Text style={styles.label}>Visitor Name *</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
           placeholder="Enter your name"
           value={visitorName}
-          onChangeText={setVisitorName}
+          onChangeText={(text) => {
+            setVisitorName(text);
+            if (text.trim()) {
+              setVisitorNameError('');
+            }
+          }}
         />
+        {visitorNameError ? (
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorNameError}</Text>
+        ) : null}
 
         <Text style={styles.label}>Company *</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, visitorCompanyError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
           placeholder="Enter your company"
           value={visitorCompany}
-          onChangeText={setVisitorCompany}
+          onChangeText={(text) => {
+            setVisitorCompany(text);
+            if (text.trim()) {
+              setVisitorCompanyError('');
+            }
+          }}
         />
+        {visitorCompanyError ? (
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorCompanyError}</Text>
+        ) : null}
 
         <Text style={styles.label}>Phone Number *</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, visitorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
           placeholder="Enter your phone number"
           value={visitorPhone}
-          onChangeText={setVisitorPhone}
+          onChangeText={(text) => {
+            const phone = sanitizePhoneInput(text);
+            setVisitorPhone(phone);
+            if (!validateContractorPhone(phone)) {
+              setVisitorPhoneError('');
+            }
+          }}
           keyboardType="phone-pad"
         />
+        {visitorPhoneError ? (
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorPhoneError}</Text>
+        ) : null}
 
         <Text style={styles.label}>Visiting Person (optional)</Text>
         <TextInput
