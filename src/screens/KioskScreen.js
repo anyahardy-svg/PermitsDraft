@@ -97,11 +97,15 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
   const [contractorPhone, setContractorPhone] = useState('');
+  const [contractorPhoneError, setContractorPhoneError] = useState('');
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
+  const [visitorNameError, setVisitorNameError] = useState('');
+  const [visitorCompanyError, setVisitorCompanyError] = useState('');
+  const [visitorPhoneError, setVisitorPhoneError] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
@@ -487,6 +491,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setContractorSearch(contractor.name || '');
     setFilteredContractors([]); // Clear the list so it collapses
     setContractorPhone(formatPhoneForDisplay(contractor.phone));
+    setContractorPhoneError('');
     
     console.log('🔍 Contractor selected:', contractor.name);
     console.log('   Services:', contractor.services);
@@ -547,9 +552,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
     const phoneValidationError = validateContractorPhone(contractorPhone);
     if (phoneValidationError) {
-      Alert.alert('Error', phoneValidationError);
+      setContractorPhoneError(phoneValidationError);
+      showTransientMessage(phoneValidationError);
       return;
     }
+    setContractorPhoneError('');
     
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
@@ -612,9 +619,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     try {
       const phoneValidationError = validateContractorPhone(contractorPhone);
       if (phoneValidationError) {
-        Alert.alert('Error', phoneValidationError);
+        setContractorPhoneError(phoneValidationError);
+        showTransientMessage(phoneValidationError);
         return;
       }
+      setContractorPhoneError('');
 
       if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
         const phoneToSave = normalizePhoneForSave(contractorPhone);
@@ -662,14 +671,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInVisitor = async () => {
-    if (!visitorName.trim() || !visitorCompany.trim() || !visitorPhone.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
+    const phoneError = validateContractorPhone(visitorPhone) || '';
+
+    setVisitorNameError(nameError);
+    setVisitorCompanyError(companyError);
+    setVisitorPhoneError(phoneError);
+
+    if (nameError || companyError || phoneError) {
+      showTransientMessage(nameError || companyError || phoneError);
       return;
     }
     
     try {
       const formattedName = formatNameToTitleCase(visitorName);
-      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone, visitingPerson || null);
+      const result = await checkInVisitor(
+        formattedName,
+        visitorCompany,
+        siteId,
+        businessUnitId,
+        normalizePhoneForSave(visitorPhone),
+        visitingPerson || null
+      );
       
       if (result?.success) {
         showTransientMessage('You are signed in');
@@ -677,6 +701,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setVisitorName('');
         setVisitorCompany('');
         setVisitorPhone('');
+        setVisitorNameError('');
+        setVisitorCompanyError('');
+        setVisitorPhoneError('');
         setVisitingPerson('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
@@ -1226,16 +1253,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
                   Phone Number *
                 </Text>
-                {!formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() && (
+                {contractorPhoneError ? (
+                  <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
+                    {contractorPhoneError}
+                  </Text>
+                ) : !formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() ? (
                   <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
                     Please add your phone number before checking in.
                   </Text>
-                )}
+                ) : null}
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    contractorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null,
+                  ]}
                   placeholder="Enter your phone number"
                   value={contractorPhone}
-                  onChangeText={(text) => setContractorPhone(sanitizePhoneInput(text))}
+                  onChangeText={(text) => {
+                    const phone = sanitizePhoneInput(text);
+                    setContractorPhone(phone);
+                    if (!validateContractorPhone(phone)) {
+                      setContractorPhoneError('');
+                    }
+                  }}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -1509,28 +1549,53 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your name"
             value={visitorName}
-            onChangeText={setVisitorName}
+            onChangeText={(text) => {
+              setVisitorName(text);
+              if (text.trim()) {
+                setVisitorNameError('');
+              }
+            }}
           />
+          {visitorNameError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorNameError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Company *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorCompanyError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your company"
             value={visitorCompany}
-            onChangeText={setVisitorCompany}
+            onChangeText={(text) => {
+              setVisitorCompany(text);
+              if (text.trim()) {
+                setVisitorCompanyError('');
+              }
+            }}
           />
+          {visitorCompanyError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorCompanyError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Phone Number *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your phone number"
             value={visitorPhone}
-            onChangeText={setVisitorPhone}
+            onChangeText={(text) => {
+              const phone = sanitizePhoneInput(text);
+              setVisitorPhone(phone);
+              if (!validateContractorPhone(phone)) {
+                setVisitorPhoneError('');
+              }
+            }}
             keyboardType="phone-pad"
           />
+          {visitorPhoneError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorPhoneError}</Text>
+          ) : null}
 
           {renderVisitingPersonLookup({
             value: visitingPerson,
