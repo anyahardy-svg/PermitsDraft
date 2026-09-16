@@ -7,7 +7,6 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
-  Alert,
 } from 'react-native';
 import { listContractorsBySite, removeContractorFromSite } from '../../api/contractors';
 import {
@@ -43,6 +42,8 @@ export default function ManagerContractorsPanel({
   const [search, setSearch] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [removingId, setRemovingId] = useState('');
+  const [contractorPendingRemoval, setContractorPendingRemoval] = useState(null);
+  const [actionMessage, setActionMessage] = useState(null);
 
   const loadContractors = useCallback(async () => {
     if (!siteId) {
@@ -127,43 +128,38 @@ export default function ManagerContractorsPanel({
       return;
     }
 
+    setContractorPendingRemoval(null);
     setRemovingId(contractor.id);
     try {
       await removeContractorFromSite(contractor.id, siteId);
-      Alert.alert(
-        'Contractor removed',
-        `${contractor.name} has been removed from ${siteName || 'this site'}.`
-      );
+      setActionMessage({
+        title: 'Contractor removed',
+        body: `${contractor.name} has been removed from ${siteName || 'this site'}.`,
+      });
       await loadContractors();
       if (onContractorRemoved) {
         onContractorRemoved();
       }
     } catch (removeError) {
-      Alert.alert('Could not remove contractor', removeError?.message || 'Please try again.');
+      setActionMessage({
+        title: 'Could not remove contractor',
+        body: removeError?.message || 'Please try again.',
+      });
     } finally {
       setRemovingId('');
     }
   };
 
   const confirmRemoveFromSite = (contractor) => {
-    const otherSites = getOtherSiteNames(contractor, siteId, siteIdToName);
-    const otherSitesNote = otherSites.length > 0
-      ? ` They will remain linked to: ${otherSites.join(', ')}.`
-      : '';
-
-    Alert.alert(
-      'Remove contractor from site?',
-      `${contractor.name} will no longer be linked to ${siteName || 'this site'}.${otherSitesNote}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove from site',
-          style: 'destructive',
-          onPress: () => handleRemoveFromSite(contractor),
-        },
-      ]
-    );
+    setContractorPendingRemoval(contractor);
   };
+
+  const pendingRemovalOtherSites = contractorPendingRemoval
+    ? getOtherSiteNames(contractorPendingRemoval, siteId, siteIdToName)
+    : [];
+  const pendingRemovalNote = pendingRemovalOtherSites.length > 0
+    ? ` They will remain linked to: ${pendingRemovalOtherSites.join(', ')}.`
+    : '';
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -372,6 +368,62 @@ export default function ManagerContractorsPanel({
               style={{ padding: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
             >
               <Text style={{ color: '#2563EB', fontWeight: '700' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!contractorPendingRemoval}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setContractorPendingRemoval(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              Remove contractor from site?
+            </Text>
+            <Text style={{ paddingHorizontal: 16, paddingVertical: 14, color: '#374151', lineHeight: 22 }}>
+              {contractorPendingRemoval?.name} will no longer be linked to {siteName || 'this site'}.{pendingRemovalNote}
+            </Text>
+            <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+              <TouchableOpacity
+                onPress={() => setContractorPendingRemoval(null)}
+                style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
+              >
+                <Text style={{ color: '#2563EB', fontWeight: '700' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleRemoveFromSite(contractorPendingRemoval)}
+                style={{ flex: 1, padding: 16, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#B91C1C', fontWeight: '700' }}>Remove from site</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!actionMessage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionMessage(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              {actionMessage?.title}
+            </Text>
+            <Text style={{ paddingHorizontal: 16, paddingVertical: 14, color: '#374151', lineHeight: 22 }}>
+              {actionMessage?.body}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setActionMessage(null)}
+              style={{ padding: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
+            >
+              <Text style={{ color: '#2563EB', fontWeight: '700' }}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>
