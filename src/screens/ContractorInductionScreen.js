@@ -31,7 +31,7 @@ import { listCompanies, createCompany, searchCompanies } from '../api/companies'
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
-import { listServicesByBusinessUnit } from '../api/services';
+import { listServicesForBusinessUnits } from '../api/services';
 import {
   validateInductionAnswers,
   getInductionAnswerValidationMessage,
@@ -792,35 +792,14 @@ export default function ContractorInductionScreen({
   };
 
   const loadServicesForBusinessUnits = async (buIds) => {
-    let allServices = [];
-    for (const buId of buIds) {
-      const servicesForBU = await listServicesByBusinessUnit(buId);
-      if (Array.isArray(servicesForBU)) {
-        allServices = [...allServices, ...servicesForBU];
-      }
-    }
-
-    const uniqueServices = Array.from(new Map(allServices.map(service => [service.id, service])).values());
-    uniqueServices.sort((a, b) => {
+    const applicableServices = await listServicesForBusinessUnits(buIds);
+    return applicableServices.sort((a, b) => {
       const aIsGeneral = a.name?.toLowerCase() === 'general';
       const bIsGeneral = b.name?.toLowerCase() === 'general';
       if (aIsGeneral && !bIsGeneral) return -1;
       if (!aIsGeneral && bIsGeneral) return 1;
       return (a.name || '').localeCompare(b.name || '');
     });
-
-    return uniqueServices;
-  };
-
-  const getServiceDisplayName = (service) => {
-    const selectedBUIds = contractorInfo.selectedBusinessUnitIds || [];
-    const applicableServices = availableServices.filter(s => selectedBUIds.includes(s.business_unit_id));
-    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
-    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
-    if (hasDuplicateName && businessUnit) {
-      return `${service.name} (${businessUnit.name})`;
-    }
-    return service.name;
   };
 
   const toggleServiceSelection = (serviceId) => {
@@ -2214,7 +2193,7 @@ export default function ContractorInductionScreen({
                       {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
                     </View>
                     <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400', flex: 1 }}>
-                      {getServiceDisplayName(service)}
+                      {service.name}
                     </Text>
                   </TouchableOpacity>
                 );
