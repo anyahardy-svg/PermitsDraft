@@ -1,6 +1,10 @@
 -- Migration: Globalize services with applicable_business_unit_ids
 -- Purpose: Replace per-BU duplicate service rows with one row per service name
 -- Date: March 16, 2026
+--
+-- Supabase SQL editor: expect warnings about destructive ops and the temp
+-- mapping table. Choose "Run without RLS" — service_canonical_map is TEMP
+-- and is dropped automatically at COMMIT.
 
 BEGIN;
 
@@ -62,14 +66,14 @@ SET service_ids = (
 )
 WHERE c.service_ids IS NOT NULL AND cardinality(c.service_ids) > 0;
 
--- users.permitted_service_ids (permit issuers)
-UPDATE users u
+-- permit_issuers.permitted_service_ids
+UPDATE permit_issuers pi
 SET permitted_service_ids = (
   SELECT COALESCE(ARRAY_AGG(DISTINCT m.canonical_id), '{}')
-  FROM UNNEST(COALESCE(u.permitted_service_ids, '{}')) AS old_id
+  FROM UNNEST(COALESCE(pi.permitted_service_ids, '{}')) AS old_id
   JOIN service_canonical_map m ON m.old_id = old_id
 )
-WHERE u.permitted_service_ids IS NOT NULL AND cardinality(u.permitted_service_ids) > 0;
+WHERE pi.permitted_service_ids IS NOT NULL AND cardinality(pi.permitted_service_ids) > 0;
 
 -- inductions.service_id
 UPDATE inductions i
