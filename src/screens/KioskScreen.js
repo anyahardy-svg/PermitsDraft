@@ -38,6 +38,7 @@ import {
   contractorPhoneNeedsUpdate,
   sanitizePhoneInput,
 } from '../utils/contractorPhone';
+import { validateContractorFullName } from '../utils/contractorName';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -671,7 +672,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInVisitor = async () => {
-    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const nameError = validateContractorFullName(visitorName) || '';
     const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
     const phoneError = validateContractorPhone(visitorPhone) || '';
 
@@ -1547,14 +1548,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </View>
 
         <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
-          <Text style={styles.label}>Visitor Name *</Text>
+          <Text style={styles.label}>Full Name *</Text>
           <TextInput
             style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
-            placeholder="Enter your name"
+            placeholder="John Smith"
             value={visitorName}
             onChangeText={(text) => {
               setVisitorName(text);
-              if (text.trim()) {
+              if (!validateContractorFullName(text)) {
                 setVisitorNameError('');
               }
             }}
