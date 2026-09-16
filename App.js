@@ -34,7 +34,7 @@ import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/send
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
-import { listServicesByBusinessUnit, listAllServices, createService, updateService, deleteService } from './src/api/services';
+import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import { getCompletedInductionsByContractor } from './src/api/inductions';
@@ -3318,7 +3318,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [currentBusinessUnit, setCurrentBusinessUnit] = useState({ id: '', name: '', description: '' });
   
   // Service management states
-  const [currentService, setCurrentService] = useState({ id: '', name: '', businessUnitId: '', description: '' });
+  const [currentService, setCurrentService] = useState({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
   const [editingService, setEditingService] = useState(false);
   const [serviceImportStatus, setServiceImportStatus] = useState('idle');
   const [serviceImportMessage, setServiceImportMessage] = useState('');
@@ -9323,12 +9323,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         
                         // Load services and sites for selected business units
                         if (updatedBusinessUnitIds.length > 0) {
-                          let allServices = [];
-                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
-                          for (const unitId of updatedBusinessUnitIds) {
-                            const services = await listServicesByBusinessUnit(unitId);
-                            allServices = [...allServices, ...services];
-                          }
+                          const [allServices, sitesList] = await Promise.all([
+                            listServicesForBusinessUnits(updatedBusinessUnitIds),
+                            getSitesByBusinessUnits(updatedBusinessUnitIds),
+                          ]);
                           setServicesForBusinessUnits(allServices);
                           setSitesForBusinessUnits(sitesList);
                         } else {
@@ -9348,77 +9346,59 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={styles.label}>Permitted Services</Text>
                   <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select services this issuer can manage:</Text>
                   <View style={{ marginBottom: 12 }}>
-                    {(() => {
-                      // Group services by name to deduplicate
-                      const servicesByName = {};
-                      servicesForBusinessUnits.forEach(service => {
-                        if (!servicesByName[service.name]) {
-                          servicesByName[service.name] = [];
-                        }
-                        servicesByName[service.name].push(service);
-                      });
-                      
-                      // Render each unique service name once
-                      return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
-                        const serviceIds = serviceGroup.map(s => s.id);
-                        const isSelected = serviceIds.some(id => currentPermitIssuer.permittedServiceIds.includes(id));
-                        
-                        return (
-                          <TouchableOpacity
-                            key={serviceName}
+                    {servicesForBusinessUnits.map((service) => {
+                      const isSelected = currentPermitIssuer.permittedServiceIds.includes(service.id);
+
+                      return (
+                        <TouchableOpacity
+                          key={service.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            padding: 12,
+                            marginBottom: 8,
+                            backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: isSelected ? '#10B981' : '#E5E7EB'
+                          }}
+                          onPress={() => {
+                            if (isSelected) {
+                              setCurrentPermitIssuer({
+                                ...currentPermitIssuer,
+                                permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(
+                                  (id) => id !== service.id
+                                )
+                              });
+                            } else {
+                              setCurrentPermitIssuer({
+                                ...currentPermitIssuer,
+                                permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, service.id]
+                              });
+                            }
+                          }}
+                        >
+                          <View
                             style={{
-                              flexDirection: 'row',
+                              width: 20,
+                              height: 20,
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                              backgroundColor: isSelected ? '#10B981' : 'white',
+                              justifyContent: 'center',
                               alignItems: 'center',
-                              padding: 12,
-                              marginBottom: 8,
-                              backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
-                              borderRadius: 6,
-                              borderWidth: 1,
-                              borderColor: isSelected ? '#10B981' : '#E5E7EB'
-                            }}
-                            onPress={() => {
-                              if (isSelected) {
-                                // Remove ALL service UUIDs with this name
-                                setCurrentPermitIssuer({
-                                  ...currentPermitIssuer,
-                                  permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(
-                                    id => !serviceIds.includes(id)
-                                  )
-                                });
-                              } else {
-                                // Add ALL service UUIDs with this name
-                                setCurrentPermitIssuer({
-                                  ...currentPermitIssuer,
-                                  permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, ...serviceIds]
-                                });
-                              }
+                              marginRight: 12
                             }}
                           >
-                            <View
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 4,
-                                borderWidth: 2,
-                                borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                                backgroundColor: isSelected ? '#10B981' : 'white',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                marginRight: 12
-                              }}
-                            >
-                              {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{serviceName}</Text>
-                              {serviceGroup.length > 1 && (
-                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>({serviceGroup.length} business units)</Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      });
-                    })()}
+                            {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{service.name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </>
               )}
@@ -9612,11 +9592,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       setCurrentPermitIssuer(user);
                       // Load services for the business units if set
                       if (user.businessUnitIds && user.businessUnitIds.length > 0) {
-                        let allServices = [];
-                        for (const unitId of user.businessUnitIds) {
-                          const services = await listServicesByBusinessUnit(unitId);
-                          allServices = [...allServices, ...services];
-                        }
+                        const allServices = await listServicesForBusinessUnits(user.businessUnitIds);
                         setServicesForBusinessUnits(allServices);
                       }
                     }}>
@@ -12548,15 +12524,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Manage Services Screen
   const renderManageServices = () => {
     const handleAddService = async () => {
-      if (!currentService.name || !currentService.businessUnitId) {
-        Alert.alert('Missing Info', 'Please fill in Service Name and select a Business Unit.');
+      if (!currentService.name || !currentService.applicableBusinessUnitIds?.length) {
+        Alert.alert('Missing Info', 'Please fill in Service Name and select at least one applicable Business Unit.');
         return;
       }
       try {
         if (editingService) {
           await updateService(currentService.id, {
             name: currentService.name,
-            description: currentService.description || ''
+            description: currentService.description || '',
+            applicable_business_unit_ids: currentService.applicableBusinessUnitIds,
           });
           const freshServices = await listAllServices();
           setServicesFromDb(freshServices);
@@ -12565,14 +12542,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         } else {
           await createService({
             name: currentService.name,
-            business_unit_id: currentService.businessUnitId,
+            applicable_business_unit_ids: currentService.applicableBusinessUnitIds,
             description: currentService.description || ''
           });
           const freshServices = await listAllServices();
           setServicesFromDb(freshServices);
           Alert.alert('Service Added', 'New service has been added successfully.');
         }
-        setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+        setCurrentService({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
         setEditingService(false);
       } catch (error) {
         Alert.alert('Error', 'Failed to save service: ' + error.message);
@@ -12649,6 +12626,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const nameIdx = headerValues.findIndex(h => h.includes('name') || h.includes('service'));
             const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
             const descIdx = headerValues.findIndex(h => h.includes('description') || h.includes('desc'));
+            const existingServicesByName = new Map(
+              (servicesFromDb || []).map((service) => [service.name.toLowerCase(), service])
+            );
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -12672,32 +12652,61 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               }
               values.push(current.trim().replace(/^"|"$/g, ''));
               
-              if (nameIdx >= 0 && buIdx >= 0) {
+              if (nameIdx >= 0) {
                 const name = values[nameIdx] || '';
-                const buName = values[buIdx] || '';
+                const buName = buIdx >= 0 ? values[buIdx] || '' : '';
                 const description = descIdx >= 0 ? values[descIdx] : '';
-                
-                if (name && buName) {
-                  // Skip if already processed in this CSV
-                  if (processedNames.has(name.toLowerCase())) {
-                    duplicateCount++;
-                    continue;
-                  }
-                  
-                  // Check if service already exists for this business unit
-                  const buMatch = businessUnits.find(bu => bu.name.toLowerCase() === buName.toLowerCase());
-                  if (buMatch && servicesFromDb.find(s => s.business_unit_id === buMatch.id && s.name.toLowerCase() === name.toLowerCase())) {
-                    duplicateCount++;
-                    continue;
-                  }
-                  
-                  newServices.push({
-                    name,
-                    buName,
-                    description
-                  });
-                  processedNames.add(name.toLowerCase());
+                const lowerName = name.toLowerCase();
+
+                if (!name) continue;
+
+                const buMatch = buName
+                  ? businessUnits.find((bu) => bu.name.toLowerCase() === buName.toLowerCase())
+                  : null;
+
+                if (buName && !buMatch) {
+                  console.warn(`Business unit not found: ${buName}`);
+                  continue;
                 }
+
+                const existingService = existingServicesByName.get(lowerName);
+                if (existingService) {
+                  if (buMatch) {
+                    const applicableIds = existingService.applicable_business_unit_ids || existingService.applicableBusinessUnitIds || [];
+                    if (!applicableIds.includes(buMatch.id)) {
+                      newServices.push({
+                        id: existingService.id,
+                        name: existingService.name,
+                        description: existingService.description || description,
+                        applicableBusinessUnitIds: [...new Set([...applicableIds, buMatch.id])],
+                        isUpdate: true,
+                      });
+                    } else {
+                      duplicateCount++;
+                    }
+                  } else {
+                    duplicateCount++;
+                  }
+                  continue;
+                }
+
+                if (processedNames.has(lowerName)) {
+                  const pending = newServices.find((service) => service.name.toLowerCase() === lowerName);
+                  if (pending && buMatch && !pending.applicableBusinessUnitIds.includes(buMatch.id)) {
+                    pending.applicableBusinessUnitIds.push(buMatch.id);
+                  } else {
+                    duplicateCount++;
+                  }
+                  continue;
+                }
+
+                newServices.push({
+                  name,
+                  description,
+                  applicableBusinessUnitIds: buMatch ? [buMatch.id] : businessUnits.map((bu) => bu.id),
+                  isUpdate: false,
+                });
+                processedNames.add(lowerName);
               }
             }
 
@@ -12706,18 +12715,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const serviceData = newServices[idx];
               setServiceImportMessage(`Importing ${idx + 1} of ${newServices.length}: ${serviceData.name}...`);
               try {
-                // Find business unit by name
-                const bu = businessUnits.find(u => u.name.toLowerCase() === serviceData.buName.toLowerCase());
-                if (!bu) {
-                  console.warn(`Business unit not found: ${serviceData.buName}`);
-                  continue;
+                if (serviceData.isUpdate) {
+                  await updateService(serviceData.id, {
+                    name: serviceData.name,
+                    description: serviceData.description || '',
+                    applicable_business_unit_ids: serviceData.applicableBusinessUnitIds,
+                  });
+                } else {
+                  await createService({
+                    name: serviceData.name,
+                    applicable_business_unit_ids: serviceData.applicableBusinessUnitIds,
+                    description: serviceData.description || ''
+                  });
                 }
-
-                await createService({
-                  name: serviceData.name,
-                  business_unit_id: bu.id,
-                  description: serviceData.description || ''
-                });
                 newCount++;
               } catch (err) {
                 console.error(`Failed to import ${serviceData.name}:`, err);
@@ -12752,14 +12762,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       fileInput.click();
     };
 
-    // Group services by business unit
-    const servicesByBU = {};
-    (servicesFromDb || []).forEach(service => {
-      if (!servicesByBU[service.business_unit_id]) {
-        servicesByBU[service.business_unit_id] = [];
-      }
-      servicesByBU[service.business_unit_id].push(service);
-    });
+    const sortedServices = [...(servicesFromDb || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -12807,10 +12810,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 placeholder="Enter service name (e.g., Hot Work)" 
               />
               
-              <Text style={styles.label}>Business Unit *</Text>
+              <Text style={styles.label}>Applicable Business Units *</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8, fontSize: 12 }}>
+                Select which business units can use this service.
+              </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
                 {businessUnits.map(unit => {
-                  const isSelected = currentService.businessUnitId === unit.id;
+                  const applicableIds = currentService.applicableBusinessUnitIds || [];
+                  const isSelected = applicableIds.includes(unit.id);
                   return (
                     <TouchableOpacity
                       key={unit.id}
@@ -12821,7 +12828,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                       ]}
                       onPress={() => {
-                        setCurrentService({ ...currentService, businessUnitId: unit.id });
+                        const updatedIds = isSelected
+                          ? applicableIds.filter((id) => id !== unit.id)
+                          : [...applicableIds, unit.id];
+                        setCurrentService({ ...currentService, applicableBusinessUnitIds: updatedIds });
                       }}
                     >
                       <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
@@ -12848,11 +12858,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     {editingService ? 'Update Service' : 'Add Service'}
                   </Text>
                 </TouchableOpacity>
-                {(editingService || currentService.name || currentService.businessUnitId || currentService.description) && (
+                {(editingService || currentService.name || currentService.applicableBusinessUnitIds?.length || currentService.description) && (
                   <TouchableOpacity 
                     style={[styles.addButton, { backgroundColor: '#EF4444' }]} 
                     onPress={() => {
-                      setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+                      setCurrentService({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
                       setEditingService(false);
                     }}
                   >
@@ -12877,49 +12887,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {servicesFromDb.length} services</Text>
 
-            {Object.keys(servicesByBU).length === 0 ? (
+            {sortedServices.length === 0 ? (
               <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
                 <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No services yet. Add one to get started!</Text>
               </View>
             ) : (
-              Object.entries(servicesByBU).map(([buId, services]) => {
-                const buName = businessUnits.find(bu => bu.id === buId)?.name || 'Unknown';
+              sortedServices.map(service => {
+                const applicableIds = service.applicable_business_unit_ids || service.applicableBusinessUnitIds || [];
+                const applicableNames = applicableIds
+                  .map((id) => businessUnits.find((bu) => bu.id === id)?.name)
+                  .filter(Boolean)
+                  .join(', ');
+
                 return (
-                  <View key={buId} style={{ marginBottom: 20 }}>
-                    <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#1F2937' }]}>
-                      {buName} ({services.length})
-                    </Text>
-                    {services.map(service => (
-                      <TouchableOpacity 
-                        key={service.id}
-                        style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                        onPress={() => {
-                          setCurrentService({
-                            id: service.id,
-                            name: service.name,
-                            businessUnitId: service.business_unit_id,
-                            description: service.description || ''
-                          });
-                          setEditingService(true);
-                        }}
+                  <TouchableOpacity
+                    key={service.id}
+                    style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                    onPress={() => {
+                      setCurrentService({
+                        id: service.id,
+                        name: service.name,
+                        applicableBusinessUnitIds: applicableIds,
+                        description: service.description || ''
+                      });
+                      setEditingService(true);
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{service.name}</Text>
+                      {service.description && (
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
+                      )}
+                      {applicableNames && (
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Applies to: {applicableNames}</Text>
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, marginLeft: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteService(service.id)}
+                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 6 }}
                       >
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{service.name}</Text>
-                          {service.description && (
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
-                          )}
-                        </View>
-                        <View style={{ flexDirection: 'row', gap: 8, marginLeft: 12 }}>
-                          <TouchableOpacity 
-                            onPress={() => handleDeleteService(service.id)}
-                            style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 6 }}
-                          >
-                            <Text style={{ fontSize: 16 }}>🗑️</Text>
-                          </TouchableOpacity>
-                        </View>
+                        <Text style={{ fontSize: 16 }}>🗑️</Text>
                       </TouchableOpacity>
-                    ))}
-                  </View>
+                    </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -13340,30 +13351,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
               const resolvedIds = [];
+              const applicableServices = businessUnitIds.length > 0
+                ? filterServicesForBusinessUnits(allServicesForImport, businessUnitIds)
+                : allServicesForImport;
+
               for (const serviceName of serviceNames) {
                 const trimmedName = serviceName.trim();
                 if (!trimmedName) continue;
                 const lowerName = trimmedName.toLowerCase();
-                const candidates = allServicesForImport.filter(
-                  s => s.name.toLowerCase() === lowerName || s.id === serviceName
+                const match = applicableServices.find(
+                  (service) => service.name.toLowerCase() === lowerName || service.id === serviceName
+                ) || allServicesForImport.find(
+                  (service) => service.name.toLowerCase() === lowerName || service.id === serviceName
                 );
-                if (candidates.length === 0) {
+
+                if (!match) {
                   console.warn(`Service not found: "${serviceName}"`);
                   continue;
                 }
-                if (businessUnitIds.length > 0) {
-                  const buMatch = candidates.find(s => businessUnitIds.includes(s.business_unit_id));
-                  if (buMatch) {
-                    resolvedIds.push(buMatch.id);
-                    continue;
-                  }
-                }
-                if (candidates.length === 1) {
-                  resolvedIds.push(candidates[0].id);
-                } else {
-                  console.warn(`Ambiguous service "${serviceName}" — using first match`);
-                  resolvedIds.push(candidates[0].id);
-                }
+
+                resolvedIds.push(match.id);
               }
               return [...new Set(resolvedIds)];
             };
@@ -13688,12 +13695,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         
                         // Load services and sites for selected business units
                         if (updatedBusinessUnitIds.length > 0) {
-                          let allServices = [];
-                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
-                          for (const unitId of updatedBusinessUnitIds) {
-                            const services = await listServicesByBusinessUnit(unitId);
-                            allServices = [...allServices, ...services];
-                          }
+                          const [allServices, sitesList] = await Promise.all([
+                            listServicesForBusinessUnits(updatedBusinessUnitIds),
+                            getSitesByBusinessUnits(updatedBusinessUnitIds),
+                          ]);
                           setServicesForContractors(allServices);
                           setSitesForContractors(sitesList);
                         } else {
@@ -13848,24 +13853,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                  {(() => {
-                    // Group services by name to deduplicate
-                    const servicesByName = {};
-                    servicesForContractors.forEach(service => {
-                      if (!servicesByName[service.name]) {
-                        servicesByName[service.name] = [];
-                      }
-                      servicesByName[service.name].push(service);
-                    });
-                    
-                    // Render each unique service name once
-                    return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
-                      const serviceIds = serviceGroup.map(s => s.id);
-                      const isSelected = serviceIds.some(id => currentContractor.services.includes(id));
-                      
+                  {servicesForContractors.map((service) => {
+                      const isSelected = currentContractor.services.includes(service.id);
+
                       return (
                         <TouchableOpacity
-                          key={serviceName}
+                          key={service.id}
                           style={[
                             { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
                             isSelected
@@ -13874,27 +13867,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ]}
                           onPress={() => {
                             if (isSelected) {
-                              // Remove ALL service UUIDs with this name
                               setCurrentContractor({
                                 ...currentContractor,
                                 services: currentContractor.services.filter(
-                                  id => !serviceIds.includes(id)
+                                  (id) => id !== service.id
                                 )
                               });
                             } else {
-                              // Add ALL service UUIDs with this name
                               setCurrentContractor({
                                 ...currentContractor,
-                                services: [...currentContractor.services, ...serviceIds]
+                                services: [...currentContractor.services, service.id]
                               });
                             }
                           }}
                         >
-                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{serviceName}</Text>
+                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{service.name}</Text>
                         </TouchableOpacity>
                       );
-                    });
-                  })()}
+                    })}
                 </View>
               )}
 
@@ -14210,12 +14200,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 // Load services and sites for the contractor's business units
                                 const businessUnitIds = contractor.businessUnitIds || [];
                                 if (businessUnitIds.length > 0) {
-                                  let allServices = [];
-                                  const sitesList = await getSitesByBusinessUnits(businessUnitIds);
-                                  for (const unitId of businessUnitIds) {
-                                    const services = await listServicesByBusinessUnit(unitId);
-                                    allServices = [...allServices, ...services];
-                                  }
+                                  const [allServices, sitesList] = await Promise.all([
+                                    listServicesForBusinessUnits(businessUnitIds),
+                                    getSitesByBusinessUnits(businessUnitIds),
+                                  ]);
                                   setServicesForContractors(allServices);
                                   setSitesForContractors(sitesList);
                                 } else {

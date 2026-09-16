@@ -1,35 +1,58 @@
 /**
  * Services API
- * Handles service management linked to business units
+ * Global services list with per-service business unit applicability
  */
 
 import { supabase } from '../supabaseClient';
 import { handleError } from '../utils/errorHandler';
+import {
+  getApplicableBusinessUnitIds,
+  isServiceApplicableToBusinessUnits,
+  filterServicesForBusinessUnits,
+} from '../utils/serviceApplicability';
+
+export {
+  getApplicableBusinessUnitIds,
+  isServiceApplicableToBusinessUnits,
+  filterServicesForBusinessUnits,
+};
+
+function normalizeService(service) {
+  if (!service) return service;
+
+  return {
+    ...service,
+    applicable_business_unit_ids: getApplicableBusinessUnitIds(service),
+    applicableBusinessUnitIds: getApplicableBusinessUnitIds(service),
+  };
+}
 
 /**
- * Get all services for a business unit
+ * Get services applicable to a single business unit
  * @param {UUID} businessUnitId
  * @returns {Array} Services for the business unit
  */
 export async function listServicesByBusinessUnit(businessUnitId) {
+  return listServicesForBusinessUnits([businessUnitId]);
+}
+
+/**
+ * Get services applicable to any of the given business units
+ * @param {UUID[]} businessUnitIds
+ * @returns {Array} Applicable services
+ */
+export async function listServicesForBusinessUnits(businessUnitIds = []) {
   try {
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('business_unit_id', businessUnitId)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-
-    return data || [];
+    const allServices = await listAllServices();
+    return filterServicesForBusinessUnits(allServices, businessUnitIds);
   } catch (error) {
-    console.error('Error listing services:', error);
+    console.error('Error listing services for business units:', error);
     return [];
   }
 }
 
 /**
- * Get all services (across all business units)
+ * Get all services
  * RELIABILITY: Auto-retries on network failure, returns empty array on failure
  * @returns {Array} All services
  */
@@ -43,14 +66,14 @@ export async function listAllServices() {
       const { data, error } = await supabase
         .from('services')
         .select('*')
-        .order('business_unit_id, name', { ascending: true });
+        .order('name', { ascending: true });
 
       if (error) throw error;
 
       if (process.env.NODE_ENV === 'development' && attempt > 1) {
         console.log(`🔄 Services loaded on attempt ${attempt}`);
       }
-      return data || [];
+      return (data || []).map(normalizeService);
     } catch (error) {
       lastError = error;
 
@@ -58,15 +81,13 @@ export async function listAllServices() {
         console.warn(`⏳ Services load attempt ${attempt}/${maxRetries} failed:`, error.message);
       }
 
-      // Retry if not the last attempt
       if (attempt < maxRetries) {
         const delayMs = baseDelay * attempt;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
   }
 
-  // All retries exhausted
   handleError(lastError, 'loading services', false);
   if (process.env.NODE_ENV === 'development') {
     console.error('❌ Failed to load services after retries');
@@ -76,20 +97,29 @@ export async function listAllServices() {
 
 /**
  * Create a new service
- * @param {Object} serviceData - { business_unit_id, name, description }
+ * @param {Object} serviceData - { name, description, applicable_business_unit_ids }
  * @returns {Object} Created service
  */
 export async function createService(serviceData) {
   try {
+    const payload = {
+      name: serviceData.name,
+      description: serviceData.description || '',
+      applicable_business_unit_ids:
+        serviceData.applicable_business_unit_ids ||
+        serviceData.applicableBusinessUnitIds ||
+        [],
+    };
+
     const { data, error } = await supabase
       .from('services')
-      .insert([serviceData])
+      .insert([payload])
       .select()
       .single();
 
     if (error) throw error;
 
-    return data;
+    return normalizeService(data);
   } catch (error) {
     console.error('Error creating service:', error);
     throw error;
@@ -99,21 +129,28 @@ export async function createService(serviceData) {
 /**
  * Update a service
  * @param {UUID} serviceId
- * @param {Object} updates - { name, description }
+ * @param {Object} updates - { name, description, applicable_business_unit_ids }
  * @returns {Object} Updated service
  */
 export async function updateService(serviceId, updates) {
   try {
+    const payload = { ...updates };
+
+    if (updates.applicableBusinessUnitIds !== undefined) {
+      payload.applicable_business_unit_ids = updates.applicableBusinessUnitIds;
+      delete payload.applicableBusinessUnitIds;
+    }
+
     const { data, error } = await supabase
       .from('services')
-      .update(updates)
+      .update(payload)
       .eq('id', serviceId)
       .select()
       .single();
 
     if (error) throw error;
 
-    return data;
+    return normalizeService(data);
   } catch (error) {
     console.error('Error updating service:', error);
     throw error;
@@ -142,7 +179,11 @@ export async function deleteService(serviceId) {
 }
 
 export default {
+  getApplicableBusinessUnitIds,
+  isServiceApplicableToBusinessUnits,
+  filterServicesForBusinessUnits,
   listServicesByBusinessUnit,
+  listServicesForBusinessUnits,
   listAllServices,
   createService,
   updateService,
