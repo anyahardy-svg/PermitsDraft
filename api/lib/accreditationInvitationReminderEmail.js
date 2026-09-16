@@ -1,4 +1,9 @@
 const { prepareEmailHtml, buildEmailFooterText } = require('./emailWrapper');
+const {
+  buildInvitationTemplateVariables,
+  escapeHtml,
+  renderTemplate,
+} = require('./emailTemplateHelpers');
 const { fetchAuthUserByEmail } = require('../supabaseAdmin');
 const {
   DEFAULT_FROM_EMAIL,
@@ -30,38 +35,6 @@ const DEFAULT_REMINDER_TEMPLATE = {
 </p>
 <p>If you have any questions, please contact us at {{supportEmail}}</p>`,
 };
-
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function renderTemplate(template, variables = {}) {
-  let subject = template.subject;
-  let content = template.html_content;
-
-  const templateVariables = Array.isArray(template?.variables) ? template.variables : [];
-  const keys = new Set([
-    ...templateVariables,
-    ...Object.keys(TEMPLATE_VARIABLE_DEFAULTS),
-    ...Object.keys(variables),
-  ]);
-
-  keys.forEach((key) => {
-    const rawValue = variables[key];
-    const hasValue = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '';
-    const value = hasValue ? String(rawValue).trim() : (TEMPLATE_VARIABLE_DEFAULTS[key] || '');
-    const regex = new RegExp(`{{${key}}}`, 'g');
-    subject = subject.replace(regex, value);
-    content = content.replace(regex, value);
-  });
-
-  return { subject, content };
-}
 
 async function getEmailTemplate(type) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -105,11 +78,6 @@ function formatDeadline(deadline) {
   });
 }
 
-function buildSignupUrl(toEmail, companyId) {
-  const companyIdParam = companyId ? `&companyId=${encodeURIComponent(companyId)}` : '';
-  return `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(toEmail)}${companyIdParam}`;
-}
-
 function stripHtmlTags(html) {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -140,19 +108,23 @@ async function buildReminderEmailContent({
 }) {
   const resolvedContactName = (contactName || '').trim() || 'Contractor';
   const deadlineStr = formatDeadline(deadline);
-  const signupUrl = buildSignupUrl(toEmail, companyId);
   const needsPasswordSetup = await userNeedsPasswordSetup(toEmail);
+  const templateVariables = buildInvitationTemplateVariables({
+    toEmail,
+    companyId,
+    companyName,
+    contactName: resolvedContactName,
+    deadline: deadlineStr,
+    supportEmail: SUPPORT_EMAIL,
+    signupButtonLabel: 'Complete Your Accreditation',
+  });
 
   const dbTemplate = await getEmailTemplate(TEMPLATE_TYPE);
   if (dbTemplate) {
-    return renderTemplate(dbTemplate, {
-      companyName,
-      contactName: resolvedContactName,
-      deadline: deadlineStr,
-      signupUrl,
-      supportEmail: SUPPORT_EMAIL,
-    });
+    return renderTemplate(dbTemplate, templateVariables, TEMPLATE_VARIABLE_DEFAULTS);
   }
+
+  const signupUrl = templateVariables.signupUrl;
 
   if (needsPasswordSetup) {
     return {
