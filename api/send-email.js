@@ -13,6 +13,10 @@ const {
   syncInvitedAdminAuthUser,
 } = require('./supabaseAdmin');
 const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const {
+  buildInvitationTemplateVariables,
+  renderTemplate,
+} = require('./lib/emailTemplateHelpers');
 const { buildNextReminderAt } = require('./lib/reminderScheduler');
 const {
   DEFAULT_FROM_EMAIL,
@@ -144,32 +148,6 @@ const getEmailTemplate = async (type) => {
 
 const TEMPLATE_VARIABLE_DEFAULTS = {
   contactName: 'Contractor',
-};
-
-/**
- * Render template with variables (replaces {{variableName}} with values)
- */
-const renderTemplate = (template, variables = {}) => {
-  let subject = template.subject;
-  let content = template.html_content;
-
-  const templateVariables = Array.isArray(template?.variables) ? template.variables : [];
-  const keys = new Set([
-    ...templateVariables,
-    ...Object.keys(TEMPLATE_VARIABLE_DEFAULTS),
-    ...Object.keys(variables),
-  ]);
-
-  keys.forEach((key) => {
-    const rawValue = variables[key];
-    const hasValue = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '';
-    const value = hasValue ? String(rawValue).trim() : (TEMPLATE_VARIABLE_DEFAULTS[key] || '');
-    const regex = new RegExp(`{{${key}}}`, 'g');
-    subject = subject.replace(regex, value);
-    content = content.replace(regex, value);
-  });
-
-  return { subject, content };
 };
 
 const fetchCompanyContactName = async (companyId) => {
@@ -339,15 +317,18 @@ export default async function handler(req, res) {
           day: 'numeric' 
         }) : 'As soon as possible';
         
-        const companyIdParam = companyId ? `&companyId=${encodeURIComponent(companyId)}` : '';
-        const signupUrl = `https://contractorhq.co.nz/sign-in-contractor?type=invited&email=${encodeURIComponent(toEmail)}${companyIdParam}`;
-        const rendered = renderTemplate(dbTemplate, {
-          companyName,
-          contactName: resolvedContactName,
-          deadline: deadlineStr,
-          signupUrl,
-          supportEmail: SUPPORT_EMAIL,
-        });
+        const rendered = renderTemplate(
+          dbTemplate,
+          buildInvitationTemplateVariables({
+            toEmail,
+            companyId,
+            companyName,
+            contactName: resolvedContactName,
+            deadline: deadlineStr,
+            supportEmail: SUPPORT_EMAIL,
+          }),
+          TEMPLATE_VARIABLE_DEFAULTS
+        );
         actualSubject = rendered.subject;
         actualHtmlContent = rendered.content;
       } else {
