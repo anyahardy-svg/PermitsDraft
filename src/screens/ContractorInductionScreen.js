@@ -38,6 +38,7 @@ import {
   getInductionQuestionContainerStyle,
   getInductionOptionStyles,
 } from '../utils/inductionAnswerValidation';
+import { sanitizePhoneInput } from '../utils/contractorPhone';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -1982,7 +1983,7 @@ export default function ContractorInductionScreen({
             placeholder="021 123 4567"
             keyboardType="phone-pad"
             value={contractorInfo.phone}
-            onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: text })}
+            onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: sanitizePhoneInput(text) })}
           />
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
