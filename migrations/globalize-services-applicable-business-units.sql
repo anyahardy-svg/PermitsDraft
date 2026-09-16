@@ -61,8 +61,8 @@ WHERE s.id = sub.canonical_id;
 UPDATE contractors c
 SET service_ids = (
   SELECT COALESCE(ARRAY_AGG(DISTINCT m.canonical_id), '{}')
-  FROM UNNEST(COALESCE(c.service_ids, '{}')) AS old_id
-  JOIN service_canonical_map m ON m.old_id = old_id
+  FROM UNNEST(COALESCE(c.service_ids, '{}')) AS u(old_service_id)
+  JOIN service_canonical_map m ON m.old_id = u.old_service_id
 )
 WHERE c.service_ids IS NOT NULL AND cardinality(c.service_ids) > 0;
 
@@ -70,8 +70,8 @@ WHERE c.service_ids IS NOT NULL AND cardinality(c.service_ids) > 0;
 UPDATE permit_issuers pi
 SET permitted_service_ids = (
   SELECT COALESCE(ARRAY_AGG(DISTINCT m.canonical_id), '{}')
-  FROM UNNEST(COALESCE(pi.permitted_service_ids, '{}')) AS old_id
-  JOIN service_canonical_map m ON m.old_id = old_id
+  FROM UNNEST(COALESCE(pi.permitted_service_ids, '{}')) AS u(old_service_id)
+  JOIN service_canonical_map m ON m.old_id = u.old_service_id
 )
 WHERE pi.permitted_service_ids IS NOT NULL AND cardinality(pi.permitted_service_ids) > 0;
 
@@ -93,8 +93,8 @@ WHERE i.force_compulsory_with_service_id = m.old_id
 UPDATE inductions i
 SET force_compulsory_with_service_ids = (
   SELECT COALESCE(ARRAY_AGG(DISTINCT m.canonical_id), '{}')
-  FROM UNNEST(COALESCE(i.force_compulsory_with_service_ids, '{}')) AS old_id
-  JOIN service_canonical_map m ON m.old_id = old_id
+  FROM UNNEST(COALESCE(i.force_compulsory_with_service_ids, '{}')) AS u(old_service_id)
+  JOIN service_canonical_map m ON m.old_id = u.old_service_id
 )
 WHERE i.force_compulsory_with_service_ids IS NOT NULL
   AND cardinality(i.force_compulsory_with_service_ids) > 0;
