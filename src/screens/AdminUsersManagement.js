@@ -172,31 +172,46 @@ export default function AdminUsersManagement({ onBack, styles }) {
     }
   };
 
-  const handleDeleteUser = (user) => {
-    Alert.alert(
-      'Delete Admin User?',
-      `Are you sure you want to delete ${user.name}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await deleteAdminUser(user.id);
-              if (result.success) {
-                Alert.alert('Deleted', 'Admin user deleted');
-                await loadAdmins();
-              } else {
-                Alert.alert('Error', result.error || 'Failed to delete');
-              }
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete user');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteUser = async (user) => {
+    const message = `Are you sure you want to delete ${user.name}? This cannot be undone.`;
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm(`Delete Admin User?\n\n${message}`)
+      : await new Promise((resolve) => {
+          Alert.alert(
+            'Delete Admin User?',
+            message,
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ],
+          );
+        });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await deleteAdminUser(user.id);
+      if (result.success) {
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert('Admin user deleted');
+        } else {
+          Alert.alert('Deleted', 'Admin user deleted');
+        }
+        await loadAdmins();
+      } else if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Error: ' + (result.error || 'Failed to delete'));
+      } else {
+        Alert.alert('Error', result.error || 'Failed to delete');
+      }
+    } catch (err) {
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Error: Failed to delete user');
+      } else {
+        Alert.alert('Error', 'Failed to delete user');
+      }
+    }
   };
 
   const renderAdminItem = ({ item }) => (

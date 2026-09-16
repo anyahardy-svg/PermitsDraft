@@ -2810,31 +2810,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const handleDeleteAdmin = (admin) => {
-    Alert.alert(
-      'Delete Admin',
-      `Are you sure you want to delete ${admin.name}? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await deleteAdminUser(admin.id);
-              if (result.success) {
-                Alert.alert('Success', 'Admin user deleted');
-                loadAdminList();
-              } else {
-                Alert.alert('Error', result.error || 'Failed to delete admin user');
-              }
-            } catch (error) {
-              console.error('Error deleting admin:', error);
-              Alert.alert('Error', 'Failed to delete admin user: ' + error.message);
-            }
+    // Alert.alert with buttons does not work on web; use window.confirm like other delete handlers.
+    if (window.confirm(`Delete Admin\n\nAre you sure you want to delete ${admin.name}? This action cannot be undone.`)) {
+      (async () => {
+        try {
+          const result = await deleteAdminUser(admin.id);
+          if (result.success) {
+            window.alert('Success: Admin user deleted');
+            loadAdminList();
+          } else {
+            window.alert('Error: ' + (result.error || 'Failed to delete admin user'));
           }
+        } catch (error) {
+          console.error('Error deleting admin:', error);
+          window.alert('Error: Failed to delete admin user: ' + error.message);
         }
-      ]
-    );
+      })();
+    }
   };
 
   const getAdminSiteNames = (siteIds = []) => {
