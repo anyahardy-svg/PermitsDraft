@@ -38,6 +38,11 @@ import {
   contractorPhoneNeedsUpdate,
   sanitizePhoneInput,
 } from '../utils/contractorPhone';
+import {
+  getOtherInductedSites,
+  getSiteInductionExpiry,
+  getSiteInductionStatus,
+} from '../utils/siteInductionStatus';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -499,36 +504,35 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     console.log('   Induction Expiry:', contractor.induction_expiry);
     
     try {
-      // Check if contractor is inducted at current site
-      // The contractor object already has site_ids and induction_expiry from the list fetch
-      const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
-      const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
-      
-      if (isInductedHere) {
-        const expiryDate = new Date(contractor.induction_expiry).toLocaleDateString('en-NZ');
+      const inductionStatus = getSiteInductionStatus(contractor, siteId);
+      const isInductedHere = inductionStatus === 'inducted';
+      const isExpired = inductionStatus === 'expired';
+      const siteExpiry = getSiteInductionExpiry(contractor, siteId);
+
+      if (isInductedHere || isExpired) {
+        const expiryDate = siteExpiry
+          ? new Date(siteExpiry).toLocaleDateString('en-NZ')
+          : null;
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
-        console.log('✓ Inducted at this site until:', expiryDate);
+        console.log(isExpired ? '⚠️ Induction expired at this site' : '✓ Inducted at this site until:', expiryDate);
       } else {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
         console.log('✗ Not inducted at this site');
       }
-      
-      // Build a list of other sites where they ARE inducted
-      const otherSiteIds = contractor.site_ids?.filter(id => id !== siteId) || [];
-      console.log('🌍 Other site IDs:', otherSiteIds);
-      
-      // Create objects with site details for display
-      const otherSites = otherSiteIds.map(siteId => {
-        const site = allSites.find(s => s.id === siteId);
+
+      const otherSites = getOtherInductedSites(contractor, siteId).map((record) => {
+        const site = allSites.find((s) => s.id === record.site_id);
         return {
-          site_id: siteId,
-          name: site?.name || siteId,
-          expires_at: contractor.induction_expiry
+          site_id: record.site_id,
+          name: site?.name || record.site_id,
+          expires_at: record.expires_at,
+          status: record.status,
         };
       });
-      
+      console.log('🌍 Other inducted sites:', otherSites.map((site) => site.name));
+
       setAllContractorInductions(otherSites);
     } catch (error) {
       console.warn('❌ Error processing contractor:', error);
@@ -999,6 +1003,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         >
           <ContractorInductionScreen
             styles={styles}
+            kioskSiteId={siteId}
+            kioskBusinessUnitId={businessUnitId}
             onComplete={() => setShowInductionModal(false)}
             onCancel={() => setShowInductionModal(false)}
           />
@@ -1072,6 +1078,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         styles={styles}
         initialRoute={inductionInitialState}
         initialContractorId={inductionPrefillContractorId}
+        kioskSiteId={siteId}
+        kioskBusinessUnitId={businessUnitId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
         onComplete={handleCompleteInductions}

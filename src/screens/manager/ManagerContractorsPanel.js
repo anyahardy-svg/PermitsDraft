@@ -12,6 +12,7 @@ import { listContractorsBySite, removeContractorFromSite } from '../../api/contr
 import {
   formatInductionExpiry,
   getOtherSiteNames,
+  getSiteInductionExpiry,
   getSiteInductionStatus,
   isExpiringWithinDays,
   INDUCTION_EXPIRING_SOON_DAYS,
@@ -300,7 +301,7 @@ export default function ManagerContractorsPanel({
                       {contractor.company_name || contractor.companyName || 'No company'}
                     </Text>
                     <Text style={{ color: '#6B7280', marginTop: 4, fontSize: 13 }}>
-                      Expiry: {formatInductionExpiry(contractor.induction_expiry || contractor.inductionExpiry)}
+                      Expiry: {formatInductionExpiry(getSiteInductionExpiry(contractor, siteId))}
                     </Text>
                     {contractor.email ? (
                       <Text style={{ color: '#6B7280', marginTop: 2, fontSize: 13 }}>{contractor.email}</Text>
