@@ -30,10 +30,6 @@ import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany, searchCompanies } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
 import {
-  searchContractorsWithCompletedInductions,
-  transferContractorInductions,
-} from '../api/contractorInductionTransfer';
-import {
   syncSiteInductionRecordsFromProgress,
   upsertContractorSiteInductions,
 } from '../api/contractorInductions';
@@ -181,11 +177,6 @@ export default function ContractorInductionScreen({
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
-  const [transferCandidates, setTransferCandidates] = useState([]);
-  const [selectedTransferSourceId, setSelectedTransferSourceId] = useState('');
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferModalContractorId, setTransferModalContractorId] = useState('');
-  const [precompletedInductionIds, setPrecompletedInductionIds] = useState([]);
 
   const handleExitWithContractor = () => {
     if (onComplete) {
@@ -1099,124 +1090,15 @@ export default function ContractorInductionScreen({
     const existingProgress = await getContractorInductionProgress(contractorId);
     console.log('🔍 Existing progress records:', existingProgress?.length || 0);
 
-    const applicableInductionIds = new Set([...compulsory, ...optional].map((ind) => ind.id));
-    const completedIds = (existingProgress || [])
-      .filter((row) => row.status === 'completed' && applicableInductionIds.has(row.induction_id))
-      .map((row) => row.induction_id);
-    setPrecompletedInductionIds(completedIds);
-
     if (!isNewContractor && existingProgress?.length > 0) {
       const preSelectedOptionals = getPreviouslySelectedOptionalIds(optional, existingProgress);
       console.log('✅ Returning contractor redo — pre-selecting', preSelectedOptionals.length, 'previously selected optional inductions');
       setSelectedOptionalIds(preSelectedOptionals);
-    } else if (isNewContractor === true && completedIds.length > 0) {
-      const preSelectedOptionals = getPreviouslySelectedOptionalIds(optional, existingProgress);
-      setSelectedOptionalIds(preSelectedOptionals);
-      console.log('✅ Transferred inductions found —', completedIds.length, 'already completed');
     } else {
       setSelectedOptionalIds([]);
     }
 
     return true;
-  };
-
-  const continueToServiceSelection = async (contractorId, selectedBUs, selectedSites) => {
-    setLoading(false);
-    setStep('selectServices');
-    setServicesLoading(true);
-
-    const refreshedContractor = await getContractor(contractorId);
-    const servicesData = await loadServicesForBusinessUnits(selectedBUs);
-    setAvailableServices(servicesData);
-
-    const validServiceIds = new Set(servicesData.map((service) => service.id));
-    const mergedServiceIds = [
-      ...new Set([
-        ...((refreshedContractor?.service_ids || refreshedContractor?.serviceIds) || []),
-        ...(contractorInfo.service_ids || []),
-      ]),
-    ].filter((id) => validServiceIds.has(id));
-
-    setContractorInfo((prev) => ({
-      ...prev,
-      id: contractorId,
-      service_ids: mergedServiceIds,
-      selectedBusinessUnitIds: selectedBUs,
-      selectedSiteIds: selectedSites,
-    }));
-
-    console.log('✅ Ready to select services');
-    setServicesLoading(false);
-  };
-
-  const promptTransferInductions = async (contractorId, selectedBUs, selectedSites) => {
-    const candidates = await searchContractorsWithCompletedInductions({
-      email: contractorInfo.email,
-      name: contractorInfo.name,
-      phone: contractorInfo.phone,
-      excludeContractorId: contractorId,
-    });
-
-    if (!candidates.length) {
-      await continueToServiceSelection(contractorId, selectedBUs, selectedSites);
-      return;
-    }
-
-    setTransferCandidates(candidates);
-    setSelectedTransferSourceId(candidates[0].id);
-    setTransferModalContractorId(contractorId);
-    setShowTransferModal(true);
-    setLoading(false);
-  };
-
-  const handleTransferInductionsConfirm = async () => {
-    const targetContractorId = transferModalContractorId;
-    if (!targetContractorId || !selectedTransferSourceId) {
-      setShowTransferModal(false);
-      return;
-    }
-
-    const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
-    const selectedSites = contractorInfo.selectedSiteIds || [];
-
-    try {
-      setLoading(true);
-      await transferContractorInductions({
-        sourceContractorId: selectedTransferSourceId,
-        targetContractorId,
-      });
-
-      const sourceCandidate = transferCandidates.find((candidate) => candidate.id === selectedTransferSourceId);
-      Alert.alert(
-        'Inductions transferred',
-        `Moved ${sourceCandidate?.completed_induction_count || 'existing'} completed induction record(s) to this profile. You only need to complete any remaining sections.`
-      );
-    } catch (err) {
-      console.error('❌ Failed to transfer inductions:', err);
-      Alert.alert('Transfer failed', err.message || 'Could not transfer induction records. You can continue and complete inductions manually.');
-    } finally {
-      setShowTransferModal(false);
-      setTransferCandidates([]);
-      setSelectedTransferSourceId('');
-      setTransferModalContractorId('');
-      await continueToServiceSelection(targetContractorId, selectedBUs, selectedSites);
-      setLoading(false);
-    }
-  };
-
-  const handleSkipTransferInductions = async () => {
-    const selectedBUs = contractorInfo.selectedBusinessUnitIds || [];
-    const selectedSites = contractorInfo.selectedSiteIds || [];
-    const contractorId = transferModalContractorId;
-
-    setShowTransferModal(false);
-    setTransferCandidates([]);
-    setSelectedTransferSourceId('');
-    setTransferModalContractorId('');
-
-    if (contractorId) {
-      await continueToServiceSelection(contractorId, selectedBUs, selectedSites);
-    }
   };
 
   const handleInfoContinue = async () => {
@@ -1310,11 +1192,19 @@ export default function ContractorInductionScreen({
         throw new Error('Contractor record not found. Please go back and select your profile again.');
       }
 
-      if (isNewContractor) {
-        await promptTransferInductions(contractorId, selectedBUs, selectedSites);
-      } else {
-        await continueToServiceSelection(contractorId, selectedBUs, selectedSites);
-      }
+      setLoading(false);
+      setStep('selectServices');
+      setServicesLoading(true);
+
+      const servicesData = await loadServicesForBusinessUnits(selectedBUs);
+      setAvailableServices(servicesData);
+
+      const validServiceIds = new Set(servicesData.map(service => service.id));
+      const currentServiceIds = (contractorInfo.service_ids || []).filter(id => validServiceIds.has(id));
+      setContractorInfo(prev => ({ ...prev, id: contractorId, service_ids: currentServiceIds }));
+
+      console.log('✅ Ready to select services');
+      setServicesLoading(false);
       
     } catch (err) {
       console.error('❌ ERROR in handleInfoContinue:', err);
@@ -1442,10 +1332,7 @@ export default function ContractorInductionScreen({
       await Promise.all(promises);
       
       setInductionQueue(sortedQueue);
-      const alreadyCompletedIds = sortedQueue
-        .map((induction) => induction.id)
-        .filter((inductionId) => precompletedInductionIds.includes(inductionId));
-      setCompletedInductionIds(alreadyCompletedIds);
+      setCompletedInductionIds([]); // Reset completed
       setModalAnswers({}); // Reset modal answers
       
       // Go to board view instead of sequential
@@ -2511,72 +2398,6 @@ export default function ContractorInductionScreen({
           </View>
         </Modal>
 
-        <Modal visible={showTransferModal} animationType="slide" transparent>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, width: '100%', maxWidth: 480 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8, color: '#1F2937' }}>
-                Transfer existing inductions?
-              </Text>
-              <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, lineHeight: 18 }}>
-                We found completed induction records for this person. Transfer them to this new profile so they do not need to redo everything.
-              </Text>
-
-              <ScrollView style={{ maxHeight: 240, marginBottom: 16 }}>
-                {transferCandidates.map((candidate) => {
-                  const isSelected = selectedTransferSourceId === candidate.id;
-                  return (
-                    <TouchableOpacity
-                      key={candidate.id}
-                      onPress={() => setSelectedTransferSourceId(candidate.id)}
-                      style={{
-                        padding: 12,
-                        borderRadius: 8,
-                        marginBottom: 8,
-                        borderWidth: 2,
-                        borderColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                        backgroundColor: isSelected ? '#EFF6FF' : '#F9FAFB',
-                      }}
-                    >
-                      <Text style={{ fontWeight: '600', color: '#1F2937' }}>{candidate.name}</Text>
-                      <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                        {candidate.email || 'No email'} · {candidate.company_name}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: '#15803D', marginTop: 4 }}>
-                        {candidate.completed_induction_count} completed induction(s)
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  onPress={handleSkipTransferInductions}
-                  style={{ flex: 1, backgroundColor: '#E5E7EB', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-                >
-                  <Text style={{ color: '#374151', fontSize: 14, fontWeight: '600' }}>Start fresh</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleTransferInductionsConfirm}
-                  disabled={loading || !selectedTransferSourceId}
-                  style={{
-                    flex: 1,
-                    backgroundColor: loading || !selectedTransferSourceId ? '#9CA3AF' : '#3B82F6',
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                    {loading ? 'Transferring...' : 'Transfer inductions'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
         {renderResumeDialog()}
       </View>
     );
@@ -2690,19 +2511,13 @@ export default function ContractorInductionScreen({
             </Text>
           </View>
 
-          {(isNewContractor === 'add-parts' && completedInductionIds_AddParts.length > 0) ||
-          (isNewContractor === true && precompletedInductionIds.length > 0) ? (
+          {isNewContractor === 'add-parts' && completedInductionIds_AddParts.length > 0 && (
             <>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#15803D', marginBottom: 12 }}>
                 ALREADY COMPLETED
               </Text>
               {allInductions
-                .filter((ind) =>
-                  (isNewContractor === 'add-parts'
-                    ? completedInductionIds_AddParts
-                    : precompletedInductionIds
-                  ).includes(ind.id)
-                )
+                .filter((ind) => completedInductionIds_AddParts.includes(ind.id))
                 .map((ind) => (
                   <View
                     key={ind.id}
@@ -2722,17 +2537,6 @@ export default function ContractorInductionScreen({
                   </View>
                 ))}
             </>
-          ) : null}
-
-          {isNewContractor === true && precompletedInductionIds.length > 0 && (
-            <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-              <Text style={{ fontSize: 13, color: '#166534', fontWeight: '600' }}>
-                Previous inductions found
-              </Text>
-              <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>
-                {precompletedInductionIds.length} section(s) were transferred from an earlier profile. Only complete the remaining inductions below.
-              </Text>
-            </View>
           )}
 
           {!isNewContractor && selectedOptionalIds.length > 0 && (

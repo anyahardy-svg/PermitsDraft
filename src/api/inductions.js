@@ -704,6 +704,52 @@ export async function getCompletedInductions(contractorId) {
 }
 
 /**
+ * Set which inductions are marked completed for a contractor (admin use).
+ * Adds missing completions and removes ones that were unchecked.
+ */
+export async function setContractorCompletedInductions(contractorId, inductionIds = []) {
+  if (!contractorId) {
+    throw new Error('Contractor ID is required');
+  }
+
+  const uniqueTargetIds = [...new Set((inductionIds || []).filter(Boolean))];
+  const existingRows = await getCompletedInductions(contractorId);
+  const existingIds = new Set(existingRows.map((row) => row.induction_id));
+  const targetIds = new Set(uniqueTargetIds);
+
+  for (const inductionId of uniqueTargetIds) {
+    if (existingIds.has(inductionId)) {
+      continue;
+    }
+
+    await startInduction(contractorId, inductionId);
+    await completeInduction(contractorId, inductionId, 'Admin assigned');
+  }
+
+  for (const row of existingRows) {
+    if (targetIds.has(row.induction_id)) {
+      continue;
+    }
+
+    const { error } = await supabase
+      .from('contractor_induction_progress')
+      .delete()
+      .eq('contractor_id', contractorId)
+      .eq('induction_id', row.induction_id);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  if (uniqueTargetIds.length > 0) {
+    await syncSiteInductionRecordsFromProgress(contractorId);
+  }
+
+  return uniqueTargetIds;
+}
+
+/**
  * Get completed induction names grouped by contractor ID.
  * @returns {Object} Map of contractor_id -> induction name[]
  */

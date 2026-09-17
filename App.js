@@ -33,15 +33,16 @@ import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
-import {
-  searchContractorsWithCompletedInductions,
-  transferContractorInductions,
-} from './src/api/contractorInductionTransfer';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
-import { getCompletedInductionsByContractor } from './src/api/inductions';
+import {
+  getCompletedInductionsByContractor,
+  getCompletedInductions,
+  getInductionsByBusinessUnit,
+  setContractorCompletedInductions,
+} from './src/api/inductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
 import { handoverPermit } from './src/api/permitHandovers';
@@ -3302,7 +3303,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const [contractorFormInductions, setContractorFormInductions] = useState([]);
   const skipCompanyInputSyncRef = useRef(false);
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
@@ -3758,6 +3760,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       isCancelled = true;
     };
   }, [currentScreen, contractors]);
+
+  useEffect(() => {
+    if (currentScreen !== 'manage_contractors') {
+      return;
+    }
+
+    const businessUnitIds = currentContractor.businessUnitIds || [];
+    if (businessUnitIds.length === 0) {
+      setContractorFormInductions([]);
+      return;
+    }
+
+    let isCancelled = false;
+
+    (async () => {
+      try {
+        const allInductions = [];
+        for (const businessUnitId of businessUnitIds) {
+          const inductionsForBU = await getInductionsByBusinessUnit(businessUnitId, [], {
+            skipServiceFilter: true,
+          });
+          allInductions.push(...(inductionsForBU || []));
+        }
+
+        const uniqueInductions = Array.from(
+          new Map(allInductions.map((induction) => [induction.id, induction])).values()
+        ).sort((a, b) => (a.induction_name || '').localeCompare(b.induction_name || ''));
+
+        if (!isCancelled) {
+          setContractorFormInductions(uniqueInductions);
+          const validIds = new Set(uniqueInductions.map((induction) => induction.id));
+          setCurrentContractor((prev) => ({
+            ...prev,
+            completedInductionIds: (prev.completedInductionIds || []).filter((id) => validIds.has(id)),
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading inductions for contractor form:', error);
+        if (!isCancelled) {
+          setContractorFormInductions([]);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentScreen, currentContractor.businessUnitIds]);
 
   // Contractor context is restored from the authenticated Supabase session only.
   // Do not hydrate from localStorage here — stale entries caused cross-user name/company bleed.
@@ -13378,9 +13428,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         };
         console.log('📤 Contractor payload:', contractorPayload);
 
+        const selectedInductionIds = currentContractor.completedInductionIds || [];
+        let savedContractorId = currentContractor.id;
+
         if (editingContractor) {
           console.log('📝 Updating contractor:', currentContractor.id);
           await updateContractor(currentContractor.id, contractorPayload);
+          savedContractorId = currentContractor.id;
           const freshContractors = await listContractors();
           setContractors(freshContractors);
           setEditingContractor(false);
@@ -13389,46 +13443,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('➕ Creating new contractor');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
-
-          let transferMessage = '';
-          if (result?.id) {
-            try {
-              const transferCandidates = await searchContractorsWithCompletedInductions({
-                email: currentContractor.email,
-                name: currentContractor.name,
-                phone: currentContractor.phone,
-                excludeContractorId: result.id,
-              });
-
-              if (transferCandidates.length > 0) {
-                const candidateSummary = transferCandidates
-                  .map((candidate) => `${candidate.name} at ${candidate.company_name} (${candidate.completed_induction_count} completed)`)
-                  .join('\n');
-                const shouldTransfer = window.confirm(
-                  `Found existing induction records for this person:\n\n${candidateSummary}\n\nTransfer the best match to the new contractor profile?`
-                );
-
-                if (shouldTransfer) {
-                  const transferResult = await transferContractorInductions({
-                    sourceContractorId: transferCandidates[0].id,
-                    targetContractorId: result.id,
-                  });
-                  const movedCount =
-                    (transferResult.merged_progress_count || 0) + (transferResult.moved_progress_count || 0);
-                  transferMessage = ` Transferred ${movedCount} induction record(s) from ${transferCandidates[0].name}.`;
-                }
-              }
-            } catch (transferError) {
-              console.error('❌ Induction transfer failed:', transferError);
-              transferMessage = ' Could not transfer existing inductions automatically.';
-            }
-          }
-
+          savedContractorId = result?.id;
           const freshContractors = await listContractors();
           setContractors(freshContractors);
-          window.alert(`Contractor Added: New contractor has been added successfully.${transferMessage}`);
+          window.alert('Contractor Added: New contractor has been added successfully.');
         }
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+
+        if (savedContractorId) {
+          await setContractorCompletedInductions(savedContractorId, selectedInductionIds);
+          const completedMap = await getCompletedInductionsByContractor();
+          setContractorCompletedInductions(completedMap || {});
+        }
+
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -14280,6 +14307,74 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               )}
 
+              <Text style={styles.label}>Completed Inductions</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                {currentContractor.businessUnitIds.length > 0
+                  ? 'Select inductions this contractor has already completed:'
+                  : 'Select business units above to see available inductions.'}
+              </Text>
+              {currentContractor.businessUnitIds.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>Choose at least one business unit to assign inductions.</Text>
+                </View>
+              ) : contractorFormInductions.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>No inductions are configured for the selected business units.</Text>
+                </View>
+              ) : (
+                <View style={{ marginBottom: 12 }}>
+                  {contractorFormInductions.map((induction) => {
+                    const isSelected = (currentContractor.completedInductionIds || []).includes(induction.id);
+                    const siteLabel = induction.site_id ? 'Site-specific' : 'All sites';
+
+                    return (
+                      <TouchableOpacity
+                        key={induction.id}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          padding: 10,
+                          marginBottom: 8,
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#ECFDF5' : 'white',
+                        }}
+                        onPress={() => {
+                          const currentIds = currentContractor.completedInductionIds || [];
+                          const nextIds = isSelected
+                            ? currentIds.filter((id) => id !== induction.id)
+                            : [...currentIds, induction.id];
+                          setCurrentContractor({ ...currentContractor, completedInductionIds: nextIds });
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 3,
+                          borderWidth: 2,
+                          borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#10B981' : 'white',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 10,
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>✓</Text>}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#1F2937', fontSize: 14, fontWeight: '600' }}>
+                            {induction.induction_name}
+                          </Text>
+                          <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+                            {siteLabel}{induction.is_compulsory ? ' · Required' : ''}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TextInput 
                 style={styles.input}
@@ -14296,7 +14391,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -14535,11 +14630,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   const [year, month, day] = contractor.inductionExpiry.split('-');
                                   formattedDate = `${day}/${month}/${year}`;
                                 }
+                                const completedRows = await getCompletedInductions(contractor.id);
+                                const completedInductionIds = completedRows.map((row) => row.induction_id);
                                 const { site_ids: _siteIds, ...contractorWithoutSiteIds } = contractor;
                                 const editedContractor = { 
                                   ...contractorWithoutSiteIds, 
                                   siteIds: siteNames,
                                   services: contractor.serviceIds || contractor.services || [],
+                                  completedInductionIds,
                                   company: contractor.companyName || contractor.company,
                                   company_id: contractor.company_id || contractor.companyId || '',
                                   companyManuallyEntered: false,
