@@ -146,6 +146,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
   const [returnedFromInduction, setReturnedFromInduction] = useState(false);
   const resumeAppliedRef = useRef(false);
+  const contractorRefreshRequestRef = useRef(0);
+  const selectedContractorIdRef = useRef(null);
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -296,7 +298,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         resumeAppliedRef.current = true;
         setCurrentScreen('contractor-signin');
         setContractorSearch(resume.contractorName || refreshedContractor.name || '');
-        await handleSelectContractor(refreshedContractor);
+        await handleSelectContractor(refreshedContractor, { skipBackgroundRefresh: true });
         if (resume.fromInduction) {
           setReturnedFromInduction(true);
         }
@@ -541,38 +543,24 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     );
   };
 
-  const handleSelectContractor = async (contractor) => {
-    let contractorForStatus = contractor;
-
-    try {
-      const refreshedContractor = await getContractorWithSiteInductions(contractor.id);
-      if (refreshedContractor) {
-        contractorForStatus = refreshedContractor;
-        setContractors((current) => {
-          const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
-          if (existingIndex === -1) {
-            return [...current, refreshedContractor];
-          }
-          const next = [...current];
-          next[existingIndex] = refreshedContractor;
-          return next;
-        });
+  const updateContractorInList = (refreshedContractor) => {
+    setContractors((current) => {
+      const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
+      if (existingIndex === -1) {
+        return [...current, refreshedContractor];
       }
-    } catch (refreshError) {
-      console.warn('Could not refresh contractor induction status:', refreshError.message);
-    }
+      const next = [...current];
+      next[existingIndex] = refreshedContractor;
+      return next;
+    });
+  };
 
-    setSelectedContractor(contractorForStatus);
-    setContractorSearch(contractorForStatus.name || '');
-    setFilteredContractors([]); // Clear the list so it collapses
-    setContractorPhone(formatPhoneForDisplay(contractorForStatus.phone));
-    setContractorPhoneError('');
-    
+  const applyContractorInductionUi = (contractorForStatus) => {
     console.log('🔍 Contractor selected:', contractorForStatus.name);
     console.log('   Services:', contractorForStatus.services);
     console.log('   Site IDs:', contractorForStatus.site_ids);
     console.log('   Induction Expiry:', contractorForStatus.induction_expiry);
-    
+
     try {
       const inductionStatus = getSiteInductionStatus(contractorForStatus, siteId);
       const isInductedHere = inductionStatus === 'inducted';
@@ -593,10 +581,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       }
 
       const otherSites = getOtherInductedSites(contractorForStatus, siteId).map((record) => {
-        const site = allSites.find((s) => s.id === record.site_id);
+        const matchedSite = allSites.find((s) => s.id === record.site_id);
         return {
           site_id: record.site_id,
-          name: site?.name || record.site_id,
+          name: matchedSite?.name || record.site_id,
           expires_at: record.expires_at,
           status: record.status,
         };
@@ -610,6 +598,48 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setContractorInductionExpired(false);
       setAllContractorInductions([]);
     }
+  };
+
+  const applyContractorSelection = (contractorForStatus) => {
+    selectedContractorIdRef.current = contractorForStatus?.id || null;
+    setSelectedContractor(contractorForStatus);
+    setContractorSearch(contractorForStatus.name || '');
+    setFilteredContractors([]);
+    setContractorPhone(formatPhoneForDisplay(contractorForStatus.phone));
+    setContractorPhoneError('');
+    applyContractorInductionUi(contractorForStatus);
+  };
+
+  const refreshContractorInductionInBackground = async (contractorId, requestId) => {
+    try {
+      const refreshedContractor = await getContractorWithSiteInductions(contractorId);
+      if (!refreshedContractor || contractorRefreshRequestRef.current !== requestId) {
+        return;
+      }
+
+      updateContractorInList(refreshedContractor);
+
+      if (selectedContractorIdRef.current === contractorId) {
+        setSelectedContractor(refreshedContractor);
+        applyContractorInductionUi(refreshedContractor);
+      }
+    } catch (refreshError) {
+      console.warn('Could not refresh contractor induction status:', refreshError.message);
+    }
+  };
+
+  const handleSelectContractor = async (contractor, { skipBackgroundRefresh = false } = {}) => {
+    const requestId = contractorRefreshRequestRef.current + 1;
+    contractorRefreshRequestRef.current = requestId;
+
+    applyContractorSelection(contractor);
+
+    if (skipBackgroundRefresh) {
+      updateContractorInList(contractor);
+      return;
+    }
+
+    void refreshContractorInductionInBackground(contractor.id, requestId);
   };
 
   const handleCheckInContractor = async () => {
@@ -712,6 +742,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       if (result?.success) {
         // Clear the form immediately since check-in was recorded
         const contractorName = contractor.name;
+        selectedContractorIdRef.current = null;
         setSelectedContractor(null);
         setContractorSearch('');
         setFilteredContractors([]);
@@ -990,6 +1021,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             style={styles.largeButton}
             onPress={() => {
               setCurrentScreen('contractor-signin');
+              selectedContractorIdRef.current = null;
               setSelectedContractor(null);
               setContractorSearch('');
               setContractorInductionExpiry(null);
@@ -2161,6 +2193,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               style={styles.largeButton}
               onPress={() => {
                 setCurrentScreen('contractor-signin');
+                selectedContractorIdRef.current = null;
                 setSelectedContractor(null);
                 setContractorSearch('');
                 setContractorInductionExpiry(null);
