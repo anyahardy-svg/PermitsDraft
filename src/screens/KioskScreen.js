@@ -38,6 +38,7 @@ import {
   contractorPhoneNeedsUpdate,
   sanitizePhoneInput,
 } from '../utils/contractorPhone';
+import { validateContractorFullName } from '../utils/contractorName';
 import {
   getOtherInductedSites,
   getSiteInductionExpiry,
@@ -705,7 +706,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInVisitor = async () => {
-    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const nameError = validateContractorFullName(visitorName) || '';
     const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
     const phoneError = validateContractorPhone(visitorPhone) || '';
 
@@ -1627,11 +1628,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
             style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
-            placeholder="Enter your name"
+            placeholder="Enter your first and last name"
             value={visitorName}
             onChangeText={(text) => {
               setVisitorName(text);
-              if (text.trim()) {
+              if (!validateContractorFullName(text)) {
                 setVisitorNameError('');
               }
             }}
