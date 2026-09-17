@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,11 @@ import {
   getSiteInductionExpiry,
   getSiteInductionStatus,
 } from '../utils/siteInductionStatus';
+import {
+  consumeKioskReloadResume,
+  reloadKioskPage,
+  reloadKioskToSignIn,
+} from '../utils/kioskReload';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -139,6 +144,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [inductionPrefillContractorId, setInductionPrefillContractorId] = useState(null);
   const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
   const [returnedFromInduction, setReturnedFromInduction] = useState(false);
+  const resumeAppliedRef = useRef(false);
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -255,6 +261,30 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     
     initializeKiosk();
   }, []);
+
+  useEffect(() => {
+    if (resumeAppliedRef.current || !siteId || contractors.length === 0) {
+      return;
+    }
+
+    const resume = consumeKioskReloadResume();
+    if (!resume?.contractorId || resume.returnScreen !== 'contractor-signin') {
+      return;
+    }
+
+    const contractor = contractors.find((entry) => entry.id === resume.contractorId);
+    if (!contractor) {
+      return;
+    }
+
+    resumeAppliedRef.current = true;
+    setCurrentScreen('contractor-signin');
+    setContractorSearch(resume.contractorName || contractor.name || '');
+    handleSelectContractor(contractor);
+    if (resume.fromInduction) {
+      setReturnedFromInduction(true);
+    }
+  }, [contractors, siteId]);
 
   // Handle initialRoute changes from URL path detection
   useEffect(() => {
@@ -837,9 +867,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleKioskRefresh = () => {
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
+    reloadKioskPage();
   };
 
   const renderKioskRefreshButton = () => (
@@ -1075,20 +1103,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     const handleCompleteInductions = async (completedContractor = null) => {
       const priorReturnScreen = inductionReturnScreen || 'welcome';
       const contractorIdToRefresh = completedContractor?.contractorId || inductionPrefillContractorId;
-      setInductionPrefillContractorId(null);
-      setInductionReturnScreen('welcome');
 
-      const returnScreen = contractorIdToRefresh ? 'contractor-signin' : priorReturnScreen;
-
-      if (returnScreen === 'contractor-signin' && contractorIdToRefresh) {
-        await refreshContractorsForCurrentSite(contractorIdToRefresh);
-        if (completedContractor?.contractorName) {
-          setContractorSearch(completedContractor.contractorName);
-        }
-        setReturnedFromInduction(true);
+      if (contractorIdToRefresh) {
+        reloadKioskToSignIn({
+          contractorId: contractorIdToRefresh,
+          contractorName: completedContractor?.contractorName || '',
+        });
+        return;
       }
 
-      setCurrentScreen(returnScreen);
+      setInductionPrefillContractorId(null);
+      setInductionReturnScreen('welcome');
+      setCurrentScreen(priorReturnScreen);
     };
 
     const handleCancelInductions = async () => {
