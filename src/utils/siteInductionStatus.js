@@ -42,19 +42,18 @@ function getExpiryStatus(expiryRaw) {
  * Prefers per-site contractor_inductions records when present.
  */
 export function getSiteInductionStatus(contractor, siteId) {
-  const siteIds = contractor.site_ids || contractor.siteIds || [];
-  const onSite = Array.isArray(siteIds) && siteIds.includes(siteId);
-
-  if (!onSite) {
-    return 'not_on_site';
-  }
-
   const siteInduction = getSiteInductionRecord(contractor, siteId);
   if (siteInduction) {
     return getExpiryStatus(siteInduction.expires_at || siteInduction.expiresAt);
   }
 
   if (hasPerSiteInductionRecords(contractor)) {
+    return 'not_inducted';
+  }
+
+  const siteIds = contractor.site_ids || contractor.siteIds || [];
+  const onSite = Array.isArray(siteIds) && siteIds.includes(siteId);
+  if (!onSite) {
     return 'not_inducted';
   }
 

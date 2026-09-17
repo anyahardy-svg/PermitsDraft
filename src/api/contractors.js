@@ -368,6 +368,121 @@ export const removeContractorFromSite = async (contractorId, siteId) => {
   }
 };
 
+const mergeUniqueContractors = (...lists) => {
+  const byId = new Map();
+  for (const list of lists) {
+    for (const row of list || []) {
+      if (row?.id) {
+        byId.set(row.id, row);
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+};
+
+const fetchContractorsByCompanyIds = async (companyIds) => {
+  const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = [];
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const batchRows = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*')
+        .in('company_id', batch)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+    rows.push(...batchRows);
+  }
+
+  return rows;
+};
+
+const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
+  const ids = new Set();
+
+  const bySite = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('companies')
+      .select('id')
+      .contains('site_ids', [siteId])
+      .range(from, to)
+  );
+  (bySite || []).forEach((company) => ids.add(company.id));
+
+  if (businessUnitId) {
+    const byBusinessUnit = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select('id')
+        .overlaps('business_unit_ids', [businessUnitId])
+        .range(from, to)
+    );
+    (byBusinessUnit || []).forEach((company) => ids.add(company.id));
+  }
+
+  return Array.from(ids);
+};
+
+// Kiosk sign-in: contractors assigned to the site, in the site's business unit,
+// or belonging to a company linked to the site / business unit.
+export const listContractorsForKiosk = async (siteId) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    const { data: site, error: siteError } = await supabase
+      .from('sites')
+      .select('id, business_unit_id')
+      .eq('id', siteId)
+      .maybeSingle();
+
+    if (siteError) {
+      throw siteError;
+    }
+
+    const businessUnitId = site?.business_unit_id || null;
+
+    const [bySiteAssignment, byBusinessUnit, companyIds] = await Promise.all([
+      fetchAllPaginated((from, to) =>
+        supabase
+          .from('contractors')
+          .select('*')
+          .contains('site_ids', [siteId])
+          .order('name', { ascending: true })
+          .range(from, to)
+      ),
+      businessUnitId
+        ? fetchAllPaginated((from, to) =>
+            supabase
+              .from('contractors')
+              .select('*')
+              .overlaps('business_unit_ids', [businessUnitId])
+              .order('name', { ascending: true })
+              .range(from, to)
+          )
+        : Promise.resolve([]),
+      fetchCompanyIdsForKioskSite(siteId, businessUnitId),
+    ]);
+
+    const byCompany = await fetchContractorsByCompanyIds(companyIds);
+    const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany);
+    const withCompanies = await attachCompanyNames(merged);
+    const transformed = withCompanies.map(transformContractor);
+    return attachSiteInductionsToContractors(transformed);
+  } catch (error) {
+    console.error('Error fetching contractors for kiosk:', error.message);
+    throw error;
+  }
+};
+
 // Get contractors assigned to a specific site (site_ids contains siteId)
 export const listContractorsBySite = async (siteId) => {
   try {
