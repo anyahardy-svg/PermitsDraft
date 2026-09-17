@@ -2979,6 +2979,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [showAddAdminModal]);
 
   useEffect(() => {
+    if (currentScreen === 'manage_sites' && adminSessionActive) {
+      loadAdminList();
+    }
+  }, [currentScreen, adminSessionActive]);
+
+  useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoadingPermits(true);
@@ -3295,7 +3301,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
-  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
+  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true });
   const [siteSearchText, setSiteSearchText] = useState('');
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
@@ -11983,7 +11989,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             business_unit_id: currentSite.businessUnitId,
             kiosk_subdomain: currentSite.kioskSubdomain || null,
             flag: currentSite.flag || false,
-            rt: currentSite.rt || false
+            rt: currentSite.rt || false,
+            default_notification_manager_id: currentSite.defaultNotificationManagerId || null,
+            send_default_sign_in_notifications: currentSite.sendDefaultSignInNotifications !== false,
           });
           const freshSites = await listSites();
           setSites(freshSites);
@@ -11996,13 +12004,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             business_unit_id: currentSite.businessUnitId,
             kiosk_subdomain: currentSite.kioskSubdomain || null,
             flag: currentSite.flag || false,
-            rt: currentSite.rt || false
+            rt: currentSite.rt || false,
+            default_notification_manager_id: currentSite.defaultNotificationManagerId || null,
+            send_default_sign_in_notifications: currentSite.sendDefaultSignInNotifications !== false,
           });
           const freshSites = await listSites();
           setSites(freshSites);
           Alert.alert('Site Added', 'New site has been added successfully.');
         }
-        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
+        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true });
         setSelectedSite(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save site: ' + error.message);
@@ -12370,11 +12380,84 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
               </View>
 
+              <Text style={styles.label}>Sign-In Notifications</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>
+                When someone signs in without choosing a visiting person, email the default manager below (if enabled).
+              </Text>
+
+              <Text style={[styles.label, { marginTop: 8 }]}>Default Notification Manager</Text>
+              <select
+                style={{ paddingHorizontal: 12, paddingVertical: 10, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white', marginBottom: 12, width: '100%' }}
+                value={currentSite.defaultNotificationManagerId || ''}
+                onChange={(e) => setCurrentSite({ ...currentSite, defaultNotificationManagerId: e.target.value || '' })}
+              >
+                <option value="">No default manager</option>
+                {(adminList || [])
+                  .filter((admin) => {
+                    if (!currentSite.id) return true;
+                    const siteIds = admin.site_ids || admin.siteIds || [];
+                    return Array.isArray(siteIds) && siteIds.includes(currentSite.id);
+                  })
+                  .map((admin) => (
+                    <option key={admin.id} value={admin.id}>
+                      {admin.name} ({admin.email})
+                    </option>
+                  ))}
+              </select>
+              {currentSite.id && (adminList || []).filter((admin) => {
+                const siteIds = admin.site_ids || admin.siteIds || [];
+                return Array.isArray(siteIds) && siteIds.includes(currentSite.id);
+              }).length === 0 && (
+                <Text style={{ fontSize: 13, color: '#B45309', marginBottom: 12 }}>
+                  No admin users are assigned to this site yet. Assign admins to the site in Admin Users to use them here.
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  backgroundColor: currentSite.sendDefaultSignInNotifications ? '#DBEAFE' : '#F3F4F6',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  borderWidth: 2,
+                  borderColor: currentSite.sendDefaultSignInNotifications ? '#3B82F6' : '#D1D5DB'
+                }}
+                onPress={() => setCurrentSite({
+                  ...currentSite,
+                  sendDefaultSignInNotifications: !currentSite.sendDefaultSignInNotifications,
+                })}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: '#3B82F6',
+                  backgroundColor: currentSite.sendDefaultSignInNotifications ? '#3B82F6' : 'white',
+                  marginRight: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  {currentSite.sendDefaultSignInNotifications && <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>✓</Text>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: currentSite.sendDefaultSignInNotifications ? '#1E40AF' : '#6B7280' }}>
+                    Email default manager when no visiting person selected
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    Disable this for sites that should not receive fallback sign-in emails.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.addButton} onPress={handleAddSite}>
                 <Text style={styles.addButtonText}>{editingSite ? 'Update Site' : 'Add Site'}</Text>
               </TouchableOpacity>
               {editingSite && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false }); setSelectedSite(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true }); setSelectedSite(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -12438,6 +12521,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Flag</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>RT</Text>
+                    <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Default Manager</Text>
+                    <Text style={{ width: 110, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Default Email</Text>
                     <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                   </View>
 
@@ -12455,6 +12540,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     })
                     .map((site, index) => {
                     const buName = businessUnits.find(u => u.id === site.businessUnitId)?.name || 'Unknown';
+                    const defaultManager = (adminList || []).find(admin => admin.id === (site.defaultNotificationManagerId || site.default_notification_manager_id));
                     return (
                       <View 
                         key={site.id}
@@ -12483,6 +12569,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                         <Text style={{ width: 60, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
                           {site.rt ? '📡' : ''}
+                        </Text>
+                        <Text style={{ width: 160, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {defaultManager ? defaultManager.name : '—'}
+                        </Text>
+                        <Text style={{ width: 110, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
+                          {(site.sendDefaultSignInNotifications !== false && site.send_default_sign_in_notifications !== false) ? 'On' : 'Off'}
                         </Text>
                         <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
                           <TouchableOpacity 
