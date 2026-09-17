@@ -12474,7 +12474,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
               <Text style={[styles.label, { marginTop: 8 }]}>Site Manager</Text>
               <select
-                style={{ paddingHorizontal: 12, paddingVertical: 10, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white', marginBottom: 12, width: '100%' }}
+                style={{
+                  ...styles.input,
+                  width: '100%',
+                  marginBottom: 12,
+                  minHeight: 48,
+                  boxSizing: 'border-box',
+                  borderColor: '#D1D5DB',
+                }}
                 value={currentSite.defaultNotificationManagerId || ''}
                 onChange={(e) => setCurrentSite({ ...currentSite, defaultNotificationManagerId: e.target.value || '' })}
               >
