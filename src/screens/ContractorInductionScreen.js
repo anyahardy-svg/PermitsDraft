@@ -332,7 +332,6 @@ export default function ContractorInductionScreen({
       const selectedBUs = getApplicableBusinessUnitIds(contractor);
 
       await updateContractor(contractorId, {
-        site_ids: Array.from(new Set([...(contractor.site_ids || []), ...selectedSites])),
         business_unit_ids: selectedBUs,
       });
 
@@ -2487,7 +2486,11 @@ export default function ContractorInductionScreen({
       <View style={styles.container}>
         {renderHeader('Select Inductions', () => {
           if (isNewContractor === 'add-parts') {
-            handleExitWithContractor();
+            if (onCancel) {
+              onCancel();
+            } else {
+              setStep('info');
+            }
           } else {
             setStep('selectServices');
           }
@@ -2499,6 +2502,34 @@ export default function ContractorInductionScreen({
               Required inductions are selected automatically. Select any optional inductions that match the work you will do on site.
             </Text>
           </View>
+
+          {isNewContractor === 'add-parts' && completedInductionIds_AddParts.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#15803D', marginBottom: 12 }}>
+                ALREADY COMPLETED
+              </Text>
+              {allInductions
+                .filter((ind) => completedInductionIds_AddParts.includes(ind.id))
+                .map((ind) => (
+                  <View
+                    key={ind.id}
+                    style={{
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      backgroundColor: '#F0FDF4',
+                      marginBottom: 8,
+                      borderLeftWidth: 3,
+                      borderLeftColor: '#10B981',
+                    }}
+                  >
+                    <Text style={{ fontWeight: '600', color: '#15803D', fontSize: 14 }}>
+                      ✓ {ind.induction_name}
+                    </Text>
+                  </View>
+                ))}
+            </>
+          )}
 
           {!isNewContractor && selectedOptionalIds.length > 0 && (
             <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
@@ -2891,7 +2922,20 @@ export default function ContractorInductionScreen({
           {inductionQueue.filter(ind => !completedInductionIds.includes(ind.id)).length === 0 && (
             <TouchableOpacity
               style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-              onPress={handleExitWithContractor}
+              onPress={async () => {
+                if (isNewContractor === 'add-parts' && contractorInfo.id) {
+                  try {
+                    setLoading(true);
+                    await finalizeContractorInductionStatus();
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to save site induction: ' + error.message);
+                    return;
+                  } finally {
+                    setLoading(false);
+                  }
+                }
+                handleExitWithContractor();
+              }}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                 {standalone ? 'All Inductions Complete' : 'All Inductions Complete - Sign In'}

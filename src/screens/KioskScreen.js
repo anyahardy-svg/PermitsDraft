@@ -17,7 +17,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { listContractorsForKiosk, updateContractor } from '../api/contractors';
+import { getContractorWithSiteInductions, listContractorsForKiosk, updateContractor } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
@@ -264,7 +264,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }, []);
 
   useEffect(() => {
-    if (resumeAppliedRef.current || !siteId || contractors.length === 0) {
+    if (resumeAppliedRef.current || !siteId) {
       return;
     }
 
@@ -273,19 +273,44 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
 
-    const contractor = contractors.find((entry) => entry.id === resume.contractorId);
-    if (!contractor) {
-      return;
-    }
+    let cancelled = false;
 
-    resumeAppliedRef.current = true;
-    setCurrentScreen('contractor-signin');
-    setContractorSearch(resume.contractorName || contractor.name || '');
-    handleSelectContractor(contractor);
-    if (resume.fromInduction) {
-      setReturnedFromInduction(true);
-    }
-  }, [contractors, siteId]);
+    const applyResume = async () => {
+      try {
+        const refreshedContractor = await getContractorWithSiteInductions(resume.contractorId);
+        if (cancelled || !refreshedContractor) {
+          return;
+        }
+
+        setContractors((current) => {
+          const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
+          if (existingIndex === -1) {
+            return [...current, refreshedContractor];
+          }
+
+          const next = [...current];
+          next[existingIndex] = refreshedContractor;
+          return next;
+        });
+
+        resumeAppliedRef.current = true;
+        setCurrentScreen('contractor-signin');
+        setContractorSearch(resume.contractorName || refreshedContractor.name || '');
+        await handleSelectContractor(refreshedContractor);
+        if (resume.fromInduction) {
+          setReturnedFromInduction(true);
+        }
+      } catch (error) {
+        console.warn('Could not resume kiosk contractor after induction:', error.message);
+      }
+    };
+
+    applyResume();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
 
   // Handle initialRoute changes from URL path detection
   useEffect(() => {
@@ -1156,7 +1181,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
-          {returnedFromInduction && selectedContractor && (
+          {returnedFromInduction && selectedContractor && contractorInductionExpiry && !contractorInductionExpired && (
             <View style={{
               backgroundColor: '#DCFCE7',
               borderLeftWidth: 4,
@@ -1169,7 +1194,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 Welcome back, {selectedContractor.name}!
               </Text>
               <Text style={{ fontSize: 13, color: '#15803D', lineHeight: 18 }}>
-                Your induction is complete. Review the details below and check in when ready.
+                You are now inducted at this site. Review the details below and check in when ready.
               </Text>
             </View>
           )}
