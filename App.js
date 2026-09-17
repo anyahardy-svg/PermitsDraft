@@ -1,5 +1,5 @@
 // Permit Management System
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -2489,6 +2489,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [adminSiteFilterBU, setAdminSiteFilterBU] = useState('All');
+  const [adminSiteSearchText, setAdminSiteSearchText] = useState('');
+  const [adminSearchText, setAdminSearchText] = useState('');
+  const [adminSiteFilter, setAdminSiteFilter] = useState('All');
   
   // Password reset state
   const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
@@ -2737,7 +2740,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         await sendAdminSetupEmail(newAdminForm.email, newAdminForm.name, setupUrl);
         
         Alert.alert('Success', 'Admin user created and setup email sent. They can set their password via the email link or on first login.');
-        setShowAddAdminModal(false);
+        resetAddAdminModalState();
         setNewAdminForm({ email: '', name: '', role: 'manager', siteIds: [] });
         // Reload admin list
         loadAdminList();
@@ -2844,12 +2847,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       .join(', ') || 'No matching sites';
   };
 
+  const resetAddAdminModalState = () => {
+    setShowAddAdminModal(false);
+    setAdminList([]);
+    setAdminSearchText('');
+    setAdminSiteFilter('All');
+    setAdminSiteSearchText('');
+    setAdminSiteFilterBU('All');
+  };
+
+  const filteredAdminList = useMemo(() => {
+    const query = adminSearchText.trim().toLowerCase();
+
+    return adminList.filter((admin) => {
+      const siteIds = admin.site_ids || admin.siteIds || [];
+      const siteNames = getAdminSiteNames(siteIds).toLowerCase();
+
+      const matchesSearch = !query || (
+        admin.name?.toLowerCase().includes(query)
+        || admin.email?.toLowerCase().includes(query)
+        || siteNames.includes(query)
+      );
+
+      const matchesSite = adminSiteFilter === 'All' || siteIds.includes(adminSiteFilter);
+
+      return matchesSearch && matchesSite;
+    });
+  }, [adminList, adminSearchText, adminSiteFilter, sites]);
+
   const renderAdminSiteSelector = (selectedSiteIds = [], onChange) => {
     const getSiteBusinessUnitId = (site) => site.business_unit_id || site.businessUnitId;
+    const siteQuery = adminSiteSearchText.trim().toLowerCase();
 
-    const visibleSites = adminSiteFilterBU === 'All'
+    const visibleSites = (adminSiteFilterBU === 'All'
       ? sites
-      : sites.filter(site => getSiteBusinessUnitId(site) === adminSiteFilterBU);
+      : sites.filter(site => getSiteBusinessUnitId(site) === adminSiteFilterBU))
+      .filter(site => !siteQuery || site.name?.toLowerCase().includes(siteQuery));
 
     const visibleSiteIds = visibleSites.map(site => site.id);
     const selectedVisibleCount = selectedSiteIds.filter(id => visibleSiteIds.includes(id)).length;
@@ -2868,6 +2901,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
           Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
         </Text>
+
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            borderRadius: 8,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            fontSize: 14,
+            backgroundColor: '#F9FAFB',
+            marginBottom: 12,
+          }}
+          placeholder="Search sites by name..."
+          placeholderTextColor="#9CA3AF"
+          value={adminSiteSearchText}
+          onChangeText={setAdminSiteSearchText}
+        />
 
         <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Filter by Business Unit</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -2914,7 +2964,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         <View style={{ gap: 8 }}>
           {visibleSites.length === 0 ? (
-            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>No sites in this business unit</Text>
+            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>
+              {siteQuery ? 'No sites match your search' : 'No sites in this business unit'}
+            </Text>
           ) : (
             visibleSites.map(site => {
               const isSelected = selectedSiteIds.includes(site.id);
@@ -24870,19 +24922,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         visible={showAddAdminModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => {
-          setShowAddAdminModal(false);
-          setAdminList([]);
-        }}
+        onRequestClose={resetAddAdminModalState}
       >
         <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 40 }}>
           <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Admin Users</Text>
-              <TouchableOpacity onPress={() => {
-                setShowAddAdminModal(false);
-                setAdminList([]);
-              }}>
+              <TouchableOpacity onPress={resetAddAdminModalState}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -24991,6 +25037,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {/* All Admins Section */}
             <View>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Existing Admins</Text>
+
+              <View style={{ marginBottom: 16, gap: 12 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                  }}
+                  placeholder="Search by name, email, or site..."
+                  placeholderTextColor="#9CA3AF"
+                  value={adminSearchText}
+                  onChangeText={setAdminSearchText}
+                />
+                <select
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                    width: '100%',
+                  }}
+                  value={adminSiteFilter}
+                  onChange={(event) => setAdminSiteFilter(event.target.value)}
+                >
+                  <option value="All">All sites</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
+              </View>
+
               {adminListLoading ? (
                 <View style={{ alignItems: 'center', paddingVertical: 20 }}>
                   <ActivityIndicator size="large" color="#3B82F6" />
@@ -24999,8 +25083,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
                   <Text style={{ color: '#6B7280' }}>No admin users yet</Text>
                 </View>
+              ) : filteredAdminList.length === 0 ? (
+                <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
+                  <Text style={{ color: '#6B7280' }}>No admins match your search</Text>
+                </View>
               ) : (
-                adminList.map((admin) => (
+                filteredAdminList.map((admin) => (
                   <View key={admin.id} style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 12, marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <View style={{ flex: 1 }}>
@@ -25071,10 +25159,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 backgroundColor: '#F3F4F6',
                 alignItems: 'center',
               }}
-              onPress={() => {
-                setShowAddAdminModal(false);
-                setAdminList([]);
-              }}
+              onPress={resetAddAdminModalState}
             >
               <Text style={{ color: '#374151', fontWeight: '600' }}>Close</Text>
             </TouchableOpacity>
