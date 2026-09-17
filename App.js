@@ -26608,4 +26608,5 @@ const AppRouter = ({ initialRoute }) => {
   );
 };
 
+export { PermitManagementApp };
 export default AppRouter;
