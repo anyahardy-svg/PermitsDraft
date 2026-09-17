@@ -179,6 +179,16 @@ export const getContractor = async (contractorId) => {
   }
 };
 
+export const getContractorWithSiteInductions = async (contractorId) => {
+  const contractor = await getContractor(contractorId);
+  if (!contractor) {
+    return null;
+  }
+
+  const [withSiteInductions] = await attachSiteInductionsToContractors([contractor]);
+  return withSiteInductions;
+};
+
 // Update a contractor
 export const updateContractor = async (contractorId, updates) => {
   try {
@@ -483,23 +493,66 @@ export const listContractorsForKiosk = async (siteId) => {
   }
 };
 
-// Get contractors assigned to a specific site (site_ids contains siteId)
+const fetchContractorIdsWithSiteInductionRecord = async (siteId) => {
+  const inductionRows = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('contractor_inductions')
+      .select('contractor_id')
+      .eq('site_id', siteId)
+      .range(from, to)
+  );
+
+  return [...new Set((inductionRows || []).map((row) => row.contractor_id).filter(Boolean))];
+};
+
+const fetchContractorsByIds = async (contractorIds = []) => {
+  const uniqueIds = [...new Set((contractorIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = [];
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const batchRows = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*')
+        .in('id', batch)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+    rows.push(...batchRows);
+  }
+
+  return rows;
+};
+
+// Contractors assigned to a site (site_ids) or with a per-site induction record.
 export const listContractorsBySite = async (siteId) => {
   try {
     if (!siteId) {
       return [];
     }
 
-    const data = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select('*')
-        .contains('site_ids', [siteId])
-        .order('name', { ascending: true })
-        .range(from, to)
-    );
+    const [bySiteAssignment, inductedContractorIds] = await Promise.all([
+      fetchAllPaginated((from, to) =>
+        supabase
+          .from('contractors')
+          .select('*')
+          .contains('site_ids', [siteId])
+          .order('name', { ascending: true })
+          .range(from, to)
+      ),
+      fetchContractorIdsWithSiteInductionRecord(siteId),
+    ]);
 
-    const withCompanies = await attachCompanyNames(data || []);
+    const inductedOnlyIds = inductedContractorIds.filter(
+      (contractorId) => !(bySiteAssignment || []).some((row) => row.id === contractorId)
+    );
+    const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
+    const merged = mergeUniqueContractors(bySiteAssignment, bySiteInductionRecord);
+    const withCompanies = await attachCompanyNames(merged);
     const transformed = withCompanies.map(transformContractor);
     return attachSiteInductionsToContractors(transformed);
   } catch (error) {
