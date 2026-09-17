@@ -388,28 +388,13 @@ export default function ContractorInductionScreen({
         return;
       }
 
-      const sortedQueue = [...incompleteCompulsory, ...incompleteOptional].sort((a, b) => {
-        const aIsCompanyWide = a.site_id === null ? 0 : 1;
-        const bIsCompanyWide = b.site_id === null ? 0 : 1;
-        return aIsCompanyWide - bIsCompanyWide;
-      });
-
-      await Promise.all(
-        sortedQueue.map((induction) =>
-          startInduction(contractorId, induction.id, { redo: false }).catch((err) => {
-            console.error('Error starting induction', induction.id, ':', err);
-            return null;
-          })
-        )
-      );
-
       setCompulsoryInductions(incompleteCompulsory);
       setOptionalInductions(incompleteOptional);
-      setSelectedOptionalIds(incompleteOptional.map((ind) => ind.id));
-      setInductionQueue(sortedQueue);
+      setSelectedOptionalIds([]);
+      setInductionQueue([]);
       setCompletedInductionIds([]);
       setModalAnswers({});
-      setStep('inductionBoard');
+      setStep('inductionsList');
     } catch (err) {
       console.error('Error starting kiosk add-parts flow:', err);
       Alert.alert('Error', 'Failed to load site induction: ' + err.message);
@@ -1276,6 +1261,34 @@ export default function ContractorInductionScreen({
 
   const handleStartInductions = async () => {
     if (compulsoryInductions.length === 0 && selectedOptionalIds.length === 0) {
+      if (isNewContractor === 'add-parts') {
+        if (!contractorInfo.id) {
+          Alert.alert('Error', 'Contractor record not found. Please go back and complete your details.');
+          return;
+        }
+
+        setLoading(true);
+        try {
+          await finalizeSiteInductionForContractor({
+            contractorId: contractorInfo.id,
+            inductedSiteIds: isKioskSiteLocked
+              ? getKioskLockedSiteIds()
+              : Array.from(new Set([...(contractorInfo.selectedSiteIds || [])])),
+            businessUnitIds: contractorInfo.selectedBusinessUnitIds || [],
+          });
+          Alert.alert(
+            'Site induction complete',
+            'No additional induction sections are required for this site.',
+            [{ text: 'OK', onPress: () => handleExitWithContractor() }]
+          );
+        } catch (err) {
+          Alert.alert('Error', 'Failed to complete site induction: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       Alert.alert('Error', 'Please select at least one induction');
       return;
     }
@@ -2465,10 +2478,20 @@ export default function ContractorInductionScreen({
   if (step === 'inductionsList') {
     const inductionCount = selectedOptionalIds.length + compulsoryInductions.length;
     const hasAvailableInductions = compulsoryInductions.length > 0 || optionalInductions.length > 0;
+    const canSkipOptionalForAddParts = isNewContractor === 'add-parts'
+      && compulsoryInductions.length === 0
+      && optionalInductions.length > 0;
+    const canStartInductions = inductionCount > 0 || canSkipOptionalForAddParts;
 
     return (
       <View style={styles.container}>
-        {renderHeader('Select Inductions', () => setStep('selectServices'))}
+        {renderHeader('Select Inductions', () => {
+          if (isNewContractor === 'add-parts') {
+            handleExitWithContractor();
+          } else {
+            setStep('selectServices');
+          }
+        })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
@@ -2576,12 +2599,14 @@ export default function ContractorInductionScreen({
 
           <View style={{ marginTop: 24, marginBottom: 40 }}>
             <TouchableOpacity 
-              style={{ backgroundColor: inductionCount > 0 ? '#3B82F6' : '#9CA3AF', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+              style={{ backgroundColor: canStartInductions ? '#3B82F6' : '#9CA3AF', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
               onPress={handleStartInductions}
-              disabled={inductionCount === 0}
+              disabled={!canStartInductions}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Start Inductions ({inductionCount})
+                {canSkipOptionalForAddParts && inductionCount === 0
+                  ? 'Continue Without Optional Inductions'
+                  : `Start Inductions (${inductionCount})`}
               </Text>
             </TouchableOpacity>
           </View>
