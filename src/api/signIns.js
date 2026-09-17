@@ -6,6 +6,7 @@
 import { supabase } from '../supabaseClient';
 import { getContractorSiteInduction } from './contractorInductions';
 import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
+import { notifySignIn } from './signInNotifications';
 
 // ============================================================================
 // CHECK-IN FUNCTIONS
@@ -120,6 +121,12 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
 
     console.log('✓ Sign-in recorded:', data?.id);
 
+    if (data?.id) {
+      notifySignIn(data.id).catch((notificationError) => {
+        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+      });
+    }
+
     // Format expiry date for display
     const expiryDate = siteExpiry ? new Date(siteExpiry).toLocaleDateString('en-NZ') : null;
 
@@ -168,6 +175,12 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
       .single();
 
     if (error) throw error;
+
+    if (data?.id) {
+      notifySignIn(data.id).catch((notificationError) => {
+        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+      });
+    }
 
     return { success: true, data };
   } catch (error) {
