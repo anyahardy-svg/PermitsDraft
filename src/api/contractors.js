@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
+import { attachSiteInductionsToContractors } from './contractorInductions';
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
@@ -352,6 +353,12 @@ export const removeContractorFromSite = async (contractorId, siteId) => {
       return contractor;
     }
 
+    await supabase
+      .from('contractor_inductions')
+      .delete()
+      .eq('contractor_id', contractorId)
+      .eq('site_id', siteId);
+
     return updateContractor(contractorId, {
       site_ids: existingSiteIds.filter((id) => id !== siteId),
     });
@@ -378,7 +385,8 @@ export const listContractorsBySite = async (siteId) => {
     );
 
     const withCompanies = await attachCompanyNames(data || []);
-    return withCompanies.map(transformContractor);
+    const transformed = withCompanies.map(transformContractor);
+    return attachSiteInductionsToContractors(transformed);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;

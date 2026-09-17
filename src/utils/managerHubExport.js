@@ -1,6 +1,7 @@
 import {
   formatInductionExpiry,
   getOtherSiteNames,
+  getSiteInductionExpiry,
   getSiteInductionStatus,
   isExpiringWithinDays,
   INDUCTION_EXPIRING_SOON_DAYS,
@@ -107,7 +108,7 @@ export function exportContractorsCsv({
       contractor.name || '',
       contractor.email || '',
       contractor.company_name || contractor.companyName || '',
-      formatInductionExpiry(contractor.induction_expiry || contractor.inductionExpiry),
+      formatInductionExpiry(getSiteInductionExpiry(contractor, siteId)),
       formatStatusLabel(status),
       otherSites.join('; '),
     ];

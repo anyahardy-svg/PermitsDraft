@@ -4,6 +4,8 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { getContractorSiteInduction } from './contractorInductions';
+import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
 
 // ============================================================================
 // CHECK-IN FUNCTIONS
@@ -39,12 +41,24 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
 
     console.log('✓ Contractor data:', contractor);
 
-    // Check if inducted at this site and if expired
-    const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
-    const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
-    const induction = isInductedHere ? {
-      expires_at: contractor.induction_expiry,
-      inducted_at: contractor.services // Using services as a proxy for what they're inducted for
+    const siteInduction = await getContractorSiteInduction(contractorId, siteId);
+    const contractorWithSiteInduction = siteInduction
+      ? {
+          ...contractor,
+          site_inductions: {
+            ...(contractor.site_inductions || {}),
+            [siteId]: siteInduction,
+          },
+        }
+      : contractor;
+
+    const inductionStatus = getSiteInductionStatus(contractorWithSiteInduction, siteId);
+    const isInductedHere = inductionStatus === 'inducted';
+    const isExpired = inductionStatus === 'expired';
+    const siteExpiry = getSiteInductionExpiry(contractorWithSiteInduction, siteId);
+    const induction = isInductedHere || isExpired ? {
+      expires_at: siteExpiry,
+      inducted_at: siteInduction?.inducted_at || contractor.services,
     } : null;
 
     console.log('📋 Status - Inducted here:', isInductedHere, 'Expired:', isExpired);
@@ -78,8 +92,8 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
       check_in_time: new Date().toISOString(),
       inducted: isInductedHere,
       induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
-      inducted_at_site: contractor.induction_expiry || null,
-      induction_expires_at: contractor.induction_expiry || null,
+      inducted_at_site: siteInduction?.inducted_at || null,
+      induction_expires_at: siteExpiry || null,
       visiting_person_name: visitingPersonName || null,
     };
 
@@ -107,7 +121,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
     console.log('✓ Sign-in recorded:', data?.id);
 
     // Format expiry date for display
-    const expiryDate = contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : null;
+    const expiryDate = siteExpiry ? new Date(siteExpiry).toLocaleDateString('en-NZ') : null;
 
     return {
       success: true,

@@ -29,6 +29,7 @@ import {
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany, searchCompanies } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
+import { upsertContractorSiteInductions } from '../api/contractorInductions';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
 import { listServicesForBusinessUnits } from '../api/services';
@@ -96,7 +97,10 @@ export default function ContractorInductionScreen({
   onSelectInductionType,
   onBackToSelection,
   standalone = false,
+  kioskSiteId = null,
+  kioskBusinessUnitId = null,
 }) {
+  const isKioskSiteLocked = Boolean(kioskSiteId);
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [contractorsLoading, setContractorsLoading] = useState(false);
@@ -301,10 +305,39 @@ export default function ContractorInductionScreen({
     }
   };
 
+  const getKioskLockedSiteIds = () => (kioskSiteId ? [kioskSiteId] : []);
+
+  const getSiteIdToBusinessUnitId = (siteList = []) => {
+    const mapping = {};
+    for (const site of siteList) {
+      if (site?.id && site?.business_unit_id) {
+        mapping[site.id] = site.business_unit_id;
+      }
+    }
+    if (kioskSiteId && kioskBusinessUnitId) {
+      mapping[kioskSiteId] = kioskBusinessUnitId;
+    }
+    return mapping;
+  };
+
   // Load initial data
   useEffect(() => {
     loadCompaniesAndBU();
   }, []);
+
+  useEffect(() => {
+    if (!kioskSiteId) {
+      return;
+    }
+
+    setContractorInfo((prev) => ({
+      ...prev,
+      selectedSiteIds: getKioskLockedSiteIds(),
+      selectedBusinessUnitIds: kioskBusinessUnitId
+        ? Array.from(new Set([...(prev.selectedBusinessUnitIds || []), kioskBusinessUnitId]))
+        : prev.selectedBusinessUnitIds,
+    }));
+  }, [kioskSiteId, kioskBusinessUnitId]);
 
   // Handle deep-link routes on mount
   useEffect(() => {
@@ -598,8 +631,10 @@ export default function ContractorInductionScreen({
         email: contractor.email,
         phone: contractor.phone || '',
         companyId: contractor.company_id,
-        selectedBusinessUnitIds: contractor.business_unit_ids || [],
-        selectedSiteIds: contractor.site_ids || [],
+        selectedBusinessUnitIds: kioskBusinessUnitId
+          ? Array.from(new Set([...(contractor.business_unit_ids || []), kioskBusinessUnitId]))
+          : (contractor.business_unit_ids || []),
+        selectedSiteIds: isKioskSiteLocked ? getKioskLockedSiteIds() : (contractor.site_ids || []),
         service_ids: contractor.service_ids || [],
       });
       setSelectedContractorId(contractorId);
@@ -785,6 +820,10 @@ export default function ContractorInductionScreen({
   };
 
   const toggleSiteSelection = (siteId) => {
+    if (isKioskSiteLocked) {
+      return;
+    }
+
     setContractorInfo(prev => ({
       ...prev,
       selectedSiteIds: (prev.selectedSiteIds || []).includes(siteId)
@@ -1162,7 +1201,13 @@ export default function ContractorInductionScreen({
     const expiryDate = new Date();
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-    const updatedSiteIds = Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
+    const inductedSiteIds = isKioskSiteLocked
+      ? getKioskLockedSiteIds()
+      : Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
+
+    const existingContractor = await getContractor(contractorInfo.id);
+    const existingSiteIds = existingContractor?.site_ids || existingContractor?.siteIds || [];
+    const updatedSiteIds = Array.from(new Set([...existingSiteIds, ...inductedSiteIds]));
 
     await updateContractor(contractorInfo.id, {
       site_ids: updatedSiteIds,
@@ -1170,9 +1215,17 @@ export default function ContractorInductionScreen({
       induction_expiry: expiryDate.toISOString(),
     });
 
+    const siteIdToBusinessUnitId = getSiteIdToBusinessUnitId([...sites, ...allSites]);
+    await upsertContractorSiteInductions({
+      contractorId: contractorInfo.id,
+      siteIds: inductedSiteIds,
+      siteIdToBusinessUnitId,
+      expiresAt: expiryDate.toISOString(),
+    });
+
     setContractorInfo(prev => ({
       ...prev,
-      selectedSiteIds: updatedSiteIds,
+      selectedSiteIds: inductedSiteIds,
     }));
   };
 
@@ -2076,13 +2129,19 @@ export default function ContractorInductionScreen({
 
           {sites.length > 0 && (
             <>
-              <Text style={[styles.label, { marginTop: 16 }]}>Sites (select one or more)</Text>
+              <Text style={[styles.label, { marginTop: 16 }]}>
+                {isKioskSiteLocked ? 'Site' : 'Sites (select one or more)'}
+              </Text>
               <View style={{ gap: 8, paddingBottom: validationErrors.sites ? 4 : 0 }}>
-                {sites.map(site => {
+                {(isKioskSiteLocked
+                  ? sites.filter((site) => site.id === kioskSiteId)
+                  : sites
+                ).map(site => {
                   const isSelected = (contractorInfo.selectedSiteIds || []).includes(site.id);
                   return (
                     <TouchableOpacity
                       key={site.id}
+                      disabled={isKioskSiteLocked}
                       onPress={() => {
                         toggleSiteSelection(site.id);
                         setValidationErrors(prev => ({ ...prev, sites: undefined }));
