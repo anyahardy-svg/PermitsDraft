@@ -10377,13 +10377,35 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const address1Idx = headerValues.findIndex(h => h.includes('address') && h.includes('1'));
             const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
             const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
+            const assignedManagerEmailIdx = headerValues.findIndex(h =>
+              h === 'assigned_manager_email' || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
+            );
+            const assignedHsEmailIdx = headerValues.findIndex(h =>
+              h === 'assigned_hs_email' || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+            );
+
+            let adminsForImport = companyAdminUsers || [];
+            if (!adminsForImport.length) {
+              adminsForImport = await getAllAdminUsers();
+            }
+
+            const resolveAdminIdByEmail = (emailValue) => {
+              const trimmed = String(emailValue || '').trim();
+              if (!trimmed) return { id: null, found: true };
+              const normalized = trimmed.toLowerCase();
+              const byEmail = adminsForImport.find((admin) => admin.email?.toLowerCase() === normalized);
+              if (byEmail) return { id: byEmail.id, found: true };
+              return { id: null, found: false };
+            };
             
             console.log('📊 CSV Headers found:', headerValues);
-            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx });
+            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
 
             let newCount = 0;
             let updatedCount = 0;
             let duplicateCount = 0;
+            let managerNotFoundCount = 0;
+            let hsNotFoundCount = 0;
             const processedNames = new Set();
 
             for (let i = 1; i < lines.length; i++) {
@@ -10427,6 +10449,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const address1 = address1Idx >= 0 ? values[address1Idx] : '';
                 const addressCity = addressCityIdx >= 0 ? values[addressCityIdx] : '';
                 const addressPostcode = addressPostcodeIdx >= 0 ? values[addressPostcodeIdx] : '';
+
+                let assignedManagerId;
+                let assignedHsPersonId;
+                if (assignedManagerEmailIdx >= 0) {
+                  const managerResult = resolveAdminIdByEmail(values[assignedManagerEmailIdx]);
+                  if (!managerResult.found) {
+                    managerNotFoundCount++;
+                  } else {
+                    assignedManagerId = managerResult.id;
+                  }
+                }
+                if (assignedHsEmailIdx >= 0) {
+                  const hsResult = resolveAdminIdByEmail(values[assignedHsEmailIdx]);
+                  if (!hsResult.found) {
+                    hsNotFoundCount++;
+                  } else {
+                    assignedHsPersonId = hsResult.id;
+                  }
+                }
                 
                 // Skip if already processed in this CSV
                 if (processedNames.has(companyName.toLowerCase())) {
@@ -10467,6 +10508,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) updateData.address_1 = address1;
                   if (addressCity) updateData.address_city = addressCity;
                   if (addressPostcode) updateData.address_postcode = addressPostcode;
+                  if (assignedManagerId !== undefined) updateData.assigned_manager_id = assignedManagerId;
+                  if (assignedHsPersonId !== undefined) updateData.assigned_hs_person_id = assignedHsPersonId;
                   
                   if (Object.keys(updateData).length > 0) {
                     console.log('📝 Updating existing company:', existingCompany.name, 'with fields:', Object.keys(updateData));
@@ -10490,6 +10533,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) createData.address_1 = address1;
                   if (addressCity) createData.address_city = addressCity;
                   if (addressPostcode) createData.address_postcode = addressPostcode;
+                  if (assignedManagerId !== undefined) createData.assigned_manager_id = assignedManagerId;
+                  if (assignedHsPersonId !== undefined) createData.assigned_hs_person_id = assignedHsPersonId;
                   
                   console.log('✨ Creating new company:', companyName, 'with data:', createData);
                   await createCompany(createData);
@@ -10529,10 +10574,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               message += `📝 ${updatedCount} company(ies) updated\n`;
             }
             if (duplicateCount > 0) {
-              message += `⏭️ ${duplicateCount} duplicate(s) skipped`;
+              message += `⏭️ ${duplicateCount} duplicate(s) skipped\n`;
+            }
+            if (managerNotFoundCount > 0) {
+              message += `⚠️ ${managerNotFoundCount} assigned manager email(s) not found\n`;
+            }
+            if (hsNotFoundCount > 0) {
+              message += `⚠️ ${hsNotFoundCount} assigned H&S email(s) not found`;
             }
             
-            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount });
+            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount, managerNotFoundCount, hsNotFoundCount });
             setImportStatus('success');
             setImportMessage(message.trim());
             setTimeout(() => setImportStatus('idle'), 5000);
@@ -10607,6 +10658,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         .filter(Boolean)
         .join('; ');
 
+      const getAdminEmailById = (adminId) => {
+        if (!adminId) return '';
+        const admin = companyAdminUsers.find((a) => a.id === adminId);
+        return admin?.email || '';
+      };
+
       const headers = [
         'name',
         'email',
@@ -10624,6 +10681,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'address_1',
         'address_city',
         'address_postcode',
+        'assigned_manager_email',
+        'assigned_hs_email',
       ];
 
       const rows = filteredCompanies.map(company => [
@@ -10643,6 +10702,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         company.address_1 || company.address1 || '',
         company.address_city || company.addressCity || '',
         company.address_postcode || company.addressPostcode || '',
+        getAdminEmailById(company.assigned_manager_id || company.assignedManagerId),
+        getAdminEmailById(company.assigned_hs_person_id || company.assignedHsPersonId),
       ]);
 
       const csvContent = [
