@@ -1219,6 +1219,33 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             </View>
           )}
 
+          {!returnedFromInduction && (
+            <View style={{
+              backgroundColor: '#EFF6FF',
+              borderLeftWidth: 4,
+              borderLeftColor: '#3B82F6',
+              padding: 14,
+              borderRadius: 8,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 14, color: '#1E40AF', lineHeight: 20, marginBottom: 10 }}>
+                All new contractors (or if your name is not on the list) — can you please do an induction.
+              </Text>
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-start' }}
+                onPress={() => {
+                  setInductionPrefillContractorId(null);
+                  setInductionReturnScreen('contractor-signin');
+                  setCurrentScreen('inductions');
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB', textDecorationLine: 'underline' }}>
+                  Go to Inductions →
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <Text style={styles.label}>Search for Contractor:</Text>
           <TextInput
             style={styles.input}
