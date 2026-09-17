@@ -1,5 +1,6 @@
 const assert = require('assert');
 const {
+  getOtherInductedSites,
   getSiteInductionExpiry,
   getSiteInductionStatus,
   getOtherSiteNames,
@@ -28,6 +29,12 @@ assert.deepStrictEqual(
   getOtherSiteNames(laura, albanyId, { [hendersonId]: 'Henderson' }),
   ['Henderson']
 );
+
+const otherSitesAtAlbany = getOtherInductedSites(laura, albanyId);
+assert.strictEqual(otherSitesAtAlbany.length, 1);
+assert.strictEqual(otherSitesAtAlbany[0].site_id, hendersonId);
+assert.strictEqual(otherSitesAtAlbany[0].status, 'inducted');
+assert.strictEqual(getOtherInductedSites(laura, hendersonId).length, 0);
 
 const legacyContractor = {
   site_ids: [hendersonId, albanyId],

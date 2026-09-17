@@ -39,6 +39,7 @@ import {
   sanitizePhoneInput,
 } from '../utils/contractorPhone';
 import {
+  getOtherInductedSites,
   getSiteInductionExpiry,
   getSiteInductionStatus,
 } from '../utils/siteInductionStatus';
@@ -521,27 +522,17 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         console.log('✗ Not inducted at this site');
       }
 
-      const siteInductionMap = contractor.site_inductions || contractor.siteInductions || {};
-      const otherSiteIds = (contractor.site_ids || []).filter((id) => {
-        if (id === siteId) return false;
-        const record = siteInductionMap[id];
-        if (record) {
-          return getSiteInductionStatus({ ...contractor, site_inductions: { [id]: record } }, id) === 'inducted';
-        }
-        return getSiteInductionStatus(contractor, id) === 'inducted';
-      });
-      console.log('🌍 Other inducted site IDs:', otherSiteIds);
-
-      const otherSites = otherSiteIds.map((otherSiteId) => {
-        const site = allSites.find((s) => s.id === otherSiteId);
-        const record = siteInductionMap[otherSiteId];
+      const otherSites = getOtherInductedSites(contractor, siteId).map((record) => {
+        const site = allSites.find((s) => s.id === record.site_id);
         return {
-          site_id: otherSiteId,
-          name: site?.name || otherSiteId,
-          expires_at: record?.expires_at || getSiteInductionExpiry(contractor, otherSiteId),
+          site_id: record.site_id,
+          name: site?.name || record.site_id,
+          expires_at: record.expires_at,
+          status: record.status,
         };
       });
-      
+      console.log('🌍 Other inducted sites:', otherSites.map((site) => site.name));
+
       setAllContractorInductions(otherSites);
     } catch (error) {
       console.warn('❌ Error processing contractor:', error);

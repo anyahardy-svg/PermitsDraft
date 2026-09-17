@@ -88,23 +88,50 @@ export function formatInductionExpiry(expiryRaw) {
   return date.toLocaleDateString('en-NZ');
 }
 
-export function getOtherSiteNames(contractor, currentSiteId, siteIdToName) {
-  const siteIds = contractor.site_ids || contractor.siteIds || [];
-  const siteInductionMap = contractor?.site_inductions || contractor?.siteInductions || {};
+function getSiteInductionRecords(contractor) {
+  const siteInductionMap = contractor?.site_inductions || contractor?.siteInductions;
+  if (siteInductionMap && Object.keys(siteInductionMap).length > 0) {
+    return Object.values(siteInductionMap);
+  }
 
-  return siteIds
+  return contractor?.site_induction_records || contractor?.siteInductionRecords || [];
+}
+
+/**
+ * Other sites where the contractor has a valid (or expired) induction record.
+ * Used by the kiosk to show "Inducted at other sites" when not inducted here.
+ */
+export function getOtherInductedSites(contractor, currentSiteId) {
+  const records = getSiteInductionRecords(contractor);
+
+  if (records.length > 0) {
+    return records
+      .filter((record) => record?.site_id && record.site_id !== currentSiteId)
+      .map((record) => ({
+        site_id: record.site_id,
+        expires_at: record.expires_at || record.expiresAt || null,
+        status: getExpiryStatus(record.expires_at || record.expiresAt),
+      }))
+      .filter((record) => record.status === 'inducted' || record.status === 'expired');
+  }
+
+  const legacyStatus = getExpiryStatus(contractor.induction_expiry || contractor.inductionExpiry);
+  if (legacyStatus !== 'inducted' && legacyStatus !== 'expired') {
+    return [];
+  }
+
+  return (contractor.site_ids || contractor.siteIds || [])
     .filter((id) => id !== currentSiteId)
-    .filter((id) => {
-      const record = siteInductionMap[id];
-      if (record) {
-        return getExpiryStatus(record.expires_at || record.expiresAt) === 'inducted';
-      }
-      if (hasPerSiteInductionRecords(contractor)) {
-        return false;
-      }
-      return getExpiryStatus(contractor.induction_expiry || contractor.inductionExpiry) === 'inducted';
-    })
-    .map((id) => siteIdToName[id] || id)
+    .map((id) => ({
+      site_id: id,
+      expires_at: contractor.induction_expiry || contractor.inductionExpiry || null,
+      status: legacyStatus,
+    }));
+}
+
+export function getOtherSiteNames(contractor, currentSiteId, siteIdToName) {
+  return getOtherInductedSites(contractor, currentSiteId)
+    .map((record) => siteIdToName[record.site_id] || record.site_id)
     .filter(Boolean);
 }
 
