@@ -2501,8 +2501,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Device detection & inactivity tracking
   const [deviceType, setDeviceType] = useState(null); // 'laptop' or 'tablet'
-  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const lastActivityTimeRef = useRef(Date.now());
   const inactivityTimeoutRef = useRef(null);
+  const sessionRestoreAttemptedRef = useRef(false);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
   // Helper function to detect device type - checks user agent first, then falls back to width
@@ -2545,7 +2546,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Track user activity (mouse, keyboard, touch)
   useEffect(() => {
     const updateActivity = () => {
-      setLastActivityTime(Date.now());
+      lastActivityTimeRef.current = Date.now();
       // Reset inactivity timeout
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
@@ -2598,7 +2599,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setLoggedInAdmin(adminData);
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
-    setLastActivityTime(Date.now()); // Reset activity timer
+    lastActivityTimeRef.current = Date.now(); // Reset activity timer
 
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
     const nextScreen = getPostAdminLoginScreen(adminData, pathname);
@@ -2639,8 +2640,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
-  // Restore admin session from localStorage on mount
+  // Restore admin session from localStorage once on mount.
   useEffect(() => {
+    if (sessionRestoreAttemptedRef.current) {
+      return;
+    }
+    sessionRestoreAttemptedRef.current = true;
+
     console.log('%c🔄 SESSION RESTORATION EFFECT RUNNING', 'color: #3B82F6; font-weight: bold; font-size: 12px;');
     try {
       const savedAdminSession = localStorage.getItem('adminSession');
@@ -2666,7 +2672,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           // Restore the session
           setAdminSessionActive(sessionData.active);
           setLoggedInAdmin(adminData);
-          setLastActivityTime(sessionData.lastActivity || Date.now());
+          lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');
           console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
           console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
@@ -2687,7 +2693,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.warn('⚠️ Could not restore admin session from localStorage:', e);
       setDeviceType(getDeviceType());
     }
-  }, [adminSessionActive, loggedInAdmin]);
+  }, []);
 
   // Managers use the site hub only — keep them off /admin/* URLs
   useEffect(() => {
