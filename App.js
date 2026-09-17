@@ -89,6 +89,7 @@ import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import { showTransientMessage } from './src/utils/transientMessage';
+import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
 // List of all available sites
@@ -12297,6 +12298,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       fileInput.click();
     };
 
+    const handleExportSitesCSV = () => {
+      const filteredSites = sites.filter((site) => {
+        const matchesSearch = !siteSearchText || (
+          site.name.toLowerCase().includes(siteSearchText.toLowerCase())
+          || site.location.toLowerCase().includes(siteSearchText.toLowerCase())
+        );
+        const matchesBUFilter = !siteFilterBusinessUnit || site.businessUnitId === siteFilterBusinessUnit;
+        return matchesSearch && matchesBUFilter;
+      });
+
+      exportSitesCsv({
+        sites: filteredSites,
+        businessUnits,
+        adminUsers: adminList,
+      });
+    };
+
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
@@ -12539,9 +12557,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Sites Database</Text>
               </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportSitesCSV}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleExportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleImportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12, fontSize: 13 }}>
               CSV columns: Site Name, Location, Business Unit, Kiosk Subdomain (optional), Site Manager (email or name), Notifications (On/Off).
