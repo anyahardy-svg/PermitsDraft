@@ -441,7 +441,6 @@ SET
     )
   ),
   induction_expiry = GREATEST(target_row.induction_expiry, source_row.induction_expiry),
-  signature = COALESCE(NULLIF(target_row.signature, ''), source_row.signature),
   phone = COALESCE(NULLIF(target_row.phone, ''), source_row.phone)
 FROM contractors AS source_row
 JOIN laura_merge_ctx mc ON TRUE
