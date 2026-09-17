@@ -18,12 +18,17 @@ import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import { getContractorWithSiteInductions, listContractorsForKiosk, updateContractor } from '../api/contractors';
-import { listSites } from '../api/sites';
+import {
+  getFirstSite,
+  getSite,
+  getSiteByKioskSubdomain,
+  getSitesByBusinessUnits,
+} from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
-import { getAllAdminUsers, loginAdminUser } from '../api/adminAuth';
-import { listPermitIssuers } from '../api/permit_issuers';
+import { listAdminUsersForKioskSite, loginAdminUser } from '../api/adminAuth';
+import { listPermitIssuersForSite } from '../api/permit_issuers';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -102,6 +107,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [contractorSearch, setContractorSearch] = useState('');
   const [filteredContractors, setFilteredContractors] = useState([]);
   const [contractors, setContractors] = useState([]);
+  const [contractorsLoading, setContractorsLoading] = useState(false);
+  const [visitingPeopleLoading, setVisitingPeopleLoading] = useState(false);
+  const [visitingPeopleLoaded, setVisitingPeopleLoaded] = useState(false);
+  const [visitorInductionLoading, setVisitorInductionLoading] = useState(false);
+  const [visitorInductionLoaded, setVisitorInductionLoaded] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [contractorInductionExpiry, setContractorInductionExpiry] = useState(null);
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
@@ -197,57 +207,25 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           return;
         }
         
-        // Load sites
-        const sitesData = await listSites();
-        setAllSites(sitesData); // Store for later lookups
-        
-        // Try to match by kiosk_subdomain
         const parts = hostname.split('.');
         const subdomain = parts[0]; // e.g., "wa-amisfield-quarry-kiosk"
-        let matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
-        
+        let matchingSite = await getSiteByKioskSubdomain(subdomain);
+        let usingTestMode = false;
+
         // Fallback for development/testing: use first site if on localhost or Vercel
         if (!matchingSite && (hostname.includes('localhost') || hostname.includes('vercel.app'))) {
           console.warn('⚠️ No matching site for subdomain, using first site for testing');
-          matchingSite = sitesData[0];
-          setTestMode(true);
+          matchingSite = await getFirstSite();
+          usingTestMode = true;
         }
-        
+
         if (matchingSite) {
           setSite(matchingSite);
           setSiteId(matchingSite.id);
           setBusinessUnitId(matchingSite.business_unit_id);
-          console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
-          
-          // Load site-specific data
-          const contractorsData = await listContractorsForKiosk(matchingSite.id);
-          setContractors(contractorsData);
-
-          try {
-            const admins = await getAllAdminUsers();
-            setAdminUsers(admins || []);
-          } catch (adminError) {
-            console.warn('Could not load admin users for visiting person lookup:', adminError.message);
-            setAdminUsers([]);
-          }
-
-          try {
-            const issuers = await listPermitIssuers();
-            setPermitIssuers(issuers || []);
-          } catch (issuerError) {
-            console.warn('Could not load permit issuers for visiting person lookup:', issuerError.message);
-            setPermitIssuers([]);
-          }
-          
-          // Load visitor induction content
-          const inductionResult = await getVisitorInduction(matchingSite.id);
-          if (inductionResult?.success && inductionResult?.data) {
-            setVisitorInductionContent(normalizeVisitorInductionContent(inductionResult.data?.content || ''));
-            setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
-          }
-          
-          // Load current signins
-          loadSignedInPeople();
+          setAllSites([matchingSite]);
+          setTestMode(usingTestMode);
+          console.log(`${usingTestMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
         } else {
           Alert.alert('Error', 'Could not detect site. Please use a kiosk subdomain or try from localhost.');
           console.error('❌ No site found for subdomain:', subdomain);
@@ -264,6 +242,108 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     
     initializeKiosk();
   }, []);
+
+  const loadContractorsForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId) return [];
+
+    setContractorsLoading(true);
+    try {
+      const contractorsData = await listContractorsForKiosk(targetSiteId);
+      setContractors(contractorsData);
+      return contractorsData;
+    } catch (error) {
+      console.warn('Could not load contractors for kiosk:', error.message);
+      setContractors([]);
+      return [];
+    } finally {
+      setContractorsLoading(false);
+    }
+  };
+
+  const loadVisitingPeopleForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId || visitingPeopleLoaded) return;
+
+    setVisitingPeopleLoading(true);
+    try {
+      const [admins, issuers] = await Promise.all([
+        listAdminUsersForKioskSite(targetSiteId),
+        listPermitIssuersForSite(targetSiteId),
+      ]);
+      setAdminUsers(admins || []);
+      setPermitIssuers(issuers || []);
+      setVisitingPeopleLoaded(true);
+    } catch (error) {
+      console.warn('Could not load visiting people for kiosk:', error.message);
+      setAdminUsers([]);
+      setPermitIssuers([]);
+    } finally {
+      setVisitingPeopleLoading(false);
+    }
+  };
+
+  const loadVisitorInductionForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId || visitorInductionLoaded) return;
+
+    setVisitorInductionLoading(true);
+    try {
+      const inductionResult = await getVisitorInduction(targetSiteId);
+      if (inductionResult?.success && inductionResult?.data) {
+        setVisitorInductionContent(normalizeVisitorInductionContent(inductionResult.data?.content || ''));
+        setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
+      }
+      setVisitorInductionLoaded(true);
+    } catch (error) {
+      console.warn('Could not load visitor induction:', error.message);
+    } finally {
+      setVisitorInductionLoading(false);
+    }
+  };
+
+  // Prefetch contractors and site lookup data after welcome screen is shown.
+  useEffect(() => {
+    if (!siteId) return undefined;
+
+    let cancelled = false;
+
+    const prefetch = async () => {
+      if (businessUnitId) {
+        try {
+          const businessUnitSites = await getSitesByBusinessUnits([businessUnitId]);
+          if (!cancelled && businessUnitSites.length > 0) {
+            setAllSites(businessUnitSites);
+          }
+        } catch (error) {
+          console.warn('Could not load business unit sites for kiosk:', error.message);
+        }
+      }
+
+      if (!cancelled) {
+        await loadContractorsForSite(siteId);
+      }
+    };
+
+    void prefetch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId, businessUnitId]);
+
+  // Load visiting-person lookup data only when a sign-in form needs it.
+  useEffect(() => {
+    if (!siteId) return;
+    const needsVisitingPeople = currentScreen === 'contractor-signin' || currentScreen === 'visitor-signin';
+    if (!needsVisitingPeople) return;
+
+    void loadVisitingPeopleForSite(siteId);
+  }, [currentScreen, siteId, visitingPeopleLoaded]);
+
+  // Load visitor induction content only when the visitor flow is opened.
+  useEffect(() => {
+    if (!siteId || currentScreen !== 'visitor-induction') return;
+
+    void loadVisitorInductionForSite(siteId);
+  }, [currentScreen, siteId, visitorInductionLoaded]);
 
   useEffect(() => {
     if (resumeAppliedRef.current || !siteId) {
@@ -486,11 +566,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     if (!siteId) return;
 
     try {
-      const contractorsData = await listContractorsForKiosk(siteId);
-      setContractors(contractorsData);
-
+      const contractorsData = await loadContractorsForSite(siteId);
       if (selectedContractorId) {
-        const refreshedContractor = contractorsData.find(contractor => contractor.id === selectedContractorId);
+        const refreshedContractor = contractorsData.find((contractor) => contractor.id === selectedContractorId);
         if (refreshedContractor) {
           await handleSelectContractor(refreshedContractor);
         }
@@ -665,32 +743,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
     // Refresh site data to get latest flag/rt settings
-    let refreshedSite = site; // Default to current site
+    let refreshedSite = site;
     try {
-      console.log('3️⃣ Starting site refresh...');
-      const refreshedSites = await listSites();
-      console.log('4️⃣ Sites refreshed, count:', refreshedSites?.length);
-      
-      refreshedSite = refreshedSites.find(s => s.id === siteId);
-      console.log('5️⃣ Current site ID:', siteId);
-      console.log('6️⃣ Found refreshed site:', refreshedSite?.name);
-      
+      console.log('3️⃣ Refreshing current site flag/rt settings...');
+      refreshedSite = await getSite(siteId) || site;
       if (refreshedSite) {
-        console.log('7️⃣ Refreshed site data:', { 
-          id: refreshedSite.id, 
-          name: refreshedSite.name, 
-          flag: refreshedSite.flag, 
-          rt: refreshedSite.rt 
-        });
-        // Update state for future renders, but check refreshed data NOW
         setSite(refreshedSite);
-      } else {
-        console.warn('⚠️ Could not find refreshed site with ID:', siteId);
-        refreshedSite = site; // Fall back to current site
       }
     } catch (err) {
       console.error('❌ Error refreshing site data:', err);
-      refreshedSite = site; // Fall back to current site
+      refreshedSite = site;
     }
     
     // Check if site requires flag/RT - USE REFRESHED DATA, not state
@@ -1279,12 +1341,19 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           )}
 
           <Text style={styles.label}>Search for Contractor:</Text>
+          {contractorsLoading && contractors.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Loading contractors...</Text>
+            </View>
+          ) : (
           <TextInput
             style={styles.input}
             placeholder="Type contractor name or email..."
             value={contractorSearch}
             onChangeText={handleContractorSearch}
           />
+          )}
 
           {filteredContractors.length > 0 ? (
             <FlatList
@@ -1652,7 +1721,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
-          {visitorInductionPdfUrl ? (
+          {visitorInductionLoading && !visitorInductionPdfUrl && !visitorInductionContent ? (
+            <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Loading site induction...</Text>
+            </View>
+          ) : visitorInductionPdfUrl ? (
             // Display PDF if available
             <View style={{ ...styles.inductionBox, height: 600, marginBottom: 20 }}>
               {Platform.OS === 'web' ? (
