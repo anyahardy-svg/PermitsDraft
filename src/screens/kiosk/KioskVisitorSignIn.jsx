@@ -18,6 +18,7 @@ import {
   validateContractorPhone,
   normalizePhoneForSave,
 } from '../../utils/contractorPhone';
+import { validateContractorFullName } from '../../utils/contractorName';
 import { showTransientMessage } from '../../utils/transientMessage';
 
 // Format name to proper title case
@@ -43,7 +44,7 @@ const KioskVisitorSignIn = () => {
   const [visitorPhoneError, setVisitorPhoneError] = useState('');
 
   const handleCheckInVisitor = async () => {
-    const nameError = visitorName.trim() ? '' : 'Please enter your name';
+    const nameError = validateContractorFullName(visitorName) || '';
     const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
     const phoneError = validateContractorPhone(visitorPhone) || '';
 
@@ -100,11 +101,11 @@ const KioskVisitorSignIn = () => {
         <Text style={styles.label}>Visitor Name *</Text>
         <TextInput
           style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
-          placeholder="Enter your name"
+          placeholder="Enter your first and last name"
           value={visitorName}
           onChangeText={(text) => {
             setVisitorName(text);
-            if (text.trim()) {
+            if (!validateContractorFullName(text)) {
               setVisitorNameError('');
             }
           }}
