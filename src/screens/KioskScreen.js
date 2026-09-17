@@ -836,6 +836,32 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   };
 
+  const handleKioskRefresh = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+
+  const renderKioskRefreshButton = () => (
+    <TouchableOpacity
+      onPress={handleKioskRefresh}
+      accessibilityRole="button"
+      accessibilityLabel="Refresh kiosk"
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        minWidth: 72,
+      }}
+    >
+      <Text style={{ fontSize: 22 }}>🔄</Text>
+      <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Refresh</Text>
+    </TouchableOpacity>
+  );
+
   const renderKioskAdminButton = () => {
     if (showPermits) {
       return null;
@@ -884,7 +910,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 </View>
               )}
             </View>
-            <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+            <View style={{ alignItems: 'center', gap: 8 }}>
+              {renderKioskRefreshButton()}
+              <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+            </View>
           </View>
         </View>
 
