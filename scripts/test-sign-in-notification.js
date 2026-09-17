@@ -1,6 +1,8 @@
 const assert = require('assert');
 const {
   buildSignInDetails,
+  formatPhoneForDisplay,
+  formatInductionStatus,
   resolveVisitingPersonRecipient,
   resolveDefaultManagerRecipient,
   resolveSignInNotificationRecipient,
@@ -20,15 +22,34 @@ function run() {
     contractor_id: 'contractor-1',
     contractor_name: 'Alex Worker',
     contractor_company: 'Build Co',
-    contractor_phone: '021123456',
+    contractor_phone: '211234567',
+    induction_status: 'inducted',
+    induction_expires_at: '2027-03-15T00:00:00.000Z',
     check_in_time: '2026-09-17T08:30:00.000Z',
     visiting_person_name: 'Jane Manager',
   };
+
+  assert.strictEqual(formatPhoneForDisplay('211234567'), '0211234567');
+  assert.strictEqual(formatPhoneForDisplay('0211234567'), '0211234567');
+  assert.strictEqual(
+    formatInductionStatus(contractorSignIn),
+    'Inducted at this site (expires 15 Mar 2027)'
+  );
+  assert.strictEqual(
+    formatInductionStatus({ visitor_name: 'Guest', phone_number: '211111111' }),
+    'Not applicable (visitor)'
+  );
+  assert.strictEqual(
+    formatInductionStatus({ contractor_id: 'c1', induction_status: 'not_inducted' }),
+    'Not inducted at this site'
+  );
 
   const details = buildSignInDetails(contractorSignIn, 'Amisfield Quarry');
   assert.strictEqual(details.personType, 'contractor');
   assert.strictEqual(details.personName, 'Alex Worker');
   assert.strictEqual(details.personCompany, 'Build Co');
+  assert.strictEqual(details.personPhone, '0211234567');
+  assert.strictEqual(details.inductionStatus, 'Inducted at this site (expires 15 Mar 2027)');
   assert.ok(details.checkInTime.includes('2026'));
 
   const visitingRecipient = resolveVisitingPersonRecipient('Jane Manager', SITE_ID, adminUsers, permitIssuers);

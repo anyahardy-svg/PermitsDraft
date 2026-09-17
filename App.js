@@ -89,6 +89,7 @@ import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import { showTransientMessage } from './src/utils/transientMessage';
+import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
 // List of all available sites
@@ -12037,6 +12038,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleImportSitesCSV = () => {
+      const parseCsvBoolean = (value, defaultValue = true) => {
+        if (!String(value || '').trim()) return defaultValue;
+        const normalized = String(value).trim().toLowerCase();
+        if (['yes', 'y', 'true', '1', 'on'].includes(normalized)) return true;
+        if (['no', 'n', 'false', '0', 'off'].includes(normalized)) return false;
+        return defaultValue;
+      };
+
+      const resolveManagerId = (managerValue, admins) => {
+        const trimmed = String(managerValue || '').trim();
+        if (!trimmed) return null;
+        const normalized = trimmed.toLowerCase();
+        const byEmail = (admins || []).find((admin) => admin.email?.toLowerCase() === normalized);
+        if (byEmail) return byEmail.id;
+        const byName = (admins || []).find((admin) => admin.name?.toLowerCase() === normalized);
+        if (byName) return byName.id;
+        return null;
+      };
+
       // Create a hidden file input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -12052,6 +12072,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setSiteImportStatus('importing');
             setSiteImportMessage('Reading CSV file...');
 
+            let adminsForImport = adminList || [];
+            if (!adminsForImport.length) {
+              adminsForImport = await getAllAdminUsers();
+              setAdminList(adminsForImport || []);
+            }
+
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
             
@@ -12062,9 +12088,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return;
             }
 
-            const newSites = [];
             let newCount = 0;
             let duplicateCount = 0;
+            let managerNotFoundCount = 0;
             const processedNames = new Set();
 
             // Parse header row
@@ -12092,6 +12118,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const locationIdx = headerValues.findIndex(h => h.includes('location'));
             const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
             const subdomainIdx = headerValues.findIndex(h => h.includes('subdomain') || h.includes('kiosk'));
+            const managerIdx = headerValues.findIndex(h =>
+              h.includes('site manager') ||
+              h.includes('default manager') ||
+              h.includes('notification manager') ||
+              (h.includes('manager') && !h.includes('business'))
+            );
+            const notificationsIdx = headerValues.findIndex(h =>
+              h.includes('default email') ||
+              h.includes('default notification') ||
+              h.includes('notifications') ||
+              h.includes('send default')
+            );
 
             let updatedCount = 0;
 
@@ -12122,12 +12160,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const location = values[locationIdx] || '';
                 const buName = values[buIdx] || '';
                 const subdomain = subdomainIdx >= 0 ? values[subdomainIdx] : '';
+                const managerValue = managerIdx >= 0 ? values[managerIdx] : '';
+                const notificationsValue = notificationsIdx >= 0 ? values[notificationsIdx] : '';
+                const managerId = managerValue ? resolveManagerId(managerValue, adminsForImport) : null;
+                const sendDefaultNotifications = notificationsIdx >= 0
+                  ? parseCsvBoolean(notificationsValue, true)
+                  : undefined;
                 
                 if (name && location && buName) {
                   // Skip if already processed in this CSV
                   if (processedNames.has(name.toLowerCase())) {
                     duplicateCount++;
                     continue;
+                  }
+
+                  if (managerValue && !managerId) {
+                    managerNotFoundCount++;
                   }
                   
                   // Find business unit by name
@@ -12152,6 +12200,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     if (subdomain && subdomain !== existingSite.kiosk_subdomain) {
                       updateData.kiosk_subdomain = subdomain;
                     }
+                    if (managerIdx >= 0) {
+                      const existingManagerId = existingSite.defaultNotificationManagerId || existingSite.default_notification_manager_id || null;
+                      const nextManagerId = managerId || null;
+                      if (nextManagerId !== existingManagerId) {
+                        updateData.default_notification_manager_id = nextManagerId;
+                      }
+                    }
+                    if (sendDefaultNotifications !== undefined) {
+                      const existingNotifications = existingSite.sendDefaultSignInNotifications !== false
+                        && existingSite.send_default_sign_in_notifications !== false;
+                      if (sendDefaultNotifications !== existingNotifications) {
+                        updateData.send_default_sign_in_notifications = sendDefaultNotifications;
+                      }
+                    }
                     
                     if (Object.keys(updateData).length > 0) {
                       setSiteImportMessage(`Updating ${name}...`);
@@ -12174,7 +12236,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         name,
                         location,
                         business_unit_id: bu.id,
-                        kiosk_subdomain: subdomain || null
+                        kiosk_subdomain: subdomain || null,
+                        default_notification_manager_id: managerId,
+                        send_default_sign_in_notifications: sendDefaultNotifications !== undefined
+                          ? sendDefaultNotifications
+                          : true,
                       });
                       newCount++;
                     } catch (err) {
@@ -12208,6 +12274,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               if (message) message += ' ';
               message += `${duplicateCount} duplicate(s) in file skipped.`;
             }
+            if (managerNotFoundCount > 0) {
+              if (message) message += ' ';
+              message += `${managerNotFoundCount} site manager value(s) not matched to an admin user.`;
+            }
             if (newCount === 0 && updatedCount === 0) {
               message = 'No changes - all sites already up to date.';
             }
@@ -12226,6 +12296,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       };
       
       fileInput.click();
+    };
+
+    const handleExportSitesCSV = () => {
+      const filteredSites = sites.filter((site) => {
+        const matchesSearch = !siteSearchText || (
+          site.name.toLowerCase().includes(siteSearchText.toLowerCase())
+          || site.location.toLowerCase().includes(siteSearchText.toLowerCase())
+        );
+        const matchesBUFilter = !siteFilterBusinessUnit || site.businessUnitId === siteFilterBusinessUnit;
+        return matchesSearch && matchesBUFilter;
+      });
+
+      exportSitesCsv({
+        sites: filteredSites,
+        businessUnits,
+        adminUsers: adminList,
+      });
     };
 
     return (
@@ -12380,18 +12467,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Sign-In Notifications</Text>
+              <Text style={styles.label}>Site Manager &amp; Notifications</Text>
               <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>
-                When someone signs in without choosing a visiting person, email the default manager below (if enabled).
+                Choose who receives sign-in emails when no visiting person is selected. You can also import these fields via CSV.
               </Text>
 
-              <Text style={[styles.label, { marginTop: 8 }]}>Default Notification Manager</Text>
+              <Text style={[styles.label, { marginTop: 8 }]}>Site Manager</Text>
               <select
                 style={{ paddingHorizontal: 12, paddingVertical: 10, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white', marginBottom: 12, width: '100%' }}
                 value={currentSite.defaultNotificationManagerId || ''}
                 onChange={(e) => setCurrentSite({ ...currentSite, defaultNotificationManagerId: e.target.value || '' })}
               >
-                <option value="">No default manager</option>
+                <option value="">No site manager</option>
                 {(adminList || [])
                   .filter((admin) => {
                     if (!currentSite.id) return true;
@@ -12445,10 +12532,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 16, fontWeight: '600', color: currentSite.sendDefaultSignInNotifications ? '#1E40AF' : '#6B7280' }}>
-                    Email default manager when no visiting person selected
+                    Send fallback sign-in notifications
                   </Text>
                   <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                    Disable this for sites that should not receive fallback sign-in emails.
+                    When enabled, the site manager is emailed if no visiting person is selected at sign-in.
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -12470,10 +12557,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Sites Database</Text>
               </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportSitesCSV}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleExportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleImportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+            <Text style={{ color: '#6B7280', marginBottom: 12, fontSize: 13 }}>
+              CSV columns: Site Name, Location, Business Unit, Kiosk Subdomain (optional), Site Manager (email or name), Notifications (On/Off).
+            </Text>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {sites.length} sites</Text>
             
             {/* Filter section */}
@@ -12521,8 +12616,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Flag</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>RT</Text>
-                    <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Default Manager</Text>
-                    <Text style={{ width: 110, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Default Email</Text>
+                    <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Site Manager</Text>
+                    <Text style={{ width: 110, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Notifications</Text>
                     <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                   </View>
 
