@@ -6,6 +6,7 @@
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
 import { fetchAllPaginated } from './pagination';
+import { syncSiteInductionRecordsFromProgress } from './contractorInductions';
 
 // ============================================================================
 // TIMEZONE UTILITY
@@ -657,6 +658,20 @@ export async function completeInduction(contractorId, inductionId, signatureText
       .select();
 
     if (progressError) throw progressError;
+
+    try {
+      const { data: induction, error: inductionError } = await supabase
+        .from('inductions')
+        .select('site_id')
+        .eq('id', inductionId)
+        .maybeSingle();
+
+      if (!inductionError && induction?.site_id) {
+        await syncSiteInductionRecordsFromProgress(contractorId);
+      }
+    } catch (syncError) {
+      console.warn('Could not sync per-site induction after completion:', syncError.message);
+    }
 
     console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId });
     return progressData ? progressData[0] : null;

@@ -29,7 +29,10 @@ import {
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany, searchCompanies } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
-import { upsertContractorSiteInductions } from '../api/contractorInductions';
+import {
+  syncSiteInductionRecordsFromProgress,
+  upsertContractorSiteInductions,
+} from '../api/contractorInductions';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
 import { listServicesForBusinessUnits } from '../api/services';
@@ -335,6 +338,8 @@ export default function ContractorInductionScreen({
         business_unit_ids: selectedBUs,
       });
 
+      await syncSiteInductionRecordsFromProgress(contractorId);
+
       const progressData = await getContractorInductionProgress(contractorId);
       const completedIds = progressData
         .filter((progress) => progress.status === 'completed')
@@ -373,18 +378,21 @@ export default function ContractorInductionScreen({
       setIsNewContractor('add-parts');
       setLoadSavedAnswersOnOpen(false);
 
-      if (incompleteCompulsory.length === 0 && incompleteOptional.length === 0) {
+      if (incompleteCompulsory.length === 0) {
         await finalizeSiteInductionForContractor({
           contractorId,
           inductedSiteIds: selectedSites,
           businessUnitIds: selectedBUs,
         });
-        Alert.alert(
-          'Site induction complete',
-          'No additional induction sections are required for this site.',
-          [{ text: 'OK', onPress: () => handleExitWithContractor() }]
-        );
-        return;
+
+        if (incompleteOptional.length === 0) {
+          Alert.alert(
+            'Site induction complete',
+            'No additional induction sections are required for this site.',
+            [{ text: 'OK', onPress: () => handleExitWithContractor() }]
+          );
+          return;
+        }
       }
 
       setCompulsoryInductions(incompleteCompulsory);

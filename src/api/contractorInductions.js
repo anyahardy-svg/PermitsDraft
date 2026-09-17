@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
-import { IN_QUERY_BATCH_SIZE } from './pagination';
+import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
@@ -169,6 +169,105 @@ export async function upsertContractorSiteInduction({
 
   if (error) throw error;
   return normalizeRecord(data);
+}
+
+/**
+ * Create missing per-site induction records from completed site-specific progress.
+ * Mirrors migrations/backfill-contractor-site-inductions-from-progress.sql for one contractor.
+ */
+export async function syncSiteInductionRecordsFromProgress(contractorId) {
+  if (!contractorId) {
+    return [];
+  }
+
+  const { data: contractor, error: contractorError } = await supabase
+    .from('contractors')
+    .select('id, induction_expiry')
+    .eq('id', contractorId)
+    .maybeSingle();
+
+  if (contractorError || !contractor) {
+    return [];
+  }
+
+  const progressRows = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('contractor_induction_progress')
+      .select('completed_at, induction_id, inductions(id, site_id)')
+      .eq('contractor_id', contractorId)
+      .eq('status', 'completed')
+      .range(from, to)
+  );
+
+  const siteCompletionMap = new Map();
+  for (const row of progressRows || []) {
+    const siteId = row?.inductions?.site_id;
+    const completedAt = row?.completed_at;
+    if (!siteId || !completedAt) {
+      continue;
+    }
+
+    const existing = siteCompletionMap.get(siteId);
+    if (!existing || new Date(completedAt) > new Date(existing.latestCompletedAt)) {
+      siteCompletionMap.set(siteId, { latestCompletedAt: completedAt });
+    }
+  }
+
+  if (siteCompletionMap.size === 0) {
+    return [];
+  }
+
+  const siteIds = [...siteCompletionMap.keys()];
+  const { data: sites, error: sitesError } = await supabase
+    .from('sites')
+    .select('id, business_unit_id')
+    .in('id', siteIds);
+
+  if (sitesError) {
+    console.warn('Could not load sites for induction sync:', sitesError.message);
+    return [];
+  }
+
+  const siteIdToBusinessUnitId = {};
+  for (const site of sites || []) {
+    if (site?.id && site?.business_unit_id) {
+      siteIdToBusinessUnitId[site.id] = site.business_unit_id;
+    }
+  }
+
+  const results = [];
+  for (const [siteId, { latestCompletedAt }] of siteCompletionMap.entries()) {
+    const businessUnitId = siteIdToBusinessUnitId[siteId];
+    if (!businessUnitId) {
+      console.warn(`Skipping induction sync for site ${siteId}: missing business unit`);
+      continue;
+    }
+
+    const existing = await getContractorSiteInduction(contractorId, siteId);
+    if (existing) {
+      continue;
+    }
+
+    const contractorExpiry = contractor.induction_expiry
+      ? new Date(contractor.induction_expiry).toISOString()
+      : null;
+    const completedExpiry = new Date(new Date(latestCompletedAt).getTime() + ONE_YEAR_MS).toISOString();
+    const expiresAt = contractorExpiry || completedExpiry;
+
+    try {
+      const record = await upsertContractorSiteInduction({
+        contractorId,
+        siteId,
+        businessUnitId,
+        expiresAt,
+      });
+      results.push(record);
+    } catch (error) {
+      console.warn(`Could not sync site induction for contractor ${contractorId} at site ${siteId}:`, error.message);
+    }
+  }
+
+  return results;
 }
 
 export async function upsertContractorSiteInductions({
