@@ -339,10 +339,6 @@ SET
       THEN COALESCE(source_row.answers, target_row.answers, '{}'::jsonb)
     ELSE COALESCE(target_row.answers, source_row.answers, '{}'::jsonb)
   END,
-  signature_text = COALESCE(
-    NULLIF(target_row.signature_text, ''),
-    NULLIF(source_row.signature_text, '')
-  ),
   started_at = LEAST(
     COALESCE(target_row.started_at, source_row.started_at),
     COALESCE(source_row.started_at, target_row.started_at)
@@ -389,10 +385,6 @@ SET
     ELSE 'completed'
   END,
   business_unit_id = COALESCE(target_row.business_unit_id, source_row.business_unit_id),
-  acknowledgment_signature_url = COALESCE(
-    target_row.acknowledgment_signature_url,
-    source_row.acknowledgment_signature_url
-  ),
   updated_at = NOW()
 FROM contractor_inductions AS source_row
 JOIN laura_merge_ctx mc ON TRUE
