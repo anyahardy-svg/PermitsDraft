@@ -22,7 +22,8 @@ import {
   getSupplierAccreditationStatusDisplay,
   resolveSupplierAccreditationDisplayStatus,
 } from '../utils/supplierAccreditation';
-import { formatPhoneForDisplay } from '../utils/contractorPhone';
+import { formatPhoneForDisplay, normalizePhoneForSave } from '../utils/contractorPhone';
+import { exportSuppliersCsv } from '../utils/supplierExport';
 
 const RISK_COLORS = {
   Critical: { backgroundColor: '#FCA5A5', color: '#7F1D1D' },
@@ -313,6 +314,18 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
     }
   };
 
+  const handleExportCSV = () => {
+    if (typeof document === 'undefined') {
+      Alert.alert('Unavailable', 'CSV export is only available on web.');
+      return;
+    }
+
+    const exported = exportSuppliersCsv({ suppliers: filteredSuppliers });
+    if (exported) {
+      Alert.alert('Success', `Exported ${filteredSuppliers.length} supplier${filteredSuppliers.length === 1 ? '' : 's'}.`);
+    }
+  };
+
   const handleImportCSV = () => {
     if (typeof document === 'undefined') {
       Alert.alert('Unavailable', 'CSV import is only available on web.');
@@ -365,10 +378,12 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
             (header) => header.includes('technical') && header.includes('contact'),
           ]);
           const phoneIdx = findColumnIndex(headerValues, [
+            (header) => (header.includes('contact') && header.includes('phone')) || header === 'contact_phone',
             (header) => header.includes('phone') || header.includes('telephone') || header.includes('mobile'),
           ]);
           const statusIdx = findColumnIndex(headerValues, [
-            (header) => header.includes('status'),
+            (header) => header === 'status',
+            (header) => header.includes('status') && !header.includes('accreditation'),
           ]);
           const deadlineIdx = findColumnIndex(headerValues, [
             (header) => header.includes('deadline'),
@@ -420,7 +435,10 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
               payload.tech_contact_name = values[techContactIdx].trim();
             }
             if (phoneIdx >= 0 && values[phoneIdx]) {
-              payload.contact_phone = values[phoneIdx].trim();
+              const normalizedPhone = normalizePhoneForSave(values[phoneIdx].trim());
+              if (normalizedPhone) {
+                payload.contact_phone = normalizedPhone;
+              }
             }
             if (statusIdx >= 0 && values[statusIdx]) {
               payload.status = values[statusIdx].trim();
@@ -529,6 +547,13 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
           onPress={openInviteModal}
         >
           <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Supplier</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ backgroundColor: '#2563EB', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }}
+          onPress={handleExportCSV}
+          disabled={filteredSuppliers.length === 0}
+        >
+          <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }}
