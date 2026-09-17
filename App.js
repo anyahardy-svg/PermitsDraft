@@ -33,6 +33,10 @@ import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
+import {
+  searchContractorsWithCompletedInductions,
+  transferContractorInductions,
+} from './src/api/contractorInductionTransfer';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
@@ -13385,9 +13389,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('➕ Creating new contractor');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
+
+          let transferMessage = '';
+          if (result?.id) {
+            try {
+              const transferCandidates = await searchContractorsWithCompletedInductions({
+                email: currentContractor.email,
+                name: currentContractor.name,
+                phone: currentContractor.phone,
+                excludeContractorId: result.id,
+              });
+
+              if (transferCandidates.length > 0) {
+                const candidateSummary = transferCandidates
+                  .map((candidate) => `${candidate.name} at ${candidate.company_name} (${candidate.completed_induction_count} completed)`)
+                  .join('\n');
+                const shouldTransfer = window.confirm(
+                  `Found existing induction records for this person:\n\n${candidateSummary}\n\nTransfer the best match to the new contractor profile?`
+                );
+
+                if (shouldTransfer) {
+                  const transferResult = await transferContractorInductions({
+                    sourceContractorId: transferCandidates[0].id,
+                    targetContractorId: result.id,
+                  });
+                  const movedCount =
+                    (transferResult.merged_progress_count || 0) + (transferResult.moved_progress_count || 0);
+                  transferMessage = ` Transferred ${movedCount} induction record(s) from ${transferCandidates[0].name}.`;
+                }
+              }
+            } catch (transferError) {
+              console.error('❌ Induction transfer failed:', transferError);
+              transferMessage = ' Could not transfer existing inductions automatically.';
+            }
+          }
+
           const freshContractors = await listContractors();
           setContractors(freshContractors);
-          window.alert('Contractor Added: New contractor has been added successfully.');
+          window.alert(`Contractor Added: New contractor has been added successfully.${transferMessage}`);
         }
         setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
         setSelectedContractor(null);
