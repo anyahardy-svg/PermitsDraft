@@ -56,4 +56,18 @@ const expiredAtSite = {
 
 assert.strictEqual(getSiteInductionStatus(expiredAtSite, hendersonId), 'expired');
 
+const hunuaId = 'hunua-site-id';
+const lauraVisitingOtherSite = {
+  site_ids: [hendersonId],
+  site_inductions: {
+    [hendersonId]: {
+      site_id: hendersonId,
+      expires_at: '2027-01-15T00:00:00.000Z',
+    },
+  },
+};
+
+assert.strictEqual(getSiteInductionStatus(lauraVisitingOtherSite, hunuaId), 'not_inducted');
+assert.strictEqual(getOtherInductedSites(lauraVisitingOtherSite, hunuaId).length, 1);
+
 console.log('site induction status tests passed');

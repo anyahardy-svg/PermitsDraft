@@ -17,7 +17,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { listContractorsBySite, updateContractor } from '../api/contractors';
+import { listContractorsForKiosk, updateContractor } from '../api/contractors';
 import { listSites } from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
@@ -218,7 +218,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
           
           // Load site-specific data
-          const contractorsData = await listContractorsBySite(matchingSite.id);
+          const contractorsData = await listContractorsForKiosk(matchingSite.id);
           setContractors(contractorsData);
 
           try {
@@ -416,18 +416,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     if (text.trim().length > 0) {
       const searchLower = text.toLowerCase();
       const filtered = contractors.filter((c) => {
-        const businessUnits = c.business_unit_ids || c.businessUnitIds || [];
-        // Contractors with no BU assigned are still searchable; otherwise must match site BU
-        const hasBusinessUnit =
-          businessUnits.length === 0 || !businessUnitId || businessUnits.includes(businessUnitId);
-
         const contractorName = (c.name || '').toLowerCase();
         const contractorEmail = (c.email || '').toLowerCase();
-        const matchesSearch =
-          contractorName.includes(searchLower) ||
-          (contractorEmail && contractorEmail.includes(searchLower));
-
-        return hasBusinessUnit && matchesSearch;
+        return (
+          contractorName.includes(searchLower)
+          || (contractorEmail && contractorEmail.includes(searchLower))
+        );
       });
       setFilteredContractors(filtered);
     } else {
@@ -465,7 +459,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     if (!siteId) return;
 
     try {
-      const contractorsData = await listContractorsBySite(siteId);
+      const contractorsData = await listContractorsForKiosk(siteId);
       setContractors(contractorsData);
 
       if (selectedContractorId) {
