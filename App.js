@@ -12541,9 +12541,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
               <Text style={[styles.label, { marginTop: 8 }]}>Site Manager</Text>
               <select
-<<<<<<< Updated upstream
-                style={{ paddingHorizontal: 12, paddingVertical: 10, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 6, backgroundColor: 'white', marginBottom: 12, width: '100%' }}
-=======
                 style={{
                   width: '100%',
                   padding: 12,
@@ -12557,7 +12554,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   marginBottom: 12,
                   boxSizing: 'border-box',
                 }}
->>>>>>> Stashed changes
                 value={currentSite.defaultNotificationManagerId || ''}
                 onChange={(e) => setCurrentSite({ ...currentSite, defaultNotificationManagerId: e.target.value || '' })}
               >
