@@ -255,47 +255,207 @@ export default function ContractorInductionScreen({
   // HANDLERS FOR ADD PARTS TO EXISTING INDUCTION
   // ============================================================================
   
+  const getKioskLockedSiteIds = () => (kioskSiteId ? [kioskSiteId] : []);
+
+  const getApplicableBusinessUnitIds = (contractor) => {
+    const contractorBUs = contractor?.business_unit_ids || [];
+    if (kioskBusinessUnitId) {
+      return Array.from(new Set([...contractorBUs, kioskBusinessUnitId]));
+    }
+    return contractorBUs;
+  };
+
+  const loadInductionsForSiteAddParts = async (contractor, selectedSites, selectedBUs) => {
+    const serviceIds = contractor?.service_ids || [];
+    let allInductionsData = [];
+
+    for (const buId of selectedBUs) {
+      const inductionsForBU = await getInductionsByBusinessUnit(buId, serviceIds);
+      if (Array.isArray(inductionsForBU)) {
+        allInductionsData = [...allInductionsData, ...inductionsForBU];
+      }
+    }
+
+    const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+    const compulsory = [];
+    const optional = [];
+
+    uniqueInductions.forEach((ind) => {
+      const isSiteSpecific = ind.site_id !== null;
+      const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
+      if (!isApplicableToSelectedSites) {
+        return;
+      }
+
+      if (ind.is_compulsory || inductionForcedByContractorServices(ind, serviceIds)) {
+        compulsory.push(ind);
+      } else {
+        optional.push(ind);
+      }
+    });
+
+    return { uniqueInductions, compulsory, optional };
+  };
+
+  const finalizeSiteInductionForContractor = async ({
+    contractorId,
+    inductedSiteIds,
+    businessUnitIds,
+  }) => {
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    const existingContractor = await getContractor(contractorId);
+    const existingSiteIds = existingContractor?.site_ids || existingContractor?.siteIds || [];
+    const updatedSiteIds = Array.from(new Set([...existingSiteIds, ...inductedSiteIds]));
+
+    await updateContractor(contractorId, {
+      site_ids: updatedSiteIds,
+      business_unit_ids: businessUnitIds,
+      induction_expiry: expiryDate.toISOString(),
+    });
+
+    const siteIdToBusinessUnitId = getSiteIdToBusinessUnitId([...sites, ...allSites]);
+    await upsertContractorSiteInductions({
+      contractorId,
+      siteIds: inductedSiteIds,
+      siteIdToBusinessUnitId,
+      expiresAt: expiryDate.toISOString(),
+    });
+  };
+
+  const startKioskAddPartsFlow = async (contractorId) => {
+    try {
+      setLoading(true);
+      const contractor = await getContractor(contractorId);
+      const selectedSites = getKioskLockedSiteIds();
+      const selectedBUs = getApplicableBusinessUnitIds(contractor);
+
+      await updateContractor(contractorId, {
+        site_ids: Array.from(new Set([...(contractor.site_ids || []), ...selectedSites])),
+        business_unit_ids: selectedBUs,
+      });
+
+      const progressData = await getContractorInductionProgress(contractorId);
+      const completedIds = progressData
+        .filter((progress) => progress.status === 'completed')
+        .map((progress) => progress.induction_id);
+      const completedIdSet = new Set(completedIds);
+
+      const { uniqueInductions, compulsory, optional } = await loadInductionsForSiteAddParts(
+        contractor,
+        selectedSites,
+        selectedBUs
+      );
+
+      const incompleteCompulsory = compulsory.filter((ind) => !completedIdSet.has(ind.id));
+      const incompleteOptional = optional.filter((ind) => !completedIdSet.has(ind.id));
+
+      setAddPartsContractorId(contractorId);
+      setAddPartsContractor(contractor);
+      setExistingInductionProgress(progressData);
+      setCompletedInductionIds_AddParts(completedIds);
+      setAllInductions(uniqueInductions);
+      setAddPartsFilterBUId(kioskBusinessUnitId || '');
+      setAddPartsFilterSiteId(kioskSiteId || '');
+      setAddPartsFilterName('');
+
+      setContractorInfo({
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email,
+        phone: contractor.phone || '',
+        companyId: contractor.company_id,
+        selectedBusinessUnitIds: selectedBUs,
+        selectedSiteIds: selectedSites,
+        service_ids: contractor.service_ids || [],
+      });
+      setSelectedContractorId(contractorId);
+      setIsNewContractor('add-parts');
+      setLoadSavedAnswersOnOpen(false);
+
+      if (incompleteCompulsory.length === 0 && incompleteOptional.length === 0) {
+        await finalizeSiteInductionForContractor({
+          contractorId,
+          inductedSiteIds: selectedSites,
+          businessUnitIds: selectedBUs,
+        });
+        Alert.alert(
+          'Site induction complete',
+          'No additional induction sections are required for this site.',
+          [{ text: 'OK', onPress: () => handleExitWithContractor() }]
+        );
+        return;
+      }
+
+      const sortedQueue = [...incompleteCompulsory, ...incompleteOptional].sort((a, b) => {
+        const aIsCompanyWide = a.site_id === null ? 0 : 1;
+        const bIsCompanyWide = b.site_id === null ? 0 : 1;
+        return aIsCompanyWide - bIsCompanyWide;
+      });
+
+      await Promise.all(
+        sortedQueue.map((induction) =>
+          startInduction(contractorId, induction.id, { redo: false }).catch((err) => {
+            console.error('Error starting induction', induction.id, ':', err);
+            return null;
+          })
+        )
+      );
+
+      setCompulsoryInductions(incompleteCompulsory);
+      setOptionalInductions(incompleteOptional);
+      setSelectedOptionalIds(incompleteOptional.map((ind) => ind.id));
+      setInductionQueue(sortedQueue);
+      setCompletedInductionIds([]);
+      setModalAnswers({});
+      setStep('inductionBoard');
+    } catch (err) {
+      console.error('Error starting kiosk add-parts flow:', err);
+      Alert.alert('Error', 'Failed to load site induction: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddPartsContractorSelected = async (contractorId) => {
     try {
       setLoading(true);
       const contractor = await getContractor(contractorId);
+      const selectedSites = isKioskSiteLocked
+        ? getKioskLockedSiteIds()
+        : (contractor.site_ids || []);
+      const selectedBUs = getApplicableBusinessUnitIds(contractor);
+
       setAddPartsContractorId(contractorId);
       setAddPartsContractor(contractor);
-      
-      // Load their induction progress
+
       const progressData = await getContractorInductionProgress(contractorId);
       setExistingInductionProgress(progressData);
-      
-      // Identify completed induction IDs
+
       const completedIds = progressData
-        .filter(p => p.status === 'completed')
-        .map(p => p.induction_id);
+        .filter((progress) => progress.status === 'completed')
+        .map((progress) => progress.induction_id);
       setCompletedInductionIds_AddParts(completedIds);
-      
-      // Load all available inductions across every assigned business unit
-      const contractorBUs = contractor.business_unit_ids || [];
-      let allInductionsData = [];
-      for (const buId of contractorBUs) {
-        const inductionsForBU = await getInductionsByBusinessUnit(buId, [], { skipServiceFilter: true });
-        if (Array.isArray(inductionsForBU)) {
-          allInductionsData = [...allInductionsData, ...inductionsForBU];
-        }
-      }
-      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+
+      const { uniqueInductions } = await loadInductionsForSiteAddParts(
+        contractor,
+        selectedSites,
+        selectedBUs
+      );
       setAllInductions(uniqueInductions);
       setAddPartsFilterBUId(kioskBusinessUnitId || '');
       setAddPartsFilterSiteId(kioskSiteId || '');
       setAddPartsFilterName('');
 
       const selectionState = {};
-      uniqueInductions.forEach(ind => {
+      uniqueInductions.forEach((ind) => {
         if (!completedIds.includes(ind.id)) {
           selectionState[ind.id] = false;
         }
       });
       setNewInductionsToAdd(selectionState);
-      
-      // Move to selection screen
+
       setStep('info-add-parts');
     } catch (err) {
       console.error('Error loading contractor for add-parts:', err);
@@ -304,8 +464,6 @@ export default function ContractorInductionScreen({
       setLoading(false);
     }
   };
-
-  const getKioskLockedSiteIds = () => (kioskSiteId ? [kioskSiteId] : []);
 
   const getSiteIdToBusinessUnitId = (siteList = []) => {
     const mapping = {};
@@ -348,7 +506,9 @@ export default function ContractorInductionScreen({
       handleLoadIncompleteInductions();
     } else if (initialRoute === 'add-parts') {
       setIsNewContractor('add-parts');
-      loadAllContractors();
+      if (!(initialContractorId && kioskSiteId)) {
+        loadAllContractors();
+      }
     }
   }, []);
 
@@ -665,9 +825,13 @@ export default function ContractorInductionScreen({
 
   useEffect(() => {
     if (initialContractorId && initialRoute === 'add-parts' && !addPartsContractorId) {
-      handleAddPartsContractorSelected(initialContractorId);
+      if (isKioskSiteLocked) {
+        startKioskAddPartsFlow(initialContractorId);
+      } else {
+        handleAddPartsContractorSelected(initialContractorId);
+      }
     }
-  }, [initialContractorId, initialRoute, addPartsContractorId]);
+  }, [initialContractorId, initialRoute, addPartsContractorId, isKioskSiteLocked]);
 
   const handleNewContractor = () => {
     setIsNewContractor(true);
@@ -1204,29 +1368,14 @@ export default function ContractorInductionScreen({
   };
 
   const finalizeContractorInductionStatus = async () => {
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
     const inductedSiteIds = isKioskSiteLocked
       ? getKioskLockedSiteIds()
       : Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
 
-    const existingContractor = await getContractor(contractorInfo.id);
-    const existingSiteIds = existingContractor?.site_ids || existingContractor?.siteIds || [];
-    const updatedSiteIds = Array.from(new Set([...existingSiteIds, ...inductedSiteIds]));
-
-    await updateContractor(contractorInfo.id, {
-      site_ids: updatedSiteIds,
-      business_unit_ids: contractorInfo.selectedBusinessUnitIds || [],
-      induction_expiry: expiryDate.toISOString(),
-    });
-
-    const siteIdToBusinessUnitId = getSiteIdToBusinessUnitId([...sites, ...allSites]);
-    await upsertContractorSiteInductions({
+    await finalizeSiteInductionForContractor({
       contractorId: contractorInfo.id,
-      siteIds: inductedSiteIds,
-      siteIdToBusinessUnitId,
-      expiresAt: expiryDate.toISOString(),
+      inductedSiteIds,
+      businessUnitIds: contractorInfo.selectedBusinessUnitIds || [],
     });
 
     setContractorInfo(prev => ({
@@ -1751,12 +1900,13 @@ export default function ContractorInductionScreen({
                 });
                 setSelectedContractorId(addPartsContractor.id);
                 setLoadSavedAnswersOnOpen(false);
-                setIsNewContractor(false);
-                
-                // Set inductions as optional (user can review/deselect if needed)
-                setOptionalInductions(inductionsToAdd);
-                setCompulsoryInductions([]);
-                setSelectedOptionalIds(selectedIds);
+                setIsNewContractor('add-parts');
+
+                const compulsoryToAdd = inductionsToAdd.filter((ind) => ind.is_compulsory);
+                const optionalToAdd = inductionsToAdd.filter((ind) => !ind.is_compulsory);
+                setCompulsoryInductions(compulsoryToAdd);
+                setOptionalInductions(optionalToAdd);
+                setSelectedOptionalIds(optionalToAdd.map((ind) => ind.id));
                 setInductionQueue(inductionsToAdd);
                 setStep('inductionsList');
               }}
