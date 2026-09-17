@@ -542,22 +542,42 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleSelectContractor = async (contractor) => {
-    setSelectedContractor(contractor);
-    setContractorSearch(contractor.name || '');
+    let contractorForStatus = contractor;
+
+    try {
+      const refreshedContractor = await getContractorWithSiteInductions(contractor.id);
+      if (refreshedContractor) {
+        contractorForStatus = refreshedContractor;
+        setContractors((current) => {
+          const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
+          if (existingIndex === -1) {
+            return [...current, refreshedContractor];
+          }
+          const next = [...current];
+          next[existingIndex] = refreshedContractor;
+          return next;
+        });
+      }
+    } catch (refreshError) {
+      console.warn('Could not refresh contractor induction status:', refreshError.message);
+    }
+
+    setSelectedContractor(contractorForStatus);
+    setContractorSearch(contractorForStatus.name || '');
     setFilteredContractors([]); // Clear the list so it collapses
-    setContractorPhone(formatPhoneForDisplay(contractor.phone));
+    setContractorPhone(formatPhoneForDisplay(contractorForStatus.phone));
     setContractorPhoneError('');
     
-    console.log('🔍 Contractor selected:', contractor.name);
-    console.log('   Services:', contractor.services);
-    console.log('   Site IDs:', contractor.site_ids);
-    console.log('   Induction Expiry:', contractor.induction_expiry);
+    console.log('🔍 Contractor selected:', contractorForStatus.name);
+    console.log('   Services:', contractorForStatus.services);
+    console.log('   Site IDs:', contractorForStatus.site_ids);
+    console.log('   Induction Expiry:', contractorForStatus.induction_expiry);
     
     try {
-      const inductionStatus = getSiteInductionStatus(contractor, siteId);
+      const inductionStatus = getSiteInductionStatus(contractorForStatus, siteId);
       const isInductedHere = inductionStatus === 'inducted';
       const isExpired = inductionStatus === 'expired';
-      const siteExpiry = getSiteInductionExpiry(contractor, siteId);
+      const siteExpiry = getSiteInductionExpiry(contractorForStatus, siteId);
 
       if (isInductedHere || isExpired) {
         const expiryDate = siteExpiry
@@ -572,7 +592,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         console.log('✗ Not inducted at this site');
       }
 
-      const otherSites = getOtherInductedSites(contractor, siteId).map((record) => {
+      const otherSites = getOtherInductedSites(contractorForStatus, siteId).map((record) => {
         const site = allSites.find((s) => s.id === record.site_id);
         return {
           site_id: record.site_id,

@@ -1,6 +1,9 @@
 import { supabase } from '../supabaseClient';
 import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
-import { attachSiteInductionsToContractors } from './contractorInductions';
+import {
+  attachSiteInductionsToContractors,
+  syncSiteInductionRecordsFromProgress,
+} from './contractorInductions';
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
@@ -185,6 +188,7 @@ export const getContractorWithSiteInductions = async (contractorId) => {
     return null;
   }
 
+  await syncSiteInductionRecordsFromProgress(contractorId);
   const [withSiteInductions] = await attachSiteInductionsToContractors([contractor]);
   return withSiteInductions;
 };
