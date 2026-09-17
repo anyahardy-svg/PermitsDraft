@@ -88,12 +88,13 @@ export const SIGN_IN_NOTIFICATION_TEMPLATE = {
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Name</td><td style="padding: 6px 0;">{{personName}}</td></tr>
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Company</td><td style="padding: 6px 0;">{{personCompany}}</td></tr>
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Phone</td><td style="padding: 6px 0;">{{personPhone}}</td></tr>
+  <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Induction status</td><td style="padding: 6px 0;">{{inductionStatus}}</td></tr>
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Check-in time</td><td style="padding: 6px 0;">{{checkInTime}}</td></tr>
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Visiting</td><td style="padding: 6px 0;">{{visitingPersonName}}</td></tr>
 </table>
 <p style="color: #6B7280; font-size: 13px;">This notification was sent because you are listed as the contact for this sign-in.</p>`,
   description: 'Sent when a visitor or contractor signs in at a site kiosk',
-  variables: ['recipientName', 'siteName', 'personType', 'personName', 'personCompany', 'personPhone', 'checkInTime', 'visitingPersonName'],
+  variables: ['recipientName', 'siteName', 'personType', 'personName', 'personCompany', 'personPhone', 'inductionStatus', 'checkInTime', 'visitingPersonName'],
   is_active: true,
 };
 

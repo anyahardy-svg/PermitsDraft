@@ -1,11 +1,8 @@
--- Seed the sign-in notification email template if it does not already exist.
+-- Add induction status to the sign-in notification email template.
 
-INSERT INTO email_templates (type, name, subject, html_content, description, variables, is_active)
-SELECT
-  'sign-in-notification',
-  'Site Sign-In Notification',
-  '{{siteName}} - {{personType}} sign-in: {{personName}}',
-  '<h2>Site Sign-In Notification</h2>
+UPDATE email_templates
+SET
+  html_content = '<h2>Site Sign-In Notification</h2>
 <p>Hello {{recipientName}},</p>
 <p>A {{personType}} has signed in at <strong>{{siteName}}</strong>.</p>
 <table style="border-collapse: collapse; margin: 16px 0;">
@@ -17,9 +14,6 @@ SELECT
   <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Visiting</td><td style="padding: 6px 0;">{{visitingPersonName}}</td></tr>
 </table>
 <p style="color: #6B7280; font-size: 13px;">This notification was sent because you are listed as the contact for this sign-in.</p>',
-  'Sent when a visitor or contractor signs in at a site kiosk',
-  '["recipientName", "siteName", "personType", "personName", "personCompany", "personPhone", "inductionStatus", "checkInTime", "visitingPersonName"]'::jsonb,
-  true
-WHERE NOT EXISTS (
-  SELECT 1 FROM email_templates WHERE type = 'sign-in-notification'
-);
+  variables = '["recipientName", "siteName", "personType", "personName", "personCompany", "personPhone", "inductionStatus", "checkInTime", "visitingPersonName"]'::jsonb,
+  updated_at = CURRENT_TIMESTAMP
+WHERE type = 'sign-in-notification';

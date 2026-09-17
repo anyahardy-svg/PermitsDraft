@@ -15,6 +15,7 @@ const FALLBACK_TEMPLATE = {
 <p><strong>Name:</strong> {{personName}}<br/>
 <strong>Company:</strong> {{personCompany}}<br/>
 <strong>Phone:</strong> {{personPhone}}<br/>
+<strong>Induction status:</strong> {{inductionStatus}}<br/>
 <strong>Check-in time:</strong> {{checkInTime}}<br/>
 <strong>Visiting:</strong> {{visitingPersonName}}</p>`,
 };
@@ -29,6 +30,38 @@ function getServiceRoleHeaders() {
 
 function normalizeName(value = '') {
   return String(value).trim().toLowerCase();
+}
+
+function formatPhoneForDisplay(phone) {
+  if (!phone) return 'Not provided';
+  const phoneStr = String(phone).trim();
+  if (!phoneStr) return 'Not provided';
+  if (phoneStr.startsWith('0')) return phoneStr;
+  return `0${phoneStr}`;
+}
+
+function formatInductionStatus(signInRecord) {
+  const isContractor = Boolean(signInRecord?.contractor_id);
+  if (!isContractor) {
+    return 'Not applicable (visitor)';
+  }
+
+  const expiry = signInRecord?.induction_expires_at
+    ? new Date(signInRecord.induction_expires_at).toLocaleDateString('en-NZ', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
+
+  switch (signInRecord?.induction_status) {
+    case 'inducted':
+      return expiry ? `Inducted at this site (expires ${expiry})` : 'Inducted at this site';
+    case 'induction_expired':
+      return expiry ? `Induction expired at this site (expired ${expiry})` : 'Induction expired at this site';
+    default:
+      return 'Not inducted at this site';
+  }
 }
 
 function personAssignedToSite(person, siteId) {
@@ -58,9 +91,10 @@ function buildSignInDetails(signInRecord, siteName) {
     personCompany: isContractor
       ? (signInRecord?.contractor_company || 'Unknown')
       : (signInRecord?.visitor_company || 'Unknown'),
-    personPhone: isContractor
-      ? (signInRecord?.contractor_phone || 'Not provided')
-      : (signInRecord?.phone_number || 'Not provided'),
+    personPhone: formatPhoneForDisplay(
+      isContractor ? signInRecord?.contractor_phone : signInRecord?.phone_number
+    ),
+    inductionStatus: formatInductionStatus(signInRecord),
     checkInTime,
     visitingPersonName: signInRecord?.visiting_person_name || 'Not specified',
   };
@@ -261,6 +295,8 @@ async function notifySignIn(signInId) {
 }
 
 module.exports = {
+  formatPhoneForDisplay,
+  formatInductionStatus,
   buildSignInDetails,
   resolveVisitingPersonRecipient,
   resolveDefaultManagerRecipient,
