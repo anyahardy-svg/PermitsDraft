@@ -444,6 +444,69 @@ const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
   return Array.from(ids);
 };
 
+function escapeIlikePattern(value) {
+  return String(value).replace(/[\\%_]/g, '\\$&');
+}
+
+// Kiosk search: site-assigned contractors and inducted contractors matching name/email.
+export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    const trimmed = searchText?.trim();
+    if (!trimmed || trimmed.length < 2) {
+      return [];
+    }
+
+    const pattern = `%${escapeIlikePattern(trimmed)}%`;
+
+    const { data: siteAssigned, error: siteError } = await supabase
+      .from('contractors')
+      .select('*')
+      .contains('site_ids', [siteId])
+      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+      .order('name', { ascending: true })
+      .limit(limit);
+
+    if (siteError) {
+      throw siteError;
+    }
+
+    const inductedIds = await fetchContractorIdsWithSiteInductionRecord(siteId);
+    const siteAssignedIds = new Set((siteAssigned || []).map((contractor) => contractor.id));
+    const extraIds = inductedIds
+      .filter((contractorId) => !siteAssignedIds.has(contractorId))
+      .slice(0, limit);
+
+    let inductedMatches = [];
+    if (extraIds.length > 0) {
+      const { data, error } = await supabase
+        .from('contractors')
+        .select('*')
+        .in('id', extraIds)
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit);
+
+      if (error) {
+        throw error;
+      }
+
+      inductedMatches = data || [];
+    }
+
+    const merged = mergeUniqueContractors(siteAssigned || [], inductedMatches);
+    const withCompanies = await attachCompanyNames(merged.slice(0, limit));
+    const transformed = withCompanies.map(transformContractor);
+    return attachSiteInductionsToContractors(transformed);
+  } catch (error) {
+    console.error('Error searching contractors for kiosk:', error.message);
+    throw error;
+  }
+};
+
 // Kiosk sign-in: contractors assigned to the site, in the site's business unit,
 // or belonging to a company linked to the site / business unit.
 export const listContractorsForKiosk = async (siteId) => {

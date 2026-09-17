@@ -17,7 +17,11 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { getContractorWithSiteInductions, listContractorsForKiosk, updateContractor } from '../api/contractors';
+import {
+  getContractorWithSiteInductions,
+  searchContractorsForKiosk,
+  updateContractor,
+} from '../api/contractors';
 import {
   getFirstSite,
   getSite,
@@ -158,6 +162,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const resumeAppliedRef = useRef(false);
   const contractorRefreshRequestRef = useRef(0);
   const selectedContractorIdRef = useRef(null);
+  const contractorSearchDebounceRef = useRef(null);
+  const contractorSearchRequestRef = useRef(0);
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -243,22 +249,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     initializeKiosk();
   }, []);
 
-  const loadContractorsForSite = async (targetSiteId = siteId) => {
-    if (!targetSiteId) return [];
-
-    setContractorsLoading(true);
-    try {
-      const contractorsData = await listContractorsForKiosk(targetSiteId);
-      setContractors(contractorsData);
-      return contractorsData;
-    } catch (error) {
-      console.warn('Could not load contractors for kiosk:', error.message);
-      setContractors([]);
-      return [];
-    } finally {
-      setContractorsLoading(false);
+  useEffect(() => () => {
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
     }
-  };
+  }, []);
 
   const loadVisitingPeopleForSite = async (targetSiteId = siteId) => {
     if (!targetSiteId || visitingPeopleLoaded) return;
@@ -298,36 +293,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setVisitorInductionLoading(false);
     }
   };
-
-  // Prefetch contractors and site lookup data after welcome screen is shown.
-  useEffect(() => {
-    if (!siteId) return undefined;
-
-    let cancelled = false;
-
-    const prefetch = async () => {
-      if (businessUnitId) {
-        try {
-          const businessUnitSites = await getSitesByBusinessUnits([businessUnitId]);
-          if (!cancelled && businessUnitSites.length > 0) {
-            setAllSites(businessUnitSites);
-          }
-        } catch (error) {
-          console.warn('Could not load business unit sites for kiosk:', error.message);
-        }
-      }
-
-      if (!cancelled) {
-        await loadContractorsForSite(siteId);
-      }
-    };
-
-    void prefetch();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [siteId, businessUnitId]);
 
   // Load visiting-person lookup data only when a sign-in form needs it.
   useEffect(() => {
@@ -517,23 +482,75 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   }, [permitsLoading, currentScreen, siteId, currentContractor?.companyId]);
 
+  const loadBusinessUnitSitesIfNeeded = async () => {
+    if (!businessUnitId || allSites.length > 1) {
+      return;
+    }
+
+    try {
+      const businessUnitSites = await getSitesByBusinessUnits([businessUnitId]);
+      if (businessUnitSites.length > 0) {
+        setAllSites(businessUnitSites);
+      }
+    } catch (error) {
+      console.warn('Could not load business unit sites for kiosk:', error.message);
+    }
+  };
+
   const handleContractorSearch = (text) => {
     setReturnedFromInduction(false);
     setContractorSearch(text);
-    if (text.trim().length > 0) {
-      const searchLower = text.toLowerCase();
-      const filtered = contractors.filter((c) => {
-        const contractorName = (c.name || '').toLowerCase();
-        const contractorEmail = (c.email || '').toLowerCase();
-        return (
-          contractorName.includes(searchLower)
-          || (contractorEmail && contractorEmail.includes(searchLower))
-        );
-      });
-      setFilteredContractors(filtered);
-    } else {
-      setFilteredContractors([]);
+
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
     }
+
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      contractorSearchRequestRef.current += 1;
+      setFilteredContractors([]);
+      setContractorsLoading(false);
+      return;
+    }
+
+    if (!siteId) {
+      return;
+    }
+
+    const requestId = contractorSearchRequestRef.current + 1;
+    contractorSearchRequestRef.current = requestId;
+    setContractorsLoading(true);
+
+    contractorSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchContractorsForKiosk(siteId, trimmed);
+        if (contractorSearchRequestRef.current !== requestId) {
+          return;
+        }
+        setFilteredContractors(results);
+        setContractors((current) => {
+          const merged = [...current];
+          for (const contractor of results) {
+            const existingIndex = merged.findIndex((entry) => entry.id === contractor.id);
+            if (existingIndex === -1) {
+              merged.push(contractor);
+            } else {
+              merged[existingIndex] = contractor;
+            }
+          }
+          return merged;
+        });
+      } catch (error) {
+        if (contractorSearchRequestRef.current === requestId) {
+          console.warn('Could not search contractors for kiosk:', error.message);
+          setFilteredContractors([]);
+        }
+      } finally {
+        if (contractorSearchRequestRef.current === requestId) {
+          setContractorsLoading(false);
+        }
+      }
+    }, 300);
   };
 
   const getSiteAdminUsers = (searchText = '') => {
@@ -563,15 +580,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const refreshContractorsForCurrentSite = async (selectedContractorId = null) => {
-    if (!siteId) return;
+    if (!siteId || !selectedContractorId) return;
 
     try {
-      const contractorsData = await loadContractorsForSite(siteId);
-      if (selectedContractorId) {
-        const refreshedContractor = contractorsData.find((contractor) => contractor.id === selectedContractorId);
-        if (refreshedContractor) {
-          await handleSelectContractor(refreshedContractor);
-        }
+      const refreshedContractor = await getContractorWithSiteInductions(selectedContractorId);
+      if (refreshedContractor) {
+        await handleSelectContractor(refreshedContractor, { skipBackgroundRefresh: true });
       }
     } catch (error) {
       console.warn('Could not refresh contractor induction status:', error.message);
@@ -680,6 +694,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const applyContractorSelection = (contractorForStatus) => {
     selectedContractorIdRef.current = contractorForStatus?.id || null;
+    void loadBusinessUnitSitesIfNeeded();
     setSelectedContractor(contractorForStatus);
     setContractorSearch(contractorForStatus.name || '');
     setFilteredContractors([]);
@@ -1341,21 +1356,20 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           )}
 
           <Text style={styles.label}>Search for Contractor:</Text>
-          {contractorsLoading && contractors.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Loading contractors...</Text>
-            </View>
-          ) : (
           <TextInput
             style={styles.input}
-            placeholder="Type contractor name or email..."
+            placeholder="Type at least 2 characters of name or email..."
             value={contractorSearch}
             onChangeText={handleContractorSearch}
           />
+          {contractorsLoading && (
+            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#3B82F6" />
+              <Text style={{ marginTop: 8, color: '#6B7280', fontSize: 13 }}>Searching contractors...</Text>
+            </View>
           )}
 
-          {filteredContractors.length > 0 ? (
+          {!contractorsLoading && filteredContractors.length > 0 ? (
             <FlatList
               data={filteredContractors}
               scrollEnabled={false}
@@ -1379,7 +1393,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               )}
             />
           ) : (
-            contractorSearch.trim().length > 0 && (
+            !contractorsLoading && contractorSearch.trim().length >= 2 && (
               <Text style={styles.noResults}>No contractors found</Text>
             )
           )}
