@@ -17,7 +17,7 @@ SELECT
 </table>
 <p style="color: #6B7280; font-size: 13px;">This notification was sent because you are listed as the contact for this sign-in.</p>',
   'Sent when a visitor or contractor signs in at a site kiosk',
-  ARRAY['recipientName', 'siteName', 'personType', 'personName', 'personCompany', 'personPhone', 'checkInTime', 'visitingPersonName'],
+  '["recipientName", "siteName", "personType", "personName", "personCompany", "personPhone", "checkInTime", "visitingPersonName"]'::jsonb,
   true
 WHERE NOT EXISTS (
   SELECT 1 FROM email_templates WHERE type = 'sign-in-notification'
