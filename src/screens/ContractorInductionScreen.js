@@ -283,8 +283,8 @@ export default function ContractorInductionScreen({
       }
       const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
       setAllInductions(uniqueInductions);
-      setAddPartsFilterBUId('');
-      setAddPartsFilterSiteId('');
+      setAddPartsFilterBUId(kioskBusinessUnitId || '');
+      setAddPartsFilterSiteId(kioskSiteId || '');
       setAddPartsFilterName('');
 
       const selectionState = {};
@@ -662,6 +662,12 @@ export default function ContractorInductionScreen({
       handleSelectExistingContractor(initialContractorId);
     }
   }, [initialContractorId, contractors.length, selectedContractorId, initialRoute]);
+
+  useEffect(() => {
+    if (initialContractorId && initialRoute === 'add-parts' && !addPartsContractorId) {
+      handleAddPartsContractorSelected(initialContractorId);
+    }
+  }, [initialContractorId, initialRoute, addPartsContractorId]);
 
   const handleNewContractor = () => {
     setIsNewContractor(true);
@@ -1735,8 +1741,12 @@ export default function ContractorInductionScreen({
                   email: addPartsContractor.email,
                   phone: addPartsContractor.phone || '',
                   companyId: addPartsContractor.company_id,
-                  selectedBusinessUnitIds: addPartsContractor.business_unit_ids || [],
-                  selectedSiteIds: addPartsContractor.site_ids || [],
+                  selectedBusinessUnitIds: kioskBusinessUnitId
+                    ? Array.from(new Set([...(addPartsContractor.business_unit_ids || []), kioskBusinessUnitId]))
+                    : (addPartsContractor.business_unit_ids || []),
+                  selectedSiteIds: isKioskSiteLocked
+                    ? getKioskLockedSiteIds()
+                    : (addPartsContractor.site_ids || []),
                   service_ids: addPartsContractor.service_ids || [],
                 });
                 setSelectedContractorId(addPartsContractor.id);

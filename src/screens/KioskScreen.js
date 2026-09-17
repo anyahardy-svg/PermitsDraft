@@ -1236,25 +1236,39 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                     )}
                   </View>
                 )}
-                {(!contractorInductionExpiry || contractorInductionExpired) && (
+                {(!contractorInductionExpiry || contractorInductionExpired) && (() => {
+                  const shouldAddParts = !contractorInductionExpired && allContractorInductions.length > 0;
+                  const inductionActionLabel = contractorInductionExpired
+                    ? 'Renew Induction'
+                    : shouldAddParts
+                      ? 'Add Parts to Induction'
+                      : 'Complete Induction';
+                  const inductionHelpText = contractorInductionExpired
+                    ? 'This contractor can still check in during rollout, but should renew their expired induction as soon as possible.'
+                    : shouldAddParts
+                      ? 'This contractor is inducted at other sites. Add the missing induction sections required for this site without redoing completed inductions.'
+                      : 'This contractor can still check in during rollout, but should complete their induction as soon as possible.';
+
+                  return (
                   <View style={{ marginTop: 12, backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8 }}>
                     <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, marginBottom: 10 }}>
-                      This contractor can still check in during rollout, but should complete or renew their induction as soon as possible. This will show the required inductions for their company, business unit, and selected site.
+                      {inductionHelpText}
                     </Text>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
+                      style={{ backgroundColor: shouldAddParts ? '#A855F7' : '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
                       onPress={() => {
                         setInductionPrefillContractorId(selectedContractor.id);
                         setInductionReturnScreen('contractor-signin');
-                        setCurrentScreen('inductions-returning');
+                        setCurrentScreen(shouldAddParts ? 'inductions-add-parts' : 'inductions-returning');
                       }}
                     >
                       <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                        {contractorInductionExpired ? 'Renew Induction' : 'Complete Induction'}
+                        {inductionActionLabel}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                )}
+                  );
+                })()}
               </View>
 
               <View style={{ marginTop: 12 }}>
