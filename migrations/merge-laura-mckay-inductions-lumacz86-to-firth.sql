@@ -1,25 +1,124 @@
--- Migration: Merge Laura McKay induction records
--- From: lumacz86@gmail.com (legacy contractor row)
--- To:   laura.mckay@firth.co.nz (current contractor row)
+-- Migration: Merge Laura McKay induction records into her Firth contractor row
+-- Target: laura.mckay@firth.co.nz
 --
--- Safe to re-run preview queries. The APPLY section is wrapped in a transaction.
--- Run PREVIEW first in Supabase SQL Editor, then APPLY when the output looks correct.
+-- Source resolution (first match wins):
+--   1) contractor_id linked to auth.users lumacz86@gmail.com
+--   2) contractors row with email lumacz86@gmail.com
+--   3) another contractors row named Laura McKay (not the target row)
 --
--- What this moves/merges:
---   - contractor_induction_progress (module completions)
---   - contractor_inductions (per-site inducted status)
---   - contractors.site_ids, business_unit_ids, service_ids, induction_expiry, signature, phone
---   - sign_ins linked to the legacy contractor row
+-- The legacy lumacz86 email often does NOT exist on contractors — only on auth.users.
+-- Induction completions live in contractor_induction_progress against the linked contractor_id.
 --
--- What this does NOT do:
---   - Delete the legacy contractors row (left in place for audit; induction data is moved off it)
---   - Change auth.users metadata (see note at bottom if lumacz86@gmail.com auth user still exists)
+-- Run DISCOVER + PREVIEW first, then APPLY, then VERIFY.
 
 -- =============================================================================
--- PREVIEW
+-- DISCOVER — run this first if APPLY fails
 -- =============================================================================
 
-WITH merge_ctx AS (
+SELECT
+  'contractors_named_laura' AS section,
+  c.id,
+  c.name,
+  c.email,
+  c.company_id,
+  c.induction_expiry,
+  (
+    SELECT count(*)
+    FROM contractor_induction_progress cip
+    WHERE cip.contractor_id = c.id
+      AND cip.status = 'completed'
+  ) AS completed_induction_count
+FROM contractors c
+WHERE c.name ILIKE '%laura%mckay%'
+   OR lower(c.email) IN (
+     'lumacz86@gmail.com',
+     'laura.mckay@firth.co.nz',
+     'menamano1022@gmail.com'
+   )
+ORDER BY c.email;
+
+SELECT
+  'auth_users' AS section,
+  u.id AS auth_user_id,
+  u.email AS auth_email,
+  u.raw_user_meta_data->>'contractor_id' AS linked_contractor_id,
+  c.name AS linked_contractor_name,
+  c.email AS linked_contractor_email
+FROM auth.users u
+LEFT JOIN contractors c ON c.id = (u.raw_user_meta_data->>'contractor_id')::uuid
+WHERE lower(u.email) IN (
+  'lumacz86@gmail.com',
+  'laura.mckay@firth.co.nz',
+  'menamano1022@gmail.com'
+)
+ORDER BY u.email;
+
+SELECT
+  'induction_progress_by_laura_rows' AS section,
+  c.email,
+  c.name,
+  i.induction_name,
+  cip.status,
+  cip.completed_at
+FROM contractors c
+JOIN contractor_induction_progress cip ON cip.contractor_id = c.id
+JOIN inductions i ON i.id = cip.induction_id
+WHERE c.name ILIKE '%laura%mckay%'
+   OR lower(c.email) IN (
+     'lumacz86@gmail.com',
+     'laura.mckay@firth.co.nz',
+     'menamano1022@gmail.com'
+   )
+ORDER BY c.email, cip.completed_at DESC NULLS LAST;
+
+-- =============================================================================
+-- PREVIEW — resolved source/target pair
+-- =============================================================================
+
+WITH target_contractor AS (
+  SELECT id, email, name
+  FROM contractors
+  WHERE lower(email) = 'laura.mckay@firth.co.nz'
+  LIMIT 1
+),
+source_from_auth AS (
+  SELECT (u.raw_user_meta_data->>'contractor_id')::uuid AS id
+  FROM auth.users u
+  WHERE lower(u.email) = 'lumacz86@gmail.com'
+    AND u.raw_user_meta_data ? 'contractor_id'
+    AND (u.raw_user_meta_data->>'contractor_id') ~* '^[0-9a-f-]{36}$'
+  LIMIT 1
+),
+source_from_email AS (
+  SELECT id
+  FROM contractors
+  WHERE lower(email) = 'lumacz86@gmail.com'
+  LIMIT 1
+),
+source_from_name AS (
+  SELECT c.id
+  FROM contractors c
+  CROSS JOIN target_contractor t
+  WHERE c.name ILIKE '%laura%mckay%'
+    AND c.id IS DISTINCT FROM t.id
+    AND lower(c.email) IS DISTINCT FROM 'laura.mckay@firth.co.nz'
+  ORDER BY (
+    SELECT count(*)
+    FROM contractor_induction_progress cip
+    WHERE cip.contractor_id = c.id
+      AND cip.status = 'completed'
+  ) DESC,
+  c.created_at ASC NULLS LAST
+  LIMIT 1
+),
+resolved_source AS (
+  SELECT COALESCE(
+    (SELECT id FROM source_from_auth),
+    (SELECT id FROM source_from_email),
+    (SELECT id FROM source_from_name)
+  ) AS id
+),
+merge_ctx AS (
   SELECT
     src.id AS source_id,
     tgt.id AS target_id,
@@ -27,18 +126,55 @@ WITH merge_ctx AS (
     tgt.email AS target_email,
     src.name AS source_name,
     tgt.name AS target_name
-  FROM contractors src
-  JOIN contractors tgt ON lower(tgt.email) = 'laura.mckay@firth.co.nz'
-  WHERE lower(src.email) = 'lumacz86@gmail.com'
+  FROM resolved_source rs
+  JOIN contractors src ON src.id = rs.id
+  JOIN target_contractor tgt ON TRUE
 )
-SELECT 'contractors' AS section, *
+SELECT 'resolved_merge_pair' AS section, *
 FROM merge_ctx;
 
-WITH merge_ctx AS (
-  SELECT src.id AS source_id, tgt.id AS target_id
-  FROM contractors src
-  JOIN contractors tgt ON lower(tgt.email) = 'laura.mckay@firth.co.nz'
-  WHERE lower(src.email) = 'lumacz86@gmail.com'
+WITH target_contractor AS (
+  SELECT id FROM contractors WHERE lower(email) = 'laura.mckay@firth.co.nz' LIMIT 1
+),
+source_from_auth AS (
+  SELECT (u.raw_user_meta_data->>'contractor_id')::uuid AS id
+  FROM auth.users u
+  WHERE lower(u.email) = 'lumacz86@gmail.com'
+    AND u.raw_user_meta_data ? 'contractor_id'
+    AND (u.raw_user_meta_data->>'contractor_id') ~* '^[0-9a-f-]{36}$'
+  LIMIT 1
+),
+source_from_email AS (
+  SELECT id FROM contractors WHERE lower(email) = 'lumacz86@gmail.com' LIMIT 1
+),
+source_from_name AS (
+  SELECT c.id
+  FROM contractors c
+  CROSS JOIN target_contractor t
+  WHERE c.name ILIKE '%laura%mckay%'
+    AND c.id IS DISTINCT FROM t.id
+    AND lower(c.email) IS DISTINCT FROM 'laura.mckay@firth.co.nz'
+  ORDER BY (
+    SELECT count(*)
+    FROM contractor_induction_progress cip
+    WHERE cip.contractor_id = c.id
+      AND cip.status = 'completed'
+  ) DESC,
+  c.created_at ASC NULLS LAST
+  LIMIT 1
+),
+resolved_source AS (
+  SELECT COALESCE(
+    (SELECT id FROM source_from_auth),
+    (SELECT id FROM source_from_email),
+    (SELECT id FROM source_from_name)
+  ) AS id
+),
+merge_ctx AS (
+  SELECT rs.id AS source_id, tgt.id AS target_id
+  FROM resolved_source rs
+  JOIN contractors src ON src.id = rs.id
+  CROSS JOIN target_contractor tgt
 )
 SELECT
   'source_progress' AS section,
@@ -50,11 +186,48 @@ JOIN merge_ctx mc ON cip.contractor_id = mc.source_id
 JOIN inductions i ON i.id = cip.induction_id
 ORDER BY cip.completed_at DESC NULLS LAST;
 
-WITH merge_ctx AS (
-  SELECT src.id AS source_id, tgt.id AS target_id
-  FROM contractors src
-  JOIN contractors tgt ON lower(tgt.email) = 'laura.mckay@firth.co.nz'
-  WHERE lower(src.email) = 'lumacz86@gmail.com'
+WITH target_contractor AS (
+  SELECT id FROM contractors WHERE lower(email) = 'laura.mckay@firth.co.nz' LIMIT 1
+),
+source_from_auth AS (
+  SELECT (u.raw_user_meta_data->>'contractor_id')::uuid AS id
+  FROM auth.users u
+  WHERE lower(u.email) = 'lumacz86@gmail.com'
+    AND u.raw_user_meta_data ? 'contractor_id'
+    AND (u.raw_user_meta_data->>'contractor_id') ~* '^[0-9a-f-]{36}$'
+  LIMIT 1
+),
+source_from_email AS (
+  SELECT id FROM contractors WHERE lower(email) = 'lumacz86@gmail.com' LIMIT 1
+),
+source_from_name AS (
+  SELECT c.id
+  FROM contractors c
+  CROSS JOIN target_contractor t
+  WHERE c.name ILIKE '%laura%mckay%'
+    AND c.id IS DISTINCT FROM t.id
+    AND lower(c.email) IS DISTINCT FROM 'laura.mckay@firth.co.nz'
+  ORDER BY (
+    SELECT count(*)
+    FROM contractor_induction_progress cip
+    WHERE cip.contractor_id = c.id
+      AND cip.status = 'completed'
+  ) DESC,
+  c.created_at ASC NULLS LAST
+  LIMIT 1
+),
+resolved_source AS (
+  SELECT COALESCE(
+    (SELECT id FROM source_from_auth),
+    (SELECT id FROM source_from_email),
+    (SELECT id FROM source_from_name)
+  ) AS id
+),
+merge_ctx AS (
+  SELECT rs.id AS source_id, tgt.id AS target_id
+  FROM resolved_source rs
+  JOIN contractors src ON src.id = rs.id
+  CROSS JOIN target_contractor tgt
 )
 SELECT
   'target_progress_before' AS section,
@@ -65,38 +238,6 @@ FROM contractor_induction_progress cip
 JOIN merge_ctx mc ON cip.contractor_id = mc.target_id
 JOIN inductions i ON i.id = cip.induction_id
 ORDER BY cip.completed_at DESC NULLS LAST;
-
-WITH merge_ctx AS (
-  SELECT src.id AS source_id, tgt.id AS target_id
-  FROM contractors src
-  JOIN contractors tgt ON lower(tgt.email) = 'laura.mckay@firth.co.nz'
-  WHERE lower(src.email) = 'lumacz86@gmail.com'
-)
-SELECT
-  'source_site_inductions' AS section,
-  s.name AS site_name,
-  ci.expires_at,
-  ci.status
-FROM contractor_inductions ci
-JOIN merge_ctx mc ON ci.contractor_id = mc.source_id
-LEFT JOIN sites s ON s.id = ci.site_id
-ORDER BY s.name;
-
-WITH merge_ctx AS (
-  SELECT src.id AS source_id, tgt.id AS target_id
-  FROM contractors src
-  JOIN contractors tgt ON lower(tgt.email) = 'laura.mckay@firth.co.nz'
-  WHERE lower(src.email) = 'lumacz86@gmail.com'
-)
-SELECT
-  'target_site_inductions_before' AS section,
-  s.name AS site_name,
-  ci.expires_at,
-  ci.status
-FROM contractor_inductions ci
-JOIN merge_ctx mc ON ci.contractor_id = mc.target_id
-LEFT JOIN sites s ON s.id = ci.site_id
-ORDER BY s.name;
 
 -- =============================================================================
 -- APPLY
@@ -109,26 +250,52 @@ DECLARE
   v_source_id UUID;
   v_target_id UUID;
 BEGIN
-  SELECT id INTO v_source_id
-  FROM contractors
-  WHERE lower(email) = 'lumacz86@gmail.com'
-  LIMIT 1;
-
   SELECT id INTO v_target_id
   FROM contractors
   WHERE lower(email) = 'laura.mckay@firth.co.nz'
   LIMIT 1;
 
-  IF v_source_id IS NULL THEN
-    RAISE EXCEPTION 'Source contractor not found: lumacz86@gmail.com';
-  END IF;
-
   IF v_target_id IS NULL THEN
     RAISE EXCEPTION 'Target contractor not found: laura.mckay@firth.co.nz';
   END IF;
 
+  SELECT (u.raw_user_meta_data->>'contractor_id')::uuid INTO v_source_id
+  FROM auth.users u
+  WHERE lower(u.email) = 'lumacz86@gmail.com'
+    AND u.raw_user_meta_data ? 'contractor_id'
+    AND (u.raw_user_meta_data->>'contractor_id') ~* '^[0-9a-f-]{36}$'
+  LIMIT 1;
+
+  IF v_source_id IS NULL THEN
+    SELECT id INTO v_source_id
+    FROM contractors
+    WHERE lower(email) = 'lumacz86@gmail.com'
+    LIMIT 1;
+  END IF;
+
+  IF v_source_id IS NULL THEN
+    SELECT c.id INTO v_source_id
+    FROM contractors c
+    WHERE c.name ILIKE '%laura%mckay%'
+      AND c.id IS DISTINCT FROM v_target_id
+      AND lower(c.email) IS DISTINCT FROM 'laura.mckay@firth.co.nz'
+    ORDER BY (
+      SELECT count(*)
+      FROM contractor_induction_progress cip
+      WHERE cip.contractor_id = c.id
+        AND cip.status = 'completed'
+    ) DESC,
+    c.created_at ASC NULLS LAST
+    LIMIT 1;
+  END IF;
+
+  IF v_source_id IS NULL THEN
+    RAISE EXCEPTION
+      'Source contractor not found. Run DISCOVER queries — lumacz86@gmail.com is usually only on auth.users, not contractors.';
+  END IF;
+
   IF v_source_id = v_target_id THEN
-    RAISE EXCEPTION 'Source and target contractor are the same row';
+    RAISE EXCEPTION 'Source and target contractor are the same row (%)', v_source_id;
   END IF;
 
   CREATE TEMP TABLE laura_merge_ctx (
@@ -342,7 +509,7 @@ WHERE sign_in_row.contractor_id = mc.source_id;
 COMMIT;
 
 -- =============================================================================
--- VERIFY (run after APPLY)
+-- VERIFY
 -- =============================================================================
 
 SELECT
@@ -351,7 +518,8 @@ SELECT
   c.induction_expiry,
   c.site_ids
 FROM contractors c
-WHERE lower(c.email) IN ('lumacz86@gmail.com', 'laura.mckay@firth.co.nz')
+WHERE c.name ILIKE '%laura%mckay%'
+   OR lower(c.email) IN ('lumacz86@gmail.com', 'laura.mckay@firth.co.nz')
 ORDER BY c.email;
 
 SELECT
@@ -375,21 +543,3 @@ JOIN contractors c ON c.id = ci.contractor_id
 LEFT JOIN sites s ON s.id = ci.site_id
 WHERE lower(c.email) = 'laura.mckay@firth.co.nz'
 ORDER BY s.name;
-
--- Optional: if lumacz86@gmail.com still has an auth.users row pointing at the old contractor,
--- point it at laura.mckay@firth.co.nz's contractor row after confirming the merge above:
---
--- UPDATE auth.users u
--- SET raw_user_meta_data =
---   COALESCE(u.raw_user_meta_data, '{}'::jsonb)
---   || jsonb_build_object(
---     'name', c.name,
---     'contractor_name', c.name,
---     'contractor_id', c.id::text,
---     'company_id', c.company_id::text,
---     'user_type', 'contractor'
---   )
--- FROM contractors c
--- WHERE lower(u.email) = 'lumacz86@gmail.com'
---   AND lower(c.email) = 'laura.mckay@firth.co.nz'
---   AND c.company_id IS NOT NULL;
