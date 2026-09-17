@@ -97,6 +97,51 @@ export async function loginAdminUser(email, password) {
  * Get all admin users (super_admin only)
  * @returns {Array} List of admin users
  */
+/**
+ * Kiosk visiting-person lookup: admins assigned to one site only.
+ * Avoids downloading password hashes or unrelated admin users.
+ */
+export async function listAdminUsersForKioskSite(siteId) {
+  if (!siteId) {
+    return [];
+  }
+
+  try {
+    let { data, error } = await supabase
+      .from('admin_users')
+      .select('id, email, name, role, site_ids')
+      .contains('site_ids', [siteId])
+      .order('name', { ascending: true });
+
+    if (error && isMissingSiteIdsColumn(error)) {
+      const retry = await supabase
+        .from('admin_users')
+        .select('id, email, name, role')
+        .order('name', { ascending: true });
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) throw error;
+
+    return (data || [])
+      .map((user) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        site_ids: user.site_ids || [],
+        siteIds: user.site_ids || [],
+      }))
+      .sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      );
+  } catch (error) {
+    console.error('❌ Error fetching kiosk admin users:', error);
+    throw error;
+  }
+}
+
 export async function getAllAdminUsers() {
   try {
     let { data, error } = await supabase
