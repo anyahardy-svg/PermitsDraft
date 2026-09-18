@@ -721,6 +721,101 @@ export async function getCompletedInductions(contractorId) {
  * Set which inductions are marked completed for a contractor (admin use).
  * Adds missing completions and removes ones that were unchecked.
  */
+async function saveCompletedInductionProgress(contractorId, inductionId, nowIso) {
+  const { data: existing, error: existingError } = await supabase
+    .from('contractor_induction_progress')
+    .select('id')
+    .eq('contractor_id', contractorId)
+    .eq('induction_id', inductionId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  const payload = {
+    status: 'completed',
+    completed_at: nowIso,
+    updated_at: nowIso,
+    signature_text: 'Admin assigned',
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('contractor_induction_progress')
+      .update(payload)
+      .eq('id', existing.id);
+
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  const { error } = await supabase
+    .from('contractor_induction_progress')
+    .insert({
+      contractor_id: contractorId,
+      induction_id: inductionId,
+      started_at: nowIso,
+      ...payload,
+    });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function getCompletedInductionIdsForContractor(contractorId) {
+  if (!contractorId) {
+    return [];
+  }
+
+  const completedRows = await getCompletedInductions(contractorId);
+  const completedIds = new Set(completedRows.map((row) => row.induction_id).filter(Boolean));
+
+  const { data: siteRecords, error: siteRecordsError } = await supabase
+    .from('contractor_inductions')
+    .select('site_id, status, expires_at')
+    .eq('contractor_id', contractorId);
+
+  if (siteRecordsError) {
+    throw siteRecordsError;
+  }
+
+  const activeSiteIds = (siteRecords || [])
+    .filter((record) => {
+      if (record.status === 'expired') {
+        return false;
+      }
+      if (!record.expires_at) {
+        return true;
+      }
+      return new Date(record.expires_at) >= new Date();
+    })
+    .map((record) => record.site_id)
+    .filter(Boolean);
+
+  if (activeSiteIds.length > 0) {
+    const { data: siteInductions, error: siteInductionsError } = await supabase
+      .from('inductions')
+      .select('id, site_id')
+      .in('site_id', activeSiteIds);
+
+    if (siteInductionsError) {
+      throw siteInductionsError;
+    }
+
+    for (const induction of siteInductions || []) {
+      if (induction?.id) {
+        completedIds.add(induction.id);
+      }
+    }
+  }
+
+  return [...completedIds];
+}
+
 export async function setContractorCompletedInductions(contractorId, inductionIds = []) {
   if (!contractorId) {
     throw new Error('Contractor ID is required');
@@ -732,29 +827,7 @@ export async function setContractorCompletedInductions(contractorId, inductionId
   const nowIso = new Date().toISOString();
 
   for (const inductionId of uniqueTargetIds) {
-    const { data, error } = await supabase
-      .from('contractor_induction_progress')
-      .upsert(
-        {
-          contractor_id: contractorId,
-          induction_id: inductionId,
-          status: 'completed',
-          completed_at: nowIso,
-          updated_at: nowIso,
-          started_at: nowIso,
-          signature_text: 'Admin assigned',
-        },
-        { onConflict: 'contractor_id,induction_id' }
-      )
-      .select('id');
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data?.length) {
-      throw new Error('Failed to save completed induction record');
-    }
+    await saveCompletedInductionProgress(contractorId, inductionId, nowIso);
   }
 
   for (const row of existingRows) {
@@ -883,6 +956,66 @@ export async function getCompletedInductionsByContractor() {
 
       if (!completedByContractor[row.contractor_id].includes(inductionName)) {
         completedByContractor[row.contractor_id].push(inductionName);
+      }
+    }
+
+    const { data: siteRecords, error: siteRecordsError } = await supabase
+      .from('contractor_inductions')
+      .select('contractor_id, site_id, status, expires_at')
+      .eq('status', 'completed');
+
+    if (siteRecordsError) {
+      throw siteRecordsError;
+    }
+
+    const activeSiteRecords = (siteRecords || []).filter((record) => {
+      if (!record?.contractor_id || !record?.site_id) {
+        return false;
+      }
+      if (record.expires_at && new Date(record.expires_at) < new Date()) {
+        return false;
+      }
+      return true;
+    });
+
+    const activeSiteIds = [...new Set(activeSiteRecords.map((record) => record.site_id).filter(Boolean))];
+    if (activeSiteIds.length > 0) {
+      const [{ data: siteInductions, error: siteInductionsError }, { data: sites, error: sitesError }] =
+        await Promise.all([
+          supabase
+            .from('inductions')
+            .select('id, induction_name, site_id')
+            .in('site_id', activeSiteIds),
+          supabase
+            .from('sites')
+            .select('id, name')
+            .in('id', activeSiteIds),
+        ]);
+
+      if (siteInductionsError) {
+        throw siteInductionsError;
+      }
+      if (sitesError) {
+        throw sitesError;
+      }
+
+      const siteIdToInductionName = new Map(
+        (siteInductions || []).map((induction) => [induction.site_id, formatInductionDisplayName(induction)])
+      );
+      const siteIdToName = new Map((sites || []).map((site) => [site.id, site.name]));
+
+      for (const record of activeSiteRecords) {
+        const inductionName =
+          siteIdToInductionName.get(record.site_id) ||
+          (siteIdToName.get(record.site_id) ? `${siteIdToName.get(record.site_id)} Induction` : 'Site Induction');
+
+        if (!completedByContractor[record.contractor_id]) {
+          completedByContractor[record.contractor_id] = [];
+        }
+
+        if (!completedByContractor[record.contractor_id].includes(inductionName)) {
+          completedByContractor[record.contractor_id].push(inductionName);
+        }
       }
     }
 

@@ -39,7 +39,7 @@ import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusine
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import {
   getCompletedInductionsByContractor,
-  getCompletedInductions,
+  getCompletedInductionIdsForContractor,
   getInductionsByBusinessUnit,
   setContractorCompletedInductions,
 } from './src/api/inductions';
@@ -14043,13 +14043,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <View style={styles.section}>
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Contractor Name *</Text>
-              <TextInput style={styles.input} value={currentContractor.name} onChangeText={text => setCurrentContractor({ ...currentContractor, name: text })} placeholder="Enter contractor name" />
+              <TextInput style={styles.input} value={currentContractor.name} onChangeText={text => setCurrentContractor(prev => ({ ...prev, name: text }))} placeholder="Enter contractor name" />
               
               <Text style={styles.label}>Email Address *</Text>
-              <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
+              <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor(prev => ({ ...prev, email: text }))} placeholder="email@contractor.com" keyboardType="email-address" />
               
               <Text style={styles.label}>Phone Number (Optional)</Text>
-              <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor({ ...currentContractor, phone: text })} placeholder="027 123 4567" keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor(prev => ({ ...prev, phone: text }))} placeholder="027 123 4567" keyboardType="phone-pad" />
               
               <Text style={styles.label}>Business Units *</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select one or more business units (tap to toggle):</Text>
@@ -14072,10 +14072,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         } else {
                           updatedBusinessUnitIds = [...currentContractor.businessUnitIds, unit.id];
                         }
-                        setCurrentContractor({ 
-                          ...currentContractor, 
-                          businessUnitIds: updatedBusinessUnitIds
-                        });
+                        setCurrentContractor(prev => ({
+                          ...prev,
+                          businessUnitIds: updatedBusinessUnitIds,
+                        }));
                         
                         // Load services and sites for selected business units
                         if (updatedBusinessUnitIds.length > 0) {
@@ -14250,19 +14250,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                           ]}
                           onPress={() => {
-                            if (isSelected) {
-                              setCurrentContractor({
-                                ...currentContractor,
-                                services: currentContractor.services.filter(
-                                  (id) => id !== service.id
-                                )
-                              });
-                            } else {
-                              setCurrentContractor({
-                                ...currentContractor,
-                                services: [...currentContractor.services, service.id]
-                              });
-                            }
+                            setCurrentContractor((prev) => {
+                              const currentServices = prev.services || [];
+                              return {
+                                ...prev,
+                                services: isSelected
+                                  ? currentServices.filter((id) => id !== service.id)
+                                  : [...currentServices, service.id],
+                              };
+                            });
                           }}
                         >
                           <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{service.name}</Text>
@@ -14298,12 +14294,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                         ]}
                         onPress={() => {
-                          const siteIds = currentContractor.siteIds || [];
-                          if (siteIds.includes(siteName)) {
-                            setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
-                          } else {
-                            setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
-                          }
+                          setCurrentContractor((prev) => {
+                            const siteIds = prev.siteIds || [];
+                            return {
+                              ...prev,
+                              siteIds: siteIds.includes(siteName)
+                                ? siteIds.filter((site) => site !== siteName)
+                                : [...siteIds, siteName],
+                            };
+                          });
                         }}
                       >
                         <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{siteName}</Text>
@@ -14349,11 +14348,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           backgroundColor: isSelected ? '#ECFDF5' : 'white',
                         }}
                         onPress={() => {
-                          const currentIds = currentContractor.completedInductionIds || [];
-                          const nextIds = isSelected
-                            ? currentIds.filter((id) => id !== induction.id)
-                            : [...currentIds, induction.id];
-                          setCurrentContractor({ ...currentContractor, completedInductionIds: nextIds });
+                          setCurrentContractor((prev) => {
+                            const currentIds = prev.completedInductionIds || [];
+                            const nextIds = isSelected
+                              ? currentIds.filter((id) => id !== induction.id)
+                              : [...currentIds, induction.id];
+                            return {
+                              ...prev,
+                              completedInductionIds: nextIds,
+                            };
+                          });
                         }}
                       >
                         <View style={{
@@ -14389,7 +14393,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 value={currentContractor.inductionExpiry}
                 onChangeText={text => {
                   // Allow typing in format: DD/MM/YYYY or DD-MM-YYYY
-                  setCurrentContractor({ ...currentContractor, inductionExpiry: text });
+                  setCurrentContractor(prev => ({ ...prev, inductionExpiry: text }));
                 }}
                 placeholder="DD/MM/YYYY (e.g., 25/12/2025)"
                 placeholderTextColor="#9CA3AF"
@@ -14638,8 +14642,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   const [year, month, day] = contractor.inductionExpiry.split('-');
                                   formattedDate = `${day}/${month}/${year}`;
                                 }
-                                const completedRows = await getCompletedInductions(contractor.id);
-                                const completedInductionIds = completedRows.map((row) => row.induction_id);
+                                const completedInductionIds = await getCompletedInductionIdsForContractor(contractor.id);
                                 const { site_ids: _siteIds, ...contractorWithoutSiteIds } = contractor;
                                 const editedContractor = { 
                                   ...contractorWithoutSiteIds, 
