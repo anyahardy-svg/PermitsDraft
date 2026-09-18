@@ -14374,9 +14374,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {induction.induction_name}
                           </Text>
                           <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
-                            {siteLabel}
-                            {induction.subsection_name ? ` · ${induction.subsection_name}` : ''}
-                            {induction.is_compulsory ? ' · Required' : ''}
+                            {siteLabel}{induction.is_compulsory ? ' · Required' : ''}
                           </Text>
                         </View>
                       </TouchableOpacity>
