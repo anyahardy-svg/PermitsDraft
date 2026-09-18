@@ -858,7 +858,7 @@ export async function getCompletedInductionsByContractor() {
     if (inductionIds.length > 0) {
       const { data: inductions, error: inductionError } = await supabase
         .from('inductions')
-        .select('id, induction_name, subsection_name')
+        .select('id, induction_name')
         .in('id', inductionIds);
 
       if (inductionError) {
