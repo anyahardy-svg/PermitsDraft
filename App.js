@@ -13435,24 +13435,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('📝 Updating contractor:', currentContractor.id);
           await updateContractor(currentContractor.id, contractorPayload);
           savedContractorId = currentContractor.id;
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          setEditingContractor(false);
-          window.alert('Contractor Updated: Contractor has been updated successfully.');
         } else {
           console.log('➕ Creating new contractor');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
           savedContractorId = result?.id;
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          window.alert('Contractor Added: New contractor has been added successfully.');
         }
 
         if (savedContractorId) {
           await setContractorCompletedInductions(savedContractorId, selectedInductionIds);
-          const completedMap = await getCompletedInductionsByContractor();
-          setContractorCompletedInductions(completedMap || {});
+        }
+
+        const freshContractors = await listContractors();
+        setContractors(freshContractors);
+        const completedMap = await getCompletedInductionsByContractor();
+        setContractorCompletedInductions(completedMap || {});
+
+        const assignedCount = selectedInductionIds.length;
+        const assignedSuffix = assignedCount > 0
+          ? ` ${assignedCount} induction(s) marked as completed.`
+          : '';
+
+        if (editingContractor) {
+          setEditingContractor(false);
+          window.alert(`Contractor Updated: Contractor has been updated successfully.${assignedSuffix}`);
+        } else {
+          window.alert(`Contractor Added: New contractor has been added successfully.${assignedSuffix}`);
         }
 
         setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
@@ -14366,7 +14374,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             {induction.induction_name}
                           </Text>
                           <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
-                            {siteLabel}{induction.is_compulsory ? ' · Required' : ''}
+                            {siteLabel}
+                            {induction.subsection_name ? ` · ${induction.subsection_name}` : ''}
+                            {induction.is_compulsory ? ' · Required' : ''}
                           </Text>
                         </View>
                       </TouchableOpacity>
