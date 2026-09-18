@@ -718,51 +718,14 @@ export async function getCompletedInductions(contractorId) {
 }
 
 /**
- * Set which inductions are marked completed for a contractor (admin use).
- * Adds missing completions and removes ones that were unchecked.
+ * Mark an induction completed using the same path as the kiosk wizard:
+ * startInduction (create in_progress if needed) then completeInduction.
  */
-async function saveCompletedInductionProgress(contractorId, inductionId, nowIso) {
-  const { data: existing, error: existingError } = await supabase
-    .from('contractor_induction_progress')
-    .select('id')
-    .eq('contractor_id', contractorId)
-    .eq('induction_id', inductionId)
-    .maybeSingle();
-
-  if (existingError) {
-    throw existingError;
-  }
-
-  const payload = {
-    status: 'completed',
-    completed_at: nowIso,
-    updated_at: nowIso,
-    signature_text: 'Admin assigned',
-  };
-
-  if (existing?.id) {
-    const { error } = await supabase
-      .from('contractor_induction_progress')
-      .update(payload)
-      .eq('id', existing.id);
-
-    if (error) {
-      throw error;
-    }
-    return;
-  }
-
-  const { error } = await supabase
-    .from('contractor_induction_progress')
-    .insert({
-      contractor_id: contractorId,
-      induction_id: inductionId,
-      started_at: nowIso,
-      ...payload,
-    });
-
-  if (error) {
-    throw error;
+async function markInductionCompletedForAdmin(contractorId, inductionId) {
+  await startInduction(contractorId, inductionId);
+  const completed = await completeInduction(contractorId, inductionId, 'Admin assigned');
+  if (!completed) {
+    throw new Error(`Failed to mark induction ${inductionId} as completed for contractor ${contractorId}`);
   }
 }
 
@@ -824,10 +787,9 @@ export async function setContractorCompletedInductions(contractorId, inductionId
   const uniqueTargetIds = [...new Set((inductionIds || []).filter(Boolean))];
   const existingRows = await getCompletedInductions(contractorId);
   const targetIds = new Set(uniqueTargetIds);
-  const nowIso = new Date().toISOString();
 
   for (const inductionId of uniqueTargetIds) {
-    await saveCompletedInductionProgress(contractorId, inductionId, nowIso);
+    await markInductionCompletedForAdmin(contractorId, inductionId);
   }
 
   for (const row of existingRows) {
