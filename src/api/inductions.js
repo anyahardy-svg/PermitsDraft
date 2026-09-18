@@ -6,7 +6,21 @@
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
 import { fetchAllPaginated } from './pagination';
-import { syncSiteInductionRecordsFromProgress } from './contractorInductions';
+import {
+  syncSiteInductionRecordsFromProgress,
+  upsertContractorSiteInduction,
+} from './contractorInductions';
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function formatInductionDisplayName(induction) {
+  if (!induction) return '';
+  const name = (induction.induction_name || '').trim();
+  const subsection = (induction.subsection_name || '').trim();
+  if (!name) return subsection;
+  if (!subsection) return name;
+  return `${name} - ${subsection}`;
+}
 
 // ============================================================================
 // TIMEZONE UTILITY
@@ -714,16 +728,33 @@ export async function setContractorCompletedInductions(contractorId, inductionId
 
   const uniqueTargetIds = [...new Set((inductionIds || []).filter(Boolean))];
   const existingRows = await getCompletedInductions(contractorId);
-  const existingIds = new Set(existingRows.map((row) => row.induction_id));
   const targetIds = new Set(uniqueTargetIds);
+  const nowIso = new Date().toISOString();
 
   for (const inductionId of uniqueTargetIds) {
-    if (existingIds.has(inductionId)) {
-      continue;
+    const { data, error } = await supabase
+      .from('contractor_induction_progress')
+      .upsert(
+        {
+          contractor_id: contractorId,
+          induction_id: inductionId,
+          status: 'completed',
+          completed_at: nowIso,
+          updated_at: nowIso,
+          started_at: nowIso,
+          signature_text: 'Admin assigned',
+        },
+        { onConflict: 'contractor_id,induction_id' }
+      )
+      .select('id');
+
+    if (error) {
+      throw error;
     }
 
-    await startInduction(contractorId, inductionId);
-    await completeInduction(contractorId, inductionId, 'Admin assigned');
+    if (!data?.length) {
+      throw new Error('Failed to save completed induction record');
+    }
   }
 
   for (const row of existingRows) {
@@ -743,7 +774,64 @@ export async function setContractorCompletedInductions(contractorId, inductionId
   }
 
   if (uniqueTargetIds.length > 0) {
+    const { data: inductionDetails, error: inductionError } = await supabase
+      .from('inductions')
+      .select('id, site_id')
+      .in('id', uniqueTargetIds);
+
+    if (inductionError) {
+      throw inductionError;
+    }
+
+    const siteIds = [...new Set((inductionDetails || []).map((row) => row.site_id).filter(Boolean))];
+    if (siteIds.length > 0) {
+      const { data: sites, error: sitesError } = await supabase
+        .from('sites')
+        .select('id, business_unit_id')
+        .in('id', siteIds);
+
+      if (sitesError) {
+        throw sitesError;
+      }
+
+      const expiresAt = new Date(Date.now() + ONE_YEAR_MS).toISOString();
+      for (const site of sites || []) {
+        if (!site?.id || !site?.business_unit_id) {
+          continue;
+        }
+
+        await upsertContractorSiteInduction({
+          contractorId,
+          siteId: site.id,
+          businessUnitId: site.business_unit_id,
+          expiresAt,
+        });
+      }
+    }
+
     await syncSiteInductionRecordsFromProgress(contractorId);
+
+    const { data: contractor, error: contractorError } = await supabase
+      .from('contractors')
+      .select('induction_expiry')
+      .eq('id', contractorId)
+      .maybeSingle();
+
+    if (contractorError) {
+      throw contractorError;
+    }
+
+    if (!contractor?.induction_expiry) {
+      const expiryDate = new Date(Date.now() + ONE_YEAR_MS);
+      const { error: expiryError } = await supabase
+        .from('contractors')
+        .update({ induction_expiry: expiryDate.toISOString().split('T')[0] })
+        .eq('id', contractorId);
+
+      if (expiryError) {
+        throw expiryError;
+      }
+    }
   }
 
   return uniqueTargetIds;
@@ -758,16 +846,36 @@ export async function getCompletedInductionsByContractor() {
     const progressRows = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractor_induction_progress')
-        .select('contractor_id, completed_at, inductions(induction_name)')
+        .select('contractor_id, induction_id, completed_at')
         .eq('status', 'completed')
         .order('completed_at', { ascending: false })
         .range(from, to)
     );
 
+    const inductionIds = [...new Set((progressRows || []).map((row) => row.induction_id).filter(Boolean))];
+    const inductionNameById = new Map();
+
+    if (inductionIds.length > 0) {
+      const { data: inductions, error: inductionError } = await supabase
+        .from('inductions')
+        .select('id, induction_name, subsection_name')
+        .in('id', inductionIds);
+
+      if (inductionError) {
+        throw inductionError;
+      }
+
+      for (const induction of inductions || []) {
+        inductionNameById.set(induction.id, formatInductionDisplayName(induction));
+      }
+    }
+
     const completedByContractor = {};
-    for (const row of progressRows) {
-      const inductionName = row.inductions?.induction_name;
-      if (!row.contractor_id || !inductionName) continue;
+    for (const row of progressRows || []) {
+      const inductionName = inductionNameById.get(row.induction_id);
+      if (!row.contractor_id || !inductionName) {
+        continue;
+      }
 
       if (!completedByContractor[row.contractor_id]) {
         completedByContractor[row.contractor_id] = [];
