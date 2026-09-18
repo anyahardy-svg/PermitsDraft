@@ -38,6 +38,8 @@ import { listServicesForBusinessUnits, listAllServices, createService, updateSer
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import {
+  formatInductionDisplayName,
+  getAllInductions,
   getCompletedInductionsByContractor,
   getCompletedInductionIdsForContractor,
   getInductionsByBusinessUnit,
@@ -13623,8 +13625,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const sitesIdx = findColumnIndex([
               h => (h.includes('site') || h.includes('available')) && !h.includes('website'),
             ]);
+            const completedInductionsIdx = findColumnIndex([
+              h => h === 'completed_inductions',
+              h => h === 'completed_induction',
+              h => h === 'inductions_completed',
+              h => (h.includes('completed') && h.includes('induction')),
+            ]);
             const inductionIdx = findColumnIndex([
-              h => h.includes('induction') || h.includes('expiry') || h === 'date',
+              h => h === 'induction_expiry',
+              h => h === 'induction_exp',
+              h => (h.includes('induction') && h.includes('expiry')),
+              h => h === 'expiry',
+              h => h === 'date',
             ]);
             const businessUnitIdx = findColumnIndex([
               h => h.includes('business_unit'),
@@ -13634,7 +13646,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             console.log('📋 Contractor CSV headers:', headerValues);
             console.log('🔍 Contractor CSV column map:', {
-              nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx, inductionIdx, businessUnitIdx,
+              nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx,
+              completedInductionsIdx, inductionIdx, businessUnitIdx,
             });
 
             setImportMessage('Loading current contractors...');
@@ -13678,6 +13691,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const services = servicesIdx >= 0 ? parseDelimitedList(values[servicesIdx]) : [];
                 const siteNames = sitesIdx >= 0 ? parseDelimitedList(values[sitesIdx]) : [];
                 const businessUnitNames = businessUnitIdx >= 0 ? parseDelimitedList(values[businessUnitIdx]) : [];
+                const completedInductionNames = completedInductionsIdx >= 0
+                  ? parseDelimitedList(values[completedInductionsIdx])
+                  : [];
                 const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
                 
                 // Validate name and company (email is optional)
@@ -13698,6 +13714,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     services,
                     siteNames,
                     businessUnitNames,
+                    completedInductionNames,
                     inductionExpiry,
                   });
                 }
@@ -13732,6 +13749,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const allServicesForImport = servicesForContractors.length > 0
               ? servicesForContractors
               : await listAllServices();
+            const allInductionsForImport = await getAllInductions();
+            const inductionNameLookup = new Map();
+            for (const induction of allInductionsForImport || []) {
+              const displayName = formatInductionDisplayName(induction).toLowerCase();
+              const rawName = (induction.induction_name || '').trim().toLowerCase();
+              if (displayName) {
+                inductionNameLookup.set(displayName, induction.id);
+              }
+              if (rawName) {
+                inductionNameLookup.set(rawName, induction.id);
+              }
+            }
+
+            const resolveCompletedInductionIds = (inductionNames) => {
+              const resolvedIds = [];
+              for (const inductionName of inductionNames) {
+                const trimmedName = inductionName.trim();
+                if (!trimmedName) continue;
+                const matchId = inductionNameLookup.get(trimmedName.toLowerCase());
+                if (matchId) {
+                  resolvedIds.push(matchId);
+                } else {
+                  console.warn(`Induction not found during import: "${inductionName}"`);
+                }
+              }
+              return [...new Set(resolvedIds)];
+            };
 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
               const resolvedIds = [];
@@ -13760,7 +13804,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             };
 
             let unresolvedSiteCount = 0;
+            let unresolvedInductionCount = 0;
             let failedSaveCount = 0;
+            let inductionAssignmentCount = 0;
 
             const resolveSiteIds = (siteNames) => {
               const ids = [];
@@ -13828,6 +13874,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const serviceIds = serviceNames.length > 0
                   ? resolveServiceIds(serviceNames, businessUnitIds)
                   : [];
+                const completedInductionNames = contractor.completedInductionNames || [];
+                const requestedInductionCount = completedInductionNames.length;
+                const completedInductionIds = completedInductionNames.length > 0
+                  ? resolveCompletedInductionIds(completedInductionNames)
+                  : [];
+                if (requestedInductionCount > completedInductionIds.length) {
+                  unresolvedInductionCount += requestedInductionCount - completedInductionIds.length;
+                }
+
+                let savedContractorId = null;
 
                 if (existingContractor) {
                   const existing = existingContractor;
@@ -13853,6 +13909,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Update returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  savedContractorId = saved.id;
                   const existingIndex = importContractorsCache.findIndex((c) => c.id === saved.id);
                   if (existingIndex >= 0) {
                     importContractorsCache[existingIndex] = saved;
@@ -13877,8 +13934,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Create returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  savedContractorId = saved.id;
                   importContractorsCache.push(saved);
                   newCount++;
+                }
+
+                if (savedContractorId && completedInductionIds.length > 0) {
+                  await saveContractorCompletedInductions(savedContractorId, completedInductionIds);
+                  inductionAssignmentCount += completedInductionIds.length;
                 }
               } catch (err) {
                 console.error(`Failed to import ${contractor.name}:`, err);
@@ -13893,6 +13956,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setImportMessage('Refreshing data...');
             const freshContractors = await listContractors();
             setContractors(freshContractors);
+            const completedMap = await getCompletedInductionsByContractor();
+            setContractorCompletedInductions(completedMap || {});
             setContractorSearchText('');
             setContractorCompanyFilter('All');
             setContractorCompanyFilterSearch('');
@@ -13905,6 +13970,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate row(s) in file skipped.`;
             if (failedSaveCount > 0) message += ` ${failedSaveCount} row(s) failed to save.`;
             if (unresolvedSiteCount > 0) message += ` ${unresolvedSiteCount} site name(s) not matched.`;
+            if (unresolvedInductionCount > 0) message += ` ${unresolvedInductionCount} induction name(s) not matched.`;
+            if (inductionAssignmentCount > 0) message += ` ${inductionAssignmentCount} induction completion(s) assigned.`;
             if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
