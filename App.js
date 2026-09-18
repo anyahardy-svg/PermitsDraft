@@ -41,7 +41,7 @@ import {
   getCompletedInductionsByContractor,
   getCompletedInductionIdsForContractor,
   getInductionsByBusinessUnit,
-  setContractorCompletedInductions,
+  setContractorCompletedInductions as saveContractorCompletedInductions,
 } from './src/api/inductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
@@ -13443,7 +13443,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
 
         if (savedContractorId) {
-          await setContractorCompletedInductions(savedContractorId, selectedInductionIds);
+          await saveContractorCompletedInductions(savedContractorId, selectedInductionIds);
         }
 
         const freshContractors = await listContractors();
