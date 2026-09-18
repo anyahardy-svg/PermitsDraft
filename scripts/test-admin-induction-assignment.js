@@ -1,4 +1,6 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 
 // Mirror formatInductionDisplayName without ESM import issues.
 function formatInductionDisplayName(induction) {
@@ -17,6 +19,17 @@ assert.strictEqual(
 assert.strictEqual(
   formatInductionDisplayName({ induction_name: 'Site Induction', subsection_name: 'Roys Hill' }),
   'Site Induction - Roys Hill'
+);
+
+const appSource = fs.readFileSync(path.join(__dirname, '..', 'App.js'), 'utf8');
+assert.match(
+  appSource,
+  /setContractorCompletedInductions as saveContractorCompletedInductions/
+);
+assert.match(appSource, /await saveContractorCompletedInductions\(/);
+assert.doesNotMatch(
+  appSource,
+  /await setContractorCompletedInductions\(/
 );
 
 console.log('admin induction assignment tests passed');
