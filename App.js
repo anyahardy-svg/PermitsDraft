@@ -9772,7 +9772,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const siteIdsIdx = headerValues.findIndex(h => h.includes('site'));
           const servicesIdx = headerValues.findIndex(h => h.includes('service'));
           const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
-          const inductionExpiryIdx = headerValues.findIndex(h => h.includes('induction'));
+          const inductionExpiryIdx = headerValues.findIndex(
+            (h) =>
+              h === 'induction_expiry'
+              || h === 'induction_exp'
+              || (h.includes('induction') && h.includes('expiry'))
+              || h === 'expiry'
+          );
 
           let newCount = 0;
           let updatedCount = 0;
@@ -13694,7 +13700,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const completedInductionNames = completedInductionsIdx >= 0
                   ? parseDelimitedList(values[completedInductionsIdx])
                   : [];
-                const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
+                let inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
+                if (inductionExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(inductionExpiry)) {
+                  console.warn(
+                    `Skipping invalid induction_expiry during import for ${name}: "${values[inductionIdx]}"`
+                  );
+                  inductionExpiry = null;
+                }
                 
                 // Validate name and company (email is optional)
                 if (isValidName(name) && company) {

@@ -32,4 +32,39 @@ assert.doesNotMatch(
   /await setContractorCompletedInductions\(/
 );
 
+function findColumnIndex(headers, matchers) {
+  for (const matcher of matchers) {
+    const idx = headers.findIndex(matcher);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+const userExportHeaders = [
+  'name',
+  'company',
+  'services',
+  'completed_inductions',
+  'induction_expiry',
+  'business_units',
+];
+
+const completedInductionsIdx = findColumnIndex(userExportHeaders, [
+  (h) => h === 'completed_inductions',
+  (h) => h === 'completed_induction',
+  (h) => h === 'inductions_completed',
+  (h) => h.includes('completed') && h.includes('induction'),
+]);
+const inductionIdx = findColumnIndex(userExportHeaders, [
+  (h) => h === 'induction_expiry',
+  (h) => h === 'induction_exp',
+  (h) => h.includes('induction') && h.includes('expiry'),
+  (h) => h === 'expiry',
+  (h) => h === 'date',
+]);
+
+assert.strictEqual(completedInductionsIdx, 3);
+assert.strictEqual(inductionIdx, 4);
+assert.notStrictEqual(completedInductionsIdx, inductionIdx);
+
 console.log('admin induction assignment tests passed');
