@@ -22,6 +22,79 @@ export function formatInductionDisplayName(induction) {
   return `${name} - ${subsection}`;
 }
 
+export function normalizeInductionLookupKey(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+export function buildInductionNameLookup(inductions = []) {
+  const lookup = new Map();
+
+  const addKey = (key, inductionId) => {
+    const normalized = normalizeInductionLookupKey(key);
+    if (normalized && inductionId) {
+      lookup.set(normalized, inductionId);
+    }
+  };
+
+  for (const induction of inductions) {
+    if (!induction?.id) {
+      continue;
+    }
+    addKey(formatInductionDisplayName(induction), induction.id);
+    addKey(induction.induction_name, induction.id);
+  }
+
+  return lookup;
+}
+
+export function resolveInductionIdFromImportName(name, lookup) {
+  const normalized = normalizeInductionLookupKey(name);
+  if (!normalized || !lookup) {
+    return null;
+  }
+
+  if (lookup.has(normalized)) {
+    return lookup.get(normalized);
+  }
+
+  if (normalized.endsWith('s') && lookup.has(normalized.slice(0, -1))) {
+    return lookup.get(normalized.slice(0, -1));
+  }
+
+  if (lookup.has(`${normalized}s`)) {
+    return lookup.get(`${normalized}s`);
+  }
+
+  const colonIdx = normalized.lastIndexOf(':');
+  if (colonIdx >= 0) {
+    const suffix = normalizeInductionLookupKey(normalized.slice(colonIdx + 1));
+    if (suffix) {
+      const suffixMatch = resolveInductionIdFromImportName(suffix, lookup);
+      if (suffixMatch) {
+        return suffixMatch;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function resolveInductionIdsFromImportNames(names = [], lookup) {
+  const resolvedIds = [];
+
+  for (const name of names) {
+    const matchId = resolveInductionIdFromImportName(name, lookup);
+    if (matchId) {
+      resolvedIds.push(matchId);
+    }
+  }
+
+  return [...new Set(resolvedIds)];
+}
+
 // ============================================================================
 // TIMEZONE UTILITY
 // ============================================================================

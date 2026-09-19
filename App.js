@@ -38,11 +38,13 @@ import { listServicesForBusinessUnits, listAllServices, createService, updateSer
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
 import {
-  formatInductionDisplayName,
+  buildInductionNameLookup,
   getAllInductions,
   getCompletedInductionsByContractor,
   getCompletedInductionIdsForContractor,
   getInductionsByBusinessUnit,
+  resolveInductionIdFromImportName,
+  resolveInductionIdsFromImportNames,
   setContractorCompletedInductions as saveContractorCompletedInductions,
 } from './src/api/inductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
@@ -13762,31 +13764,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               ? servicesForContractors
               : await listAllServices();
             const allInductionsForImport = await getAllInductions();
-            const inductionNameLookup = new Map();
-            for (const induction of allInductionsForImport || []) {
-              const displayName = formatInductionDisplayName(induction).toLowerCase();
-              const rawName = (induction.induction_name || '').trim().toLowerCase();
-              if (displayName) {
-                inductionNameLookup.set(displayName, induction.id);
-              }
-              if (rawName) {
-                inductionNameLookup.set(rawName, induction.id);
-              }
-            }
+            const inductionNameLookup = buildInductionNameLookup(allInductionsForImport);
 
             const resolveCompletedInductionIds = (inductionNames) => {
-              const resolvedIds = [];
+              const resolvedIds = resolveInductionIdsFromImportNames(inductionNames, inductionNameLookup);
               for (const inductionName of inductionNames) {
                 const trimmedName = inductionName.trim();
                 if (!trimmedName) continue;
-                const matchId = inductionNameLookup.get(trimmedName.toLowerCase());
-                if (matchId) {
-                  resolvedIds.push(matchId);
-                } else {
+                if (!resolveInductionIdFromImportName(trimmedName, inductionNameLookup)) {
                   console.warn(`Induction not found during import: "${inductionName}"`);
                 }
               }
-              return [...new Set(resolvedIds)];
+              return resolvedIds;
             };
 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
