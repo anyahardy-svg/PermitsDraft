@@ -13808,6 +13808,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let unresolvedInductionCount = 0;
             let failedSaveCount = 0;
             let inductionAssignmentCount = 0;
+            let inductionSaveFailCount = 0;
 
             const resolveSiteIds = (siteNames) => {
               const ids = [];
@@ -13941,8 +13942,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
 
                 if (savedContractorId && completedInductionIds.length > 0) {
-                  await saveContractorCompletedInductions(savedContractorId, completedInductionIds);
-                  inductionAssignmentCount += completedInductionIds.length;
+                  const inductionMode =
+                    requestedInductionCount === completedInductionIds.length ? 'replace' : 'add';
+                  try {
+                    await saveContractorCompletedInductions(savedContractorId, completedInductionIds, {
+                      mode: inductionMode,
+                    });
+                    inductionAssignmentCount += completedInductionIds.length;
+                  } catch (inductionError) {
+                    inductionSaveFailCount++;
+                    console.error(
+                      `Failed to assign inductions for ${contractor.name}:`,
+                      inductionError
+                    );
+                  }
                 }
               } catch (err) {
                 console.error(`Failed to import ${contractor.name}:`, err);
@@ -13973,6 +13986,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (unresolvedSiteCount > 0) message += ` ${unresolvedSiteCount} site name(s) not matched.`;
             if (unresolvedInductionCount > 0) message += ` ${unresolvedInductionCount} induction name(s) not matched.`;
             if (inductionAssignmentCount > 0) message += ` ${inductionAssignmentCount} induction completion(s) assigned.`;
+            if (inductionSaveFailCount > 0) message += ` ${inductionSaveFailCount} contractor(s) had induction save errors.`;
             if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
