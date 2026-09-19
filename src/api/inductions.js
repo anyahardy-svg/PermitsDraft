@@ -5,7 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
-import { fetchAllPaginated } from './pagination';
+import { fetchAllBatchedByIds, fetchAllPaginated } from './pagination';
 import {
   syncSiteInductionRecordsFromProgress,
   upsertContractorSiteInduction,
@@ -790,16 +790,75 @@ export async function getCompletedInductions(contractorId) {
   }
 }
 
-/**
- * Mark an induction completed using the same path as the kiosk wizard:
- * startInduction (create in_progress if needed) then completeInduction.
- */
-async function markInductionCompletedForAdmin(contractorId, inductionId) {
-  await startInduction(contractorId, inductionId);
-  const completed = await completeInduction(contractorId, inductionId, 'Admin assigned');
-  if (!completed) {
-    throw new Error(`Failed to mark induction ${inductionId} as completed for contractor ${contractorId}`);
+async function upsertCompletedInductionProgress(contractorId, inductionId, signatureText = 'Admin assigned') {
+  const nowIso = new Date().toISOString();
+  const { data: existing, error: existingError } = await supabase
+    .from('contractor_induction_progress')
+    .select('id')
+    .eq('contractor_id', contractorId)
+    .eq('induction_id', inductionId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
   }
+
+  const payload = {
+    status: 'completed',
+    completed_at: nowIso,
+    updated_at: nowIso,
+    signature_text: signatureText,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('contractor_induction_progress')
+      .update(payload)
+      .eq('id', existing.id);
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  const { error } = await supabase.from('contractor_induction_progress').insert({
+    contractor_id: contractorId,
+    induction_id: inductionId,
+    started_at: nowIso,
+    ...payload,
+  });
+  if (error) {
+    throw error;
+  }
+}
+
+async function markInductionCompletedForAdmin(contractorId, inductionId) {
+  await upsertCompletedInductionProgress(contractorId, inductionId, 'Admin assigned');
+}
+
+async function postContractorCompletedInductionsApi(contractorId, inductionIds, mode = 'replace') {
+  const response = await fetch('/api/contractor-completed-inductions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contractorId, inductionIds, mode }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to save contractor induction completions');
+  }
+
+  return response.json();
+}
+
+async function fetchCompletedInductionsByContractorApi() {
+  const response = await fetch('/api/contractor-completed-inductions');
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to load contractor induction completions');
+  }
+  const payload = await response.json();
+  return payload.completedByContractor || {};
 }
 
 export async function getCompletedInductionIdsForContractor(contractorId) {
@@ -852,9 +911,20 @@ export async function getCompletedInductionIdsForContractor(contractorId) {
   return [...completedIds];
 }
 
-export async function setContractorCompletedInductions(contractorId, inductionIds = []) {
+export async function setContractorCompletedInductions(
+  contractorId,
+  inductionIds = [],
+  { mode = 'replace' } = {}
+) {
   if (!contractorId) {
     throw new Error('Contractor ID is required');
+  }
+
+  try {
+    await postContractorCompletedInductionsApi(contractorId, inductionIds, mode);
+    return [...new Set((inductionIds || []).filter(Boolean))];
+  } catch (apiError) {
+    console.warn('Admin induction API unavailable, falling back to client save:', apiError.message);
   }
 
   const uniqueTargetIds = [...new Set((inductionIds || []).filter(Boolean))];
@@ -865,19 +935,21 @@ export async function setContractorCompletedInductions(contractorId, inductionId
     await markInductionCompletedForAdmin(contractorId, inductionId);
   }
 
-  for (const row of existingRows) {
-    if (targetIds.has(row.induction_id)) {
-      continue;
-    }
+  if (mode === 'replace') {
+    for (const row of existingRows) {
+      if (targetIds.has(row.induction_id)) {
+        continue;
+      }
 
-    const { error } = await supabase
-      .from('contractor_induction_progress')
-      .delete()
-      .eq('contractor_id', contractorId)
-      .eq('induction_id', row.induction_id);
+      const { error } = await supabase
+        .from('contractor_induction_progress')
+        .delete()
+        .eq('contractor_id', contractorId)
+        .eq('induction_id', row.induction_id);
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
+      }
     }
   }
 
@@ -951,6 +1023,12 @@ export async function setContractorCompletedInductions(contractorId, inductionId
  */
 export async function getCompletedInductionsByContractor() {
   try {
+    try {
+      return await fetchCompletedInductionsByContractorApi();
+    } catch (apiError) {
+      console.warn('Admin induction API unavailable, falling back to client load:', apiError.message);
+    }
+
     const progressRows = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractor_induction_progress')
@@ -964,14 +1042,9 @@ export async function getCompletedInductionsByContractor() {
     const inductionNameById = new Map();
 
     if (inductionIds.length > 0) {
-      const { data: inductions, error: inductionError } = await supabase
-        .from('inductions')
-        .select('id, induction_name')
-        .in('id', inductionIds);
-
-      if (inductionError) {
-        throw inductionError;
-      }
+      const inductions = await fetchAllBatchedByIds(inductionIds, (batch) =>
+        supabase.from('inductions').select('id, induction_name, subsection_name').in('id', batch)
+      );
 
       for (const induction of inductions || []) {
         inductionNameById.set(induction.id, formatInductionDisplayName(induction));
