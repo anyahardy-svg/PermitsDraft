@@ -24740,6 +24740,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           loggedInAdmin={loggedInAdmin}
           sites={sites}
           onLogout={handleAdminLogout}
+          onNavigateBack={() => {
+            if (loggedInAdmin?.role === 'super_admin') {
+              setCurrentScreen('admin');
+              if (typeof window !== 'undefined') {
+                window.history.pushState({}, '', '/admin/');
+              }
+              return;
+            }
+            if (typeof window !== 'undefined') {
+              window.location.href = '/';
+              return;
+            }
+            setCurrentScreen('kiosk');
+          }}
           onOpenAdminPanel={() => {
             setCurrentScreen('admin');
             if (typeof window !== 'undefined') {
