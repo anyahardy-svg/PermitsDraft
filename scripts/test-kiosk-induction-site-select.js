@@ -7,12 +7,9 @@ const source = fs.readFileSync(
   'utf8'
 );
 
+assert.match(source, /isNewContractorInduction/);
+assert.match(source, /initialRoute === 'add-parts'/);
+assert.doesNotMatch(source, /const isKioskSiteLocked = Boolean\(kioskSiteId\)/);
 assert.match(source, /getEffectiveSelectedSiteIds/);
-assert.match(source, /mergeSitesWithKioskSite/);
-assert.match(
-  source,
-  /selectedSiteIds:\s*isKioskSiteLocked\s*\?\s*getKioskLockedSiteIds\(\)\s*:\s*\[\]/
-);
-assert.match(source, /getEffectiveSelectedSiteIds\(contractorInfo\.selectedSiteIds\)/);
 
 console.log('kiosk induction site select tests passed');

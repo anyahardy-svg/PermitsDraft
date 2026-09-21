@@ -103,7 +103,6 @@ export default function ContractorInductionScreen({
   kioskSiteId = null,
   kioskBusinessUnitId = null,
 }) {
-  const isKioskSiteLocked = Boolean(kioskSiteId);
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
   const [contractorsLoading, setContractorsLoading] = useState(false);
@@ -123,6 +122,15 @@ export default function ContractorInductionScreen({
   };
   
   const [isNewContractor, setIsNewContractor] = useState(getInitialIsNewContractor()); // null = choosing, true = new, false = existing, 'resume' = resuming saved
+
+  // Only lock site for "add parts at this kiosk" — new/returning contractors choose site(s).
+  const isNewContractorInduction =
+    standalone || isNewContractor === true || initialRoute === 'new';
+  const isKioskSiteLocked =
+    Boolean(kioskSiteId) &&
+    !isNewContractorInduction &&
+    (initialRoute === 'add-parts' || isNewContractor === 'add-parts');
+
   const [contractors, setContractors] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState('');
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
@@ -504,7 +512,7 @@ export default function ContractorInductionScreen({
   }, []);
 
   useEffect(() => {
-    if (!kioskSiteId) {
+    if (!isKioskSiteLocked) {
       return;
     }
 
@@ -515,7 +523,7 @@ export default function ContractorInductionScreen({
         ? Array.from(new Set([...(prev.selectedBusinessUnitIds || []), kioskBusinessUnitId]))
         : prev.selectedBusinessUnitIds,
     }));
-  }, [kioskSiteId, kioskBusinessUnitId]);
+  }, [kioskSiteId, kioskBusinessUnitId, isKioskSiteLocked]);
 
   // Handle deep-link routes on mount
   useEffect(() => {
@@ -2353,7 +2361,7 @@ export default function ContractorInductionScreen({
               </Text>
               {isKioskSiteLocked && (
                 <Text style={{ fontSize: 12, color: '#4B5563', marginBottom: 8, lineHeight: 18 }}>
-                  This kiosk induction applies to the site below. It is selected automatically — you can still choose multiple business units above.
+                  This step adds induction modules for the current kiosk site only.
                 </Text>
               )}
               <View style={{ gap: 8, paddingBottom: validationErrors.sites ? 4 : 0 }}>
