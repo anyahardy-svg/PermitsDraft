@@ -260,6 +260,34 @@ export default function ContractorInductionScreen({
   
   const getKioskLockedSiteIds = () => (kioskSiteId ? [kioskSiteId] : []);
 
+  const getEffectiveSelectedSiteIds = (selectedSiteIds = []) => {
+    if (isKioskSiteLocked) {
+      return getKioskLockedSiteIds();
+    }
+    return selectedSiteIds || [];
+  };
+
+  const mergeSitesWithKioskSite = (siteList = []) => {
+    if (!kioskSiteId) {
+      return siteList;
+    }
+
+    const normalized = Array.isArray(siteList) ? siteList : [];
+    if (normalized.some((site) => site.id === kioskSiteId)) {
+      return normalized;
+    }
+
+    const kioskSite =
+      allSites.find((site) => site.id === kioskSiteId) ||
+      sites.find((site) => site.id === kioskSiteId) || {
+        id: kioskSiteId,
+        name: 'This site',
+        business_unit_id: kioskBusinessUnitId || null,
+      };
+
+    return [...normalized, kioskSite].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  };
+
   const getApplicableBusinessUnitIds = (contractor) => {
     const contractorBUs = contractor?.business_unit_ids || [];
     if (kioskBusinessUnitId) {
@@ -549,17 +577,23 @@ export default function ContractorInductionScreen({
       if (selectedBUs.length > 0) {
         try {
           const sitesData = await getSitesByBusinessUnits(selectedBUs);
-          setSites(Array.isArray(sitesData) ? sitesData : []);
+          setSites(mergeSitesWithKioskSite(sitesData));
+          if (isKioskSiteLocked) {
+            setContractorInfo((prev) => ({
+              ...prev,
+              selectedSiteIds: getKioskLockedSiteIds(),
+            }));
+          }
         } catch (err) {
           console.error('Failed to load sites:', err);
         }
       } else {
-        setSites([]);
+        setSites(isKioskSiteLocked ? mergeSitesWithKioskSite([]) : []);
       }
     };
     
     loadSitesForBUs();
-  }, [contractorInfo.selectedBusinessUnitIds]);
+  }, [contractorInfo.selectedBusinessUnitIds, isKioskSiteLocked, kioskSiteId, allSites]);
 
   const loadCompaniesAndBU = async () => {
     try {
@@ -966,18 +1000,23 @@ export default function ContractorInductionScreen({
       ? currentBUs.filter(id => id !== buId)
       : [...currentBUs, buId];
 
-    setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [], service_ids: [] });
+    setContractorInfo({
+      ...contractorInfo,
+      selectedBusinessUnitIds: newSelectedBUs,
+      selectedSiteIds: isKioskSiteLocked ? getKioskLockedSiteIds() : [],
+      service_ids: [],
+    });
     
     // Load sites for all selected business units
     if (newSelectedBUs.length > 0) {
       try {
         const sitesData = await getSitesByBusinessUnits(newSelectedBUs);
-        setSites(Array.isArray(sitesData) ? sitesData : []);
+        setSites(mergeSitesWithKioskSite(sitesData));
       } catch (err) {
         console.error('Failed to load sites:', err);
       }
     } else {
-      setSites([]);
+      setSites(isKioskSiteLocked ? mergeSitesWithKioskSite([]) : []);
     }
   };
 
@@ -1136,7 +1175,7 @@ export default function ContractorInductionScreen({
       newValidationErrors.businessUnits = '⚠️ Please select at least one business unit';
     }
 
-    const selectedSites = contractorInfo.selectedSiteIds || [];
+    const selectedSites = getEffectiveSelectedSiteIds(contractorInfo.selectedSiteIds);
     if (sites.length > 0 && selectedSites.length === 0) {
       newValidationErrors.sites = '⚠️ Please select the site or sites this induction applies to';
     }
@@ -2312,12 +2351,17 @@ export default function ContractorInductionScreen({
               <Text style={[styles.label, { marginTop: 16 }]}>
                 {isKioskSiteLocked ? 'Site' : 'Sites (select one or more)'}
               </Text>
+              {isKioskSiteLocked && (
+                <Text style={{ fontSize: 12, color: '#4B5563', marginBottom: 8, lineHeight: 18 }}>
+                  This kiosk induction applies to the site below. It is selected automatically — you can still choose multiple business units above.
+                </Text>
+              )}
               <View style={{ gap: 8, paddingBottom: validationErrors.sites ? 4 : 0 }}>
                 {(isKioskSiteLocked
                   ? sites.filter((site) => site.id === kioskSiteId)
                   : sites
                 ).map(site => {
-                  const isSelected = (contractorInfo.selectedSiteIds || []).includes(site.id);
+                  const isSelected = getEffectiveSelectedSiteIds(contractorInfo.selectedSiteIds).includes(site.id);
                   return (
                     <TouchableOpacity
                       key={site.id}
