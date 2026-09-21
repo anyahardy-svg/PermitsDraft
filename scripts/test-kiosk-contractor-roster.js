@@ -11,13 +11,14 @@ const kioskScreenSource = fs.readFileSync(
   'utf8'
 );
 
-assert.match(contractorsSource, /export const listContractorsForKiosk/);
-const listForKioskStart = contractorsSource.indexOf('export const listContractorsForKiosk');
-const listForKioskEnd = contractorsSource.indexOf('};', listForKioskStart);
-const listForKioskBlock = contractorsSource.slice(listForKioskStart, listForKioskEnd);
-assert.match(listForKioskBlock, /fetchContractorIdsWithSiteInductionRecord\(siteId\)/);
-assert.match(kioskScreenSource, /listContractorsForKiosk/);
+assert.match(contractorsSource, /export const listContractorsBySite/);
+const listBySiteStart = contractorsSource.indexOf('export const listContractorsBySite');
+const listBySiteEnd = contractorsSource.indexOf('};', listBySiteStart);
+const listBySiteBlock = contractorsSource.slice(listBySiteStart, listBySiteEnd);
+assert.match(listBySiteBlock, /fetchContractorIdsWithSiteInductionRecord\(siteId\)/);
+assert.match(kioskScreenSource, /listContractorsBySite/);
 assert.match(kioskScreenSource, /loadContractorsForSite/);
-assert.doesNotMatch(kioskScreenSource, /searchContractorsForKiosk/);
+assert.match(kioskScreenSource, /searchContractorsForKiosk/);
+assert.doesNotMatch(kioskScreenSource, /listContractorsForKiosk/);
 
 console.log('kiosk contractor roster tests passed');
