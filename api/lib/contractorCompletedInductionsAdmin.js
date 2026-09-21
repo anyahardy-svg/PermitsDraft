@@ -2,6 +2,7 @@ const { getSupabaseAdmin } = require('../supabaseAdmin');
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 1000;
+const IN_QUERY_BATCH_SIZE = 200;
 
 function formatInductionDisplayName(induction) {
   if (!induction) return '';
@@ -133,6 +134,26 @@ async function syncSiteRecordsForInductions(admin, contractorId, inductionIds) {
       await admin.from('contractor_inductions').insert(payload);
     }
   }
+
+  const { data: contractor, error: contractorError } = await admin
+    .from('contractors')
+    .select('site_ids')
+    .eq('id', contractorId)
+    .maybeSingle();
+
+  if (contractorError) {
+    throw contractorError;
+  }
+
+  const mergedSiteIds = [...new Set([...(contractor?.site_ids || []), ...siteIds])];
+  const { error: siteIdsError } = await admin
+    .from('contractors')
+    .update({ site_ids: mergedSiteIds })
+    .eq('id', contractorId);
+
+  if (siteIdsError) {
+    throw siteIdsError;
+  }
 }
 
 async function ensureContractorExpiry(admin, contractorId) {
@@ -226,17 +247,20 @@ async function getCompletedInductionsByContractorAdmin() {
   const inductionNameById = new Map();
 
   if (inductionIds.length > 0) {
-    const { data: inductions, error: inductionError } = await admin
-      .from('inductions')
-      .select('id, induction_name')
-      .in('id', inductionIds);
+    for (let i = 0; i < inductionIds.length; i += IN_QUERY_BATCH_SIZE) {
+      const batch = inductionIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+      const { data: inductions, error: inductionError } = await admin
+        .from('inductions')
+        .select('id, induction_name')
+        .in('id', batch);
 
-    if (inductionError) {
-      throw inductionError;
-    }
+      if (inductionError) {
+        throw inductionError;
+      }
 
-    for (const induction of inductions || []) {
-      inductionNameById.set(induction.id, formatInductionDisplayName(induction));
+      for (const induction of inductions || []) {
+        inductionNameById.set(induction.id, formatInductionDisplayName(induction));
+      }
     }
   }
 

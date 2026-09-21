@@ -19,7 +19,7 @@ import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import {
   getContractorWithSiteInductions,
-  searchContractorsForKiosk,
+  listContractorsForKiosk,
   updateContractor,
 } from '../api/contractors';
 import {
@@ -162,8 +162,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const resumeAppliedRef = useRef(false);
   const contractorRefreshRequestRef = useRef(0);
   const selectedContractorIdRef = useRef(null);
-  const contractorSearchDebounceRef = useRef(null);
-  const contractorSearchRequestRef = useRef(0);
+  const contractorsLoadedSiteIdRef = useRef(null);
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -249,11 +248,25 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     initializeKiosk();
   }, []);
 
-  useEffect(() => () => {
-    if (contractorSearchDebounceRef.current) {
-      clearTimeout(contractorSearchDebounceRef.current);
+  const loadContractorsForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId) {
+      return [];
     }
-  }, []);
+
+    setContractorsLoading(true);
+    try {
+      const contractorsData = await listContractorsForKiosk(targetSiteId);
+      setContractors(contractorsData);
+      contractorsLoadedSiteIdRef.current = targetSiteId;
+      return contractorsData;
+    } catch (error) {
+      console.warn('Could not load contractors for kiosk:', error.message);
+      setContractors([]);
+      return [];
+    } finally {
+      setContractorsLoading(false);
+    }
+  };
 
   const loadVisitingPeopleForSite = async (targetSiteId = siteId) => {
     if (!targetSiteId || visitingPeopleLoaded) return;
@@ -302,6 +315,19 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
     void loadVisitingPeopleForSite(siteId);
   }, [currentScreen, siteId, visitingPeopleLoaded]);
+
+  // Load the full contractor roster when sign-in opens (search filters client-side).
+  useEffect(() => {
+    if (currentScreen !== 'contractor-signin' || !siteId) {
+      return;
+    }
+
+    if (contractorsLoadedSiteIdRef.current === siteId) {
+      return;
+    }
+
+    void loadContractorsForSite(siteId);
+  }, [currentScreen, siteId]);
 
   // Load visitor induction content only when the visitor flow is opened.
   useEffect(() => {
@@ -501,56 +527,24 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setReturnedFromInduction(false);
     setContractorSearch(text);
 
-    if (contractorSearchDebounceRef.current) {
-      clearTimeout(contractorSearchDebounceRef.current);
-    }
-
     const trimmed = text.trim();
-    if (trimmed.length < 2) {
-      contractorSearchRequestRef.current += 1;
+    if (!trimmed) {
       setFilteredContractors([]);
-      setContractorsLoading(false);
       return;
     }
 
-    if (!siteId) {
-      return;
-    }
-
-    const requestId = contractorSearchRequestRef.current + 1;
-    contractorSearchRequestRef.current = requestId;
-    setContractorsLoading(true);
-
-    contractorSearchDebounceRef.current = setTimeout(async () => {
-      try {
-        const results = await searchContractorsForKiosk(siteId, trimmed);
-        if (contractorSearchRequestRef.current !== requestId) {
-          return;
-        }
-        setFilteredContractors(results);
-        setContractors((current) => {
-          const merged = [...current];
-          for (const contractor of results) {
-            const existingIndex = merged.findIndex((entry) => entry.id === contractor.id);
-            if (existingIndex === -1) {
-              merged.push(contractor);
-            } else {
-              merged[existingIndex] = contractor;
-            }
-          }
-          return merged;
-        });
-      } catch (error) {
-        if (contractorSearchRequestRef.current === requestId) {
-          console.warn('Could not search contractors for kiosk:', error.message);
-          setFilteredContractors([]);
-        }
-      } finally {
-        if (contractorSearchRequestRef.current === requestId) {
-          setContractorsLoading(false);
-        }
-      }
-    }, 300);
+    const searchLower = trimmed.toLowerCase();
+    const filtered = contractors.filter((contractor) => {
+      const contractorName = (contractor.name || '').toLowerCase();
+      const contractorEmail = (contractor.email || '').toLowerCase();
+      const companyName = (contractor.companyName || contractor.company_name || contractor.company || '').toLowerCase();
+      return (
+        contractorName.includes(searchLower)
+        || contractorEmail.includes(searchLower)
+        || companyName.includes(searchLower)
+      );
+    });
+    setFilteredContractors(filtered);
   };
 
   const getSiteAdminUsers = (searchText = '') => {
@@ -1358,14 +1352,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={styles.label}>Search for Contractor:</Text>
           <TextInput
             style={styles.input}
-            placeholder="Type at least 2 characters of name or email..."
+            placeholder="Search by name, email, or company..."
             value={contractorSearch}
             onChangeText={handleContractorSearch}
           />
-          {contractorsLoading && (
+          {contractorsLoading && contractors.length === 0 && (
             <View style={{ alignItems: 'center', paddingVertical: 12 }}>
               <ActivityIndicator size="small" color="#3B82F6" />
-              <Text style={{ marginTop: 8, color: '#6B7280', fontSize: 13 }}>Searching contractors...</Text>
+              <Text style={{ marginTop: 8, color: '#6B7280', fontSize: 13 }}>Loading contractors...</Text>
             </View>
           )}
 
@@ -1393,7 +1387,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               )}
             />
           ) : (
-            !contractorsLoading && contractorSearch.trim().length >= 2 && (
+            !contractorsLoading && contractorSearch.trim().length > 0 && (
               <Text style={styles.noResults}>No contractors found</Text>
             )
           )}
