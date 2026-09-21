@@ -15,11 +15,7 @@ const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 export function formatInductionDisplayName(induction) {
   if (!induction) return '';
-  const name = (induction.induction_name || '').trim();
-  const subsection = (induction.subsection_name || '').trim();
-  if (!name) return subsection;
-  if (!subsection) return name;
-  return `${name} - ${subsection}`;
+  return (induction.induction_name || '').trim();
 }
 
 export function normalizeInductionLookupKey(name) {
@@ -322,7 +318,7 @@ export async function getCompulsoryInductions(businessUnitId) {
 
 /**
  * Create a new induction
- * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, force_compulsory_with_service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
+ * @param {Object} inductionData - { induction_name, description, business_unit_ids, site_id, service_id, force_compulsory_with_service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
  * @returns {Object} Created induction
  */
 export async function createInduction(inductionData) {
@@ -1043,7 +1039,7 @@ export async function getCompletedInductionsByContractor() {
 
     if (inductionIds.length > 0) {
       const inductions = await fetchAllBatchedByIds(inductionIds, (batch) =>
-        supabase.from('inductions').select('id, induction_name, subsection_name').in('id', batch)
+        supabase.from('inductions').select('id, induction_name').in('id', batch)
       );
 
       for (const induction of inductions || []) {

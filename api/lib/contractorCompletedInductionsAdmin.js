@@ -5,11 +5,7 @@ const PAGE_SIZE = 1000;
 
 function formatInductionDisplayName(induction) {
   if (!induction) return '';
-  const name = (induction.induction_name || '').trim();
-  const subsection = (induction.subsection_name || '').trim();
-  if (!name) return subsection;
-  if (!subsection) return name;
-  return `${name} - ${subsection}`;
+  return (induction.induction_name || '').trim();
 }
 
 async function fetchAllPaginated(admin, table, select, filters = {}) {
@@ -232,7 +228,7 @@ async function getCompletedInductionsByContractorAdmin() {
   if (inductionIds.length > 0) {
     const { data: inductions, error: inductionError } = await admin
       .from('inductions')
-      .select('id, induction_name, subsection_name')
+      .select('id, induction_name')
       .in('id', inductionIds);
 
     if (inductionError) {
@@ -280,7 +276,7 @@ async function getCompletedInductionsByContractorAdmin() {
   const activeSiteIds = [...new Set(activeSiteRecords.map((record) => record.site_id).filter(Boolean))];
   if (activeSiteIds.length > 0) {
     const [{ data: siteInductions }, { data: sites }] = await Promise.all([
-      admin.from('inductions').select('id, induction_name, subsection_name, site_id').in('site_id', activeSiteIds),
+      admin.from('inductions').select('id, induction_name, site_id').in('site_id', activeSiteIds),
       admin.from('sites').select('id, name').in('id', activeSiteIds),
     ]);
 
