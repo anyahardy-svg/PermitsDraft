@@ -476,25 +476,24 @@ export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) 
 
     const inductedIds = await fetchContractorIdsWithSiteInductionRecord(siteId);
     const siteAssignedIds = new Set((siteAssigned || []).map((contractor) => contractor.id));
-    const extraIds = inductedIds
-      .filter((contractorId) => !siteAssignedIds.has(contractorId))
-      .slice(0, limit);
+    const inductedOnlyIds = inductedIds.filter((contractorId) => !siteAssignedIds.has(contractorId));
 
-    let inductedMatches = [];
-    if (extraIds.length > 0) {
+    const inductedMatches = [];
+    for (let i = 0; i < inductedOnlyIds.length && inductedMatches.length < limit; i += IN_QUERY_BATCH_SIZE) {
+      const batch = inductedOnlyIds.slice(i, i + IN_QUERY_BATCH_SIZE);
       const { data, error } = await supabase
         .from('contractors')
         .select('*')
-        .in('id', extraIds)
+        .in('id', batch)
         .or(`name.ilike.${pattern},email.ilike.${pattern}`)
         .order('name', { ascending: true })
-        .limit(limit);
+        .limit(limit - inductedMatches.length);
 
       if (error) {
         throw error;
       }
 
-      inductedMatches = data || [];
+      inductedMatches.push(...(data || []));
     }
 
     const merged = mergeUniqueContractors(siteAssigned || [], inductedMatches);
@@ -549,8 +548,18 @@ export const listContractorsForKiosk = async (siteId) => {
       fetchCompanyIdsForKioskSite(siteId, businessUnitId),
     ]);
 
-    const byCompany = await fetchContractorsByCompanyIds(companyIds);
-    const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany);
+    const [byCompany, inductedContractorIds] = await Promise.all([
+      fetchContractorsByCompanyIds(companyIds),
+      fetchContractorIdsWithSiteInductionRecord(siteId),
+    ]);
+
+    const assignedIds = new Set(
+      mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany).map((row) => row.id)
+    );
+    const inductedOnlyIds = inductedContractorIds.filter((contractorId) => !assignedIds.has(contractorId));
+    const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
+
+    const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany, bySiteInductionRecord);
     const withCompanies = await attachCompanyNames(merged);
     const transformed = withCompanies.map(transformContractor);
     return attachSiteInductionsToContractors(transformed);

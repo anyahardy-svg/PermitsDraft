@@ -727,20 +727,40 @@ export async function saveInductionProgress(contractorId, inductionId, answers =
  */
 export async function completeInduction(contractorId, inductionId, signatureText = '') {
   try {
-    // Update progress record status
+    const nowIso = new Date().toISOString();
+    const completionPayload = {
+      status: 'completed',
+      signature_text: signatureText || '',
+      completed_at: nowIso,
+      updated_at: nowIso,
+    };
+
     const { data: progressData, error: progressError } = await supabase
       .from('contractor_induction_progress')
-      .update({
-        status: 'completed',
-        signature_text: signatureText || '',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(completionPayload)
       .eq('contractor_id', contractorId)
       .eq('induction_id', inductionId)
       .select();
 
     if (progressError) throw progressError;
+
+    let completedRecord = progressData?.[0] || null;
+    if (!completedRecord) {
+      const { data: insertData, error: insertError } = await supabase
+        .from('contractor_induction_progress')
+        .insert([{
+          contractor_id: contractorId,
+          induction_id: inductionId,
+          started_at: nowIso,
+          ...completionPayload,
+        }])
+        .select();
+
+      if (insertError) {
+        throw insertError;
+      }
+      completedRecord = insertData?.[0] || null;
+    }
 
     try {
       const { data: induction, error: inductionError } = await supabase
@@ -757,7 +777,7 @@ export async function completeInduction(contractorId, inductionId, signatureText
     }
 
     console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId });
-    return progressData ? progressData[0] : null;
+    return completedRecord;
   } catch (error) {
     console.error(`[${getNZTimestamp()}] ❌ Error completing induction:`, error);
     throw error;
@@ -773,7 +793,7 @@ export async function getCompletedInductions(contractorId) {
   try {
     const { data, error } = await supabase
       .from('contractor_induction_progress')
-      .select('induction_id, completed_at, inductions(service_id)')
+      .select('induction_id, completed_at')
       .eq('contractor_id', contractorId)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false });
