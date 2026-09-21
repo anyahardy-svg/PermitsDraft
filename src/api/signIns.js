@@ -19,9 +19,51 @@ import { notifySignIn } from './signInNotifications';
  * @param {UUID} businessUnitId - Business Unit UUID
  * @returns {Object} Sign-in record
  */
-export async function checkInContractor(contractorId, siteId, businessUnitId, flagData = null, rtData = null, visitingPersonName = null) {
+async function checkInContractorViaApi(payload) {
+  const response = await fetch('/api/kiosk-check-in', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || 'Check-in failed');
+  }
+  return body;
+}
+
+export async function checkInContractor(
+  contractorId,
+  siteId,
+  businessUnitId,
+  flagData = null,
+  rtData = null,
+  visitingPersonName = null,
+  contractorPhone = null
+) {
   try {
     console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
+
+    let resolvedBusinessUnitId = businessUnitId;
+    if (!resolvedBusinessUnitId && siteId) {
+      const { data: siteRow, error: siteError } = await supabase
+        .from('sites')
+        .select('business_unit_id')
+        .eq('id', siteId)
+        .maybeSingle();
+      if (siteError) {
+        console.warn('Could not resolve site business unit:', siteError.message);
+      } else {
+        resolvedBusinessUnitId = siteRow?.business_unit_id || null;
+      }
+    }
+
+    if (!resolvedBusinessUnitId) {
+      return {
+        success: false,
+        error: 'Site business unit is not configured. Please contact your administrator.',
+      };
+    }
     
     // Get contractor details
     const { data: contractor, error: contractorError } = await supabase
@@ -88,7 +130,7 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
       contractor_name: contractor?.name || 'Unknown',
       contractor_phone: contractor?.phone || null,
       site_id: siteId,
-      business_unit_id: businessUnitId,
+      business_unit_id: resolvedBusinessUnitId,
       contractor_company: companyName,
       check_in_time: new Date().toISOString(),
       inducted: isInductedHere,
@@ -116,6 +158,34 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
 
     if (error) {
       console.error('❌ Sign-in insert error:', error);
+      try {
+        const apiResult = await checkInContractorViaApi({
+          contractorId,
+          siteId,
+          businessUnitId: resolvedBusinessUnitId,
+          flagData,
+          rtData,
+          visitingPersonName,
+          contractorPhone,
+        });
+        if (apiResult?.success) {
+          const expiryDate = apiResult.expiryDate || null;
+          return {
+            success: true,
+            data: apiResult.data,
+            inducted: apiResult.inducted,
+            isExpired: apiResult.isExpired,
+            expiryDate,
+            message: apiResult.isExpired
+              ? '⚠️ INDUCTION EXPIRED - renewal required before work'
+              : apiResult.inducted
+                ? 'Checked in successfully'
+                : '⚠️ NOT INDUCTED - induction required before work',
+          };
+        }
+      } catch (apiError) {
+        console.warn('Kiosk check-in API fallback failed:', apiError.message);
+      }
       throw error;
     }
 

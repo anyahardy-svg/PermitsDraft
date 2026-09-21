@@ -19,7 +19,8 @@ import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import {
   getContractorWithSiteInductions,
-  listContractorsForKiosk,
+  listContractorsBySite,
+  searchContractorsForKiosk,
   updateContractor,
 } from '../api/contractors';
 import {
@@ -163,6 +164,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const contractorRefreshRequestRef = useRef(0);
   const selectedContractorIdRef = useRef(null);
   const contractorsLoadedSiteIdRef = useRef(null);
+  const contractorSearchDebounceRef = useRef(null);
+  const contractorSearchRequestRef = useRef(0);
+  const [contractorsLoadError, setContractorsLoadError] = useState('');
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -254,14 +258,17 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
 
     setContractorsLoading(true);
+    setContractorsLoadError('');
     try {
-      const contractorsData = await listContractorsForKiosk(targetSiteId);
+      const contractorsData = await listContractorsBySite(targetSiteId);
       setContractors(contractorsData);
       contractorsLoadedSiteIdRef.current = targetSiteId;
       return contractorsData;
     } catch (error) {
       console.warn('Could not load contractors for kiosk:', error.message);
       setContractors([]);
+      setContractorsLoadError(error?.message || 'Could not load contractors for this site');
+      contractorsLoadedSiteIdRef.current = null;
       return [];
     } finally {
       setContractorsLoading(false);
@@ -328,6 +335,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
     void loadContractorsForSite(siteId);
   }, [currentScreen, siteId]);
+
+  useEffect(() => () => {
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
+    }
+  }, []);
 
   // Load visitor induction content only when the visitor flow is opened.
   useEffect(() => {
@@ -527,8 +540,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setReturnedFromInduction(false);
     setContractorSearch(text);
 
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
+    }
+
     const trimmed = text.trim();
     if (!trimmed) {
+      contractorSearchRequestRef.current += 1;
       setFilteredContractors([]);
       return;
     }
@@ -545,6 +563,39 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       );
     });
     setFilteredContractors(filtered);
+
+    if (filtered.length > 0 || trimmed.length < 2 || !siteId) {
+      return;
+    }
+
+    const requestId = contractorSearchRequestRef.current + 1;
+    contractorSearchRequestRef.current = requestId;
+
+    contractorSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchContractorsForKiosk(siteId, trimmed);
+        if (contractorSearchRequestRef.current !== requestId) {
+          return;
+        }
+        setFilteredContractors(results);
+        setContractors((current) => {
+          const merged = [...current];
+          for (const contractor of results) {
+            const existingIndex = merged.findIndex((entry) => entry.id === contractor.id);
+            if (existingIndex === -1) {
+              merged.push(contractor);
+            } else {
+              merged[existingIndex] = contractor;
+            }
+          }
+          return merged;
+        });
+      } catch (error) {
+        if (contractorSearchRequestRef.current === requestId) {
+          console.warn('Could not run extended contractor search:', error.message);
+        }
+      }
+    }, 300);
   };
 
   const getSiteAdminUsers = (searchText = '') => {
@@ -803,10 +854,22 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
         const phoneToSave = normalizePhoneForSave(contractorPhone);
         console.log('📱 Updating contractor phone before check-in:', contractor.id);
-        await updateContractor(contractor.id, { phone: phoneToSave });
+        try {
+          await updateContractor(contractor.id, { phone: phoneToSave });
+        } catch (phoneUpdateError) {
+          console.warn('Could not update contractor phone before check-in:', phoneUpdateError.message);
+        }
       }
 
-      const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData, contractorVisitingPerson || null);
+      const result = await checkInContractor(
+        contractor.id,
+        siteId,
+        businessUnitId,
+        flagData,
+        rtData,
+        contractorVisitingPerson || null,
+        normalizePhoneForSave(contractorPhone)
+      );
       
       console.log('📊 Check-in result:', result);
       
@@ -1350,6 +1413,21 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           )}
 
           <Text style={styles.label}>Search for Contractor:</Text>
+          {contractorsLoadError ? (
+            <View style={{ marginBottom: 12, padding: 12, backgroundColor: '#FEF2F2', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+              <Text style={{ color: '#991B1B', fontSize: 13, lineHeight: 18, marginBottom: 8 }}>
+                {contractorsLoadError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  contractorsLoadedSiteIdRef.current = null;
+                  void loadContractorsForSite(siteId);
+                }}
+              >
+                <Text style={{ color: '#2563EB', fontWeight: '600', fontSize: 13 }}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <TextInput
             style={styles.input}
             placeholder="Search by name, email, or company..."
