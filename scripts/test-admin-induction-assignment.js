@@ -17,6 +17,17 @@ assert.strictEqual(
   'Site Induction'
 );
 
+const adminLibSource = fs.readFileSync(
+  path.join(__dirname, '..', 'api', 'lib', 'contractorCompletedInductionsAdmin.js'),
+  'utf8'
+);
+const inductionsApiSource = fs.readFileSync(
+  path.join(__dirname, '..', 'src', 'api', 'inductions.js'),
+  'utf8'
+);
+assert.doesNotMatch(adminLibSource, /subsection_name/);
+assert.doesNotMatch(inductionsApiSource, /subsection_name/);
+
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'App.js'), 'utf8');
 assert.match(
   appSource,
