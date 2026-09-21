@@ -6,6 +6,7 @@
  */
 
 const { getSupabaseAdmin } = require('./supabaseAdmin');
+const { notifySignIn } = require('./lib/signInNotificationEmail');
 
 function getExpiryStatus(expiryRaw) {
   if (!expiryRaw) return 'not_inducted';
@@ -145,6 +146,12 @@ module.exports = async function handler(req, res) {
     const { data, error } = await admin.from('sign_ins').insert(signInData).select().single();
     if (error) {
       throw error;
+    }
+
+    if (data?.id) {
+      notifySignIn(data.id).catch((notificationError) => {
+        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+      });
     }
 
     const expiryDate = siteExpiry ? new Date(siteExpiry).toLocaleDateString('en-NZ') : null;
