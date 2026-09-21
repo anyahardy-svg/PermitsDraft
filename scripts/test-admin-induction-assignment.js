@@ -5,20 +5,16 @@ const path = require('path');
 // Mirror formatInductionDisplayName without ESM import issues.
 function formatInductionDisplayName(induction) {
   if (!induction) return '';
-  const name = (induction.induction_name || '').trim();
-  const subsection = (induction.subsection_name || '').trim();
-  if (!name) return subsection;
-  if (!subsection) return name;
-  return `${name} - ${subsection}`;
+  return (induction.induction_name || '').trim();
 }
 
 assert.strictEqual(
-  formatInductionDisplayName({ induction_name: 'Roys Hill Induction', subsection_name: '' }),
+  formatInductionDisplayName({ induction_name: 'Roys Hill Induction' }),
   'Roys Hill Induction'
 );
 assert.strictEqual(
-  formatInductionDisplayName({ induction_name: 'Site Induction', subsection_name: 'Roys Hill' }),
-  'Site Induction - Roys Hill'
+  formatInductionDisplayName({ induction_name: 'Site Induction' }),
+  'Site Induction'
 );
 
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'App.js'), 'utf8');
