@@ -13,7 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_KEY;
 
 const COMPANY_SELECT =
-  'id,name,contact_name,contact_surname,contact_email,accreditation_status,assigned_manager_id,assigned_hs_person_id,accredited_date,contractor_type';
+  'id,name,contact_name,contact_surname,contact_email,accreditation_status,assigned_manager_id,assigned_hs_person_id,accredited_date,contractor_type,site_ids';
 
 const DEFAULT_ACCREDITATION_APPROVER_EMAIL = (
   process.env.DEFAULT_ACCREDITATION_APPROVER_EMAIL || 'anya.hardy@winstoneaggregates.co.nz'

@@ -3771,7 +3771,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setSelectedCompanyForAccreditation(company);
             setCompanyAccreditationData(accredData);
             setSelectedCompanyAccreditationId(company.id);
+            setDisplayedAccreditationStatus(
+              resolveAccreditationDisplayStatus({
+                ...company,
+                ...accredData,
+                accreditation_status: accredData?.accreditation_status ?? company.accreditation_status,
+              })
+            );
             setShowAccreditationModal(true);
+
+            if (typeof window !== 'undefined') {
+              const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
+              if (approvalStage === 'manager' || approvalStage === 'hs') {
+                const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
+                Alert.alert(
+                  'Accreditation approval',
+                  `This company is awaiting your ${stageLabel} approval. Review the submission and use Approve (${stageLabel}) at the bottom of this screen.`
+                );
+              }
+            }
           } catch (error) {
             console.error('Error loading accreditation:', error);
           }
