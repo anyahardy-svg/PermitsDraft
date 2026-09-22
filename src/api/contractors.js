@@ -4,6 +4,7 @@ import {
   attachSiteInductionsToContractors,
   syncSiteInductionRecordsFromProgress,
 } from './contractorInductions';
+import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
@@ -448,7 +449,22 @@ function escapeIlikePattern(value) {
   return String(value).replace(/[\\%_]/g, '\\$&');
 }
 
-// Kiosk search: site-assigned contractors and inducted contractors matching name/email.
+function contractorMatchesKioskSignInSearch(contractor, siteId) {
+  const siteIds = contractor.site_ids || contractor.siteIds || [];
+  const onSite = Array.isArray(siteIds) && siteIds.includes(siteId);
+  if (onSite) {
+    return true;
+  }
+
+  const statusHere = getSiteInductionStatus(contractor, siteId);
+  if (statusHere === 'inducted' || statusHere === 'expired') {
+    return true;
+  }
+
+  return isInductedAnywhere(contractor);
+}
+
+// Kiosk search: site roster matches plus anyone inducted anywhere (other sites).
 export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) => {
   try {
     if (!siteId) {
@@ -462,16 +478,30 @@ export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) 
 
     const pattern = `%${escapeIlikePattern(trimmed)}%`;
 
-    const { data: siteAssigned, error: siteError } = await supabase
-      .from('contractors')
-      .select('*')
-      .contains('site_ids', [siteId])
-      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
-      .order('name', { ascending: true })
-      .limit(limit);
+    const [
+      { data: siteAssigned, error: siteError },
+      { data: globalNameMatches, error: globalError },
+    ] = await Promise.all([
+      supabase
+        .from('contractors')
+        .select('*')
+        .contains('site_ids', [siteId])
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit),
+      supabase
+        .from('contractors')
+        .select('*')
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit * 2),
+    ]);
 
     if (siteError) {
       throw siteError;
+    }
+    if (globalError) {
+      throw globalError;
     }
 
     const inductedIds = await fetchContractorIdsWithSiteInductionRecord(siteId);
@@ -496,10 +526,18 @@ export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) 
       inductedMatches.push(...(data || []));
     }
 
-    const merged = mergeUniqueContractors(siteAssigned || [], inductedMatches);
-    const withCompanies = await attachCompanyNames(merged.slice(0, limit));
+    const merged = mergeUniqueContractors(
+      siteAssigned || [],
+      inductedMatches,
+      globalNameMatches || []
+    );
+    const withCompanies = await attachCompanyNames(merged);
     const transformed = withCompanies.map(transformContractor);
-    return attachSiteInductionsToContractors(transformed);
+    const withInductions = await attachSiteInductionsToContractors(transformed);
+
+    return withInductions
+      .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
+      .slice(0, limit);
   } catch (error) {
     console.error('Error searching contractors for kiosk:', error.message);
     throw error;
