@@ -63,6 +63,7 @@ import {
   contractorSignInPath,
   shouldShowContractorAuthGuard,
 } from './src/utils/contractorRouteAuth';
+import { contractorPassesAdminFilters } from './src/utils/contractorDatabaseFilters';
 import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
@@ -3445,6 +3446,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorCompanyFilterSearch, setContractorCompanyFilterSearch] = useState('');
   const [showContractorCompanyFilterDropdown, setShowContractorCompanyFilterDropdown] = useState(false);
   const [contractorBusinessUnitFilter, setContractorBusinessUnitFilter] = useState('All');
+  const [contractorSiteFilter, setContractorSiteFilter] = useState('All');
   const [companySearchText, setCompanySearchText] = useState('');
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
   const [companiesTablePage, setCompaniesTablePage] = useState(1);
@@ -14023,6 +14025,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setContractorCompanyFilter('All');
             setContractorCompanyFilterSearch('');
             setContractorBusinessUnitFilter('All');
+            setContractorSiteFilter('All');
             
             let message = '✓ Import complete.';
             if (newCount > 0) message += ` ${newCount} new contractor(s) created.`;
@@ -14058,20 +14061,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       contractorCompletedInductions[contractorId] || []
     );
 
-    const getFilteredContractors = () => contractors.filter(contractor => {
-      const contractorEmail = contractor.email || '';
-      const matchesSearch = contractorSearchText === '' ||
-        contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-        contractorEmail.toLowerCase().includes(contractorSearchText.toLowerCase());
+    const getSiteBusinessUnitId = (site) => site.business_unit_id || site.businessUnitId;
+    const contractorFilterSites = (sites || [])
+      .filter((site) => contractorBusinessUnitFilter === 'All'
+        || getSiteBusinessUnitId(site) === contractorBusinessUnitFilter)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-      const matchesCompanyFilter = contractorCompanyFilter === 'All' ||
-        (contractor.companyName || contractor.company) === contractorCompanyFilter;
+    const resetContractorSiteFilterIfNeeded = (nextBusinessUnitFilter) => {
+      if (contractorSiteFilter === 'All') {
+        return;
+      }
+      const selectedSite = (sites || []).find((site) => site.id === contractorSiteFilter);
+      if (!selectedSite) {
+        setContractorSiteFilter('All');
+        return;
+      }
+      if (nextBusinessUnitFilter !== 'All' && getSiteBusinessUnitId(selectedSite) !== nextBusinessUnitFilter) {
+        setContractorSiteFilter('All');
+      }
+    };
 
-      const matchesBusinessUnitFilter = contractorBusinessUnitFilter === 'All' ||
-        (contractor.businessUnitIds || contractor.business_unit_ids || []).includes(contractorBusinessUnitFilter);
-
-      return matchesSearch && matchesCompanyFilter && matchesBusinessUnitFilter;
-    });
+    const getFilteredContractors = () => contractors.filter((contractor) => contractorPassesAdminFilters(contractor, {
+      searchText: contractorSearchText,
+      companyFilter: contractorCompanyFilter,
+      businessUnitFilter: contractorBusinessUnitFilter,
+      siteFilter: contractorSiteFilter,
+    }));
 
     const handleExportCSV = () => {
       const filteredContractors = getFilteredContractors();
@@ -14127,8 +14142,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const dateStamp = new Date().toISOString().slice(0, 10);
+      const siteLabel = contractorSiteFilter !== 'All'
+        ? (siteIdToNameMap[contractorSiteFilter] || 'site').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+        : '';
       link.href = url;
-      link.download = `contractors-export-${dateStamp}.csv`;
+      link.download = siteLabel
+        ? `contractors-export-${siteLabel}-${dateStamp}.csv`
+        : `contractors-export-${dateStamp}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -14675,7 +14695,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         ? { backgroundColor: '#10B981', borderColor: '#10B981' }
                         : { backgroundColor: 'white', borderColor: '#D1D5DB' }
                     ]}
-                    onPress={() => setContractorBusinessUnitFilter('All')}
+                    onPress={() => {
+                      resetContractorSiteFilterIfNeeded('All');
+                      setContractorBusinessUnitFilter('All');
+                    }}
                   >
                     <Text style={{ color: contractorBusinessUnitFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
                   </TouchableOpacity>
@@ -14688,12 +14711,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ? { backgroundColor: '#10B981', borderColor: '#10B981' }
                           : { backgroundColor: 'white', borderColor: '#D1D5DB' }
                       ]}
-                      onPress={() => setContractorBusinessUnitFilter(bu.id)}
+                      onPress={() => {
+                        resetContractorSiteFilterIfNeeded(bu.id);
+                        setContractorBusinessUnitFilter(bu.id);
+                      }}
                     >
                       <Text style={{ color: contractorBusinessUnitFilter === bu.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{bu.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Site:</Text>
+                <select
+                  style={{
+                    width: '100%',
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderColor: '#D1D5DB',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    backgroundColor: 'white',
+                    fontSize: 14,
+                  }}
+                  value={contractorSiteFilter}
+                  onChange={(event) => setContractorSiteFilter(event.target.value)}
+                >
+                  <option value="All">All Sites</option>
+                  {contractorFilterSites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
               </View>
             )}
 
