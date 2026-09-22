@@ -257,7 +257,7 @@ export async function createAdminUser(email, name, password, role = 'manager', s
 /**
  * Update an admin user (super_admin only)
  * @param {string} userId - Admin user ID to update
- * @param {Object} updates - { name?, role?, password? }
+ * @param {Object} updates - { email?, name?, role?, password?, siteIds? }
  * @returns {Object} { success: boolean, data: user, error: string }
  */
 export async function updateAdminUser(userId, updates) {
@@ -265,6 +265,17 @@ export async function updateAdminUser(userId, updates) {
     console.log('✏️ Updating admin user:', userId);
 
     const updateData = {};
+
+    if (updates.email !== undefined) {
+      const normalizedEmail = normalizeEmailInput(updates.email);
+      if (!normalizedEmail) {
+        return {
+          success: false,
+          error: 'Email is required'
+        };
+      }
+      updateData.email = normalizedEmail;
+    }
 
     if (updates.name) {
       updateData.name = updates.name;
@@ -312,9 +323,14 @@ export async function updateAdminUser(userId, updates) {
     };
   } catch (error) {
     console.error('❌ Error updating admin user:', error);
+    const message = error.message || 'Failed to update admin user';
+    const friendlyError =
+      message.includes('admin_users_email_key') || message.includes('duplicate key')
+        ? 'An admin with this email already exists'
+        : message;
     return {
       success: false,
-      error: error.message || 'Failed to update admin user'
+      error: friendlyError
     };
   }
 }

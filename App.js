@@ -2802,13 +2802,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const handleUpdateAdmin = async () => {
-    if (!editingAdmin.name) {
-      Alert.alert('Missing Info', 'Please fill in name');
+    if (!editingAdmin.email?.trim() || !editingAdmin.name) {
+      Alert.alert('Missing Info', 'Please fill in email and name');
       return;
     }
 
     try {
       const result = await updateAdminUser(editingAdmin.id, {
+        email: editingAdmin.email,
         name: editingAdmin.name,
         role: editingAdmin.role,
         siteIds: editingAdmin.siteIds || editingAdmin.site_ids || []
@@ -25431,10 +25432,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <ScrollView style={{ flex: 1, padding: 16 }}>
             {editingAdmin && (
               <>
-                {/* Email (Read Only) */}
+                {/* Email */}
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email (Read Only)</Text>
-                  <Text style={{ fontSize: 14, color: '#6B7280', paddingVertical: 12, paddingHorizontal: 12 }}>{editingAdmin.email}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      fontSize: 14,
+                      backgroundColor: '#F9FAFB',
+                    }}
+                    placeholder="admin@company.com"
+                    placeholderTextColor="#9CA3AF"
+                    value={editingAdmin.email}
+                    onChangeText={(text) => setEditingAdmin({ ...editingAdmin, email: text })}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
                 </View>
 
                 {/* Name Input */}

@@ -106,6 +106,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
       if (editingUser) {
         // Update user
         const updatePayload = {
+          email: formData.email,
           name: formData.name,
           role: formData.role,
           siteIds: formData.siteIds || [],
@@ -388,7 +389,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
               {/* Email */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  Email {editingUser && <Text style={{ color: '#9CA3AF' }}>(cannot edit)</Text>}
+                  Email
                 </Text>
                 <TextInput
                   style={{
@@ -398,13 +399,14 @@ export default function AdminUsersManagement({ onBack, styles }) {
                     paddingVertical: 12,
                     paddingHorizontal: 12,
                     fontSize: 14,
-                    backgroundColor: editingUser ? '#F3F4F6' : '#F9FAFB',
+                    backgroundColor: '#F9FAFB',
                   }}
                   placeholder="admin@company.com"
                   value={formData.email}
                   onChangeText={(text) => setFormData({ ...formData, email: text })}
-                  editable={!editingUser}
                   keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
               </View>
 
