@@ -58,7 +58,7 @@ import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
-import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
+import { isAccreditationApprovalRoute, isCompanyAccreditationAdminPath } from './src/utils/accreditationApprovalRoute';
 import {
   contractorSignInPath,
   shouldShowContractorAuthGuard,
@@ -2623,7 +2623,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const nextScreen = getPostAdminLoginScreen(adminData, pathname);
     setCurrentScreen(nextScreen);
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isCompanyAccreditationAdminPath(pathname)) {
       const nextUrl = nextScreen === 'manager_hub' ? '/manager/' : '/admin/';
       if (window.location.pathname !== nextUrl) {
         window.history.pushState({}, '', nextUrl);
@@ -2719,7 +2719,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (!adminSessionActive || !loggedInAdmin) return;
 
     const pathname = window.location.pathname;
-    if (loggedInAdmin.role === 'manager' && isAdminPanelPath(pathname)) {
+    if (
+      loggedInAdmin.role === 'manager'
+      && isAdminPanelPath(pathname)
+      && !isCompanyAccreditationAdminPath(pathname)
+    ) {
       setCurrentScreen('manager_hub');
       window.history.replaceState({}, '', '/manager/');
     }

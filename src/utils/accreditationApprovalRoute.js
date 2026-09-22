@@ -11,6 +11,14 @@ export function isAccreditationApprovalRoute(pathname) {
   return APPROVAL_ROUTES.has(pathname);
 }
 
+/** Admin modal deep link from approval emails (kiosk or main host). */
+export function isCompanyAccreditationAdminPath(pathname) {
+  if (!pathname) {
+    return false;
+  }
+  return /^\/admin\/companies\/[^/]+\/accreditation\/?$/.test(pathname);
+}
+
 export function buildAccreditationApprovalUrl(token, baseUrl) {
   const origin = getPublicAppOrigin(baseUrl || (
     typeof window !== 'undefined' ? window.location.origin : undefined
