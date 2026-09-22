@@ -90,6 +90,19 @@ function buildDefaultApproverAssignmentPatch(company, defaultApproverId) {
   return updates;
 }
 
+async function patchCompany(companyId, updates) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+    method: 'PATCH',
+    headers: serviceRoleHeaders('return=representation'),
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update company: ${await response.text()}`);
+  }
+  const records = await response.json();
+  return Array.isArray(records) ? records[0] : records;
+}
+
 async function ensureApproverAssignments(companyId) {
   const company = await fetchCompany(companyId);
   if (!company) {
@@ -109,19 +122,6 @@ async function ensureApproverAssignments(companyId) {
 
   await patchCompany(companyId, patch);
   return fetchCompany(companyId);
-}
-
-async function patchCompany(companyId, updates) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
-    method: 'PATCH',
-    headers: serviceRoleHeaders('return=representation'),
-    body: JSON.stringify(updates),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to update company: ${await response.text()}`);
-  }
-  const records = await response.json();
-  return Array.isArray(records) ? records[0] : records;
 }
 
 function validateApproverAssignments(company) {
@@ -338,7 +338,7 @@ async function getApprovalContextByToken(token) {
     };
   }
 
-  let approverId = record.stage === 'manager' ? company.assigned_manager_id : company.assigned_hs_person_id;
+  const approverId = record.stage === 'manager' ? company.assigned_manager_id : company.assigned_hs_person_id;
   const approver = await fetchAdminUser(approverId);
 
   return {

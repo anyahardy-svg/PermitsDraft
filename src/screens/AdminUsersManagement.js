@@ -15,6 +15,7 @@ import {
   createAdminUser,
   updateAdminUser,
   deleteAdminUser,
+  resendAdminSetupEmail,
 } from '../api/adminAuth';
 import { listSites } from '../api/sites';
 
@@ -33,6 +34,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [resendingSetupEmailId, setResendingSetupEmailId] = useState(null);
 
   useEffect(() => {
     loadAdmins();
@@ -104,6 +106,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
       if (editingUser) {
         // Update user
         const updatePayload = {
+          email: formData.email,
           name: formData.name,
           role: formData.role,
           siteIds: formData.siteIds || [],
@@ -153,31 +156,63 @@ export default function AdminUsersManagement({ onBack, styles }) {
       .join(', ') || 'No matching sites';
   };
 
-  const handleDeleteUser = (user) => {
-    Alert.alert(
-      'Delete Admin User?',
-      `Are you sure you want to delete ${user.name}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await deleteAdminUser(user.id);
-              if (result.success) {
-                Alert.alert('Deleted', 'Admin user deleted');
-                await loadAdmins();
-              } else {
-                Alert.alert('Error', result.error || 'Failed to delete');
-              }
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete user');
-            }
-          },
-        },
-      ]
-    );
+  const handleResendSetupEmail = async (user) => {
+    setResendingSetupEmailId(user.id);
+    try {
+      const result = await resendAdminSetupEmail(user.email);
+      if (result.success) {
+        Alert.alert('Email Sent', result.message || `Setup email resent to ${user.email}`);
+      } else {
+        Alert.alert('Unable to Resend', result.error || 'Failed to resend setup email');
+      }
+    } catch (err) {
+      console.error('❌ Error resending setup email:', err);
+      Alert.alert('Error', 'Failed to resend setup email');
+    } finally {
+      setResendingSetupEmailId(null);
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const message = `Are you sure you want to delete ${user.name}? This cannot be undone.`;
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm(`Delete Admin User?\n\n${message}`)
+      : await new Promise((resolve) => {
+          Alert.alert(
+            'Delete Admin User?',
+            message,
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ],
+          );
+        });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await deleteAdminUser(user.id);
+      if (result.success) {
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert('Admin user deleted');
+        } else {
+          Alert.alert('Deleted', 'Admin user deleted');
+        }
+        await loadAdmins();
+      } else if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Error: ' + (result.error || 'Failed to delete'));
+      } else {
+        Alert.alert('Error', result.error || 'Failed to delete');
+      }
+    } catch (err) {
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Error: Failed to delete user');
+      } else {
+        Alert.alert('Error', 'Failed to delete user');
+      }
+    }
   };
 
   const renderAdminItem = ({ item }) => (
@@ -220,6 +255,25 @@ export default function AdminUsersManagement({ onBack, styles }) {
           </View>
         </View>
         <View style={{ gap: 8 }}>
+          {item.needsPasswordSetup && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#10B981',
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 6,
+                opacity: resendingSetupEmailId === item.id ? 0.6 : 1,
+              }}
+              onPress={() => handleResendSetupEmail(item)}
+              disabled={resendingSetupEmailId === item.id}
+            >
+              {resendingSetupEmailId === item.id ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Resend Invite</Text>
+              )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={{
               backgroundColor: '#3B82F6',
@@ -335,7 +389,7 @@ export default function AdminUsersManagement({ onBack, styles }) {
               {/* Email */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                  Email {editingUser && <Text style={{ color: '#9CA3AF' }}>(cannot edit)</Text>}
+                  Email
                 </Text>
                 <TextInput
                   style={{
@@ -345,13 +399,14 @@ export default function AdminUsersManagement({ onBack, styles }) {
                     paddingVertical: 12,
                     paddingHorizontal: 12,
                     fontSize: 14,
-                    backgroundColor: editingUser ? '#F3F4F6' : '#F9FAFB',
+                    backgroundColor: '#F9FAFB',
                   }}
                   placeholder="admin@company.com"
                   value={formData.email}
                   onChangeText={(text) => setFormData({ ...formData, email: text })}
-                  editable={!editingUser}
                   keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
               </View>
 

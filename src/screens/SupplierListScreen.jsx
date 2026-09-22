@@ -22,6 +22,8 @@ import {
   getSupplierAccreditationStatusDisplay,
   resolveSupplierAccreditationDisplayStatus,
 } from '../utils/supplierAccreditation';
+import { formatPhoneForDisplay, normalizePhoneForSave } from '../utils/contractorPhone';
+import { exportSuppliersCsv } from '../utils/supplierExport';
 
 const RISK_COLORS = {
   Critical: { backgroundColor: '#FCA5A5', color: '#7F1D1D' },
@@ -108,12 +110,14 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
     companyName: '',
     email: '',
     techContactName: '',
+    contactPhone: '',
     riskClassification: '',
     deadline: getDefaultAccreditationDeadline(),
   });
   const [sendInvitationForm, setSendInvitationForm] = useState({
     email: '',
     techContactName: '',
+    contactPhone: '',
     deadline: getDefaultAccreditationDeadline(),
   });
   const [importStatus, setImportStatus] = useState('idle');
@@ -147,6 +151,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
     return (
       supplier.company_name?.toLowerCase().includes(query)
       || supplier.contact_email?.toLowerCase().includes(query)
+      || supplier.contact_phone?.toLowerCase().includes(query)
     );
   });
 
@@ -198,6 +203,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       companyName: '',
       email: '',
       techContactName: '',
+      contactPhone: '',
       riskClassification: '',
       deadline: getDefaultAccreditationDeadline(),
     });
@@ -209,6 +215,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
     setSendInvitationForm({
       email: supplier.contact_email || '',
       techContactName: supplier.tech_contact_name || '',
+      contactPhone: supplier.contact_phone || '',
       deadline: supplier.accreditation_deadline
         ? formatDate(supplier.accreditation_deadline)
         : getDefaultAccreditationDeadline(),
@@ -243,6 +250,14 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
         deadline,
         techContactName: sendInvitationForm.techContactName.trim() || null,
       });
+
+      if (sendInvitationForm.contactPhone.trim()) {
+        await createSupplier({
+          company_name: selectedSupplierForInvitation.company_name,
+          contact_phone: sendInvitationForm.contactPhone.trim(),
+          upsert: true,
+        });
+      }
 
       Alert.alert('Success', 'Supplier invitation sent successfully!');
       setShowSendInvitationModal(false);
@@ -279,6 +294,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
         companyName: inviteForm.companyName.trim(),
         email: inviteForm.email.trim(),
         techContactName: inviteForm.techContactName.trim() || null,
+        contactPhone: inviteForm.contactPhone.trim() || null,
         riskClassification: inviteForm.riskClassification || null,
         deadline,
       });
@@ -295,6 +311,18 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       Alert.alert('Error', inviteError?.message || 'Failed to create supplier or send invitation.');
     } finally {
       setCreatingAndSendingInvitation(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (typeof document === 'undefined') {
+      Alert.alert('Unavailable', 'CSV export is only available on web.');
+      return;
+    }
+
+    const exported = exportSuppliersCsv({ suppliers: filteredSuppliers });
+    if (exported) {
+      Alert.alert('Success', `Exported ${filteredSuppliers.length} supplier${filteredSuppliers.length === 1 ? '' : 's'}.`);
     }
   };
 
@@ -349,8 +377,13 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
             (header) => header.includes('tech') && header.includes('contact'),
             (header) => header.includes('technical') && header.includes('contact'),
           ]);
+          const phoneIdx = findColumnIndex(headerValues, [
+            (header) => (header.includes('contact') && header.includes('phone')) || header === 'contact_phone',
+            (header) => header.includes('phone') || header.includes('telephone') || header.includes('mobile'),
+          ]);
           const statusIdx = findColumnIndex(headerValues, [
-            (header) => header.includes('status'),
+            (header) => header === 'status',
+            (header) => header.includes('status') && !header.includes('accreditation'),
           ]);
           const deadlineIdx = findColumnIndex(headerValues, [
             (header) => header.includes('deadline'),
@@ -400,6 +433,12 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
             }
             if (techContactIdx >= 0 && values[techContactIdx]) {
               payload.tech_contact_name = values[techContactIdx].trim();
+            }
+            if (phoneIdx >= 0 && values[phoneIdx]) {
+              const normalizedPhone = normalizePhoneForSave(values[phoneIdx].trim());
+              if (normalizedPhone) {
+                payload.contact_phone = normalizedPhone;
+              }
             }
             if (statusIdx >= 0 && values[statusIdx]) {
               payload.status = values[statusIdx].trim();
@@ -510,6 +549,13 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
           <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Supplier</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={{ backgroundColor: '#2563EB', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }}
+          onPress={handleExportCSV}
+          disabled={filteredSuppliers.length === 0}
+        >
+          <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }}
           onPress={handleImportCSV}
         >
@@ -519,7 +565,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
 
       <TextInput
         style={[styles?.input, { paddingHorizontal: 12, paddingVertical: 8, borderColor: '#D1D5DB', marginBottom: 12 }]}
-        placeholder="Search suppliers by company name..."
+        placeholder="Search suppliers by company name, email, or phone..."
         value={searchText}
         onChangeText={setSearchText}
       />
@@ -541,6 +587,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
               <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
               <Text style={{ width: 260, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Actions</Text>
               <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Contact Email</Text>
+              <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Contact Phone</Text>
               <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Risk</Text>
               <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Status</Text>
               <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
@@ -609,6 +656,9 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                   </View>
                   <Text style={{ width: 180, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     {supplier.contact_email || '—'}
+                  </Text>
+                  <Text style={{ width: 140, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                    {supplier.contact_phone ? formatPhoneForDisplay(supplier.contact_phone) : '—'}
                   </Text>
                   <View style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: riskStyle.backgroundColor }}>
@@ -688,6 +738,16 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 editable={!sendingInvitation}
               />
 
+              <Text style={styles?.label}>Contact Phone</Text>
+              <TextInput
+                style={styles?.input}
+                placeholder="Enter contact phone number"
+                value={sendInvitationForm.contactPhone}
+                onChangeText={(text) => setSendInvitationForm({ ...sendInvitationForm, contactPhone: text })}
+                keyboardType="phone-pad"
+                editable={!sendingInvitation}
+              />
+
               <Text style={styles?.label}>Submit Form Deadline</Text>
               <TextInput
                 style={styles?.input}
@@ -761,6 +821,16 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
                 placeholder="Enter technical contact name"
                 value={inviteForm.techContactName}
                 onChangeText={(text) => setInviteForm({ ...inviteForm, techContactName: text })}
+                editable={!creatingAndSendingInvitation}
+              />
+
+              <Text style={styles?.label}>Contact Phone</Text>
+              <TextInput
+                style={styles?.input}
+                placeholder="Enter contact phone number"
+                value={inviteForm.contactPhone}
+                onChangeText={(text) => setInviteForm({ ...inviteForm, contactPhone: text })}
+                keyboardType="phone-pad"
                 editable={!creatingAndSendingInvitation}
               />
 

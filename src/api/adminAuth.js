@@ -6,6 +6,9 @@
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
 import { normalizeEmailInput } from '../utils/emailNormalization';
+import { getPublicAppOrigin } from '../utils/publicAppOrigin';
+import { buildAdminPasswordSetupUrl } from '../utils/adminSetupRoute';
+import { sendAdminSetupEmail } from './sendgrid';
 
 const isMissingSiteIdsColumn = (error) =>
   error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
@@ -94,17 +97,62 @@ export async function loginAdminUser(email, password) {
  * Get all admin users (super_admin only)
  * @returns {Array} List of admin users
  */
-export async function getAllAdminUsers() {
+/**
+ * Kiosk visiting-person lookup: admins assigned to one site only.
+ * Avoids downloading password hashes or unrelated admin users.
+ */
+export async function listAdminUsersForKioskSite(siteId) {
+  if (!siteId) {
+    return [];
+  }
+
   try {
     let { data, error } = await supabase
       .from('admin_users')
-      .select('id, email, name, role, site_ids, created_at')
+      .select('id, email, name, role, site_ids')
+      .contains('site_ids', [siteId])
       .order('name', { ascending: true });
 
     if (error && isMissingSiteIdsColumn(error)) {
       const retry = await supabase
         .from('admin_users')
-        .select('id, email, name, role, created_at')
+        .select('id, email, name, role')
+        .order('name', { ascending: true });
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) throw error;
+
+    return (data || [])
+      .map((user) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        site_ids: user.site_ids || [],
+        siteIds: user.site_ids || [],
+      }))
+      .sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      );
+  } catch (error) {
+    console.error('❌ Error fetching kiosk admin users:', error);
+    throw error;
+  }
+}
+
+export async function getAllAdminUsers() {
+  try {
+    let { data, error } = await supabase
+      .from('admin_users')
+      .select('id, email, name, role, site_ids, created_at, password_hash')
+      .order('name', { ascending: true });
+
+    if (error && isMissingSiteIdsColumn(error)) {
+      const retry = await supabase
+        .from('admin_users')
+        .select('id, email, name, role, created_at, password_hash')
         .order('name', { ascending: true });
       data = retry.data;
       error = retry.error;
@@ -113,9 +161,14 @@ export async function getAllAdminUsers() {
     if (error) throw error;
     return (data || [])
       .map(user => ({
-        ...user,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        created_at: user.created_at,
         site_ids: user.site_ids || [],
-        siteIds: user.site_ids || []
+        siteIds: user.site_ids || [],
+        needsPasswordSetup: !user.password_hash || user.password_hash.trim() === '',
       }))
       .sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
@@ -204,7 +257,7 @@ export async function createAdminUser(email, name, password, role = 'manager', s
 /**
  * Update an admin user (super_admin only)
  * @param {string} userId - Admin user ID to update
- * @param {Object} updates - { name?, role?, password? }
+ * @param {Object} updates - { email?, name?, role?, password?, siteIds? }
  * @returns {Object} { success: boolean, data: user, error: string }
  */
 export async function updateAdminUser(userId, updates) {
@@ -212,6 +265,17 @@ export async function updateAdminUser(userId, updates) {
     console.log('✏️ Updating admin user:', userId);
 
     const updateData = {};
+
+    if (updates.email !== undefined) {
+      const normalizedEmail = normalizeEmailInput(updates.email);
+      if (!normalizedEmail) {
+        return {
+          success: false,
+          error: 'Email is required'
+        };
+      }
+      updateData.email = normalizedEmail;
+    }
 
     if (updates.name) {
       updateData.name = updates.name;
@@ -259,9 +323,14 @@ export async function updateAdminUser(userId, updates) {
     };
   } catch (error) {
     console.error('❌ Error updating admin user:', error);
+    const message = error.message || 'Failed to update admin user';
+    const friendlyError =
+      message.includes('admin_users_email_key') || message.includes('duplicate key')
+        ? 'An admin with this email already exists'
+        : message;
     return {
       success: false,
-      error: error.message || 'Failed to update admin user'
+      error: friendlyError
     };
   }
 }
@@ -386,6 +455,54 @@ export async function checkAdminPasswordSetup(email) {
 }
 
 /**
+ * Resend the admin/manager password setup email
+ * @param {string} email - Admin email
+ * @returns {Object} { success: boolean, message?: string, error?: string }
+ */
+export async function resendAdminSetupEmail(email) {
+  try {
+    const normalizedEmail = normalizeEmailInput(email);
+    const { data: adminUser, error } = await findAdminUserByEmail(
+      normalizedEmail,
+      'id, email, name, role, password_hash'
+    );
+
+    if (error || !adminUser) {
+      return { success: false, error: 'Admin user not found' };
+    }
+
+    const needsSetup = !adminUser.password_hash || adminUser.password_hash.trim() === '';
+    if (!needsSetup) {
+      return {
+        success: false,
+        error: 'This user has already set their password. Use password reset instead.',
+      };
+    }
+
+    const setupUrl = buildAdminPasswordSetupUrl(adminUser.email, adminUser.role);
+    const emailResult = await sendAdminSetupEmail(adminUser.email, adminUser.name, setupUrl);
+
+    if (!emailResult.success) {
+      return {
+        success: false,
+        error: emailResult.error || 'Failed to send setup email',
+      };
+    }
+
+    return {
+      success: true,
+      message: `Setup email resent to ${adminUser.email}`,
+    };
+  } catch (error) {
+    console.error('❌ Error resending admin setup email:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to resend setup email',
+    };
+  }
+}
+
+/**
  * Request password reset by generating a reset token for admin email
  * @param {string} email - Admin email
  * @returns {Object} { success: boolean, resetUrl: string, error: string }
@@ -436,11 +553,10 @@ export async function requestPasswordReset(email) {
       };
     }
 
-    // Build reset URL (includes token)
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.REACT_APP_BASE_URL || 'https://base-url.com';
-    
+    // Build reset URL on the main app domain (never a kiosk subdomain)
+    const baseUrl = getPublicAppOrigin(
+      typeof window !== 'undefined' ? window.location.origin : process.env.REACT_APP_BASE_URL
+    );
     const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
 
     console.log('✅ Password reset token generated and saved');

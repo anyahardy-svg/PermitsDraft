@@ -18,7 +18,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { getAllJoinRequests, approveJoinRequest, rejectJoinRequest } from '../api/joinRequests';
-import { logout, inviteContractor, getCurrentUser, clearContractorSessionStorage } from '../api/contractorAuth';
+import { logout, getCurrentUser, clearContractorSessionStorage } from '../api/contractorAuth';
 import JseaEditorScreen from './JseaEditorScreen';
 import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
@@ -29,6 +29,8 @@ import { copyContractorInductionLink, getContractorInductionUrl } from '../utils
 export default function ContractorAdminScreen({ 
   onNavigateBack,
   onReturnToKiosk,
+  onEstablishAppSession,
+  onContractorAdminLogout,
   businessUnitId, 
   styles,
   businessUnits = [],
@@ -105,7 +107,6 @@ export default function ContractorAdminScreen({
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [logoutConfirmModal, setLogoutConfirmModal] = useState(false);
-  const [logoutDestination, setLogoutDestination] = useState(null); // 'kiosk' or 'dashboard'
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Permit template editing states
@@ -138,8 +139,6 @@ export default function ContractorAdminScreen({
   const [showJoinRequestModal, setShowJoinRequestModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedCompanyForApproval, setSelectedCompanyForApproval] = useState(null);
-  const [invitingContractorId, setInvitingContractorId] = useState(null);
-  const inviteInProgressRef = useRef(false);
 
   // Use first business unit if none is provided
   const effectiveBuId = businessUnitId || businessUnits[0]?.id;
@@ -164,6 +163,10 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyId(contractorInfo.companyId);
     setIsLoggedIn(true);
     setSelectedCompanyId(contractorInfo.companyId);
+
+    if (typeof onEstablishAppSession === 'function') {
+      onEstablishAppSession(contractorInfo);
+    }
     
     // Initialize profile editing fields
     setProfileName(contractorInfo.contractorName);
@@ -219,11 +222,9 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
-    
-    // Clear contractor info from URL
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/contractor-admin/');
-      console.log('🔗 Cleared contractor info from URL');
+
+    if (typeof onContractorAdminLogout === 'function') {
+      onContractorAdminLogout();
     }
   };
 
@@ -273,30 +274,10 @@ export default function ContractorAdminScreen({
     }
   };
 
-  const confirmLogout = (destination) => {
-    console.log('← [BACK] Confirmed logout, returning to:', destination);
+  const confirmLogout = async () => {
+    console.log('← [BACK] Confirmed logout from contractor admin');
     setLogoutConfirmModal(false);
-    
-    // Build contractor info to pass back
-    const contractorInfo = {
-      id: loggedInContractorId,
-      contractorName: loggedInContractor,
-      name: loggedInContractor,
-      email: loggedInContractorEmail,
-      phone: loggedInContractorPhone,
-      companyId: loggedInCompanyId,
-      company_id: loggedInCompanyId
-    };
-    
-    handleLogout();
-    
-    if (destination === 'kiosk' && onReturnToKiosk) {
-      onReturnToKiosk(contractorInfo);
-    } else if (destination === 'dashboard' && onNavigateBack) {
-      onNavigateBack(contractorInfo);
-    } else {
-      onNavigateBack();
-    }
+    await handleLogout();
   };
 
   const cancelLogout = () => {
@@ -1042,71 +1023,6 @@ export default function ContractorAdminScreen({
     );
   };
 
-  const handleInviteContractor = useCallback(async (contractorId, email) => {
-    if (inviteInProgressRef.current) {
-      return;
-    }
-
-    if (!email?.trim()) {
-      showUserMessage('Invite Failed', 'This contractor does not have an email address.');
-      return;
-    }
-
-    inviteInProgressRef.current = true;
-    setInvitingContractorId(contractorId);
-
-    let timeoutId;
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(
-        () => reject(new Error('Server timeout or invalid response')),
-        15000
-      );
-    });
-
-    try {
-      let result;
-      try {
-        result = await Promise.race([
-          inviteContractor(email.trim()),
-          timeoutPromise,
-        ]);
-      } catch (requestError) {
-        if (requestError instanceof TypeError || requestError?.name === 'TypeError') {
-          showUserMessage(
-            'Network Error',
-            'Could not reach the server. Please check your connection or the function URL.'
-          );
-          return;
-        }
-        throw requestError;
-      }
-
-      if (result?.success) {
-        showUserMessage(
-          'Success',
-          result.message || `Invitation email sent to ${email}. They will receive a link to set their password.`
-        );
-      } else {
-        showUserMessage('Invite Failed', result?.error || 'Failed to send invitation');
-      }
-    } catch (error) {
-      if (error instanceof TypeError || error?.name === 'TypeError') {
-        showUserMessage(
-          'Network Error',
-          'Could not reach the server. Please check your connection or the function URL.'
-        );
-        return;
-      }
-
-      const message = error?.message || 'An error occurred while sending invitation';
-      showUserMessage('Invite Failed', message);
-    } finally {
-      clearTimeout(timeoutId);
-      inviteInProgressRef.current = false;
-      setInvitingContractorId(null);
-    }
-  }, []);
-
   const handleCopyInductionLink = useCallback(async () => {
     try {
       const url = await copyContractorInductionLink('/inductions/');
@@ -1222,14 +1138,14 @@ export default function ContractorAdminScreen({
                   borderBottomColor: '#D1D5DB',
                   paddingVertical: 10,
                   paddingHorizontal: 8,
-                  minWidth: 1060
+                  minWidth: 1010
                 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 150, paddingRight: 8 }}>Name</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 180, paddingRight: 8 }}>Email</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Inducted Services</Text>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 120, paddingRight: 8 }}>Expiry Date</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 160, paddingRight: 8 }}>Actions</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 110, paddingRight: 8 }}>Actions</Text>
               </View>
 
               {/* Table Rows */}
@@ -1243,7 +1159,7 @@ export default function ContractorAdminScreen({
                 borderBottomColor: '#E5E7EB',
                 paddingVertical: 10,
                 paddingHorizontal: 8,
-                minWidth: 1060
+                minWidth: 1010
               }}
             >
               <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>
@@ -1258,7 +1174,7 @@ export default function ContractorAdminScreen({
               <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>
                 {contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : 'N/A'}
               </Text>
-              <View style={{ width: 160, paddingRight: 8, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              <View style={{ width: 110, paddingRight: 8, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 <TouchableOpacity
                   onPress={() => {
                     setEditingContractor(contractor);
@@ -1269,27 +1185,6 @@ export default function ContractorAdminScreen({
                   style={{ padding: 6, backgroundColor: '#DBEAFE', borderRadius: 4 }}
                 >
                   <Text style={{ fontSize: 10, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (invitingContractorId === null && contractor.email) {
-                      handleInviteContractor(contractor.id, contractor.email);
-                    }
-                  }}
-                  disabled={invitingContractorId !== null || !contractor.email}
-                  style={{
-                    padding: 6,
-                    backgroundColor: invitingContractorId !== null || !contractor.email ? '#E5E7EB' : '#D1FAE5',
-                    borderRadius: 4
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 10,
-                    color: invitingContractorId !== null || !contractor.email ? '#9CA3AF' : '#047857',
-                    fontWeight: '600'
-                  }}>
-                    {invitingContractorId === contractor.id ? 'Sending...' : 'Invite'}
-                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
@@ -3159,7 +3054,7 @@ export default function ContractorAdminScreen({
                 marginBottom: 20,
                 lineHeight: 20
               }}>
-                You will be logged out. Are you sure you want to exit?
+                You will be logged out.
               </Text>
 
               <View style={{ flexDirection: 'column', gap: 10 }}>
@@ -3176,21 +3071,6 @@ export default function ContractorAdminScreen({
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                {onReturnToKiosk && (
-                  <TouchableOpacity
-                    style={{
-                      paddingVertical: 12,
-                      backgroundColor: '#3B82F6',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    onPress={() => confirmLogout('kiosk')}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      Back to Kiosk
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={{
                     paddingVertical: 12,
@@ -3198,10 +3078,10 @@ export default function ContractorAdminScreen({
                     borderRadius: 8,
                     alignItems: 'center'
                   }}
-                  onPress={() => confirmLogout('dashboard')}
+                  onPress={confirmLogout}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                    Back to Admin
+                    Log out
                   </Text>
                 </TouchableOpacity>
               </View>

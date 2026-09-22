@@ -13,6 +13,10 @@ const transformSite = (dbSite) => {
     kiosk_subdomain: dbSite.kiosk_subdomain,
     flag: dbSite.flag || false,
     rt: dbSite.rt || false,
+    defaultNotificationManagerId: dbSite.default_notification_manager_id || null,
+    default_notification_manager_id: dbSite.default_notification_manager_id || null,
+    sendDefaultSignInNotifications: dbSite.send_default_sign_in_notifications !== false,
+    send_default_sign_in_notifications: dbSite.send_default_sign_in_notifications !== false,
     createdAt: dbSite.created_at,
     created_at: dbSite.created_at,
     updatedAt: dbSite.updated_at,
@@ -20,44 +24,84 @@ const transformSite = (dbSite) => {
   };
 };
 
-// Get all sites
-export const listSites = async () => {
+const fetchSiteWithRetry = async (buildQuery, label) => {
   let lastError;
   const maxRetries = 3;
   const baseDelay = 1000;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const { data, error } = await supabase
-        .from('sites')
-        .select('*')
-        .order('name', { ascending: true });
-
+      const { data, error } = await buildQuery();
       if (error) throw error;
-      
+
       if (process.env.NODE_ENV === 'development' && attempt > 1) {
-        console.log(`🔄 Sites loaded on attempt ${attempt}/${maxRetries}`);
+        console.log(`🔄 ${label} loaded on attempt ${attempt}/${maxRetries}`);
       }
-      return (data || []).map(transformSite);
+
+      return data;
     } catch (error) {
       lastError = error;
 
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`⏳ Sites load attempt ${attempt}/${maxRetries} failed:`, error.message);
+        console.warn(`⏳ ${label} load attempt ${attempt}/${maxRetries} failed:`, error.message);
       }
 
-      // Retry if not the last attempt
       if (attempt < maxRetries) {
         const delayMs = baseDelay * attempt;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
   }
 
-  // All retries exhausted
-  handleError(lastError, 'loading sites', false);
-  console.error('❌ Failed to load sites after retries');
-  return [];
+  handleError(lastError, label, false);
+  console.error(`❌ Failed to ${label} after retries`);
+  return null;
+};
+
+// Get a single site by kiosk subdomain (kiosk boot path)
+export const getSiteByKioskSubdomain = async (kioskSubdomain) => {
+  if (!kioskSubdomain) {
+    return null;
+  }
+
+  const data = await fetchSiteWithRetry(
+    () => supabase
+      .from('sites')
+      .select('*')
+      .eq('kiosk_subdomain', kioskSubdomain)
+      .maybeSingle(),
+    'site by kiosk subdomain'
+  );
+
+  return data ? transformSite(data) : null;
+};
+
+// Get the first site (development / preview fallback)
+export const getFirstSite = async () => {
+  const data = await fetchSiteWithRetry(
+    () => supabase
+      .from('sites')
+      .select('*')
+      .order('name', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    'first site'
+  );
+
+  return data ? transformSite(data) : null;
+};
+
+// Get all sites
+export const listSites = async () => {
+  const data = await fetchSiteWithRetry(
+    () => supabase
+      .from('sites')
+      .select('*')
+      .order('name', { ascending: true }),
+    'sites'
+  );
+
+  return (data || []).map(transformSite);
 };
 // Get sites for specific business unit(s)
 export const getSitesByBusinessUnits = async (businessUnitIds) => {

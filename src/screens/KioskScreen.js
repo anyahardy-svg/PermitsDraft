@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,19 +17,48 @@ import {
 import { WebView } from 'react-native-webview';
 import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
-import { listContractorsBySite } from '../api/contractors';
-import { listSites } from '../api/sites';
+import {
+  getContractorWithSiteInductions,
+  listContractorsBySite,
+  searchContractorsForKiosk,
+  updateContractor,
+} from '../api/contractors';
+import {
+  getFirstSite,
+  getSite,
+  getSiteByKioskSubdomain,
+  getSitesByBusinessUnits,
+} from '../api/sites';
 import { getVisitorInduction } from '../api/visitorInductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listPermits } from '../api/permits';
-import { getAllAdminUsers, loginAdminUser } from '../api/adminAuth';
-import { listPermitIssuers } from '../api/permit_issuers';
+import { listAdminUsersForKioskSite, loginAdminUser } from '../api/adminAuth';
+import { listPermitIssuersForSite } from '../api/permit_issuers';
 import ContractorInductionScreen from './ContractorInductionScreen';
 import AdminLoginScreen from './AdminLoginScreen';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import KioskBrandLogo from '../components/KioskBrandLogo';
+import { kioskPermitsEnabled } from '../utils/kioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
 import { showTransientMessage } from '../utils/transientMessage';
+import {
+  formatPhoneForDisplay,
+  normalizePhoneForSave,
+  validateContractorPhone,
+  contractorPhoneNeedsUpdate,
+  sanitizePhoneInput,
+} from '../utils/contractorPhone';
+import { validateContractorFullName } from '../utils/contractorName';
+import {
+  getOtherInductedSites,
+  getSiteInductionExpiry,
+  getSiteInductionStatus,
+} from '../utils/siteInductionStatus';
+import {
+  consumeKioskReloadResume,
+  reloadKioskPage,
+  reloadKioskToSignIn,
+} from '../utils/kioskReload';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -41,7 +70,7 @@ const formatNameToTitleCase = (name) => {
     .join(' ');
 };
 
-// Mask phone number - show only last 3 digits (e.g., "+64 2 XXXX-XXXX" or "0211 XXXX-XXXX")
+// Mask phone number
 const maskPhoneNumber = (phone) => {
   if (!phone) return 'N/A';
   // Remove all non-digit characters for processing
@@ -83,16 +112,26 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [contractorSearch, setContractorSearch] = useState('');
   const [filteredContractors, setFilteredContractors] = useState([]);
   const [contractors, setContractors] = useState([]);
+  const [contractorsLoading, setContractorsLoading] = useState(false);
+  const [visitingPeopleLoading, setVisitingPeopleLoading] = useState(false);
+  const [visitingPeopleLoaded, setVisitingPeopleLoaded] = useState(false);
+  const [visitorInductionLoading, setVisitorInductionLoading] = useState(false);
+  const [visitorInductionLoaded, setVisitorInductionLoaded] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [contractorInductionExpiry, setContractorInductionExpiry] = useState(null);
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
+  const [contractorPhone, setContractorPhone] = useState('');
+  const [contractorPhoneError, setContractorPhoneError] = useState('');
   
   // For visitor checkin
   const [visitorName, setVisitorName] = useState('');
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
+  const [visitorNameError, setVisitorNameError] = useState('');
+  const [visitorCompanyError, setVisitorCompanyError] = useState('');
+  const [visitorPhoneError, setVisitorPhoneError] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
@@ -121,6 +160,13 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [inductionPrefillContractorId, setInductionPrefillContractorId] = useState(null);
   const [inductionReturnScreen, setInductionReturnScreen] = useState('welcome');
   const [returnedFromInduction, setReturnedFromInduction] = useState(false);
+  const resumeAppliedRef = useRef(false);
+  const contractorRefreshRequestRef = useRef(0);
+  const selectedContractorIdRef = useRef(null);
+  const contractorsLoadedSiteIdRef = useRef(null);
+  const contractorSearchDebounceRef = useRef(null);
+  const contractorSearchRequestRef = useRef(0);
+  const [contractorsLoadError, setContractorsLoadError] = useState('');
 
   // For flag/RT during check-in
   const [showFlagRTModal, setShowFlagRTModal] = useState(false);
@@ -170,57 +216,25 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           return;
         }
         
-        // Load sites
-        const sitesData = await listSites();
-        setAllSites(sitesData); // Store for later lookups
-        
-        // Try to match by kiosk_subdomain
         const parts = hostname.split('.');
         const subdomain = parts[0]; // e.g., "wa-amisfield-quarry-kiosk"
-        let matchingSite = sitesData.find(s => s.kiosk_subdomain === subdomain);
-        
+        let matchingSite = await getSiteByKioskSubdomain(subdomain);
+        let usingTestMode = false;
+
         // Fallback for development/testing: use first site if on localhost or Vercel
         if (!matchingSite && (hostname.includes('localhost') || hostname.includes('vercel.app'))) {
           console.warn('⚠️ No matching site for subdomain, using first site for testing');
-          matchingSite = sitesData[0];
-          setTestMode(true);
+          matchingSite = await getFirstSite();
+          usingTestMode = true;
         }
-        
+
         if (matchingSite) {
           setSite(matchingSite);
           setSiteId(matchingSite.id);
           setBusinessUnitId(matchingSite.business_unit_id);
-          console.log(`${testMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
-          
-          // Load site-specific data
-          const contractorsData = await listContractorsBySite(matchingSite.id);
-          setContractors(contractorsData);
-
-          try {
-            const admins = await getAllAdminUsers();
-            setAdminUsers(admins || []);
-          } catch (adminError) {
-            console.warn('Could not load admin users for visiting person lookup:', adminError.message);
-            setAdminUsers([]);
-          }
-
-          try {
-            const issuers = await listPermitIssuers();
-            setPermitIssuers(issuers || []);
-          } catch (issuerError) {
-            console.warn('Could not load permit issuers for visiting person lookup:', issuerError.message);
-            setPermitIssuers([]);
-          }
-          
-          // Load visitor induction content
-          const inductionResult = await getVisitorInduction(matchingSite.id);
-          if (inductionResult?.success && inductionResult?.data) {
-            setVisitorInductionContent(normalizeVisitorInductionContent(inductionResult.data?.content || ''));
-            setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
-          }
-          
-          // Load current signins
-          loadSignedInPeople();
+          setAllSites([matchingSite]);
+          setTestMode(usingTestMode);
+          console.log(`${usingTestMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
         } else {
           Alert.alert('Error', 'Could not detect site. Please use a kiosk subdomain or try from localhost.');
           console.error('❌ No site found for subdomain:', subdomain);
@@ -238,13 +252,178 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     initializeKiosk();
   }, []);
 
+  const loadContractorsForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId) {
+      return [];
+    }
+
+    setContractorsLoading(true);
+    setContractorsLoadError('');
+    try {
+      const contractorsData = await listContractorsBySite(targetSiteId);
+      setContractors(contractorsData);
+      contractorsLoadedSiteIdRef.current = targetSiteId;
+      return contractorsData;
+    } catch (error) {
+      console.warn('Could not load contractors for kiosk:', error.message);
+      setContractors([]);
+      setContractorsLoadError(error?.message || 'Could not load contractors for this site');
+      contractorsLoadedSiteIdRef.current = null;
+      return [];
+    } finally {
+      setContractorsLoading(false);
+    }
+  };
+
+  const loadVisitingPeopleForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId || visitingPeopleLoaded) return;
+
+    setVisitingPeopleLoading(true);
+    try {
+      const [admins, issuers] = await Promise.all([
+        listAdminUsersForKioskSite(targetSiteId),
+        listPermitIssuersForSite(targetSiteId),
+      ]);
+      setAdminUsers(admins || []);
+      setPermitIssuers(issuers || []);
+      setVisitingPeopleLoaded(true);
+    } catch (error) {
+      console.warn('Could not load visiting people for kiosk:', error.message);
+      setAdminUsers([]);
+      setPermitIssuers([]);
+    } finally {
+      setVisitingPeopleLoading(false);
+    }
+  };
+
+  const loadVisitorInductionForSite = async (targetSiteId = siteId) => {
+    if (!targetSiteId || visitorInductionLoaded) return;
+
+    setVisitorInductionLoading(true);
+    try {
+      const inductionResult = await getVisitorInduction(targetSiteId);
+      if (inductionResult?.success && inductionResult?.data) {
+        setVisitorInductionContent(normalizeVisitorInductionContent(inductionResult.data?.content || ''));
+        setVisitorInductionPdfUrl(inductionResult.data?.pdf_file_url || '');
+      }
+      setVisitorInductionLoaded(true);
+    } catch (error) {
+      console.warn('Could not load visitor induction:', error.message);
+    } finally {
+      setVisitorInductionLoading(false);
+    }
+  };
+
+  // Load visiting-person lookup data only when a sign-in form needs it.
+  useEffect(() => {
+    if (!siteId) return;
+    const needsVisitingPeople = currentScreen === 'contractor-signin' || currentScreen === 'visitor-signin';
+    if (!needsVisitingPeople) return;
+
+    void loadVisitingPeopleForSite(siteId);
+  }, [currentScreen, siteId, visitingPeopleLoaded]);
+
+  // Load the full contractor roster when sign-in opens (search filters client-side).
+  useEffect(() => {
+    if (currentScreen !== 'contractor-signin' || !siteId) {
+      return;
+    }
+
+    if (contractorsLoadedSiteIdRef.current === siteId) {
+      return;
+    }
+
+    void loadContractorsForSite(siteId);
+  }, [currentScreen, siteId]);
+
+  useEffect(() => () => {
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
+    }
+  }, []);
+
+  // Load visitor induction content only when the visitor flow is opened.
+  useEffect(() => {
+    if (!siteId || currentScreen !== 'visitor-induction') return;
+
+    void loadVisitorInductionForSite(siteId);
+  }, [currentScreen, siteId, visitorInductionLoaded]);
+
+  useEffect(() => {
+    if (resumeAppliedRef.current || !siteId) {
+      return;
+    }
+
+    const resume = consumeKioskReloadResume();
+    if (!resume?.contractorId || resume.returnScreen !== 'contractor-signin') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const applyResume = async () => {
+      try {
+        const refreshedContractor = await getContractorWithSiteInductions(resume.contractorId);
+        if (cancelled || !refreshedContractor) {
+          return;
+        }
+
+        setContractors((current) => {
+          const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
+          if (existingIndex === -1) {
+            return [...current, refreshedContractor];
+          }
+
+          const next = [...current];
+          next[existingIndex] = refreshedContractor;
+          return next;
+        });
+
+        resumeAppliedRef.current = true;
+        setCurrentScreen('contractor-signin');
+        setContractorSearch(resume.contractorName || refreshedContractor.name || '');
+        await handleSelectContractor(refreshedContractor, { skipBackgroundRefresh: true });
+        if (resume.fromInduction) {
+          setReturnedFromInduction(true);
+        }
+      } catch (error) {
+        console.warn('Could not resume kiosk contractor after induction:', error.message);
+      }
+    };
+
+    applyResume();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
+
   // Handle initialRoute changes from URL path detection
   useEffect(() => {
     if (initialRoute && initialRoute !== 'welcome') {
+      if (initialRoute === 'permits-kiosk' && site) {
+        const subdomain = site.kiosk_subdomain || site.kioskSubdomain;
+        if (!kioskPermitsEnabled(subdomain)) {
+          setCurrentScreen('welcome');
+          return;
+        }
+      }
       setCurrentScreen(initialRoute);
       console.log('🔗 Route detected from URL:', initialRoute);
     }
-  }, [initialRoute]);
+  }, [initialRoute, site]);
+
+  // Redirect away from permits screen when disabled for this kiosk
+  useEffect(() => {
+    if (!site || currentScreen !== 'permits-kiosk') {
+      return;
+    }
+
+    const subdomain = site.kiosk_subdomain || site.kioskSubdomain;
+    if (!kioskPermitsEnabled(subdomain)) {
+      setCurrentScreen('welcome');
+    }
+  }, [site, currentScreen]);
 
   // Update URL when currentScreen changes
   useEffect(() => {
@@ -261,7 +440,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         } else if (currentScreen === 'signout') {
           newPath = '/sign-out/';
         } else if (currentScreen === 'permits-kiosk') {
-          newPath = '/permits/';
+          const subdomain = site?.kiosk_subdomain || site?.kioskSubdomain;
+          newPath = kioskPermitsEnabled(subdomain) ? '/permits/' : '/';
         } else if (currentScreen === 'inductions') {
           newPath = '/inductions/';
         } else if (currentScreen === 'inductions-new') {
@@ -341,29 +521,90 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   }, [permitsLoading, currentScreen, siteId, currentContractor?.companyId]);
 
+  const loadBusinessUnitSitesIfNeeded = async () => {
+    if (!businessUnitId || allSites.length > 1) {
+      return;
+    }
+
+    try {
+      const businessUnitSites = await getSitesByBusinessUnits([businessUnitId]);
+      if (businessUnitSites.length > 0) {
+        setAllSites(businessUnitSites);
+      }
+    } catch (error) {
+      console.warn('Could not load business unit sites for kiosk:', error.message);
+    }
+  };
+
   const handleContractorSearch = (text) => {
     setReturnedFromInduction(false);
     setContractorSearch(text);
-    if (text.trim().length > 0) {
-      const searchLower = text.toLowerCase();
-      const filtered = contractors.filter((c) => {
-        const businessUnits = c.business_unit_ids || c.businessUnitIds || [];
-        // Contractors with no BU assigned are still searchable; otherwise must match site BU
-        const hasBusinessUnit =
-          businessUnits.length === 0 || !businessUnitId || businessUnits.includes(businessUnitId);
 
-        const contractorName = (c.name || '').toLowerCase();
-        const contractorEmail = (c.email || '').toLowerCase();
-        const matchesSearch =
-          contractorName.includes(searchLower) ||
-          (contractorEmail && contractorEmail.includes(searchLower));
-
-        return hasBusinessUnit && matchesSearch;
-      });
-      setFilteredContractors(filtered);
-    } else {
-      setFilteredContractors([]);
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
     }
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      contractorSearchRequestRef.current += 1;
+      setFilteredContractors([]);
+      return;
+    }
+
+    const matchesContractorSearch = (contractor) => {
+      const searchLower = trimmed.toLowerCase();
+      const contractorName = (contractor.name || '').toLowerCase();
+      const contractorEmail = (contractor.email || '').toLowerCase();
+      const companyName = (contractor.companyName || contractor.company_name || contractor.company || '').toLowerCase();
+      return (
+        contractorName.includes(searchLower)
+        || contractorEmail.includes(searchLower)
+        || companyName.includes(searchLower)
+      );
+    };
+
+    const filtered = contractors.filter(matchesContractorSearch);
+    setFilteredContractors(filtered);
+
+    if (trimmed.length < 2 || !siteId) {
+      return;
+    }
+
+    const requestId = contractorSearchRequestRef.current + 1;
+    contractorSearchRequestRef.current = requestId;
+
+    contractorSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchContractorsForKiosk(siteId, trimmed);
+        if (contractorSearchRequestRef.current !== requestId) {
+          return;
+        }
+
+        const mergedById = new Map();
+        for (const contractor of [...filtered, ...results]) {
+          mergedById.set(contractor.id, contractor);
+        }
+        setFilteredContractors(
+          Array.from(mergedById.values()).filter(matchesContractorSearch)
+        );
+        setContractors((current) => {
+          const merged = [...current];
+          for (const contractor of results) {
+            const existingIndex = merged.findIndex((entry) => entry.id === contractor.id);
+            if (existingIndex === -1) {
+              merged.push(contractor);
+            } else {
+              merged[existingIndex] = contractor;
+            }
+          }
+          return merged;
+        });
+      } catch (error) {
+        if (contractorSearchRequestRef.current === requestId) {
+          console.warn('Could not run extended contractor search:', error.message);
+        }
+      }
+    }, 300);
   };
 
   const getSiteAdminUsers = (searchText = '') => {
@@ -393,17 +634,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const refreshContractorsForCurrentSite = async (selectedContractorId = null) => {
-    if (!siteId) return;
+    if (!siteId || !selectedContractorId) return;
 
     try {
-      const contractorsData = await listContractorsBySite(siteId);
-      setContractors(contractorsData);
-
-      if (selectedContractorId) {
-        const refreshedContractor = contractorsData.find(contractor => contractor.id === selectedContractorId);
-        if (refreshedContractor) {
-          await handleSelectContractor(refreshedContractor);
-        }
+      const refreshedContractor = await getContractorWithSiteInductions(selectedContractorId);
+      if (refreshedContractor) {
+        await handleSelectContractor(refreshedContractor, { skipBackgroundRefresh: true });
       }
     } catch (error) {
       console.warn('Could not refresh contractor induction status:', error.message);
@@ -453,47 +689,54 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     );
   };
 
-  const handleSelectContractor = async (contractor) => {
-    setSelectedContractor(contractor);
-    setContractorSearch(contractor.name || '');
-    setFilteredContractors([]); // Clear the list so it collapses
-    
-    console.log('🔍 Contractor selected:', contractor.name);
-    console.log('   Services:', contractor.services);
-    console.log('   Site IDs:', contractor.site_ids);
-    console.log('   Induction Expiry:', contractor.induction_expiry);
-    
+  const updateContractorInList = (refreshedContractor) => {
+    setContractors((current) => {
+      const existingIndex = current.findIndex((entry) => entry.id === refreshedContractor.id);
+      if (existingIndex === -1) {
+        return [...current, refreshedContractor];
+      }
+      const next = [...current];
+      next[existingIndex] = refreshedContractor;
+      return next;
+    });
+  };
+
+  const applyContractorInductionUi = (contractorForStatus) => {
+    console.log('🔍 Contractor selected:', contractorForStatus.name);
+    console.log('   Services:', contractorForStatus.services);
+    console.log('   Site IDs:', contractorForStatus.site_ids);
+    console.log('   Induction Expiry:', contractorForStatus.induction_expiry);
+
     try {
-      // Check if contractor is inducted at current site
-      // The contractor object already has site_ids and induction_expiry from the list fetch
-      const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
-      const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
-      
-      if (isInductedHere) {
-        const expiryDate = new Date(contractor.induction_expiry).toLocaleDateString('en-NZ');
+      const inductionStatus = getSiteInductionStatus(contractorForStatus, siteId);
+      const isInductedHere = inductionStatus === 'inducted';
+      const isExpired = inductionStatus === 'expired';
+      const siteExpiry = getSiteInductionExpiry(contractorForStatus, siteId);
+
+      if (isInductedHere || isExpired) {
+        const expiryDate = siteExpiry
+          ? new Date(siteExpiry).toLocaleDateString('en-NZ')
+          : null;
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
-        console.log('✓ Inducted at this site until:', expiryDate);
+        console.log(isExpired ? '⚠️ Induction expired at this site' : '✓ Inducted at this site until:', expiryDate);
       } else {
         setContractorInductionExpiry(null);
         setContractorInductionExpired(false);
         console.log('✗ Not inducted at this site');
       }
-      
-      // Build a list of other sites where they ARE inducted
-      const otherSiteIds = contractor.site_ids?.filter(id => id !== siteId) || [];
-      console.log('🌍 Other site IDs:', otherSiteIds);
-      
-      // Create objects with site details for display
-      const otherSites = otherSiteIds.map(siteId => {
-        const site = allSites.find(s => s.id === siteId);
+
+      const otherSites = getOtherInductedSites(contractorForStatus, siteId).map((record) => {
+        const matchedSite = allSites.find((s) => s.id === record.site_id);
         return {
-          site_id: siteId,
-          name: site?.name || siteId,
-          expires_at: contractor.induction_expiry
+          site_id: record.site_id,
+          name: matchedSite?.name || record.site_id,
+          expires_at: record.expires_at,
+          status: record.status,
         };
       });
-      
+      console.log('🌍 Other inducted sites:', otherSites.map((site) => site.name));
+
       setAllContractorInductions(otherSites);
     } catch (error) {
       console.warn('❌ Error processing contractor:', error);
@@ -501,6 +744,49 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       setContractorInductionExpired(false);
       setAllContractorInductions([]);
     }
+  };
+
+  const applyContractorSelection = (contractorForStatus) => {
+    selectedContractorIdRef.current = contractorForStatus?.id || null;
+    void loadBusinessUnitSitesIfNeeded();
+    setSelectedContractor(contractorForStatus);
+    setContractorSearch(contractorForStatus.name || '');
+    setFilteredContractors([]);
+    setContractorPhone(formatPhoneForDisplay(contractorForStatus.phone));
+    setContractorPhoneError('');
+    applyContractorInductionUi(contractorForStatus);
+  };
+
+  const refreshContractorInductionInBackground = async (contractorId, requestId) => {
+    try {
+      const refreshedContractor = await getContractorWithSiteInductions(contractorId);
+      if (!refreshedContractor || contractorRefreshRequestRef.current !== requestId) {
+        return;
+      }
+
+      updateContractorInList(refreshedContractor);
+
+      if (selectedContractorIdRef.current === contractorId) {
+        setSelectedContractor(refreshedContractor);
+        applyContractorInductionUi(refreshedContractor);
+      }
+    } catch (refreshError) {
+      console.warn('Could not refresh contractor induction status:', refreshError.message);
+    }
+  };
+
+  const handleSelectContractor = async (contractor, { skipBackgroundRefresh = false } = {}) => {
+    const requestId = contractorRefreshRequestRef.current + 1;
+    contractorRefreshRequestRef.current = requestId;
+
+    applyContractorSelection(contractor);
+
+    if (skipBackgroundRefresh) {
+      updateContractorInList(contractor);
+      return;
+    }
+
+    void refreshContractorInductionInBackground(contractor.id, requestId);
   };
 
   const handleCheckInContractor = async () => {
@@ -514,36 +800,28 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       Alert.alert('Error', 'Please select a contractor');
       return;
     }
+
+    const phoneValidationError = validateContractorPhone(contractorPhone);
+    if (phoneValidationError) {
+      setContractorPhoneError(phoneValidationError);
+      showTransientMessage(phoneValidationError);
+      return;
+    }
+    setContractorPhoneError('');
     
     console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
     // Refresh site data to get latest flag/rt settings
-    let refreshedSite = site; // Default to current site
+    let refreshedSite = site;
     try {
-      console.log('3️⃣ Starting site refresh...');
-      const refreshedSites = await listSites();
-      console.log('4️⃣ Sites refreshed, count:', refreshedSites?.length);
-      
-      refreshedSite = refreshedSites.find(s => s.id === siteId);
-      console.log('5️⃣ Current site ID:', siteId);
-      console.log('6️⃣ Found refreshed site:', refreshedSite?.name);
-      
+      console.log('3️⃣ Refreshing current site flag/rt settings...');
+      refreshedSite = await getSite(siteId) || site;
       if (refreshedSite) {
-        console.log('7️⃣ Refreshed site data:', { 
-          id: refreshedSite.id, 
-          name: refreshedSite.name, 
-          flag: refreshedSite.flag, 
-          rt: refreshedSite.rt 
-        });
-        // Update state for future renders, but check refreshed data NOW
         setSite(refreshedSite);
-      } else {
-        console.warn('⚠️ Could not find refreshed site with ID:', siteId);
-        refreshedSite = site; // Fall back to current site
       }
     } catch (err) {
       console.error('❌ Error refreshing site data:', err);
-      refreshedSite = site; // Fall back to current site
+      refreshedSite = site;
     }
     
     // Check if site requires flag/RT - USE REFRESHED DATA, not state
@@ -574,13 +852,40 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const performCheckIn = async (contractor, flagData, rtData) => {
     console.log('📞 Calling checkInContractor for:', contractor.name);
     try {
-      const result = await checkInContractor(contractor.id, siteId, businessUnitId, flagData, rtData, contractorVisitingPerson || null);
+      const phoneValidationError = validateContractorPhone(contractorPhone);
+      if (phoneValidationError) {
+        setContractorPhoneError(phoneValidationError);
+        showTransientMessage(phoneValidationError);
+        return;
+      }
+      setContractorPhoneError('');
+
+      if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
+        const phoneToSave = normalizePhoneForSave(contractorPhone);
+        console.log('📱 Updating contractor phone before check-in:', contractor.id);
+        try {
+          await updateContractor(contractor.id, { phone: phoneToSave });
+        } catch (phoneUpdateError) {
+          console.warn('Could not update contractor phone before check-in:', phoneUpdateError.message);
+        }
+      }
+
+      const result = await checkInContractor(
+        contractor.id,
+        siteId,
+        businessUnitId,
+        flagData,
+        rtData,
+        contractorVisitingPerson || null,
+        normalizePhoneForSave(contractorPhone)
+      );
       
       console.log('📊 Check-in result:', result);
       
       if (result?.success) {
         // Clear the form immediately since check-in was recorded
         const contractorName = contractor.name;
+        selectedContractorIdRef.current = null;
         setSelectedContractor(null);
         setContractorSearch('');
         setFilteredContractors([]);
@@ -588,6 +893,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setContractorInductionExpired(false);
         setAllContractorInductions([]);
         setContractorVisitingPerson('');
+        setContractorPhone('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
         showTransientMessage('You are signed in');
@@ -613,14 +919,29 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInVisitor = async () => {
-    if (!visitorName.trim() || !visitorCompany.trim() || !visitorPhone.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    const nameError = validateContractorFullName(visitorName) || '';
+    const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
+    const phoneError = validateContractorPhone(visitorPhone) || '';
+
+    setVisitorNameError(nameError);
+    setVisitorCompanyError(companyError);
+    setVisitorPhoneError(phoneError);
+
+    if (nameError || companyError || phoneError) {
+      showTransientMessage(nameError || companyError || phoneError);
       return;
     }
     
     try {
       const formattedName = formatNameToTitleCase(visitorName);
-      const result = await checkInVisitor(formattedName, visitorCompany, siteId, businessUnitId, visitorPhone, visitingPerson || null);
+      const result = await checkInVisitor(
+        formattedName,
+        visitorCompany,
+        siteId,
+        businessUnitId,
+        normalizePhoneForSave(visitorPhone),
+        visitingPerson || null
+      );
       
       if (result?.success) {
         showTransientMessage('You are signed in');
@@ -628,6 +949,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setVisitorName('');
         setVisitorCompany('');
         setVisitorPhone('');
+        setVisitorNameError('');
+        setVisitorCompanyError('');
+        setVisitorPhoneError('');
         setVisitingPerson('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
@@ -748,6 +1072,70 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }
 
   const kioskSubdomain = site.kiosk_subdomain || site.kioskSubdomain;
+  const showPermits = kioskPermitsEnabled(kioskSubdomain);
+
+  const openAdminLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/';
+    }
+  };
+
+  const handleKioskRefresh = () => {
+    reloadKioskPage();
+  };
+
+  const renderKioskRefreshButton = () => (
+    <TouchableOpacity
+      onPress={handleKioskRefresh}
+      accessibilityRole="button"
+      accessibilityLabel="Refresh kiosk"
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        minWidth: 72,
+      }}
+    >
+      <Text style={{ fontSize: 22 }}>🔄</Text>
+      <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Refresh</Text>
+    </TouchableOpacity>
+  );
+
+  const renderKioskAdminButton = () => {
+    if (showPermits) {
+      return null;
+    }
+
+    return (
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 20,
+          backgroundColor: '#7C3AED',
+          padding: 16,
+          borderRadius: 50,
+          elevation: 10,
+          zIndex: 1000,
+          width: 70,
+          height: 70,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 5,
+        }}
+        onPress={openAdminLogin}
+      >
+        <Text style={{ fontSize: 28 }}>⚙️</Text>
+        <Text style={{ fontSize: 9, color: 'white', marginTop: 2, fontWeight: '600' }}>Admin</Text>
+      </TouchableOpacity>
+    );
+  };
 
   // Welcome Screen
   if (currentScreen === 'welcome') {
@@ -764,7 +1152,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 </View>
               )}
             </View>
-            <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+            <View style={{ alignItems: 'center', gap: 8 }}>
+              {renderKioskRefreshButton()}
+              <KioskBrandLogo kioskSubdomain={kioskSubdomain} />
+            </View>
           </View>
         </View>
 
@@ -773,12 +1164,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             style={styles.largeButton}
             onPress={() => {
               setCurrentScreen('contractor-signin');
+              selectedContractorIdRef.current = null;
               setSelectedContractor(null);
               setContractorSearch('');
               setContractorInductionExpiry(null);
               setContractorInductionExpired(false);
               setAllContractorInductions([]);
               setContractorVisitingPerson('');
+              setContractorPhone('');
             }}
           >
             <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -811,6 +1204,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </ScrollView>
 
         {/* Floating Permits button */}
+        {showPermits && (
         <TouchableOpacity
           style={{
             position: 'absolute',
@@ -839,6 +1233,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 32 }}>📋</Text>
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
+        )}
+
+        {renderKioskAdminButton()}
 
         {/* Contractor Induction Button */}
         <TouchableOpacity
@@ -878,6 +1275,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         >
           <ContractorInductionScreen
             styles={styles}
+            kioskSiteId={siteId}
+            kioskBusinessUnitId={businessUnitId}
             onComplete={() => setShowInductionModal(false)}
             onCancel={() => setShowInductionModal(false)}
           />
@@ -919,20 +1318,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     const handleCompleteInductions = async (completedContractor = null) => {
       const priorReturnScreen = inductionReturnScreen || 'welcome';
       const contractorIdToRefresh = completedContractor?.contractorId || inductionPrefillContractorId;
-      setInductionPrefillContractorId(null);
-      setInductionReturnScreen('welcome');
 
-      const returnScreen = contractorIdToRefresh ? 'contractor-signin' : priorReturnScreen;
-
-      if (returnScreen === 'contractor-signin' && contractorIdToRefresh) {
-        await refreshContractorsForCurrentSite(contractorIdToRefresh);
-        if (completedContractor?.contractorName) {
-          setContractorSearch(completedContractor.contractorName);
-        }
-        setReturnedFromInduction(true);
+      if (contractorIdToRefresh) {
+        reloadKioskToSignIn({
+          contractorId: contractorIdToRefresh,
+          contractorName: completedContractor?.contractorName || '',
+        });
+        return;
       }
 
-      setCurrentScreen(returnScreen);
+      setInductionPrefillContractorId(null);
+      setInductionReturnScreen('welcome');
+      setCurrentScreen(priorReturnScreen);
     };
 
     const handleCancelInductions = async () => {
@@ -951,6 +1348,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         styles={styles}
         initialRoute={inductionInitialState}
         initialContractorId={inductionPrefillContractorId}
+        kioskSiteId={siteId}
+        kioskBusinessUnitId={businessUnitId}
         onSelectInductionType={handleSelectInductionType}
         onBackToSelection={handleBackToSelection}
         onComplete={handleCompleteInductions}
@@ -977,7 +1376,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
-          {returnedFromInduction && selectedContractor && (
+          {returnedFromInduction && selectedContractor && contractorInductionExpiry && !contractorInductionExpired && (
             <View style={{
               backgroundColor: '#DCFCE7',
               borderLeftWidth: 4,
@@ -990,20 +1389,68 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 Welcome back, {selectedContractor.name}!
               </Text>
               <Text style={{ fontSize: 13, color: '#15803D', lineHeight: 18 }}>
-                Your induction is complete. Review the details below and check in when ready.
+                You are now inducted at this site. Review the details below and check in when ready.
               </Text>
             </View>
           )}
 
+          {!returnedFromInduction && (
+            <View style={{
+              backgroundColor: '#EFF6FF',
+              borderLeftWidth: 4,
+              borderLeftColor: '#3B82F6',
+              padding: 14,
+              borderRadius: 8,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 14, color: '#1E40AF', lineHeight: 20, marginBottom: 10 }}>
+                All new contractors (or if your name is not on the list) — can you please do an induction.
+              </Text>
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-start' }}
+                onPress={() => {
+                  setInductionPrefillContractorId(null);
+                  setInductionReturnScreen('contractor-signin');
+                  setCurrentScreen('inductions');
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB', textDecorationLine: 'underline' }}>
+                  Go to Inductions →
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <Text style={styles.label}>Search for Contractor:</Text>
+          {contractorsLoadError ? (
+            <View style={{ marginBottom: 12, padding: 12, backgroundColor: '#FEF2F2', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
+              <Text style={{ color: '#991B1B', fontSize: 13, lineHeight: 18, marginBottom: 8 }}>
+                {contractorsLoadError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  contractorsLoadedSiteIdRef.current = null;
+                  void loadContractorsForSite(siteId);
+                }}
+              >
+                <Text style={{ color: '#2563EB', fontWeight: '600', fontSize: 13 }}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <TextInput
             style={styles.input}
-            placeholder="Type contractor name or email..."
+            placeholder="Search by name, email, or company..."
             value={contractorSearch}
             onChangeText={handleContractorSearch}
           />
+          {contractorsLoading && contractors.length === 0 && (
+            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#3B82F6" />
+              <Text style={{ marginTop: 8, color: '#6B7280', fontSize: 13 }}>Loading contractors...</Text>
+            </View>
+          )}
 
-          {filteredContractors.length > 0 ? (
+          {!contractorsLoading && filteredContractors.length > 0 ? (
             <FlatList
               data={filteredContractors}
               scrollEnabled={false}
@@ -1027,7 +1474,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               )}
             />
           ) : (
-            contractorSearch.trim().length > 0 && (
+            !contractorsLoading && contractorSearch.trim().length > 0 && (
               <Text style={styles.noResults}>No contractors found</Text>
             )
           )}
@@ -1107,25 +1554,70 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                     )}
                   </View>
                 )}
-                {(!contractorInductionExpiry || contractorInductionExpired) && (
+                {(!contractorInductionExpiry || contractorInductionExpired) && (() => {
+                  const shouldAddParts = !contractorInductionExpired && allContractorInductions.length > 0;
+                  const inductionActionLabel = contractorInductionExpired
+                    ? 'Renew Induction'
+                    : shouldAddParts
+                      ? 'Add Parts to Induction'
+                      : 'Complete Induction';
+                  const inductionHelpText = contractorInductionExpired
+                    ? 'This contractor can still check in during rollout, but should renew their expired induction as soon as possible.'
+                    : shouldAddParts
+                      ? 'This contractor is inducted at other sites. Add the missing induction sections required for this site without redoing completed inductions.'
+                      : 'This contractor can still check in during rollout, but should complete their induction as soon as possible.';
+
+                  return (
                   <View style={{ marginTop: 12, backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8 }}>
                     <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, marginBottom: 10 }}>
-                      This contractor can still check in during rollout, but should complete or renew their induction as soon as possible. This will show the required inductions for their company, business unit, and selected site.
+                      {inductionHelpText}
                     </Text>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
+                      style={{ backgroundColor: shouldAddParts ? '#A855F7' : '#3B82F6', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' }}
                       onPress={() => {
                         setInductionPrefillContractorId(selectedContractor.id);
                         setInductionReturnScreen('contractor-signin');
-                        setCurrentScreen('inductions-returning');
+                        setCurrentScreen(shouldAddParts ? 'inductions-add-parts' : 'inductions-returning');
                       }}
                     >
                       <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                        {contractorInductionExpired ? 'Renew Induction' : 'Complete Induction'}
+                        {inductionActionLabel}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                )}
+                  );
+                })()}
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                  Phone Number *
+                </Text>
+                {contractorPhoneError ? (
+                  <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
+                    {contractorPhoneError}
+                  </Text>
+                ) : !formatPhoneForDisplay(selectedContractor.phone) && !contractorPhone.trim() ? (
+                  <Text style={{ fontSize: 12, color: '#DC2626', marginBottom: 8, lineHeight: 18 }}>
+                    Please add your phone number before checking in.
+                  </Text>
+                ) : null}
+                <TextInput
+                  style={[
+                    styles.input,
+                    contractorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null,
+                  ]}
+                  placeholder="Enter your phone number"
+                  value={contractorPhone}
+                  onChangeText={(text) => {
+                    const phone = sanitizePhoneInput(text);
+                    setContractorPhone(phone);
+                    if (!validateContractorPhone(phone)) {
+                      setContractorPhoneError('');
+                    }
+                  }}
+                  keyboardType="phone-pad"
+                />
               </View>
 
               <View style={{ marginTop: 12 }}>
@@ -1324,7 +1816,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.formContent}>
-          {visitorInductionPdfUrl ? (
+          {visitorInductionLoading && !visitorInductionPdfUrl && !visitorInductionContent ? (
+            <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Loading site induction...</Text>
+            </View>
+          ) : visitorInductionPdfUrl ? (
             // Display PDF if available
             <View style={{ ...styles.inductionBox, height: 600, marginBottom: 20 }}>
               {Platform.OS === 'web' ? (
@@ -1397,28 +1894,53 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         <ScrollView key="visitor-signin-form" contentContainerStyle={[styles.formContent, { paddingTop: 16 }]}>
           <Text style={styles.label}>Visitor Name *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter your name"
+            style={[styles.input, visitorNameError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
+            placeholder="Enter your first and last name"
             value={visitorName}
-            onChangeText={setVisitorName}
+            onChangeText={(text) => {
+              setVisitorName(text);
+              if (!validateContractorFullName(text)) {
+                setVisitorNameError('');
+              }
+            }}
           />
+          {visitorNameError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorNameError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Company *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorCompanyError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your company"
             value={visitorCompany}
-            onChangeText={setVisitorCompany}
+            onChangeText={(text) => {
+              setVisitorCompany(text);
+              if (text.trim()) {
+                setVisitorCompanyError('');
+              }
+            }}
           />
+          {visitorCompanyError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorCompanyError}</Text>
+          ) : null}
 
           <Text style={styles.label}>Phone Number *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, visitorPhoneError ? { borderColor: '#DC2626', borderWidth: 2 } : null]}
             placeholder="Enter your phone number"
             value={visitorPhone}
-            onChangeText={setVisitorPhone}
+            onChangeText={(text) => {
+              const phone = sanitizePhoneInput(text);
+              setVisitorPhone(phone);
+              if (!validateContractorPhone(phone)) {
+                setVisitorPhoneError('');
+              }
+            }}
             keyboardType="phone-pad"
           />
+          {visitorPhoneError ? (
+            <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorPhoneError}</Text>
+          ) : null}
 
           {renderVisitingPersonLookup({
             value: visitingPerson,
@@ -1693,7 +2215,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }
 
   // Permits Kiosk View Screen - matches main dashboard
-  if (currentScreen === 'permits-kiosk') {
+  if (currentScreen === 'permits-kiosk' && showPermits) {
     if (permitsLoading) {
       return (
         <View style={styles.container}>
@@ -1840,12 +2362,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               style={styles.largeButton}
               onPress={() => {
                 setCurrentScreen('contractor-signin');
+                selectedContractorIdRef.current = null;
                 setSelectedContractor(null);
                 setContractorSearch('');
                 setContractorInductionExpiry(null);
                 setContractorInductionExpired(false);
                 setAllContractorInductions([]);
                 setContractorVisitingPerson('');
+                setContractorPhone('');
               }}
             >
               <Text style={styles.largeButtonText}>👷 Sign In Contractor</Text>
@@ -1880,7 +2404,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       )}
       
       {/* Floating Permits button - visible on all screens except permits-kiosk */}
-      {currentScreen !== 'permits-kiosk' && (
+      {showPermits && currentScreen !== 'permits-kiosk' && (
         <TouchableOpacity
           style={{
             position: 'absolute',
@@ -1909,6 +2433,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           <Text style={{ fontSize: 10, color: 'white', marginTop: 2, fontWeight: '600' }}>Permits</Text>
         </TouchableOpacity>
       )}
+
+      {renderKioskAdminButton()}
     </View>
   );
 };

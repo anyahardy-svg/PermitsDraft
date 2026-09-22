@@ -15,6 +15,11 @@ const REQUIRED_PACKAGES = [
     version: '1.2.0',
     file: 'node_modules/@0no-co/graphql.web/dist/graphql.web.js',
   },
+  {
+    name: 'wonka',
+    version: '6.3.5',
+    file: 'node_modules/wonka/dist/wonka.js',
+  },
 ];
 
 const rootDir = path.join(__dirname, '..');

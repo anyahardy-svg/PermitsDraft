@@ -29,15 +29,21 @@ import {
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany, searchCompanies } from '../api/companies';
 import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
+import {
+  syncSiteInductionRecordsFromProgress,
+  upsertContractorSiteInductions,
+} from '../api/contractorInductions';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits, listSites } from '../api/sites';
-import { listServicesByBusinessUnit } from '../api/services';
+import { listServicesForBusinessUnits } from '../api/services';
 import {
   validateInductionAnswers,
   getInductionAnswerValidationMessage,
   getInductionQuestionContainerStyle,
   getInductionOptionStyles,
 } from '../utils/inductionAnswerValidation';
+import { sanitizePhoneInput, validateContractorPhone, normalizePhoneForSave } from '../utils/contractorPhone';
+import { validateContractorFullName } from '../utils/contractorName';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -94,6 +100,8 @@ export default function ContractorInductionScreen({
   onSelectInductionType,
   onBackToSelection,
   standalone = false,
+  kioskSiteId = null,
+  kioskBusinessUnitId = null,
 }) {
   const [step, setStep] = useState('info'); // info, inductionsList, inductionBoard, signature, complete
   const [loading, setLoading] = useState(false);
@@ -114,6 +122,15 @@ export default function ContractorInductionScreen({
   };
   
   const [isNewContractor, setIsNewContractor] = useState(getInitialIsNewContractor()); // null = choosing, true = new, false = existing, 'resume' = resuming saved
+
+  // Only lock site for "add parts at this kiosk" — new/returning contractors choose site(s).
+  const isNewContractorInduction =
+    standalone || isNewContractor === true || initialRoute === 'new';
+  const isKioskSiteLocked =
+    Boolean(kioskSiteId) &&
+    !isNewContractorInduction &&
+    (initialRoute === 'add-parts' || isNewContractor === 'add-parts');
+
   const [contractors, setContractors] = useState([]);
   const [selectedContractorId, setSelectedContractorId] = useState('');
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
@@ -249,47 +266,224 @@ export default function ContractorInductionScreen({
   // HANDLERS FOR ADD PARTS TO EXISTING INDUCTION
   // ============================================================================
   
+  const getKioskLockedSiteIds = () => (kioskSiteId ? [kioskSiteId] : []);
+
+  const getEffectiveSelectedSiteIds = (selectedSiteIds = []) => {
+    if (isKioskSiteLocked) {
+      return getKioskLockedSiteIds();
+    }
+    return selectedSiteIds || [];
+  };
+
+  const mergeSitesWithKioskSite = (siteList = []) => {
+    if (!kioskSiteId) {
+      return siteList;
+    }
+
+    const normalized = Array.isArray(siteList) ? siteList : [];
+    if (normalized.some((site) => site.id === kioskSiteId)) {
+      return normalized;
+    }
+
+    const kioskSite =
+      allSites.find((site) => site.id === kioskSiteId) ||
+      sites.find((site) => site.id === kioskSiteId) || {
+        id: kioskSiteId,
+        name: 'This site',
+        business_unit_id: kioskBusinessUnitId || null,
+      };
+
+    return [...normalized, kioskSite].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  };
+
+  const getApplicableBusinessUnitIds = (contractor) => {
+    const contractorBUs = contractor?.business_unit_ids || [];
+    if (kioskBusinessUnitId) {
+      return Array.from(new Set([...contractorBUs, kioskBusinessUnitId]));
+    }
+    return contractorBUs;
+  };
+
+  const loadInductionsForSiteAddParts = async (contractor, selectedSites, selectedBUs) => {
+    const serviceIds = contractor?.service_ids || [];
+    let allInductionsData = [];
+
+    for (const buId of selectedBUs) {
+      const inductionsForBU = await getInductionsByBusinessUnit(buId, serviceIds);
+      if (Array.isArray(inductionsForBU)) {
+        allInductionsData = [...allInductionsData, ...inductionsForBU];
+      }
+    }
+
+    const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+    const compulsory = [];
+    const optional = [];
+
+    uniqueInductions.forEach((ind) => {
+      const isSiteSpecific = ind.site_id !== null;
+      const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
+      if (!isApplicableToSelectedSites) {
+        return;
+      }
+
+      if (ind.is_compulsory || inductionForcedByContractorServices(ind, serviceIds)) {
+        compulsory.push(ind);
+      } else {
+        optional.push(ind);
+      }
+    });
+
+    return { uniqueInductions, compulsory, optional };
+  };
+
+  const finalizeSiteInductionForContractor = async ({
+    contractorId,
+    inductedSiteIds,
+    businessUnitIds,
+  }) => {
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    const existingContractor = await getContractor(contractorId);
+    const existingSiteIds = existingContractor?.site_ids || existingContractor?.siteIds || [];
+    const updatedSiteIds = Array.from(new Set([...existingSiteIds, ...inductedSiteIds]));
+
+    await updateContractor(contractorId, {
+      site_ids: updatedSiteIds,
+      business_unit_ids: businessUnitIds,
+      induction_expiry: expiryDate.toISOString(),
+    });
+
+    const siteIdToBusinessUnitId = getSiteIdToBusinessUnitId([...sites, ...allSites]);
+    await upsertContractorSiteInductions({
+      contractorId,
+      siteIds: inductedSiteIds,
+      siteIdToBusinessUnitId,
+      expiresAt: expiryDate.toISOString(),
+    });
+  };
+
+  const startKioskAddPartsFlow = async (contractorId) => {
+    try {
+      setLoading(true);
+      const contractor = await getContractor(contractorId);
+      const selectedSites = getKioskLockedSiteIds();
+      const selectedBUs = getApplicableBusinessUnitIds(contractor);
+
+      await updateContractor(contractorId, {
+        business_unit_ids: selectedBUs,
+      });
+
+      await syncSiteInductionRecordsFromProgress(contractorId);
+
+      const progressData = await getContractorInductionProgress(contractorId);
+      const completedIds = progressData
+        .filter((progress) => progress.status === 'completed')
+        .map((progress) => progress.induction_id);
+      const completedIdSet = new Set(completedIds);
+
+      const { uniqueInductions, compulsory, optional } = await loadInductionsForSiteAddParts(
+        contractor,
+        selectedSites,
+        selectedBUs
+      );
+
+      const incompleteCompulsory = compulsory.filter((ind) => !completedIdSet.has(ind.id));
+      const incompleteOptional = optional.filter((ind) => !completedIdSet.has(ind.id));
+
+      setAddPartsContractorId(contractorId);
+      setAddPartsContractor(contractor);
+      setExistingInductionProgress(progressData);
+      setCompletedInductionIds_AddParts(completedIds);
+      setAllInductions(uniqueInductions);
+      setAddPartsFilterBUId(kioskBusinessUnitId || '');
+      setAddPartsFilterSiteId(kioskSiteId || '');
+      setAddPartsFilterName('');
+
+      setContractorInfo({
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email,
+        phone: contractor.phone || '',
+        companyId: contractor.company_id,
+        selectedBusinessUnitIds: selectedBUs,
+        selectedSiteIds: selectedSites,
+        service_ids: contractor.service_ids || [],
+      });
+      setSelectedContractorId(contractorId);
+      setIsNewContractor('add-parts');
+      setLoadSavedAnswersOnOpen(false);
+
+      if (incompleteCompulsory.length === 0) {
+        await finalizeSiteInductionForContractor({
+          contractorId,
+          inductedSiteIds: selectedSites,
+          businessUnitIds: selectedBUs,
+        });
+
+        if (incompleteOptional.length === 0) {
+          Alert.alert(
+            'Site induction complete',
+            'No additional induction sections are required for this site.',
+            [{ text: 'OK', onPress: () => handleExitWithContractor() }]
+          );
+          return;
+        }
+      }
+
+      setCompulsoryInductions(incompleteCompulsory);
+      setOptionalInductions(incompleteOptional);
+      setSelectedOptionalIds([]);
+      setInductionQueue([]);
+      setCompletedInductionIds([]);
+      setModalAnswers({});
+      setStep('inductionsList');
+    } catch (err) {
+      console.error('Error starting kiosk add-parts flow:', err);
+      Alert.alert('Error', 'Failed to load site induction: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddPartsContractorSelected = async (contractorId) => {
     try {
       setLoading(true);
       const contractor = await getContractor(contractorId);
+      const selectedSites = isKioskSiteLocked
+        ? getKioskLockedSiteIds()
+        : (contractor.site_ids || []);
+      const selectedBUs = getApplicableBusinessUnitIds(contractor);
+
       setAddPartsContractorId(contractorId);
       setAddPartsContractor(contractor);
-      
-      // Load their induction progress
+
       const progressData = await getContractorInductionProgress(contractorId);
       setExistingInductionProgress(progressData);
-      
-      // Identify completed induction IDs
+
       const completedIds = progressData
-        .filter(p => p.status === 'completed')
-        .map(p => p.induction_id);
+        .filter((progress) => progress.status === 'completed')
+        .map((progress) => progress.induction_id);
       setCompletedInductionIds_AddParts(completedIds);
-      
-      // Load all available inductions across every assigned business unit
-      const contractorBUs = contractor.business_unit_ids || [];
-      let allInductionsData = [];
-      for (const buId of contractorBUs) {
-        const inductionsForBU = await getInductionsByBusinessUnit(buId, [], { skipServiceFilter: true });
-        if (Array.isArray(inductionsForBU)) {
-          allInductionsData = [...allInductionsData, ...inductionsForBU];
-        }
-      }
-      const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
+
+      const { uniqueInductions } = await loadInductionsForSiteAddParts(
+        contractor,
+        selectedSites,
+        selectedBUs
+      );
       setAllInductions(uniqueInductions);
-      setAddPartsFilterBUId('');
-      setAddPartsFilterSiteId('');
+      setAddPartsFilterBUId(kioskBusinessUnitId || '');
+      setAddPartsFilterSiteId(kioskSiteId || '');
       setAddPartsFilterName('');
 
       const selectionState = {};
-      uniqueInductions.forEach(ind => {
+      uniqueInductions.forEach((ind) => {
         if (!completedIds.includes(ind.id)) {
           selectionState[ind.id] = false;
         }
       });
       setNewInductionsToAdd(selectionState);
-      
-      // Move to selection screen
+
       setStep('info-add-parts');
     } catch (err) {
       console.error('Error loading contractor for add-parts:', err);
@@ -299,10 +493,37 @@ export default function ContractorInductionScreen({
     }
   };
 
+  const getSiteIdToBusinessUnitId = (siteList = []) => {
+    const mapping = {};
+    for (const site of siteList) {
+      if (site?.id && site?.business_unit_id) {
+        mapping[site.id] = site.business_unit_id;
+      }
+    }
+    if (kioskSiteId && kioskBusinessUnitId) {
+      mapping[kioskSiteId] = kioskBusinessUnitId;
+    }
+    return mapping;
+  };
+
   // Load initial data
   useEffect(() => {
     loadCompaniesAndBU();
   }, []);
+
+  useEffect(() => {
+    if (!isKioskSiteLocked) {
+      return;
+    }
+
+    setContractorInfo((prev) => ({
+      ...prev,
+      selectedSiteIds: getKioskLockedSiteIds(),
+      selectedBusinessUnitIds: kioskBusinessUnitId
+        ? Array.from(new Set([...(prev.selectedBusinessUnitIds || []), kioskBusinessUnitId]))
+        : prev.selectedBusinessUnitIds,
+    }));
+  }, [kioskSiteId, kioskBusinessUnitId, isKioskSiteLocked]);
 
   // Handle deep-link routes on mount
   useEffect(() => {
@@ -313,7 +534,9 @@ export default function ContractorInductionScreen({
       handleLoadIncompleteInductions();
     } else if (initialRoute === 'add-parts') {
       setIsNewContractor('add-parts');
-      loadAllContractors();
+      if (!(initialContractorId && kioskSiteId)) {
+        loadAllContractors();
+      }
     }
   }, []);
 
@@ -362,17 +585,23 @@ export default function ContractorInductionScreen({
       if (selectedBUs.length > 0) {
         try {
           const sitesData = await getSitesByBusinessUnits(selectedBUs);
-          setSites(Array.isArray(sitesData) ? sitesData : []);
+          setSites(mergeSitesWithKioskSite(sitesData));
+          if (isKioskSiteLocked) {
+            setContractorInfo((prev) => ({
+              ...prev,
+              selectedSiteIds: getKioskLockedSiteIds(),
+            }));
+          }
         } catch (err) {
           console.error('Failed to load sites:', err);
         }
       } else {
-        setSites([]);
+        setSites(isKioskSiteLocked ? mergeSitesWithKioskSite([]) : []);
       }
     };
     
     loadSitesForBUs();
-  }, [contractorInfo.selectedBusinessUnitIds]);
+  }, [contractorInfo.selectedBusinessUnitIds, isKioskSiteLocked, kioskSiteId, allSites]);
 
   const loadCompaniesAndBU = async () => {
     try {
@@ -596,8 +825,10 @@ export default function ContractorInductionScreen({
         email: contractor.email,
         phone: contractor.phone || '',
         companyId: contractor.company_id,
-        selectedBusinessUnitIds: contractor.business_unit_ids || [],
-        selectedSiteIds: contractor.site_ids || [],
+        selectedBusinessUnitIds: kioskBusinessUnitId
+          ? Array.from(new Set([...(contractor.business_unit_ids || []), kioskBusinessUnitId]))
+          : (contractor.business_unit_ids || []),
+        selectedSiteIds: isKioskSiteLocked ? getKioskLockedSiteIds() : (contractor.site_ids || []),
         service_ids: contractor.service_ids || [],
       });
       setSelectedContractorId(contractorId);
@@ -625,6 +856,16 @@ export default function ContractorInductionScreen({
       handleSelectExistingContractor(initialContractorId);
     }
   }, [initialContractorId, contractors.length, selectedContractorId, initialRoute]);
+
+  useEffect(() => {
+    if (initialContractorId && initialRoute === 'add-parts' && !addPartsContractorId) {
+      if (isKioskSiteLocked) {
+        startKioskAddPartsFlow(initialContractorId);
+      } else {
+        handleAddPartsContractorSelected(initialContractorId);
+      }
+    }
+  }, [initialContractorId, initialRoute, addPartsContractorId, isKioskSiteLocked]);
 
   const handleNewContractor = () => {
     setIsNewContractor(true);
@@ -767,22 +1008,31 @@ export default function ContractorInductionScreen({
       ? currentBUs.filter(id => id !== buId)
       : [...currentBUs, buId];
 
-    setContractorInfo({ ...contractorInfo, selectedBusinessUnitIds: newSelectedBUs, selectedSiteIds: [], service_ids: [] });
+    setContractorInfo({
+      ...contractorInfo,
+      selectedBusinessUnitIds: newSelectedBUs,
+      selectedSiteIds: isKioskSiteLocked ? getKioskLockedSiteIds() : [],
+      service_ids: [],
+    });
     
     // Load sites for all selected business units
     if (newSelectedBUs.length > 0) {
       try {
         const sitesData = await getSitesByBusinessUnits(newSelectedBUs);
-        setSites(Array.isArray(sitesData) ? sitesData : []);
+        setSites(mergeSitesWithKioskSite(sitesData));
       } catch (err) {
         console.error('Failed to load sites:', err);
       }
     } else {
-      setSites([]);
+      setSites(isKioskSiteLocked ? mergeSitesWithKioskSite([]) : []);
     }
   };
 
   const toggleSiteSelection = (siteId) => {
+    if (isKioskSiteLocked) {
+      return;
+    }
+
     setContractorInfo(prev => ({
       ...prev,
       selectedSiteIds: (prev.selectedSiteIds || []).includes(siteId)
@@ -792,35 +1042,14 @@ export default function ContractorInductionScreen({
   };
 
   const loadServicesForBusinessUnits = async (buIds) => {
-    let allServices = [];
-    for (const buId of buIds) {
-      const servicesForBU = await listServicesByBusinessUnit(buId);
-      if (Array.isArray(servicesForBU)) {
-        allServices = [...allServices, ...servicesForBU];
-      }
-    }
-
-    const uniqueServices = Array.from(new Map(allServices.map(service => [service.id, service])).values());
-    uniqueServices.sort((a, b) => {
+    const applicableServices = await listServicesForBusinessUnits(buIds);
+    return applicableServices.sort((a, b) => {
       const aIsGeneral = a.name?.toLowerCase() === 'general';
       const bIsGeneral = b.name?.toLowerCase() === 'general';
       if (aIsGeneral && !bIsGeneral) return -1;
       if (!aIsGeneral && bIsGeneral) return 1;
       return (a.name || '').localeCompare(b.name || '');
     });
-
-    return uniqueServices;
-  };
-
-  const getServiceDisplayName = (service) => {
-    const selectedBUIds = contractorInfo.selectedBusinessUnitIds || [];
-    const applicableServices = availableServices.filter(s => selectedBUIds.includes(s.business_unit_id));
-    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
-    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
-    if (hasDuplicateName && businessUnit) {
-      return `${service.name} (${businessUnit.name})`;
-    }
-    return service.name;
   };
 
   const toggleServiceSelection = (serviceId) => {
@@ -926,9 +1155,14 @@ export default function ContractorInductionScreen({
     // Clear previous errors
     const newValidationErrors = {};
     
-    // Validate name
-    if (!contractorInfo.name?.trim()) {
-      newValidationErrors.name = '⚠️ Full name is required';
+    const fullNameError = validateContractorFullName(contractorInfo.name);
+    if (fullNameError) {
+      newValidationErrors.name = `⚠️ ${fullNameError}`;
+    }
+
+    const phoneError = validateContractorPhone(contractorInfo.phone);
+    if (phoneError) {
+      newValidationErrors.phone = `⚠️ ${phoneError}`;
     }
     
     // Validate email
@@ -949,7 +1183,7 @@ export default function ContractorInductionScreen({
       newValidationErrors.businessUnits = '⚠️ Please select at least one business unit';
     }
 
-    const selectedSites = contractorInfo.selectedSiteIds || [];
+    const selectedSites = getEffectiveSelectedSiteIds(contractorInfo.selectedSiteIds);
     if (sites.length > 0 && selectedSites.length === 0) {
       newValidationErrors.sites = '⚠️ Please select the site or sites this induction applies to';
     }
@@ -973,10 +1207,11 @@ export default function ContractorInductionScreen({
       if (isNewContractor && !contractorId) {
         console.log('📝 Creating new contractor...');
         const formattedName = formatNameToTitleCase(contractorInfo.name);
+        const phoneToSave = normalizePhoneForSave(contractorInfo.phone);
         const newContractor = await createContractor({
           name: formattedName,
           email: contractorInfo.email,
-          phone: contractorInfo.phone,
+          phone: phoneToSave,
           company_id: contractorInfo.companyId,
           business_unit_ids: selectedBUs,
           site_ids: selectedSites,
@@ -993,7 +1228,7 @@ export default function ContractorInductionScreen({
         await updateContractor(contractorId, {
           name: formatNameToTitleCase(contractorInfo.name),
           email: contractorInfo.email,
-          phone: contractorInfo.phone,
+          phone: normalizePhoneForSave(contractorInfo.phone),
           company_id: contractorInfo.companyId,
           business_unit_ids: selectedBUs,
           site_ids: selectedSites,
@@ -1080,6 +1315,34 @@ export default function ContractorInductionScreen({
 
   const handleStartInductions = async () => {
     if (compulsoryInductions.length === 0 && selectedOptionalIds.length === 0) {
+      if (isNewContractor === 'add-parts') {
+        if (!contractorInfo.id) {
+          Alert.alert('Error', 'Contractor record not found. Please go back and complete your details.');
+          return;
+        }
+
+        setLoading(true);
+        try {
+          await finalizeSiteInductionForContractor({
+            contractorId: contractorInfo.id,
+            inductedSiteIds: isKioskSiteLocked
+              ? getKioskLockedSiteIds()
+              : Array.from(new Set([...(contractorInfo.selectedSiteIds || [])])),
+            businessUnitIds: contractorInfo.selectedBusinessUnitIds || [],
+          });
+          Alert.alert(
+            'Site induction complete',
+            'No additional induction sections are required for this site.',
+            [{ text: 'OK', onPress: () => handleExitWithContractor() }]
+          );
+        } catch (err) {
+          Alert.alert('Error', 'Failed to complete site induction: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       Alert.alert('Error', 'Please select at least one induction');
       return;
     }
@@ -1172,20 +1435,19 @@ export default function ContractorInductionScreen({
   };
 
   const finalizeContractorInductionStatus = async () => {
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    const inductedSiteIds = isKioskSiteLocked
+      ? getKioskLockedSiteIds()
+      : Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
 
-    const updatedSiteIds = Array.from(new Set([...(contractorInfo.selectedSiteIds || [])]));
-
-    await updateContractor(contractorInfo.id, {
-      site_ids: updatedSiteIds,
-      business_unit_ids: contractorInfo.selectedBusinessUnitIds || [],
-      induction_expiry: expiryDate.toISOString(),
+    await finalizeSiteInductionForContractor({
+      contractorId: contractorInfo.id,
+      inductedSiteIds,
+      businessUnitIds: contractorInfo.selectedBusinessUnitIds || [],
     });
 
     setContractorInfo(prev => ({
       ...prev,
-      selectedSiteIds: updatedSiteIds,
+      selectedSiteIds: inductedSiteIds,
     }));
   };
 
@@ -1695,18 +1957,23 @@ export default function ContractorInductionScreen({
                   email: addPartsContractor.email,
                   phone: addPartsContractor.phone || '',
                   companyId: addPartsContractor.company_id,
-                  selectedBusinessUnitIds: addPartsContractor.business_unit_ids || [],
-                  selectedSiteIds: addPartsContractor.site_ids || [],
+                  selectedBusinessUnitIds: kioskBusinessUnitId
+                    ? Array.from(new Set([...(addPartsContractor.business_unit_ids || []), kioskBusinessUnitId]))
+                    : (addPartsContractor.business_unit_ids || []),
+                  selectedSiteIds: isKioskSiteLocked
+                    ? getKioskLockedSiteIds()
+                    : (addPartsContractor.site_ids || []),
                   service_ids: addPartsContractor.service_ids || [],
                 });
                 setSelectedContractorId(addPartsContractor.id);
                 setLoadSavedAnswersOnOpen(false);
-                setIsNewContractor(false);
-                
-                // Set inductions as optional (user can review/deselect if needed)
-                setOptionalInductions(inductionsToAdd);
-                setCompulsoryInductions([]);
-                setSelectedOptionalIds(selectedIds);
+                setIsNewContractor('add-parts');
+
+                const compulsoryToAdd = inductionsToAdd.filter((ind) => ind.is_compulsory);
+                const optionalToAdd = inductionsToAdd.filter((ind) => !ind.is_compulsory);
+                setCompulsoryInductions(compulsoryToAdd);
+                setOptionalInductions(optionalToAdd);
+                setSelectedOptionalIds(optionalToAdd.map((ind) => ind.id));
                 setInductionQueue(inductionsToAdd);
                 setStep('inductionsList');
               }}
@@ -1975,7 +2242,7 @@ export default function ContractorInductionScreen({
             value={contractorInfo.name}
             onChangeText={(text) => {
               setContractorInfo({ ...contractorInfo, name: text });
-              if (text.trim()) {
+              if (!validateContractorFullName(text)) {
                 setValidationErrors(prev => ({ ...prev, name: undefined }));
               }
             }}
@@ -1997,14 +2264,21 @@ export default function ContractorInductionScreen({
           />
           {validationErrors.email && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.email}</Text>}
 
-          <Text style={[styles.label, { marginTop: 16 }]}>Phone</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>Phone Number *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="021 123 4567"
+            style={[styles.input, validationErrors.phone ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
+            placeholder="0211234567"
             keyboardType="phone-pad"
             value={contractorInfo.phone}
-            onChangeText={(text) => setContractorInfo({ ...contractorInfo, phone: text })}
+            onChangeText={(text) => {
+              const phone = sanitizePhoneInput(text);
+              setContractorInfo({ ...contractorInfo, phone });
+              if (!validateContractorPhone(phone)) {
+                setValidationErrors(prev => ({ ...prev, phone: undefined }));
+              }
+            }}
           />
+          {validationErrors.phone && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.phone}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
           <TextInput
@@ -2082,13 +2356,24 @@ export default function ContractorInductionScreen({
 
           {sites.length > 0 && (
             <>
-              <Text style={[styles.label, { marginTop: 16 }]}>Sites (select one or more)</Text>
+              <Text style={[styles.label, { marginTop: 16 }]}>
+                {isKioskSiteLocked ? 'Site' : 'Sites (select one or more)'}
+              </Text>
+              {isKioskSiteLocked && (
+                <Text style={{ fontSize: 12, color: '#4B5563', marginBottom: 8, lineHeight: 18 }}>
+                  This step adds induction modules for the current kiosk site only.
+                </Text>
+              )}
               <View style={{ gap: 8, paddingBottom: validationErrors.sites ? 4 : 0 }}>
-                {sites.map(site => {
-                  const isSelected = (contractorInfo.selectedSiteIds || []).includes(site.id);
+                {(isKioskSiteLocked
+                  ? sites.filter((site) => site.id === kioskSiteId)
+                  : sites
+                ).map(site => {
+                  const isSelected = getEffectiveSelectedSiteIds(contractorInfo.selectedSiteIds).includes(site.id);
                   return (
                     <TouchableOpacity
                       key={site.id}
+                      disabled={isKioskSiteLocked}
                       onPress={() => {
                         toggleSiteSelection(site.id);
                         setValidationErrors(prev => ({ ...prev, sites: undefined }));
@@ -2214,7 +2499,7 @@ export default function ContractorInductionScreen({
                       {isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}
                     </View>
                     <Text style={{ fontSize: 14, fontWeight: isSelected ? '600' : '400', flex: 1 }}>
-                      {getServiceDisplayName(service)}
+                      {service.name}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -2252,10 +2537,24 @@ export default function ContractorInductionScreen({
   if (step === 'inductionsList') {
     const inductionCount = selectedOptionalIds.length + compulsoryInductions.length;
     const hasAvailableInductions = compulsoryInductions.length > 0 || optionalInductions.length > 0;
+    const canSkipOptionalForAddParts = isNewContractor === 'add-parts'
+      && compulsoryInductions.length === 0
+      && optionalInductions.length > 0;
+    const canStartInductions = inductionCount > 0 || canSkipOptionalForAddParts;
 
     return (
       <View style={styles.container}>
-        {renderHeader('Select Inductions', () => setStep('selectServices'))}
+        {renderHeader('Select Inductions', () => {
+          if (isNewContractor === 'add-parts') {
+            if (onCancel) {
+              onCancel();
+            } else {
+              setStep('info');
+            }
+          } else {
+            setStep('selectServices');
+          }
+        })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
@@ -2263,6 +2562,34 @@ export default function ContractorInductionScreen({
               Required inductions are selected automatically. Select any optional inductions that match the work you will do on site.
             </Text>
           </View>
+
+          {isNewContractor === 'add-parts' && completedInductionIds_AddParts.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#15803D', marginBottom: 12 }}>
+                ALREADY COMPLETED
+              </Text>
+              {allInductions
+                .filter((ind) => completedInductionIds_AddParts.includes(ind.id))
+                .map((ind) => (
+                  <View
+                    key={ind.id}
+                    style={{
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      backgroundColor: '#F0FDF4',
+                      marginBottom: 8,
+                      borderLeftWidth: 3,
+                      borderLeftColor: '#10B981',
+                    }}
+                  >
+                    <Text style={{ fontWeight: '600', color: '#15803D', fontSize: 14 }}>
+                      ✓ {ind.induction_name}
+                    </Text>
+                  </View>
+                ))}
+            </>
+          )}
 
           {!isNewContractor && selectedOptionalIds.length > 0 && (
             <View style={{ backgroundColor: '#F0FDF4', borderLeftWidth: 4, borderLeftColor: '#10B981', padding: 12, borderRadius: 8, marginBottom: 16 }}>
@@ -2363,12 +2690,14 @@ export default function ContractorInductionScreen({
 
           <View style={{ marginTop: 24, marginBottom: 40 }}>
             <TouchableOpacity 
-              style={{ backgroundColor: inductionCount > 0 ? '#3B82F6' : '#9CA3AF', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
+              style={{ backgroundColor: canStartInductions ? '#3B82F6' : '#9CA3AF', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
               onPress={handleStartInductions}
-              disabled={inductionCount === 0}
+              disabled={!canStartInductions}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Start Inductions ({inductionCount})
+                {canSkipOptionalForAddParts && inductionCount === 0
+                  ? 'Continue Without Optional Inductions'
+                  : `Start Inductions (${inductionCount})`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -2653,7 +2982,20 @@ export default function ContractorInductionScreen({
           {inductionQueue.filter(ind => !completedInductionIds.includes(ind.id)).length === 0 && (
             <TouchableOpacity
               style={{ backgroundColor: '#10B981', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' }}
-              onPress={handleExitWithContractor}
+              onPress={async () => {
+                if (isNewContractor === 'add-parts' && contractorInfo.id) {
+                  try {
+                    setLoading(true);
+                    await finalizeContractorInductionStatus();
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to save site induction: ' + error.message);
+                    return;
+                  } finally {
+                    setLoading(false);
+                  }
+                }
+                handleExitWithContractor();
+              }}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                 {standalone ? 'All Inductions Complete' : 'All Inductions Complete - Sign In'}

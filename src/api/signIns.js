@@ -4,6 +4,9 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { getContractorSiteInduction } from './contractorInductions';
+import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
+import { notifySignIn } from './signInNotifications';
 
 // ============================================================================
 // CHECK-IN FUNCTIONS
@@ -16,9 +19,51 @@ import { supabase } from '../supabaseClient';
  * @param {UUID} businessUnitId - Business Unit UUID
  * @returns {Object} Sign-in record
  */
-export async function checkInContractor(contractorId, siteId, businessUnitId, flagData = null, rtData = null, visitingPersonName = null) {
+async function checkInContractorViaApi(payload) {
+  const response = await fetch('/api/kiosk-check-in', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || 'Check-in failed');
+  }
+  return body;
+}
+
+export async function checkInContractor(
+  contractorId,
+  siteId,
+  businessUnitId,
+  flagData = null,
+  rtData = null,
+  visitingPersonName = null,
+  contractorPhone = null
+) {
   try {
     console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
+
+    let resolvedBusinessUnitId = businessUnitId;
+    if (!resolvedBusinessUnitId && siteId) {
+      const { data: siteRow, error: siteError } = await supabase
+        .from('sites')
+        .select('business_unit_id')
+        .eq('id', siteId)
+        .maybeSingle();
+      if (siteError) {
+        console.warn('Could not resolve site business unit:', siteError.message);
+      } else {
+        resolvedBusinessUnitId = siteRow?.business_unit_id || null;
+      }
+    }
+
+    if (!resolvedBusinessUnitId) {
+      return {
+        success: false,
+        error: 'Site business unit is not configured. Please contact your administrator.',
+      };
+    }
     
     // Get contractor details
     const { data: contractor, error: contractorError } = await supabase
@@ -39,12 +84,24 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
 
     console.log('✓ Contractor data:', contractor);
 
-    // Check if inducted at this site and if expired
-    const isInductedHere = contractor.site_ids && contractor.site_ids.includes(siteId);
-    const isExpired = contractor.induction_expiry && new Date(contractor.induction_expiry) < new Date();
-    const induction = isInductedHere ? {
-      expires_at: contractor.induction_expiry,
-      inducted_at: contractor.services // Using services as a proxy for what they're inducted for
+    const siteInduction = await getContractorSiteInduction(contractorId, siteId);
+    const contractorWithSiteInduction = siteInduction
+      ? {
+          ...contractor,
+          site_inductions: {
+            ...(contractor.site_inductions || {}),
+            [siteId]: siteInduction,
+          },
+        }
+      : contractor;
+
+    const inductionStatus = getSiteInductionStatus(contractorWithSiteInduction, siteId);
+    const isInductedHere = inductionStatus === 'inducted';
+    const isExpired = inductionStatus === 'expired';
+    const siteExpiry = getSiteInductionExpiry(contractorWithSiteInduction, siteId);
+    const induction = isInductedHere || isExpired ? {
+      expires_at: siteExpiry,
+      inducted_at: siteInduction?.inducted_at || contractor.services,
     } : null;
 
     console.log('📋 Status - Inducted here:', isInductedHere, 'Expired:', isExpired);
@@ -73,13 +130,13 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
       contractor_name: contractor?.name || 'Unknown',
       contractor_phone: contractor?.phone || null,
       site_id: siteId,
-      business_unit_id: businessUnitId,
+      business_unit_id: resolvedBusinessUnitId,
       contractor_company: companyName,
       check_in_time: new Date().toISOString(),
       inducted: isInductedHere,
       induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
-      inducted_at_site: contractor.induction_expiry || null,
-      induction_expires_at: contractor.induction_expiry || null,
+      inducted_at_site: siteInduction?.inducted_at || null,
+      induction_expires_at: siteExpiry || null,
       visiting_person_name: visitingPersonName || null,
     };
 
@@ -101,13 +158,47 @@ export async function checkInContractor(contractorId, siteId, businessUnitId, fl
 
     if (error) {
       console.error('❌ Sign-in insert error:', error);
+      try {
+        const apiResult = await checkInContractorViaApi({
+          contractorId,
+          siteId,
+          businessUnitId: resolvedBusinessUnitId,
+          flagData,
+          rtData,
+          visitingPersonName,
+          contractorPhone,
+        });
+        if (apiResult?.success) {
+          const expiryDate = apiResult.expiryDate || null;
+          return {
+            success: true,
+            data: apiResult.data,
+            inducted: apiResult.inducted,
+            isExpired: apiResult.isExpired,
+            expiryDate,
+            message: apiResult.isExpired
+              ? '⚠️ INDUCTION EXPIRED - renewal required before work'
+              : apiResult.inducted
+                ? 'Checked in successfully'
+                : '⚠️ NOT INDUCTED - induction required before work',
+          };
+        }
+      } catch (apiError) {
+        console.warn('Kiosk check-in API fallback failed:', apiError.message);
+      }
       throw error;
     }
 
     console.log('✓ Sign-in recorded:', data?.id);
 
+    if (data?.id) {
+      notifySignIn(data.id).catch((notificationError) => {
+        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+      });
+    }
+
     // Format expiry date for display
-    const expiryDate = contractor.induction_expiry ? new Date(contractor.induction_expiry).toLocaleDateString('en-NZ') : null;
+    const expiryDate = siteExpiry ? new Date(siteExpiry).toLocaleDateString('en-NZ') : null;
 
     return {
       success: true,
@@ -154,6 +245,12 @@ export async function checkInVisitor(visitorName, company, siteId, businessUnitI
       .single();
 
     if (error) throw error;
+
+    if (data?.id) {
+      notifySignIn(data.id).catch((notificationError) => {
+        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+      });
+    }
 
     return { success: true, data };
   } catch (error) {

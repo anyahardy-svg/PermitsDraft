@@ -22,7 +22,9 @@ const VARIABLE_DESCRIPTIONS = {
   contactName: 'Primary contact name. Use as Dear {{contactName}}, — defaults to "Contractor" or "Supplier Contact" when no name is set.',
   companyName: 'Company name',
   deadline: 'Submit form deadline (supplier invitations) or accreditation deadline (contractor invitations)',
-  signupUrl: 'Sign-up link for new contractors',
+  signupUrl: 'Sign-up URL only — use inside a link: <a href="{{signupUrl}}">Access Contractor HQ</a>',
+  signupUrlButton: 'Ready-made sign-up button link (recommended for custom layouts)',
+  signupUrlButtonTable: 'Ready-made sign-up button wrapped in a centered table',
   formUrl: 'Secure supplier accreditation form link (contractorhq.co.nz/supplier-form?token=...)',
   supportEmail: 'Support email address',
   adminName: 'Admin user name',
@@ -34,6 +36,13 @@ const getTemplateVariables = (template) => {
   const variables = Array.isArray(template?.variables) ? [...template.variables] : [];
   if (template?.type === 'invitation' && !variables.includes('contactName')) {
     variables.push('contactName');
+  }
+  if (template?.type === 'invitation' || template?.type === 'invitation-reminder') {
+    ['signupUrlButton', 'signupUrlButtonTable'].forEach((variable) => {
+      if (!variables.includes(variable)) {
+        variables.push(variable);
+      }
+    });
   }
   if (template?.type === 'supplier-invitation' && !variables.includes('formUrl')) {
     variables.push('formUrl');

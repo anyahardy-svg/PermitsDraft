@@ -1,5 +1,5 @@
 // Permit Management System
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,10 +34,19 @@ import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/send
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
-import { listServicesByBusinessUnit, listAllServices, createService, updateService, deleteService } from './src/api/services';
+import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
 import { getVisitorInduction, updateVisitorInduction } from './src/api/visitorInductions';
-import { getCompletedInductionsByContractor } from './src/api/inductions';
+import {
+  buildInductionNameLookup,
+  getAllInductions,
+  getCompletedInductionsByContractor,
+  getCompletedInductionIdsForContractor,
+  getInductionsByBusinessUnit,
+  resolveInductionIdFromImportName,
+  resolveInductionIdsFromImportNames,
+  setContractorCompletedInductions as saveContractorCompletedInductions,
+} from './src/api/inductions';
 import { getCompanyTrainingRecordsStatus, getCompanyTrainingRecordsStatusBatch, approveAllCompanyTrainingRecords, updateCompanyTrainingRecordsStatus } from './src/api/trainingRecords';
 import { getCompanyTrainingMatricesStatus, getCompanyTrainingMatricesStatusBatch, approveAllCompanyTrainingMatrices } from './src/api/companyTrainingMatrices';
 import { handoverPermit } from './src/api/permitHandovers';
@@ -47,8 +56,14 @@ import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
+import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
 import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
+import {
+  contractorSignInPath,
+  shouldShowContractorAuthGuard,
+} from './src/utils/contractorRouteAuth';
+import { contractorPassesAdminFilters } from './src/utils/contractorDatabaseFilters';
 import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
@@ -56,11 +71,6 @@ import {
   getDefaultAccreditationDeadline,
   resolveAccreditationDisplayStatus,
 } from './src/utils/accreditation';
-import {
-  formatAdminUserOptionLabel,
-  getAdminUserEmailById,
-  resolveAdminUserIdFromList,
-} from './src/utils/approverAssignment';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -75,6 +85,7 @@ import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import ManagerHubScreen from './src/screens/manager/ManagerHubScreen';
 import { getPostAdminLoginScreen, isAdminPanelPath, isManagerHubPath } from './src/utils/managerHubRoutes';
+import { buildAdminPasswordSetupUrl, resolveAdminInviteRedirectUrl } from './src/utils/adminSetupRoute';
 import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
 import AdminUsersManagement from './src/screens/AdminUsersManagement';
@@ -87,11 +98,12 @@ import AccreditationApprovalScreen from './src/screens/AccreditationApprovalScre
 import HSAgreementModal from './src/components/HSAgreementModal';
 import RichTextEditor from './src/components/RichTextEditor';
 import MarkdownRenderer from './src/components/MarkdownRenderer';
-import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken } from './src/api/adminAuth';
+import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, updateAdminUser, requestPasswordReset, resetPasswordWithToken, resendAdminSetupEmail } from './src/api/adminAuth';
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import { showTransientMessage } from './src/utils/transientMessage';
+import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
 // List of all available sites
@@ -2441,6 +2453,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [contractorHubAuthChecked, setContractorHubAuthChecked] = useState(false);
   
   // Network status tracking
   const { isOnline } = useNetworkStatus();
@@ -2487,9 +2500,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [adminList, setAdminList] = useState([]);
   const [adminListLoading, setAdminListLoading] = useState(false);
+  const [resendingSetupEmailId, setResendingSetupEmailId] = useState(null);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [adminSiteFilterBU, setAdminSiteFilterBU] = useState('All');
+  const [adminSiteSearchText, setAdminSiteSearchText] = useState('');
+  const [adminSearchText, setAdminSearchText] = useState('');
+  const [adminSiteFilter, setAdminSiteFilter] = useState('All');
   
   // Password reset state
   const [showPasswordResetScreen, setShowPasswordResetScreen] = useState(false);
@@ -2502,8 +2519,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Device detection & inactivity tracking
   const [deviceType, setDeviceType] = useState(null); // 'laptop' or 'tablet'
-  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const lastActivityTimeRef = useRef(Date.now());
   const inactivityTimeoutRef = useRef(null);
+  const sessionRestoreAttemptedRef = useRef(false);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
   // Helper function to detect device type - checks user agent first, then falls back to width
@@ -2546,7 +2564,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Track user activity (mouse, keyboard, touch)
   useEffect(() => {
     const updateActivity = () => {
-      setLastActivityTime(Date.now());
+      lastActivityTimeRef.current = Date.now();
       // Reset inactivity timeout
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
@@ -2599,7 +2617,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     setLoggedInAdmin(adminData);
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
-    setLastActivityTime(Date.now()); // Reset activity timer
+    lastActivityTimeRef.current = Date.now(); // Reset activity timer
 
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
     const nextScreen = getPostAdminLoginScreen(adminData, pathname);
@@ -2640,8 +2658,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
-  // Restore admin session from localStorage on mount
+  // Restore admin session from localStorage once on mount.
   useEffect(() => {
+    if (sessionRestoreAttemptedRef.current) {
+      return;
+    }
+    sessionRestoreAttemptedRef.current = true;
+
     console.log('%c🔄 SESSION RESTORATION EFFECT RUNNING', 'color: #3B82F6; font-weight: bold; font-size: 12px;');
     try {
       const savedAdminSession = localStorage.getItem('adminSession');
@@ -2667,7 +2690,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           // Restore the session
           setAdminSessionActive(sessionData.active);
           setLoggedInAdmin(adminData);
-          setLastActivityTime(sessionData.lastActivity || Date.now());
+          lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');
           console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
           console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
@@ -2688,7 +2711,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       console.warn('⚠️ Could not restore admin session from localStorage:', e);
       setDeviceType(getDeviceType());
     }
-  }, [adminSessionActive, loggedInAdmin]);
+  }, []);
 
   // Managers use the site hub only — keep them off /admin/* URLs
   useEffect(() => {
@@ -2724,13 +2747,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (result.success) {
         console.log('✅ Admin created successfully');
         
-        // Send setup email
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const setupUrl = `${baseUrl}?type=invited`;
+        // Send setup email on the main app domain (never a kiosk subdomain)
+        const setupUrl = buildAdminPasswordSetupUrl(
+          newAdminForm.email,
+          newAdminForm.role
+        );
         await sendAdminSetupEmail(newAdminForm.email, newAdminForm.name, setupUrl);
         
         Alert.alert('Success', 'Admin user created and setup email sent. They can set their password via the email link or on first login.');
-        setShowAddAdminModal(false);
+        resetAddAdminModalState();
         setNewAdminForm({ email: '', name: '', role: 'manager', siteIds: [] });
         // Reload admin list
         loadAdminList();
@@ -2759,6 +2784,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
+  const handleResendAdminSetupEmail = async (admin) => {
+    setResendingSetupEmailId(admin.id);
+    try {
+      const result = await resendAdminSetupEmail(admin.email);
+      if (result.success) {
+        Alert.alert('Email Sent', result.message || `Setup email resent to ${admin.email}`);
+      } else {
+        Alert.alert('Unable to Resend', result.error || 'Failed to resend setup email');
+      }
+    } catch (error) {
+      console.error('Error resending admin setup email:', error);
+      Alert.alert('Error', 'Failed to resend setup email');
+    } finally {
+      setResendingSetupEmailId(null);
+    }
+  };
+
   const handleEditAdmin = (admin) => {
     setEditingAdmin({ ...admin, siteIds: admin.site_ids || admin.siteIds || [] });
     setAdminSiteFilterBU('All');
@@ -2766,13 +2808,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const handleUpdateAdmin = async () => {
-    if (!editingAdmin.name) {
-      Alert.alert('Missing Info', 'Please fill in name');
+    if (!editingAdmin.email?.trim() || !editingAdmin.name) {
+      Alert.alert('Missing Info', 'Please fill in email and name');
       return;
     }
 
     try {
       const result = await updateAdminUser(editingAdmin.id, {
+        email: editingAdmin.email,
         name: editingAdmin.name,
         role: editingAdmin.role,
         siteIds: editingAdmin.siteIds || editingAdmin.site_ids || []
@@ -2793,31 +2836,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   const handleDeleteAdmin = (admin) => {
-    Alert.alert(
-      'Delete Admin',
-      `Are you sure you want to delete ${admin.name}? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await deleteAdminUser(admin.id);
-              if (result.success) {
-                Alert.alert('Success', 'Admin user deleted');
-                loadAdminList();
-              } else {
-                Alert.alert('Error', result.error || 'Failed to delete admin user');
-              }
-            } catch (error) {
-              console.error('Error deleting admin:', error);
-              Alert.alert('Error', 'Failed to delete admin user: ' + error.message);
-            }
+    // Alert.alert with buttons does not work on web; use window.confirm like other delete handlers.
+    if (window.confirm(`Delete Admin\n\nAre you sure you want to delete ${admin.name}? This action cannot be undone.`)) {
+      (async () => {
+        try {
+          const result = await deleteAdminUser(admin.id);
+          if (result.success) {
+            window.alert('Success: Admin user deleted');
+            loadAdminList();
+          } else {
+            window.alert('Error: ' + (result.error || 'Failed to delete admin user'));
           }
+        } catch (error) {
+          console.error('Error deleting admin:', error);
+          window.alert('Error: Failed to delete admin user: ' + error.message);
         }
-      ]
-    );
+      })();
+    }
   };
 
   const getAdminSiteNames = (siteIds = []) => {
@@ -2828,12 +2863,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       .join(', ') || 'No matching sites';
   };
 
+  const resetAddAdminModalState = () => {
+    setShowAddAdminModal(false);
+    setAdminList([]);
+    setAdminSearchText('');
+    setAdminSiteFilter('All');
+    setAdminSiteSearchText('');
+    setAdminSiteFilterBU('All');
+  };
+
+  const filteredAdminList = useMemo(() => {
+    const query = adminSearchText.trim().toLowerCase();
+
+    return adminList.filter((admin) => {
+      const siteIds = admin.site_ids || admin.siteIds || [];
+      const siteNames = getAdminSiteNames(siteIds).toLowerCase();
+
+      const matchesSearch = !query || (
+        admin.name?.toLowerCase().includes(query)
+        || admin.email?.toLowerCase().includes(query)
+        || siteNames.includes(query)
+      );
+
+      const matchesSite = adminSiteFilter === 'All' || siteIds.includes(adminSiteFilter);
+
+      return matchesSearch && matchesSite;
+    });
+  }, [adminList, adminSearchText, adminSiteFilter, sites]);
+
   const renderAdminSiteSelector = (selectedSiteIds = [], onChange) => {
     const getSiteBusinessUnitId = (site) => site.business_unit_id || site.businessUnitId;
+    const siteQuery = adminSiteSearchText.trim().toLowerCase();
 
-    const visibleSites = adminSiteFilterBU === 'All'
+    const visibleSites = (adminSiteFilterBU === 'All'
       ? sites
-      : sites.filter(site => getSiteBusinessUnitId(site) === adminSiteFilterBU);
+      : sites.filter(site => getSiteBusinessUnitId(site) === adminSiteFilterBU))
+      .filter(site => !siteQuery || site.name?.toLowerCase().includes(siteQuery));
 
     const visibleSiteIds = visibleSites.map(site => site.id);
     const selectedVisibleCount = selectedSiteIds.filter(id => visibleSiteIds.includes(id)).length;
@@ -2852,6 +2917,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
           Contractors and visitors will only see this admin in the Visiting Person lookup at selected sites.
         </Text>
+
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            borderRadius: 8,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            fontSize: 14,
+            backgroundColor: '#F9FAFB',
+            marginBottom: 12,
+          }}
+          placeholder="Search sites by name..."
+          placeholderTextColor="#9CA3AF"
+          value={adminSiteSearchText}
+          onChangeText={setAdminSiteSearchText}
+        />
 
         <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Filter by Business Unit</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -2898,7 +2980,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         <View style={{ gap: 8 }}>
           {visibleSites.length === 0 ? (
-            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>No sites in this business unit</Text>
+            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>
+              {siteQuery ? 'No sites match your search' : 'No sites in this business unit'}
+            </Text>
           ) : (
             visibleSites.map(site => {
               const isSelected = selectedSiteIds.includes(site.id);
@@ -2943,14 +3027,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     );
   };
 
-  // Detect invitation flow from email (?type=invited)
+  // Detect contractor invitation flow from email (?type=invited on contractor routes only)
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
       const queryParams = new URLSearchParams(window.location.search);
       const inviteType = queryParams.get('type');
-      
-      if (inviteType === 'invited') {
-        console.log('✅ Invitation link detected from email - setting up password form');
+      const isAdminInvitePath = pathname === '/admin'
+        || pathname === '/admin/'
+        || pathname === '/manager'
+        || pathname === '/manager/'
+        || pathname.startsWith('/admin/');
+
+      if (inviteType === 'invited' && !isAdminInvitePath) {
+        console.log('✅ Contractor invitation link detected from email');
         setInvitationFlow(true);
       }
     }
@@ -2962,6 +3052,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       loadAdminList();
     }
   }, [showAddAdminModal]);
+
+  useEffect(() => {
+    if (currentScreen === 'manage_sites' && adminSessionActive) {
+      loadAdminList();
+    }
+  }, [currentScreen, adminSessionActive]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -3218,7 +3314,49 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
-  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const establishContractorAppSession = useCallback((contractorInfo) => {
+    if (!contractorInfo?.companyId) {
+      return;
+    }
+    setSelectedCompanyId(contractorInfo.companyId);
+    setCurrentContractor({
+      id: contractorInfo.contractorId || '',
+      name: contractorInfo.contractorName || contractorInfo.name || '',
+      email: contractorInfo.email || '',
+      company_id: contractorInfo.companyId,
+      phone: contractorInfo.phone || '',
+      businessUnitIds: contractorInfo.businessUnitIds || [],
+      services: contractorInfo.services || [],
+      siteIds: contractorInfo.siteIds || [],
+      company: contractorInfo.company || '',
+      inductionExpiry: '',
+      companyManuallyEntered: false,
+      completedInductionIds: [],
+    });
+  }, []);
+  const clearContractorAppSession = useCallback(() => {
+    setSelectedCompanyId(null);
+    setCurrentContractor({
+      id: '',
+      name: '',
+      email: '',
+      phone: '',
+      businessUnitIds: [],
+      services: [],
+      siteIds: [],
+      completedInductionIds: [],
+      company: '',
+      company_id: '',
+      inductionExpiry: '',
+      companyManuallyEntered: false,
+    });
+    setCurrentScreen('contractorAuth');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', contractorSignInPath());
+    }
+  }, []);
+  const [contractorFormInductions, setContractorFormInductions] = useState([]);
   const skipCompanyInputSyncRef = useRef(false);
   const [servicesForContractors, setServicesForContractors] = useState([]);
   const [sitesForContractors, setSitesForContractors] = useState([]);
@@ -3287,7 +3425,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   const [selectedSite, setSelectedSite] = useState(null);
   const [editingSite, setEditingSite] = useState(false);
-  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
+  const [currentSite, setCurrentSite] = useState({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true });
   const [siteSearchText, setSiteSearchText] = useState('');
   const [siteFilterBusinessUnit, setSiteFilterBusinessUnit] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
@@ -3302,7 +3440,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [currentBusinessUnit, setCurrentBusinessUnit] = useState({ id: '', name: '', description: '' });
   
   // Service management states
-  const [currentService, setCurrentService] = useState({ id: '', name: '', businessUnitId: '', description: '' });
+  const [currentService, setCurrentService] = useState({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
   const [editingService, setEditingService] = useState(false);
   const [serviceImportStatus, setServiceImportStatus] = useState('idle');
   const [serviceImportMessage, setServiceImportMessage] = useState('');
@@ -3315,6 +3453,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorCompanyFilterSearch, setContractorCompanyFilterSearch] = useState('');
   const [showContractorCompanyFilterDropdown, setShowContractorCompanyFilterDropdown] = useState(false);
   const [contractorBusinessUnitFilter, setContractorBusinessUnitFilter] = useState('All');
+  const [contractorSiteFilter, setContractorSiteFilter] = useState('All');
   const [companySearchText, setCompanySearchText] = useState('');
   const [companyFilterBusinessUnit, setCompanyFilterBusinessUnit] = useState('All');
   const [companiesTablePage, setCompaniesTablePage] = useState(1);
@@ -3682,94 +3821,142 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
   }, [currentScreen, contractors]);
 
+  useEffect(() => {
+    if (currentScreen !== 'manage_contractors') {
+      return;
+    }
+
+    const businessUnitIds = currentContractor.businessUnitIds || [];
+    if (businessUnitIds.length === 0) {
+      setContractorFormInductions([]);
+      return;
+    }
+
+    let isCancelled = false;
+
+    (async () => {
+      try {
+        const allInductions = [];
+        for (const businessUnitId of businessUnitIds) {
+          const inductionsForBU = await getInductionsByBusinessUnit(businessUnitId, [], {
+            skipServiceFilter: true,
+          });
+          allInductions.push(...(inductionsForBU || []));
+        }
+
+        const uniqueInductions = Array.from(
+          new Map(allInductions.map((induction) => [induction.id, induction])).values()
+        ).sort((a, b) => (a.induction_name || '').localeCompare(b.induction_name || ''));
+
+        if (!isCancelled) {
+          setContractorFormInductions(uniqueInductions);
+          const validIds = new Set(uniqueInductions.map((induction) => induction.id));
+          setCurrentContractor((prev) => ({
+            ...prev,
+            completedInductionIds: (prev.completedInductionIds || []).filter((id) => validIds.has(id)),
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading inductions for contractor form:', error);
+        if (!isCancelled) {
+          setContractorFormInductions([]);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentScreen, currentContractor.businessUnitIds]);
+
   // Contractor context is restored from the authenticated Supabase session only.
   // Do not hydrate from localStorage here — stale entries caused cross-user name/company bleed.
 
   // Detect contractor hub domain and handle authentication
   useEffect(() => {
     const detectContractorHub = async () => {
-      if (typeof window === 'undefined') return;
-      
-      const pathname = window.location.pathname;
-      const hostname = window.location.hostname;
-      console.log('🔍 Checking domain:', hostname);
-      
-      // If we're on the auth callback route, don't override it
-      if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
-        console.log('✅ Auth callback path detected - skipping auth check');
+      if (typeof window === 'undefined') {
+        setContractorHubAuthChecked(true);
         return;
       }
 
-      // Sign-in route handles login and password setup itself
-      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
-        console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
-        return;
-      }
+      try {
+        const pathname = window.location.pathname;
+        const hostname = window.location.hostname;
+        console.log('🔍 Checking domain:', hostname);
+        
+        // If we're on the auth callback route, don't override it
+        if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
+          console.log('✅ Auth callback path detected - skipping auth check');
+          return;
+        }
 
-      // Public supplier accreditation form — token link, no contractor login required
-      if (isSupplierFormRoute(pathname)) {
-        console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
-        return;
-      }
-      
-      //Skip admin and manager routes - they're handled by admin protection check
-      if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
-        console.log('ℹ️ Admin route detected - will be handled by admin protection check');
-        return;
-      }
+        // Sign-in route handles login and password setup itself
+        if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+          console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
+          return;
+        }
 
-      if (isManagerHubPath(pathname)) {
-        console.log('ℹ️ Manager hub route detected - will be handled by admin protection check');
-        return;
-      }
-      
-      // Check if this is the contractor hub domain
-      const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
-      
-      if (isContractorHub) {
-        console.log('✅ Contractor Hub domain detected');
+        // Public supplier accreditation form — token link, no contractor login required
+        if (isSupplierFormRoute(pathname)) {
+          console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
+          return;
+        }
         
-        // Import getCurrentUser function
-        const { getCurrentUser } = await import('./src/api/contractorAuth');
+        //Skip admin and manager routes - they're handled by admin protection check
+        if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
+          console.log('ℹ️ Admin route detected - will be handled by admin protection check');
+          return;
+        }
+
+        if (isManagerHubPath(pathname)) {
+          console.log('ℹ️ Manager hub route detected - will be handled by admin protection check');
+          return;
+        }
         
-        // Check if user is already logged in
-        const { success, contractor } = await getCurrentUser();
+        // Check if this is the contractor hub domain
+        const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
         
-        if (!success || !contractor) {
-          if (!pathname.startsWith('/contractor-admin')) {
-            console.log('❌ No logged-in contractor found - forcing login screen');
-            setCurrentScreen('contractorAuth');
+        if (isContractorHub) {
+          console.log('✅ Contractor Hub domain detected');
+          
+          // Import getCurrentUser function
+          const { getCurrentUser } = await import('./src/api/contractorAuth');
+          
+          // Check if user is already logged in
+          const { success, contractor } = await getCurrentUser();
+          
+          if (!success || !contractor) {
+            if (pathname.startsWith('/contractor-admin')) {
+              console.log('❌ Contractor admin link without session - opening sign-in');
+              setCurrentScreen('contractorAuth');
+              window.history.replaceState({}, '', contractorSignInPath());
+            } else if (!pathname.startsWith('/contractor-admin')) {
+              console.log('❌ No logged-in contractor found - forcing login screen');
+              setCurrentScreen('contractorAuth');
+            }
+          } else {
+            console.log('✅ Contractor already logged in:', contractor.name);
+            establishContractorAppSession({
+              contractorId: contractor.id,
+              contractorName: contractor.name,
+              email: contractor.email,
+              companyId: contractor.company_id,
+            });
+            console.log('✅ selectedCompanyId set to:', contractor.company_id);
+            // Redirect to contractor admin
+            setCurrentScreen('contractor_admin');
           }
         } else {
-          console.log('✅ Contractor already logged in:', contractor.name);
-          // Set currentContractor IMMEDIATELY without setTimeout
-          setCurrentContractor({
-            id: contractor.id,
-            name: contractor.name,
-            email: contractor.email,
-            company_id: contractor.company_id,
-            phone: '',
-            businessUnitIds: [],
-            services: [],
-            siteIds: [],
-            company: '',
-            inductionExpiry: '',
-            companyManuallyEntered: false
-          });
-          console.log('✅ currentContractor state set immediately');
-          // Also set selectedCompanyId for UI checks
-          setSelectedCompanyId(contractor.company_id);
-          console.log('✅ selectedCompanyId set to:', contractor.company_id);
-          // Redirect to contractor admin
-          setCurrentScreen('contractor_admin');
+          console.log('ℹ️ Not contractor hub domain - normal permit app');
         }
-      } else {
-        console.log('ℹ️ Not contractor hub domain - normal permit app');
+      } finally {
+        setContractorHubAuthChecked(true);
       }
     };
     
     detectContractorHub();
-  }, []);
+  }, [establishContractorAppSession]);
 
   // Company context for contractor routes is derived from the authenticated session,
   // not from URL query params (which could point at another company's data).
@@ -9307,12 +9494,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         
                         // Load services and sites for selected business units
                         if (updatedBusinessUnitIds.length > 0) {
-                          let allServices = [];
-                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
-                          for (const unitId of updatedBusinessUnitIds) {
-                            const services = await listServicesByBusinessUnit(unitId);
-                            allServices = [...allServices, ...services];
-                          }
+                          const [allServices, sitesList] = await Promise.all([
+                            listServicesForBusinessUnits(updatedBusinessUnitIds),
+                            getSitesByBusinessUnits(updatedBusinessUnitIds),
+                          ]);
                           setServicesForBusinessUnits(allServices);
                           setSitesForBusinessUnits(sitesList);
                         } else {
@@ -9332,77 +9517,59 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={styles.label}>Permitted Services</Text>
                   <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select services this issuer can manage:</Text>
                   <View style={{ marginBottom: 12 }}>
-                    {(() => {
-                      // Group services by name to deduplicate
-                      const servicesByName = {};
-                      servicesForBusinessUnits.forEach(service => {
-                        if (!servicesByName[service.name]) {
-                          servicesByName[service.name] = [];
-                        }
-                        servicesByName[service.name].push(service);
-                      });
-                      
-                      // Render each unique service name once
-                      return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
-                        const serviceIds = serviceGroup.map(s => s.id);
-                        const isSelected = serviceIds.some(id => currentPermitIssuer.permittedServiceIds.includes(id));
-                        
-                        return (
-                          <TouchableOpacity
-                            key={serviceName}
+                    {servicesForBusinessUnits.map((service) => {
+                      const isSelected = currentPermitIssuer.permittedServiceIds.includes(service.id);
+
+                      return (
+                        <TouchableOpacity
+                          key={service.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            padding: 12,
+                            marginBottom: 8,
+                            backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: isSelected ? '#10B981' : '#E5E7EB'
+                          }}
+                          onPress={() => {
+                            if (isSelected) {
+                              setCurrentPermitIssuer({
+                                ...currentPermitIssuer,
+                                permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(
+                                  (id) => id !== service.id
+                                )
+                              });
+                            } else {
+                              setCurrentPermitIssuer({
+                                ...currentPermitIssuer,
+                                permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, service.id]
+                              });
+                            }
+                          }}
+                        >
+                          <View
                             style={{
-                              flexDirection: 'row',
+                              width: 20,
+                              height: 20,
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                              backgroundColor: isSelected ? '#10B981' : 'white',
+                              justifyContent: 'center',
                               alignItems: 'center',
-                              padding: 12,
-                              marginBottom: 8,
-                              backgroundColor: isSelected ? '#F0FDF4' : '#F9FAFB',
-                              borderRadius: 6,
-                              borderWidth: 1,
-                              borderColor: isSelected ? '#10B981' : '#E5E7EB'
-                            }}
-                            onPress={() => {
-                              if (isSelected) {
-                                // Remove ALL service UUIDs with this name
-                                setCurrentPermitIssuer({
-                                  ...currentPermitIssuer,
-                                  permittedServiceIds: currentPermitIssuer.permittedServiceIds.filter(
-                                    id => !serviceIds.includes(id)
-                                  )
-                                });
-                              } else {
-                                // Add ALL service UUIDs with this name
-                                setCurrentPermitIssuer({
-                                  ...currentPermitIssuer,
-                                  permittedServiceIds: [...currentPermitIssuer.permittedServiceIds, ...serviceIds]
-                                });
-                              }
+                              marginRight: 12
                             }}
                           >
-                            <View
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 4,
-                                borderWidth: 2,
-                                borderColor: isSelected ? '#10B981' : '#D1D5DB',
-                                backgroundColor: isSelected ? '#10B981' : 'white',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                marginRight: 12
-                              }}
-                            >
-                              {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{serviceName}</Text>
-                              {serviceGroup.length > 1 && (
-                                <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 2 }}>({serviceGroup.length} business units)</Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      });
-                    })()}
+                            {isSelected && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{service.name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </>
               )}
@@ -9596,11 +9763,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       setCurrentPermitIssuer(user);
                       // Load services for the business units if set
                       if (user.businessUnitIds && user.businessUnitIds.length > 0) {
-                        let allServices = [];
-                        for (const unitId of user.businessUnitIds) {
-                          const services = await listServicesByBusinessUnit(unitId);
-                          allServices = [...allServices, ...services];
-                        }
+                        const allServices = await listServicesForBusinessUnits(user.businessUnitIds);
                         setServicesForBusinessUnits(allServices);
                       }
                     }}>
@@ -9667,7 +9830,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const siteIdsIdx = headerValues.findIndex(h => h.includes('site'));
           const servicesIdx = headerValues.findIndex(h => h.includes('service'));
           const businessUnitIdx = headerValues.findIndex(h => h.includes('business_unit'));
-          const inductionExpiryIdx = headerValues.findIndex(h => h.includes('induction'));
+          const inductionExpiryIdx = headerValues.findIndex(
+            (h) =>
+              h === 'induction_expiry'
+              || h === 'induction_exp'
+              || (h.includes('induction') && h.includes('expiry'))
+              || h === 'expiry'
+          );
 
           let newCount = 0;
           let updatedCount = 0;
@@ -10380,27 +10549,41 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const address1Idx = headerValues.findIndex(h => h.includes('address') && h.includes('1'));
             const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
             const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
-            const operationalApproverEmailIdx = headerValues.findIndex((h) =>
-              (h.includes('operational') && h.includes('approver'))
+            const assignedManagerEmailIdx = headerValues.findIndex(h =>
+              h === 'assigned_manager_email'
               || h === 'operational_approver_email'
-              || (h.includes('operational') && h.includes('email'))
+              || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
+              || (h.includes('operational') && h.includes('approver') && h.includes('email'))
             );
-            const regionalHsEmailIdx = headerValues.findIndex((h) =>
-              (h.includes('regional') && (h.includes('hs') || h.includes('h&s')))
+            const assignedHsEmailIdx = headerValues.findIndex(h =>
+              h === 'assigned_hs_email'
               || h === 'regional_hs_email'
-              || (h.includes('hs') && h.includes('advisor'))
+              || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+              || (h.includes('regional') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
             );
-            
-            let adminsForImport = companyAdminUsers;
-            if (!adminsForImport?.length) {
+
+            let adminsForImport = companyAdminUsers || [];
+            if (!adminsForImport.length) {
               adminsForImport = await getAllAdminUsers();
-              setCompanyAdminUsers(adminsForImport || []);
             }
+
+            const resolveAdminIdByEmail = (emailValue) => {
+              const trimmed = String(emailValue || '').trim();
+              if (!trimmed) return { id: null, found: true };
+              const normalized = trimmed.toLowerCase();
+              const byEmail = adminsForImport.find((admin) => admin.email?.toLowerCase() === normalized);
+              if (byEmail) return { id: byEmail.id, found: true };
+              return { id: null, found: false };
+            };
+            
+            console.log('📊 CSV Headers found:', headerValues);
+            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
 
             let newCount = 0;
             let updatedCount = 0;
             let duplicateCount = 0;
-            let approverLookupFailedCount = 0;
+            let managerNotFoundCount = 0;
+            let hsNotFoundCount = 0;
             const processedNames = new Set();
 
             for (let i = 1; i < lines.length; i++) {
@@ -10444,26 +10627,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const address1 = address1Idx >= 0 ? values[address1Idx] : '';
                 const addressCity = addressCityIdx >= 0 ? values[addressCityIdx] : '';
                 const addressPostcode = addressPostcodeIdx >= 0 ? values[addressPostcodeIdx] : '';
-                const operationalApproverEmail = operationalApproverEmailIdx >= 0 ? values[operationalApproverEmailIdx] : '';
-                const regionalHsEmail = regionalHsEmailIdx >= 0 ? values[regionalHsEmailIdx] : '';
 
-                const approverUpdateData = {};
-                if (operationalApproverEmail) {
-                  const managerId = resolveAdminUserIdFromList(adminsForImport, operationalApproverEmail);
-                  if (managerId) {
-                    approverUpdateData.assigned_manager_id = managerId;
+                let assignedManagerId;
+                let assignedHsPersonId;
+                if (assignedManagerEmailIdx >= 0) {
+                  const managerResult = resolveAdminIdByEmail(values[assignedManagerEmailIdx]);
+                  if (!managerResult.found) {
+                    managerNotFoundCount++;
                   } else {
-                    approverLookupFailedCount += 1;
-                    console.warn(`⚠️ Operational approver not found in admin users: ${operationalApproverEmail} (${companyName})`);
+                    assignedManagerId = managerResult.id;
                   }
                 }
-                if (regionalHsEmail) {
-                  const hsPersonId = resolveAdminUserIdFromList(adminsForImport, regionalHsEmail);
-                  if (hsPersonId) {
-                    approverUpdateData.assigned_hs_person_id = hsPersonId;
+                if (assignedHsEmailIdx >= 0) {
+                  const hsResult = resolveAdminIdByEmail(values[assignedHsEmailIdx]);
+                  if (!hsResult.found) {
+                    hsNotFoundCount++;
                   } else {
-                    approverLookupFailedCount += 1;
-                    console.warn(`⚠️ Regional H&S advisor not found in admin users: ${regionalHsEmail} (${companyName})`);
+                    assignedHsPersonId = hsResult.id;
                   }
                 }
                 
@@ -10506,7 +10686,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) updateData.address_1 = address1;
                   if (addressCity) updateData.address_city = addressCity;
                   if (addressPostcode) updateData.address_postcode = addressPostcode;
-                  Object.assign(updateData, approverUpdateData);
+                  if (assignedManagerId !== undefined) updateData.assigned_manager_id = assignedManagerId;
+                  if (assignedHsPersonId !== undefined) updateData.assigned_hs_person_id = assignedHsPersonId;
                   
                   if (Object.keys(updateData).length > 0) {
                     console.log('📝 Updating existing company:', existingCompany.name, 'with fields:', Object.keys(updateData));
@@ -10530,7 +10711,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   if (address1) createData.address_1 = address1;
                   if (addressCity) createData.address_city = addressCity;
                   if (addressPostcode) createData.address_postcode = addressPostcode;
-                  Object.assign(createData, approverUpdateData);
+                  if (assignedManagerId !== undefined) createData.assigned_manager_id = assignedManagerId;
+                  if (assignedHsPersonId !== undefined) createData.assigned_hs_person_id = assignedHsPersonId;
                   
                   console.log('✨ Creating new company:', companyName, 'with data:', createData);
                   await createCompany(createData);
@@ -10572,11 +10754,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (duplicateCount > 0) {
               message += `⏭️ ${duplicateCount} duplicate(s) skipped\n`;
             }
-            if (approverLookupFailedCount > 0) {
-              message += `⚠️ ${approverLookupFailedCount} approver email(s) not found in Admin Users (rows skipped for those fields)`;
+            if (managerNotFoundCount > 0) {
+              message += `⚠️ ${managerNotFoundCount} assigned manager email(s) not found\n`;
+            }
+            if (hsNotFoundCount > 0) {
+              message += `⚠️ ${hsNotFoundCount} assigned H&S email(s) not found`;
             }
             
-            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount });
+            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount, managerNotFoundCount, hsNotFoundCount });
             setImportStatus('success');
             setImportMessage(message.trim());
             setTimeout(() => setImportStatus('idle'), 5000);
@@ -10651,6 +10836,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         .filter(Boolean)
         .join('; ');
 
+      const getAdminEmailById = (adminId) => {
+        if (!adminId) return '';
+        const admin = companyAdminUsers.find((a) => a.id === adminId);
+        return admin?.email || '';
+      };
+
       const headers = [
         'name',
         'email',
@@ -10668,8 +10859,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'address_1',
         'address_city',
         'address_postcode',
-        'operational_approver_email',
-        'regional_hs_email',
+        'assigned_manager_email',
+        'assigned_hs_email',
       ];
 
       const rows = filteredCompanies.map(company => [
@@ -10689,8 +10880,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         company.address_1 || company.address1 || '',
         company.address_city || company.addressCity || '',
         company.address_postcode || company.addressPostcode || '',
-        getAdminUserEmailById(companyAdminUsers, company.assigned_manager_id || company.assignedManagerId),
-        getAdminUserEmailById(companyAdminUsers, company.assigned_hs_person_id || company.assignedHsPersonId),
+        getAdminEmailById(company.assigned_manager_id || company.assignedManagerId),
+        getAdminEmailById(company.assigned_hs_person_id || company.assignedHsPersonId),
       ]);
 
       const csvContent = [
@@ -10810,7 +11001,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
-              <Text style={styles.label}>Email address for the operational approver</Text>
+              <Text style={styles.label}>Assigned Manager</Text>
               <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                 <select
                   style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
@@ -10826,7 +11017,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
-              <Text style={styles.label}>Email address for the regional H&amp;S advisor</Text>
+              <Text style={styles.label}>Assigned H&amp;S Person</Text>
               <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                 <select
                   style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
@@ -10947,7 +11138,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   contractor_type: 'D',
                   assignedManagerId: '',
                   assignedHsPersonId: '',
-                });
+                }); 
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
@@ -11942,40 +12133,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </select>
                 </View>
 
-                <Text style={styles.label}>Email address for the operational approver</Text>
-                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
-                  <select
-                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
-                    value={newCompanyInvitationForm.assignedManagerId || ''}
-                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedManagerId: e.target.value })}
-                    disabled={creatingAndSendingInvitation}
-                  >
-                    <option value="">Select operational approver...</option>
-                    {companyAdminUsers.map((admin) => (
-                      <option key={`invite-manager-${admin.id}`} value={admin.id}>
-                        {formatAdminUserOptionLabel(admin)}
-                      </option>
-                    ))}
-                  </select>
-                </View>
-
-                <Text style={styles.label}>Email address for the regional H&amp;S advisor</Text>
-                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
-                  <select
-                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
-                    value={newCompanyInvitationForm.assignedHsPersonId || ''}
-                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedHsPersonId: e.target.value })}
-                    disabled={creatingAndSendingInvitation}
-                  >
-                    <option value="">Select regional H&amp;S advisor...</option>
-                    {companyAdminUsers.map((admin) => (
-                      <option key={`invite-hs-${admin.id}`} value={admin.id}>
-                        {formatAdminUserOptionLabel(admin)}
-                      </option>
-                    ))}
-                  </select>
-                </View>
-
                 {/* Deadline Field */}
                 <Text style={styles.label}>Accreditation Deadline</Text>
                 <TextInput
@@ -11985,6 +12142,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   onChangeText={(text) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, deadline: text })}
                   editable={!creatingAndSendingInvitation}
                 />
+
+                <Text style={styles.label}>Assigned Manager (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedManagerId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedManagerId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select manager...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-manager-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
+                <Text style={styles.label}>Assigned H&amp;S Person (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedHsPersonId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedHsPersonId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select H&amp;S person...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-hs-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
 
                 {/* Action Buttons */}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
@@ -12014,8 +12205,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           name: newCompanyInvitationForm.companyName,
                           contractor_type: newCompanyInvitationForm.contractor_type || 'D',
                           contact_email: newCompanyInvitationForm.email.trim(),
-                          assigned_manager_id: newCompanyInvitationForm.assignedManagerId || null,
-                          assigned_hs_person_id: newCompanyInvitationForm.assignedHsPersonId || null,
+                          email: newCompanyInvitationForm.email.trim(),
+                          assignedManagerId: newCompanyInvitationForm.assignedManagerId || null,
+                          assignedHsPersonId: newCompanyInvitationForm.assignedHsPersonId || null,
                         });
 
                         if (!newCompany || !newCompany.id) {
@@ -12095,7 +12287,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             business_unit_id: currentSite.businessUnitId,
             kiosk_subdomain: currentSite.kioskSubdomain || null,
             flag: currentSite.flag || false,
-            rt: currentSite.rt || false
+            rt: currentSite.rt || false,
+            default_notification_manager_id: currentSite.defaultNotificationManagerId || null,
+            send_default_sign_in_notifications: currentSite.sendDefaultSignInNotifications !== false,
           });
           const freshSites = await listSites();
           setSites(freshSites);
@@ -12108,13 +12302,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             business_unit_id: currentSite.businessUnitId,
             kiosk_subdomain: currentSite.kioskSubdomain || null,
             flag: currentSite.flag || false,
-            rt: currentSite.rt || false
+            rt: currentSite.rt || false,
+            default_notification_manager_id: currentSite.defaultNotificationManagerId || null,
+            send_default_sign_in_notifications: currentSite.sendDefaultSignInNotifications !== false,
           });
           const freshSites = await listSites();
           setSites(freshSites);
           Alert.alert('Site Added', 'New site has been added successfully.');
         }
-        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false });
+        setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true });
         setSelectedSite(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save site: ' + error.message);
@@ -12139,6 +12335,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleImportSitesCSV = () => {
+      const parseCsvBoolean = (value, defaultValue = true) => {
+        if (!String(value || '').trim()) return defaultValue;
+        const normalized = String(value).trim().toLowerCase();
+        if (['yes', 'y', 'true', '1', 'on'].includes(normalized)) return true;
+        if (['no', 'n', 'false', '0', 'off'].includes(normalized)) return false;
+        return defaultValue;
+      };
+
+      const resolveManagerId = (managerValue, admins) => {
+        const trimmed = String(managerValue || '').trim();
+        if (!trimmed) return null;
+        const normalized = trimmed.toLowerCase();
+        const byEmail = (admins || []).find((admin) => admin.email?.toLowerCase() === normalized);
+        if (byEmail) return byEmail.id;
+        const byName = (admins || []).find((admin) => admin.name?.toLowerCase() === normalized);
+        if (byName) return byName.id;
+        return null;
+      };
+
       // Create a hidden file input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -12154,6 +12369,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setSiteImportStatus('importing');
             setSiteImportMessage('Reading CSV file...');
 
+            let adminsForImport = adminList || [];
+            if (!adminsForImport.length) {
+              adminsForImport = await getAllAdminUsers();
+              setAdminList(adminsForImport || []);
+            }
+
             const csvText = event.target.result;
             const lines = csvText.trim().split('\n');
             
@@ -12164,9 +12385,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return;
             }
 
-            const newSites = [];
             let newCount = 0;
             let duplicateCount = 0;
+            let managerNotFoundCount = 0;
             const processedNames = new Set();
 
             // Parse header row
@@ -12194,6 +12415,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const locationIdx = headerValues.findIndex(h => h.includes('location'));
             const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
             const subdomainIdx = headerValues.findIndex(h => h.includes('subdomain') || h.includes('kiosk'));
+            const managerIdx = headerValues.findIndex(h =>
+              h.includes('site manager') ||
+              h.includes('default manager') ||
+              h.includes('notification manager') ||
+              (h.includes('manager') && !h.includes('business'))
+            );
+            const notificationsIdx = headerValues.findIndex(h =>
+              h.includes('default email') ||
+              h.includes('default notification') ||
+              h.includes('notifications') ||
+              h.includes('send default')
+            );
 
             let updatedCount = 0;
 
@@ -12224,12 +12457,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const location = values[locationIdx] || '';
                 const buName = values[buIdx] || '';
                 const subdomain = subdomainIdx >= 0 ? values[subdomainIdx] : '';
+                const managerValue = managerIdx >= 0 ? values[managerIdx] : '';
+                const notificationsValue = notificationsIdx >= 0 ? values[notificationsIdx] : '';
+                const managerId = managerValue ? resolveManagerId(managerValue, adminsForImport) : null;
+                const sendDefaultNotifications = notificationsIdx >= 0
+                  ? parseCsvBoolean(notificationsValue, true)
+                  : undefined;
                 
                 if (name && location && buName) {
                   // Skip if already processed in this CSV
                   if (processedNames.has(name.toLowerCase())) {
                     duplicateCount++;
                     continue;
+                  }
+
+                  if (managerValue && !managerId) {
+                    managerNotFoundCount++;
                   }
                   
                   // Find business unit by name
@@ -12254,6 +12497,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     if (subdomain && subdomain !== existingSite.kiosk_subdomain) {
                       updateData.kiosk_subdomain = subdomain;
                     }
+                    if (managerIdx >= 0) {
+                      const existingManagerId = existingSite.defaultNotificationManagerId || existingSite.default_notification_manager_id || null;
+                      const nextManagerId = managerId || null;
+                      if (nextManagerId !== existingManagerId) {
+                        updateData.default_notification_manager_id = nextManagerId;
+                      }
+                    }
+                    if (sendDefaultNotifications !== undefined) {
+                      const existingNotifications = existingSite.sendDefaultSignInNotifications !== false
+                        && existingSite.send_default_sign_in_notifications !== false;
+                      if (sendDefaultNotifications !== existingNotifications) {
+                        updateData.send_default_sign_in_notifications = sendDefaultNotifications;
+                      }
+                    }
                     
                     if (Object.keys(updateData).length > 0) {
                       setSiteImportMessage(`Updating ${name}...`);
@@ -12276,7 +12533,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         name,
                         location,
                         business_unit_id: bu.id,
-                        kiosk_subdomain: subdomain || null
+                        kiosk_subdomain: subdomain || null,
+                        default_notification_manager_id: managerId,
+                        send_default_sign_in_notifications: sendDefaultNotifications !== undefined
+                          ? sendDefaultNotifications
+                          : true,
                       });
                       newCount++;
                     } catch (err) {
@@ -12310,6 +12571,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               if (message) message += ' ';
               message += `${duplicateCount} duplicate(s) in file skipped.`;
             }
+            if (managerNotFoundCount > 0) {
+              if (message) message += ' ';
+              message += `${managerNotFoundCount} site manager value(s) not matched to an admin user.`;
+            }
             if (newCount === 0 && updatedCount === 0) {
               message = 'No changes - all sites already up to date.';
             }
@@ -12328,6 +12593,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       };
       
       fileInput.click();
+    };
+
+    const handleExportSitesCSV = () => {
+      const filteredSites = sites.filter((site) => {
+        const matchesSearch = !siteSearchText || (
+          site.name.toLowerCase().includes(siteSearchText.toLowerCase())
+          || site.location.toLowerCase().includes(siteSearchText.toLowerCase())
+        );
+        const matchesBUFilter = !siteFilterBusinessUnit || site.businessUnitId === siteFilterBusinessUnit;
+        return matchesSearch && matchesBUFilter;
+      });
+
+      exportSitesCsv({
+        sites: filteredSites,
+        businessUnits,
+        adminUsers: adminList,
+      });
     };
 
     return (
@@ -12482,11 +12764,96 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </TouchableOpacity>
               </View>
 
+              <Text style={styles.label}>Site Manager &amp; Notifications</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8 }}>
+                Choose who receives sign-in emails when no visiting person is selected. You can also import these fields via CSV.
+              </Text>
+
+              <Text style={[styles.label, { marginTop: 8 }]}>Site Manager</Text>
+              <select
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  minHeight: 48,
+                  lineHeight: '24px',
+                  borderColor: '#D1D5DB',
+                  borderWidth: 1,
+                  borderRadius: 6,
+                  backgroundColor: 'white',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+                value={currentSite.defaultNotificationManagerId || ''}
+                onChange={(e) => setCurrentSite({ ...currentSite, defaultNotificationManagerId: e.target.value || '' })}
+              >
+                <option value="">No site manager</option>
+                {(adminList || [])
+                  .filter((admin) => {
+                    if (!currentSite.id) return true;
+                    const siteIds = admin.site_ids || admin.siteIds || [];
+                    return Array.isArray(siteIds) && siteIds.includes(currentSite.id);
+                  })
+                  .map((admin) => (
+                    <option key={admin.id} value={admin.id}>
+                      {admin.name} ({admin.email})
+                    </option>
+                  ))}
+              </select>
+              {currentSite.id && (adminList || []).filter((admin) => {
+                const siteIds = admin.site_ids || admin.siteIds || [];
+                return Array.isArray(siteIds) && siteIds.includes(currentSite.id);
+              }).length === 0 && (
+                <Text style={{ fontSize: 13, color: '#B45309', marginBottom: 12 }}>
+                  No admin users are assigned to this site yet. Assign admins to the site in Admin Users to use them here.
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  backgroundColor: currentSite.sendDefaultSignInNotifications ? '#DBEAFE' : '#F3F4F6',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  borderWidth: 2,
+                  borderColor: currentSite.sendDefaultSignInNotifications ? '#3B82F6' : '#D1D5DB'
+                }}
+                onPress={() => setCurrentSite({
+                  ...currentSite,
+                  sendDefaultSignInNotifications: !currentSite.sendDefaultSignInNotifications,
+                })}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: '#3B82F6',
+                  backgroundColor: currentSite.sendDefaultSignInNotifications ? '#3B82F6' : 'white',
+                  marginRight: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  {currentSite.sendDefaultSignInNotifications && <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>✓</Text>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: currentSite.sendDefaultSignInNotifications ? '#1E40AF' : '#6B7280' }}>
+                    Send fallback sign-in notifications
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    When enabled, the site manager is emailed if no visiting person is selected at sign-in.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.addButton} onPress={handleAddSite}>
                 <Text style={styles.addButtonText}>{editingSite ? 'Update Site' : 'Add Site'}</Text>
               </TouchableOpacity>
               {editingSite && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false }); setSelectedSite(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingSite(false); setCurrentSite({ id: '', name: '', location: '', businessUnitId: '', kioskSubdomain: '', flag: false, rt: false, defaultNotificationManagerId: '', sendDefaultSignInNotifications: true }); setSelectedSite(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -12499,10 +12866,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Sites Database</Text>
               </View>
-              <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={handleImportSitesCSV}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleExportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleImportSitesCSV}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Import CSV</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+            <Text style={{ color: '#6B7280', marginBottom: 12, fontSize: 13 }}>
+              CSV columns: Site Name, Location, Business Unit, Kiosk Subdomain (optional), Site Manager (email or name), Notifications (On/Off).
+            </Text>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {sites.length} sites</Text>
             
             {/* Filter section */}
@@ -12550,6 +12925,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Kiosk Subdomain</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Flag</Text>
                     <Text style={{ width: 60, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>RT</Text>
+                    <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Site Manager</Text>
+                    <Text style={{ width: 110, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Notifications</Text>
                     <Text style={{ width: 100, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                   </View>
 
@@ -12567,6 +12944,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     })
                     .map((site, index) => {
                     const buName = businessUnits.find(u => u.id === site.businessUnitId)?.name || 'Unknown';
+                    const defaultManager = (adminList || []).find(admin => admin.id === (site.defaultNotificationManagerId || site.default_notification_manager_id));
                     return (
                       <View 
                         key={site.id}
@@ -12595,6 +12973,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         </Text>
                         <Text style={{ width: 60, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
                           {site.rt ? '📡' : ''}
+                        </Text>
+                        <Text style={{ width: 160, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {defaultManager ? defaultManager.name : '—'}
+                        </Text>
+                        <Text style={{ width: 110, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB', textAlign: 'center', fontWeight: '600' }}>
+                          {(site.sendDefaultSignInNotifications !== false && site.send_default_sign_in_notifications !== false) ? 'On' : 'Off'}
                         </Text>
                         <View style={{ width: 100, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 8 }}>
                           <TouchableOpacity 
@@ -12628,15 +13012,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Manage Services Screen
   const renderManageServices = () => {
     const handleAddService = async () => {
-      if (!currentService.name || !currentService.businessUnitId) {
-        Alert.alert('Missing Info', 'Please fill in Service Name and select a Business Unit.');
+      if (!currentService.name || !currentService.applicableBusinessUnitIds?.length) {
+        Alert.alert('Missing Info', 'Please fill in Service Name and select at least one applicable Business Unit.');
         return;
       }
       try {
         if (editingService) {
           await updateService(currentService.id, {
             name: currentService.name,
-            description: currentService.description || ''
+            description: currentService.description || '',
+            applicable_business_unit_ids: currentService.applicableBusinessUnitIds,
           });
           const freshServices = await listAllServices();
           setServicesFromDb(freshServices);
@@ -12645,14 +13030,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         } else {
           await createService({
             name: currentService.name,
-            business_unit_id: currentService.businessUnitId,
+            applicable_business_unit_ids: currentService.applicableBusinessUnitIds,
             description: currentService.description || ''
           });
           const freshServices = await listAllServices();
           setServicesFromDb(freshServices);
           Alert.alert('Service Added', 'New service has been added successfully.');
         }
-        setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+        setCurrentService({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
         setEditingService(false);
       } catch (error) {
         Alert.alert('Error', 'Failed to save service: ' + error.message);
@@ -12729,6 +13114,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const nameIdx = headerValues.findIndex(h => h.includes('name') || h.includes('service'));
             const buIdx = headerValues.findIndex(h => h.includes('business') || h.includes('unit'));
             const descIdx = headerValues.findIndex(h => h.includes('description') || h.includes('desc'));
+            const existingServicesByName = new Map(
+              (servicesFromDb || []).map((service) => [service.name.toLowerCase(), service])
+            );
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -12752,32 +13140,61 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               }
               values.push(current.trim().replace(/^"|"$/g, ''));
               
-              if (nameIdx >= 0 && buIdx >= 0) {
+              if (nameIdx >= 0) {
                 const name = values[nameIdx] || '';
-                const buName = values[buIdx] || '';
+                const buName = buIdx >= 0 ? values[buIdx] || '' : '';
                 const description = descIdx >= 0 ? values[descIdx] : '';
-                
-                if (name && buName) {
-                  // Skip if already processed in this CSV
-                  if (processedNames.has(name.toLowerCase())) {
-                    duplicateCount++;
-                    continue;
-                  }
-                  
-                  // Check if service already exists for this business unit
-                  const buMatch = businessUnits.find(bu => bu.name.toLowerCase() === buName.toLowerCase());
-                  if (buMatch && servicesFromDb.find(s => s.business_unit_id === buMatch.id && s.name.toLowerCase() === name.toLowerCase())) {
-                    duplicateCount++;
-                    continue;
-                  }
-                  
-                  newServices.push({
-                    name,
-                    buName,
-                    description
-                  });
-                  processedNames.add(name.toLowerCase());
+                const lowerName = name.toLowerCase();
+
+                if (!name) continue;
+
+                const buMatch = buName
+                  ? businessUnits.find((bu) => bu.name.toLowerCase() === buName.toLowerCase())
+                  : null;
+
+                if (buName && !buMatch) {
+                  console.warn(`Business unit not found: ${buName}`);
+                  continue;
                 }
+
+                const existingService = existingServicesByName.get(lowerName);
+                if (existingService) {
+                  if (buMatch) {
+                    const applicableIds = existingService.applicable_business_unit_ids || existingService.applicableBusinessUnitIds || [];
+                    if (!applicableIds.includes(buMatch.id)) {
+                      newServices.push({
+                        id: existingService.id,
+                        name: existingService.name,
+                        description: existingService.description || description,
+                        applicableBusinessUnitIds: [...new Set([...applicableIds, buMatch.id])],
+                        isUpdate: true,
+                      });
+                    } else {
+                      duplicateCount++;
+                    }
+                  } else {
+                    duplicateCount++;
+                  }
+                  continue;
+                }
+
+                if (processedNames.has(lowerName)) {
+                  const pending = newServices.find((service) => service.name.toLowerCase() === lowerName);
+                  if (pending && buMatch && !pending.applicableBusinessUnitIds.includes(buMatch.id)) {
+                    pending.applicableBusinessUnitIds.push(buMatch.id);
+                  } else {
+                    duplicateCount++;
+                  }
+                  continue;
+                }
+
+                newServices.push({
+                  name,
+                  description,
+                  applicableBusinessUnitIds: buMatch ? [buMatch.id] : businessUnits.map((bu) => bu.id),
+                  isUpdate: false,
+                });
+                processedNames.add(lowerName);
               }
             }
 
@@ -12786,18 +13203,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const serviceData = newServices[idx];
               setServiceImportMessage(`Importing ${idx + 1} of ${newServices.length}: ${serviceData.name}...`);
               try {
-                // Find business unit by name
-                const bu = businessUnits.find(u => u.name.toLowerCase() === serviceData.buName.toLowerCase());
-                if (!bu) {
-                  console.warn(`Business unit not found: ${serviceData.buName}`);
-                  continue;
+                if (serviceData.isUpdate) {
+                  await updateService(serviceData.id, {
+                    name: serviceData.name,
+                    description: serviceData.description || '',
+                    applicable_business_unit_ids: serviceData.applicableBusinessUnitIds,
+                  });
+                } else {
+                  await createService({
+                    name: serviceData.name,
+                    applicable_business_unit_ids: serviceData.applicableBusinessUnitIds,
+                    description: serviceData.description || ''
+                  });
                 }
-
-                await createService({
-                  name: serviceData.name,
-                  business_unit_id: bu.id,
-                  description: serviceData.description || ''
-                });
                 newCount++;
               } catch (err) {
                 console.error(`Failed to import ${serviceData.name}:`, err);
@@ -12832,14 +13250,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       fileInput.click();
     };
 
-    // Group services by business unit
-    const servicesByBU = {};
-    (servicesFromDb || []).forEach(service => {
-      if (!servicesByBU[service.business_unit_id]) {
-        servicesByBU[service.business_unit_id] = [];
-      }
-      servicesByBU[service.business_unit_id].push(service);
-    });
+    const sortedServices = [...(servicesFromDb || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -12887,10 +13298,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 placeholder="Enter service name (e.g., Hot Work)" 
               />
               
-              <Text style={styles.label}>Business Unit *</Text>
+              <Text style={styles.label}>Applicable Business Units *</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8, fontSize: 12 }}>
+                Select which business units can use this service.
+              </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
                 {businessUnits.map(unit => {
-                  const isSelected = currentService.businessUnitId === unit.id;
+                  const applicableIds = currentService.applicableBusinessUnitIds || [];
+                  const isSelected = applicableIds.includes(unit.id);
                   return (
                     <TouchableOpacity
                       key={unit.id}
@@ -12901,7 +13316,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                       ]}
                       onPress={() => {
-                        setCurrentService({ ...currentService, businessUnitId: unit.id });
+                        const updatedIds = isSelected
+                          ? applicableIds.filter((id) => id !== unit.id)
+                          : [...applicableIds, unit.id];
+                        setCurrentService({ ...currentService, applicableBusinessUnitIds: updatedIds });
                       }}
                     >
                       <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{unit.name}</Text>
@@ -12928,11 +13346,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     {editingService ? 'Update Service' : 'Add Service'}
                   </Text>
                 </TouchableOpacity>
-                {(editingService || currentService.name || currentService.businessUnitId || currentService.description) && (
+                {(editingService || currentService.name || currentService.applicableBusinessUnitIds?.length || currentService.description) && (
                   <TouchableOpacity 
                     style={[styles.addButton, { backgroundColor: '#EF4444' }]} 
                     onPress={() => {
-                      setCurrentService({ id: '', name: '', businessUnitId: '', description: '' });
+                      setCurrentService({ id: '', name: '', applicableBusinessUnitIds: [], description: '' });
                       setEditingService(false);
                     }}
                   >
@@ -12957,49 +13375,50 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </View>
             <Text style={{ color: '#6B7280', marginBottom: 12 }}>Total: {servicesFromDb.length} services</Text>
 
-            {Object.keys(servicesByBU).length === 0 ? (
+            {sortedServices.length === 0 ? (
               <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
                 <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No services yet. Add one to get started!</Text>
               </View>
             ) : (
-              Object.entries(servicesByBU).map(([buId, services]) => {
-                const buName = businessUnits.find(bu => bu.id === buId)?.name || 'Unknown';
+              sortedServices.map(service => {
+                const applicableIds = service.applicable_business_unit_ids || service.applicableBusinessUnitIds || [];
+                const applicableNames = applicableIds
+                  .map((id) => businessUnits.find((bu) => bu.id === id)?.name)
+                  .filter(Boolean)
+                  .join(', ');
+
                 return (
-                  <View key={buId} style={{ marginBottom: 20 }}>
-                    <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#1F2937' }]}>
-                      {buName} ({services.length})
-                    </Text>
-                    {services.map(service => (
-                      <TouchableOpacity 
-                        key={service.id}
-                        style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                        onPress={() => {
-                          setCurrentService({
-                            id: service.id,
-                            name: service.name,
-                            businessUnitId: service.business_unit_id,
-                            description: service.description || ''
-                          });
-                          setEditingService(true);
-                        }}
+                  <TouchableOpacity
+                    key={service.id}
+                    style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                    onPress={() => {
+                      setCurrentService({
+                        id: service.id,
+                        name: service.name,
+                        applicableBusinessUnitIds: applicableIds,
+                        description: service.description || ''
+                      });
+                      setEditingService(true);
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{service.name}</Text>
+                      {service.description && (
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
+                      )}
+                      {applicableNames && (
+                        <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Applies to: {applicableNames}</Text>
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, marginLeft: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteService(service.id)}
+                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 6 }}
                       >
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{service.name}</Text>
-                          {service.description && (
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{service.description}</Text>
-                          )}
-                        </View>
-                        <View style={{ flexDirection: 'row', gap: 8, marginLeft: 12 }}>
-                          <TouchableOpacity 
-                            onPress={() => handleDeleteService(service.id)}
-                            style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 6 }}
-                          >
-                            <Text style={{ fontSize: 16 }}>🗑️</Text>
-                          </TouchableOpacity>
-                        </View>
+                        <Text style={{ fontSize: 16 }}>🗑️</Text>
                       </TouchableOpacity>
-                    ))}
-                  </View>
+                    </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -13133,22 +13552,42 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         };
         console.log('📤 Contractor payload:', contractorPayload);
 
+        const selectedInductionIds = currentContractor.completedInductionIds || [];
+        let savedContractorId = currentContractor.id;
+
         if (editingContractor) {
           console.log('📝 Updating contractor:', currentContractor.id);
           await updateContractor(currentContractor.id, contractorPayload);
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          setEditingContractor(false);
-          window.alert('Contractor Updated: Contractor has been updated successfully.');
+          savedContractorId = currentContractor.id;
         } else {
           console.log('➕ Creating new contractor');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
-          const freshContractors = await listContractors();
-          setContractors(freshContractors);
-          window.alert('Contractor Added: New contractor has been added successfully.');
+          savedContractorId = result?.id;
         }
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+
+        if (savedContractorId) {
+          await saveContractorCompletedInductions(savedContractorId, selectedInductionIds);
+        }
+
+        const freshContractors = await listContractors();
+        setContractors(freshContractors);
+        const completedMap = await getCompletedInductionsByContractor();
+        setContractorCompletedInductions(completedMap || {});
+
+        const assignedCount = selectedInductionIds.length;
+        const assignedSuffix = assignedCount > 0
+          ? ` ${assignedCount} induction(s) marked as completed.`
+          : '';
+
+        if (editingContractor) {
+          setEditingContractor(false);
+          window.alert(`Contractor Updated: Contractor has been updated successfully.${assignedSuffix}`);
+        } else {
+          window.alert(`Contractor Added: New contractor has been added successfully.${assignedSuffix}`);
+        }
+
+        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -13308,8 +13747,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const sitesIdx = findColumnIndex([
               h => (h.includes('site') || h.includes('available')) && !h.includes('website'),
             ]);
+            const completedInductionsIdx = findColumnIndex([
+              h => h === 'completed_inductions',
+              h => h === 'completed_induction',
+              h => h === 'inductions_completed',
+              h => (h.includes('completed') && h.includes('induction')),
+            ]);
             const inductionIdx = findColumnIndex([
-              h => h.includes('induction') || h.includes('expiry') || h === 'date',
+              h => h === 'induction_expiry',
+              h => h === 'induction_exp',
+              h => (h.includes('induction') && h.includes('expiry')),
+              h => h === 'expiry',
+              h => h === 'date',
             ]);
             const businessUnitIdx = findColumnIndex([
               h => h.includes('business_unit'),
@@ -13319,7 +13768,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             console.log('📋 Contractor CSV headers:', headerValues);
             console.log('🔍 Contractor CSV column map:', {
-              nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx, inductionIdx, businessUnitIdx,
+              nameIdx, emailIdx, companyIdx, phoneIdx, servicesIdx, sitesIdx,
+              completedInductionsIdx, inductionIdx, businessUnitIdx,
             });
 
             setImportMessage('Loading current contractors...');
@@ -13363,7 +13813,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const services = servicesIdx >= 0 ? parseDelimitedList(values[servicesIdx]) : [];
                 const siteNames = sitesIdx >= 0 ? parseDelimitedList(values[sitesIdx]) : [];
                 const businessUnitNames = businessUnitIdx >= 0 ? parseDelimitedList(values[businessUnitIdx]) : [];
-                const inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
+                const completedInductionNames = completedInductionsIdx >= 0
+                  ? parseDelimitedList(values[completedInductionsIdx])
+                  : [];
+                let inductionExpiry = inductionIdx >= 0 ? convertDateFormat(values[inductionIdx]) : null;
+                if (inductionExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(inductionExpiry)) {
+                  console.warn(
+                    `Skipping invalid induction_expiry during import for ${name}: "${values[inductionIdx]}"`
+                  );
+                  inductionExpiry = null;
+                }
                 
                 // Validate name and company (email is optional)
                 if (isValidName(name) && company) {
@@ -13383,6 +13842,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     services,
                     siteNames,
                     businessUnitNames,
+                    completedInductionNames,
                     inductionExpiry,
                   });
                 }
@@ -13417,39 +13877,52 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const allServicesForImport = servicesForContractors.length > 0
               ? servicesForContractors
               : await listAllServices();
+            const allInductionsForImport = await getAllInductions();
+            const inductionNameLookup = buildInductionNameLookup(allInductionsForImport);
+
+            const resolveCompletedInductionIds = (inductionNames) => {
+              const resolvedIds = resolveInductionIdsFromImportNames(inductionNames, inductionNameLookup);
+              for (const inductionName of inductionNames) {
+                const trimmedName = inductionName.trim();
+                if (!trimmedName) continue;
+                if (!resolveInductionIdFromImportName(trimmedName, inductionNameLookup)) {
+                  console.warn(`Induction not found during import: "${inductionName}"`);
+                }
+              }
+              return resolvedIds;
+            };
 
             const resolveServiceIds = (serviceNames, businessUnitIds) => {
               const resolvedIds = [];
+              const applicableServices = businessUnitIds.length > 0
+                ? filterServicesForBusinessUnits(allServicesForImport, businessUnitIds)
+                : allServicesForImport;
+
               for (const serviceName of serviceNames) {
                 const trimmedName = serviceName.trim();
                 if (!trimmedName) continue;
                 const lowerName = trimmedName.toLowerCase();
-                const candidates = allServicesForImport.filter(
-                  s => s.name.toLowerCase() === lowerName || s.id === serviceName
+                const match = applicableServices.find(
+                  (service) => service.name.toLowerCase() === lowerName || service.id === serviceName
+                ) || allServicesForImport.find(
+                  (service) => service.name.toLowerCase() === lowerName || service.id === serviceName
                 );
-                if (candidates.length === 0) {
+
+                if (!match) {
                   console.warn(`Service not found: "${serviceName}"`);
                   continue;
                 }
-                if (businessUnitIds.length > 0) {
-                  const buMatch = candidates.find(s => businessUnitIds.includes(s.business_unit_id));
-                  if (buMatch) {
-                    resolvedIds.push(buMatch.id);
-                    continue;
-                  }
-                }
-                if (candidates.length === 1) {
-                  resolvedIds.push(candidates[0].id);
-                } else {
-                  console.warn(`Ambiguous service "${serviceName}" — using first match`);
-                  resolvedIds.push(candidates[0].id);
-                }
+
+                resolvedIds.push(match.id);
               }
               return [...new Set(resolvedIds)];
             };
 
             let unresolvedSiteCount = 0;
+            let unresolvedInductionCount = 0;
             let failedSaveCount = 0;
+            let inductionAssignmentCount = 0;
+            let inductionSaveFailCount = 0;
 
             const resolveSiteIds = (siteNames) => {
               const ids = [];
@@ -13517,6 +13990,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const serviceIds = serviceNames.length > 0
                   ? resolveServiceIds(serviceNames, businessUnitIds)
                   : [];
+                const completedInductionNames = contractor.completedInductionNames || [];
+                const requestedInductionCount = completedInductionNames.length;
+                const completedInductionIds = completedInductionNames.length > 0
+                  ? resolveCompletedInductionIds(completedInductionNames)
+                  : [];
+                if (requestedInductionCount > completedInductionIds.length) {
+                  unresolvedInductionCount += requestedInductionCount - completedInductionIds.length;
+                }
+
+                let savedContractorId = null;
 
                 if (existingContractor) {
                   const existing = existingContractor;
@@ -13542,6 +14025,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Update returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  savedContractorId = saved.id;
                   const existingIndex = importContractorsCache.findIndex((c) => c.id === saved.id);
                   if (existingIndex >= 0) {
                     importContractorsCache[existingIndex] = saved;
@@ -13566,8 +14050,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     console.error(`Create returned no contractor for ${contractor.name}`);
                     continue;
                   }
+                  savedContractorId = saved.id;
                   importContractorsCache.push(saved);
                   newCount++;
+                }
+
+                if (savedContractorId && completedInductionIds.length > 0) {
+                  const inductionMode =
+                    requestedInductionCount === completedInductionIds.length ? 'replace' : 'add';
+                  try {
+                    await saveContractorCompletedInductions(savedContractorId, completedInductionIds, {
+                      mode: inductionMode,
+                    });
+                    inductionAssignmentCount += completedInductionIds.length;
+                  } catch (inductionError) {
+                    inductionSaveFailCount++;
+                    console.error(
+                      `Failed to assign inductions for ${contractor.name}:`,
+                      inductionError
+                    );
+                  }
                 }
               } catch (err) {
                 console.error(`Failed to import ${contractor.name}:`, err);
@@ -13582,10 +14084,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setImportMessage('Refreshing data...');
             const freshContractors = await listContractors();
             setContractors(freshContractors);
+            const completedMap = await getCompletedInductionsByContractor();
+            setContractorCompletedInductions(completedMap || {});
             setContractorSearchText('');
             setContractorCompanyFilter('All');
             setContractorCompanyFilterSearch('');
             setContractorBusinessUnitFilter('All');
+            setContractorSiteFilter('All');
             
             let message = '✓ Import complete.';
             if (newCount > 0) message += ` ${newCount} new contractor(s) created.`;
@@ -13594,6 +14099,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (duplicateCount > 0) message += ` ${duplicateCount} duplicate row(s) in file skipped.`;
             if (failedSaveCount > 0) message += ` ${failedSaveCount} row(s) failed to save.`;
             if (unresolvedSiteCount > 0) message += ` ${unresolvedSiteCount} site name(s) not matched.`;
+            if (unresolvedInductionCount > 0) message += ` ${unresolvedInductionCount} induction name(s) not matched.`;
+            if (inductionAssignmentCount > 0) message += ` ${inductionAssignmentCount} induction completion(s) assigned.`;
+            if (inductionSaveFailCount > 0) message += ` ${inductionSaveFailCount} contractor(s) had induction save errors.`;
             if (newCompanyCount > 0) message += ` ${newCompanyCount} new company(ies) created.`;
             if (companyNotFoundCount > 0) message += ` ${companyNotFoundCount} company issues.`;
             
@@ -13618,20 +14126,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       contractorCompletedInductions[contractorId] || []
     );
 
-    const getFilteredContractors = () => contractors.filter(contractor => {
-      const contractorEmail = contractor.email || '';
-      const matchesSearch = contractorSearchText === '' ||
-        contractor.name.toLowerCase().includes(contractorSearchText.toLowerCase()) ||
-        contractorEmail.toLowerCase().includes(contractorSearchText.toLowerCase());
+    const getSiteBusinessUnitId = (site) => site.business_unit_id || site.businessUnitId;
+    const contractorFilterSites = (sites || [])
+      .filter((site) => contractorBusinessUnitFilter === 'All'
+        || getSiteBusinessUnitId(site) === contractorBusinessUnitFilter)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-      const matchesCompanyFilter = contractorCompanyFilter === 'All' ||
-        (contractor.companyName || contractor.company) === contractorCompanyFilter;
+    const resetContractorSiteFilterIfNeeded = (nextBusinessUnitFilter) => {
+      if (contractorSiteFilter === 'All') {
+        return;
+      }
+      const selectedSite = (sites || []).find((site) => site.id === contractorSiteFilter);
+      if (!selectedSite) {
+        setContractorSiteFilter('All');
+        return;
+      }
+      if (nextBusinessUnitFilter !== 'All' && getSiteBusinessUnitId(selectedSite) !== nextBusinessUnitFilter) {
+        setContractorSiteFilter('All');
+      }
+    };
 
-      const matchesBusinessUnitFilter = contractorBusinessUnitFilter === 'All' ||
-        (contractor.businessUnitIds || contractor.business_unit_ids || []).includes(contractorBusinessUnitFilter);
-
-      return matchesSearch && matchesCompanyFilter && matchesBusinessUnitFilter;
-    });
+    const getFilteredContractors = () => contractors.filter((contractor) => contractorPassesAdminFilters(contractor, {
+      searchText: contractorSearchText,
+      companyFilter: contractorCompanyFilter,
+      businessUnitFilter: contractorBusinessUnitFilter,
+      siteFilter: contractorSiteFilter,
+    }));
 
     const handleExportCSV = () => {
       const filteredContractors = getFilteredContractors();
@@ -13687,8 +14207,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const dateStamp = new Date().toISOString().slice(0, 10);
+      const siteLabel = contractorSiteFilter !== 'All'
+        ? (siteIdToNameMap[contractorSiteFilter] || 'site').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+        : '';
       link.href = url;
-      link.download = `contractors-export-${dateStamp}.csv`;
+      link.download = siteLabel
+        ? `contractors-export-${siteLabel}-${dateStamp}.csv`
+        : `contractors-export-${dateStamp}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -13732,13 +14257,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <View style={styles.section}>
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Contractor Name *</Text>
-              <TextInput style={styles.input} value={currentContractor.name} onChangeText={text => setCurrentContractor({ ...currentContractor, name: text })} placeholder="Enter contractor name" />
+              <TextInput style={styles.input} value={currentContractor.name} onChangeText={text => setCurrentContractor(prev => ({ ...prev, name: text }))} placeholder="Enter contractor name" />
               
               <Text style={styles.label}>Email Address *</Text>
-              <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor({ ...currentContractor, email: text })} placeholder="email@contractor.com" keyboardType="email-address" />
+              <TextInput style={styles.input} value={currentContractor.email} onChangeText={text => setCurrentContractor(prev => ({ ...prev, email: text }))} placeholder="email@contractor.com" keyboardType="email-address" />
               
               <Text style={styles.label}>Phone Number (Optional)</Text>
-              <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor({ ...currentContractor, phone: text })} placeholder="027 123 4567" keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={currentContractor.phone} onChangeText={text => setCurrentContractor(prev => ({ ...prev, phone: text }))} placeholder="027 123 4567" keyboardType="phone-pad" />
               
               <Text style={styles.label}>Business Units *</Text>
               <Text style={{ color: '#6B7280', marginBottom: 8 }}>Select one or more business units (tap to toggle):</Text>
@@ -13761,19 +14286,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         } else {
                           updatedBusinessUnitIds = [...currentContractor.businessUnitIds, unit.id];
                         }
-                        setCurrentContractor({ 
-                          ...currentContractor, 
-                          businessUnitIds: updatedBusinessUnitIds
-                        });
+                        setCurrentContractor(prev => ({
+                          ...prev,
+                          businessUnitIds: updatedBusinessUnitIds,
+                        }));
                         
                         // Load services and sites for selected business units
                         if (updatedBusinessUnitIds.length > 0) {
-                          let allServices = [];
-                          const sitesList = await getSitesByBusinessUnits(updatedBusinessUnitIds);
-                          for (const unitId of updatedBusinessUnitIds) {
-                            const services = await listServicesByBusinessUnit(unitId);
-                            allServices = [...allServices, ...services];
-                          }
+                          const [allServices, sitesList] = await Promise.all([
+                            listServicesForBusinessUnits(updatedBusinessUnitIds),
+                            getSitesByBusinessUnits(updatedBusinessUnitIds),
+                          ]);
                           setServicesForContractors(allServices);
                           setSitesForContractors(sitesList);
                         } else {
@@ -13928,24 +14451,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-                  {(() => {
-                    // Group services by name to deduplicate
-                    const servicesByName = {};
-                    servicesForContractors.forEach(service => {
-                      if (!servicesByName[service.name]) {
-                        servicesByName[service.name] = [];
-                      }
-                      servicesByName[service.name].push(service);
-                    });
-                    
-                    // Render each unique service name once
-                    return Object.entries(servicesByName).map(([serviceName, serviceGroup]) => {
-                      const serviceIds = serviceGroup.map(s => s.id);
-                      const isSelected = serviceIds.some(id => currentContractor.services.includes(id));
-                      
+                  {servicesForContractors.map((service) => {
+                      const isSelected = currentContractor.services.includes(service.id);
+
                       return (
                         <TouchableOpacity
-                          key={serviceName}
+                          key={service.id}
                           style={[
                             { padding: 8, margin: 4, borderRadius: 6, borderWidth: 1 },
                             isSelected
@@ -13953,28 +14464,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                           ]}
                           onPress={() => {
-                            if (isSelected) {
-                              // Remove ALL service UUIDs with this name
-                              setCurrentContractor({
-                                ...currentContractor,
-                                services: currentContractor.services.filter(
-                                  id => !serviceIds.includes(id)
-                                )
-                              });
-                            } else {
-                              // Add ALL service UUIDs with this name
-                              setCurrentContractor({
-                                ...currentContractor,
-                                services: [...currentContractor.services, ...serviceIds]
-                              });
-                            }
+                            setCurrentContractor((prev) => {
+                              const currentServices = prev.services || [];
+                              return {
+                                ...prev,
+                                services: isSelected
+                                  ? currentServices.filter((id) => id !== service.id)
+                                  : [...currentServices, service.id],
+                              };
+                            });
                           }}
                         >
-                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{serviceName}</Text>
+                          <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{service.name}</Text>
                         </TouchableOpacity>
                       );
-                    });
-                  })()}
+                    })}
                 </View>
               )}
 
@@ -14004,12 +14508,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             : { borderColor: '#D1D5DB', backgroundColor: 'white' }
                         ]}
                         onPress={() => {
-                          const siteIds = currentContractor.siteIds || [];
-                          if (siteIds.includes(siteName)) {
-                            setCurrentContractor({ ...currentContractor, siteIds: siteIds.filter(s => s !== siteName) });
-                          } else {
-                            setCurrentContractor({ ...currentContractor, siteIds: [...siteIds, siteName] });
-                          }
+                          setCurrentContractor((prev) => {
+                            const siteIds = prev.siteIds || [];
+                            return {
+                              ...prev,
+                              siteIds: siteIds.includes(siteName)
+                                ? siteIds.filter((site) => site !== siteName)
+                                : [...siteIds, siteName],
+                            };
+                          });
                         }}
                       >
                         <Text style={{ color: isSelected ? 'white' : '#374151', fontSize: 14, fontWeight: '500' }}>{siteName}</Text>
@@ -14021,13 +14528,86 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </View>
               )}
 
+              <Text style={styles.label}>Completed Inductions</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 8 }}>
+                {currentContractor.businessUnitIds.length > 0
+                  ? 'Select inductions this contractor has already completed:'
+                  : 'Select business units above to see available inductions.'}
+              </Text>
+              {currentContractor.businessUnitIds.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>Choose at least one business unit to assign inductions.</Text>
+                </View>
+              ) : contractorFormInductions.length === 0 ? (
+                <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, marginBottom: 12 }}>
+                  <Text style={{ color: '#92400E', fontSize: 13 }}>No inductions are configured for the selected business units.</Text>
+                </View>
+              ) : (
+                <View style={{ marginBottom: 12 }}>
+                  {contractorFormInductions.map((induction) => {
+                    const isSelected = (currentContractor.completedInductionIds || []).includes(induction.id);
+                    const siteLabel = induction.site_id ? 'Site-specific' : 'All sites';
+
+                    return (
+                      <TouchableOpacity
+                        key={induction.id}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          padding: 10,
+                          marginBottom: 8,
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#ECFDF5' : 'white',
+                        }}
+                        onPress={() => {
+                          setCurrentContractor((prev) => {
+                            const currentIds = prev.completedInductionIds || [];
+                            const nextIds = isSelected
+                              ? currentIds.filter((id) => id !== induction.id)
+                              : [...currentIds, induction.id];
+                            return {
+                              ...prev,
+                              completedInductionIds: nextIds,
+                            };
+                          });
+                        }}
+                      >
+                        <View style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 3,
+                          borderWidth: 2,
+                          borderColor: isSelected ? '#10B981' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#10B981' : 'white',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 10,
+                        }}>
+                          {isSelected && <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>✓</Text>}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#1F2937', fontSize: 14, fontWeight: '600' }}>
+                            {induction.induction_name}
+                          </Text>
+                          <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+                            {siteLabel}{induction.is_compulsory ? ' · Required' : ''}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TextInput 
                 style={styles.input}
                 value={currentContractor.inductionExpiry}
                 onChangeText={text => {
                   // Allow typing in format: DD/MM/YYYY or DD-MM-YYYY
-                  setCurrentContractor({ ...currentContractor, inductionExpiry: text });
+                  setCurrentContractor(prev => ({ ...prev, inductionExpiry: text }));
                 }}
                 placeholder="DD/MM/YYYY (e.g., 25/12/2025)"
                 placeholderTextColor="#9CA3AF"
@@ -14037,14 +14617,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
                 <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Contractors List Section */}
-          <View style={{ marginTop: 24 }}>
+          <View style={{ marginTop: 24, overflow: 'visible' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
@@ -14061,7 +14641,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             {/* Filter and Search Section */}
             {contractors.length > 0 && (
-              <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+              <View style={{
+                marginBottom: 16,
+                padding: 12,
+                backgroundColor: 'white',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                position: 'relative',
+                overflow: 'visible',
+                zIndex: showContractorCompanyFilterDropdown ? 100 : 1,
+              }}>
                 <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
                 <TextInput
                   style={styles.input}
@@ -14071,7 +14661,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 />
 
                 <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
-                <View style={{ position: 'relative', zIndex: 10 }}>
+                <View
+                  style={{ position: 'relative', zIndex: showContractorCompanyFilterDropdown ? 1000 : 10 }}
+                  pointerEvents="box-none"
+                >
                   <TextInput
                     style={styles.input}
                     placeholder="All Companies - type to search..."
@@ -14114,7 +14707,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         backgroundColor: 'white',
                         borderRadius: 8,
                         maxHeight: 200,
-                        zIndex: 50,
+                        zIndex: 1000,
                         elevation: 10,
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
@@ -14123,8 +14716,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         borderWidth: 1,
                         borderColor: '#D1D5DB',
                         overflow: 'hidden',
-                      }}>
-                        <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                      }} pointerEvents="auto">
+                        <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                           <TouchableOpacity
                             style={{
                               padding: 12,
@@ -14180,7 +14773,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         ? { backgroundColor: '#10B981', borderColor: '#10B981' }
                         : { backgroundColor: 'white', borderColor: '#D1D5DB' }
                     ]}
-                    onPress={() => setContractorBusinessUnitFilter('All')}
+                    onPress={() => {
+                      resetContractorSiteFilterIfNeeded('All');
+                      setContractorBusinessUnitFilter('All');
+                    }}
                   >
                     <Text style={{ color: contractorBusinessUnitFilter === 'All' ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>All</Text>
                   </TouchableOpacity>
@@ -14193,12 +14789,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           ? { backgroundColor: '#10B981', borderColor: '#10B981' }
                           : { backgroundColor: 'white', borderColor: '#D1D5DB' }
                       ]}
-                      onPress={() => setContractorBusinessUnitFilter(bu.id)}
+                      onPress={() => {
+                        resetContractorSiteFilterIfNeeded(bu.id);
+                        setContractorBusinessUnitFilter(bu.id);
+                      }}
                     >
                       <Text style={{ color: contractorBusinessUnitFilter === bu.id ? 'white' : '#374151', fontWeight: '500', fontSize: 11 }}>{bu.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Site:</Text>
+                <select
+                  style={{
+                    width: '100%',
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderColor: '#D1D5DB',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    backgroundColor: 'white',
+                    fontSize: 14,
+                  }}
+                  value={contractorSiteFilter}
+                  onChange={(event) => setContractorSiteFilter(event.target.value)}
+                >
+                  <option value="All">All Sites</option>
+                  {contractorFilterSites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
               </View>
             )}
 
@@ -14217,7 +14837,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
 
                 return (
-                  <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                  <ScrollView
+                    horizontal
+                    style={{
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      backgroundColor: 'white',
+                      position: 'relative',
+                      zIndex: 0,
+                    }}
+                  >
                     <View>
                       {/* Table Header */}
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
@@ -14276,11 +14907,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   const [year, month, day] = contractor.inductionExpiry.split('-');
                                   formattedDate = `${day}/${month}/${year}`;
                                 }
+                                const completedInductionIds = await getCompletedInductionIdsForContractor(contractor.id);
                                 const { site_ids: _siteIds, ...contractorWithoutSiteIds } = contractor;
                                 const editedContractor = { 
                                   ...contractorWithoutSiteIds, 
                                   siteIds: siteNames,
                                   services: contractor.serviceIds || contractor.services || [],
+                                  completedInductionIds,
                                   company: contractor.companyName || contractor.company,
                                   company_id: contractor.company_id || contractor.companyId || '',
                                   companyManuallyEntered: false,
@@ -14290,12 +14923,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 // Load services and sites for the contractor's business units
                                 const businessUnitIds = contractor.businessUnitIds || [];
                                 if (businessUnitIds.length > 0) {
-                                  let allServices = [];
-                                  const sitesList = await getSitesByBusinessUnits(businessUnitIds);
-                                  for (const unitId of businessUnitIds) {
-                                    const services = await listServicesByBusinessUnit(unitId);
-                                    allServices = [...allServices, ...services];
-                                  }
+                                  const [allServices, sitesList] = await Promise.all([
+                                    listServicesForBusinessUnits(businessUnitIds),
+                                    getSitesByBusinessUnits(businessUnitIds),
+                                  ]);
                                   setServicesForContractors(allServices);
                                   setSitesForContractors(sitesList);
                                 } else {
@@ -24066,6 +24697,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const isAdminRoute = pathname.startsWith('/admin');
           const isManagerRoute = isManagerHubPath(pathname);
           const isContractorRoute = pathname.startsWith('/contractor-admin');
+
+          if (
+            isContractorRoute
+            && !contractorHubAuthChecked
+          ) {
+            return (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={{ marginTop: 16, color: '#6B7280' }}>Loading contractor session...</Text>
+              </View>
+            );
+          }
           
           // AUTH GUARD - check permissions silently
           
@@ -24109,7 +24752,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           
           // Block contractor routes without contractor session
-          if (isContractorRoute && !selectedCompanyId) {
+          if (shouldShowContractorAuthGuard({
+            pathname,
+            selectedCompanyId,
+            currentScreen,
+            contractorHubAuthChecked,
+          })) {
             // Contractor route requires company selection
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
@@ -24123,25 +24771,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </Text>
                   <TouchableOpacity
                     style={{ backgroundColor: '#3B82F6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
-                    onPress={() => setCurrentScreen('contractorAuth')}
+                    onPress={() => {
+                      window.history.replaceState({}, '', contractorSignInPath());
+                      setCurrentScreen('contractorAuth');
+                    }}
                   >
                     <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ paddingHorizontal: 24, paddingVertical: 12 }}
                     onPress={() => {
-                      // Redirect to the kiosk URL (handles both subdomain and main domain)
-                      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-                      if (hostname.includes('-kiosk.')) {
-                        // Already on a kiosk subdomain, just go to root
-                        window.location.href = '/';
-                      } else {
-                        // On main domain, go to root which shows kiosk dashboard
-                        window.location.href = '/';
-                      }
+                      window.history.replaceState({}, '', '/permits/');
+                      setCurrentScreen('dashboard');
                     }}
                   >
-                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to Kiosk</Text>
+                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to home</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -24167,6 +24811,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             return (
               <KioskScreen 
                 onViewPermits={(siteId) => {
+                  const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+                  if (!kioskPermitsEnabled(subdomain)) {
+                    return;
+                  }
                   setInitialSiteId(siteId);
                   setCurrentScreen('permit');
                 }}
@@ -24288,6 +24936,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           loggedInAdmin={loggedInAdmin}
           sites={sites}
           onLogout={handleAdminLogout}
+          onNavigateBack={() => {
+            if (loggedInAdmin?.role === 'super_admin') {
+              setCurrentScreen('admin');
+              if (typeof window !== 'undefined') {
+                window.history.pushState({}, '', '/admin/');
+              }
+              return;
+            }
+            if (typeof window !== 'undefined') {
+              window.location.href = '/';
+              return;
+            }
+            setCurrentScreen('kiosk');
+          }}
           onOpenAdminPanel={() => {
             setCurrentScreen('admin');
             if (typeof window !== 'undefined') {
@@ -24403,26 +25065,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (options?.showSignedInToast) {
               showTransientMessage('You are signed in');
             }
-            // Store company ID so auth checks pass
-            setSelectedCompanyId(companyId);
-            console.log('✅ selectedCompanyId set to:', companyId);
-            // Set currentContractor so dashboard filters by company
-            setCurrentContractor({
-              id: contractorId,
-              name: contractorName,
-              email: email,
-              company_id: companyId,
-              phone: '',
-              businessUnitIds: [],
-              services: [],
-              siteIds: [],
-              company: '',
-              inductionExpiry: '',
-              companyManuallyEntered: false
+            establishContractorAppSession({
+              contractorId,
+              contractorName,
+              companyId,
+              email,
             });
-            console.log('✅ currentContractor state set from onLoginSuccess');
+            console.log('✅ selectedCompanyId set to:', companyId);
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
+            if (typeof window !== 'undefined') {
+              window.history.replaceState(
+                {},
+                '',
+                `/contractor-admin/?contractorId=${contractorId || ''}&companyId=${companyId || ''}`
+              );
+            }
           }}
           showPasswordReset={showPasswordReset}
           invitationFlow={invitationFlow}
@@ -24455,6 +25113,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'contractor_admin':
       return (
         <ContractorAdminScreen
+          onEstablishAppSession={establishContractorAppSession}
+          onContractorAdminLogout={clearContractorAppSession}
           onNavigateBack={(contractorInfo) => {
             // If contractor info is passed, update currentContractor for dashboard filtering
             if (contractorInfo && contractorInfo.id) {
@@ -24700,19 +25360,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         visible={showAddAdminModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => {
-          setShowAddAdminModal(false);
-          setAdminList([]);
-        }}
+        onRequestClose={resetAddAdminModalState}
       >
         <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 40 }}>
           <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Admin Users</Text>
-              <TouchableOpacity onPress={() => {
-                setShowAddAdminModal(false);
-                setAdminList([]);
-              }}>
+              <TouchableOpacity onPress={resetAddAdminModalState}>
                 <Text style={{ fontSize: 24, color: '#6B7280' }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -24821,6 +25475,44 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             {/* All Admins Section */}
             <View>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Existing Admins</Text>
+
+              <View style={{ marginBottom: 16, gap: 12 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                  }}
+                  placeholder="Search by name, email, or site..."
+                  placeholderTextColor="#9CA3AF"
+                  value={adminSearchText}
+                  onChangeText={setAdminSearchText}
+                />
+                <select
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    backgroundColor: '#F9FAFB',
+                    width: '100%',
+                  }}
+                  value={adminSiteFilter}
+                  onChange={(event) => setAdminSiteFilter(event.target.value)}
+                >
+                  <option value="All">All sites</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
+              </View>
+
               {adminListLoading ? (
                 <View style={{ alignItems: 'center', paddingVertical: 20 }}>
                   <ActivityIndicator size="large" color="#3B82F6" />
@@ -24829,8 +25521,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
                   <Text style={{ color: '#6B7280' }}>No admin users yet</Text>
                 </View>
+              ) : filteredAdminList.length === 0 ? (
+                <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
+                  <Text style={{ color: '#6B7280' }}>No admins match your search</Text>
+                </View>
               ) : (
-                adminList.map((admin) => (
+                filteredAdminList.map((admin) => (
                   <View key={admin.id} style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 12, marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <View style={{ flex: 1 }}>
@@ -24853,7 +25549,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           Sites: {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                      <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {admin.needsPasswordSetup && (
+                          <TouchableOpacity
+                            style={{
+                              padding: 8,
+                              backgroundColor: '#10B981',
+                              borderRadius: 6,
+                              opacity: resendingSetupEmailId === admin.id ? 0.6 : 1,
+                            }}
+                            onPress={() => handleResendAdminSetupEmail(admin)}
+                            disabled={resendingSetupEmailId === admin.id}
+                          >
+                            {resendingSetupEmailId === admin.id ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Resend Invite</Text>
+                            )}
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
                           onPress={() => handleEditAdmin(admin)}
@@ -24883,10 +25597,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 backgroundColor: '#F3F4F6',
                 alignItems: 'center',
               }}
-              onPress={() => {
-                setShowAddAdminModal(false);
-                setAdminList([]);
-              }}
+              onPress={resetAddAdminModalState}
             >
               <Text style={{ color: '#374151', fontWeight: '600' }}>Close</Text>
             </TouchableOpacity>
@@ -24914,10 +25625,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <ScrollView style={{ flex: 1, padding: 16 }}>
             {editingAdmin && (
               <>
-                {/* Email (Read Only) */}
+                {/* Email */}
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email (Read Only)</Text>
-                  <Text style={{ fontSize: 14, color: '#6B7280', paddingVertical: 12, paddingHorizontal: 12 }}>{editingAdmin.email}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      fontSize: 14,
+                      backgroundColor: '#F9FAFB',
+                    }}
+                    placeholder="admin@company.com"
+                    placeholderTextColor="#9CA3AF"
+                    value={editingAdmin.email}
+                    onChangeText={(text) => setEditingAdmin({ ...editingAdmin, email: text })}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
                 </View>
 
                 {/* Name Input */}
@@ -26178,12 +26906,25 @@ const AppRouter = ({ initialRoute }) => {
         const hostname = window.location.hostname;
         const fullUrl = window.location.href;
         const pathname = window.location.pathname;
+
+        const inviteRedirectUrl = resolveAdminInviteRedirectUrl(fullUrl);
+        if (inviteRedirectUrl) {
+          console.log('🔀 Redirecting admin invite link away from kiosk/root:', inviteRedirectUrl);
+          window.location.replace(inviteRedirectUrl);
+          return;
+        }
         
         console.log('🌐 Hostname detected:', hostname);
         console.log('🔗 Full URL:', fullUrl);
         
         // If URL contains admin or contractor-admin routes, always use permit management mode
-        const hasAdminRoute = pathname.includes('/admin/') || pathname.startsWith('/contractor-admin') || isSupplierFormRoute(pathname);
+        const hasAdminRoute = pathname === '/admin'
+          || pathname === '/admin/'
+          || pathname === '/manager'
+          || pathname === '/manager/'
+          || pathname.includes('/admin/')
+          || pathname.startsWith('/contractor-admin')
+          || isSupplierFormRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
           || pathname.startsWith('/auth/callback');
@@ -26251,11 +26992,27 @@ const AppRouter = ({ initialRoute }) => {
   if (standaloneInductionActive) {
     mainContent = <StandaloneInductionScreen />;
   } else if (isKiosk && kioskViewingPermits) {
-    // In kiosk mode viewing permits - render main app with site auto-selected
-    mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
+    const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+    if (kioskPermitsEnabled(subdomain)) {
+      // In kiosk mode viewing permits - render main app with site auto-selected
+      mainContent = <PermitManagementApp initialSiteId={kioskSiteId} onBackToKiosk={() => setKioskViewingPermits(false)} />;
+    } else {
+      mainContent = <KioskScreen onViewPermits={(siteId) => {
+        const kioskSubdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+        if (!kioskPermitsEnabled(kioskSubdomain)) {
+          return;
+        }
+        setKioskSiteId(siteId);
+        setKioskViewingPermits(true);
+      }} initialRoute={forceRoute} />;
+    }
   } else if (isKiosk) {
     // In kiosk mode - render kiosk screen
     mainContent = <KioskScreen onViewPermits={(siteId) => {
+      const subdomain = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : null;
+      if (!kioskPermitsEnabled(subdomain)) {
+        return;
+      }
       setKioskSiteId(siteId);
       setKioskViewingPermits(true);
     }} initialRoute={forceRoute} />;
@@ -26306,4 +27063,5 @@ const AppRouter = ({ initialRoute }) => {
   );
 };
 
+export { PermitManagementApp };
 export default AppRouter;

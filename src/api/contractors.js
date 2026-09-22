@@ -1,5 +1,10 @@
 import { supabase } from '../supabaseClient';
 import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
+import {
+  attachSiteInductionsToContractors,
+  syncSiteInductionRecordsFromProgress,
+} from './contractorInductions';
+import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
@@ -178,6 +183,17 @@ export const getContractor = async (contractorId) => {
   }
 };
 
+export const getContractorWithSiteInductions = async (contractorId) => {
+  const contractor = await getContractor(contractorId);
+  if (!contractor) {
+    return null;
+  }
+
+  await syncSiteInductionRecordsFromProgress(contractorId);
+  const [withSiteInductions] = await attachSiteInductionsToContractors([contractor]);
+  return withSiteInductions;
+};
+
 // Update a contractor
 export const updateContractor = async (contractorId, updates) => {
   try {
@@ -338,24 +354,321 @@ export const listContractorsWithExpiredInductions = async () => {
   }
 };
 
-// Get contractors assigned to a specific site (site_ids contains siteId)
+// Remove a contractor from a specific site (does not delete the contractor record)
+export const removeContractorFromSite = async (contractorId, siteId) => {
+  try {
+    if (!contractorId || !siteId) {
+      throw new Error('Contractor and site are required');
+    }
+
+    const contractor = await getContractor(contractorId);
+    const existingSiteIds = contractor.site_ids || contractor.siteIds || [];
+
+    if (!existingSiteIds.includes(siteId)) {
+      return contractor;
+    }
+
+    await supabase
+      .from('contractor_inductions')
+      .delete()
+      .eq('contractor_id', contractorId)
+      .eq('site_id', siteId);
+
+    return updateContractor(contractorId, {
+      site_ids: existingSiteIds.filter((id) => id !== siteId),
+    });
+  } catch (error) {
+    console.error('Error removing contractor from site:', error.message);
+    throw error;
+  }
+};
+
+const mergeUniqueContractors = (...lists) => {
+  const byId = new Map();
+  for (const list of lists) {
+    for (const row of list || []) {
+      if (row?.id) {
+        byId.set(row.id, row);
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+};
+
+const fetchContractorsByCompanyIds = async (companyIds) => {
+  const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = [];
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const batchRows = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*')
+        .in('company_id', batch)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+    rows.push(...batchRows);
+  }
+
+  return rows;
+};
+
+const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
+  const ids = new Set();
+
+  const bySite = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('companies')
+      .select('id')
+      .contains('site_ids', [siteId])
+      .range(from, to)
+  );
+  (bySite || []).forEach((company) => ids.add(company.id));
+
+  if (businessUnitId) {
+    const byBusinessUnit = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('companies')
+        .select('id')
+        .overlaps('business_unit_ids', [businessUnitId])
+        .range(from, to)
+    );
+    (byBusinessUnit || []).forEach((company) => ids.add(company.id));
+  }
+
+  return Array.from(ids);
+};
+
+function escapeIlikePattern(value) {
+  return String(value).replace(/[\\%_]/g, '\\$&');
+}
+
+function contractorMatchesKioskSignInSearch(contractor, siteId) {
+  const siteIds = contractor.site_ids || contractor.siteIds || [];
+  const onSite = Array.isArray(siteIds) && siteIds.includes(siteId);
+  if (onSite) {
+    return true;
+  }
+
+  const statusHere = getSiteInductionStatus(contractor, siteId);
+  if (statusHere === 'inducted' || statusHere === 'expired') {
+    return true;
+  }
+
+  return isInductedAnywhere(contractor);
+}
+
+// Kiosk search: site roster matches plus anyone inducted anywhere (other sites).
+export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    const trimmed = searchText?.trim();
+    if (!trimmed || trimmed.length < 2) {
+      return [];
+    }
+
+    const pattern = `%${escapeIlikePattern(trimmed)}%`;
+
+    const [
+      { data: siteAssigned, error: siteError },
+      { data: globalNameMatches, error: globalError },
+    ] = await Promise.all([
+      supabase
+        .from('contractors')
+        .select('*')
+        .contains('site_ids', [siteId])
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit),
+      supabase
+        .from('contractors')
+        .select('*')
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit * 2),
+    ]);
+
+    if (siteError) {
+      throw siteError;
+    }
+    if (globalError) {
+      throw globalError;
+    }
+
+    const inductedIds = await fetchContractorIdsWithSiteInductionRecord(siteId);
+    const siteAssignedIds = new Set((siteAssigned || []).map((contractor) => contractor.id));
+    const inductedOnlyIds = inductedIds.filter((contractorId) => !siteAssignedIds.has(contractorId));
+
+    const inductedMatches = [];
+    for (let i = 0; i < inductedOnlyIds.length && inductedMatches.length < limit; i += IN_QUERY_BATCH_SIZE) {
+      const batch = inductedOnlyIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+      const { data, error } = await supabase
+        .from('contractors')
+        .select('*')
+        .in('id', batch)
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit - inductedMatches.length);
+
+      if (error) {
+        throw error;
+      }
+
+      inductedMatches.push(...(data || []));
+    }
+
+    const merged = mergeUniqueContractors(
+      siteAssigned || [],
+      inductedMatches,
+      globalNameMatches || []
+    );
+    const withCompanies = await attachCompanyNames(merged);
+    const transformed = withCompanies.map(transformContractor);
+    const withInductions = await attachSiteInductionsToContractors(transformed);
+
+    return withInductions
+      .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
+      .slice(0, limit);
+  } catch (error) {
+    console.error('Error searching contractors for kiosk:', error.message);
+    throw error;
+  }
+};
+
+// Kiosk sign-in: contractors assigned to the site, in the site's business unit,
+// or belonging to a company linked to the site / business unit.
+export const listContractorsForKiosk = async (siteId) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    const { data: site, error: siteError } = await supabase
+      .from('sites')
+      .select('id, business_unit_id')
+      .eq('id', siteId)
+      .maybeSingle();
+
+    if (siteError) {
+      throw siteError;
+    }
+
+    const businessUnitId = site?.business_unit_id || null;
+
+    const [bySiteAssignment, byBusinessUnit, companyIds] = await Promise.all([
+      fetchAllPaginated((from, to) =>
+        supabase
+          .from('contractors')
+          .select('*')
+          .contains('site_ids', [siteId])
+          .order('name', { ascending: true })
+          .range(from, to)
+      ),
+      businessUnitId
+        ? fetchAllPaginated((from, to) =>
+            supabase
+              .from('contractors')
+              .select('*')
+              .overlaps('business_unit_ids', [businessUnitId])
+              .order('name', { ascending: true })
+              .range(from, to)
+          )
+        : Promise.resolve([]),
+      fetchCompanyIdsForKioskSite(siteId, businessUnitId),
+    ]);
+
+    const [byCompany, inductedContractorIds] = await Promise.all([
+      fetchContractorsByCompanyIds(companyIds),
+      fetchContractorIdsWithSiteInductionRecord(siteId),
+    ]);
+
+    const assignedIds = new Set(
+      mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany).map((row) => row.id)
+    );
+    const inductedOnlyIds = inductedContractorIds.filter((contractorId) => !assignedIds.has(contractorId));
+    const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
+
+    const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany, bySiteInductionRecord);
+    const withCompanies = await attachCompanyNames(merged);
+    const transformed = withCompanies.map(transformContractor);
+    return attachSiteInductionsToContractors(transformed);
+  } catch (error) {
+    console.error('Error fetching contractors for kiosk:', error.message);
+    throw error;
+  }
+};
+
+const fetchContractorIdsWithSiteInductionRecord = async (siteId) => {
+  const inductionRows = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('contractor_inductions')
+      .select('contractor_id')
+      .eq('site_id', siteId)
+      .range(from, to)
+  );
+
+  return [...new Set((inductionRows || []).map((row) => row.contractor_id).filter(Boolean))];
+};
+
+const fetchContractorsByIds = async (contractorIds = []) => {
+  const uniqueIds = [...new Set((contractorIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = [];
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const batchRows = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*')
+        .in('id', batch)
+        .order('name', { ascending: true })
+        .range(from, to)
+    );
+    rows.push(...batchRows);
+  }
+
+  return rows;
+};
+
+// Contractors assigned to a site (site_ids) or with a per-site induction record.
 export const listContractorsBySite = async (siteId) => {
   try {
     if (!siteId) {
       return [];
     }
 
-    const data = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select('*')
-        .contains('site_ids', [siteId])
-        .order('name', { ascending: true })
-        .range(from, to)
-    );
+    const [bySiteAssignment, inductedContractorIds] = await Promise.all([
+      fetchAllPaginated((from, to) =>
+        supabase
+          .from('contractors')
+          .select('*')
+          .contains('site_ids', [siteId])
+          .order('name', { ascending: true })
+          .range(from, to)
+      ),
+      fetchContractorIdsWithSiteInductionRecord(siteId),
+    ]);
 
-    const withCompanies = await attachCompanyNames(data || []);
-    return withCompanies.map(transformContractor);
+    const inductedOnlyIds = inductedContractorIds.filter(
+      (contractorId) => !(bySiteAssignment || []).some((row) => row.id === contractorId)
+    );
+    const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
+    const merged = mergeUniqueContractors(bySiteAssignment, bySiteInductionRecord);
+    const withCompanies = await attachCompanyNames(merged);
+    const transformed = withCompanies.map(transformContractor);
+    return attachSiteInductionsToContractors(transformed);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;

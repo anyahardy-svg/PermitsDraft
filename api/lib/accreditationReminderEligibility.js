@@ -1,4 +1,9 @@
-const REMINDER_EXCLUDED_ACCREDITATION_STATUSES = ['approved', 'completed'];
+const REMINDER_EXCLUDED_ACCREDITATION_STATUSES = [
+  'approved',
+  'completed',
+  'pending_manager',
+  'pending_hs',
+];
 
 function isEligibleForAccreditationReminder(company, now = new Date()) {
   if (!company?.accreditation_invitation_sent_at) {

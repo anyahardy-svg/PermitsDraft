@@ -6,6 +6,13 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    try {
+      const { ensureDefaultEmailTemplates } = await import('./lib/ensureEmailTemplates.js');
+      await ensureDefaultEmailTemplates();
+    } catch (templateError) {
+      console.warn('start-accreditation-approval: could not ensure email templates:', templateError.message);
+    }
+
     const { companyId } = req.body || {};
     if (!companyId) {
       return res.status(400).json({ error: 'Missing companyId' });

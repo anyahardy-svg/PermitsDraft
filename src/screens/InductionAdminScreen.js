@@ -27,7 +27,7 @@ import {
 } from '../api/inductionsPDF';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
-import { listAllServices } from '../api/services';
+import { listAllServices, filterServicesForBusinessUnits } from '../api/services';
 import { copyContractorInductionLink, getContractorInductionUrl } from '../utils/inductionLinks';
 
 /**
@@ -177,18 +177,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
   const getApplicableForceServices = () => {
     const selectedBUIds = getSelectedBUIds();
-    if (selectedBUIds.length === 0) return [];
-    return services.filter(service => selectedBUIds.includes(service.business_unit_id));
-  };
-
-  const getServiceDisplayName = (service) => {
-    const applicableServices = getApplicableForceServices();
-    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
-    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
-    if (hasDuplicateName && businessUnit) {
-      return `${service.name} (${businessUnit.name})`;
-    }
-    return service.name;
+    return filterServicesForBusinessUnits(services, selectedBUIds);
   };
 
   const handleSaveInduction = async () => {
@@ -200,12 +189,10 @@ export default function InductionAdminScreen({ onBack, styles }) {
     const selectedBUIds = getSelectedBUIds();
     const forceServiceIds = formData.force_compulsory_with_service_ids || [];
     if (forceServiceIds.length > 0 && services.length > 0) {
-      const invalidForceServiceIds = forceServiceIds.filter(id => {
-        const service = services.find(s => s.id === id);
-        return !service || !selectedBUIds.includes(service.business_unit_id);
-      });
+      const applicableServiceIds = new Set(getApplicableForceServices().map((service) => service.id));
+      const invalidForceServiceIds = forceServiceIds.filter((id) => !applicableServiceIds.has(id));
       if (invalidForceServiceIds.length > 0) {
-        Alert.alert('Error', 'Force-compulsory services must belong to one of the selected business units.');
+        Alert.alert('Error', 'Force-compulsory services must apply to one of the selected business units.');
         return;
       }
     }
@@ -421,9 +408,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
       : [...currentIds, buId];
 
     const validServiceIds = new Set(
-      services
-        .filter(service => updatedIds.includes(service.business_unit_id))
-        .map(service => service.id)
+      filterServicesForBusinessUnits(services, updatedIds).map((service) => service.id)
     );
     const prunedForceServiceIds = (formData.force_compulsory_with_service_ids || [])
       .filter(id => validServiceIds.has(id));
@@ -542,7 +527,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
 
             <Text style={[styles.label, { marginTop: 16 }]}>Force Compulsory When Services Selected (optional)</Text>
             <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-              This induction becomes compulsory when a contractor already has the selected service(s). Services are specific to each business unit.
+              This induction becomes compulsory when a contractor already has the selected service(s).
             </Text>
             {getSelectedBUIds().length === 0 ? (
               <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 10 }}>
@@ -572,7 +557,7 @@ export default function InductionAdminScreen({ onBack, styles }) {
                     style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, backgroundColor: isSelected ? '#FEE2E2' : '#F3F4F6', marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}
                   >
                     <View style={{ width: 18, height: 18, borderRadius: 3, borderWidth: 2, borderColor: '#DC2626', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#DC2626' : 'white', marginRight: 10 }}>{isSelected && <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>✓</Text>}</View>
-                    <Text style={{ color: isSelected ? '#DC2626' : '#6B7280', fontWeight: isSelected ? '600' : '400' }}>{getServiceDisplayName(service)}</Text>
+                    <Text style={{ color: isSelected ? '#DC2626' : '#6B7280', fontWeight: isSelected ? '600' : '400' }}>{service.name}</Text>
                   </TouchableOpacity>
                 );
               })

@@ -19,6 +19,7 @@ export default function ManagerHubScreen({
   loggedInAdmin,
   sites = [],
   onLogout,
+  onNavigateBack,
   onOpenAdminPanel,
   isSuperAdmin = false,
   styles,
@@ -130,6 +131,7 @@ export default function ManagerHubScreen({
         siteName={selectedSiteName}
         mode="expired"
         onBack={goToDashboard}
+        onContractorRemoved={loadCounts}
         styles={styles}
       />
     );
@@ -183,7 +185,7 @@ export default function ManagerHubScreen({
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onLogout}>
+        <TouchableOpacity onPress={onNavigateBack} accessibilityRole="button" accessibilityLabel="Back">
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Site Manager Hub</Text>

@@ -587,12 +587,14 @@ export async function inviteSupplier({
   riskClassification,
   deadline,
   techContactName,
+  contactPhone,
 }) {
   const supplier = await createSupplier({
     company_name: companyName,
     risk_classification: riskClassification,
     contact_email: email,
     tech_contact_name: techContactName,
+    contact_phone: contactPhone,
     upsert: true,
   });
 

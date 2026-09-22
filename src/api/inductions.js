@@ -5,7 +5,91 @@
 
 import { supabase } from '../supabaseClient';
 import { safePromiseAll } from '../utils/errorHandler';
-import { fetchAllPaginated } from './pagination';
+import { fetchAllBatchedByIds, fetchAllPaginated } from './pagination';
+import {
+  syncSiteInductionRecordsFromProgress,
+  upsertContractorSiteInduction,
+} from './contractorInductions';
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function formatInductionDisplayName(induction) {
+  if (!induction) return '';
+  return (induction.induction_name || '').trim();
+}
+
+export function normalizeInductionLookupKey(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+export function buildInductionNameLookup(inductions = []) {
+  const lookup = new Map();
+
+  const addKey = (key, inductionId) => {
+    const normalized = normalizeInductionLookupKey(key);
+    if (normalized && inductionId) {
+      lookup.set(normalized, inductionId);
+    }
+  };
+
+  for (const induction of inductions) {
+    if (!induction?.id) {
+      continue;
+    }
+    addKey(formatInductionDisplayName(induction), induction.id);
+    addKey(induction.induction_name, induction.id);
+  }
+
+  return lookup;
+}
+
+export function resolveInductionIdFromImportName(name, lookup) {
+  const normalized = normalizeInductionLookupKey(name);
+  if (!normalized || !lookup) {
+    return null;
+  }
+
+  if (lookup.has(normalized)) {
+    return lookup.get(normalized);
+  }
+
+  if (normalized.endsWith('s') && lookup.has(normalized.slice(0, -1))) {
+    return lookup.get(normalized.slice(0, -1));
+  }
+
+  if (lookup.has(`${normalized}s`)) {
+    return lookup.get(`${normalized}s`);
+  }
+
+  const colonIdx = normalized.lastIndexOf(':');
+  if (colonIdx >= 0) {
+    const suffix = normalizeInductionLookupKey(normalized.slice(colonIdx + 1));
+    if (suffix) {
+      const suffixMatch = resolveInductionIdFromImportName(suffix, lookup);
+      if (suffixMatch) {
+        return suffixMatch;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function resolveInductionIdsFromImportNames(names = [], lookup) {
+  const resolvedIds = [];
+
+  for (const name of names) {
+    const matchId = resolveInductionIdFromImportName(name, lookup);
+    if (matchId) {
+      resolvedIds.push(matchId);
+    }
+  }
+
+  return [...new Set(resolvedIds)];
+}
 
 // ============================================================================
 // TIMEZONE UTILITY
@@ -234,7 +318,7 @@ export async function getCompulsoryInductions(businessUnitId) {
 
 /**
  * Create a new induction
- * @param {Object} inductionData - { induction_name, description, subsection_name, business_unit_ids, site_id, service_id, force_compulsory_with_service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
+ * @param {Object} inductionData - { induction_name, description, business_unit_ids, site_id, service_id, force_compulsory_with_service_ids, video_url, video_duration, question_X_text, question_X_options, question_X_correct_answer, question_X_type, is_compulsory }
  * @returns {Object} Created induction
  */
 export async function createInduction(inductionData) {
@@ -643,23 +727,57 @@ export async function saveInductionProgress(contractorId, inductionId, answers =
  */
 export async function completeInduction(contractorId, inductionId, signatureText = '') {
   try {
-    // Update progress record status
+    const nowIso = new Date().toISOString();
+    const completionPayload = {
+      status: 'completed',
+      signature_text: signatureText || '',
+      completed_at: nowIso,
+      updated_at: nowIso,
+    };
+
     const { data: progressData, error: progressError } = await supabase
       .from('contractor_induction_progress')
-      .update({
-        status: 'completed',
-        signature_text: signatureText || '',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(completionPayload)
       .eq('contractor_id', contractorId)
       .eq('induction_id', inductionId)
       .select();
 
     if (progressError) throw progressError;
 
+    let completedRecord = progressData?.[0] || null;
+    if (!completedRecord) {
+      const { data: insertData, error: insertError } = await supabase
+        .from('contractor_induction_progress')
+        .insert([{
+          contractor_id: contractorId,
+          induction_id: inductionId,
+          started_at: nowIso,
+          ...completionPayload,
+        }])
+        .select();
+
+      if (insertError) {
+        throw insertError;
+      }
+      completedRecord = insertData?.[0] || null;
+    }
+
+    try {
+      const { data: induction, error: inductionError } = await supabase
+        .from('inductions')
+        .select('site_id')
+        .eq('id', inductionId)
+        .maybeSingle();
+
+      if (!inductionError && induction?.site_id) {
+        await syncSiteInductionRecordsFromProgress(contractorId);
+      }
+    } catch (syncError) {
+      console.warn('Could not sync per-site induction after completion:', syncError.message);
+    }
+
     console.log(`[${getNZTimestamp()}] ✅ Induction completed and signed`, { contractorId, inductionId });
-    return progressData ? progressData[0] : null;
+    return completedRecord;
   } catch (error) {
     console.error(`[${getNZTimestamp()}] ❌ Error completing induction:`, error);
     throw error;
@@ -675,7 +793,7 @@ export async function getCompletedInductions(contractorId) {
   try {
     const { data, error } = await supabase
       .from('contractor_induction_progress')
-      .select('induction_id, completed_at, inductions(service_id)')
+      .select('induction_id, completed_at')
       .eq('contractor_id', contractorId)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false });
@@ -688,25 +806,273 @@ export async function getCompletedInductions(contractorId) {
   }
 }
 
+async function upsertCompletedInductionProgress(contractorId, inductionId, signatureText = 'Admin assigned') {
+  const nowIso = new Date().toISOString();
+  const { data: existing, error: existingError } = await supabase
+    .from('contractor_induction_progress')
+    .select('id')
+    .eq('contractor_id', contractorId)
+    .eq('induction_id', inductionId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  const payload = {
+    status: 'completed',
+    completed_at: nowIso,
+    updated_at: nowIso,
+    signature_text: signatureText,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('contractor_induction_progress')
+      .update(payload)
+      .eq('id', existing.id);
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  const { error } = await supabase.from('contractor_induction_progress').insert({
+    contractor_id: contractorId,
+    induction_id: inductionId,
+    started_at: nowIso,
+    ...payload,
+  });
+  if (error) {
+    throw error;
+  }
+}
+
+async function markInductionCompletedForAdmin(contractorId, inductionId) {
+  await upsertCompletedInductionProgress(contractorId, inductionId, 'Admin assigned');
+}
+
+async function postContractorCompletedInductionsApi(contractorId, inductionIds, mode = 'replace') {
+  const response = await fetch('/api/contractor-completed-inductions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contractorId, inductionIds, mode }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to save contractor induction completions');
+  }
+
+  return response.json();
+}
+
+async function fetchCompletedInductionsByContractorApi() {
+  const response = await fetch('/api/contractor-completed-inductions');
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to load contractor induction completions');
+  }
+  const payload = await response.json();
+  return payload.completedByContractor || {};
+}
+
+export async function getCompletedInductionIdsForContractor(contractorId) {
+  if (!contractorId) {
+    return [];
+  }
+
+  const completedRows = await getCompletedInductions(contractorId);
+  const completedIds = new Set(completedRows.map((row) => row.induction_id).filter(Boolean));
+
+  const { data: siteRecords, error: siteRecordsError } = await supabase
+    .from('contractor_inductions')
+    .select('site_id, status, expires_at')
+    .eq('contractor_id', contractorId);
+
+  if (siteRecordsError) {
+    throw siteRecordsError;
+  }
+
+  const activeSiteIds = (siteRecords || [])
+    .filter((record) => {
+      if (record.status === 'expired') {
+        return false;
+      }
+      if (!record.expires_at) {
+        return true;
+      }
+      return new Date(record.expires_at) >= new Date();
+    })
+    .map((record) => record.site_id)
+    .filter(Boolean);
+
+  if (activeSiteIds.length > 0) {
+    const { data: siteInductions, error: siteInductionsError } = await supabase
+      .from('inductions')
+      .select('id, site_id')
+      .in('site_id', activeSiteIds);
+
+    if (siteInductionsError) {
+      throw siteInductionsError;
+    }
+
+    for (const induction of siteInductions || []) {
+      if (induction?.id) {
+        completedIds.add(induction.id);
+      }
+    }
+  }
+
+  return [...completedIds];
+}
+
+export async function setContractorCompletedInductions(
+  contractorId,
+  inductionIds = [],
+  { mode = 'replace' } = {}
+) {
+  if (!contractorId) {
+    throw new Error('Contractor ID is required');
+  }
+
+  try {
+    await postContractorCompletedInductionsApi(contractorId, inductionIds, mode);
+    return [...new Set((inductionIds || []).filter(Boolean))];
+  } catch (apiError) {
+    console.warn('Admin induction API unavailable, falling back to client save:', apiError.message);
+  }
+
+  const uniqueTargetIds = [...new Set((inductionIds || []).filter(Boolean))];
+  const existingRows = await getCompletedInductions(contractorId);
+  const targetIds = new Set(uniqueTargetIds);
+
+  for (const inductionId of uniqueTargetIds) {
+    await markInductionCompletedForAdmin(contractorId, inductionId);
+  }
+
+  if (mode === 'replace') {
+    for (const row of existingRows) {
+      if (targetIds.has(row.induction_id)) {
+        continue;
+      }
+
+      const { error } = await supabase
+        .from('contractor_induction_progress')
+        .delete()
+        .eq('contractor_id', contractorId)
+        .eq('induction_id', row.induction_id);
+
+      if (error) {
+        throw error;
+      }
+    }
+  }
+
+  if (uniqueTargetIds.length > 0) {
+    const { data: inductionDetails, error: inductionError } = await supabase
+      .from('inductions')
+      .select('id, site_id')
+      .in('id', uniqueTargetIds);
+
+    if (inductionError) {
+      throw inductionError;
+    }
+
+    const siteIds = [...new Set((inductionDetails || []).map((row) => row.site_id).filter(Boolean))];
+    if (siteIds.length > 0) {
+      const { data: sites, error: sitesError } = await supabase
+        .from('sites')
+        .select('id, business_unit_id')
+        .in('id', siteIds);
+
+      if (sitesError) {
+        throw sitesError;
+      }
+
+      const expiresAt = new Date(Date.now() + ONE_YEAR_MS).toISOString();
+      for (const site of sites || []) {
+        if (!site?.id || !site?.business_unit_id) {
+          continue;
+        }
+
+        await upsertContractorSiteInduction({
+          contractorId,
+          siteId: site.id,
+          businessUnitId: site.business_unit_id,
+          expiresAt,
+        });
+      }
+    }
+
+    await syncSiteInductionRecordsFromProgress(contractorId);
+
+    const { data: contractor, error: contractorError } = await supabase
+      .from('contractors')
+      .select('induction_expiry')
+      .eq('id', contractorId)
+      .maybeSingle();
+
+    if (contractorError) {
+      throw contractorError;
+    }
+
+    if (!contractor?.induction_expiry) {
+      const expiryDate = new Date(Date.now() + ONE_YEAR_MS);
+      const { error: expiryError } = await supabase
+        .from('contractors')
+        .update({ induction_expiry: expiryDate.toISOString().split('T')[0] })
+        .eq('id', contractorId);
+
+      if (expiryError) {
+        throw expiryError;
+      }
+    }
+  }
+
+  return uniqueTargetIds;
+}
+
 /**
  * Get completed induction names grouped by contractor ID.
  * @returns {Object} Map of contractor_id -> induction name[]
  */
 export async function getCompletedInductionsByContractor() {
   try {
+    try {
+      return await fetchCompletedInductionsByContractorApi();
+    } catch (apiError) {
+      console.warn('Admin induction API unavailable, falling back to client load:', apiError.message);
+    }
+
     const progressRows = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractor_induction_progress')
-        .select('contractor_id, completed_at, inductions(induction_name)')
+        .select('contractor_id, induction_id, completed_at')
         .eq('status', 'completed')
         .order('completed_at', { ascending: false })
         .range(from, to)
     );
 
+    const inductionIds = [...new Set((progressRows || []).map((row) => row.induction_id).filter(Boolean))];
+    const inductionNameById = new Map();
+
+    if (inductionIds.length > 0) {
+      const inductions = await fetchAllBatchedByIds(inductionIds, (batch) =>
+        supabase.from('inductions').select('id, induction_name').in('id', batch)
+      );
+
+      for (const induction of inductions || []) {
+        inductionNameById.set(induction.id, formatInductionDisplayName(induction));
+      }
+    }
+
     const completedByContractor = {};
-    for (const row of progressRows) {
-      const inductionName = row.inductions?.induction_name;
-      if (!row.contractor_id || !inductionName) continue;
+    for (const row of progressRows || []) {
+      const inductionName = inductionNameById.get(row.induction_id);
+      if (!row.contractor_id || !inductionName) {
+        continue;
+      }
 
       if (!completedByContractor[row.contractor_id]) {
         completedByContractor[row.contractor_id] = [];
@@ -714,6 +1080,66 @@ export async function getCompletedInductionsByContractor() {
 
       if (!completedByContractor[row.contractor_id].includes(inductionName)) {
         completedByContractor[row.contractor_id].push(inductionName);
+      }
+    }
+
+    const { data: siteRecords, error: siteRecordsError } = await supabase
+      .from('contractor_inductions')
+      .select('contractor_id, site_id, status, expires_at')
+      .eq('status', 'completed');
+
+    if (siteRecordsError) {
+      throw siteRecordsError;
+    }
+
+    const activeSiteRecords = (siteRecords || []).filter((record) => {
+      if (!record?.contractor_id || !record?.site_id) {
+        return false;
+      }
+      if (record.expires_at && new Date(record.expires_at) < new Date()) {
+        return false;
+      }
+      return true;
+    });
+
+    const activeSiteIds = [...new Set(activeSiteRecords.map((record) => record.site_id).filter(Boolean))];
+    if (activeSiteIds.length > 0) {
+      const [{ data: siteInductions, error: siteInductionsError }, { data: sites, error: sitesError }] =
+        await Promise.all([
+          supabase
+            .from('inductions')
+            .select('id, induction_name, site_id')
+            .in('site_id', activeSiteIds),
+          supabase
+            .from('sites')
+            .select('id, name')
+            .in('id', activeSiteIds),
+        ]);
+
+      if (siteInductionsError) {
+        throw siteInductionsError;
+      }
+      if (sitesError) {
+        throw sitesError;
+      }
+
+      const siteIdToInductionName = new Map(
+        (siteInductions || []).map((induction) => [induction.site_id, formatInductionDisplayName(induction)])
+      );
+      const siteIdToName = new Map((sites || []).map((site) => [site.id, site.name]));
+
+      for (const record of activeSiteRecords) {
+        const inductionName =
+          siteIdToInductionName.get(record.site_id) ||
+          (siteIdToName.get(record.site_id) ? `${siteIdToName.get(record.site_id)} Induction` : 'Site Induction');
+
+        if (!completedByContractor[record.contractor_id]) {
+          completedByContractor[record.contractor_id] = [];
+        }
+
+        if (!completedByContractor[record.contractor_id].includes(inductionName)) {
+          completedByContractor[record.contractor_id].push(inductionName);
+        }
       }
     }
 
