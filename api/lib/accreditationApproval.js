@@ -13,7 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_KEY;
 
 const COMPANY_SELECT =
-  'id,name,contact_name,contact_surname,contact_email,accreditation_status,assigned_manager_id,assigned_hs_person_id,accredited_date,contractor_type';
+  'id,name,contact_name,contact_surname,contact_email,accreditation_status,assigned_manager_id,assigned_hs_person_id,accredited_date,contractor_type,site_ids';
 
 const DEFAULT_ACCREDITATION_APPROVER_EMAIL = (
   process.env.DEFAULT_ACCREDITATION_APPROVER_EMAIL || 'anya.hardy@winstoneaggregates.co.nz'
@@ -134,6 +134,10 @@ function validateApproverAssignments(company) {
   return null;
 }
 
+function normalizeId(value) {
+  return value == null ? '' : String(value).trim().toLowerCase();
+}
+
 function canActAsApprover({ company, stage, adminUser }) {
   if (!adminUser) {
     return false;
@@ -142,10 +146,10 @@ function canActAsApprover({ company, stage, adminUser }) {
     return true;
   }
   if (stage === 'manager') {
-    return company.assigned_manager_id === adminUser.id;
+    return normalizeId(company.assigned_manager_id) === normalizeId(adminUser.id);
   }
   if (stage === 'hs') {
-    return company.assigned_hs_person_id === adminUser.id;
+    return normalizeId(company.assigned_hs_person_id) === normalizeId(adminUser.id);
   }
   return false;
 }
@@ -165,7 +169,7 @@ async function startApprovalChain(companyId, baseUrl) {
     return { success: false, error: assignmentError, status: 400 };
   }
 
-  const allowedStatuses = new Set(['pending_manager', 'completed']);
+  const allowedStatuses = new Set(['pending_manager', 'completed', 'in-progress']);
   if (!allowedStatuses.has(company.accreditation_status)) {
     return {
       success: false,
@@ -174,7 +178,7 @@ async function startApprovalChain(companyId, baseUrl) {
     };
   }
 
-  if (company.accreditation_status === 'completed') {
+  if (company.accreditation_status !== 'pending_manager') {
     await patchCompany(companyId, { accreditation_status: 'pending_manager' });
   }
 
@@ -200,13 +204,17 @@ async function processManagerApproval({ companyId, adminUserId, notes, baseUrl }
     return { success: false, error: 'You are not authorised to approve at the manager stage', status: 403 };
   }
 
-  const allowedStatuses = new Set(['pending_manager', 'completed']);
+  const allowedStatuses = new Set(['pending_manager', 'completed', 'in-progress']);
   if (!allowedStatuses.has(company.accreditation_status)) {
     return {
       success: false,
       error: `Company is not awaiting manager approval (status: ${company.accreditation_status})`,
       status: 400,
     };
+  }
+
+  if (company.accreditation_status !== 'pending_manager') {
+    await patchCompany(companyId, { accreditation_status: 'pending_manager' });
   }
 
   const hsPerson = await fetchAdminUser(company.assigned_hs_person_id);
@@ -329,7 +337,9 @@ async function getApprovalContextByToken(token) {
   }
 
   const expectedStatus = expectedStatusForStage(record.stage);
-  if (company.accreditation_status !== expectedStatus && !(record.stage === 'manager' && company.accreditation_status === 'completed')) {
+  const managerStageActive = record.stage === 'manager'
+    && ['pending_manager', 'completed', 'in-progress'].includes(company.accreditation_status);
+  if (company.accreditation_status !== expectedStatus && !managerStageActive) {
     return {
       error: 'This approval request is no longer active',
       status: 400,

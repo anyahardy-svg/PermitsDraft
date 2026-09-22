@@ -1,6 +1,7 @@
 const { prepareEmailHtml } = require('./emailWrapper');
 const { DEFAULT_FROM_EMAIL, DEFAULT_FROM_NAME, sendEmailViaResend } = require('./resend');
-const { buildApprovalPageUrl, issueApprovalToken } = require('./accreditationApprovalTokens');
+const { issueApprovalToken } = require('./accreditationApprovalTokens');
+const { buildAdminAccreditationApprovalUrl } = require('./accreditationApprovalLinks');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -115,9 +116,14 @@ function formatAccreditedDate(value) {
   return date.toLocaleDateString('en-NZ', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-async function sendManagerApprovalRequest(company, manager, baseUrl) {
-  const { token } = await issueApprovalToken(company.id, 'manager');
-  const approvalUrl = buildApprovalPageUrl(token, baseUrl);
+async function sendManagerApprovalRequest(company, manager) {
+  await issueApprovalToken(company.id, 'manager');
+  const approvalUrl = await buildAdminAccreditationApprovalUrl({
+    companyId: company.id,
+    approverAdminUserId: manager.id,
+    companySiteIds: company.site_ids || [],
+    stage: 'manager',
+  });
 
   await sendTemplateEmail({
     type: 'accreditation-manager-approval',
@@ -131,9 +137,14 @@ async function sendManagerApprovalRequest(company, manager, baseUrl) {
   });
 }
 
-async function sendHsApprovalRequest(company, hsPerson, baseUrl) {
-  const { token } = await issueApprovalToken(company.id, 'hs');
-  const approvalUrl = buildApprovalPageUrl(token, baseUrl);
+async function sendHsApprovalRequest(company, hsPerson) {
+  await issueApprovalToken(company.id, 'hs');
+  const approvalUrl = await buildAdminAccreditationApprovalUrl({
+    companyId: company.id,
+    approverAdminUserId: hsPerson.id,
+    companySiteIds: company.site_ids || [],
+    stage: 'hs',
+  });
 
   await sendTemplateEmail({
     type: 'accreditation-hs-approval',

@@ -12,8 +12,18 @@ export function isAdminPanelPath(pathname) {
   return pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/');
 }
 
+function isCompanyAccreditationAdminPath(pathname) {
+  if (!pathname) {
+    return false;
+  }
+  return /^\/admin\/companies\/[^/]+\/accreditation\/?$/.test(pathname);
+}
+
 export function getPostAdminLoginScreen(adminData, pathname) {
   if (adminData?.role === 'manager') {
+    if (isCompanyAccreditationAdminPath(pathname)) {
+      return 'manage_companies';
+    }
     return 'manager_hub';
   }
   if (isManagerHubPath(pathname)) {

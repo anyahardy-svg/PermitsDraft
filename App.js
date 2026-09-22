@@ -58,7 +58,7 @@ import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
-import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
+import { isAccreditationApprovalRoute, isCompanyAccreditationAdminPath } from './src/utils/accreditationApprovalRoute';
 import {
   contractorSignInPath,
   shouldShowContractorAuthGuard,
@@ -2623,7 +2623,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const nextScreen = getPostAdminLoginScreen(adminData, pathname);
     setCurrentScreen(nextScreen);
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isCompanyAccreditationAdminPath(pathname)) {
       const nextUrl = nextScreen === 'manager_hub' ? '/manager/' : '/admin/';
       if (window.location.pathname !== nextUrl) {
         window.history.pushState({}, '', nextUrl);
@@ -2719,7 +2719,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (!adminSessionActive || !loggedInAdmin) return;
 
     const pathname = window.location.pathname;
-    if (loggedInAdmin.role === 'manager' && isAdminPanelPath(pathname)) {
+    if (
+      loggedInAdmin.role === 'manager'
+      && isAdminPanelPath(pathname)
+      && !isCompanyAccreditationAdminPath(pathname)
+    ) {
       setCurrentScreen('manager_hub');
       window.history.replaceState({}, '', '/manager/');
     }
@@ -3771,7 +3775,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setSelectedCompanyForAccreditation(company);
             setCompanyAccreditationData(accredData);
             setSelectedCompanyAccreditationId(company.id);
+            setDisplayedAccreditationStatus(
+              resolveAccreditationDisplayStatus({
+                ...company,
+                ...accredData,
+                accreditation_status: accredData?.accreditation_status ?? company.accreditation_status,
+              })
+            );
             setShowAccreditationModal(true);
+
+            if (typeof window !== 'undefined') {
+              const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
+              if (approvalStage === 'manager' || approvalStage === 'hs') {
+                const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
+                Alert.alert(
+                  'Accreditation approval',
+                  `This company is awaiting your ${stageLabel} approval. Review the submission and use Approve (${stageLabel}) at the bottom of this screen.`
+                );
+              }
+            }
           } catch (error) {
             console.error('Error loading accreditation:', error);
           }
@@ -26927,7 +26949,8 @@ const AppRouter = ({ initialRoute }) => {
           || pathname === '/manager/'
           || pathname.includes('/admin/')
           || pathname.startsWith('/contractor-admin')
-          || isSupplierFormRoute(pathname);
+          || isSupplierFormRoute(pathname)
+          || isAccreditationApprovalRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
           || pathname.startsWith('/auth/callback');
