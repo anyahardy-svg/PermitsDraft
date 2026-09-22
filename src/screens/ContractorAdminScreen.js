@@ -29,6 +29,7 @@ import { copyContractorInductionLink, getContractorInductionUrl } from '../utils
 export default function ContractorAdminScreen({ 
   onNavigateBack,
   onReturnToKiosk,
+  onEstablishAppSession,
   businessUnitId, 
   styles,
   businessUnits = [],
@@ -164,6 +165,10 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyId(contractorInfo.companyId);
     setIsLoggedIn(true);
     setSelectedCompanyId(contractorInfo.companyId);
+
+    if (typeof onEstablishAppSession === 'function') {
+      onEstablishAppSession(contractorInfo);
+    }
     
     // Initialize profile editing fields
     setProfileName(contractorInfo.contractorName);

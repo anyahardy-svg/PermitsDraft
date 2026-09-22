@@ -59,6 +59,10 @@ import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
 import { isAccreditationApprovalRoute } from './src/utils/accreditationApprovalRoute';
+import {
+  contractorSignInPath,
+  shouldShowContractorAuthGuard,
+} from './src/utils/contractorRouteAuth';
 import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
@@ -2448,6 +2452,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [contractorHubAuthChecked, setContractorHubAuthChecked] = useState(false);
   
   // Network status tracking
   const { isOnline } = useNetworkStatus();
@@ -3309,6 +3314,26 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+  const establishContractorAppSession = useCallback((contractorInfo) => {
+    if (!contractorInfo?.companyId) {
+      return;
+    }
+    setSelectedCompanyId(contractorInfo.companyId);
+    setCurrentContractor({
+      id: contractorInfo.contractorId || '',
+      name: contractorInfo.contractorName || contractorInfo.name || '',
+      email: contractorInfo.email || '',
+      company_id: contractorInfo.companyId,
+      phone: contractorInfo.phone || '',
+      businessUnitIds: contractorInfo.businessUnitIds || [],
+      services: contractorInfo.services || [],
+      siteIds: contractorInfo.siteIds || [],
+      company: contractorInfo.company || '',
+      inductionExpiry: '',
+      companyManuallyEntered: false,
+      completedInductionIds: [],
+    });
+  }, []);
   const [contractorFormInductions, setContractorFormInductions] = useState([]);
   const skipCompanyInputSyncRef = useRef(false);
   const [servicesForContractors, setServicesForContractors] = useState([]);
@@ -3820,88 +3845,88 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Detect contractor hub domain and handle authentication
   useEffect(() => {
     const detectContractorHub = async () => {
-      if (typeof window === 'undefined') return;
-      
-      const pathname = window.location.pathname;
-      const hostname = window.location.hostname;
-      console.log('🔍 Checking domain:', hostname);
-      
-      // If we're on the auth callback route, don't override it
-      if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
-        console.log('✅ Auth callback path detected - skipping auth check');
+      if (typeof window === 'undefined') {
+        setContractorHubAuthChecked(true);
         return;
       }
 
-      // Sign-in route handles login and password setup itself
-      if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
-        console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
-        return;
-      }
+      try {
+        const pathname = window.location.pathname;
+        const hostname = window.location.hostname;
+        console.log('🔍 Checking domain:', hostname);
+        
+        // If we're on the auth callback route, don't override it
+        if (pathname === '/auth/callback' || pathname === '/auth/callback/') {
+          console.log('✅ Auth callback path detected - skipping auth check');
+          return;
+        }
 
-      // Public supplier accreditation form — token link, no contractor login required
-      if (isSupplierFormRoute(pathname)) {
-        console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
-        return;
-      }
-      
-      //Skip admin and manager routes - they're handled by admin protection check
-      if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
-        console.log('ℹ️ Admin route detected - will be handled by admin protection check');
-        return;
-      }
+        // Sign-in route handles login and password setup itself
+        if (pathname === '/sign-in-contractor' || pathname === '/sign-in-contractor/') {
+          console.log('ℹ️ Contractor sign-in route - leaving screen as contractorAuth');
+          return;
+        }
 
-      if (isManagerHubPath(pathname)) {
-        console.log('ℹ️ Manager hub route detected - will be handled by admin protection check');
-        return;
-      }
-      
-      // Check if this is the contractor hub domain
-      const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
-      
-      if (isContractorHub) {
-        console.log('✅ Contractor Hub domain detected');
+        // Public supplier accreditation form — token link, no contractor login required
+        if (isSupplierFormRoute(pathname)) {
+          console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
+          return;
+        }
         
-        // Import getCurrentUser function
-        const { getCurrentUser } = await import('./src/api/contractorAuth');
+        //Skip admin and manager routes - they're handled by admin protection check
+        if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
+          console.log('ℹ️ Admin route detected - will be handled by admin protection check');
+          return;
+        }
+
+        if (isManagerHubPath(pathname)) {
+          console.log('ℹ️ Manager hub route detected - will be handled by admin protection check');
+          return;
+        }
         
-        // Check if user is already logged in
-        const { success, contractor } = await getCurrentUser();
+        // Check if this is the contractor hub domain
+        const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz' || hostname === 'localhost:3000'; // localhost for testing
         
-        if (!success || !contractor) {
-          if (!pathname.startsWith('/contractor-admin')) {
-            console.log('❌ No logged-in contractor found - forcing login screen');
-            setCurrentScreen('contractorAuth');
+        if (isContractorHub) {
+          console.log('✅ Contractor Hub domain detected');
+          
+          // Import getCurrentUser function
+          const { getCurrentUser } = await import('./src/api/contractorAuth');
+          
+          // Check if user is already logged in
+          const { success, contractor } = await getCurrentUser();
+          
+          if (!success || !contractor) {
+            if (pathname.startsWith('/contractor-admin')) {
+              console.log('❌ Contractor admin link without session - opening sign-in');
+              setCurrentScreen('contractorAuth');
+              window.history.replaceState({}, '', contractorSignInPath());
+            } else if (!pathname.startsWith('/contractor-admin')) {
+              console.log('❌ No logged-in contractor found - forcing login screen');
+              setCurrentScreen('contractorAuth');
+            }
+          } else {
+            console.log('✅ Contractor already logged in:', contractor.name);
+            establishContractorAppSession({
+              contractorId: contractor.id,
+              contractorName: contractor.name,
+              email: contractor.email,
+              companyId: contractor.company_id,
+            });
+            console.log('✅ selectedCompanyId set to:', contractor.company_id);
+            // Redirect to contractor admin
+            setCurrentScreen('contractor_admin');
           }
         } else {
-          console.log('✅ Contractor already logged in:', contractor.name);
-          // Set currentContractor IMMEDIATELY without setTimeout
-          setCurrentContractor({
-            id: contractor.id,
-            name: contractor.name,
-            email: contractor.email,
-            company_id: contractor.company_id,
-            phone: '',
-            businessUnitIds: [],
-            services: [],
-            siteIds: [],
-            company: '',
-            inductionExpiry: '',
-            companyManuallyEntered: false
-          });
-          console.log('✅ currentContractor state set immediately');
-          // Also set selectedCompanyId for UI checks
-          setSelectedCompanyId(contractor.company_id);
-          console.log('✅ selectedCompanyId set to:', contractor.company_id);
-          // Redirect to contractor admin
-          setCurrentScreen('contractor_admin');
+          console.log('ℹ️ Not contractor hub domain - normal permit app');
         }
-      } else {
-        console.log('ℹ️ Not contractor hub domain - normal permit app');
+      } finally {
+        setContractorHubAuthChecked(true);
       }
     };
     
     detectContractorHub();
-  }, []);
+  }, [establishContractorAppSession]);
 
   // Company context for contractor routes is derived from the authenticated session,
   // not from URL query params (which could point at another company's data).
@@ -24515,6 +24540,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           const isAdminRoute = pathname.startsWith('/admin');
           const isManagerRoute = isManagerHubPath(pathname);
           const isContractorRoute = pathname.startsWith('/contractor-admin');
+
+          if (
+            isContractorRoute
+            && !contractorHubAuthChecked
+          ) {
+            return (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={{ marginTop: 16, color: '#6B7280' }}>Loading contractor session...</Text>
+              </View>
+            );
+          }
           
           // AUTH GUARD - check permissions silently
           
@@ -24558,7 +24595,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           
           // Block contractor routes without contractor session
-          if (isContractorRoute && !selectedCompanyId) {
+          if (shouldShowContractorAuthGuard({
+            pathname,
+            selectedCompanyId,
+            currentScreen,
+            contractorHubAuthChecked,
+          })) {
             // Contractor route requires company selection
             return (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16 }}>
@@ -24572,25 +24614,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </Text>
                   <TouchableOpacity
                     style={{ backgroundColor: '#3B82F6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
-                    onPress={() => setCurrentScreen('contractorAuth')}
+                    onPress={() => {
+                      window.history.replaceState({}, '', contractorSignInPath());
+                      setCurrentScreen('contractorAuth');
+                    }}
                   >
                     <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ paddingHorizontal: 24, paddingVertical: 12 }}
                     onPress={() => {
-                      // Redirect to the kiosk URL (handles both subdomain and main domain)
-                      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-                      if (hostname.includes('-kiosk.')) {
-                        // Already on a kiosk subdomain, just go to root
-                        window.location.href = '/';
-                      } else {
-                        // On main domain, go to root which shows kiosk dashboard
-                        window.location.href = '/';
-                      }
+                      window.history.replaceState({}, '', '/permits/');
+                      setCurrentScreen('dashboard');
                     }}
                   >
-                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to Kiosk</Text>
+                    <Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 16 }}>Back to home</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -24870,26 +24908,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (options?.showSignedInToast) {
               showTransientMessage('You are signed in');
             }
-            // Store company ID so auth checks pass
-            setSelectedCompanyId(companyId);
-            console.log('✅ selectedCompanyId set to:', companyId);
-            // Set currentContractor so dashboard filters by company
-            setCurrentContractor({
-              id: contractorId,
-              name: contractorName,
-              email: email,
-              company_id: companyId,
-              phone: '',
-              businessUnitIds: [],
-              services: [],
-              siteIds: [],
-              company: '',
-              inductionExpiry: '',
-              companyManuallyEntered: false
+            establishContractorAppSession({
+              contractorId,
+              contractorName,
+              companyId,
+              email,
             });
-            console.log('✅ currentContractor state set from onLoginSuccess');
+            console.log('✅ selectedCompanyId set to:', companyId);
             // Navigate to contractor admin screen
             setCurrentScreen('contractor_admin');
+            if (typeof window !== 'undefined') {
+              window.history.replaceState(
+                {},
+                '',
+                `/contractor-admin/?contractorId=${contractorId || ''}&companyId=${companyId || ''}`
+              );
+            }
           }}
           showPasswordReset={showPasswordReset}
           invitationFlow={invitationFlow}
@@ -24922,6 +24956,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     case 'contractor_admin':
       return (
         <ContractorAdminScreen
+          onEstablishAppSession={establishContractorAppSession}
           onNavigateBack={(contractorInfo) => {
             // If contractor info is passed, update currentContractor for dashboard filtering
             if (contractorInfo && contractorInfo.id) {
