@@ -14799,17 +14799,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   ))}
                 </View>
 
-                <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Site:</Text>
+                <Text style={[styles.label, { fontSize: 15, marginTop: 16, marginBottom: 10 }]}>Filter by Site:</Text>
                 <select
                   style={{
                     width: '100%',
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    borderColor: '#D1D5DB',
+                    boxSizing: 'border-box',
+                    padding: 12,
+                    minHeight: 48,
+                    borderColor: '#2563EB',
                     borderWidth: 1,
-                    borderRadius: 8,
+                    borderStyle: 'solid',
+                    borderRadius: 6,
                     backgroundColor: 'white',
-                    fontSize: 14,
+                    fontSize: 16,
+                    lineHeight: '22px',
                   }}
                   value={contractorSiteFilter}
                   onChange={(event) => setContractorSiteFilter(event.target.value)}
