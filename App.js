@@ -3413,7 +3413,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   
   // New Company Invitation States
   const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
-  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
+  const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({
+    companyName: '',
+    email: '',
+    deadline: '',
+    contractor_type: 'D',
+    assignedManagerId: '',
+    assignedHsPersonId: '',
+  });
   const [creatingAndSendingInvitation, setCreatingAndSendingInvitation] = useState(false);
   
   const [selectedSite, setSelectedSite] = useState(null);
@@ -10543,10 +10550,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
             const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
             const assignedManagerEmailIdx = headerValues.findIndex(h =>
-              h === 'assigned_manager_email' || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
+              h === 'assigned_manager_email'
+              || h === 'operational_approver_email'
+              || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
+              || (h.includes('operational') && h.includes('approver') && h.includes('email'))
             );
             const assignedHsEmailIdx = headerValues.findIndex(h =>
-              h === 'assigned_hs_email' || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+              h === 'assigned_hs_email'
+              || h === 'regional_hs_email'
+              || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+              || (h.includes('regional') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
             );
 
             let adminsForImport = companyAdminUsers || [];
@@ -11118,7 +11131,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               </View>
               <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { 
                 setShowNewCompanyInvitationModal(true); 
-                setNewCompanyInvitationForm({ companyName: '', email: '', deadline: getDefaultAccreditationDeadline(), contractor_type: 'D' }); 
+                setNewCompanyInvitationForm({
+                  companyName: '',
+                  email: '',
+                  deadline: getDefaultAccreditationDeadline(),
+                  contractor_type: 'D',
+                  assignedManagerId: '',
+                  assignedHsPersonId: '',
+                }); 
               }}>
                 <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Invite New Company</Text>
               </TouchableOpacity>
@@ -12123,6 +12143,40 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={!creatingAndSendingInvitation}
                 />
 
+                <Text style={styles.label}>Assigned Manager (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedManagerId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedManagerId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select manager...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-manager-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
+                <Text style={styles.label}>Assigned H&amp;S Person (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={newCompanyInvitationForm.assignedHsPersonId || ''}
+                    onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, assignedHsPersonId: e.target.value })}
+                    disabled={creatingAndSendingInvitation}
+                  >
+                    <option value="">Select H&amp;S person...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`invite-hs-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
                 {/* Action Buttons */}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
                   <TouchableOpacity
@@ -12149,7 +12203,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         // Step 1: Create the new company
                         const newCompany = await createCompany({ 
                           name: newCompanyInvitationForm.companyName,
-                          contractor_type: newCompanyInvitationForm.contractor_type || 'D'
+                          contractor_type: newCompanyInvitationForm.contractor_type || 'D',
+                          contact_email: newCompanyInvitationForm.email.trim(),
+                          email: newCompanyInvitationForm.email.trim(),
+                          assignedManagerId: newCompanyInvitationForm.assignedManagerId || null,
+                          assignedHsPersonId: newCompanyInvitationForm.assignedHsPersonId || null,
                         });
 
                         if (!newCompany || !newCompany.id) {
@@ -12178,7 +12236,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         if (result.success) {
                           Alert.alert('Success', 'Company created and invitation sent successfully!');
                           setShowNewCompanyInvitationModal(false);
-                          setNewCompanyInvitationForm({ companyName: '', email: '', deadline: '', contractor_type: 'D' });
+                          setNewCompanyInvitationForm({
+                            companyName: '',
+                            email: '',
+                            deadline: '',
+                            contractor_type: 'D',
+                            assignedManagerId: '',
+                            assignedHsPersonId: '',
+                          });
                           
                           // Refresh companies to show the new company
                           const freshCompanies = await listCompanies();

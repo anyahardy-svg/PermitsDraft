@@ -17,7 +17,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
 import { listCompanies, approveCompanyAccreditation } from '../api/companies';
 import { startAccreditationApproval, notifyAccreditationApproved } from '../api/accreditationApproval';
-import { listAllServices, filterServicesForBusinessUnits } from '../api/services';
+import { listAllServices } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
@@ -1305,7 +1305,18 @@ export default function CompanyAccreditationScreen({
 
   const getApplicableServices = () => {
     const selectedBUIds = getSelectedBusinessUnitIds();
-    return filterServicesForBusinessUnits(services, selectedBUIds);
+    if (selectedBUIds.length === 0) return [];
+    return services.filter(service => selectedBUIds.includes(service.business_unit_id));
+  };
+
+  const getServiceDisplayName = (service) => {
+    const applicableServices = getApplicableServices();
+    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
+    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
+    if (hasDuplicateName && businessUnit) {
+      return `${service.name} (${businessUnit.name})`;
+    }
+    return service.name;
   };
 
   const handleBusinessUnitToggle = (unitId) => {
@@ -1316,7 +1327,9 @@ export default function CompanyAccreditationScreen({
       };
       const selectedBUIds = Object.keys(updated).filter(id => updated[id]);
       const validServiceIds = new Set(
-        filterServicesForBusinessUnits(services, selectedBUIds).map((service) => service.id)
+        services
+          .filter(service => selectedBUIds.includes(service.business_unit_id))
+          .map(service => service.id)
       );
       setSelectedServices(current =>
         Object.fromEntries(
@@ -5208,7 +5221,7 @@ export default function CompanyAccreditationScreen({
                       style={{ marginRight: 12 }}
                       pointerEvents="auto"
                     />
-                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{service.name}</Text>
+                    <Text style={{ flex: 1, fontSize: 18, color: '#1F2937' }}>{getServiceDisplayName(service)}</Text>
                   </View>
                 ))
               )}

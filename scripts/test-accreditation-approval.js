@@ -1,5 +1,6 @@
 const assert = require('assert');
 const {
+  buildDefaultApproverAssignmentPatch,
   canActAsApprover,
   expectedStatusForStage,
   validateApproverAssignments,
@@ -35,6 +36,33 @@ assert.ok(validateApproverAssignments({ assigned_manager_id: 'm', assigned_hs_pe
 assert.strictEqual(
   validateApproverAssignments({ assigned_manager_id: 'm', assigned_hs_person_id: 'h' }),
   null,
+);
+
+assert.deepStrictEqual(
+  buildDefaultApproverAssignmentPatch(
+    { assigned_manager_id: null, assigned_hs_person_id: null },
+    'default-admin-id',
+  ),
+  {
+    assigned_manager_id: 'default-admin-id',
+    assigned_hs_person_id: 'default-admin-id',
+  },
+);
+
+assert.deepStrictEqual(
+  buildDefaultApproverAssignmentPatch(
+    { assigned_manager_id: 'mgr-1', assigned_hs_person_id: null },
+    'default-admin-id',
+  ),
+  { assigned_hs_person_id: 'default-admin-id' },
+);
+
+assert.deepStrictEqual(
+  buildDefaultApproverAssignmentPatch(
+    { assigned_manager_id: 'mgr-1', assigned_hs_person_id: 'hs-1' },
+    'default-admin-id',
+  ),
+  {},
 );
 
 console.log('accreditation approval tests passed');

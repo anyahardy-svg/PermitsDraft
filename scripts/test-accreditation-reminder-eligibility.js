@@ -43,4 +43,30 @@ assert.strictEqual(
   false,
 );
 
+assert.strictEqual(
+  isEligibleForAccreditationReminder(
+    {
+      accreditation_invitation_sent_at: '2025-12-01T00:00:00.000Z',
+      contractor_type: 'A',
+      accreditation_status: 'pending_manager',
+      accreditation_next_reminder_at: dueAt.toISOString(),
+    },
+    now,
+  ),
+  false,
+);
+
+assert.strictEqual(
+  isEligibleForAccreditationReminder(
+    {
+      accreditation_invitation_sent_at: '2025-12-01T00:00:00.000Z',
+      contractor_type: 'A',
+      accreditation_status: 'pending_hs',
+      accreditation_next_reminder_at: dueAt.toISOString(),
+    },
+    now,
+  ),
+  false,
+);
+
 console.log('accreditationReminderEligibility tests passed');
