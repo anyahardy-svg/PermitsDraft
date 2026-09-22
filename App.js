@@ -14559,7 +14559,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
 
           {/* Contractors List Section */}
-          <View style={{ marginTop: 24 }}>
+          <View style={{ marginTop: 24, overflow: 'visible' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
@@ -14576,7 +14576,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             {/* Filter and Search Section */}
             {contractors.length > 0 && (
-              <View style={{ marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
+              <View style={{
+                marginBottom: 16,
+                padding: 12,
+                backgroundColor: 'white',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                position: 'relative',
+                overflow: 'visible',
+                zIndex: showContractorCompanyFilterDropdown ? 100 : 1,
+              }}>
                 <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
                 <TextInput
                   style={styles.input}
@@ -14586,7 +14596,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 />
 
                 <Text style={[styles.label, { fontSize: 14, marginTop: 12, marginBottom: 8 }]}>Filter by Company:</Text>
-                <View style={{ position: 'relative', zIndex: 10 }}>
+                <View
+                  style={{ position: 'relative', zIndex: showContractorCompanyFilterDropdown ? 1000 : 10 }}
+                  pointerEvents="box-none"
+                >
                   <TextInput
                     style={styles.input}
                     placeholder="All Companies - type to search..."
@@ -14629,7 +14642,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         backgroundColor: 'white',
                         borderRadius: 8,
                         maxHeight: 200,
-                        zIndex: 50,
+                        zIndex: 1000,
                         elevation: 10,
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
@@ -14638,8 +14651,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         borderWidth: 1,
                         borderColor: '#D1D5DB',
                         overflow: 'hidden',
-                      }}>
-                        <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                      }} pointerEvents="auto">
+                        <ScrollView scrollEnabled={true} nestedScrollEnabled={true} pointerEvents="auto">
                           <TouchableOpacity
                             style={{
                               padding: 12,
@@ -14759,7 +14772,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
 
                 return (
-                  <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                  <ScrollView
+                    horizontal
+                    style={{
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      backgroundColor: 'white',
+                      position: 'relative',
+                      zIndex: 0,
+                    }}
+                  >
                     <View>
                       {/* Table Header */}
                       <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
