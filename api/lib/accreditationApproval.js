@@ -96,7 +96,6 @@ async function ensureApproverAssignments(companyId) {
     return null;
   }
 
-  const assignmentPatch = buildDefaultApproverAssignmentPatch(company, null);
   const needsDefault = !company.assigned_manager_id || !company.assigned_hs_person_id;
   if (!needsDefault) {
     return company;
