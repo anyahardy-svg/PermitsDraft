@@ -15,6 +15,10 @@ const SUPABASE_SERVICE_ROLE_KEY =
 const COMPANY_SELECT =
   'id,name,contact_name,contact_surname,contact_email,accreditation_status,assigned_manager_id,assigned_hs_person_id,accredited_date,contractor_type';
 
+const DEFAULT_ACCREDITATION_APPROVER_EMAIL = (
+  process.env.DEFAULT_ACCREDITATION_APPROVER_EMAIL || 'anya.hardy@winstoneaggregates.co.nz'
+).trim().toLowerCase();
+
 const serviceRoleHeaders = (prefer = '') => ({
   apikey: SUPABASE_SERVICE_ROLE_KEY,
   Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -47,6 +51,65 @@ async function fetchAdminUser(adminUserId) {
   }
   const records = await response.json();
   return records[0] || null;
+}
+
+async function fetchAdminUserByEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/admin_users?email=ilike.${encodeURIComponent(normalized)}&select=id,email,name,role&limit=1`,
+    { headers: serviceRoleHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch admin user by email: ${await response.text()}`);
+  }
+
+  const records = await response.json();
+  const match = records[0];
+  if (!match?.email || match.email.trim().toLowerCase() !== normalized) {
+    return null;
+  }
+  return match;
+}
+
+function buildDefaultApproverAssignmentPatch(company, defaultApproverId) {
+  if (!defaultApproverId || !company) {
+    return {};
+  }
+
+  const updates = {};
+  if (!company.assigned_manager_id) {
+    updates.assigned_manager_id = defaultApproverId;
+  }
+  if (!company.assigned_hs_person_id) {
+    updates.assigned_hs_person_id = defaultApproverId;
+  }
+  return updates;
+}
+
+async function ensureApproverAssignments(companyId) {
+  const company = await fetchCompany(companyId);
+  if (!company) {
+    return null;
+  }
+
+  const assignmentPatch = buildDefaultApproverAssignmentPatch(company, null);
+  const needsDefault = !company.assigned_manager_id || !company.assigned_hs_person_id;
+  if (!needsDefault) {
+    return company;
+  }
+
+  const defaultApprover = await fetchAdminUserByEmail(DEFAULT_ACCREDITATION_APPROVER_EMAIL);
+  const patch = buildDefaultApproverAssignmentPatch(company, defaultApprover?.id);
+  if (Object.keys(patch).length === 0) {
+    return company;
+  }
+
+  await patchCompany(companyId, patch);
+  return fetchCompany(companyId);
 }
 
 async function patchCompany(companyId, updates) {
@@ -93,7 +156,7 @@ function expectedStatusForStage(stage) {
 }
 
 async function startApprovalChain(companyId, baseUrl) {
-  const company = await fetchCompany(companyId);
+  const company = await ensureApproverAssignments(companyId);
   if (!company) {
     return { success: false, error: 'Company not found', status: 404 };
   }
@@ -338,7 +401,9 @@ async function processApprovalByToken({ token, action, notes, baseUrl }) {
 }
 
 module.exports = {
+  buildDefaultApproverAssignmentPatch,
   canActAsApprover,
+  DEFAULT_ACCREDITATION_APPROVER_EMAIL,
   expectedStatusForStage,
   fetchAdminUser,
   fetchCompany,
