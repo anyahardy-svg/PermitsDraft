@@ -26927,7 +26927,8 @@ const AppRouter = ({ initialRoute }) => {
           || pathname === '/manager/'
           || pathname.includes('/admin/')
           || pathname.startsWith('/contractor-admin')
-          || isSupplierFormRoute(pathname);
+          || isSupplierFormRoute(pathname)
+          || isAccreditationApprovalRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
           || pathname.startsWith('/auth/callback');

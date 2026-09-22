@@ -2966,13 +2966,15 @@ export default function CompanyAccreditationScreen({
               : 'Your Type D accreditation has been submitted and automatically approved.'
           );
         } else {
+          let approvalStarted = false;
           try {
             await startAccreditationApproval(currentCompanyId);
+            approvalStarted = true;
           } catch (approvalError) {
             console.error('Failed to start accreditation approval chain:', approvalError);
             showUserMessage(
               'Submitted with warning',
-              approvalError.message || 'Accreditation was submitted but the approval email could not be sent. Please contact support.'
+              approvalError.message || 'Accreditation was submitted but the approval email could not be sent. A manager can still approve from Admin or Manager Hub.'
             );
           }
           debugLog('🟢 Update successful, setting status to pending_manager');
@@ -2980,13 +2982,15 @@ export default function CompanyAccreditationScreen({
           if (onStatusUpdate) {
             onStatusUpdate('pending_manager');
           }
-          if (reviewMode) {
-            showUserMessage('Success', 'Accreditation submitted and sent to the assigned manager for approval.');
-          } else {
-            showUserMessage(
-              'Success',
-              'Your accreditation has been submitted and sent to your assigned manager for approval.'
-            );
+          if (approvalStarted) {
+            if (reviewMode) {
+              showUserMessage('Success', 'Accreditation submitted and sent to the assigned manager for approval.');
+            } else {
+              showUserMessage(
+                'Success',
+                'Your accreditation has been submitted and sent to your assigned manager for approval.'
+              );
+            }
           }
         }
         await loadCompanyData({ silent: true });

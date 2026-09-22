@@ -24,8 +24,17 @@ const SUPPLIER_FORM_ROUTES = new Set([
   '/supplier-accreditation/',
 ]);
 
+const ACCREDITATION_APPROVAL_ROUTES = new Set([
+  '/approve-accreditation',
+  '/approve-accreditation/',
+]);
+
 function isSupplierFormRoute(pathname) {
   return SUPPLIER_FORM_ROUTES.has(pathname);
+}
+
+function isAccreditationApprovalRoute(pathname) {
+  return ACCREDITATION_APPROVAL_ROUTES.has(pathname);
 }
 
 function isKioskSubdomain(hostname = '') {
@@ -53,7 +62,8 @@ export function shouldBootKioskApp() {
     || pathname === '/manager/'
     || pathname.includes('/admin/')
     || pathname.startsWith('/contractor-admin')
-    || isSupplierFormRoute(pathname);
+    || isSupplierFormRoute(pathname)
+    || isAccreditationApprovalRoute(pathname);
   const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
   const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
     || pathname.startsWith('/auth/callback');

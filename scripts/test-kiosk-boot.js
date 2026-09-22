@@ -47,5 +47,9 @@ assert.strictEqual(
   evaluateWithWindow('contractorhq.co.nz', '/inductions/new/', '', 'shouldBootKioskApp()'),
   false
 );
+assert.strictEqual(
+  evaluateWithWindow('wa-hunua-quarry-kiosk.contractorhq.co.nz', '/approve-accreditation/', '?token=abc', 'shouldBootKioskApp()'),
+  false
+);
 
 console.log('kiosk boot tests passed');
