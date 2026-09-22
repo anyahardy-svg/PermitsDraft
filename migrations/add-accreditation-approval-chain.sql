@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_accreditation_approval_tokens_token ON accreditat
 CREATE INDEX IF NOT EXISTS idx_accreditation_approval_tokens_company_stage ON accreditation_approval_tokens(company_id, stage);
 
 ALTER TABLE accreditation_approval_tokens ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to accreditation_approval_tokens" ON accreditation_approval_tokens;
 CREATE POLICY "Allow all access to accreditation_approval_tokens" ON accreditation_approval_tokens FOR ALL USING (true);
 
 INSERT INTO email_templates (type, name, subject, html_content, description, variables, is_active)
