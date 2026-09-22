@@ -551,8 +551,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
 
-    const searchLower = trimmed.toLowerCase();
-    const filtered = contractors.filter((contractor) => {
+    const matchesContractorSearch = (contractor) => {
+      const searchLower = trimmed.toLowerCase();
       const contractorName = (contractor.name || '').toLowerCase();
       const contractorEmail = (contractor.email || '').toLowerCase();
       const companyName = (contractor.companyName || contractor.company_name || contractor.company || '').toLowerCase();
@@ -561,10 +561,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         || contractorEmail.includes(searchLower)
         || companyName.includes(searchLower)
       );
-    });
+    };
+
+    const filtered = contractors.filter(matchesContractorSearch);
     setFilteredContractors(filtered);
 
-    if (filtered.length > 0 || trimmed.length < 2 || !siteId) {
+    if (trimmed.length < 2 || !siteId) {
       return;
     }
 
@@ -577,7 +579,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         if (contractorSearchRequestRef.current !== requestId) {
           return;
         }
-        setFilteredContractors(results);
+
+        const mergedById = new Map();
+        for (const contractor of [...filtered, ...results]) {
+          mergedById.set(contractor.id, contractor);
+        }
+        setFilteredContractors(
+          Array.from(mergedById.values()).filter(matchesContractorSearch)
+        );
         setContractors((current) => {
           const merged = [...current];
           for (const contractor of results) {

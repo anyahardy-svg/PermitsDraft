@@ -4,6 +4,7 @@ const {
   getSiteInductionExpiry,
   getSiteInductionStatus,
   getOtherSiteNames,
+  isInductedAnywhere,
 } = require('../src/utils/siteInductionStatus');
 
 const hendersonId = 'henderson-site-id';
@@ -69,5 +70,7 @@ const lauraVisitingOtherSite = {
 
 assert.strictEqual(getSiteInductionStatus(lauraVisitingOtherSite, hunuaId), 'not_inducted');
 assert.strictEqual(getOtherInductedSites(lauraVisitingOtherSite, hunuaId).length, 1);
+assert.strictEqual(isInductedAnywhere(lauraVisitingOtherSite), true);
+assert.strictEqual(isInductedAnywhere({ site_ids: [], site_inductions: {} }), false);
 
 console.log('site induction status tests passed');

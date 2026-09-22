@@ -100,6 +100,23 @@ function getSiteInductionRecords(contractor) {
  * Other sites where the contractor has a valid (or expired) induction record.
  * Used by the kiosk to show "Inducted at other sites" when not inducted here.
  */
+/**
+ * True when the contractor has a valid or expired induction at any site
+ * (per-site records or legacy induction_expiry).
+ */
+export function isInductedAnywhere(contractor) {
+  const records = getSiteInductionRecords(contractor);
+  if (records.length > 0) {
+    return records.some((record) => {
+      const status = getExpiryStatus(record.expires_at || record.expiresAt);
+      return status === 'inducted' || status === 'expired';
+    });
+  }
+
+  const legacyStatus = getExpiryStatus(contractor.induction_expiry || contractor.inductionExpiry);
+  return legacyStatus === 'inducted' || legacyStatus === 'expired';
+}
+
 export function getOtherInductedSites(contractor, currentSiteId) {
   const records = getSiteInductionRecords(contractor);
 
