@@ -30,6 +30,7 @@ export default function ContractorAdminScreen({
   onNavigateBack,
   onReturnToKiosk,
   onEstablishAppSession,
+  onContractorAdminLogout,
   businessUnitId, 
   styles,
   businessUnits = [],
@@ -106,7 +107,6 @@ export default function ContractorAdminScreen({
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [logoutConfirmModal, setLogoutConfirmModal] = useState(false);
-  const [logoutDestination, setLogoutDestination] = useState(null); // 'kiosk' or 'dashboard'
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Permit template editing states
@@ -224,11 +224,9 @@ export default function ContractorAdminScreen({
     setLoggedInCompanyName(null);
     setSelectedCompanyId(null);
     setActiveTab(null);
-    
-    // Clear contractor info from URL
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/contractor-admin/');
-      console.log('🔗 Cleared contractor info from URL');
+
+    if (typeof onContractorAdminLogout === 'function') {
+      onContractorAdminLogout();
     }
   };
 
@@ -278,30 +276,10 @@ export default function ContractorAdminScreen({
     }
   };
 
-  const confirmLogout = (destination) => {
-    console.log('← [BACK] Confirmed logout, returning to:', destination);
+  const confirmLogout = async () => {
+    console.log('← [BACK] Confirmed logout from contractor admin');
     setLogoutConfirmModal(false);
-    
-    // Build contractor info to pass back
-    const contractorInfo = {
-      id: loggedInContractorId,
-      contractorName: loggedInContractor,
-      name: loggedInContractor,
-      email: loggedInContractorEmail,
-      phone: loggedInContractorPhone,
-      companyId: loggedInCompanyId,
-      company_id: loggedInCompanyId
-    };
-    
-    handleLogout();
-    
-    if (destination === 'kiosk' && onReturnToKiosk) {
-      onReturnToKiosk(contractorInfo);
-    } else if (destination === 'dashboard' && onNavigateBack) {
-      onNavigateBack(contractorInfo);
-    } else {
-      onNavigateBack();
-    }
+    await handleLogout();
   };
 
   const cancelLogout = () => {
@@ -3164,7 +3142,7 @@ export default function ContractorAdminScreen({
                 marginBottom: 20,
                 lineHeight: 20
               }}>
-                You will be logged out. Are you sure you want to exit?
+                You will be logged out.
               </Text>
 
               <View style={{ flexDirection: 'column', gap: 10 }}>
@@ -3181,21 +3159,6 @@ export default function ContractorAdminScreen({
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                {onReturnToKiosk && (
-                  <TouchableOpacity
-                    style={{
-                      paddingVertical: 12,
-                      backgroundColor: '#3B82F6',
-                      borderRadius: 8,
-                      alignItems: 'center'
-                    }}
-                    onPress={() => confirmLogout('kiosk')}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                      Back to Kiosk
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={{
                     paddingVertical: 12,
@@ -3203,10 +3166,10 @@ export default function ContractorAdminScreen({
                     borderRadius: 8,
                     alignItems: 'center'
                   }}
-                  onPress={() => confirmLogout('dashboard')}
+                  onPress={confirmLogout}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                    Back to Admin
+                    Log out
                   </Text>
                 </TouchableOpacity>
               </View>

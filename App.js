@@ -3334,6 +3334,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       completedInductionIds: [],
     });
   }, []);
+  const clearContractorAppSession = useCallback(() => {
+    setSelectedCompanyId(null);
+    setCurrentContractor({
+      id: '',
+      name: '',
+      email: '',
+      phone: '',
+      businessUnitIds: [],
+      services: [],
+      siteIds: [],
+      completedInductionIds: [],
+      company: '',
+      company_id: '',
+      inductionExpiry: '',
+      companyManuallyEntered: false,
+    });
+    setCurrentScreen('contractorAuth');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', contractorSignInPath());
+    }
+  }, []);
   const [contractorFormInductions, setContractorFormInductions] = useState([]);
   const skipCompanyInputSyncRef = useRef(false);
   const [servicesForContractors, setServicesForContractors] = useState([]);
@@ -24957,6 +24978,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       return (
         <ContractorAdminScreen
           onEstablishAppSession={establishContractorAppSession}
+          onContractorAdminLogout={clearContractorAppSession}
           onNavigateBack={(contractorInfo) => {
             // If contractor info is passed, update currentContractor for dashboard filtering
             if (contractorInfo && contractorInfo.id) {
