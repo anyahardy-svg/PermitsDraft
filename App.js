@@ -2764,7 +2764,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         newAdminForm.name,
         '', // empty password - user will set on first login
         newAdminForm.role,
-        newAdminForm.siteIds || []
+        newAdminForm.siteIds || [],
+        loggedInAdmin?.id
       );
       
       console.log('📋 Create admin result:', result);
@@ -2799,7 +2800,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const loadAdminList = async () => {
     try {
       setAdminListLoading(true);
-      const admins = await getAllAdminUsers();
+      const admins = await getAllAdminUsers(loggedInAdmin?.id);
       setAdminList(admins || []);
     } catch (error) {
       console.error('Error loading admin list:', error);
@@ -2844,7 +2845,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         name: editingAdmin.name,
         role: editingAdmin.role,
         siteIds: editingAdmin.siteIds || editingAdmin.site_ids || []
-      });
+      }, loggedInAdmin?.id);
 
       if (result.success) {
         Alert.alert('Success', 'Admin user updated');
@@ -2865,7 +2866,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (window.confirm(`Delete Admin\n\nAre you sure you want to delete ${admin.name}? This action cannot be undone.`)) {
       (async () => {
         try {
-          const result = await deleteAdminUser(admin.id);
+          const result = await deleteAdminUser(admin.id, loggedInAdmin?.id);
           if (result.success) {
             window.alert('Success: Admin user deleted');
             loadAdminList();
@@ -10361,9 +10362,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
 
     let cancelled = false;
+    if (!loggedInAdmin?.id) {
+      return undefined;
+    }
+
     (async () => {
       try {
-        const admins = await getAllAdminUsers();
+        const admins = await getAllAdminUsers(loggedInAdmin.id);
         if (!cancelled) {
           setCompanyAdminUsers(admins || []);
         }
@@ -10375,7 +10380,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return () => {
       cancelled = true;
     };
-  }, [currentScreen]);
+  }, [currentScreen, loggedInAdmin?.id]);
 
   const renderManageCompanies = () => {
     const handleAddCompany = async () => {
@@ -10634,7 +10639,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             let adminsForImport = companyAdminUsers || [];
             if (!adminsForImport.length) {
-              adminsForImport = await getAllAdminUsers();
+              adminsForImport = await getAllAdminUsers(loggedInAdmin?.id);
             }
 
             const resolveAdminIdByEmail = (emailValue) => {
@@ -12460,7 +12465,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             let adminsForImport = adminList || [];
             if (!adminsForImport.length) {
-              adminsForImport = await getAllAdminUsers();
+              adminsForImport = await getAllAdminUsers(loggedInAdmin?.id);
               setAdminList(adminsForImport || []);
             }
 

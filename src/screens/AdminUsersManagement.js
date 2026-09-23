@@ -19,7 +19,7 @@ import {
 } from '../api/adminAuth';
 import { listSites } from '../api/sites';
 
-export default function AdminUsersManagement({ onBack, styles }) {
+export default function AdminUsersManagement({ onBack, styles, requestingAdminId }) {
   const [admins, setAdmins] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,14 +37,16 @@ export default function AdminUsersManagement({ onBack, styles }) {
   const [resendingSetupEmailId, setResendingSetupEmailId] = useState(null);
 
   useEffect(() => {
-    loadAdmins();
-  }, []);
+    if (requestingAdminId) {
+      loadAdmins();
+    }
+  }, [requestingAdminId]);
 
   const loadAdmins = async () => {
     try {
       setLoading(true);
       const [data, sitesData] = await Promise.all([
-        getAllAdminUsers(),
+        getAllAdminUsers(requestingAdminId),
         listSites(),
       ]);
       setAdmins(data);

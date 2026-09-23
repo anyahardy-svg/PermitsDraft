@@ -156,37 +156,29 @@ export async function listAdminUsersForKioskSite(siteId) {
   }
 }
 
-export async function getAllAdminUsers() {
+export async function getAllAdminUsers(requestingAdminId) {
   try {
-    let { data, error } = await supabase
-      .from('admin_users')
-      .select('id, email, name, role, site_ids, created_at, password_hash')
-      .order('name', { ascending: true });
-
-    if (error && isMissingSiteIdsColumn(error)) {
-      const retry = await supabase
-        .from('admin_users')
-        .select('id, email, name, role, created_at, password_hash')
-        .order('name', { ascending: true });
-      data = retry.data;
-      error = retry.error;
+    if (!requestingAdminId) {
+      console.warn('getAllAdminUsers: missing requestingAdminId');
+      return [];
     }
 
-    if (error) throw error;
-    return (data || [])
-      .map(user => ({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        created_at: user.created_at,
-        site_ids: user.site_ids || [],
-        siteIds: user.site_ids || [],
-        needsPasswordSetup: !user.password_hash || user.password_hash.trim() === '',
-      }))
-      .sort((a, b) =>
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'listAll',
+      requestingAdminId,
+    });
+
+    if (!invokeError && result?.success && Array.isArray(result.data)) {
+      return result.data.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
       );
+    }
+
+    if (invokeError || result?.error) {
+      throw new Error(result?.error || invokeError?.message || 'Failed to load admin users');
+    }
+
+    return [];
   } catch (error) {
     console.error('❌ Error fetching admin users:', error);
     throw error;
@@ -201,9 +193,13 @@ export async function getAllAdminUsers() {
  * @param {string} role - 'super_admin' or 'manager'
  * @returns {Object} { success: boolean, data: user, error: string }
  */
-export async function createAdminUser(email, name, password, role = 'manager', siteIds = []) {
+export async function createAdminUser(email, name, password, role = 'manager', siteIds = [], requestingAdminId) {
   try {
     console.log('👤 Creating admin user:', email, 'Role:', role);
+
+    if (!requestingAdminId) {
+      return { success: false, error: 'Not signed in' };
+    }
 
     // Validate inputs
     if (!email || !name) {
@@ -220,45 +216,25 @@ export async function createAdminUser(email, name, password, role = 'manager', s
       };
     }
 
-    // Hash password if provided, otherwise set to empty string (user will set on first login)
-    let passwordHash = '';
-    if (password) {
-      passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    // Insert into admin_users
-    let insertPayload = {
-      email,
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'createAdmin',
+      requestingAdminId,
+      email: normalizeEmailForComparison(email),
       name,
-      password_hash: passwordHash,
+      password: password || '',
       role,
-      site_ids: siteIds || []
-    };
+      siteIds: siteIds || [],
+    });
 
-    let { data, error } = await supabase
-      .from('admin_users')
-      .insert([insertPayload])
-      .select('id, email, name, role, site_ids')
-      .single();
-
-    if (error && isMissingSiteIdsColumn(error)) {
-      const { site_ids, ...fallbackPayload } = insertPayload;
-      const retry = await supabase
-        .from('admin_users')
-        .insert([fallbackPayload])
-        .select('id, email, name, role')
-        .single();
-      data = retry.data;
-      error = retry.error;
+    if (invokeError || !result?.success) {
+      return {
+        success: false,
+        error: result?.error || invokeError?.message || 'Failed to create admin user',
+      };
     }
-
-    if (error) throw error;
 
     console.log('✅ Admin user created:', email);
-    return {
-      success: true,
-      data: data ? { ...data, siteIds: data.site_ids || [] } : data
-    };
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
     return {
@@ -274,78 +250,39 @@ export async function createAdminUser(email, name, password, role = 'manager', s
  * @param {Object} updates - { email?, name?, role?, password?, siteIds? }
  * @returns {Object} { success: boolean, data: user, error: string }
  */
-export async function updateAdminUser(userId, updates) {
+export async function updateAdminUser(userId, updates, requestingAdminId) {
   try {
     console.log('✏️ Updating admin user:', userId);
 
-    const updateData = {};
-
-    if (updates.email !== undefined) {
-      const normalizedEmail = normalizeEmailInput(updates.email);
-      if (!normalizedEmail) {
-        return {
-          success: false,
-          error: 'Email is required'
-        };
-      }
-      updateData.email = normalizedEmail;
+    if (!requestingAdminId) {
+      return { success: false, error: 'Not signed in' };
     }
 
-    if (updates.name) {
-      updateData.name = updates.name;
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'updateAdmin',
+      requestingAdminId,
+      userId,
+      updates: {
+        ...updates,
+        email: updates.email !== undefined ? normalizeEmailForComparison(updates.email) : undefined,
+      },
+    });
+
+    if (invokeError || !result?.success) {
+      const message = result?.error || invokeError?.message || 'Failed to update admin user';
+      const friendlyError =
+        message.includes('admin_users_email_key') || message.includes('duplicate key')
+          ? 'An admin with this email already exists'
+          : message;
+      return { success: false, error: friendlyError };
     }
-
-    if (updates.role && ['super_admin', 'manager'].includes(updates.role)) {
-      updateData.role = updates.role;
-    }
-
-    if (updates.siteIds !== undefined || updates.site_ids !== undefined) {
-      updateData.site_ids = updates.siteIds || updates.site_ids || [];
-    }
-
-    if (updates.password) {
-      updateData.password_hash = await bcrypt.hash(updates.password, 10);
-    }
-
-    updateData.updated_at = new Date().toISOString();
-
-    let { data, error } = await supabase
-      .from('admin_users')
-      .update(updateData)
-      .eq('id', userId)
-      .select('id, email, name, role, site_ids')
-      .single();
-
-    if (error && isMissingSiteIdsColumn(error)) {
-      const { site_ids, ...fallbackUpdates } = updateData;
-      const retry = await supabase
-        .from('admin_users')
-        .update(fallbackUpdates)
-        .eq('id', userId)
-        .select('id, email, name, role')
-        .single();
-      data = retry.data;
-      error = retry.error;
-    }
-
-    if (error) throw error;
 
     console.log('✅ Admin user updated:', userId);
-    return {
-      success: true,
-      data: data ? { ...data, siteIds: data.site_ids || [] } : data
-    };
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('❌ Error updating admin user:', error);
     const message = error.message || 'Failed to update admin user';
-    const friendlyError =
-      message.includes('admin_users_email_key') || message.includes('duplicate key')
-        ? 'An admin with this email already exists'
-        : message;
-    return {
-      success: false,
-      error: friendlyError
-    };
+    return { success: false, error: message };
   }
 }
 
@@ -354,16 +291,26 @@ export async function updateAdminUser(userId, updates) {
  * @param {string} userId - Admin user ID to delete
  * @returns {Object} { success: boolean, error: string }
  */
-export async function deleteAdminUser(userId) {
+export async function deleteAdminUser(userId, requestingAdminId) {
   try {
     console.log('🗑️ Deleting admin user:', userId);
 
-    const { error } = await supabase
-      .from('admin_users')
-      .delete()
-      .eq('id', userId);
+    if (!requestingAdminId) {
+      return { success: false, error: 'Not signed in' };
+    }
 
-    if (error) throw error;
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'deleteAdmin',
+      requestingAdminId,
+      userId,
+    });
+
+    if (invokeError || !result?.success) {
+      return {
+        success: false,
+        error: result?.error || invokeError?.message || 'Failed to delete admin user',
+      };
+    }
 
     console.log('✅ Admin user deleted:', userId);
     return { success: true };
@@ -434,7 +381,7 @@ export async function changeAdminPassword(userId, currentPassword, newPassword) 
  */
 export async function checkAdminPasswordSetup(email) {
   try {
-    const normalizedEmail = normalizeEmailInput(email);
+    const normalizedEmail = normalizeEmailForComparison(email);
     console.log('🔍 Checking password setup for:', normalizedEmail);
 
     const { data: result, error: invokeError } = await invokeAdminAuth({
