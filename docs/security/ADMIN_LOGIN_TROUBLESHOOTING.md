@@ -59,9 +59,15 @@ WHERE lower(email) = lower('emma@example.com');
 
 Share the temp password securely; user should change it after login.
 
+## Admin list empty in Sites / Admin Users (after lock-down)
+
+The browser can no longer read `admin_users` directly. The app must call **`admin-auth`** with action **`listAll`** (requires your logged-in admin id). Deploy **v10** and the matching frontend build.
+
 ## Simon still lands on Site Manager Hub
 
 The app sends users to the hub when **`role = 'manager'`**. Super admins must have **`role = 'super_admin'`** in `admin_users`.
+
+From your SQL check, `simon.jury@firth.co.nz` is currently **`manager`** — update role there if he should use the full admin panel.
 
 ```sql
 SELECT email, name, role FROM admin_users
