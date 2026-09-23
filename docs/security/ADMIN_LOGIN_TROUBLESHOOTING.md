@@ -2,7 +2,7 @@
 
 ## “Password or username incorrect” (Emma and others)
 
-Login uses the **`admin-auth`** Edge Function. As of **v9**, it verifies passwords in two ways (bcrypt **first** for `$2a$` / `$2b$` hashes):
+Login uses the **`admin-auth`** Edge Function. As of **v12**, login tries **Postgres `crypt()` (RPC) first**, then **bcryptjs** for legacy app passwords:
 
 1. **Postgres `admin_login_verify`** (`crypt`) — matches passwords set via SQL, e.g.  
    `UPDATE admin_users SET password_hash = extensions.crypt('...', extensions.gen_salt('bf', 10)) WHERE id = '...';`
@@ -10,13 +10,39 @@ Login uses the **`admin-auth`** Edge Function. As of **v9**, it verifies passwor
 
 If only v7 (or earlier) is deployed, users with **bcryptjs** hashes (most admins except those reset in SQL) will always see “incorrect password”.
 
-**Fix:** Deploy `supabase/functions/admin-auth/index.ts` from the repo (version **`2026-03-23-v9`**). Confirm with:
+**Fix:** Deploy `supabase/functions/admin-auth/index.ts` from the repo (version **`2026-03-23-v12`**). Confirm with:
 
 ```json
 { "action": "ping" }
 ```
 
-Response should include `"version": "2026-03-23-v9"`.
+Response should include `"version": "2026-03-23-v12"`.
+
+### Still failing for one person (e.g. anya.hardy@gmail.com)
+
+1. Confirm **ping** shows v12 on the **same** Supabase project the production app uses (`VITE_SUPABASE_URL`).
+2. In SQL Editor:
+
+```sql
+SELECT id, email, role,
+       password_hash IS NOT NULL AND length(trim(password_hash)) > 0 AS has_password
+FROM admin_users
+WHERE lower(email) = lower('anya.hardy@gmail.com');
+```
+
+If **no row**, try another email you use for admin, or add the row.
+
+3. Test the password (replace with what you type on the login screen):
+
+```sql
+SELECT email,
+       password_hash = extensions.crypt('YOUR_PASSWORD_HERE', password_hash) AS password_matches
+FROM admin_users
+WHERE lower(email) = lower('anya.hardy@gmail.com');
+```
+
+- `password_matches = false` → wrong password, or use **Forgot password** (v11+ Edge).
+- `password_matches = true` but app still fails → Edge not v12 or app points at wrong Supabase project.
 
 If Emma/Simon could use the app before a restart but not after, their **saved session** was masking a broken login path — redeploy **v9** (not only the website).
 
