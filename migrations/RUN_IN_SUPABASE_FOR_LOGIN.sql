@@ -46,3 +46,50 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_password_matches(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_password_matches(uuid, text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.admin_crypt_hash_password(p_plain text)
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+  SELECT extensions.crypt(p_plain, extensions.gen_salt('bf', 10));
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_crypt_hash_password(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_crypt_hash_password(text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.admin_complete_password_reset(p_token text, p_new_password text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_id uuid;
+  v_expires timestamptz;
+BEGIN
+  SELECT id, password_reset_token_expires_at
+  INTO v_id, v_expires
+  FROM admin_users
+  WHERE password_reset_token = p_token
+  LIMIT 1;
+
+  IF v_id IS NULL OR v_expires IS NULL OR v_expires < now() THEN
+    RETURN false;
+  END IF;
+
+  UPDATE admin_users
+  SET
+    password_hash = extensions.crypt(p_new_password, extensions.gen_salt('bf', 10)),
+    password_reset_token = NULL,
+    password_reset_token_expires_at = NULL,
+    updated_at = now()
+  WHERE id = v_id;
+
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_complete_password_reset(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_complete_password_reset(text, text) TO service_role;
