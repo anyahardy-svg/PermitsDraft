@@ -41,8 +41,9 @@ Step 1 (`admin_users`) already taught this lesson: **SQL lock-down last**, after
 
 ## Current repo state (branch work in progress)
 
-- **Done:** `supabase/functions/contractor-data/index.ts`, `src/api/contractorData.js`, migration file (commented prerequisites).
-- **Not done:** `contractors.js` still uses direct PostgREST everywhere; **do not run the migration yet**.
+- **Done:** Edge function, `contractorData.js`, **`contractors.js` wired with Edge-first + PostgREST fallback** (Phase A).
+- **Not done:** SQL lock-down; audit secondary `from('contractors')` callers; remove fallback after SQL is stable (optional).
+- **Deploy:** see `docs/security/DEPLOY_CONTRACTOR_DATA.md`.
 
 ---
 
