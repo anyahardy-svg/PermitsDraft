@@ -89,6 +89,12 @@ export async function loginAdminUser(email, password) {
           error: result.error || 'You need to set your password before you can sign in.',
         };
       }
+      if (result?.loginSystemMisconfigured && result?.adminMessage) {
+        return {
+          success: false,
+          error: result.adminMessage,
+        };
+      }
       return {
         success: false,
         error: result?.error || invokeError?.message || 'Password or username incorrect',

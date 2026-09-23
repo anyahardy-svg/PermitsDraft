@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v12";
+const VERSION = "2026-03-23-v13";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +31,11 @@ function getSupabaseAdmin() {
 
 type BcryptModule = {
   compareSync: (plain: string, hash: string) => boolean;
+  compare?: (
+    plain: string,
+    hash: string,
+    callback: (err: Error | null, same: boolean) => void,
+  ) => void;
   hashSync: (plain: string, rounds: number) => string;
 };
 
@@ -60,11 +65,78 @@ async function comparePassword(plain: string, hash: string): Promise<boolean> {
   }
   try {
     const bcrypt = await loadBcrypt();
+    if (typeof bcrypt.compare === "function") {
+      return await new Promise((resolve) => {
+        bcrypt.compare(plain, hash, (err, same) => {
+          if (err) {
+            console.error("admin-auth: bcrypt.compare error", err.message);
+            resolve(false);
+            return;
+          }
+          resolve(Boolean(same));
+        });
+      });
+    }
     return bcrypt.compareSync(plain, hash);
   } catch (e) {
     console.error("admin-auth: bcrypt compare error", e);
     return false;
   }
+}
+
+async function verifyWithPostgresCrypt(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  userId: string,
+  email: string,
+  password: string,
+): Promise<boolean> {
+  const { data: byId, error: byIdError } = await supabase.rpc("admin_password_matches", {
+    p_user_id: userId,
+    p_password: password,
+  });
+  if (!byIdError && byId === true) {
+    return true;
+  }
+  if (byIdError && !byIdError.message.includes("does not exist")) {
+    console.error("admin-auth admin_password_matches error:", byIdError.message);
+  }
+
+  const rpcEmail = normalizeEmail(email);
+  const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
+    p_email: rpcEmail,
+    p_password: password,
+  });
+  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+    return true;
+  }
+  if (rpcError) {
+    console.error("admin-auth admin_login_verify error:", rpcError.message, rpcError.code);
+  }
+  return false;
+}
+
+async function getLoginRpcHealth(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>) {
+  const { error: loginVerifyError } = await supabase.rpc("admin_login_verify", {
+    p_email: "login-health-check@invalid.local",
+    p_password: "x",
+  });
+  const loginVerify = loginVerifyError?.message?.includes("does not exist")
+    ? "missing"
+    : loginVerifyError
+      ? "error"
+      : "ok";
+
+  const { error: matchError } = await supabase.rpc("admin_password_matches", {
+    p_user_id: "00000000-0000-0000-0000-000000000000",
+    p_password: "x",
+  });
+  const passwordMatches = matchError?.message?.includes("does not exist")
+    ? "missing"
+    : matchError
+      ? "ok"
+      : "ok";
+
+  return { loginVerify, passwordMatches };
 }
 
 async function hashPassword(plain: string): Promise<string | null> {
@@ -212,33 +284,24 @@ async function verifyAdminPassword(
     return { ok: false, reason: "needs_setup" };
   }
 
-  const rpcEmail = normalizeEmail(String(user.email ?? email));
-
-  // Postgres crypt() first (SQL-reset passwords and many $2b$ hashes in DB).
-  const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
-    p_email: rpcEmail,
-    p_password: password,
-  });
-
-  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-    return { ok: true, user: rpcRows[0] as AdminLoginRow };
+  const pgOk = await verifyWithPostgresCrypt(supabase, user.id, String(user.email ?? email), password);
+  if (pgOk) {
+    return { ok: true, user: toLoginRow(user) };
   }
 
-  if (rpcError) {
-    console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
+  const bcryptOk = await comparePassword(password, hash);
+  if (bcryptOk) {
+    return { ok: true, user: toLoginRow(user) };
   }
 
-  if (isBcryptHash(hash)) {
-    const bcryptOk = await comparePassword(password, hash);
-    if (bcryptOk) {
-      return { ok: true, user: toLoginRow(user) };
-    }
-  } else {
-    const bcryptOk = await comparePassword(password, hash);
-    if (bcryptOk) {
-      return { ok: true, user: toLoginRow(user) };
-    }
-  }
+  console.error(
+    "admin-auth login failed for",
+    normalizeEmail(String(user.email ?? email)),
+    "hashLen",
+    hash.length,
+    "hashPrefix",
+    hash.slice(0, 7),
+  );
 
   return { ok: false, reason: "invalid_password" };
 }
@@ -264,10 +327,18 @@ Deno.serve(async (req) => {
 
   // No database — confirms deploy + runtime (check version in response)
   if (action === "ping") {
+    const supabase = getSupabaseAdmin();
+    const rpcHealth = supabase ? await getLoginRpcHealth(supabase) : null;
     return jsonResponse({
       success: true,
       message: "admin-auth is running",
       version: VERSION,
+      serviceRoleConfigured: Boolean(supabase),
+      rpcHealth,
+      hint:
+        rpcHealth?.loginVerify === "missing"
+          ? "Run migrations/add-admin-login-verify-rpc.sql in Supabase SQL Editor"
+          : undefined,
     });
   }
 
@@ -297,6 +368,18 @@ Deno.serve(async (req) => {
           adminId: user?.id,
           email: user?.email ?? email,
           error: "You need to set your password before you can sign in.",
+          version: VERSION,
+        });
+      }
+
+      const rpcHealth = await getLoginRpcHealth(supabase);
+      if (rpcHealth.loginVerify === "missing") {
+        return jsonResponse({
+          success: false,
+          error: "Password or username incorrect",
+          loginSystemMisconfigured: true,
+          adminMessage:
+            "Supabase is missing admin_login_verify SQL (run migrations/add-admin-login-verify-rpc.sql). Passwords cannot be checked until that is installed.",
           version: VERSION,
         });
       }
