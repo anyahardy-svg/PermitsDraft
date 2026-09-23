@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as bcrypt from "npm:bcryptjs@2.4.3";
+import { compare as bcryptCompare, hash as bcryptHash } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +18,16 @@ function normalizeEmail(email: string) {
   return String(email || "").trim().toLowerCase();
 }
 
+function getSupabaseAdmin() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("admin-auth: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    return null;
+  }
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -27,21 +37,28 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Method not allowed" }, 405);
   }
 
+  let body: Record<string, unknown>;
   try {
-    const body = await req.json();
-    const action = body?.action as string;
+    body = await req.json();
+  } catch (e) {
+    console.error("admin-auth: invalid JSON body", e);
+    return jsonResponse({ success: false, error: "Invalid JSON body" }, 400);
+  }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("admin-auth: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  const action = String(body?.action ?? "");
+
+  if (action === "ping") {
+    return jsonResponse({ success: true, message: "admin-auth is running" });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
       return jsonResponse({ success: false, error: "Server configuration error" }, 500);
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
     if (action === "login") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       const password = String(body.password ?? "");
       if (!email || !password) {
         return jsonResponse({ success: false, error: "Password or username incorrect" }, 400);
@@ -63,11 +80,29 @@ Deno.serve(async (req) => {
         error = retry.error;
       }
 
-      if (error || !adminUser) {
+      if (error) {
+        console.error("admin-auth login query error:", error.message);
         return jsonResponse({ success: false, error: "Password or username incorrect" });
       }
 
-      const passwordMatch = bcrypt.compareSync(password, adminUser.password_hash ?? "");
+      if (!adminUser) {
+        return jsonResponse({ success: false, error: "Password or username incorrect" });
+      }
+
+      const hash = String(adminUser.password_hash ?? "");
+      if (!hash || hash.length < 20) {
+        console.error("admin-auth: missing or invalid password_hash for", email);
+        return jsonResponse({ success: false, error: "Password or username incorrect" });
+      }
+
+      let passwordMatch = false;
+      try {
+        passwordMatch = await bcryptCompare(password, hash);
+      } catch (compareError) {
+        console.error("admin-auth: bcrypt compare failed", compareError);
+        return jsonResponse({ success: false, error: "Password or username incorrect" });
+      }
+
       if (!passwordMatch) {
         return jsonResponse({ success: false, error: "Password or username incorrect" });
       }
@@ -86,7 +121,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "checkPasswordSetup") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       if (!email) {
         return jsonResponse({ needsSetup: false });
       }
@@ -97,7 +132,12 @@ Deno.serve(async (req) => {
         .ilike("email", email)
         .maybeSingle();
 
-      if (error || !adminUser) {
+      if (error) {
+        console.error("admin-auth checkPasswordSetup error:", error.message);
+        return jsonResponse({ needsSetup: false });
+      }
+
+      if (!adminUser) {
         return jsonResponse({ needsSetup: false });
       }
 
@@ -133,6 +173,7 @@ Deno.serve(async (req) => {
       }
 
       if (error) {
+        console.error("admin-auth listForKioskSite error:", error.message);
         return jsonResponse({ success: false, error: error.message }, 500);
       }
 
@@ -146,19 +187,20 @@ Deno.serve(async (req) => {
     }
 
     if (action === "setPassword") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       const password = String(body.password ?? "");
       if (!email || password.length < 6) {
         return jsonResponse({ success: false, error: "Invalid email or password" }, 400);
       }
 
-      const passwordHash = bcrypt.hashSync(password, 10);
+      const passwordHash = await bcryptHash(password);
       const { error } = await supabase
         .from("admin_users")
         .update({ password_hash: passwordHash })
         .ilike("email", email);
 
       if (error) {
+        console.error("admin-auth setPassword error:", error.message);
         return jsonResponse({ success: false, error: "Failed to set password" }, 500);
       }
 
@@ -168,7 +210,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Unknown action" }, 400);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.error("admin-auth error:", message, e);
+    console.error("admin-auth unhandled error:", message, e);
     return jsonResponse({ success: false, error: "Server error" }, 500);
   }
 });
