@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v13";
+const VERSION = "2026-03-23-v14";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,16 +41,25 @@ type BcryptModule = {
 
 let bcryptModule: BcryptModule | null = null;
 
+function resolveBcryptModule(mod: BcryptModule & { default?: BcryptModule }): BcryptModule {
+  if (mod?.default && typeof mod.default.compareSync === "function") {
+    return mod.default;
+  }
+  return mod;
+}
+
 async function loadBcrypt(): Promise<BcryptModule> {
   if (bcryptModule) {
     return bcryptModule;
   }
   try {
-    bcryptModule = await import("https://esm.sh/bcryptjs@2.4.3");
+    const mod = await import("https://esm.sh/bcryptjs@2.4.3");
+    bcryptModule = resolveBcryptModule(mod as BcryptModule & { default?: BcryptModule });
     return bcryptModule;
   } catch (e) {
     console.error("admin-auth: esm.sh bcrypt load failed, trying npm:", e);
-    bcryptModule = await import("npm:bcryptjs@2.4.3");
+    const mod = await import("npm:bcryptjs@2.4.3");
+    bcryptModule = resolveBcryptModule(mod as BcryptModule & { default?: BcryptModule });
     return bcryptModule;
   }
 }
@@ -139,7 +148,30 @@ async function getLoginRpcHealth(supabase: NonNullable<ReturnType<typeof getSupa
   return { loginVerify, passwordMatches };
 }
 
-async function hashPassword(plain: string): Promise<string | null> {
+async function hashPasswordWithSql(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  plain: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("admin_crypt_hash_password", { p_plain: plain });
+  if (!error && typeof data === "string" && data.length > 0) {
+    return data;
+  }
+  if (error && !error.message.includes("does not exist")) {
+    console.error("admin-auth admin_crypt_hash_password error:", error.message);
+  }
+  return null;
+}
+
+async function hashPassword(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>> | null,
+  plain: string,
+): Promise<string | null> {
+  if (supabase) {
+    const sqlHash = await hashPasswordWithSql(supabase, plain);
+    if (sqlHash) {
+      return sqlHash;
+    }
+  }
   try {
     const bcrypt = await loadBcrypt();
     return bcrypt.hashSync(plain, 10);
@@ -329,16 +361,27 @@ Deno.serve(async (req) => {
   if (action === "ping") {
     const supabase = getSupabaseAdmin();
     const rpcHealth = supabase ? await getLoginRpcHealth(supabase) : null;
+    let bcryptSelfTest = false;
+    try {
+      const bcrypt = await loadBcrypt();
+      const sample = bcrypt.hashSync("admin-auth-self-test", 10);
+      bcryptSelfTest = bcrypt.compareSync("admin-auth-self-test", sample);
+    } catch (e) {
+      console.error("admin-auth ping bcryptSelfTest failed:", e);
+    }
     return jsonResponse({
       success: true,
       message: "admin-auth is running",
       version: VERSION,
       serviceRoleConfigured: Boolean(supabase),
       rpcHealth,
+      bcryptSelfTest,
       hint:
         rpcHealth?.loginVerify === "missing"
-          ? "Run migrations/add-admin-login-verify-rpc.sql in Supabase SQL Editor"
-          : undefined,
+          ? "Run migrations/RUN_IN_SUPABASE_FOR_LOGIN.sql in Supabase SQL Editor"
+          : !bcryptSelfTest
+            ? "Bcrypt broken in Edge runtime; ensure SQL login functions are installed"
+            : undefined,
     });
   }
 
@@ -520,7 +563,7 @@ Deno.serve(async (req) => {
         updateData.site_ids = (updates.siteIds ?? updates.site_ids ?? []) as string[];
       }
       if (updates.password) {
-        const passwordHash = await hashPassword(String(updates.password));
+        const passwordHash = await hashPassword(supabase, String(updates.password));
         if (!passwordHash) {
           return jsonResponse({ success: false, error: "Failed to hash password" }, 500);
         }
@@ -584,7 +627,7 @@ Deno.serve(async (req) => {
 
       let passwordHash = "";
       if (password) {
-        passwordHash = (await hashPassword(password)) ?? "";
+        passwordHash = (await hashPassword(supabase, password)) ?? "";
         if (!passwordHash) {
           return jsonResponse({ success: false, error: "Failed to hash password" }, 500);
         }
