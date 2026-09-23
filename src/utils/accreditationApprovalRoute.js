@@ -13,10 +13,18 @@ export function isAccreditationApprovalRoute(pathname) {
 
 /** Admin modal deep link from approval emails (kiosk or main host). */
 export function isCompanyAccreditationAdminPath(pathname) {
+  return Boolean(parseCompanyAccreditationAdminRoute(pathname));
+}
+
+export function parseCompanyAccreditationAdminRoute(pathname) {
   if (!pathname) {
-    return false;
+    return null;
   }
-  return /^\/admin\/companies\/[^/]+\/accreditation\/?$/.test(pathname);
+  const match = pathname.match(/^\/admin\/companies\/([^/]+)\/accreditation\/?$/);
+  if (!match) {
+    return null;
+  }
+  return { companyId: match[1] };
 }
 
 export function buildAccreditationApprovalUrl(token, baseUrl) {

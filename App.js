@@ -58,7 +58,12 @@ import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
-import { isAccreditationApprovalRoute, isCompanyAccreditationAdminPath } from './src/utils/accreditationApprovalRoute';
+import {
+  isAccreditationApprovalRoute,
+  isCompanyAccreditationAdminPath,
+  parseCompanyAccreditationAdminRoute,
+} from './src/utils/accreditationApprovalRoute';
+import { showUserAlert } from './src/utils/showUserAlert';
 import {
   contractorSignInPath,
   shouldShowContractorAuthGuard,
@@ -3764,47 +3769,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   }, [initialAdminRoute]);
 
-  // Handle initialCompanyAccreditationId - open accreditation modal for company
-  useEffect(() => {
-    const openAccreditationFromUrl = async () => {
-      if (initialCompanyAccreditationId && companies.length > 0) {
-        const company = companies.find(c => c.id === initialCompanyAccreditationId);
-        if (company) {
-          try {
-            console.log('🔍 Loading accreditation for:', company.name);
-            const accredData = await getCompanyAccreditation(company.id);
-            setSelectedCompanyForAccreditation(company);
-            setCompanyAccreditationData(accredData);
-            setSelectedCompanyAccreditationId(company.id);
-            setDisplayedAccreditationStatus(
-              resolveAccreditationDisplayStatus({
-                ...company,
-                ...accredData,
-                accreditation_status: accredData?.accreditation_status ?? company.accreditation_status,
-              })
-            );
-            setShowAccreditationModal(true);
-
-            if (typeof window !== 'undefined') {
-              const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
-              if (approvalStage === 'manager' || approvalStage === 'hs') {
-                const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
-                Alert.alert(
-                  'Accreditation approval',
-                  `This company is awaiting your ${stageLabel} approval. Review the submission and use Approve (${stageLabel}) at the bottom of this screen.`
-                );
-              }
-            }
-          } catch (error) {
-            console.error('Error loading accreditation:', error);
-          }
-        }
-      }
-    };
-    
-    openAccreditationFromUrl();
-  }, [initialCompanyAccreditationId, companies]);
-
   useEffect(() => {
     if (initialSupplierId) {
       setSelectedSupplierId(initialSupplierId);
@@ -4051,6 +4015,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
       
+      const accreditationRoute = parseCompanyAccreditationAdminRoute(pathname);
+      if (accreditationRoute?.companyId) {
+        setCurrentScreen('manage_companies');
+        return;
+      }
+
       const route = pathname.slice(7);
 
       if (route.startsWith('suppliers/')) {
@@ -4333,10 +4303,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (route.startsWith('companies/')) {
             const parts = route.split('/');
             if (parts.length >= 3 && parts[2] === 'accreditation') {
-              const companyId = parts[1];
-              setCurrentScreen('manage_companies');
-              setSelectedCompanyAccreditationId(companyId);
-              setShowAccreditationModal(true);
+              openCompanyAccreditationReview(parts[1]);
               return;
             }
           }
@@ -10014,11 +9981,33 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     fileInput.click();
   };
 
-  // Handle viewing company accreditation
-  const handleViewCompanyAccreditation = async (company) => {
+  const openCompanyAccreditationReview = async (companyId) => {
+    if (!companyId) {
+      return;
+    }
+
+    setCurrentScreen('manage_companies');
+
+    let company = companies.find((c) => c.id === companyId);
+    if (!company) {
+      const freshCompanies = await listCompanies();
+      setCompanies(freshCompanies);
+      company = freshCompanies.find((c) => c.id === companyId);
+    }
+
+    if (!company) {
+      showUserAlert('Company not found', 'Could not load this company. Try opening it from Manage Companies.');
+      return;
+    }
+
     try {
       console.log('🔍 Loading accreditation for:', company.name);
       const accredData = await getCompanyAccreditation(company.id);
+      if (!accredData) {
+        showUserAlert('Error', 'Could not load accreditation data for this company.');
+        return;
+      }
+
       const resolvedStatus = resolveAccreditationDisplayStatus({
         ...company,
         ...accredData,
@@ -10030,11 +10019,43 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setSelectedCompanyAccreditationId(company.id);
       setShowAccreditationModal(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load accreditation: ' + error.message);
+      showUserAlert('Error', `Failed to load accreditation: ${error.message}`);
     }
   };
 
-  
+  // Handle viewing company accreditation
+  const handleViewCompanyAccreditation = async (company) => {
+    await openCompanyAccreditationReview(company.id);
+  };
+
+  useEffect(() => {
+    if (!initialCompanyAccreditationId || !adminSessionActive) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      await openCompanyAccreditationReview(initialCompanyAccreditationId);
+      if (cancelled || typeof window === 'undefined') {
+        return;
+      }
+      const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
+      if (approvalStage === 'manager' || approvalStage === 'hs') {
+        const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
+        showUserAlert(
+          'Accreditation approval',
+          `This company is awaiting your ${stageLabel} approval. Scroll to the bottom and tap Approve (${stageLabel}).`
+        );
+      }
+    })().catch((error) => {
+      console.error('Error opening accreditation from URL:', error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCompanyAccreditationId, adminSessionActive]);
+
   // Helper: Refresh training records status for a company
   // Just reads the current counter values from database (counters are updated by API functions)
   const refreshTrainingRecordsStatus = async (companyId) => {
@@ -10175,6 +10196,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     if (status === 'pending_manager' || status === 'completed') {
       return 'manager';
     }
+    if (loggedInAdmin?.role === 'super_admin' && status === 'in-progress') {
+      return 'manager';
+    }
     return null;
   };
 
@@ -10183,9 +10207,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
     const hsAgreementError = validateHSAgreementComplete(companyAccreditationData || {});
     if (hsAgreementError) {
-      Alert.alert(
+      showUserAlert(
         'Section 26 not signed',
-        `${hsAgreementError}\n\nAsk the contractor to complete Section 26 before approving.`,
+        `${hsAgreementError}\n\nAsk the contractor to complete Section 26 before approving, or request changes.`,
         [
           { text: 'OK', style: 'cancel' },
           {
@@ -10203,12 +10227,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     const status = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
     const stage = getAccreditationApprovalStage(status);
     if (!stage) {
-      Alert.alert('Cannot approve', 'This accreditation is not awaiting manager or H&S approval.');
+      showUserAlert(
+        'Cannot approve',
+        `This accreditation is not awaiting approval (status: ${status || 'unknown'}). It may need to be submitted as complete first, or use Resend approval email if already pending.`
+      );
       return;
     }
 
     if (!loggedInAdmin?.id) {
-      Alert.alert('Error', 'You must be logged in as an admin to approve accreditation.');
+      showUserAlert('Error', 'You must be logged in as an admin to approve accreditation.');
       return;
     }
     
@@ -10240,16 +10267,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           ? 'Manager approval recorded. The H&S reviewer has been notified.'
           : 'Approval recorded successfully.';
 
-      Alert.alert('Success', successMessage, [
-        { text: 'OK', onPress: () => {
-          if (resolvedStatus === 'approved') {
-            setShowAccreditationModal(false);
-            setSelectedCompanyAccreditationId(null);
-          }
-        }}
-      ]);
+      showUserAlert('Success', successMessage);
+      if (resolvedStatus === 'approved') {
+        setShowAccreditationModal(false);
+        setSelectedCompanyAccreditationId(null);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to approve accreditation: ' + error.message);
+      showUserAlert('Error', `Failed to approve accreditation: ${error.message}`);
     } finally {
       setApprovingAccreditation(false);
     }
