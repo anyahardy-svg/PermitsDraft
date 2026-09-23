@@ -17,7 +17,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { getCompanyAccreditation, updateCompanyAccreditation, getExpiryStatus, uploadAccreditationCertificate, deleteAccreditationCertificate } from '../api/accreditations';
 import { listCompanies, approveCompanyAccreditation } from '../api/companies';
 import { startAccreditationApproval, notifyAccreditationApproved } from '../api/accreditationApproval';
-import { listAllServices } from '../api/services';
+import { listAllServices, filterServicesForBusinessUnits } from '../api/services';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
@@ -1305,18 +1305,24 @@ export default function CompanyAccreditationScreen({
 
   const getApplicableServices = () => {
     const selectedBUIds = getSelectedBusinessUnitIds();
-    if (selectedBUIds.length === 0) return [];
-    return services.filter(service => selectedBUIds.includes(service.business_unit_id));
+    return filterServicesForBusinessUnits(services, selectedBUIds);
   };
 
   const getServiceDisplayName = (service) => {
     const applicableServices = getApplicableServices();
-    const businessUnit = businessUnits.find(bu => bu.id === service.business_unit_id);
-    const hasDuplicateName = applicableServices.filter(s => s.name === service.name).length > 1;
-    if (hasDuplicateName && businessUnit) {
-      return `${service.name} (${businessUnit.name})`;
+    const hasDuplicateName = applicableServices.filter((s) => s.name === service.name).length > 1;
+    if (!hasDuplicateName) {
+      return service.name;
     }
-    return service.name;
+
+    const applicableIds = service.applicable_business_unit_ids
+      || service.applicableBusinessUnitIds
+      || [];
+    const buNames = businessUnits
+      .filter((bu) => applicableIds.includes(bu.id))
+      .map((bu) => bu.name)
+      .join(', ');
+    return buNames ? `${service.name} (${buNames})` : service.name;
   };
 
   const handleBusinessUnitToggle = (unitId) => {
@@ -1327,9 +1333,7 @@ export default function CompanyAccreditationScreen({
       };
       const selectedBUIds = Object.keys(updated).filter(id => updated[id]);
       const validServiceIds = new Set(
-        services
-          .filter(service => selectedBUIds.includes(service.business_unit_id))
-          .map(service => service.id)
+        filterServicesForBusinessUnits(services, selectedBUIds).map((service) => service.id)
       );
       setSelectedServices(current =>
         Object.fromEntries(
