@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v14";
+const VERSION = "2026-03-23-v15";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -759,9 +759,38 @@ Deno.serve(async (req) => {
         });
       }
 
-      const passwordHash = await hashPassword(newPassword);
+      const { data: rpcOk, error: rpcResetError } = await supabase.rpc("admin_complete_password_reset", {
+        p_token: token,
+        p_new_password: newPassword,
+      });
+
+      if (!rpcResetError && rpcOk) {
+        return jsonResponse({ success: true, message: "Password has been reset successfully", version: VERSION });
+      }
+
+      if (rpcResetError?.message?.includes("does not exist")) {
+        return jsonResponse({
+          success: false,
+          error:
+            "Password reset is not configured in Supabase. Re-run migrations/RUN_IN_SUPABASE_FOR_LOGIN.sql, then deploy admin-auth v15.",
+          version: VERSION,
+        });
+      }
+
+      if (rpcResetError) {
+        console.error("admin-auth admin_complete_password_reset error:", rpcResetError.message);
+      } else if (!rpcOk) {
+        console.error("admin-auth admin_complete_password_reset returned false for token");
+      }
+
+      const passwordHash = await hashPassword(supabase, newPassword);
       if (!passwordHash) {
-        return jsonResponse({ success: false, error: "Failed to set password", version: VERSION });
+        return jsonResponse({
+          success: false,
+          error:
+            "Could not hash the new password. Re-run migrations/RUN_IN_SUPABASE_FOR_LOGIN.sql in Supabase SQL Editor and deploy admin-auth v15.",
+          version: VERSION,
+        });
       }
 
       const { error: updateError } = await supabase
@@ -816,7 +845,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Invalid email or password" }, 400);
       }
 
-      const passwordHash = await hashPassword(password);
+      const passwordHash = await hashPassword(supabase, password);
       if (!passwordHash) {
         return jsonResponse({ success: false, error: "Failed to set password" }, 500);
       }

@@ -580,7 +580,7 @@ export async function resetPasswordWithToken(token, newPassword) {
     if (invokeError || !result?.success) {
       return {
         success: false,
-        error: result?.error || invokeError?.message || 'Failed to update password',
+        error: result?.error || invokeError?.message || 'Failed to reset password',
       };
     }
 

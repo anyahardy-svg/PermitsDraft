@@ -67,15 +67,15 @@ SET search_path = public, extensions
 AS $$
 DECLARE
   v_id uuid;
-  v_expires timestamptz;
 BEGIN
-  SELECT id, password_reset_token_expires_at
-  INTO v_id, v_expires
+  SELECT id
+  INTO v_id
   FROM admin_users
   WHERE password_reset_token = p_token
   LIMIT 1;
 
-  IF v_id IS NULL OR v_expires IS NULL OR v_expires < now() THEN
+  -- Expiry is validated in admin-auth Edge before this RPC runs.
+  IF v_id IS NULL THEN
     RETURN false;
   END IF;
 
