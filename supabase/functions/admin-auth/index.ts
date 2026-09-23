@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v4";
+const VERSION = "2026-03-23-v5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,13 +29,22 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
+async function loadBcrypt() {
+  return await import("npm:bcryptjs@2.4.3");
+}
+
 async function comparePassword(plain: string, hash: string): Promise<boolean> {
-  const bcrypt = await import("npm:bcryptjs@2.4.3");
-  return bcrypt.compareSync(plain, hash);
+  try {
+    const bcrypt = await loadBcrypt();
+    return bcrypt.compareSync(plain, hash);
+  } catch (e) {
+    console.error("admin-auth: bcrypt compare error", e);
+    return false;
+  }
 }
 
 async function hashPassword(plain: string): Promise<string> {
-  const bcrypt = await import("npm:bcryptjs@2.4.3");
+  const bcrypt = await loadBcrypt();
   return bcrypt.hashSync(plain, 10);
 }
 
