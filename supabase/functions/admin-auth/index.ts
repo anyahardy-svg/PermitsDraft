@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v7";
+const VERSION = "2026-03-23-v10";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,11 +29,35 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-async function loadBcrypt() {
-  return await import("npm:bcryptjs@2.4.3");
+type BcryptModule = {
+  compareSync: (plain: string, hash: string) => boolean;
+  hashSync: (plain: string, rounds: number) => string;
+};
+
+let bcryptModule: BcryptModule | null = null;
+
+async function loadBcrypt(): Promise<BcryptModule> {
+  if (bcryptModule) {
+    return bcryptModule;
+  }
+  try {
+    bcryptModule = await import("https://esm.sh/bcryptjs@2.4.3");
+    return bcryptModule;
+  } catch (e) {
+    console.error("admin-auth: esm.sh bcrypt load failed, trying npm:", e);
+    bcryptModule = await import("npm:bcryptjs@2.4.3");
+    return bcryptModule;
+  }
+}
+
+function isBcryptHash(hash: string) {
+  return hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$");
 }
 
 async function comparePassword(plain: string, hash: string): Promise<boolean> {
+  if (!plain || !hash) {
+    return false;
+  }
   try {
     const bcrypt = await loadBcrypt();
     return bcrypt.compareSync(plain, hash);
@@ -51,6 +75,165 @@ async function hashPassword(plain: string): Promise<string | null> {
     console.error("admin-auth: bcrypt hash error", e);
     return null;
   }
+}
+
+type AdminLoginRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  site_ids?: string[] | null;
+};
+
+function loginSuccessResponse(adminUser: AdminLoginRow) {
+  return jsonResponse({
+    success: true,
+    data: {
+      id: adminUser.id,
+      email: adminUser.email,
+      name: adminUser.name,
+      role: adminUser.role,
+      site_ids: adminUser.site_ids ?? [],
+      siteIds: adminUser.site_ids ?? [],
+    },
+    version: VERSION,
+  });
+}
+
+type AdminUserWithHash = AdminLoginRow & { password_hash?: string | null };
+
+async function fetchAdminByEmail(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  email: string,
+): Promise<{ user: AdminUserWithHash | null; error: string | null }> {
+  let { data: rows, error } = await supabase
+    .from("admin_users")
+    .select("id, email, name, role, site_ids, password_hash")
+    .ilike("email", email)
+    .limit(2);
+
+  if (error?.message?.includes("site_ids")) {
+    const retry = await supabase
+      .from("admin_users")
+      .select("id, email, name, role, password_hash")
+      .ilike("email", email)
+      .limit(2);
+    rows = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    console.error("admin-auth fetch admin error:", error.message);
+    return { user: null, error: error.message };
+  }
+
+  if (!rows?.length) {
+    return { user: null, error: null };
+  }
+
+  if (rows.length > 1) {
+    console.error("admin-auth: duplicate admin_users rows for email", email);
+  }
+
+  return { user: rows[0] as AdminUserWithHash, error: null };
+}
+
+function toLoginRow(user: AdminUserWithHash): AdminLoginRow {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    site_ids: user.site_ids ?? [],
+  };
+}
+
+type RequestingAdmin = { id: string; role: string; email: string };
+
+async function getRequestingAdmin(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  requesterId: string,
+): Promise<RequestingAdmin | null> {
+  if (!requesterId) {
+    return null;
+  }
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("id, role, email")
+    .eq("id", requesterId)
+    .maybeSingle();
+  if (error || !data) {
+    return null;
+  }
+  return data as RequestingAdmin;
+}
+
+function mapAdminListRow(row: Record<string, unknown>) {
+  const passwordHash = row.password_hash;
+  const hasPassword =
+    passwordHash != null && String(passwordHash).trim().length > 0;
+  const siteIds = (row.site_ids as string[] | null | undefined) ?? [];
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    created_at: row.created_at,
+    site_ids: siteIds,
+    siteIds: siteIds,
+    needsPasswordSetup: !hasPassword,
+  };
+}
+
+async function verifyAdminPassword(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  email: string,
+  password: string,
+): Promise<
+  | { ok: true; user: AdminLoginRow }
+  | { ok: false; reason: "not_found" | "needs_setup" | "invalid_password" }
+> {
+  const { user, error } = await fetchAdminByEmail(supabase, email);
+  if (error) {
+    return { ok: false, reason: "invalid_password" };
+  }
+  if (!user) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  const hash = String(user.password_hash ?? "").trim();
+  if (!hash) {
+    return { ok: false, reason: "needs_setup" };
+  }
+
+  if (isBcryptHash(hash)) {
+    const bcryptOk = await comparePassword(password, hash);
+    if (bcryptOk) {
+      return { ok: true, user: toLoginRow(user) };
+    }
+  }
+
+  const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
+    p_email: email,
+    p_password: password,
+  });
+
+  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+    return { ok: true, user: rpcRows[0] as AdminLoginRow };
+  }
+
+  if (rpcError) {
+    console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
+  }
+
+  if (!isBcryptHash(hash)) {
+    const bcryptOk = await comparePassword(password, hash);
+    if (bcryptOk) {
+      return { ok: true, user: toLoginRow(user) };
+    }
+  }
+
+  return { ok: false, reason: "invalid_password" };
 }
 
 Deno.serve(async (req) => {
@@ -94,37 +277,24 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Password or username incorrect" }, 400);
       }
 
-      const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
-        p_email: email,
-        p_password: password,
-      });
+      const verification = await verifyAdminPassword(supabase, email, password);
+      if (verification.ok) {
+        return loginSuccessResponse(verification.user);
+      }
 
-      if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-        const adminUser = rpcRows[0] as {
-          id: string;
-          email: string;
-          name: string;
-          role: string;
-          site_ids?: string[] | null;
-        };
+      if (verification.reason === "needs_setup") {
+        const { user } = await fetchAdminByEmail(supabase, email);
         return jsonResponse({
-          success: true,
-          data: {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name,
-            role: adminUser.role,
-            site_ids: adminUser.site_ids ?? [],
-            siteIds: adminUser.site_ids ?? [],
-          },
+          success: false,
+          needsPasswordSetup: true,
+          adminId: user?.id,
+          email: user?.email ?? email,
+          error: "You need to set your password before you can sign in.",
+          version: VERSION,
         });
       }
 
-      if (rpcError) {
-        console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
-      }
-
-      return jsonResponse({ success: false, error: "Password or username incorrect" });
+      return jsonResponse({ success: false, error: "Password or username incorrect", version: VERSION });
     }
 
     if (action === "checkPasswordSetup") {
@@ -196,6 +366,194 @@ Deno.serve(async (req) => {
       });
 
       return jsonResponse({ success: true, data: filtered });
+    }
+
+    if (action === "listAll") {
+      const requesterId = String(body.requestingAdminId ?? "");
+      const requester = await getRequestingAdmin(supabase, requesterId);
+      if (!requester) {
+        return jsonResponse({ success: false, error: "Unauthorized" }, 403);
+      }
+
+      let { data, error } = await supabase
+        .from("admin_users")
+        .select("id, email, name, role, site_ids, created_at, password_hash")
+        .order("name", { ascending: true });
+
+      if (error?.message?.includes("site_ids")) {
+        const retry = await supabase
+          .from("admin_users")
+          .select("id, email, name, role, created_at, password_hash")
+          .order("name", { ascending: true });
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 500);
+      }
+
+      const rows = (data ?? []).map((row) => mapAdminListRow(row as Record<string, unknown>));
+      return jsonResponse({ success: true, data: rows, version: VERSION });
+    }
+
+    if (action === "updateAdmin") {
+      const requesterId = String(body.requestingAdminId ?? "");
+      const requester = await getRequestingAdmin(supabase, requesterId);
+      if (!requester || requester.role !== "super_admin") {
+        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+      }
+
+      const userId = String(body.userId ?? "");
+      const updates = (body.updates ?? {}) as Record<string, unknown>;
+      if (!userId) {
+        return jsonResponse({ success: false, error: "Missing user id" }, 400);
+      }
+
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (updates.email !== undefined) {
+        updateData.email = normalizeEmail(String(updates.email));
+      }
+      if (updates.name !== undefined) {
+        updateData.name = String(updates.name);
+      }
+      if (updates.role !== undefined && ["super_admin", "manager"].includes(String(updates.role))) {
+        updateData.role = String(updates.role);
+      }
+      if (updates.siteIds !== undefined || updates.site_ids !== undefined) {
+        updateData.site_ids = (updates.siteIds ?? updates.site_ids ?? []) as string[];
+      }
+      if (updates.password) {
+        const passwordHash = await hashPassword(String(updates.password));
+        if (!passwordHash) {
+          return jsonResponse({ success: false, error: "Failed to hash password" }, 500);
+        }
+        updateData.password_hash = passwordHash;
+      }
+
+      let { data, error } = await supabase
+        .from("admin_users")
+        .update(updateData)
+        .eq("id", userId)
+        .select("id, email, name, role, site_ids")
+        .single();
+
+      if (error?.message?.includes("site_ids")) {
+        const { site_ids, ...fallback } = updateData;
+        const retry = await supabase
+          .from("admin_users")
+          .update(fallback)
+          .eq("id", userId)
+          .select("id, email, name, role")
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (error) {
+        console.error("admin-auth updateAdmin error:", error.message);
+        const message = error.message.includes("admin_users_email_key")
+          ? "An admin with this email already exists"
+          : error.message;
+        return jsonResponse({ success: false, error: message }, 400);
+      }
+
+      const siteIds = (data as { site_ids?: string[] })?.site_ids ?? [];
+      return jsonResponse({
+        success: true,
+        data: { ...data, siteIds },
+        version: VERSION,
+      });
+    }
+
+    if (action === "createAdmin") {
+      const requesterId = String(body.requestingAdminId ?? "");
+      const requester = await getRequestingAdmin(supabase, requesterId);
+      if (!requester || requester.role !== "super_admin") {
+        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+      }
+
+      const email = normalizeEmail(String(body.email ?? ""));
+      const name = String(body.name ?? "").trim();
+      const role = String(body.role ?? "manager");
+      const siteIds = (body.siteIds ?? body.site_ids ?? []) as string[];
+      const password = String(body.password ?? "");
+
+      if (!email || !name) {
+        return jsonResponse({ success: false, error: "Email and name are required" }, 400);
+      }
+      if (!["super_admin", "manager"].includes(role)) {
+        return jsonResponse({ success: false, error: "Invalid role" }, 400);
+      }
+
+      let passwordHash = "";
+      if (password) {
+        passwordHash = (await hashPassword(password)) ?? "";
+        if (!passwordHash) {
+          return jsonResponse({ success: false, error: "Failed to hash password" }, 500);
+        }
+      }
+
+      const insertPayload: Record<string, unknown> = {
+        email,
+        name,
+        role,
+        password_hash: passwordHash,
+        site_ids: siteIds,
+      };
+
+      let { data, error } = await supabase
+        .from("admin_users")
+        .insert([insertPayload])
+        .select("id, email, name, role, site_ids")
+        .single();
+
+      if (error?.message?.includes("site_ids")) {
+        const { site_ids, ...fallback } = insertPayload;
+        const retry = await supabase
+          .from("admin_users")
+          .insert([fallback])
+          .select("id, email, name, role")
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+
+      const outSiteIds = (data as { site_ids?: string[] })?.site_ids ?? [];
+      return jsonResponse({
+        success: true,
+        data: { ...data, siteIds: outSiteIds },
+        version: VERSION,
+      });
+    }
+
+    if (action === "deleteAdmin") {
+      const requesterId = String(body.requestingAdminId ?? "");
+      const requester = await getRequestingAdmin(supabase, requesterId);
+      if (!requester || requester.role !== "super_admin") {
+        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+      }
+
+      const userId = String(body.userId ?? "");
+      if (!userId) {
+        return jsonResponse({ success: false, error: "Missing user id" }, 400);
+      }
+      if (userId === requesterId) {
+        return jsonResponse({ success: false, error: "You cannot delete your own account" }, 400);
+      }
+
+      const { error } = await supabase.from("admin_users").delete().eq("id", userId);
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({ success: true, version: VERSION });
     }
 
     if (action === "setPassword") {
