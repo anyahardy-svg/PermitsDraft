@@ -2697,6 +2697,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           setLoggedInAdmin(adminData);
           lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');
+          if (
+            adminData?.role === 'super_admin'
+            && typeof window !== 'undefined'
+            && (window.location.pathname === '/manager' || window.location.pathname === '/manager/')
+          ) {
+            setCurrentScreen('admin');
+            window.history.replaceState({}, '', '/admin/');
+          }
           console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
           console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
         } else {

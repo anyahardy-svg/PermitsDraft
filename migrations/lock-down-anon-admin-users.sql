@@ -1,18 +1,27 @@
--- TODAY FIX (part 1): Stop anon/public from reading admin_users (including password_hash).
--- Run in Supabase Dashboard → SQL Editor AFTER deploying the admin-auth Edge Function.
---
--- Effect: Browser + anon key can no longer SELECT/UPDATE admin_users.
--- Admin login, kiosk admin list, and password setup use the admin-auth Edge Function (service role).
+-- Stop anon/authenticated from reading admin_users (including password_hash).
+-- Run in Supabase SQL Editor AFTER admin-auth login works (v7+).
+-- Service role (Edge Functions) still has full access.
 
-ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users FORCE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow read admin_users" ON admin_users;
-DROP POLICY IF EXISTS "Allow public select admin_users" ON admin_users;
-DROP POLICY IF EXISTS "Allow super_admin to manage admin_users" ON admin_users;
-DROP POLICY IF EXISTS "Allow admin to manage users" ON admin_users;
-DROP POLICY IF EXISTS "Allow admin to update users" ON admin_users;
-DROP POLICY IF EXISTS "Allow admin to delete users" ON admin_users;
-DROP POLICY IF EXISTS "Allow all admin operations" ON admin_users;
+-- Drop every policy on admin_users (names differ across environments).
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'admin_users'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.admin_users', pol.policyname);
+  END LOOP;
+END $$;
 
--- Intentionally no permissive policies for anon or authenticated on admin_users.
--- Service role (Edge Functions) bypasses RLS.
+-- Remove table-level grants that bypass RLS when RLS is misconfigured.
+REVOKE ALL ON TABLE public.admin_users FROM anon;
+REVOKE ALL ON TABLE public.admin_users FROM authenticated;
+
+-- No new permissive policies: anon/authenticated get zero rows / permission denied.
+-- Edge Functions use service_role and bypass RLS.

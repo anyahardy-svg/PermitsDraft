@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
+
+const VERSION = "2026-03-23-v7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,40 @@ function normalizeEmail(email: string) {
   return String(email || "").trim().toLowerCase();
 }
 
+function getSupabaseAdmin() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("admin-auth: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    return null;
+  }
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
+async function loadBcrypt() {
+  return await import("npm:bcryptjs@2.4.3");
+}
+
+async function comparePassword(plain: string, hash: string): Promise<boolean> {
+  try {
+    const bcrypt = await loadBcrypt();
+    return bcrypt.compareSync(plain, hash);
+  } catch (e) {
+    console.error("admin-auth: bcrypt compare error", e);
+    return false;
+  }
+}
+
+async function hashPassword(plain: string): Promise<string | null> {
+  try {
+    const bcrypt = await loadBcrypt();
+    return bcrypt.hashSync(plain, 10);
+  } catch (e) {
+    console.error("admin-auth: bcrypt hash error", e);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -27,84 +62,106 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Method not allowed" }, 405);
   }
 
+  let body: Record<string, unknown>;
   try {
-    const body = await req.json();
-    const action = body?.action as string;
+    body = await req.json();
+  } catch (e) {
+    console.error("admin-auth: invalid JSON body", e);
+    return jsonResponse({ success: false, error: "Invalid JSON body" }, 400);
+  }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+  const action = String(body?.action ?? "");
+
+  // No database — confirms deploy + runtime (check version in response)
+  if (action === "ping") {
+    return jsonResponse({
+      success: true,
+      message: "admin-auth is running",
+      version: VERSION,
+    });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      return jsonResponse({ success: false, error: "Server configuration error" }, 500);
+    }
 
     if (action === "login") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       const password = String(body.password ?? "");
       if (!email || !password) {
         return jsonResponse({ success: false, error: "Password or username incorrect" }, 400);
       }
 
-      let { data: adminUser, error } = await supabase
-        .from("admin_users")
-        .select("id, email, password_hash, name, role, site_ids")
-        .ilike("email", email)
-        .maybeSingle();
-
-      if (error?.message?.includes("site_ids")) {
-        const retry = await supabase
-          .from("admin_users")
-          .select("id, email, password_hash, name, role")
-          .ilike("email", email)
-          .maybeSingle();
-        adminUser = retry.data;
-        error = retry.error;
-      }
-
-      if (error || !adminUser) {
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      const passwordMatch = bcrypt.compareSync(password, adminUser.password_hash ?? "");
-      if (!passwordMatch) {
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      return jsonResponse({
-        success: true,
-        data: {
-          id: adminUser.id,
-          email: adminUser.email,
-          name: adminUser.name,
-          role: adminUser.role,
-          site_ids: adminUser.site_ids ?? [],
-          siteIds: adminUser.site_ids ?? [],
-        },
+      const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
+        p_email: email,
+        p_password: password,
       });
+
+      if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+        const adminUser = rpcRows[0] as {
+          id: string;
+          email: string;
+          name: string;
+          role: string;
+          site_ids?: string[] | null;
+        };
+        return jsonResponse({
+          success: true,
+          data: {
+            id: adminUser.id,
+            email: adminUser.email,
+            name: adminUser.name,
+            role: adminUser.role,
+            site_ids: adminUser.site_ids ?? [],
+            siteIds: adminUser.site_ids ?? [],
+          },
+        });
+      }
+
+      if (rpcError) {
+        console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
+      }
+
+      return jsonResponse({ success: false, error: "Password or username incorrect" });
     }
 
     if (action === "checkPasswordSetup") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       if (!email) {
-        return jsonResponse({ needsSetup: false });
+        return jsonResponse({ needsSetup: false, version: VERSION });
       }
 
-      const { data: adminUser, error } = await supabase
-        .from("admin_users")
-        .select("id, email, password_hash")
-        .ilike("email", email)
-        .maybeSingle();
+      try {
+        const { data: adminUser, error } = await supabase
+          .from("admin_users")
+          .select("id, email, password_hash")
+          .ilike("email", email)
+          .maybeSingle();
 
-      if (error || !adminUser) {
-        return jsonResponse({ needsSetup: false });
+        if (error) {
+          console.error("admin-auth checkPasswordSetup query error:", error.message, error.code);
+          return jsonResponse({ needsSetup: false, version: VERSION });
+        }
+
+        if (!adminUser) {
+          return jsonResponse({ needsSetup: false, version: VERSION });
+        }
+
+        const needsSetup =
+          !adminUser.password_hash || String(adminUser.password_hash).trim() === "";
+
+        return jsonResponse({
+          needsSetup,
+          adminId: adminUser.id,
+          email: adminUser.email,
+          version: VERSION,
+        });
+      } catch (setupError) {
+        console.error("admin-auth checkPasswordSetup failed:", setupError);
+        return jsonResponse({ needsSetup: false, version: VERSION });
       }
-
-      const needsSetup =
-        !adminUser.password_hash || String(adminUser.password_hash).trim() === "";
-
-      return jsonResponse({
-        needsSetup,
-        adminId: adminUser.id,
-        email: adminUser.email,
-      });
     }
 
     if (action === "listForKioskSite") {
@@ -142,28 +199,34 @@ Deno.serve(async (req) => {
     }
 
     if (action === "setPassword") {
-      const email = normalizeEmail(body.email);
+      const email = normalizeEmail(String(body.email ?? ""));
       const password = String(body.password ?? "");
       if (!email || password.length < 6) {
         return jsonResponse({ success: false, error: "Invalid email or password" }, 400);
       }
 
-      const passwordHash = bcrypt.hashSync(password, 10);
+      const passwordHash = await hashPassword(password);
+      if (!passwordHash) {
+        return jsonResponse({ success: false, error: "Failed to set password" }, 500);
+      }
+
       const { error } = await supabase
         .from("admin_users")
         .update({ password_hash: passwordHash })
         .ilike("email", email);
 
       if (error) {
+        console.error("admin-auth setPassword update error:", error.message);
         return jsonResponse({ success: false, error: "Failed to set password" }, 500);
       }
 
-      return jsonResponse({ success: true });
+      return jsonResponse({ success: true, version: VERSION });
     }
 
-    return jsonResponse({ success: false, error: "Unknown action" }, 400);
+    return jsonResponse({ success: false, error: "Unknown action", version: VERSION }, 400);
   } catch (e) {
-    console.error("admin-auth error:", e);
-    return jsonResponse({ success: false, error: "Server error" }, 500);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("admin-auth unhandled error:", message, e);
+    return jsonResponse({ success: false, error: "Server error", version: VERSION }, 500);
   }
 });

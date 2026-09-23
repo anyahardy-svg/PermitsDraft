@@ -26,9 +26,7 @@ export function getPostAdminLoginScreen(adminData, pathname) {
     }
     return 'manager_hub';
   }
-  if (isManagerHubPath(pathname)) {
-    return 'manager_hub';
-  }
+  // Super admins (and any non-manager role) use the full admin panel — not the site manager hub.
   return 'admin';
 }
 
