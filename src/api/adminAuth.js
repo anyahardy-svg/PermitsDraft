@@ -13,6 +13,20 @@ import { sendAdminSetupEmail } from './sendgrid';
 const isMissingSiteIdsColumn = (error) =>
   error?.message?.includes('site_ids') || error?.details?.includes('site_ids');
 
+async function invokeAdminAuth(payload) {
+  if (!supabase) {
+    return { data: null, error: { message: 'Supabase client is not configured' } };
+  }
+
+  const { data, error } = await supabase.functions.invoke('admin-auth', { body: payload });
+
+  if (error) {
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+}
+
 async function findAdminUserByEmail(email, selectFields, fallbackSelectFields = null) {
   const normalizedEmail = normalizeEmailInput(email);
   if (!normalizedEmail) {
@@ -47,42 +61,24 @@ export async function loginAdminUser(email, password) {
     const normalizedEmail = normalizeEmailInput(email);
     console.log('🔐 Admin login attempt:', normalizedEmail);
 
-    const { data: adminUser, error: fetchError } = await findAdminUserByEmail(
-      normalizedEmail,
-      'id, email, password_hash, name, role, site_ids',
-      'id, email, password_hash, name, role'
-    );
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'login',
+      email: normalizedEmail,
+      password,
+    });
 
-    if (fetchError || !adminUser) {
-      console.error('❌ Admin user not found:', normalizedEmail);
+    if (invokeError || !result?.success) {
+      console.error('❌ Admin login failed:', normalizedEmail, invokeError || result?.error);
       return {
         success: false,
-        error: 'Password or username incorrect'
+        error: result?.error || invokeError?.message || 'Password or username incorrect',
       };
     }
 
-    // Compare passwords using bcrypt
-    const passwordMatch = await bcrypt.compare(password, adminUser.password_hash);
-
-    if (!passwordMatch) {
-      console.error('❌ Password mismatch for:', adminUser.email);
-      return {
-        success: false,
-        error: 'Password or username incorrect'
-      };
-    }
-
-    console.log('✅ Admin login successful:', adminUser.email, 'Role:', adminUser.role);
+    console.log('✅ Admin login successful:', result.data?.email, 'Role:', result.data?.role);
     return {
       success: true,
-      data: {
-        id: adminUser.id,
-        email: adminUser.email,
-        name: adminUser.name,
-        role: adminUser.role,
-        site_ids: adminUser.site_ids || [],
-        siteIds: adminUser.site_ids || []
-      }
+      data: result.data,
     };
   } catch (error) {
     console.error('❌ Admin login error:', error);
@@ -107,6 +103,15 @@ export async function listAdminUsersForKioskSite(siteId) {
   }
 
   try {
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'listForKioskSite',
+      siteId,
+    });
+
+    if (!invokeError && result?.success && Array.isArray(result.data)) {
+      return result.data;
+    }
+
     let { data, error } = await supabase
       .from('admin_users')
       .select('id, email, name, role, site_ids')
@@ -422,7 +427,21 @@ export async function checkAdminPasswordSetup(email) {
   try {
     const normalizedEmail = normalizeEmailInput(email);
     console.log('🔍 Checking password setup for:', normalizedEmail);
-    
+
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'checkPasswordSetup',
+      email: normalizedEmail,
+    });
+
+    if (!invokeError && result && typeof result.needsSetup === 'boolean') {
+      console.log(`✅ Admin user found - Needs password setup: ${result.needsSetup}`);
+      return {
+        needsSetup: result.needsSetup,
+        adminId: result.adminId,
+        email: result.email,
+      };
+    }
+
     const { data: adminUser, error } = await findAdminUserByEmail(
       normalizedEmail,
       'id, email, password_hash'
@@ -438,7 +457,6 @@ export async function checkAdminPasswordSetup(email) {
       return { needsSetup: false };
     }
 
-    // Check if password_hash is null or empty
     const needsSetup = !adminUser.password_hash || adminUser.password_hash.trim() === '';
 
     console.log(`✅ Admin user found - Needs password setup: ${needsSetup}`);
