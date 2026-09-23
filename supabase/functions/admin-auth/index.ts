@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v3";
+const VERSION = "2026-03-23-v4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -110,7 +110,13 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Password or username incorrect" });
       }
 
-      const passwordMatch = await comparePassword(password, storedHash);
+      let passwordMatch = false;
+      try {
+        passwordMatch = await comparePassword(password, storedHash);
+      } catch (compareError) {
+        console.error("admin-auth: bcrypt compare failed for", email, compareError);
+        return jsonResponse({ success: false, error: "Password or username incorrect" });
+      }
       if (!passwordMatch) {
         return jsonResponse({ success: false, error: "Password or username incorrect" });
       }
@@ -131,28 +137,38 @@ Deno.serve(async (req) => {
     if (action === "checkPasswordSetup") {
       const email = normalizeEmail(String(body.email ?? ""));
       if (!email) {
-        return jsonResponse({ needsSetup: false });
+        return jsonResponse({ needsSetup: false, version: VERSION });
       }
 
-      const { data: adminUser, error } = await supabase
-        .from("admin_users")
-        .select("id, email, password_hash")
-        .ilike("email", email)
-        .maybeSingle();
+      try {
+        const { data: adminUser, error } = await supabase
+          .from("admin_users")
+          .select("id, email, password_hash")
+          .ilike("email", email)
+          .maybeSingle();
 
-      if (error || !adminUser) {
-        return jsonResponse({ needsSetup: false });
+        if (error) {
+          console.error("admin-auth checkPasswordSetup query error:", error.message, error.code);
+          return jsonResponse({ needsSetup: false, version: VERSION });
+        }
+
+        if (!adminUser) {
+          return jsonResponse({ needsSetup: false, version: VERSION });
+        }
+
+        const needsSetup =
+          !adminUser.password_hash || String(adminUser.password_hash).trim() === "";
+
+        return jsonResponse({
+          needsSetup,
+          adminId: adminUser.id,
+          email: adminUser.email,
+          version: VERSION,
+        });
+      } catch (setupError) {
+        console.error("admin-auth checkPasswordSetup failed:", setupError);
+        return jsonResponse({ needsSetup: false, version: VERSION });
       }
-
-      const needsSetup =
-        !adminUser.password_hash || String(adminUser.password_hash).trim() === "";
-
-      return jsonResponse({
-        needsSetup,
-        adminId: adminUser.id,
-        email: adminUser.email,
-        version: VERSION,
-      });
     }
 
     if (action === "listForKioskSite") {
