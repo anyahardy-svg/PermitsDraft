@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
+import * as bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,10 +31,14 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const action = body?.action as string;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("admin-auth: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      return jsonResponse({ success: false, error: "Server configuration error" }, 500);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     if (action === "login") {
       const email = normalizeEmail(body.email);
@@ -163,7 +167,8 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ success: false, error: "Unknown action" }, 400);
   } catch (e) {
-    console.error("admin-auth error:", e);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("admin-auth error:", message, e);
     return jsonResponse({ success: false, error: "Server error" }, 500);
   }
 });
