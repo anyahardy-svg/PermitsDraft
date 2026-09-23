@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v11";
+const VERSION = "2026-03-23-v12";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -212,15 +212,11 @@ async function verifyAdminPassword(
     return { ok: false, reason: "needs_setup" };
   }
 
-  if (isBcryptHash(hash)) {
-    const bcryptOk = await comparePassword(password, hash);
-    if (bcryptOk) {
-      return { ok: true, user: toLoginRow(user) };
-    }
-  }
+  const rpcEmail = normalizeEmail(String(user.email ?? email));
 
+  // Postgres crypt() first (SQL-reset passwords and many $2b$ hashes in DB).
   const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
-    p_email: email,
+    p_email: rpcEmail,
     p_password: password,
   });
 
@@ -232,7 +228,12 @@ async function verifyAdminPassword(
     console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
   }
 
-  if (!isBcryptHash(hash)) {
+  if (isBcryptHash(hash)) {
+    const bcryptOk = await comparePassword(password, hash);
+    if (bcryptOk) {
+      return { ok: true, user: toLoginRow(user) };
+    }
+  } else {
     const bcryptOk = await comparePassword(password, hash);
     if (bcryptOk) {
       return { ok: true, user: toLoginRow(user) };
