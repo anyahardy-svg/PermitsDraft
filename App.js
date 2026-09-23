@@ -64,7 +64,7 @@ import {
   shouldShowContractorAuthGuard,
 } from './src/utils/contractorRouteAuth';
 import { contractorPassesAdminFilters } from './src/utils/contractorDatabaseFilters';
-import { submitAccreditationApprovalAction } from './src/api/accreditationApproval';
+import { resendAccreditationApprovalEmail, submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
   getAccreditationStatusDisplay,
@@ -3391,6 +3391,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [accreditationAdminActions, setAccreditationAdminActions] = useState(null);
   const [displayedAccreditationStatus, setDisplayedAccreditationStatus] = useState('Not Submitted');
   const [approvingAccreditation, setApprovingAccreditation] = useState(false);
+  const [resendingApprovalEmail, setResendingApprovalEmail] = useState(false);
   const [showRejectionFeedbackModal, setShowRejectionFeedbackModal] = useState(false);
   const [selectedCompanyAccreditationId, setSelectedCompanyAccreditationId] = useState(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState(initialSupplierId || null);
@@ -10254,6 +10255,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
+  const handleResendAccreditationApprovalEmail = async () => {
+    if (!selectedCompanyForAccreditation?.id) {
+      return;
+    }
+
+    const status = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
+    if (!getAccreditationApprovalStage(status)) {
+      Alert.alert('Cannot resend', 'This company is not awaiting manager or H&S approval.');
+      return;
+    }
+
+    setResendingApprovalEmail(true);
+    try {
+      const result = await resendAccreditationApprovalEmail(selectedCompanyForAccreditation.id);
+      const stageLabel = result.stage === 'hs' ? 'H&S reviewer' : 'assigned manager';
+      Alert.alert(
+        'Email sent',
+        `A new approval email with the updated link was sent to the ${stageLabel}${result.sentTo ? ` (${result.sentTo})` : ''}.`
+      );
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to resend approval email');
+    } finally {
+      setResendingApprovalEmail(false);
+    }
+  };
+
   // Handle rejecting company accreditation
   const handleRejectCompanyAccreditation = async (reason) => {
     if (!selectedCompanyForAccreditation) return;
@@ -11666,13 +11693,32 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         alignItems: 'center'
                       }}
                       onPress={handleApproveCompanyAccreditation}
-                      disabled={approvingAccreditation}
+                      disabled={approvingAccreditation || resendingApprovalEmail}
                     >
                       <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
                         {approvingAccreditation ? 'Processing...' : approvalButtonLabel}
                       </Text>
                     </TouchableOpacity>
                   </View>
+                  )}
+                  {showApprovalActions && (
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: '#93C5FD',
+                      backgroundColor: '#EFF6FF',
+                      opacity: (resendingApprovalEmail || approvingAccreditation) ? 0.6 : 1,
+                    }}
+                    onPress={handleResendAccreditationApprovalEmail}
+                    disabled={resendingApprovalEmail || approvingAccreditation}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#1D4ED8' }}>
+                      {resendingApprovalEmail ? 'Sending email...' : 'Resend approval email (new kiosk link)'}
+                    </Text>
+                  </TouchableOpacity>
                   )}
                 </View>
                 );

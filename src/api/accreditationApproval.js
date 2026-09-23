@@ -1,3 +1,17 @@
+export async function resendAccreditationApprovalEmail(companyId) {
+  const response = await fetch('/api/resend-accreditation-approval', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companyId }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to resend accreditation approval email');
+  }
+  return data;
+}
+
 export async function startAccreditationApproval(companyId) {
   const response = await fetch('/api/start-accreditation-approval', {
     method: 'POST',

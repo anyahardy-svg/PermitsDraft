@@ -193,6 +193,47 @@ async function startApprovalChain(companyId, baseUrl) {
   return { success: true, status: 'pending_manager' };
 }
 
+async function resendApprovalNotification(companyId) {
+  const company = await ensureApproverAssignments(companyId);
+  if (!company) {
+    return { success: false, error: 'Company not found', status: 404 };
+  }
+
+  const assignmentError = validateApproverAssignments(company);
+  if (assignmentError) {
+    return { success: false, error: assignmentError, status: 400 };
+  }
+
+  if (company.accreditation_status === 'pending_hs') {
+    const hsPerson = await fetchAdminUser(company.assigned_hs_person_id);
+    if (!hsPerson?.email) {
+      return { success: false, error: 'Assigned H&S person does not have an email address', status: 400 };
+    }
+
+    const updatedCompany = await fetchCompany(companyId);
+    await sendHsApprovalRequest(updatedCompany, hsPerson);
+
+    return {
+      success: true,
+      status: 'pending_hs',
+      stage: 'hs',
+      sentTo: hsPerson.email,
+    };
+  }
+
+  const managerResult = await startApprovalChain(companyId);
+  if (!managerResult.success) {
+    return managerResult;
+  }
+
+  const manager = await fetchAdminUser(company.assigned_manager_id);
+  return {
+    ...managerResult,
+    stage: 'manager',
+    sentTo: manager?.email || null,
+  };
+}
+
 async function processManagerApproval({ companyId, adminUserId, notes, baseUrl }) {
   const company = await fetchCompany(companyId);
   if (!company) {
@@ -422,6 +463,7 @@ module.exports = {
   processHsApproval,
   processManagerApproval,
   processRejection,
+  resendApprovalNotification,
   startApprovalChain,
   validateApproverAssignments,
 };
