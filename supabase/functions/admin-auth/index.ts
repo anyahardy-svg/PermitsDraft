@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v6";
+const VERSION = "2026-03-23-v7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,58 +94,37 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Password or username incorrect" }, 400);
       }
 
-      let { data: adminUser, error } = await supabase
-        .from("admin_users")
-        .select("id, email, password_hash, name, role, site_ids")
-        .ilike("email", email)
-        .maybeSingle();
-
-      if (error?.message?.includes("site_ids")) {
-        const retry = await supabase
-          .from("admin_users")
-          .select("id, email, password_hash, name, role")
-          .ilike("email", email)
-          .maybeSingle();
-        adminUser = retry.data;
-        error = retry.error;
-      }
-
-      if (error) {
-        console.error("admin-auth login query error:", error.message);
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      if (!adminUser) {
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      const storedHash = String(adminUser.password_hash ?? "");
-      if (!storedHash || storedHash.length < 20) {
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      let passwordMatch = false;
-      try {
-        passwordMatch = await comparePassword(password, storedHash);
-      } catch (compareError) {
-        console.error("admin-auth: bcrypt compare failed for", email, compareError);
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-      if (!passwordMatch) {
-        return jsonResponse({ success: false, error: "Password or username incorrect" });
-      }
-
-      return jsonResponse({
-        success: true,
-        data: {
-          id: adminUser.id,
-          email: adminUser.email,
-          name: adminUser.name,
-          role: adminUser.role,
-          site_ids: adminUser.site_ids ?? [],
-          siteIds: adminUser.site_ids ?? [],
-        },
+      const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
+        p_email: email,
+        p_password: password,
       });
+
+      if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+        const adminUser = rpcRows[0] as {
+          id: string;
+          email: string;
+          name: string;
+          role: string;
+          site_ids?: string[] | null;
+        };
+        return jsonResponse({
+          success: true,
+          data: {
+            id: adminUser.id,
+            email: adminUser.email,
+            name: adminUser.name,
+            role: adminUser.role,
+            site_ids: adminUser.site_ids ?? [],
+            siteIds: adminUser.site_ids ?? [],
+          },
+        });
+      }
+
+      if (rpcError) {
+        console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
+      }
+
+      return jsonResponse({ success: false, error: "Password or username incorrect" });
     }
 
     if (action === "checkPasswordSetup") {
@@ -227,16 +206,21 @@ Deno.serve(async (req) => {
       }
 
       const passwordHash = await hashPassword(password);
+      if (!passwordHash) {
+        return jsonResponse({ success: false, error: "Failed to set password" }, 500);
+      }
+
       const { error } = await supabase
         .from("admin_users")
         .update({ password_hash: passwordHash })
         .ilike("email", email);
 
       if (error) {
+        console.error("admin-auth setPassword update error:", error.message);
         return jsonResponse({ success: false, error: "Failed to set password" }, 500);
       }
 
-      return jsonResponse({ success: true });
+      return jsonResponse({ success: true, version: VERSION });
     }
 
     return jsonResponse({ success: false, error: "Unknown action", version: VERSION }, 400);
