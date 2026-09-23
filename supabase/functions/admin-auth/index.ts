@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v5";
+const VERSION = "2026-03-23-v6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,9 +43,14 @@ async function comparePassword(plain: string, hash: string): Promise<boolean> {
   }
 }
 
-async function hashPassword(plain: string): Promise<string> {
-  const bcrypt = await loadBcrypt();
-  return bcrypt.hashSync(plain, 10);
+async function hashPassword(plain: string): Promise<string | null> {
+  try {
+    const bcrypt = await loadBcrypt();
+    return bcrypt.hashSync(plain, 10);
+  } catch (e) {
+    console.error("admin-auth: bcrypt hash error", e);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
