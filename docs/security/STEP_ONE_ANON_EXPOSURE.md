@@ -57,7 +57,7 @@ Re-run after merging migration changes. This is a **lower bound** on what might 
 
 ### D. Severity tagging (1–2 hours)
 
-In `docs/security/artifacts/EXPOSURE_NOTE.md` (create when you finish B + C), record:
+Copy `docs/security/EXPOSURE_NOTE.template.md` to `docs/security/artifacts/EXPOSURE_NOTE.md` (gitignored) when you finish B + C, and record:
 
 1. **Principle** — anon key is public; UI login is not a DB control.
 2. **Probe results** — which tables returned data with anon only.
