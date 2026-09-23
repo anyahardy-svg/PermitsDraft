@@ -5,7 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
-import { normalizeEmailInput } from '../utils/emailNormalization';
+import { normalizeEmailInput, normalizeEmailForComparison } from '../utils/emailNormalization';
 import { getPublicAppOrigin } from '../utils/publicAppOrigin';
 import { buildAdminPasswordSetupUrl } from '../utils/adminSetupRoute';
 import { sendAdminSetupEmail } from './sendgrid';
