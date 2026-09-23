@@ -58,7 +58,7 @@ async function findAdminUserByEmail(email, selectFields, fallbackSelectFields = 
  */
 export async function loginAdminUser(email, password) {
   try {
-    const normalizedEmail = normalizeEmailInput(email);
+    const normalizedEmail = normalizeEmailForComparison(email);
     console.log('🔐 Admin login attempt:', normalizedEmail);
 
     const { data: result, error: invokeError } = await invokeAdminAuth({
@@ -69,6 +69,15 @@ export async function loginAdminUser(email, password) {
 
     if (invokeError || !result?.success) {
       console.error('❌ Admin login failed:', normalizedEmail, invokeError || result?.error);
+      if (result?.needsPasswordSetup) {
+        return {
+          success: false,
+          needsPasswordSetup: true,
+          adminId: result.adminId,
+          email: result.email || normalizedEmail,
+          error: result.error || 'You need to set your password before you can sign in.',
+        };
+      }
       return {
         success: false,
         error: result?.error || invokeError?.message || 'Password or username incorrect',

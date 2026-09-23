@@ -126,6 +126,11 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
       if (result?.success && result?.data) {
         console.log('✅ Admin login successful:', result.data);
         onLoginSuccess(result.data);
+      } else if (result?.needsPasswordSetup) {
+        setSetupEmail(result.email || email);
+        setEmail(result.email || email);
+        setShowPasswordSetup(true);
+        setError(result.error || 'Please set your password to continue.');
       } else {
         setError(result?.error || 'Login failed');
       }

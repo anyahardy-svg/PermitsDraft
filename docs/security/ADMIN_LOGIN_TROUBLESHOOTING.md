@@ -2,7 +2,7 @@
 
 ## “Password or username incorrect” (Emma and others)
 
-Login uses the **`admin-auth`** Edge Function. As of **v8**, it verifies passwords in two ways:
+Login uses the **`admin-auth`** Edge Function. As of **v9**, it verifies passwords in two ways (bcrypt **first** for `$2a$` / `$2b$` hashes):
 
 1. **Postgres `admin_login_verify`** (`crypt`) — matches passwords set via SQL, e.g.  
    `UPDATE admin_users SET password_hash = extensions.crypt('...', extensions.gen_salt('bf', 10)) WHERE id = '...';`
@@ -10,13 +10,28 @@ Login uses the **`admin-auth`** Edge Function. As of **v8**, it verifies passwor
 
 If only v7 (or earlier) is deployed, users with **bcryptjs** hashes (most admins except those reset in SQL) will always see “incorrect password”.
 
-**Fix:** Deploy `supabase/functions/admin-auth/index.ts` from the repo (version **`2026-03-23-v8`**). Confirm with:
+**Fix:** Deploy `supabase/functions/admin-auth/index.ts` from the repo (version **`2026-03-23-v9`**). Confirm with:
 
 ```json
 { "action": "ping" }
 ```
 
-Response should include `"version": "2026-03-23-v8"`.
+Response should include `"version": "2026-03-23-v9"`.
+
+If Emma/Simon could use the app before a restart but not after, their **saved session** was masking a broken login path — redeploy **v9** (not only the website).
+
+### Test whether the database accepts a password (SQL Editor)
+
+```sql
+SELECT email,
+       password_hash = extensions.crypt('THEIR_PASSWORD_TRY', password_hash) AS pg_crypt_ok,
+       left(password_hash, 7) AS hash_type
+FROM admin_users
+WHERE lower(email) = lower('user@example.com');
+```
+
+- `pg_crypt_ok = true` → password is correct for Postgres; Edge **v9** should allow login.
+- `pg_crypt_ok = false` but they used the app before → hash is likely **bcryptjs**; **v9** Edge must be deployed (bcrypt runs in the function, not in this SQL test).
 
 ### Check an admin in SQL (no password shown)
 

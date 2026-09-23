@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v8";
+const VERSION = "2026-03-23-v9";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,11 +29,35 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-async function loadBcrypt() {
-  return await import("npm:bcryptjs@2.4.3");
+type BcryptModule = {
+  compareSync: (plain: string, hash: string) => boolean;
+  hashSync: (plain: string, rounds: number) => string;
+};
+
+let bcryptModule: BcryptModule | null = null;
+
+async function loadBcrypt(): Promise<BcryptModule> {
+  if (bcryptModule) {
+    return bcryptModule;
+  }
+  try {
+    bcryptModule = await import("https://esm.sh/bcryptjs@2.4.3");
+    return bcryptModule;
+  } catch (e) {
+    console.error("admin-auth: esm.sh bcrypt load failed, trying npm:", e);
+    bcryptModule = await import("npm:bcryptjs@2.4.3");
+    return bcryptModule;
+  }
+}
+
+function isBcryptHash(hash: string) {
+  return hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$");
 }
 
 async function comparePassword(plain: string, hash: string): Promise<boolean> {
+  if (!plain || !hash) {
+    return false;
+  }
   try {
     const bcrypt = await loadBcrypt();
     return bcrypt.compareSync(plain, hash);
@@ -76,51 +100,103 @@ function loginSuccessResponse(adminUser: AdminLoginRow) {
   });
 }
 
-async function verifyLegacyBcryptLogin(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-  email: string,
-  password: string,
-): Promise<AdminLoginRow | null> {
-  if (!supabase) {
-    return null;
-  }
+type AdminUserWithHash = AdminLoginRow & { password_hash?: string | null };
 
-  let { data: adminUser, error } = await supabase
+async function fetchAdminByEmail(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  email: string,
+): Promise<{ user: AdminUserWithHash | null; error: string | null }> {
+  let { data: rows, error } = await supabase
     .from("admin_users")
     .select("id, email, name, role, site_ids, password_hash")
     .ilike("email", email)
-    .maybeSingle();
+    .limit(2);
 
   if (error?.message?.includes("site_ids")) {
     const retry = await supabase
       .from("admin_users")
       .select("id, email, name, role, password_hash")
       .ilike("email", email)
-      .maybeSingle();
-    adminUser = retry.data;
+      .limit(2);
+    rows = retry.data;
     error = retry.error;
   }
 
-  if (error || !adminUser?.password_hash) {
-    if (error) {
-      console.error("admin-auth legacy login query error:", error.message);
-    }
-    return null;
+  if (error) {
+    console.error("admin-auth fetch admin error:", error.message);
+    return { user: null, error: error.message };
   }
 
-  const hash = String(adminUser.password_hash);
-  const matches = await comparePassword(password, hash);
-  if (!matches) {
-    return null;
+  if (!rows?.length) {
+    return { user: null, error: null };
   }
 
+  if (rows.length > 1) {
+    console.error("admin-auth: duplicate admin_users rows for email", email);
+  }
+
+  return { user: rows[0] as AdminUserWithHash, error: null };
+}
+
+function toLoginRow(user: AdminUserWithHash): AdminLoginRow {
   return {
-    id: adminUser.id,
-    email: adminUser.email,
-    name: adminUser.name,
-    role: adminUser.role,
-    site_ids: (adminUser as { site_ids?: string[] | null }).site_ids ?? [],
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    site_ids: user.site_ids ?? [],
   };
+}
+
+async function verifyAdminPassword(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  email: string,
+  password: string,
+): Promise<
+  | { ok: true; user: AdminLoginRow }
+  | { ok: false; reason: "not_found" | "needs_setup" | "invalid_password" }
+> {
+  const { user, error } = await fetchAdminByEmail(supabase, email);
+  if (error) {
+    return { ok: false, reason: "invalid_password" };
+  }
+  if (!user) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  const hash = String(user.password_hash ?? "").trim();
+  if (!hash) {
+    return { ok: false, reason: "needs_setup" };
+  }
+
+  if (isBcryptHash(hash)) {
+    const bcryptOk = await comparePassword(password, hash);
+    if (bcryptOk) {
+      return { ok: true, user: toLoginRow(user) };
+    }
+  }
+
+  const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
+    p_email: email,
+    p_password: password,
+  });
+
+  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+    return { ok: true, user: rpcRows[0] as AdminLoginRow };
+  }
+
+  if (rpcError) {
+    console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
+  }
+
+  if (!isBcryptHash(hash)) {
+    const bcryptOk = await comparePassword(password, hash);
+    if (bcryptOk) {
+      return { ok: true, user: toLoginRow(user) };
+    }
+  }
+
+  return { ok: false, reason: "invalid_password" };
 }
 
 Deno.serve(async (req) => {
@@ -164,24 +240,21 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Password or username incorrect" }, 400);
       }
 
-      const { data: rpcRows, error: rpcError } = await supabase.rpc("admin_login_verify", {
-        p_email: email,
-        p_password: password,
-      });
-
-      if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-        return loginSuccessResponse(rpcRows[0] as AdminLoginRow);
+      const verification = await verifyAdminPassword(supabase, email, password);
+      if (verification.ok) {
+        return loginSuccessResponse(verification.user);
       }
 
-      if (rpcError) {
-        console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
-      }
-
-      // Passwords created in the app (bcryptjs) are not always verified by Postgres crypt().
-      const legacyUser = await verifyLegacyBcryptLogin(supabase, email, password);
-      if (legacyUser) {
-        console.log("admin-auth login: legacy bcrypt verified for", email);
-        return loginSuccessResponse(legacyUser);
+      if (verification.reason === "needs_setup") {
+        const { user } = await fetchAdminByEmail(supabase, email);
+        return jsonResponse({
+          success: false,
+          needsPasswordSetup: true,
+          adminId: user?.id,
+          email: user?.email ?? email,
+          error: "You need to set your password before you can sign in.",
+          version: VERSION,
+        });
       }
 
       return jsonResponse({ success: false, error: "Password or username incorrect", version: VERSION });
