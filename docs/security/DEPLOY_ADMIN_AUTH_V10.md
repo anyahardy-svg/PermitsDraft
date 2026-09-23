@@ -1,4 +1,4 @@
-# Deploy admin-auth v10 (Supabase Edge)
+# Deploy admin-auth v11 (Supabase Edge)
 
 You do **not** need to merge the GitHub PR to deploy the Edge Function. Copy the file from GitHub and paste it into Supabase.
 
@@ -22,7 +22,7 @@ Select all (Ctrl+A) → Copy (Ctrl+C).
 The first lines must include:
 
 ```ts
-const VERSION = "2026-03-23-v10";
+const VERSION = "2026-03-23-v11";
 ```
 
 ## 2. Paste into Supabase
@@ -42,7 +42,9 @@ Invoke-RestMethod -Method Post -Uri "$env:VITE_SUPABASE_URL/functions/v1/admin-a
   -ContentType "application/json" -Body '{"action":"ping"}'
 ```
 
-Look for **`version : 2026-03-23-v10`**.
+Look for **`version : 2026-03-23-v11`**.
+
+v11 adds **Forgot password** (`requestPasswordReset`, `resetPasswordWithToken`) and clearer **save admin** errors (no SQL reset required for normal flows).
 
 ## 4. Frontend (admin list in Sites)
 

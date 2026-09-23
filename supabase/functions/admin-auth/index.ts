@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v10";
+const VERSION = "2026-03-23-v11";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,6 +166,12 @@ async function getRequestingAdmin(
     return null;
   }
   return data as RequestingAdmin;
+}
+
+function generateResetToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function mapAdminListRow(row: Record<string, unknown>) {
@@ -372,7 +378,7 @@ Deno.serve(async (req) => {
       const requesterId = String(body.requestingAdminId ?? "");
       const requester = await getRequestingAdmin(supabase, requesterId);
       if (!requester) {
-        return jsonResponse({ success: false, error: "Unauthorized" }, 403);
+        return jsonResponse({ success: false, error: "Not signed in or session expired" });
       }
 
       let { data, error } = await supabase
@@ -401,7 +407,10 @@ Deno.serve(async (req) => {
       const requesterId = String(body.requestingAdminId ?? "");
       const requester = await getRequestingAdmin(supabase, requesterId);
       if (!requester || requester.role !== "super_admin") {
-        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+        return jsonResponse({
+          success: false,
+          error: "Only super admins can edit admin users. Log out and back in if your role was recently changed.",
+        });
       }
 
       const userId = String(body.userId ?? "");
@@ -473,7 +482,7 @@ Deno.serve(async (req) => {
       const requesterId = String(body.requestingAdminId ?? "");
       const requester = await getRequestingAdmin(supabase, requesterId);
       if (!requester || requester.role !== "super_admin") {
-        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+        return jsonResponse({ success: false, error: "Only super admins can create admin users" });
       }
 
       const email = normalizeEmail(String(body.email ?? ""));
@@ -538,7 +547,7 @@ Deno.serve(async (req) => {
       const requesterId = String(body.requestingAdminId ?? "");
       const requester = await getRequestingAdmin(supabase, requesterId);
       if (!requester || requester.role !== "super_admin") {
-        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+        return jsonResponse({ success: false, error: "Only super admins can delete admin users" });
       }
 
       const userId = String(body.userId ?? "");
@@ -554,6 +563,123 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: error.message }, 400);
       }
       return jsonResponse({ success: true, version: VERSION });
+    }
+
+    if (action === "requestPasswordReset") {
+      const email = normalizeEmail(String(body.email ?? ""));
+      if (!email) {
+        return jsonResponse({ success: true, version: VERSION });
+      }
+
+      const { user } = await fetchAdminByEmail(supabase, email);
+      if (!user?.id) {
+        return jsonResponse({ success: true, version: VERSION });
+      }
+
+      const token = generateResetToken();
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+      const { error } = await supabase
+        .from("admin_users")
+        .update({
+          password_reset_token: token,
+          password_reset_token_expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("admin-auth requestPasswordReset error:", error.message);
+        return jsonResponse({ success: false, error: "Failed to process reset request", version: VERSION });
+      }
+
+      const appOrigin = String(body.appOrigin ?? "").trim().replace(/\/$/, "");
+      const resetUrl = appOrigin
+        ? `${appOrigin}/admin/reset-password?token=${token}`
+        : `/admin/reset-password?token=${token}`;
+
+      return jsonResponse({
+        success: true,
+        resetUrl,
+        email: user.email,
+        version: VERSION,
+      });
+    }
+
+    if (action === "resetPasswordWithToken") {
+      const token = String(body.token ?? "").trim();
+      const newPassword = String(body.newPassword ?? "");
+      if (!token || newPassword.length < 6) {
+        return jsonResponse({ success: false, error: "Invalid reset request", version: VERSION });
+      }
+
+      const { data: adminUser, error: fetchError } = await supabase
+        .from("admin_users")
+        .select("id, email, password_reset_token_expires_at")
+        .eq("password_reset_token", token)
+        .maybeSingle();
+
+      if (fetchError || !adminUser) {
+        return jsonResponse({ success: false, error: "Invalid or expired reset link", version: VERSION });
+      }
+
+      const expiresAt = new Date(String(adminUser.password_reset_token_expires_at));
+      if (expiresAt < new Date()) {
+        return jsonResponse({
+          success: false,
+          error: "Reset link has expired. Please request a new one.",
+          version: VERSION,
+        });
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+      if (!passwordHash) {
+        return jsonResponse({ success: false, error: "Failed to set password", version: VERSION });
+      }
+
+      const { error: updateError } = await supabase
+        .from("admin_users")
+        .update({
+          password_hash: passwordHash,
+          password_reset_token: null,
+          password_reset_token_expires_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", adminUser.id);
+
+      if (updateError) {
+        console.error("admin-auth resetPasswordWithToken error:", updateError.message);
+        return jsonResponse({ success: false, error: "Failed to update password", version: VERSION });
+      }
+
+      return jsonResponse({ success: true, message: "Password has been reset successfully", version: VERSION });
+    }
+
+    if (action === "getAdminByEmail") {
+      const requesterId = String(body.requestingAdminId ?? "");
+      const requester = await getRequestingAdmin(supabase, requesterId);
+      if (!requester || requester.role !== "super_admin") {
+        return jsonResponse({ success: false, error: "Only super admins can access this" });
+      }
+
+      const email = normalizeEmail(String(body.email ?? ""));
+      const { user } = await fetchAdminByEmail(supabase, email);
+      if (!user?.id) {
+        return jsonResponse({ success: false, error: "Admin user not found" });
+      }
+
+      const hash = String(user.password_hash ?? "").trim();
+      return jsonResponse({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          needsPasswordSetup: !hash,
+        },
+        version: VERSION,
+      });
     }
 
     if (action === "setPassword") {
