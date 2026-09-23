@@ -158,9 +158,8 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
       const result = await requestPasswordReset(forgotPasswordEmail);
 
       if (result.success && result.resetUrl) {
-        // Send email with reset URL
         const { sendAdminPasswordResetEmail } = await import('../api/sendgrid');
-        
+
         const emailResult = await sendAdminPasswordResetEmail(
           result.email,
           'Admin',
@@ -168,16 +167,25 @@ export default function AdminLoginScreen({ onLoginSuccess, onCancel, styles }) {
         );
 
         if (emailResult.success) {
-          console.log('✅ Reset email sent successfully');
+          Alert.alert(
+            'Check your email',
+            `If ${forgotPasswordEmail} is registered, we sent a password reset link. It expires in 48 hours.`
+          );
         } else {
-          console.error('❌ Failed to send email:', emailResult.error);
+          Alert.alert(
+            'Email not sent',
+            emailResult.error || 'Could not send reset email. Ask a super admin to redeploy admin-auth v11 or try again later.'
+          );
         }
+      } else if (result.success) {
+        Alert.alert(
+          'Request received',
+          'If that email is registered as an admin, a reset link will be sent when the system is available.'
+        );
       } else {
-        console.log('ℹ️ Password reset requested (email check complete)');
+        Alert.alert('Reset failed', result.error || 'Could not start password reset.');
       }
-      
-      // Close the modal after email is sent
-      console.log('✅ Closing forgot password modal');
+
       setShowForgotPassword(false);
       setForgotPasswordEmail('');
       setPassword('');

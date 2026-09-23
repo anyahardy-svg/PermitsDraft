@@ -2818,7 +2818,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const handleResendAdminSetupEmail = async (admin) => {
     setResendingSetupEmailId(admin.id);
     try {
-      const result = await resendAdminSetupEmail(admin.email);
+      const result = await resendAdminSetupEmail(admin.email, loggedInAdmin?.id);
       if (result.success) {
         Alert.alert('Email Sent', result.message || `Setup email resent to ${admin.email}`);
       } else {
@@ -2845,12 +2845,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
 
     try {
+      if (!loggedInAdmin?.id) {
+        Alert.alert('Not signed in', 'Log out and sign in again, then retry.');
+        return;
+      }
+
       const result = await updateAdminUser(editingAdmin.id, {
         email: editingAdmin.email,
         name: editingAdmin.name,
         role: editingAdmin.role,
         siteIds: editingAdmin.siteIds || editingAdmin.site_ids || []
-      }, loggedInAdmin?.id);
+      }, loggedInAdmin.id);
 
       if (result.success) {
         Alert.alert('Success', 'Admin user updated');
@@ -2858,7 +2863,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setEditingAdmin(null);
         loadAdminList();
       } else {
-        Alert.alert('Error', result.error || 'Failed to update admin user');
+        const message = result.error || 'Failed to update admin user';
+        Alert.alert('Could not save admin', message);
       }
     } catch (error) {
       console.error('Error updating admin:', error);

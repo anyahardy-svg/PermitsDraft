@@ -5,7 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import bcrypt from 'bcryptjs';
-import { normalizeEmailInput } from '../utils/emailNormalization';
+import { normalizeEmailInput, normalizeEmailForComparison } from '../utils/emailNormalization';
 import { getPublicAppOrigin } from '../utils/publicAppOrigin';
 import { buildAdminPasswordSetupUrl } from '../utils/adminSetupRoute';
 import { sendAdminSetupEmail } from './sendgrid';
@@ -21,6 +21,17 @@ async function invokeAdminAuth(payload) {
   const { data, error } = await supabase.functions.invoke('admin-auth', { body: payload });
 
   if (error) {
+    let responseBody = data;
+    if (!responseBody && error?.context && typeof error.context.json === 'function') {
+      try {
+        responseBody = await error.context.json();
+      } catch (parseError) {
+        console.warn('Could not parse admin-auth error body:', parseError);
+      }
+    }
+    if (responseBody && typeof responseBody === 'object') {
+      return { data: responseBody, error: null };
+    }
     return { data: null, error };
   }
 
@@ -433,20 +444,22 @@ export async function checkAdminPasswordSetup(email) {
  * @param {string} email - Admin email
  * @returns {Object} { success: boolean, message?: string, error?: string }
  */
-export async function resendAdminSetupEmail(email) {
+export async function resendAdminSetupEmail(email, requestingAdminId) {
   try {
-    const normalizedEmail = normalizeEmailInput(email);
-    const { data: adminUser, error } = await findAdminUserByEmail(
-      normalizedEmail,
-      'id, email, name, role, password_hash'
-    );
+    const normalizedEmail = normalizeEmailForComparison(email);
 
-    if (error || !adminUser) {
-      return { success: false, error: 'Admin user not found' };
+    const { data: lookup, error: invokeError } = await invokeAdminAuth({
+      action: 'getAdminByEmail',
+      requestingAdminId,
+      email: normalizedEmail,
+    });
+
+    if (invokeError || !lookup?.success || !lookup?.data) {
+      return { success: false, error: lookup?.error || invokeError?.message || 'Admin user not found' };
     }
 
-    const needsSetup = !adminUser.password_hash || adminUser.password_hash.trim() === '';
-    if (!needsSetup) {
+    const adminUser = lookup.data;
+    if (!adminUser.needsPasswordSetup) {
       return {
         success: false,
         error: 'This user has already set their password. Use password reset instead.',
@@ -483,61 +496,48 @@ export async function resendAdminSetupEmail(email) {
  */
 export async function requestPasswordReset(email) {
   try {
-    const normalizedEmail = normalizeEmailInput(email);
+    const normalizedEmail = normalizeEmailForComparison(email);
     console.log('🔐 Password reset requested for:', normalizedEmail);
 
-    const { data: adminUser, error: fetchError } = await findAdminUserByEmail(
-      normalizedEmail,
-      'id, email'
-    );
-
-    if (fetchError || !adminUser) {
-      console.log('ℹ️ No admin user found for:', normalizedEmail);
-      // Don't reveal if email exists or not (security best practice)
-      return {
-        success: true,
-        note: 'If email exists, a reset link will be sent'
-      };
-    }
-
-    // Generate random token (32 character hex string)
-    const token = crypto.getRandomValues(new Uint8Array(32))
-      .reduce((acc, val) => acc + val.toString(16).padStart(2, '0'), '');
-
-    // Set expiration to 48 hours from now
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-
-    console.log('🔑 Generated reset token for:', adminUser.id);
-
-    // Save token to database
-    const { error: updateError } = await supabase
-      .from('admin_users')
-      .update({
-        password_reset_token: token,
-        password_reset_token_expires_at: expiresAt,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', adminUser.id);
-
-    if (updateError) {
-      console.error('❌ Failed to save reset token:', updateError);
-      return {
-        success: false,
-        error: 'Failed to process reset request'
-      };
-    }
-
-    // Build reset URL on the main app domain (never a kiosk subdomain)
-    const baseUrl = getPublicAppOrigin(
+    const appOrigin = getPublicAppOrigin(
       typeof window !== 'undefined' ? window.location.origin : process.env.REACT_APP_BASE_URL
     );
-    const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
+
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'requestPasswordReset',
+      email: normalizedEmail,
+      appOrigin,
+    });
+
+    if (invokeError) {
+      console.error('❌ requestPasswordReset invoke error:', invokeError);
+      return { success: false, error: 'Failed to process reset request' };
+    }
+
+    if (!result?.success) {
+      return {
+        success: false,
+        error: result?.error || 'Failed to process reset request',
+      };
+    }
+
+    if (!result.resetUrl) {
+      console.log('ℹ️ No admin user found for:', normalizedEmail);
+      return {
+        success: true,
+        note: 'If email exists, a reset link will be sent',
+      };
+    }
+
+    const resetUrl = result.resetUrl.startsWith('http')
+      ? result.resetUrl
+      : `${appOrigin}${result.resetUrl}`;
 
     console.log('✅ Password reset token generated and saved');
     return {
       success: true,
       resetUrl,
-      email: adminUser.email
+      email: result.email,
     };
   } catch (error) {
     console.error('❌ Error in requestPasswordReset:', error);
@@ -565,60 +565,23 @@ export async function resetPasswordWithToken(token, newPassword) {
       };
     }
 
-    // Find admin by reset token
-    const { data: adminUser, error: fetchError } = await supabase
-      .from('admin_users')
-      .select('id, email, password_reset_token_expires_at')
-      .eq('password_reset_token', token)
-      .single();
+    const { data: result, error: invokeError } = await invokeAdminAuth({
+      action: 'resetPasswordWithToken',
+      token,
+      newPassword,
+    });
 
-    if (fetchError || !adminUser) {
-      console.error('❌ Invalid reset token');
+    if (invokeError || !result?.success) {
       return {
         success: false,
-        error: 'Invalid or expired reset link'
+        error: result?.error || invokeError?.message || 'Failed to update password',
       };
     }
 
-    // Check if token has expired
-    const expiresAt = new Date(adminUser.password_reset_token_expires_at);
-    if (expiresAt < new Date()) {
-      console.error('❌ Reset token expired');
-      return {
-        success: false,
-        error: 'Reset link has expired. Please request a new one.'
-      };
-    }
-
-    // Hash new password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    console.log('🔑 Hashing new password for admin:', adminUser.email);
-
-    // Update password and clear reset token
-    const { error: updateError } = await supabase
-      .from('admin_users')
-      .update({
-        password_hash: passwordHash,
-        password_reset_token: null,
-        password_reset_token_expires_at: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', adminUser.id);
-
-    if (updateError) {
-      console.error('❌ Failed to update password:', updateError);
-      return {
-        success: false,
-        error: 'Failed to update password'
-      };
-    }
-
-    console.log('✅ Password reset successful for:', adminUser.email);
+    console.log('✅ Password reset successful');
     return {
       success: true,
-      message: 'Password has been reset successfully'
+      message: result.message || 'Password has been reset successfully',
     };
   } catch (error) {
     console.error('❌ Error in resetPasswordWithToken:', error);

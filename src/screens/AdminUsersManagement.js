@@ -117,7 +117,7 @@ export default function AdminUsersManagement({ onBack, styles, requestingAdminId
           updatePayload.password = formData.password;
         }
 
-        const result = await updateAdminUser(editingUser.id, updatePayload);
+        const result = await updateAdminUser(editingUser.id, updatePayload, requestingAdminId);
         if (result.success) {
           Alert.alert('Success', 'Admin user updated');
           await loadAdmins();
@@ -132,7 +132,8 @@ export default function AdminUsersManagement({ onBack, styles, requestingAdminId
           formData.name,
           formData.password,
           formData.role,
-          formData.siteIds || []
+          formData.siteIds || [],
+          requestingAdminId
         );
         if (result.success) {
           Alert.alert('Success', 'Admin user created');
@@ -161,7 +162,7 @@ export default function AdminUsersManagement({ onBack, styles, requestingAdminId
   const handleResendSetupEmail = async (user) => {
     setResendingSetupEmailId(user.id);
     try {
-      const result = await resendAdminSetupEmail(user.email);
+      const result = await resendAdminSetupEmail(user.email, requestingAdminId);
       if (result.success) {
         Alert.alert('Email Sent', result.message || `Setup email resent to ${user.email}`);
       } else {
@@ -195,7 +196,7 @@ export default function AdminUsersManagement({ onBack, styles, requestingAdminId
     }
 
     try {
-      const result = await deleteAdminUser(user.id);
+      const result = await deleteAdminUser(user.id, requestingAdminId);
       if (result.success) {
         if (typeof window !== 'undefined' && typeof window.alert === 'function') {
           window.alert('Admin user deleted');
