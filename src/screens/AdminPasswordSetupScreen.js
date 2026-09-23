@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../supabaseClient';
-import bcryptjs from 'bcryptjs';
 
 export default function AdminPasswordSetupScreen({ email, onPasswordSet, onCancel, styles }) {
   const [password, setPassword] = useState('');
@@ -37,17 +36,21 @@ export default function AdminPasswordSetupScreen({ email, onPasswordSet, onCance
 
     setLoading(true);
     try {
-      // Hash the password
-      const passwordHash = await bcryptjs.hash(password, 10);
+      if (!supabase) {
+        setError('App is not configured for password setup.');
+        return;
+      }
 
-      // Update the admin user
-      const { error: updateError } = await supabase
-        .from('admin_users')
-        .update({ password_hash: passwordHash })
-        .ilike('email', email.trim());
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-auth', {
+        body: {
+          action: 'setPassword',
+          email: email.trim(),
+          password,
+        },
+      });
 
-      if (updateError) {
-        console.error('❌ Password update error:', updateError);
+      if (invokeError || !result?.success) {
+        console.error('❌ Password update error:', invokeError || result?.error);
         setError('Failed to set password. Please try again.');
         return;
       }
