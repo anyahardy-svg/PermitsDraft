@@ -19,5 +19,9 @@ assert.strictEqual(
   getPostAdminLoginScreen({ role: 'super_admin' }, accredPath),
   'admin',
 );
+assert.strictEqual(
+  getPostAdminLoginScreen({ role: 'super_admin' }, '/manager/'),
+  'admin',
+);
 
 console.log('manager hub route tests passed');
