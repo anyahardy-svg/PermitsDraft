@@ -2737,6 +2737,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   }, [adminSessionActive, loggedInAdmin]);
 
+  // Super admins belong on /admin/, not the site manager entry URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!adminSessionActive || !loggedInAdmin) return;
+    if (loggedInAdmin.role !== 'super_admin') return;
+
+    const pathname = window.location.pathname;
+    if (pathname === '/manager' || pathname === '/manager/') {
+      setCurrentScreen('admin');
+      window.history.replaceState({}, '', '/admin/');
+    }
+  }, [adminSessionActive, loggedInAdmin]);
+
   const handleAddAdmin = async () => {
     if (!newAdminForm.email || !newAdminForm.name) {
       Alert.alert('Missing Info', 'Please fill in email and name');

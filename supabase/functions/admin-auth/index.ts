@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v7";
+const VERSION = "2026-03-23-v8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +53,76 @@ async function hashPassword(plain: string): Promise<string | null> {
   }
 }
 
+type AdminLoginRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  site_ids?: string[] | null;
+};
+
+function loginSuccessResponse(adminUser: AdminLoginRow) {
+  return jsonResponse({
+    success: true,
+    data: {
+      id: adminUser.id,
+      email: adminUser.email,
+      name: adminUser.name,
+      role: adminUser.role,
+      site_ids: adminUser.site_ids ?? [],
+      siteIds: adminUser.site_ids ?? [],
+    },
+    version: VERSION,
+  });
+}
+
+async function verifyLegacyBcryptLogin(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  email: string,
+  password: string,
+): Promise<AdminLoginRow | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  let { data: adminUser, error } = await supabase
+    .from("admin_users")
+    .select("id, email, name, role, site_ids, password_hash")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (error?.message?.includes("site_ids")) {
+    const retry = await supabase
+      .from("admin_users")
+      .select("id, email, name, role, password_hash")
+      .ilike("email", email)
+      .maybeSingle();
+    adminUser = retry.data;
+    error = retry.error;
+  }
+
+  if (error || !adminUser?.password_hash) {
+    if (error) {
+      console.error("admin-auth legacy login query error:", error.message);
+    }
+    return null;
+  }
+
+  const hash = String(adminUser.password_hash);
+  const matches = await comparePassword(password, hash);
+  if (!matches) {
+    return null;
+  }
+
+  return {
+    id: adminUser.id,
+    email: adminUser.email,
+    name: adminUser.name,
+    role: adminUser.role,
+    site_ids: (adminUser as { site_ids?: string[] | null }).site_ids ?? [],
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -100,31 +170,21 @@ Deno.serve(async (req) => {
       });
 
       if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-        const adminUser = rpcRows[0] as {
-          id: string;
-          email: string;
-          name: string;
-          role: string;
-          site_ids?: string[] | null;
-        };
-        return jsonResponse({
-          success: true,
-          data: {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name,
-            role: adminUser.role,
-            site_ids: adminUser.site_ids ?? [],
-            siteIds: adminUser.site_ids ?? [],
-          },
-        });
+        return loginSuccessResponse(rpcRows[0] as AdminLoginRow);
       }
 
       if (rpcError) {
         console.error("admin-auth login rpc error:", rpcError.message, rpcError.code);
       }
 
-      return jsonResponse({ success: false, error: "Password or username incorrect" });
+      // Passwords created in the app (bcryptjs) are not always verified by Postgres crypt().
+      const legacyUser = await verifyLegacyBcryptLogin(supabase, email, password);
+      if (legacyUser) {
+        console.log("admin-auth login: legacy bcrypt verified for", email);
+        return loginSuccessResponse(legacyUser);
+      }
+
+      return jsonResponse({ success: false, error: "Password or username incorrect", version: VERSION });
     }
 
     if (action === "checkPasswordSetup") {
