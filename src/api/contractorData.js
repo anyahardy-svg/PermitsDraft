@@ -229,6 +229,51 @@ export async function contractorDataDelete(contractorId, requestingAdminId) {
   return true;
 }
 
+export async function contractorDataListIncompleteInductions() {
+  const { data: result, error: invokeError } = await invokeContractorData({
+    action: 'listIncompleteInductions',
+  });
+
+  if (invokeError) {
+    throw new Error(invokeError.message || 'Failed to load contractors');
+  }
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to load contractors');
+  }
+  return result.data || [];
+}
+
+export async function contractorDataCreateForKiosk(contractorData) {
+  const { data: result, error: invokeError } = await invokeContractorData({
+    action: 'createForKiosk',
+    contractorData,
+  });
+
+  if (invokeError) {
+    throw new Error(invokeError.message || 'Failed to create contractor');
+  }
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to create contractor');
+  }
+  return result.data || null;
+}
+
+export async function contractorDataUpdateForKiosk(contractorId, updates) {
+  const { data: result, error: invokeError } = await invokeContractorData({
+    action: 'updateForKiosk',
+    contractorId,
+    updates,
+  });
+
+  if (invokeError) {
+    throw new Error(invokeError.message || 'Failed to update contractor');
+  }
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to update contractor');
+  }
+  return result.data || null;
+}
+
 export async function contractorDataListExpiredInductions(requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const { data: result, error: invokeError } = await invokeContractorData({
