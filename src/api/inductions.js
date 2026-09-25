@@ -529,8 +529,6 @@ export async function listContractorsWithIncompleteInductions() {
   };
 
   try {
-    const { contractorDataListIncompleteInductions } = await import('./contractorData');
-    const { getRequestingAdminId } = await import('./contractorData');
     if (!getRequestingAdminId()) {
       try {
         return await contractorDataListIncompleteInductions();
@@ -558,9 +556,9 @@ export async function getInductionProgress(contractorId, inductionId) {
       .select('*')
       .eq('contractor_id', contractorId)
       .eq('induction_id', inductionId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) throw error;
     return data || null;
   } catch (error) {
     console.error('Error fetching induction progress:', error);
