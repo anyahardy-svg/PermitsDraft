@@ -9,6 +9,7 @@ import {
   contractorDataCreate,
   contractorDataDelete,
   contractorDataGet,
+  contractorDataGetForKiosk,
   contractorDataListAll,
   contractorDataListByCompany,
   contractorDataListBySite,
@@ -217,7 +218,11 @@ export const getContractor = async (contractorId) => {
         { label: 'getContractor' },
       );
     }
-    return await getContractorDirect(contractorId);
+    return await withContractorDataFallback(
+      () => contractorDataGetForKiosk(contractorId).then((row) => (row ? transformContractor(row) : null)),
+      () => getContractorDirect(contractorId),
+      { label: 'getContractor-kiosk' },
+    );
   } catch (error) {
     console.error('Error fetching contractor:', error.message);
     throw error;

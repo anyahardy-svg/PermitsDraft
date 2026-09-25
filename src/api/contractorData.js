@@ -145,6 +145,21 @@ export async function contractorDataListByCompany(companyId, requestingAdminId) 
   return result.data || [];
 }
 
+export async function contractorDataGetForKiosk(contractorId) {
+  const { data: result, error: invokeError } = await invokeContractorData({
+    action: 'getForKiosk',
+    contractorId,
+  });
+
+  if (invokeError) {
+    throw new Error(invokeError.message || 'Failed to load contractor');
+  }
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to load contractor');
+  }
+  return result.data || null;
+}
+
 export async function contractorDataGet(contractorId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const { data: result, error: invokeError } = await invokeContractorData({

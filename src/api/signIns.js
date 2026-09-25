@@ -7,6 +7,7 @@ import { supabase } from '../supabaseClient';
 import { getContractorSiteInduction } from './contractorInductions';
 import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
 import { notifySignIn } from './signInNotifications';
+import { getRequestingAdminId } from './contractorData';
 
 // ============================================================================
 // CHECK-IN FUNCTIONS
@@ -30,6 +31,22 @@ async function checkInContractorViaApi(payload) {
     throw new Error(body.error || 'Check-in failed');
   }
   return body;
+}
+
+function mapKioskCheckInApiResult(apiResult) {
+  const expiryDate = apiResult.expiryDate || null;
+  return {
+    success: true,
+    data: apiResult.data,
+    inducted: apiResult.inducted,
+    isExpired: apiResult.isExpired,
+    expiryDate,
+    message: apiResult.isExpired
+      ? '⚠️ INDUCTION EXPIRED - renewal required before work'
+      : apiResult.inducted
+        ? 'Checked in successfully'
+        : '⚠️ NOT INDUCTED - induction required before work',
+  };
 }
 
 export async function checkInContractor(
@@ -64,7 +81,29 @@ export async function checkInContractor(
         error: 'Site business unit is not configured. Please contact your administrator.',
       };
     }
-    
+
+    // Kiosk has no admin JWT — use Vercel service-role API after contractors RLS lock-down.
+    if (!getRequestingAdminId()) {
+      try {
+        const apiResult = await checkInContractorViaApi({
+          contractorId,
+          siteId,
+          businessUnitId: resolvedBusinessUnitId,
+          flagData,
+          rtData,
+          visitingPersonName,
+          contractorPhone,
+        });
+        if (apiResult?.success) {
+          return mapKioskCheckInApiResult(apiResult);
+        }
+        return { success: false, error: apiResult?.error || 'Check-in failed' };
+      } catch (apiError) {
+        console.error('❌ Kiosk check-in API error:', apiError.message);
+        return { success: false, error: apiError.message || 'Check-in failed' };
+      }
+    }
+
     // Get contractor details
     const { data: contractor, error: contractorError } = await supabase
       .from('contractors')

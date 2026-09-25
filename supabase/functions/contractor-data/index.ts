@@ -501,13 +501,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, data: rows, version: VERSION });
     }
 
-    if (action === "get") {
-      const requester = await getRequestingAdmin(
-        supabase,
-        String(body.requestingAdminId ?? ""),
-      );
-      if (!requester) {
-        return jsonResponse({ success: false, error: "Not signed in or session expired" });
+    if (action === "get" || action === "getForKiosk") {
+      if (action === "get") {
+        const requester = await getRequestingAdmin(
+          supabase,
+          String(body.requestingAdminId ?? ""),
+        );
+        if (!requester) {
+          return jsonResponse({ success: false, error: "Not signed in or session expired" });
+        }
       }
       const contractorId = String(body.contractorId ?? "");
       if (!contractorId) {
