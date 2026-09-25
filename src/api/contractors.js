@@ -5,6 +5,38 @@ import {
   syncSiteInductionRecordsFromProgress,
 } from './contractorInductions';
 import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
+import {
+  contractorDataCreate,
+  contractorDataDelete,
+  contractorDataGet,
+  contractorDataListAll,
+  contractorDataListByCompany,
+  contractorDataListBySite,
+  contractorDataListExpiredInductions,
+  contractorDataListForKiosk,
+  contractorDataSearchForKiosk,
+  contractorDataUpdate,
+  getRequestingAdminId,
+  isAdminSessionActive,
+} from './contractorData';
+
+/** Prefer Edge when admin session or kiosk paths; fall back to PostgREST until Edge is deployed / if invoke fails. */
+async function withContractorDataFallback(edgeFn, directFn, { label = 'contractor-data' } = {}) {
+  try {
+    return await edgeFn();
+  } catch (edgeError) {
+    console.warn(`⚠️ ${label} edge failed, using direct PostgREST fallback:`, edgeError?.message || edgeError);
+    return await directFn();
+  }
+}
+
+function mapEdgeRowsToApp(rows) {
+  return (rows || []).map(transformContractor);
+}
+
+function shouldPreferContractorEdgeForAdmin() {
+  return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
 
 const fetchCompanyNameMap = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
@@ -78,105 +110,114 @@ const transformContractor = (dbContractor) => {
   };
 };
 
+const createContractorDirect = async (contractorData) => {
+  const dbData = {
+    ...contractorData,
+    service_ids: contractorData.service_ids || contractorData.serviceIds || contractorData.services || [],
+  };
+
+  const { data, error } = await supabase.from('contractors').insert([dbData]).select();
+  if (error) throw error;
+
+  const contractor = data[0];
+  if (contractor?.company_id) {
+    try {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', contractor.company_id)
+        .single();
+      if (company && !companyError) {
+        contractor.company_name = company.name;
+      }
+    } catch (err) {
+      console.warn('Could not fetch company for contractor:', err.message);
+    }
+  }
+
+  return contractor ? transformContractor(contractor) : null;
+};
+
 // Create a new contractor
 export const createContractor = async (contractorData) => {
   try {
-    // Prepare data: map services to service_ids if needed
-    const dbData = {
-      ...contractorData,
-      service_ids: contractorData.service_ids || contractorData.serviceIds || contractorData.services || [],
-    };
-    
-    const { data, error } = await supabase
-      .from('contractors')
-      .insert([dbData])
-      .select();
-
-    if (error) throw error;
-    
-    const contractor = data[0];
-    if (contractor) {
-      // Fetch company name if contractor has company_id
-      if (contractor.company_id) {
-        try {
-          const { data: company, error: companyError } = await supabase
-            .from('companies')
-            .select('name')
-            .eq('id', contractor.company_id)
-            .single();
-          
-          if (company && !companyError) {
-            contractor.company_name = company.name;
-          }
-        } catch (err) {
-          console.warn(`Could not fetch company for contractor:`, err.message);
-        }
-      }
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () => contractorDataCreate(contractorData).then((row) => (row ? transformContractor(row) : null)),
+        () => createContractorDirect(contractorData),
+        { label: 'createContractor' },
+      );
     }
-    
-    return contractor ? transformContractor(contractor) : null;
+    return await createContractorDirect(contractorData);
   } catch (error) {
     console.error('Error creating contractor:', error.message);
     throw error;
   }
 };
 
+const listContractorsDirect = async () => {
+  const data = await fetchAllPaginated((from, to) =>
+    supabase.from('contractors').select().order('name', { ascending: true }).range(from, to),
+  );
+  const contractorsWithCompanies = await attachCompanyNames(data);
+  return contractorsWithCompanies.map(transformContractor);
+};
+
 // Get all contractors with company details
 export const listContractors = async () => {
   try {
-    // Fetch contractors without join to avoid relationship ambiguity
-    const data = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select()
-        .order('name', { ascending: true })
-        .range(from, to)
-    );
+    if (shouldPreferContractorEdgeForAdmin()) {
+      const transformed = await withContractorDataFallback(
+        () => contractorDataListAll().then(mapEdgeRowsToApp),
+        () => listContractorsDirect(),
+        { label: 'listContractors' },
+      );
+      console.log('✅ Contractors loaded:', transformed.length);
+      return transformed;
+    }
 
-    console.log('✅ Raw contractors data from Supabase:', data.length, 'contractors');
-    console.log('📋 First contractor sample:', data[0]);
-
-    const contractorsWithCompanies = await attachCompanyNames(data);
-    const transformed = contractorsWithCompanies.map(transformContractor);
-    console.log('✅ Transformed contractors:', transformed.length);
-
+    const transformed = await listContractorsDirect();
+    console.log('✅ Raw contractors data from Supabase:', transformed.length, 'contractors');
     return transformed;
   } catch (error) {
     console.error('❌ Error fetching contractors:', error.message);
-    console.error('💾 Full error object:', error);
     throw error;
   }
+};
+
+const getContractorDirect = async (contractorId) => {
+  const { data, error } = await supabase.from('contractors').select().eq('id', contractorId).single();
+  if (error) throw error;
+
+  if (data?.company_id) {
+    try {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', data.company_id)
+        .single();
+      if (company && !companyError) {
+        data.company_name = company.name;
+      }
+    } catch (err) {
+      console.warn('Could not fetch company for contractor:', err.message);
+    }
+  }
+
+  return data ? transformContractor(data) : null;
 };
 
 // Get a single contractor
 export const getContractor = async (contractorId) => {
   try {
-    const { data, error } = await supabase
-      .from('contractors')
-      .select()
-      .eq('id', contractorId)
-      .single();
-
-    if (error) throw error;
-    
-    // Fetch company name if contractor has company_id
-    if (data?.company_id) {
-      try {
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', data.company_id)
-          .single();
-        
-        if (company && !companyError) {
-          data.company_name = company.name;
-        }
-      } catch (err) {
-        console.warn(`Could not fetch company for contractor:`, err.message);
-      }
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () => contractorDataGet(contractorId).then((row) => (row ? transformContractor(row) : null)),
+        () => getContractorDirect(contractorId),
+        { label: 'getContractor' },
+      );
     }
-    
-    return data ? transformContractor(data) : null;
+    return await getContractorDirect(contractorId);
   } catch (error) {
     console.error('Error fetching contractor:', error.message);
     throw error;
@@ -194,59 +235,66 @@ export const getContractorWithSiteInductions = async (contractorId) => {
   return withSiteInductions;
 };
 
+const mapUpdatesToDb = (updates) => {
+  const dbUpdates = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'serviceIds') {
+      dbUpdates.service_ids = value;
+    } else if (key === 'siteIds') {
+      dbUpdates.site_ids = value;
+    } else if (key === 'businessUnitIds') {
+      dbUpdates.business_unit_ids = value;
+    } else if (key === 'companyId') {
+      dbUpdates.company_id = value;
+    } else if (key === 'inductionExpiry') {
+      dbUpdates.induction_expiry = value;
+    } else {
+      dbUpdates[key] = value;
+    }
+  }
+  return dbUpdates;
+};
+
+const updateContractorDirect = async (contractorId, updates) => {
+  const dbUpdates = mapUpdatesToDb(updates);
+  const { data, error } = await supabase
+    .from('contractors')
+    .update(dbUpdates)
+    .eq('id', contractorId)
+    .select();
+  if (error) throw error;
+
+  const contractor = data[0];
+  if (contractor?.company_id) {
+    try {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', contractor.company_id)
+        .single();
+      if (company && !companyError) {
+        contractor.company_name = company.name;
+      }
+    } catch (err) {
+      console.warn('Could not fetch company for contractor:', err.message);
+    }
+  }
+
+  return contractor ? transformContractor(contractor) : null;
+};
+
 // Update a contractor
 export const updateContractor = async (contractorId, updates) => {
   try {
-    // Map camelCase keys to snake_case for database
-    const dbUpdates = {};
-    
-    for (const [key, value] of Object.entries(updates)) {
-      // Map camelCase to snake_case
-      if (key === 'serviceIds') {
-        dbUpdates.service_ids = value;
-      } else if (key === 'siteIds') {
-        dbUpdates.site_ids = value;
-      } else if (key === 'businessUnitIds') {
-        dbUpdates.business_unit_ids = value;
-      } else if (key === 'companyId') {
-        dbUpdates.company_id = value;
-      } else if (key === 'inductionExpiry') {
-        dbUpdates.induction_expiry = value;
-      } else {
-        // Pass through as-is for snake_case keys
-        dbUpdates[key] = value;
-      }
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () =>
+          contractorDataUpdate(contractorId, updates).then((row) => (row ? transformContractor(row) : null)),
+        () => updateContractorDirect(contractorId, updates),
+        { label: 'updateContractor' },
+      );
     }
-    
-    const { data, error } = await supabase
-      .from('contractors')
-      .update(dbUpdates)
-      .eq('id', contractorId)
-      .select();
-
-    if (error) throw error;
-    
-    const contractor = data[0];
-    if (contractor) {
-      // Fetch company name if contractor has company_id
-      if (contractor.company_id) {
-        try {
-          const { data: company, error: companyError } = await supabase
-            .from('companies')
-            .select('name')
-            .eq('id', contractor.company_id)
-            .single();
-          
-          if (company && !companyError) {
-            contractor.company_name = company.name;
-          }
-        } catch (err) {
-          console.warn(`Could not fetch company for contractor:`, err.message);
-        }
-      }
-    }
-    
-    return contractor ? transformContractor(contractor) : null;
+    return await updateContractorDirect(contractorId, updates);
   } catch (error) {
     console.error('Error updating contractor:', error.message);
     throw error;
@@ -256,11 +304,18 @@ export const updateContractor = async (contractorId, updates) => {
 // Delete a contractor
 export const deleteContractor = async (contractorId) => {
   try {
-    const { error } = await supabase
-      .from('contractors')
-      .delete()
-      .eq('id', contractorId);
-
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () => contractorDataDelete(contractorId),
+        async () => {
+          const { error } = await supabase.from('contractors').delete().eq('id', contractorId);
+          if (error) throw error;
+          return true;
+        },
+        { label: 'deleteContractor' },
+      );
+    }
+    const { error } = await supabase.from('contractors').delete().eq('id', contractorId);
     if (error) throw error;
     return true;
   } catch (error) {
@@ -318,15 +373,32 @@ export const findContractorInCompany = (contractors, { companyId, email, name, p
 // Get contractors by company
 export const listContractorsByCompany = async (companyId) => {
   try {
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () => contractorDataListByCompany(companyId).then(mapEdgeRowsToApp),
+        async () => {
+          const data = await fetchAllPaginated((from, to) =>
+            supabase
+              .from('contractors')
+              .select('*, companies(name)')
+              .eq('company_id', companyId)
+              .order('name', { ascending: true })
+              .range(from, to),
+          );
+          return data.map(transformContractor);
+        },
+        { label: 'listContractorsByCompany' },
+      );
+    }
+
     const data = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractors')
         .select('*, companies(name)')
         .eq('company_id', companyId)
         .order('name', { ascending: true })
-        .range(from, to)
+        .range(from, to),
     );
-
     return data.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors by company:', error.message);
@@ -337,6 +409,25 @@ export const listContractorsByCompany = async (companyId) => {
 // Get contractors with expired inductions
 export const listContractorsWithExpiredInductions = async () => {
   try {
+    if (shouldPreferContractorEdgeForAdmin()) {
+      return await withContractorDataFallback(
+        () => contractorDataListExpiredInductions().then(mapEdgeRowsToApp),
+        async () => {
+          const today = new Date().toISOString().split('T')[0];
+          const data = await fetchAllPaginated((from, to) =>
+            supabase
+              .from('contractors')
+              .select('*, companies(name)')
+              .lt('induction_expiry', today)
+              .order('induction_expiry', { ascending: false })
+              .range(from, to),
+          );
+          return data.map(transformContractor);
+        },
+        { label: 'listContractorsWithExpiredInductions' },
+      );
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const data = await fetchAllPaginated((from, to) =>
       supabase
@@ -344,9 +435,8 @@ export const listContractorsWithExpiredInductions = async () => {
         .select('*, companies(name)')
         .lt('induction_expiry', today)
         .order('induction_expiry', { ascending: false })
-        .range(from, to)
+        .range(from, to),
     );
-
     return data.map(transformContractor);
   } catch (error) {
     console.error('Error fetching contractors with expired inductions:', error.message);
@@ -464,19 +554,13 @@ function contractorMatchesKioskSignInSearch(contractor, siteId) {
   return isInductedAnywhere(contractor);
 }
 
-// Kiosk search: site roster matches plus anyone inducted anywhere (other sites).
-export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) => {
-  try {
-    if (!siteId) {
-      return [];
-    }
+const searchContractorsForKioskDirect = async (siteId, searchText, limit = 40) => {
+  const trimmed = searchText?.trim();
+  if (!trimmed || trimmed.length < 2) {
+    return [];
+  }
 
-    const trimmed = searchText?.trim();
-    if (!trimmed || trimmed.length < 2) {
-      return [];
-    }
-
-    const pattern = `%${escapeIlikePattern(trimmed)}%`;
+  const pattern = `%${escapeIlikePattern(trimmed)}%`;
 
     const [
       { data: siteAssigned, error: siteError },
@@ -535,24 +619,40 @@ export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) 
     const transformed = withCompanies.map(transformContractor);
     const withInductions = await attachSiteInductionsToContractors(transformed);
 
-    return withInductions
-      .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
-      .slice(0, limit);
+  return withInductions
+    .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
+    .slice(0, limit);
+};
+
+// Kiosk search: site roster matches plus anyone inducted anywhere (other sites).
+export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    const runEdge = async () => {
+      const rows = await contractorDataSearchForKiosk(siteId, searchText, limit);
+      const transformed = mapEdgeRowsToApp(rows);
+      const withInductions = await attachSiteInductionsToContractors(transformed);
+      return withInductions
+        .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
+        .slice(0, limit);
+    };
+
+    return await withContractorDataFallback(
+      runEdge,
+      () => searchContractorsForKioskDirect(siteId, searchText, limit),
+      { label: 'searchContractorsForKiosk' },
+    );
   } catch (error) {
     console.error('Error searching contractors for kiosk:', error.message);
     throw error;
   }
 };
 
-// Kiosk sign-in: contractors assigned to the site, in the site's business unit,
-// or belonging to a company linked to the site / business unit.
-export const listContractorsForKiosk = async (siteId) => {
-  try {
-    if (!siteId) {
-      return [];
-    }
-
-    const { data: site, error: siteError } = await supabase
+const listContractorsForKioskDirect = async (siteId) => {
+  const { data: site, error: siteError } = await supabase
       .from('sites')
       .select('id, business_unit_id')
       .eq('id', siteId)
@@ -597,10 +697,29 @@ export const listContractorsForKiosk = async (siteId) => {
     const inductedOnlyIds = inductedContractorIds.filter((contractorId) => !assignedIds.has(contractorId));
     const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
 
-    const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany, bySiteInductionRecord);
-    const withCompanies = await attachCompanyNames(merged);
-    const transformed = withCompanies.map(transformContractor);
-    return attachSiteInductionsToContractors(transformed);
+  const merged = mergeUniqueContractors(bySiteAssignment, byBusinessUnit, byCompany, bySiteInductionRecord);
+  const withCompanies = await attachCompanyNames(merged);
+  const transformed = withCompanies.map(transformContractor);
+  return attachSiteInductionsToContractors(transformed);
+};
+
+// Kiosk sign-in: contractors assigned to the site, in the site's business unit,
+// or belonging to a company linked to the site / business unit.
+export const listContractorsForKiosk = async (siteId) => {
+  try {
+    if (!siteId) {
+      return [];
+    }
+
+    return await withContractorDataFallback(
+      async () => {
+        const rows = await contractorDataListForKiosk(siteId);
+        const transformed = mapEdgeRowsToApp(rows);
+        return attachSiteInductionsToContractors(transformed);
+      },
+      () => listContractorsForKioskDirect(siteId),
+      { label: 'listContractorsForKiosk' },
+    );
   } catch (error) {
     console.error('Error fetching contractors for kiosk:', error.message);
     throw error;
@@ -642,6 +761,29 @@ const fetchContractorsByIds = async (contractorIds = []) => {
   return rows;
 };
 
+const listContractorsBySiteDirect = async (siteId) => {
+  const [bySiteAssignment, inductedContractorIds] = await Promise.all([
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('contractors')
+        .select('*')
+        .contains('site_ids', [siteId])
+        .order('name', { ascending: true })
+        .range(from, to),
+    ),
+    fetchContractorIdsWithSiteInductionRecord(siteId),
+  ]);
+
+  const inductedOnlyIds = inductedContractorIds.filter(
+    (contractorId) => !(bySiteAssignment || []).some((row) => row.id === contractorId),
+  );
+  const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
+  const merged = mergeUniqueContractors(bySiteAssignment, bySiteInductionRecord);
+  const withCompanies = await attachCompanyNames(merged);
+  const transformed = withCompanies.map(transformContractor);
+  return attachSiteInductionsToContractors(transformed);
+};
+
 // Contractors assigned to a site (site_ids) or with a per-site induction record.
 export const listContractorsBySite = async (siteId) => {
   try {
@@ -649,26 +791,15 @@ export const listContractorsBySite = async (siteId) => {
       return [];
     }
 
-    const [bySiteAssignment, inductedContractorIds] = await Promise.all([
-      fetchAllPaginated((from, to) =>
-        supabase
-          .from('contractors')
-          .select('*')
-          .contains('site_ids', [siteId])
-          .order('name', { ascending: true })
-          .range(from, to)
-      ),
-      fetchContractorIdsWithSiteInductionRecord(siteId),
-    ]);
-
-    const inductedOnlyIds = inductedContractorIds.filter(
-      (contractorId) => !(bySiteAssignment || []).some((row) => row.id === contractorId)
+    return await withContractorDataFallback(
+      async () => {
+        const rows = await contractorDataListBySite(siteId);
+        const transformed = mapEdgeRowsToApp(rows);
+        return attachSiteInductionsToContractors(transformed);
+      },
+      () => listContractorsBySiteDirect(siteId),
+      { label: 'listContractorsBySite' },
     );
-    const bySiteInductionRecord = await fetchContractorsByIds(inductedOnlyIds);
-    const merged = mergeUniqueContractors(bySiteAssignment, bySiteInductionRecord);
-    const withCompanies = await attachCompanyNames(merged);
-    const transformed = withCompanies.map(transformContractor);
-    return attachSiteInductionsToContractors(transformed);
   } catch (error) {
     console.error('Error fetching contractors for site:', error.message);
     throw error;
