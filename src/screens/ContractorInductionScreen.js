@@ -28,7 +28,13 @@ import {
 } from '../api/inductions';
 import { getPDFViewerUrl } from '../api/inductionsPDF';
 import { listCompanies, createCompany, searchCompanies } from '../api/companies';
-import { listContractors, createContractor, getContractor, updateContractor } from '../api/contractors';
+import {
+  listContractors,
+  listContractorsForKiosk,
+  createContractor,
+  getContractor,
+  updateContractor,
+} from '../api/contractors';
 import {
   syncSiteInductionRecordsFromProgress,
   upsertContractorSiteInductions,
@@ -227,7 +233,7 @@ export default function ContractorInductionScreen({
     }
 
     setContractorsLoading(true);
-    const promise = listContractors()
+    const promise = (kioskSiteId ? listContractorsForKiosk(kioskSiteId) : listContractors())
       .then((data) => {
         const contractorList = Array.isArray(data) ? data : [];
         setContractors(contractorList);

@@ -10,6 +10,7 @@ import {
   syncSiteInductionRecordsFromProgress,
   upsertContractorSiteInduction,
 } from './contractorInductions';
+import { contractorDataListIncompleteInductions, getRequestingAdminId } from './contractorData';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
@@ -499,7 +500,7 @@ export async function getContractorInductionProgress(contractorId) {
  * @returns {Array} Contractors with incompleteCount for each
  */
 export async function listContractorsWithIncompleteInductions() {
-  try {
+  const listIncompleteDirect = async () => {
     const { data, error } = await supabase
       .from('contractor_induction_progress')
       .select('contractor_id, contractors(*)')
@@ -523,8 +524,21 @@ export async function listContractorsWithIncompleteInductions() {
     }
 
     return Array.from(contractorMap.values()).sort((a, b) =>
-      (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
     );
+  };
+
+  try {
+    const { contractorDataListIncompleteInductions } = await import('./contractorData');
+    const { getRequestingAdminId } = await import('./contractorData');
+    if (!getRequestingAdminId()) {
+      try {
+        return await contractorDataListIncompleteInductions();
+      } catch (edgeError) {
+        console.warn('listIncompleteInductions edge failed, trying direct:', edgeError?.message);
+      }
+    }
+    return await listIncompleteDirect();
   } catch (error) {
     console.error('Error fetching contractors with incomplete inductions:', error);
     throw error;

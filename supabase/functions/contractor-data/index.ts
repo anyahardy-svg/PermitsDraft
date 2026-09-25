@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v2";
+const VERSION = "2026-03-23-v3";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -530,13 +530,45 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, data: withCompany, version: VERSION });
     }
 
-    if (action === "create") {
-      const requester = await getRequestingAdmin(
-        supabase,
-        String(body.requestingAdminId ?? ""),
-      );
-      if (!requester) {
-        return jsonResponse({ success: false, error: "Not signed in or session expired" });
+    if (action === "listIncompleteInductions") {
+      const { data: progressRows, error: progressError } = await supabase
+        .from("contractor_induction_progress")
+        .select("contractor_id")
+        .eq("status", "in_progress");
+
+      if (progressError) {
+        return jsonResponse({ success: false, error: progressError.message }, 500);
+      }
+
+      const countByContractor = new Map<string, number>();
+      for (const row of progressRows ?? []) {
+        const id = row.contractor_id as string;
+        if (!id) continue;
+        countByContractor.set(id, (countByContractor.get(id) ?? 0) + 1);
+      }
+
+      const contractorIds = [...countByContractor.keys()];
+      const contractors = await fetchContractorsByIds(supabase, contractorIds);
+      const withCompanies = await attachCompanyNames(supabase, contractors);
+      const result = withCompanies
+        .map((row) => ({
+          ...row,
+          incompleteCount: countByContractor.get(row.id as string) ?? 0,
+        }))
+        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+
+      return jsonResponse({ success: true, data: result, version: VERSION });
+    }
+
+    if (action === "create" || action === "createForKiosk") {
+      if (action === "create") {
+        const requester = await getRequestingAdmin(
+          supabase,
+          String(body.requestingAdminId ?? ""),
+        );
+        if (!requester) {
+          return jsonResponse({ success: false, error: "Not signed in or session expired" });
+        }
       }
       const contractorData = (body.contractorData ?? {}) as Record<string, unknown>;
       const dbData = {
@@ -559,13 +591,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, data: withCompany, version: VERSION });
     }
 
-    if (action === "update") {
-      const requester = await getRequestingAdmin(
-        supabase,
-        String(body.requestingAdminId ?? ""),
-      );
-      if (!requester) {
-        return jsonResponse({ success: false, error: "Not signed in or session expired" });
+    if (action === "update" || action === "updateForKiosk") {
+      if (action === "update") {
+        const requester = await getRequestingAdmin(
+          supabase,
+          String(body.requestingAdminId ?? ""),
+        );
+        if (!requester) {
+          return jsonResponse({ success: false, error: "Not signed in or session expired" });
+        }
       }
       const contractorId = String(body.contractorId ?? "");
       const updates = mapUpdatesToDb((body.updates ?? {}) as Record<string, unknown>);

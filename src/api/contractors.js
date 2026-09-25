@@ -7,9 +7,11 @@ import {
 import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
 import {
   contractorDataCreate,
+  contractorDataCreateForKiosk,
   contractorDataDelete,
   contractorDataGet,
   contractorDataGetForKiosk,
+  contractorDataUpdateForKiosk,
   contractorDataListAll,
   contractorDataListByCompany,
   contractorDataListBySite,
@@ -37,6 +39,10 @@ function mapEdgeRowsToApp(rows) {
 
 function shouldPreferContractorEdgeForAdmin() {
   return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
+
+function shouldUseKioskContractorEdge() {
+  return !shouldPreferContractorEdgeForAdmin();
 }
 
 const fetchCompanyNameMap = async (companyIds) => {
@@ -147,6 +153,13 @@ export const createContractor = async (contractorData) => {
         () => contractorDataCreate(contractorData).then((row) => (row ? transformContractor(row) : null)),
         () => createContractorDirect(contractorData),
         { label: 'createContractor' },
+      );
+    }
+    if (shouldUseKioskContractorEdge()) {
+      return await withContractorDataFallback(
+        () => contractorDataCreateForKiosk(contractorData).then((row) => (row ? transformContractor(row) : null)),
+        () => createContractorDirect(contractorData),
+        { label: 'createContractor-kiosk' },
       );
     }
     return await createContractorDirect(contractorData);
@@ -297,6 +310,16 @@ export const updateContractor = async (contractorId, updates) => {
           contractorDataUpdate(contractorId, updates).then((row) => (row ? transformContractor(row) : null)),
         () => updateContractorDirect(contractorId, updates),
         { label: 'updateContractor' },
+      );
+    }
+    if (shouldUseKioskContractorEdge()) {
+      return await withContractorDataFallback(
+        () =>
+          contractorDataUpdateForKiosk(contractorId, updates).then((row) =>
+            row ? transformContractor(row) : null,
+          ),
+        () => updateContractorDirect(contractorId, updates),
+        { label: 'updateContractor-kiosk' },
       );
     }
     return await updateContractorDirect(contractorId, updates);
