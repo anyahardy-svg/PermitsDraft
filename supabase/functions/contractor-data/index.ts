@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v1";
+const VERSION = "2026-03-23-v2";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
