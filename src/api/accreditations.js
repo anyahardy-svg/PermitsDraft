@@ -2,6 +2,13 @@ import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
 import { compressImage } from '../utils/imageCompression';
 import { fetchAllPaginated } from './pagination';
+import { companyDataGet, companyDataUpdateAccreditation } from './companyData';
+import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
+import { getCompany, listCompanies } from './companies';
+
+function shouldUseCompanyEdgeForAdmin() {
+  return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
 const debugLog = (...args) => {
@@ -33,6 +40,15 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
 
     debugLog('📤 Updating accreditation:', { companyId, fields: Object.keys(updates) });
 
+    if (shouldUseCompanyEdgeForAdmin()) {
+      try {
+        const row = await companyDataUpdateAccreditation(companyId, updates);
+        return { success: true, data: row };
+      } catch (edgeError) {
+        console.warn('⚠️ company-data updateAccreditation failed, using PostgREST fallback:', edgeError?.message);
+      }
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .update(updates)
@@ -62,6 +78,17 @@ export const getCompanyAccreditation = async (companyId) => {
     }
     if (!supabase) {
       throw new Error('Supabase client is not configured');
+    }
+
+    if (shouldUseCompanyEdgeForAdmin()) {
+      try {
+        const row = await companyDataGet(companyId);
+        if (row) {
+          return row;
+        }
+      } catch (edgeError) {
+        console.warn('⚠️ company-data get failed for accreditation, using PostgREST fallback:', edgeError?.message);
+      }
     }
 
     const { data, error } = await supabase
@@ -353,6 +380,26 @@ export const getAllCompaniesAccreditation = async () => {
       throw new Error('Supabase client is not configured');
     }
 
+    if (shouldUseCompanyEdgeForAdmin()) {
+      try {
+        const companies = await listCompanies();
+        return (companies || []).map((company) => ({
+          id: company.id,
+          name: company.name,
+          nzbn: company.abn_nzbn || company.nzbn,
+          approved_services: company.approved_services,
+          aep_accredited: company.aep_accredited,
+          aep_certificate_expiry: company.aep_certificate_expiry,
+          iso_45001_certified: company.iso_45001_certified,
+          iso_45001_certificate_expiry: company.iso_45001_certificate_expiry,
+          accreditation_last_updated: company.accreditation_last_updated || company.accreditationLastUpdated,
+          accreditation_expiry_date: company.accreditation_expiry_date || company.accreditationExpiryDate,
+        }));
+      } catch (edgeError) {
+        console.warn('⚠️ listCompanies edge failed for accreditation dashboard, fallback:', edgeError?.message);
+      }
+    }
+
     const data = await fetchAllPaginated((from, to) =>
       supabase
         .from('companies')
@@ -424,13 +471,9 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
     // Fetch company name for more readable file paths
     let companyName = 'unknown-company';
     try {
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', companyId)
-        .single();
-      
-      if (company && company.name) {
+      const company = await getCompany(companyId);
+
+      if (company?.name) {
         // Sanitize company name: remove special chars, replace spaces with underscores
         companyName = company.name
           .toLowerCase()

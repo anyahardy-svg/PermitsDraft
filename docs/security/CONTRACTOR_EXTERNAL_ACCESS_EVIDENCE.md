@@ -19,7 +19,7 @@ The **anon key is public** (it ships in the web app). Security is **not** “hid
 2. **RLS enabled and forced** on `contractors`
 3. **No permissive anon policies** on `contractors`
 4. **Authenticated-only** policies: own email + company roster (`migrations/lock-down-anon-contractors.sql`)
-5. **Application** uses Edge / Vercel service role for admin and kiosk paths (PR #234, #236)
+5. **Application** uses Edge / Vercel service role for admin and kiosk paths (PRs #234, #236, #237+)
 
 ## Evidence to collect (recommended packet)
 
@@ -104,7 +104,7 @@ For auditors, distinguish **“open data warehouse”** (failed before Step 2) f
 
 ## Honest limitations (disclose if asked)
 
-1. **`companies`** and other tables may still allow anon reads until a follow-up step — Step 2 targeted **`contractors`** first.
+1. **`companies`** lock-down is Step 2b (`migrations/lock-down-anon-companies.sql`, `company-data` Edge). Run `probe-companies-anon-evidence.ps1` after that SQL. Other tables may still need review.
 2. **`contractor-data`** can be **invoked** with the anon key (same as any public Edge function). It returns **scoped** data for kiosk/admin actions, not an unfiltered export of the whole table. A caller who already has a contractor UUID could request that row through Edge actions designed for kiosk flows — analogous to using the product UI, not to downloading the full table. Tightening (shared kiosk secret, rate limits, abuse monitoring) is optional Step 2b.
 3. **Service role** must never appear in the browser; it is only on Supabase Edge and Vercel server env.
 4. **Console logs** (e.g. contractor id at check-in) are for support/debug on site devices; they do not re-open PostgREST. Reducing production logging is optional hygiene, not a substitute for RLS.
