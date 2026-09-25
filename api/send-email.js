@@ -13,6 +13,7 @@ const {
   syncInvitedAdminAuthUser,
 } = require('./supabaseAdmin');
 const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const { enrichAdminPasswordResetEmailHtml } = require('./lib/adminPasswordResetEmail');
 const {
   buildInvitationTemplateVariables,
   renderTemplate,
@@ -418,23 +419,18 @@ export default async function handler(req, res) {
           supportEmail: SUPPORT_EMAIL,
         });
         actualSubject = rendered.subject;
-        actualHtmlContent = rendered.content;
+        actualHtmlContent = enrichAdminPasswordResetEmailHtml(rendered.content, resetUrl);
       } else {
         // Fall back to hard-coded template
         const { adminName, resetUrl } = req.body;
         actualSubject = 'Admin Panel - Password Reset Request';
-        actualHtmlContent = `
+        actualHtmlContent = enrichAdminPasswordResetEmailHtml(`
           <h2>Password Reset Request</h2>
           <p>Hello ${adminName},</p>
           <p>You have requested to reset your admin password. Click the link below to proceed:</p>
           <p><a href="${resetUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 5px; text-decoration: none; display: inline-block; font-weight: 600;">Reset Your Password</a></p>
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all; font-family: monospace; font-size: 12px; background-color: #F3F4F6; padding: 12px; border-radius: 4px;">${resetUrl}</p>
-          <p style="margin-top: 16px; padding: 12px; background-color: #FEF3C7; border-left: 3px solid #F59E0B; font-size: 13px;">
-            <strong>Security Note:</strong> This link expires in 24 hours. Never share this link with anyone.
-          </p>
           <p style="margin-top: 16px; color: #6B7280; font-size: 13px;">If you did not request a password reset, you can ignore this email. Your password remains unchanged.</p>
-        `;
+        `, resetUrl);
       }
     } else if (type === 'supplier-invitation') {
       const resolvedContactName = (contactName || '').trim() || 'Supplier Contact';
