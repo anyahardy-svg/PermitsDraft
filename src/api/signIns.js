@@ -8,6 +8,7 @@ import { getContractorSiteInduction } from './contractorInductions';
 import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
 import { notifySignIn } from './signInNotifications';
 import { getRequestingAdminId } from './contractorData';
+import { getCompany } from './companies';
 
 // ============================================================================
 // CHECK-IN FUNCTIONS
@@ -149,12 +150,8 @@ export async function checkInContractor(
     let companyName = 'Unknown';
     if (contractor?.company_id) {
       try {
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', contractor.company_id)
-          .single();
-        if (!companyError && company) {
+        const company = await getCompany(contractor.company_id);
+        if (company?.name) {
           companyName = company.name;
         }
       } catch (err) {

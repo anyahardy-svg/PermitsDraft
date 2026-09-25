@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { supabase } from '../supabaseClient';
 import { saveJseaTemplate, getJseaTemplates, deleteJseaTemplate, updateJseaTemplate, getJseaTemplatesByCompany, savePermitAsTemplate, getTemplates as getPermitTemplates, deleteTemplate as deletePermitTemplate, getPermitTemplatesByCompany, updatePermitTemplate } from '../api/templates';
-import { listCompanies } from '../api/companies';
+import { getCompany, listCompanies } from '../api/companies';
 import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getContractorInductionsForCompany } from '../api/inductions';
@@ -183,13 +183,8 @@ export default function ContractorAdminScreen({
     
     // Fetch company name for filtering templates
     try {
-      const { data: company, error } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', contractorInfo.companyId)
-        .single();
-      
-      if (!error && company) {
+      const company = await getCompany(contractorInfo.companyId);
+      if (company?.name) {
         setLoggedInCompanyName(company.name);
         console.log('✅ Company name fetched:', company.name);
       }

@@ -2,6 +2,42 @@ import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
+import {
+  companyDataApproveAccreditation,
+  companyDataCreate,
+  companyDataCreateForKiosk,
+  companyDataDelete,
+  companyDataGet,
+  companyDataGetByName,
+  companyDataGetForKiosk,
+  companyDataListAll,
+  companyDataRejectAccreditation,
+  companyDataSearch,
+  companyDataSearchForKiosk,
+  companyDataUpdate,
+  companyDataUpdateForKiosk,
+  getRequestingAdminId,
+  isAdminSessionActive,
+} from './companyData';
+
+async function withCompanyDataFallback(edgeFn, directFn, { label = 'company-data' } = {}) {
+  try {
+    return await edgeFn();
+  } catch (edgeError) {
+    console.warn(`⚠️ ${label} edge failed, using direct PostgREST fallback:`, edgeError?.message || edgeError);
+    return await directFn();
+  }
+}
+
+function shouldPreferCompanyEdgeForAdmin() {
+  return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
+
+function shouldUseKioskCompanyEdge() {
+  return !shouldPreferCompanyEdgeForAdmin();
+}
+
+const mapEdgeRowsToApp = (rows) => (rows || []).map(transformCompany);
 
 const COMPANY_LIST_COLUMNS = 'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_next_reminder_at, accreditation_status, accreditation_last_updated, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, contractor_type, site_ids, assigned_manager_id, assigned_hs_person_id, manager_approved_at, manager_approved_by, hs_approved_at, hs_approved_by, accreditation_rejection_reason';
 
@@ -101,7 +137,6 @@ const transformCompany = (dbCompany) => {
 // Create a new company
 export const createCompany = async (companyData) => {
   try {
-    // Prepare the data with only fields that exist in the companies table
     const dbData = {
       name: companyData.name,
       email: companyData.email || null,
@@ -114,10 +149,16 @@ export const createCompany = async (companyData) => {
       contact_manager: companyData.contact_manager || companyData.contactManager || null,
       business_unit_ids: companyData.business_unit_ids || companyData.businessUnitIds || [],
       public_liability_expiry: companyData.public_liability_expiry || companyData.publicLiabilityExpiry || null,
-      motor_vehicle_insurance_expiry: companyData.motor_vehicle_insurance_expiry || companyData.motorVehicleInsuranceExpiry || null,
+      motor_vehicle_insurance_expiry:
+        companyData.motor_vehicle_insurance_expiry || companyData.motorVehicleInsuranceExpiry || null,
       review_date: companyData.review_date || companyData.reviewDate || null,
       accredited_date: companyData.accredited_date || companyData.accreditedDate || null,
-      company_active: companyData.company_active !== undefined ? companyData.company_active : (companyData.companyActive !== undefined ? companyData.companyActive : true),
+      company_active:
+        companyData.company_active !== undefined
+          ? companyData.company_active
+          : companyData.companyActive !== undefined
+            ? companyData.companyActive
+            : true,
       pre_qualification_approved: companyData.pre_qualification_approved || companyData.preQualificationApproved || false,
       nzbn: companyData.nzbn || companyData.abn_nzbn || companyData.abnNzbn || null,
       address_1: companyData.address_1 || companyData.address1 || null,
@@ -129,11 +170,29 @@ export const createCompany = async (companyData) => {
       assigned_hs_person_id: companyData.assigned_hs_person_id || companyData.assignedHsPersonId || null,
     };
 
-    const { data, error } = await supabase
-      .from('companies')
-      .insert([dbData])
-      .select();
-
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataCreate(companyData).then((row) => (row ? transformCompany(row) : null)),
+        async () => {
+          const { data, error } = await supabase.from('companies').insert([dbData]).select();
+          if (error) throw error;
+          return data[0] ? transformCompany(data[0]) : null;
+        },
+        { label: 'createCompany' },
+      );
+    }
+    if (shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataCreateForKiosk(companyData).then((row) => (row ? transformCompany(row) : null)),
+        async () => {
+          const { data, error } = await supabase.from('companies').insert([dbData]).select();
+          if (error) throw error;
+          return data[0] ? transformCompany(data[0]) : null;
+        },
+        { label: 'createCompany-kiosk' },
+      );
+    }
+    const { data, error } = await supabase.from('companies').insert([dbData]).select();
     if (error) throw error;
     return data[0] ? transformCompany(data[0]) : null;
   } catch (error) {
@@ -142,18 +201,24 @@ export const createCompany = async (companyData) => {
   }
 };
 
+const listCompaniesDirect = async () => {
+  const data = await fetchAllPaginated((from, to) =>
+    supabase.from('companies').select(COMPANY_LIST_COLUMNS).order('name', { ascending: true }).range(from, to),
+  );
+  return (data || []).map(transformCompany);
+};
+
 // Get all companies (paginated to exceed PostgREST 1000-row limit)
 export const listCompanies = async () => {
   try {
-    const data = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('companies')
-        .select(COMPANY_LIST_COLUMNS)
-        .order('name', { ascending: true })
-        .range(from, to)
-    );
-
-    return (data || []).map(transformCompany);
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataListAll().then(mapEdgeRowsToApp),
+        () => listCompaniesDirect(),
+        { label: 'listCompanies' },
+      );
+    }
+    return await listCompaniesDirect();
   } catch (error) {
     console.error('Error fetching companies:', error.message);
     throw error;
@@ -168,13 +233,45 @@ export const searchCompanies = async (query, { limit = 50 } = {}) => {
       return [];
     }
 
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataSearch(trimmedQuery, limit).then(mapEdgeRowsToApp),
+        async () => {
+          const { data, error } = await supabase
+            .from('companies')
+            .select(COMPANY_LIST_COLUMNS)
+            .ilike('name', `%${trimmedQuery}%`)
+            .order('name', { ascending: true })
+            .limit(limit);
+          if (error) throw error;
+          return (data || []).map(transformCompany);
+        },
+        { label: 'searchCompanies' },
+      );
+    }
+    if (shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataSearchForKiosk(trimmedQuery, limit).then(mapEdgeRowsToApp),
+        async () => {
+          const { data, error } = await supabase
+            .from('companies')
+            .select(COMPANY_LIST_COLUMNS)
+            .ilike('name', `%${trimmedQuery}%`)
+            .order('name', { ascending: true })
+            .limit(limit);
+          if (error) throw error;
+          return (data || []).map(transformCompany);
+        },
+        { label: 'searchCompanies-kiosk' },
+      );
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .select(COMPANY_LIST_COLUMNS)
       .ilike('name', `%${trimmedQuery}%`)
       .order('name', { ascending: true })
       .limit(limit);
-
     if (error) throw error;
     return (data || []).map(transformCompany);
   } catch (error) {
@@ -183,23 +280,41 @@ export const searchCompanies = async (query, { limit = 50 } = {}) => {
   }
 };
 
+const getCompanyDirect = async (companyId) => {
+  const { data, error } = await supabase
+    .from('companies')
+    .select(
+      'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved',
+    )
+    .eq('id', companyId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? transformCompany(data) : null;
+};
+
 // Get a single company
 export const getCompany = async (companyId) => {
   try {
-    // Handle null company_id (e.g., for admin_staff users without a company)
     if (!companyId) {
       console.warn('⚠️ getCompany called with null/undefined companyId');
       return null;
     }
 
-    const { data, error } = await supabase
-      .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved')
-      .eq('id', companyId)
-      .single();
-
-    if (error) throw error;
-    return data ? transformCompany(data) : null;
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataGet(companyId).then((row) => (row ? transformCompany(row) : null)),
+        () => getCompanyDirect(companyId),
+        { label: 'getCompany' },
+      );
+    }
+    if (shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataGetForKiosk(companyId).then((row) => (row ? transformCompany(row) : null)),
+        () => getCompanyDirect(companyId),
+        { label: 'getCompany-kiosk' },
+      );
+    }
+    return await getCompanyDirect(companyId);
   } catch (error) {
     console.error('Error fetching company:', error.message);
     throw error;
@@ -232,14 +347,27 @@ export const updateCompany = async (companyId, updates) => {
     }
     delete validUpdates.abn_nzbn;
 
-    const { data, error } = await supabase
-      .from('companies')
-      .update(validUpdates)
-      .eq('id', companyId)
-      .select();
+    const runDirect = async () => {
+      const { data, error } = await supabase.from('companies').update(validUpdates).eq('id', companyId).select();
+      if (error) throw error;
+      return data[0] ? transformCompany(data[0]) : null;
+    };
 
-    if (error) throw error;
-    return data[0] ? transformCompany(data[0]) : null;
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataUpdate(companyId, updates).then((row) => (row ? transformCompany(row) : null)),
+        () => runDirect(),
+        { label: 'updateCompany' },
+      );
+    }
+    if (shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataUpdateForKiosk(companyId, updates).then((row) => (row ? transformCompany(row) : null)),
+        () => runDirect(),
+        { label: 'updateCompany-kiosk' },
+      );
+    }
+    return await runDirect();
   } catch (error) {
     console.error('Error updating company:', error.message);
     throw error;
@@ -332,14 +460,20 @@ export const deleteCompany = async (companyId, options = {}) => {
       if (updateError) throw updateError;
     }
 
-    // Now delete the company
-    const { error } = await supabase
-      .from('companies')
-      .delete()
-      .eq('id', companyId);
+    const runDirectDelete = async () => {
+      const { error } = await supabase.from('companies').delete().eq('id', companyId);
+      if (error) throw error;
+      return true;
+    };
 
-    if (error) throw error;
-    return true;
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      return await withCompanyDataFallback(
+        () => companyDataDelete(companyId, options),
+        () => runDirectDelete(),
+        { label: 'deleteCompany' },
+      );
+    }
+    return await runDirectDelete();
   } catch (error) {
     console.error('Error deleting company:', error.message);
     throw error;
@@ -354,27 +488,32 @@ export const getCompanyByName = async (companyName) => {
       return null;
     }
 
-    const normalizedTarget = normalizeCompanyName(trimmedName);
-    const { data: candidates, error } = await supabase
-      .from('companies')
-      .select('id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline')
-      .ilike('name', `%${escapeLikePattern(trimmedName)}%`)
-      .order('name', { ascending: true })
-      .limit(25);
+    const runDirect = async () => {
+      const { data: candidates, error } = await supabase
+        .from('companies')
+        .select(
+          'id, name, email, contact_name, contact_surname, contact_email, contact_phone, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, created_by_contractor_id, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline',
+        )
+        .ilike('name', `%${escapeLikePattern(trimmedName)}%`)
+        .order('name', { ascending: true })
+        .limit(25);
+      if (error) throw error;
+      if (!candidates?.length) return null;
+      const normalizedTarget = normalizeCompanyName(trimmedName);
+      const exactNameMatch = candidates.find(
+        (company) => normalizeCompanyName(company.name) === normalizedTarget,
+      );
+      return exactNameMatch ? transformCompany(exactNameMatch) : null;
+    };
 
-    if (error) {
-      throw error;
+    if (shouldPreferCompanyEdgeForAdmin() || shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataGetByName(trimmedName).then((row) => (row ? transformCompany(row) : null)),
+        () => runDirect(),
+        { label: 'getCompanyByName' },
+      );
     }
-
-    if (!candidates?.length) {
-      return null;
-    }
-
-    const exactNameMatch = candidates.find(
-      (company) => normalizeCompanyName(company.name) === normalizedTarget
-    );
-
-    return exactNameMatch ? transformCompany(exactNameMatch) : null;
+    return await runDirect();
   } catch (error) {
     console.error('Error fetching company by name:', error.message);
     throw error;
@@ -432,37 +571,76 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       return null;
     }
 
-    const { data: currentData, error: fetchError } = await supabase
-      .from('companies')
-      .select(`
-        accredited_date,
-        hs_agreement_signature,
-        hs_agreement_accepted_by,
-        hs_agreement_acknowledged
-      `)
-      .eq('id', companyId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    const hsAgreementError = validateHSAgreementComplete(currentData || {});
+    let currentDataForValidation = null;
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      try {
+        currentDataForValidation = await companyDataGet(companyId);
+      } catch (edgeError) {
+        console.warn('⚠️ company-data get for approve validation failed, fallback:', edgeError?.message);
+      }
+    }
+    if (!currentDataForValidation) {
+      const { data, error: validationFetchError } = await supabase
+        .from('companies')
+        .select(
+          'accredited_date, hs_agreement_signature, hs_agreement_accepted_by, hs_agreement_acknowledged',
+        )
+        .eq('id', companyId)
+        .maybeSingle();
+      if (validationFetchError) throw validationFetchError;
+      currentDataForValidation = data;
+    }
+    const hsAgreementError = validateHSAgreementComplete(currentDataForValidation || {});
     if (hsAgreementError) {
       throw new Error(hsAgreementError);
     }
 
-    // Only set accredited_date if this is the first approval
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      const company = await withCompanyDataFallback(
+        () => companyDataApproveAccreditation(companyId),
+        async () => {
+          const { data: currentData, error: fetchError } = await supabase
+            .from('companies')
+            .select(
+              'accredited_date, hs_agreement_signature, hs_agreement_accepted_by, hs_agreement_acknowledged',
+            )
+            .eq('id', companyId)
+            .maybeSingle();
+          if (fetchError) throw fetchError;
+          const hsAgreementError = validateHSAgreementComplete(currentData || {});
+          if (hsAgreementError) throw new Error(hsAgreementError);
+          const today = new Date().toISOString().split('T')[0];
+          const updateData = {
+            accreditation_status: 'approved',
+            in_radar: false,
+            ...(currentData && !currentData.accredited_date && { accredited_date: today }),
+          };
+          const { data, error } = await supabase
+            .from('companies')
+            .update(updateData)
+            .eq('id', companyId)
+            .select();
+          if (error) throw error;
+          return data[0];
+        },
+        { label: 'approveCompanyAccreditation' },
+      );
+      return {
+        id: company.id,
+        name: company.name,
+        status: company.accreditation_status,
+        accreditedDate: company.accredited_date,
+      };
+    }
+
+    const today = new Date().toISOString().split('T')[0];
     const updateData = {
       accreditation_status: 'approved',
       in_radar: false,
-      ...(currentData && !currentData.accredited_date && { accredited_date: today })
+      ...(currentDataForValidation && !currentDataForValidation.accredited_date && { accredited_date: today }),
     };
 
-    const { data, error } = await supabase
-      .from('companies')
-      .update(updateData)
-      .eq('id', companyId)
-      .select();
+    const { data, error } = await supabase.from('companies').update(updateData).eq('id', companyId).select();
 
     if (error) throw error;
 
@@ -471,7 +649,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       id: company.id,
       name: company.name,
       status: company.accreditation_status,
-      accreditedDate: company.accredited_date
+      accreditedDate: company.accredited_date,
     };
   } catch (error) {
     console.error('Error approving company accreditation:', error.message);
@@ -486,6 +664,30 @@ export const rejectCompanyAccreditation = async (companyId, reason) => {
     if (!companyId) {
       console.warn('⚠️ rejectCompanyAccreditation called with null/undefined companyId');
       return null;
+    }
+
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      const company = await withCompanyDataFallback(
+        () => companyDataRejectAccreditation(companyId, reason),
+        async () => {
+          const { data, error } = await supabase
+            .from('companies')
+            .update({
+              accreditation_status: 'needs_revision',
+              accreditation_rejection_reason: reason || null,
+            })
+            .eq('id', companyId)
+            .select();
+          if (error) throw error;
+          return data[0];
+        },
+        { label: 'rejectCompanyAccreditation' },
+      );
+      return {
+        id: company.id,
+        name: company.name,
+        status: company.accreditation_status,
+      };
     }
 
     const { data, error } = await supabase
@@ -503,7 +705,7 @@ export const rejectCompanyAccreditation = async (companyId, reason) => {
     return {
       id: company.id,
       name: company.name,
-      status: company.accreditation_status
+      status: company.accreditation_status,
     };
   } catch (error) {
     console.error('Error rejecting company accreditation:', error.message);

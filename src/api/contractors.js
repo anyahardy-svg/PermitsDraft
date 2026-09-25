@@ -22,6 +22,7 @@ import {
   getRequestingAdminId,
   isAdminSessionActive,
 } from './contractorData';
+import { companyDataListAtSite, companyDataListNamesByIds } from './companyData';
 
 /** Prefer Edge when admin session or kiosk paths; fall back to PostgREST until Edge is deployed / if invoke fails. */
 async function withContractorDataFallback(edgeFn, directFn, { label = 'contractor-data' } = {}) {
@@ -45,7 +46,7 @@ function shouldUseKioskContractorEdge() {
   return !shouldPreferContractorEdgeForAdmin();
 }
 
-const fetchCompanyNameMap = async (companyIds) => {
+const fetchCompanyNameMapDirect = async (companyIds) => {
   const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
   if (uniqueIds.length === 0) return {};
 
@@ -65,6 +66,29 @@ const fetchCompanyNameMap = async (companyIds) => {
   }
 
   return companyMap;
+};
+
+const fetchCompanyNameMap = async (companyIds) => {
+  const uniqueIds = [...new Set((companyIds || []).filter(Boolean))];
+  if (uniqueIds.length === 0) return {};
+
+  try {
+    const rows = await companyDataListNamesByIds(uniqueIds);
+    const companyMap = {};
+    for (const company of rows || []) {
+      companyMap[company.id] = company.name;
+    }
+    return companyMap;
+  } catch (edgeError) {
+    console.warn('⚠️ company-data listNamesByIds failed, using PostgREST fallback:', edgeError?.message);
+    return fetchCompanyNameMapDirect(uniqueIds);
+  }
+};
+
+const fetchCompanyNameById = async (companyId) => {
+  if (!companyId) return null;
+  const map = await fetchCompanyNameMap([companyId]);
+  return map[companyId] || null;
 };
 
 const attachCompanyNames = async (contractors) => {
@@ -129,13 +153,9 @@ const createContractorDirect = async (contractorData) => {
   const contractor = data[0];
   if (contractor?.company_id) {
     try {
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', contractor.company_id)
-        .single();
-      if (company && !companyError) {
-        contractor.company_name = company.name;
+      const name = await fetchCompanyNameById(contractor.company_id);
+      if (name) {
+        contractor.company_name = name;
       }
     } catch (err) {
       console.warn('Could not fetch company for contractor:', err.message);
@@ -205,13 +225,9 @@ const getContractorDirect = async (contractorId) => {
 
   if (data?.company_id) {
     try {
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', data.company_id)
-        .single();
-      if (company && !companyError) {
-        data.company_name = company.name;
+      const name = await fetchCompanyNameById(data.company_id);
+      if (name) {
+        data.company_name = name;
       }
     } catch (err) {
       console.warn('Could not fetch company for contractor:', err.message);
@@ -285,13 +301,9 @@ const updateContractorDirect = async (contractorId, updates) => {
   const contractor = data[0];
   if (contractor?.company_id) {
     try {
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', contractor.company_id)
-        .single();
-      if (company && !companyError) {
-        contractor.company_name = company.name;
+      const name = await fetchCompanyNameById(contractor.company_id);
+      if (name) {
+        contractor.company_name = name;
       }
     } catch (err) {
       console.warn('Could not fetch company for contractor:', err.message);
@@ -537,7 +549,7 @@ const fetchContractorsByCompanyIds = async (companyIds) => {
   return rows;
 };
 
-const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
+const fetchCompanyIdsForKioskSiteDirect = async (siteId, businessUnitId) => {
   const ids = new Set();
 
   const bySite = await fetchAllPaginated((from, to) =>
@@ -561,6 +573,32 @@ const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
   }
 
   return Array.from(ids);
+};
+
+const fetchCompanyIdsForKioskSite = async (siteId, businessUnitId) => {
+  if (shouldUseKioskContractorEdge()) {
+    try {
+      const ids = new Set();
+      const atSite = await companyDataListAtSite(siteId);
+      (atSite || []).forEach((row) => ids.add(row.id));
+
+      if (businessUnitId) {
+        const byBusinessUnit = await fetchAllPaginated((from, to) =>
+          supabase
+            .from('companies')
+            .select('id')
+            .overlaps('business_unit_ids', [businessUnitId])
+            .range(from, to)
+        );
+        (byBusinessUnit || []).forEach((company) => ids.add(company.id));
+      }
+
+      return Array.from(ids);
+    } catch (edgeError) {
+      console.warn('⚠️ company-data listAtSite for kiosk failed, fallback:', edgeError?.message);
+    }
+  }
+  return fetchCompanyIdsForKioskSiteDirect(siteId, businessUnitId);
 };
 
 function escapeIlikePattern(value) {

@@ -58,7 +58,7 @@ Step 1 (`admin_users`) already taught this lesson: **SQL lock-down last**, after
 
 ## What Step 2 does *not* fix by itself
 
-- **`companies`** table may still be readable with anon until a follow-up step.
+- **`companies`** — see `docs/security/DEPLOY_COMPANY_DATA.md` and `migrations/lock-down-anon-companies.sql` (deploy Edge + frontend before SQL).
 - **Kiosk Edge actions** (`listForKiosk`, `searchForKiosk`) are still invokable with the public anon key — they only remove **bulk table dump** via REST. Tightening kiosk (shared secret, rate limits) is optional Step 2b.
 
 ---

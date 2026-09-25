@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { companyDataLookupByEmail } from './companyData';
 import { normalizeEmailInput, uniqueEmailCandidates, normalizeEmailForComparison } from '../utils/emailNormalization';
 import {
   emailsMatchInsensitive,
@@ -84,7 +85,7 @@ const getCompanyAdminAccessCompanyId = async (email) => {
   return adminAccess?.company_id || null;
 };
 
-const listCompaniesMatchingContactEmailClient = async (email) => {
+const listCompaniesMatchingContactEmailDirect = async (email) => {
   if (!supabase || !email) {
     return [];
   }
@@ -115,6 +116,25 @@ const listCompaniesMatchingContactEmailClient = async (email) => {
       emailsMatchInsensitive(company.contact_email, trimmed) ||
       emailsMatchInsensitive(company.email, trimmed)
   );
+};
+
+const listCompaniesMatchingContactEmailClient = async (email) => {
+  if (!email) {
+    return [];
+  }
+
+  try {
+    const rows = await companyDataLookupByEmail(email);
+    const trimmed = email.trim();
+    return (rows || []).filter(
+      (company) =>
+        emailsMatchInsensitive(company.contact_email, trimmed) ||
+        emailsMatchInsensitive(company.email, trimmed)
+    );
+  } catch (edgeError) {
+    console.warn('⚠️ company-data lookupByEmail failed, using PostgREST fallback:', edgeError?.message);
+    return listCompaniesMatchingContactEmailDirect(email);
+  }
 };
 
 const getCompanyIdFromContactFields = async (email) => {

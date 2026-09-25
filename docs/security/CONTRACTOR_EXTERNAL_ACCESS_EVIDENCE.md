@@ -19,7 +19,7 @@ The **anon key is public** (it ships in the web app). Security is **not** “hid
 2. **RLS enabled and forced** on `contractors`
 3. **No permissive anon policies** on `contractors`
 4. **Authenticated-only** policies: own email + company roster (`migrations/lock-down-anon-contractors.sql`)
-5. **Application** uses Edge / Vercel service role for admin and kiosk paths (PR #234, #236)
+5. **Application** uses Edge / Vercel service role for admin and kiosk paths (PRs #234, #236, #237+)
 
 ## Evidence to collect (recommended packet)
 
@@ -77,11 +77,37 @@ After lock-down, capture:
 
 > As of [date], unauthenticated requests to `GET /rest/v1/contractors` using the project’s public API key are denied (PostgreSQL error 42501 / HTTP 401–403) or return no rows. Contractor PII in the admin and kiosk applications is loaded via Supabase Edge Functions and server-side APIs using the service role, not via anonymous direct table access. Row-level security limits authenticated contractors to their own organisation’s roster.
 
+## Is this aligned with best practice?
+
+**Yes, for a Supabase + public web/kiosk app**, this pattern matches what security guidance usually recommends:
+
+| Practice | How this project does it |
+|----------|---------------------------|
+| Treat the **anon key as public** | Lock-down does not rely on keeping the key secret. |
+| **RLS + revoke** direct table access for `anon` | `REVOKE` on `contractors` + no anon policies; authenticated scoped by company. |
+| **Never expose service role** in the client | Service role only on Edge Functions and Vercel `api/*` routes. |
+| **Backend mediation** for privileged reads/writes | Admin/kiosk use `contractor-data` and `kiosk-check-in`, not `supabase.from('contractors')` with anon. |
+| **Defence in depth** | Database denies bulk REST; app layer enforces site/admin flows. |
+
+It is **not** “maximum isolation” (e.g. kiosk with no public API surface at all). That would require extra controls (device registration, mutual TLS, kiosk shared secret, IP allow lists). For many permit/kiosk products, **block open PostgREST + server-mediated access** is the expected baseline and is auditable.
+
+**UUIDs in the browser console are normal** and are **not** treated as secrets in industry practice. They are internal record identifiers. Security should not assume “if someone learns one id, the database is public.” After Step 2, what matters is **what that id lets them fetch**:
+
+| Attack | With public anon key + a known contractor UUID |
+|--------|-----------------------------------------------|
+| `GET /rest/v1/contractors?id=eq.<uuid>` | **Denied** (`42501` / no row) — attach probe output as proof. |
+| Enumerate **all** contractors via REST | **Denied** (same lock-down). |
+| Call **`contractor-data`** (e.g. `getForKiosk`) with that id | **Can return that one row** — same class as “using the kiosk app.” Not a table export. Optional hardening: Step 2b (kiosk secret, rate limits, WAF). |
+| **Logged-in contractor** JWT, another company’s id | **Denied by RLS** (if policies are correct). |
+
+For auditors, distinguish **“open data warehouse”** (failed before Step 2) from **“identifier seen on a controlled kiosk session”** (expected; direct REST by id is blocked).
+
 ## Honest limitations (disclose if asked)
 
-1. **`companies`** and other tables may still allow anon reads until a follow-up step — Step 2 targeted **`contractors`** first.
-2. **`contractor-data`** can be **invoked** with the anon key (same as any public Edge function). It returns **scoped** data for kiosk/admin actions, not an unfiltered export of the whole table. Tightening (secret header, rate limits) is optional Step 2b.
+1. **`companies`** lock-down is Step 2b (`migrations/lock-down-anon-companies.sql`, `company-data` Edge). Run `probe-companies-anon-evidence.ps1` after that SQL. Other tables may still need review.
+2. **`contractor-data`** can be **invoked** with the anon key (same as any public Edge function). It returns **scoped** data for kiosk/admin actions, not an unfiltered export of the whole table. A caller who already has a contractor UUID could request that row through Edge actions designed for kiosk flows — analogous to using the product UI, not to downloading the full table. Tightening (shared kiosk secret, rate limits, abuse monitoring) is optional Step 2b.
 3. **Service role** must never appear in the browser; it is only on Supabase Edge and Vercel server env.
+4. **Console logs** (e.g. contractor id at check-in) are for support/debug on site devices; they do not re-open PostgREST. Reducing production logging is optional hygiene, not a substitute for RLS.
 
 ## Before vs after (your own test)
 

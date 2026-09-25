@@ -1,6 +1,8 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { fetchAllPaginated } from './pagination';
+import { listCompanies } from './companies';
+import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 
 function formatDate(dateValue) {
   if (!dateValue) {
@@ -20,19 +22,49 @@ function isAccreditedCompany(company) {
   return status === 'approved' || status === 'completed';
 }
 
+async function loadCompaniesForReport() {
+  if (getRequestingAdminId() || isAdminSessionActive()) {
+    try {
+      const companies = await listCompanies();
+      return (companies || []).map((company) => ({
+        id: company.id,
+        name: company.name,
+        business_unit_ids: company.business_unit_ids || company.businessUnitIds || [],
+        accredited_date: company.accredited_date || company.accreditedDate,
+        public_liability_expiry: company.public_liability_expiry || company.publicLiabilityExpiry,
+        motor_vehicle_insurance_expiry:
+          company.motor_vehicle_insurance_expiry || company.motorVehicleInsuranceExpiry,
+        accreditation_status: company.accreditation_status || company.accreditationStatus,
+        accreditation_invitation_sent_at:
+          company.accreditation_invitation_sent_at || company.accreditationInvitationSentAt,
+        accreditation_last_updated:
+          company.accreditation_last_updated || company.accreditationLastUpdated,
+        in_radar: company.in_radar ?? company.inRadar,
+        site_ids: company.site_ids || company.siteIds || [],
+      }));
+    } catch (edgeError) {
+      console.warn('listAccreditedCompaniesReport edge failed, fallback:', edgeError?.message);
+    }
+  }
+
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('companies')
+      .select(
+        'id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar, site_ids',
+      )
+      .order('name', { ascending: true })
+      .range(from, to),
+  );
+}
+
 export async function listAccreditedCompaniesReport() {
   const [
     companiesData,
     { data: businessUnits, error: businessUnitsError },
     { data: sites, error: sitesError },
   ] = await Promise.all([
-    fetchAllPaginated((from, to) =>
-      supabase
-        .from('companies')
-        .select('id, name, business_unit_ids, accredited_date, public_liability_expiry, motor_vehicle_insurance_expiry, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, in_radar, site_ids')
-        .order('name', { ascending: true })
-        .range(from, to)
-    ),
+    loadCompaniesForReport(),
     supabase
       .from('business_units')
       .select('id, name')
