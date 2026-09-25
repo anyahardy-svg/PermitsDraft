@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v1";
+const VERSION = "2026-03-23-v2";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -501,13 +501,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, data: rows, version: VERSION });
     }
 
-    if (action === "get") {
-      const requester = await getRequestingAdmin(
-        supabase,
-        String(body.requestingAdminId ?? ""),
-      );
-      if (!requester) {
-        return jsonResponse({ success: false, error: "Not signed in or session expired" });
+    if (action === "get" || action === "getForKiosk") {
+      if (action === "get") {
+        const requester = await getRequestingAdmin(
+          supabase,
+          String(body.requestingAdminId ?? ""),
+        );
+        if (!requester) {
+          return jsonResponse({ success: false, error: "Not signed in or session expired" });
+        }
       }
       const contractorId = String(body.contractorId ?? "");
       if (!contractorId) {
