@@ -56,6 +56,10 @@ Step 1 (`admin_users`) already taught this lesson: **SQL lock-down last**, after
 4. Re-run anon probe + quick smoke tests
 ```
 
+## Auditor pack
+
+Consolidated evidence wording, storage vs table tests, and probe list: **`docs/security/AUDITOR_STEP_TWO_EVIDENCE.md`**. Attach local probe output under `docs/security/artifacts/` (gitignored) or your compliance store.
+
 ## What Step 2 does *not* fix by itself
 
 - **`companies`** — see `docs/security/DEPLOY_COMPANY_DATA.md` and `migrations/lock-down-anon-companies.sql` (deploy Edge + frontend before SQL).
