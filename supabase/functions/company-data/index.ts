@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v5";
+const VERSION = "2026-09-26-v6";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -655,7 +655,8 @@ Deno.serve(async (req) => {
       action === "updateTrainingRecord" ||
       action === "deleteTrainingRecord" ||
       action === "approveTrainingRecord" ||
-      action === "approveAllPendingTrainingRecords"
+      action === "approveAllPendingTrainingRecords" ||
+      action === "createTrainingRecordsSignedUrl"
     ) {
       const requester = await getRequestingAdmin(
         supabase,
@@ -664,6 +665,26 @@ Deno.serve(async (req) => {
       if (!requester) {
         return jsonResponse({ success: false, error: "Not signed in or session expired" });
       }
+    }
+
+    if (action === "createTrainingRecordsSignedUrl") {
+      const storagePath = String(body.storagePath ?? "").trim();
+      if (!storagePath || storagePath.includes("..")) {
+        return jsonResponse({ success: false, error: "Invalid storage path" }, 400);
+      }
+      const expiresIn = Math.min(Math.max(Number(body.expiresInSeconds) || 3600, 60), 86400);
+      const { data, error } = await supabase.storage
+        .from("training-records")
+        .createSignedUrl(storagePath, expiresIn);
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({
+        success: true,
+        signedUrl: data?.signedUrl,
+        expiresIn,
+        version: VERSION,
+      });
     }
 
     if (action === "listTrainingRecordsByCompany") {

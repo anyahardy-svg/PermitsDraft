@@ -11,6 +11,7 @@ import {
   buildCompanyTrainingMatrixStoragePath,
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
+import { trainingRecordsFileReference } from './trainingRecordsStorage';
 import {
   fetchCompanyRowViaEdge,
   fetchCompanyRowsByIdsViaEdge,
@@ -206,9 +207,7 @@ export async function uploadCompanyTrainingMatrix(
 
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('training-records')
-      .getPublicUrl(storagePath);
+    const fileReference = trainingRecordsFileReference(storagePath);
 
     const { data: matrix, error: dbError } = await supabase
       .from('company_training_matrices')
@@ -216,7 +215,7 @@ export async function uploadCompanyTrainingMatrix(
         company_id: companyId,
         name: matrixName,
         file_name: file.name,
-        file_url: publicUrl,
+        file_url: fileReference,
         file_size: file.size,
         file_type: file.type || 'application/pdf',
         expiry_date: expiryDate,
@@ -323,9 +322,7 @@ export async function updateCompanyTrainingMatrix(
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('training-records')
-        .getPublicUrl(storagePath);
+      const fileReference = trainingRecordsFileReference(storagePath);
 
       if (existing.file_url) {
         try {
@@ -338,7 +335,7 @@ export async function updateCompanyTrainingMatrix(
         }
       }
 
-      updateData.file_url = publicUrl;
+      updateData.file_url = fileReference;
       updateData.file_name = file.name;
       updateData.file_size = file.size;
       updateData.file_type = file.type || 'application/pdf';

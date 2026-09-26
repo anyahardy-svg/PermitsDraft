@@ -111,6 +111,24 @@ export async function trainingRecordsDataApprove(
   return result.data || null;
 }
 
+export async function trainingRecordsDataCreateSignedUrl(
+  storagePath,
+  expiresInSeconds = 3600,
+  requestingAdminId,
+) {
+  const adminId = requestingAdminId || getRequestingAdminId();
+  const result = await invokeOrThrow(
+    {
+      action: 'createTrainingRecordsSignedUrl',
+      storagePath,
+      expiresInSeconds,
+      requestingAdminId: adminId,
+    },
+    'Failed to create download link',
+  );
+  return result.signedUrl || result.data?.signedUrl || null;
+}
+
 export async function trainingRecordsDataApproveAllPending(
   companyId,
   approvedByName,

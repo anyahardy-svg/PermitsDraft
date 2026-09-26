@@ -10,6 +10,7 @@ import {
   buildTrainingRecordStoragePath,
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
+import { trainingRecordsFileReference } from './trainingRecordsStorage';
 import {
   fetchCompanyRowViaEdge,
   fetchCompanyRowsByIdsViaEdge,
@@ -276,12 +277,9 @@ export async function uploadTrainingRecord(
 
     console.log('✅ File uploaded to storage');
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('training-records')
-      .getPublicUrl(fileName);
-
     console.log('📥 Creating training record in DB');
+
+    const fileReference = trainingRecordsFileReference(fileName);
 
     // Create record in database
     const { data: record, error: dbError } = await supabase
@@ -290,7 +288,7 @@ export async function uploadTrainingRecord(
         contractor_id: contractorId,
         training_type: trainingType,
         file_name: file.name,
-        file_url: publicUrl,
+        file_url: fileReference,
         file_size: file.size,
         file_type: fileType,
         expiry_date: formatDateForDb(expiryDate),
@@ -842,10 +840,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
         throw uploadError;
       }
 
-      // Get public URL for new file
-      const { data: { publicUrl } } = supabase.storage
-        .from('training-records')
-        .getPublicUrl(fileName);
+      const fileReference = trainingRecordsFileReference(fileName);
 
       // Delete old file from storage if exists
       if (record.file_url) {
@@ -863,8 +858,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
         }
       }
 
-      // Update file fields
-      updateData.file_url = publicUrl;
+      updateData.file_url = fileReference;
       updateData.file_name = file.name;
       updateData.file_size = file.size;
       updateData.file_type = fileType;
