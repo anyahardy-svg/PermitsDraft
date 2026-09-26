@@ -231,11 +231,22 @@ export const listCompanies = async () => {
       );
     }
     if (shouldUseKioskCompanyEdge()) {
-      return await withCompanyDataFallback(
-        () => companyDataListForKiosk().then(mapEdgeRowsToApp),
-        () => listCompaniesDirect(),
-        { label: 'listCompanies-kiosk' },
-      );
+      try {
+        return await companyDataListForKiosk().then(mapEdgeRowsToApp);
+      } catch (edgeError) {
+        const edgeMsg = String(edgeError?.message || edgeError);
+        if (/unknown action/i.test(edgeMsg)) {
+          console.warn(
+            'company-data listForKiosk is not deployed yet (ping should be 2026-09-26-v9+). Induction company pick is search-only until Edge is updated.',
+          );
+          return [];
+        }
+        return await withCompanyDataFallback(
+          () => companyDataListForKiosk().then(mapEdgeRowsToApp),
+          () => listCompaniesDirect(),
+          { label: 'listCompanies-kiosk' },
+        );
+      }
     }
     return await listCompaniesDirect();
   } catch (error) {

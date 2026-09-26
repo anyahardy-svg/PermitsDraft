@@ -611,20 +611,19 @@ export default function ContractorInductionScreen({
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [companiesResult, buResult, , sitesResult] = await Promise.allSettled([
-        listCompanies(),
+      const [, buResult, , sitesResult] = await Promise.allSettled([
+        listCompanies().catch((err) => {
+          console.warn('Induction optional company preload failed (search still works):', err?.message || err);
+          return [];
+        }),
         listBusinessUnits(),
         loadAllContractors(),
         listSites(),
       ]);
 
-      const companiesData = companiesResult.status === 'fulfilled' ? companiesResult.value : [];
+      const companiesData = [];
       const buData = buResult.status === 'fulfilled' ? buResult.value : [];
       const sitesData = sitesResult.status === 'fulfilled' ? sitesResult.value : [];
-
-      if (companiesResult.status === 'rejected') {
-        console.error('Failed to load companies for induction:', companiesResult.reason);
-      }
       if (buResult.status === 'rejected') {
         console.error('Failed to load business units for induction:', buResult.reason);
       }
@@ -650,13 +649,14 @@ export default function ContractorInductionScreen({
     let cancelled = false;
 
     const runSearch = async () => {
-      if (!companySearchText.trim()) {
+      const query = companySearchText.trim();
+      if (!query) {
         setCompanySearchResults(companies.slice(0, 50));
         return;
       }
 
       try {
-        const results = await searchCompanies(companySearchText, { limit: 50 });
+        const results = await searchCompanies(query, { limit: 50 });
         if (!cancelled) {
           setCompanySearchResults(results);
         }
