@@ -2,13 +2,17 @@ import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
 import { compressImage } from '../utils/imageCompression';
 import { fetchAllPaginated } from './pagination';
-import { companyDataGet, companyDataUpdateAccreditation } from './companyData';
+import { companyDataGet, companyDataGetForKiosk, companyDataUpdateAccreditation } from './companyData';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 import { getCompany, listCompanies } from './companies';
 import { accreditationsFileReference } from './accreditationsStorage';
 
 function shouldUseCompanyEdgeForAdmin() {
   return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
+
+function shouldUseKioskCompanyEdge() {
+  return !shouldUseCompanyEdgeForAdmin();
 }
 
 const isAccreditationDebugEnabled = process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_ACCREDITATION_DEBUG === 'true';
@@ -89,6 +93,17 @@ export const getCompanyAccreditation = async (companyId) => {
         }
       } catch (edgeError) {
         console.warn('⚠️ company-data get failed for accreditation, using PostgREST fallback:', edgeError?.message);
+      }
+    }
+
+    if (shouldUseKioskCompanyEdge()) {
+      try {
+        const row = await companyDataGetForKiosk(companyId);
+        if (row) {
+          return row;
+        }
+      } catch (edgeError) {
+        console.warn('⚠️ company-data getForKiosk failed for accreditation, using PostgREST fallback:', edgeError?.message);
       }
     }
 
