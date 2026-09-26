@@ -2,6 +2,7 @@
 // Handles reusable evidence items that can be used across multiple accreditation questions
 
 import { supabase } from '../supabaseClient';
+import { getSignedAccreditationsUrl } from './accreditationsStorage';
 
 // Add file to company's evidence library
 export const addToEvidenceLibrary = async (companyId, itemName, storagePath, fileName, fileSize) => {
@@ -83,16 +84,9 @@ export const updateEvidenceItemName = async (itemId, newName) => {
 
 // Get a single evidence item's signed URL for download/preview
 export const getEvidenceUrl = async (storagePath) => {
-  try {
-    const { data, error } = await supabase
-      .storage
-      .from('accreditations')
-      .createSignedUrl(storagePath, 3600); // 1 hour expiry
-
-    if (error) throw error;
-    return { url: data?.signedUrl, error: null };
-  } catch (err) {
-    console.error('Error getting evidence URL:', err);
-    return { url: null, error: err.message };
+  const { url, error } = await getSignedAccreditationsUrl(storagePath, 3600);
+  if (error) {
+    console.error('Error getting evidence URL:', error);
   }
+  return { url, error };
 };

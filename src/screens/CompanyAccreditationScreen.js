@@ -22,6 +22,7 @@ import { listBusinessUnits } from '../api/business_units';
 import { getSitesByBusinessUnits } from '../api/sites';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
+import { openAccreditationFile } from '../api/accreditationsStorage';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { getAccreditationSaveStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
@@ -70,20 +71,16 @@ const drawStoredSignatureOnCanvas = (canvas, ctx, signatureData, onSuccess) => {
   img.src = signatureData;
 };
 
-// Helper function to convert storage paths to full Supabase URLs
-const getFullStorageUrl = (storagePath) => {
-  if (!storagePath) return null;
-  
-  // If it's already a full URL, return as-is
-  if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
-    return storagePath;
+const openAccreditationDocument = async (fileRef) => {
+  if (!fileRef) {
+    Alert.alert('Error', 'Cannot open document - URL not available');
+    return;
   }
-  
-  // Get Supabase URL from environment
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://nszkuoxibzcbiqaqdfml.supabase.co';
-  
-  // Convert storage path to full URL
-  return `${supabaseUrl}/storage/v1/object/public/accreditations/${storagePath}`;
+  try {
+    await openAccreditationFile(fileRef);
+  } catch (error) {
+    Alert.alert('Error', error?.message || 'Cannot open document');
+  }
 };
 
 const getAccreditationBaseName = (systemKey) =>
@@ -2203,12 +2200,7 @@ export default function CompanyAccreditationScreen({
                 }}>
                   <Text style={{ fontSize: 18, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
                   <TouchableOpacity onPress={() => {
-                    const fullUrl = getFullStorageUrl(itemData.certificateUrl || itemData.evidence);
-                    if (fullUrl) {
-                      Linking.openURL(fullUrl);
-                    } else {
-                      Alert.alert('Error', 'Cannot open document - URL not available');
-                    }
+                    openAccreditationDocument(itemData.certificateUrl || itemData.evidence);
                   }}>
                     <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
@@ -2435,12 +2427,7 @@ export default function CompanyAccreditationScreen({
             <TouchableOpacity
               style={{ flex: 1, minWidth: 100, backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
               onPress={() => {
-                const fullUrl = getFullStorageUrl(itemData.url || itemData.certificateUrl || itemData.evidence);
-                if (fullUrl) {
-                  Linking.openURL(fullUrl);
-                } else {
-                  Alert.alert('Error', 'Cannot open document - URL not available');
-                }
+                openAccreditationDocument(itemData.url || itemData.certificateUrl || itemData.evidence);
               }}
             >
               <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
@@ -4047,12 +4034,7 @@ export default function CompanyAccreditationScreen({
       <TouchableOpacity
         style={{ marginTop: 8, paddingVertical: 6 }}
         onPress={() => {
-          const fullUrl = getFullStorageUrl(insuranceData.url);
-          if (fullUrl) {
-            Linking.openURL(fullUrl);
-          } else {
-            Alert.alert('Error', 'Cannot open document - URL not available');
-          }
+          openAccreditationDocument(insuranceData.url);
         }}
       >
         <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>

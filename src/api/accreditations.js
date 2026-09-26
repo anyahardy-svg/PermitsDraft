@@ -5,6 +5,7 @@ import { fetchAllPaginated } from './pagination';
 import { companyDataGet, companyDataUpdateAccreditation } from './companyData';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 import { getCompany, listCompanies } from './companies';
+import { accreditationsFileReference } from './accreditationsStorage';
 
 function shouldUseCompanyEdgeForAdmin() {
   return Boolean(getRequestingAdminId() || isAdminSessionActive());
@@ -506,18 +507,14 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
 
     debugLog('✅ File uploaded successfully:', data);
 
-    // Get public URL
-    const { data: publicUrl } = supabase.storage
-      .from('accreditations')
-      .getPublicUrl(fileName);
-
-    debugLog('📍 Public URL created');
+    const fileReference = accreditationsFileReference(fileName);
+    debugLog('📍 Storage path saved (private bucket)');
 
     return {
       success: true,
-      url: publicUrl.publicUrl,
+      url: fileReference,
       path: fileName,
-      compressionInfo
+      compressionInfo,
     };
   } catch (error) {
     console.error('❌ Error uploading certificate:', error.message);
