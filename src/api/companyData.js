@@ -232,6 +232,30 @@ export async function companyDataListEvidenceLibrary(companyId, requestingAdminI
   return result.data || [];
 }
 
+export async function companyDataAddEvidenceLibraryItem(
+  companyId,
+  itemName,
+  storagePath,
+  fileName,
+  fileSize,
+  requestingAdminId,
+) {
+  const adminId = requestingAdminId || getRequestingAdminId();
+  const result = await invokeOrThrow(
+    {
+      action: 'addEvidenceLibraryItem',
+      companyId,
+      itemName,
+      storagePath,
+      fileName,
+      fileSize,
+      requestingAdminId: adminId,
+    },
+    'Failed to add evidence library item',
+  );
+  return result.data || null;
+}
+
 export async function companyDataCreateAccreditationsSignedUrl(
   storagePath,
   expiresInSeconds = 3600,

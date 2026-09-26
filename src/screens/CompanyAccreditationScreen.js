@@ -1542,6 +1542,18 @@ export default function CompanyAccreditationScreen({
     }
   };
 
+  const offerSaveUploadedFileToLibrary = (storagePath, fileName, fileSize, itemLabel) => {
+    const defaultName = String(fileName || itemLabel || 'Evidence').replace(/\.[^.]+$/, '');
+    setLastUploadedFile({
+      storagePath,
+      fileName,
+      fileSize,
+      itemLabel,
+    });
+    setLibrarySaveName(defaultName);
+    setShowSaveToLibraryModal(true);
+  };
+
   // Handle uploading policy document
   const handleUploadPolicy = async (policyKey, policyLabel) => {
     debugLog('🔴 handleUploadPolicy called!', { policyKey, policyLabel });
@@ -1604,14 +1616,20 @@ export default function CompanyAccreditationScreen({
           [`${policyKey}_policy_url`]: uploadResult.url,
           [`${policyKey}_policy_exists`]: policies[policyKey]?.exists ?? true,
         }, { force: true });
-        
+
+        offerSaveUploadedFileToLibrary(
+          uploadResult.path,
+          file.name,
+          blob.size,
+          policyLabel,
+        );
+
         // Restore scroll position after state update
         setTimeout(() => {
           if (scrollOffset > 0) {
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
-        Alert.alert('Success ✅', `${policyLabel} document uploaded successfully!`);
       } else {
         debugLog('❌ Upload failed:', uploadResult);
         Alert.alert('Error', 'Failed to upload: ' + (uploadResult.error || 'Unknown error'));
@@ -2055,15 +2073,7 @@ export default function CompanyAccreditationScreen({
           debugWarn(`⚠️ Unknown section: ${section}`);
         }
         
-        // Store the uploaded file info to offer saving to library
-        setLastUploadedFile({
-          storagePath: uploadResult.path,
-          fileName: file.name,
-          fileSize: blob.size,
-          itemLabel: itemLabel
-        });
-        setShowSaveToLibraryModal(true);
-        setLibrarySaveName(file.name);
+        offerSaveUploadedFileToLibrary(uploadResult.path, file.name, blob.size, itemLabel);
         
         const currentItem = sectionUpdater?.get()?.[itemKey];
         await persistAccreditationChanges({
