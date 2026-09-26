@@ -10201,23 +10201,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     try {
       console.log('🔄 Requesting changes on training records for:', selectedCompanyForTrainingRecords.name);
       
-      // Mark records as needing review
-      const { data: records, error: fetchError } = await supabaseClient
-        .from('training_records')
-        .select('id, contractor:contractors(id, company_id)')
-        .eq('contractor.company_id', selectedCompanyForTrainingRecords.id)
-        .eq('status', 'approved');
-
-      // Update company status to needs_review
-      const { error: updateError } = await supabaseClient
-        .from('companies')
-        .update({
-          training_records_status: 'needs_review',
-          training_records_last_modified_at: new Date().toISOString()
-        })
-        .eq('id', selectedCompanyForTrainingRecords.id);
-
-      if (updateError) throw updateError;
+      await updateCompany(selectedCompanyForTrainingRecords.id, {
+        training_records_status: 'needs_review',
+        training_records_last_modified_at: new Date().toISOString(),
+      });
 
       // Refresh the status
       await refreshTrainingRecordsStatus(selectedCompanyForTrainingRecords.id);
