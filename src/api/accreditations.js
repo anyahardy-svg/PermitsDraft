@@ -22,6 +22,64 @@ const debugLog = (...args) => {
   }
 };
 
+function sanitizeCompanyStorageFolderName(name) {
+  if (!name || typeof name !== 'string') {
+    return null;
+  }
+  const sanitized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  return sanitized || null;
+}
+
+/** Avoid `unknown-company/` when PostgREST company read fails but Edge or UI already knows the name. */
+async function resolveCompanyStorageFolderName(companyId, hintName) {
+  const fromHint = sanitizeCompanyStorageFolderName(hintName);
+  if (fromHint) {
+    return fromHint;
+  }
+
+  try {
+    const company = await getCompany(companyId);
+    const fromGetCompany = sanitizeCompanyStorageFolderName(company?.name);
+    if (fromGetCompany) {
+      return fromGetCompany;
+    }
+  } catch (err) {
+    debugLog('⚠️ getCompany failed for storage path:', err.message);
+  }
+
+  if (shouldUseCompanyEdgeForAdmin()) {
+    try {
+      const row = await companyDataGet(companyId);
+      const fromEdge = sanitizeCompanyStorageFolderName(row?.name);
+      if (fromEdge) {
+        return fromEdge;
+      }
+    } catch (err) {
+      debugLog('⚠️ company-data get failed for storage path:', err.message);
+    }
+  }
+
+  try {
+    const row = await companyDataGetForKiosk(companyId);
+    const fromKiosk = sanitizeCompanyStorageFolderName(row?.name);
+    if (fromKiosk) {
+      return fromKiosk;
+    }
+  } catch (err) {
+    debugLog('⚠️ company-data getForKiosk failed for storage path:', err.message);
+  }
+
+  console.warn(
+    '⚠️ Accreditation upload using unknown-company folder — could not resolve company name for',
+    companyId,
+  );
+  return 'unknown-company';
+}
+
 /**
  * Update company accreditation - Sections 2 & 3
  * @param {UUID} companyId - Company UUID
@@ -447,9 +505,10 @@ export const getAllCompaniesAccreditation = async () => {
  * @param {UUID} companyId
  * @param {string} certificationType - e.g., 'iso_45001', 'aep', 'totika'
  * @param {File} file - File to upload
+ * @param {{ companyName?: string }} [options] - Optional display name (avoids unknown-company path when company fetch fails)
  * @returns {string} Public URL of uploaded file
  */
-export const uploadAccreditationCertificate = async (companyId, certificationType, file) => {
+export const uploadAccreditationCertificate = async (companyId, certificationType, file, options = {}) => {
   try {
     if (!file || !file.name) throw new Error('No file provided');
     if (!supabase) {
@@ -484,22 +543,10 @@ export const uploadAccreditationCertificate = async (companyId, certificationTyp
       }
     }
 
-    // Fetch company name for more readable file paths
-    let companyName = 'unknown-company';
-    try {
-      const company = await getCompany(companyId);
-
-      if (company?.name) {
-        // Sanitize company name: remove special chars, replace spaces with underscores
-        companyName = company.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, '_')
-          .replace(/_+/g, '_')
-          .replace(/^_|_$/g, '');
-      }
-    } catch (err) {
-      debugLog('⚠️ Could not fetch company name, using fallback:', err.message);
-    }
+    const companyName = await resolveCompanyStorageFolderName(
+      companyId,
+      options.companyName || options.companyDisplayName,
+    );
 
     const timestamp = Date.now();
     const fileExt = fileToUpload.name.split('.').pop() || 'pdf';

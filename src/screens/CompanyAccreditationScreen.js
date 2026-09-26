@@ -659,6 +659,25 @@ export default function CompanyAccreditationScreen({
     return dateString;
   };
 
+  const accreditationUploadOptions = () => ({
+    companyName: companyDetails.companyName?.trim() || company?.name || undefined,
+  });
+
+  const ensureReadyForDocumentUpload = () => {
+    if (!currentCompanyId) {
+      Alert.alert('Error', 'No company selected');
+      return false;
+    }
+    if (!hasLoadedCompanyData) {
+      Alert.alert(
+        'Please wait',
+        'Company details are still loading. Try uploading again once the form has finished loading.',
+      );
+      return false;
+    }
+    return true;
+  };
+
   const loadCompanyData = async ({ silent = false } = {}) => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
@@ -1404,6 +1423,7 @@ export default function CompanyAccreditationScreen({
 
   const handleUploadCertificate = async (systemKey, systemLabel) => {
     debugLog('🔴 handleUploadCertificate called!', { systemKey, systemLabel });
+    if (!ensureReadyForDocumentUpload()) return;
     try {
       debugLog('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
@@ -1442,7 +1462,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         systemKey,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -1557,6 +1578,7 @@ export default function CompanyAccreditationScreen({
   // Handle uploading policy document
   const handleUploadPolicy = async (policyKey, policyLabel) => {
     debugLog('🔴 handleUploadPolicy called!', { policyKey, policyLabel });
+    if (!ensureReadyForDocumentUpload()) return;
     try {
       debugLog('📂 Opening document picker for policy...');
       const result = await DocumentPicker.getDocumentAsync({
@@ -1595,7 +1617,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `policy_${policyKey}`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -1836,6 +1859,7 @@ export default function CompanyAccreditationScreen({
 
   const handleUploadInsuranceDocument = async (insuranceType, insuranceLabel) => {
     debugLog('🔴 handleUploadInsuranceDocument called!', { insuranceType, insuranceLabel });
+    if (!ensureReadyForDocumentUpload()) return;
     try {
       debugLog('📂 Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
@@ -1874,7 +1898,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `insurance_${insuranceType}`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -2052,7 +2077,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `${section}_${itemKey}_evidence`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
 
       if (uploadResult.success) {
