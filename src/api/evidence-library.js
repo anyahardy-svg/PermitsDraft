@@ -3,7 +3,7 @@
 
 import { supabase } from '../supabaseClient';
 import { getSignedAccreditationsUrl } from './accreditationsStorage';
-import { companyDataListEvidenceLibrary } from './companyData';
+import { companyDataAddEvidenceLibraryItem, companyDataListEvidenceLibrary } from './companyData';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 
 function preferEvidenceLibraryEdgeForAdmin() {
@@ -27,8 +27,19 @@ async function fetchEvidenceLibraryDirect(companyId) {
 // Add file to company's evidence library
 export const addToEvidenceLibrary = async (companyId, itemName, storagePath, fileName, fileSize) => {
   try {
+    if (preferEvidenceLibraryEdgeForAdmin()) {
+      const row = await companyDataAddEvidenceLibraryItem(
+        companyId,
+        itemName,
+        storagePath,
+        fileName,
+        fileSize,
+      );
+      return { data: row, error: null };
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     const { data, error } = await supabase
       .from('evidence_library_items')
       .insert({
@@ -38,7 +49,7 @@ export const addToEvidenceLibrary = async (companyId, itemName, storagePath, fil
         file_name: fileName,
         file_size: fileSize,
         uploaded_by: user?.id,
-        is_active: true
+        is_active: true,
       })
       .select();
 

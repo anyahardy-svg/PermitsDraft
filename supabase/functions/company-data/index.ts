@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v9";
+const VERSION = "2026-09-26-v10";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -665,7 +665,8 @@ Deno.serve(async (req) => {
       action === "approveAllPendingTrainingRecords" ||
       action === "createTrainingRecordsSignedUrl" ||
       action === "createAccreditationsSignedUrl" ||
-      action === "listEvidenceLibrary"
+      action === "listEvidenceLibrary" ||
+      action === "addEvidenceLibraryItem"
     ) {
       const requester = await getRequestingAdmin(
         supabase,
@@ -691,6 +692,40 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: error.message }, 400);
       }
       return jsonResponse({ success: true, data: data ?? [], version: VERSION });
+    }
+
+    if (action === "addEvidenceLibraryItem") {
+      const companyId = String(body.companyId ?? "");
+      const itemName = String(body.itemName ?? "").trim();
+      const storagePath = String(body.storagePath ?? "").trim();
+      const fileName = String(body.fileName ?? "").trim();
+      const fileSize = body.fileSize != null ? Number(body.fileSize) : null;
+      if (!companyId || !itemName || !storagePath || !fileName) {
+        return jsonResponse(
+          { success: false, error: "companyId, itemName, storagePath, and fileName are required" },
+          400,
+        );
+      }
+      if (storagePath.includes("..")) {
+        return jsonResponse({ success: false, error: "Invalid storage path" }, 400);
+      }
+      const { data, error } = await supabase
+        .from("evidence_library_items")
+        .insert({
+          company_id: companyId,
+          item_name: itemName,
+          storage_path: storagePath,
+          file_name: fileName,
+          file_size: fileSize,
+          uploaded_by: null,
+          is_active: true,
+        })
+        .select()
+        .maybeSingle();
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({ success: true, data, version: VERSION });
     }
 
     if (action === "createAccreditationsSignedUrl") {
