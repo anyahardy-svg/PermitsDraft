@@ -52,6 +52,15 @@ export async function companyDataListAll(requestingAdminId) {
   return result.data || [];
 }
 
+export async function companyDataListTrainingCounters(requestingAdminId) {
+  const adminId = requestingAdminId || getRequestingAdminId();
+  const result = await invokeOrThrow(
+    { action: 'listTrainingCounters', requestingAdminId: adminId },
+    'Failed to load company training counters',
+  );
+  return result.data || [];
+}
+
 export async function companyDataSearch(query, limit = 50, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(

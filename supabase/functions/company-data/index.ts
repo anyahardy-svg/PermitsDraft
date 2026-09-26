@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v3";
+const VERSION = "2026-09-26-v4";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -140,6 +140,11 @@ function mapUpdatesToDb(updates: Record<string, unknown>) {
     "training_records_approved",
     "training_matrices_total",
     "training_matrices_approved",
+    "training_records_status",
+    "training_records_approved_at",
+    "training_records_approved_by",
+    "training_records_submitted_at",
+    "training_records_last_modified_at",
   ];
   const validUpdates: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(updates)) {
@@ -173,6 +178,23 @@ Deno.serve(async (req) => {
 
     if (action === "ping") {
       return jsonResponse({ success: true, version: VERSION, serviceRoleConfigured: true });
+    }
+
+    if (action === "listTrainingCounters") {
+      const requester = await getRequestingAdmin(supabase, String(body.requestingAdminId ?? ""));
+      if (!requester) {
+        return jsonResponse({ success: false, error: "Not signed in or session expired" });
+      }
+      const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
+        supabase
+          .from("companies")
+          .select(
+            "id, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved",
+          )
+          .order("name", { ascending: true })
+          .range(from, to),
+      );
+      return jsonResponse({ success: true, data: rows, version: VERSION });
     }
 
     if (action === "listAll") {

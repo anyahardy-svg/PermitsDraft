@@ -18,6 +18,7 @@ import {
   trainingMatricesStatusFromRow,
 } from './companyTrainingCounters';
 import { updateCompany, getCompany } from './companies';
+import { contractorDataListByCompany } from './contractorData';
 
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
@@ -116,35 +117,52 @@ async function syncMatrixContractors(matrixId, contractorIds) {
   if (insertError) throw insertError;
 }
 
-async function enrichMatricesWithContractors(matrices) {
+async function enrichMatricesWithContractors(matrices, companyId) {
   if (!matrices || matrices.length === 0) {
     return [];
   }
 
-  const matrixIds = matrices.map(m => m.id);
+  const matrixIds = matrices.map((m) => m.id);
   const { data: links, error } = await supabase
     .from('company_training_matrix_contractors')
-    .select(`
-      matrix_id,
-      contractor:contractors(id, name)
-    `)
+    .select('matrix_id, contractor_id')
     .in('matrix_id', matrixIds);
 
   if (error) throw error;
 
+  let contractorNameById = new Map();
+  if (companyId && preferCompanyEdgeForAdmin()) {
+    try {
+      const roster = await contractorDataListByCompany(companyId);
+      contractorNameById = new Map((roster || []).map((c) => [c.id, c.name]));
+    } catch (edgeError) {
+      console.warn('enrichMatricesWithContractors roster edge failed:', edgeError?.message);
+    }
+  }
+
   const contractorsByMatrix = {};
-  (links || []).forEach(link => {
+  for (const link of links || []) {
     if (!contractorsByMatrix[link.matrix_id]) {
       contractorsByMatrix[link.matrix_id] = [];
     }
-    if (link.contractor) {
-      contractorsByMatrix[link.matrix_id].push(link.contractor);
+    let name = contractorNameById.get(link.contractor_id);
+    if (!name && !preferCompanyEdgeForAdmin()) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('id, name')
+        .eq('id', link.contractor_id)
+        .maybeSingle();
+      name = contractor?.name;
     }
-  });
+    contractorsByMatrix[link.matrix_id].push({
+      id: link.contractor_id,
+      name: name || 'Unknown',
+    });
+  }
 
-  return matrices.map(matrix => ({
+  return matrices.map((matrix) => ({
     ...matrix,
-    contractors: contractorsByMatrix[matrix.id] || []
+    contractors: contractorsByMatrix[matrix.id] || [],
   }));
 }
 
@@ -213,7 +231,7 @@ export async function uploadCompanyTrainingMatrix(
     await syncMatrixContractors(matrix.id, contractorIds);
     await updateCompanyTrainingMatricesCounters(companyId);
 
-    const enriched = await enrichMatricesWithContractors([matrix]);
+    const enriched = await enrichMatricesWithContractors([matrix], companyId);
     return {
       success: true,
       data: enriched[0],
@@ -238,7 +256,7 @@ export async function getCompanyTrainingMatrices(companyId) {
 
     if (error) throw error;
 
-    const enriched = await enrichMatricesWithContractors(data || []);
+    const enriched = await enrichMatricesWithContractors(data || [], companyId);
     return { success: true, data: enriched };
   } catch (error) {
     console.error('Get company training matrices error:', error);
@@ -363,7 +381,7 @@ export async function updateCompanyTrainingMatrix(
 
     await updateCompanyTrainingMatricesCounters(existing.company_id);
 
-    const enriched = await enrichMatricesWithContractors([updated]);
+    const enriched = await enrichMatricesWithContractors([updated], existing.company_id);
     return { success: true, data: enriched[0], message: 'Training matrix updated' };
   } catch (error) {
     console.error('Update company training matrix error:', error);

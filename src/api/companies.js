@@ -340,7 +340,7 @@ export const updateCompany = async (companyId, updates) => {
       console.warn('⚠️ updateCompany called with null/undefined companyId');
       return null;
     }
-    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'accreditation_next_reminder_at', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type', 'site_ids', 'assigned_manager_id', 'assigned_hs_person_id', 'training_records_total', 'training_records_approved', 'training_matrices_total', 'training_matrices_approved'];
+    const allowedFields = ['name', 'email', 'business_unit_ids', 'contact_name', 'contact_surname', 'contact_email', 'contact_phone', 'contact_manager', 'public_liability_expiry', 'motor_vehicle_insurance_expiry', 'review_date', 'accredited_date', 'accreditation_next_reminder_at', 'company_active', 'pre_qualification_approved', 'in_radar', 'nzbn', 'abn_nzbn', 'address_1', 'address_city', 'address_postcode', 'contractor_type', 'site_ids', 'assigned_manager_id', 'assigned_hs_person_id', 'training_records_total', 'training_records_approved', 'training_matrices_total', 'training_matrices_approved', 'training_records_status', 'training_records_approved_at', 'training_records_approved_by', 'training_records_submitted_at', 'training_records_last_modified_at'];
     const validUpdates = {};
     Object.keys(updates).forEach(key => {
       // Support both camelCase and snake_case

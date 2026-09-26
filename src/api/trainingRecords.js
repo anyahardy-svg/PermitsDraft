@@ -17,7 +17,48 @@ import {
   trainingRecordsStatusFromRow,
 } from './companyTrainingCounters';
 import { updateCompany } from './companies';
-import { contractorDataGet } from './contractorData';
+import { contractorDataGet, contractorDataListByCompany } from './contractorData';
+
+async function resolveContractorCompanyId(contractorId) {
+  if (!contractorId) {
+    return null;
+  }
+  if (preferCompanyEdgeForAdmin()) {
+    try {
+      const contractor = await contractorDataGet(contractorId);
+      return contractor?.company_id || null;
+    } catch (edgeError) {
+      console.warn('resolveContractorCompanyId edge failed:', edgeError?.message);
+    }
+  }
+  const { data, error } = await supabase
+    .from('contractors')
+    .select('company_id')
+    .eq('id', contractorId)
+    .single();
+  if (error) {
+    throw error;
+  }
+  return data?.company_id || null;
+}
+
+async function loadContractorsForCompany(companyId) {
+  if (preferCompanyEdgeForAdmin()) {
+    try {
+      return await contractorDataListByCompany(companyId);
+    } catch (edgeError) {
+      console.warn('loadContractorsForCompany edge failed, fallback:', edgeError?.message);
+    }
+  }
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('contractors')
+      .select('id, name, email, company_id')
+      .eq('company_id', companyId)
+      .order('name', { ascending: true })
+      .range(from, to),
+  );
+}
 
 // Allowed file types
 const ALLOWED_FILE_TYPES = [
@@ -259,12 +300,7 @@ export async function uploadTrainingRecord(
     // Update company counters
     let counterCompanyId = companyId;
     if (!counterCompanyId) {
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('company_id')
-        .eq('id', contractorId)
-        .single();
-      counterCompanyId = contractor?.company_id;
+      counterCompanyId = await resolveContractorCompanyId(contractorId);
     }
 
     if (counterCompanyId) {
@@ -312,32 +348,30 @@ export async function getTrainingRecordsByCompany(companyId) {
   try {
     console.log('📋 Fetching training records for company:', companyId);
 
-    const contractors = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select('id')
-        .eq('company_id', companyId)
-        .range(from, to)
-    );
-
-    const contractorIds = (contractors || []).map((contractor) => contractor.id);
+    const contractors = await loadContractorsForCompany(companyId);
+    const contractorById = new Map((contractors || []).map((c) => [c.id, c]));
+    const contractorIds = [...contractorById.keys()];
     if (contractorIds.length === 0) {
       return { success: true, data: [] };
     }
 
     const records = await fetchAllBatchedByIds(contractorIds, (batch) =>
-      supabase
-        .from('training_records')
-        .select(`
-          *,
-          contractor:contractors(id, name, company_id)
-        `)
-        .in('contractor_id', batch)
+      supabase.from('training_records').select('*').in('contractor_id', batch),
     );
 
-    const sortedRecords = (records || []).sort(
-      (a, b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0)
-    );
+    const sortedRecords = (records || [])
+      .map((record) => {
+        const contractor = contractorById.get(record.contractor_id);
+        return {
+          ...record,
+          contractor: {
+            id: record.contractor_id,
+            name: contractor?.name || 'Unknown',
+            company_id: companyId,
+          },
+        };
+      })
+      .sort((a, b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0));
 
     console.log(`✅ Fetched ${sortedRecords.length} training records for company`);
     return { success: true, data: sortedRecords };
@@ -392,17 +426,12 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
     
     // Update company counters
     if (record?.contractor_id) {
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('company_id')
-        .eq('id', record.contractor_id)
-        .single();
-      
-      if (contractor?.company_id) {
-        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      const counterCompanyId = await resolveContractorCompanyId(record.contractor_id);
+      if (counterCompanyId) {
+        await updateCompanyTrainingRecordsCounters(counterCompanyId);
       }
     }
-    
+
     return { success: true, message: 'Training record deleted' };
   } catch (error) {
     console.error('❌ Delete training record error:', error);
@@ -446,17 +475,12 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
     
     // Update company counters
     if (recordData?.contractor_id) {
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('company_id')
-        .eq('id', recordData.contractor_id)
-        .single();
-      
-      if (contractor?.company_id) {
-        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      const counterCompanyId = await resolveContractorCompanyId(recordData.contractor_id);
+      if (counterCompanyId) {
+        await updateCompanyTrainingRecordsCounters(counterCompanyId);
       }
     }
-    
+
     return { success: true, data };
   } catch (error) {
     console.error('❌ Approve training record error:', error);
@@ -627,16 +651,18 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
     }
 
     // Update company-level status (use succeeded count)
-    const { error: companyError } = await supabase
-      .from('companies')
-      .update({
-        training_records_status: 'approved',
-        training_records_approved_at: new Date().toISOString(),
-        training_records_approved_by: approvedByName
-      })
-      .eq('id', companyId);
+    const workflowUpdates = {
+      training_records_status: 'approved',
+      training_records_approved_at: new Date().toISOString(),
+      training_records_approved_by: approvedByName,
+    };
 
-    if (companyError) throw companyError;
+    if (preferCompanyEdgeForAdmin()) {
+      await updateCompany(companyId, workflowUpdates);
+    } else {
+      const { error: companyError } = await supabase.from('companies').update(workflowUpdates).eq('id', companyId);
+      if (companyError) throw companyError;
+    }
 
     await updateCompanyTrainingRecordsCounters(companyId);
 
@@ -771,17 +797,12 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
     
     // Update company counters (status might have changed)
     if (record?.contractor_id) {
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('company_id')
-        .eq('id', record.contractor_id)
-        .single();
-      
-      if (contractor?.company_id) {
-        await updateCompanyTrainingRecordsCounters(contractor.company_id);
+      const counterCompanyId = await resolveContractorCompanyId(record.contractor_id);
+      if (counterCompanyId) {
+        await updateCompanyTrainingRecordsCounters(counterCompanyId);
       }
     }
-    
+
     return { success: true, data: updatedRecord, message: 'Training record updated' };
   } catch (error) {
     console.error('❌ Update training record error:', error);
