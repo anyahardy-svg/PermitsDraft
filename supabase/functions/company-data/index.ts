@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v7";
+const VERSION = "2026-09-26-v9";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -292,6 +292,13 @@ Deno.serve(async (req) => {
       if (!requester) {
         return jsonResponse({ success: false, error: "Not signed in or session expired" });
       }
+      const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
+        supabase.from("companies").select("*").order("name", { ascending: true }).range(from, to),
+      );
+      return jsonResponse({ success: true, data: rows, version: VERSION });
+    }
+
+    if (action === "listForKiosk") {
       const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
         supabase.from("companies").select("*").order("name", { ascending: true }).range(from, to),
       );

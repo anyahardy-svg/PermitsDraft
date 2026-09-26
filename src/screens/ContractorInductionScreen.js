@@ -611,15 +611,36 @@ export default function ContractorInductionScreen({
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [companiesData, buData, , sitesData] = await Promise.all([
+      const [companiesResult, buResult, , sitesResult] = await Promise.allSettled([
         listCompanies(),
         listBusinessUnits(),
         loadAllContractors(),
         listSites(),
       ]);
+
+      const companiesData = companiesResult.status === 'fulfilled' ? companiesResult.value : [];
+      const buData = buResult.status === 'fulfilled' ? buResult.value : [];
+      const sitesData = sitesResult.status === 'fulfilled' ? sitesResult.value : [];
+
+      if (companiesResult.status === 'rejected') {
+        console.error('Failed to load companies for induction:', companiesResult.reason);
+      }
+      if (buResult.status === 'rejected') {
+        console.error('Failed to load business units for induction:', buResult.reason);
+      }
+      if (sitesResult.status === 'rejected') {
+        console.error('Failed to load sites for induction:', sitesResult.reason);
+      }
+
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
       setBusinessUnits(Array.isArray(buData) ? buData : []);
       setAllSites(Array.isArray(sitesData) ? sitesData : []);
+
+      if (buResult.status === 'rejected') {
+        setError('Failed to load data');
+      } else {
+        setError(null);
+      }
     } catch (err) {
       setError('Failed to load data');
     }

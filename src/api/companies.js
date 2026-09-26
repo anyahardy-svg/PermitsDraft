@@ -11,6 +11,7 @@ import {
   companyDataGetByName,
   companyDataGetForKiosk,
   companyDataListAll,
+  companyDataListForKiosk,
   companyDataRejectAccreditation,
   companyDataSearch,
   companyDataSearchForKiosk,
@@ -227,6 +228,13 @@ export const listCompanies = async () => {
         () => companyDataListAll().then(mapEdgeRowsToApp),
         () => listCompaniesDirect(),
         { label: 'listCompanies' },
+      );
+    }
+    if (shouldUseKioskCompanyEdge()) {
+      return await withCompanyDataFallback(
+        () => companyDataListForKiosk().then(mapEdgeRowsToApp),
+        () => listCompaniesDirect(),
+        { label: 'listCompanies-kiosk' },
       );
     }
     return await listCompaniesDirect();
