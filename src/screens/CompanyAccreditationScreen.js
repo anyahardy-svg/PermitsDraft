@@ -659,6 +659,10 @@ export default function CompanyAccreditationScreen({
     return dateString;
   };
 
+  const accreditationUploadOptions = () => ({
+    companyName: companyDetails.companyName?.trim() || company?.name || undefined,
+  });
+
   const loadCompanyData = async ({ silent = false } = {}) => {
     // Don't load if no company ID is set
     if (!currentCompanyId) {
@@ -1442,7 +1446,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         systemKey,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -1595,7 +1600,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `policy_${policyKey}`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -1874,7 +1880,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `insurance_${insuranceType}`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
       debugLog('📤 Upload result:', uploadResult);
 
@@ -2052,7 +2059,8 @@ export default function CompanyAccreditationScreen({
       const uploadResult = await uploadAccreditationCertificate(
         currentCompanyId,
         `${section}_${itemKey}_evidence`,
-        fileObject
+        fileObject,
+        accreditationUploadOptions(),
       );
 
       if (uploadResult.success) {
