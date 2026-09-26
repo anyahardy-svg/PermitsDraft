@@ -25,6 +25,7 @@ async function withCompanyDataFallback(edgeFn, directFn, { label = 'company-data
     return await edgeFn();
   } catch (edgeError) {
     console.warn(`⚠️ ${label} edge failed, using direct PostgREST fallback:`, edgeError?.message || edgeError);
+<<<<<<< HEAD
     try {
       return await directFn();
     } catch (directError) {
@@ -36,6 +37,9 @@ async function withCompanyDataFallback(edgeFn, directFn, { label = 'company-data
       }
       throw directError;
     }
+=======
+    return await directFn();
+>>>>>>> origin/main
   }
 }
 
