@@ -18,6 +18,16 @@ import {
 } from './companyTrainingCounters';
 import { updateCompany } from './companies';
 import { contractorDataGet, contractorDataListByCompany } from './contractorData';
+import {
+  preferTrainingRecordsEdgeForAdmin,
+  trainingRecordsDataApprove,
+  trainingRecordsDataApproveAllPending,
+  trainingRecordsDataDelete,
+  trainingRecordsDataGet,
+  trainingRecordsDataListByCompany,
+  trainingRecordsDataListByContractor,
+  trainingRecordsDataUpdate,
+} from './trainingRecordsData';
 
 async function resolveContractorCompanyId(contractorId) {
   if (!contractorId) {
@@ -323,6 +333,16 @@ export async function getTrainingRecords(contractorId) {
   try {
     console.log('📋 Fetching training records for contractor:', contractorId);
 
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        const data = await trainingRecordsDataListByContractor(contractorId);
+        console.log(`✅ Fetched ${data.length} training records (edge)`);
+        return { success: true, data };
+      } catch (edgeError) {
+        console.warn('getTrainingRecords edge failed, fallback:', edgeError?.message);
+      }
+    }
+
     const { data, error } = await supabase
       .from('training_records')
       .select('*')
@@ -347,6 +367,16 @@ export async function getTrainingRecords(contractorId) {
 export async function getTrainingRecordsByCompany(companyId) {
   try {
     console.log('📋 Fetching training records for company:', companyId);
+
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        const sortedRecords = await trainingRecordsDataListByCompany(companyId);
+        console.log(`✅ Fetched ${sortedRecords.length} training records for company (edge)`);
+        return { success: true, data: sortedRecords };
+      } catch (edgeError) {
+        console.warn('getTrainingRecordsByCompany edge failed, fallback:', edgeError?.message);
+      }
+    }
 
     const contractors = await loadContractorsForCompany(companyId);
     const contractorById = new Map((contractors || []).map((c) => [c.id, c]));
@@ -391,12 +421,22 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
   try {
     console.log('🗑️ Deleting training record:', recordId);
 
-    // Get the record to find contractor ID before deleting
-    const { data: record } = await supabase
-      .from('training_records')
-      .select('contractor_id')
-      .eq('id', recordId)
-      .single();
+    let record = null;
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        record = await trainingRecordsDataGet(recordId);
+      } catch (edgeError) {
+        console.warn('deleteTrainingRecord edge get failed, fallback:', edgeError?.message);
+      }
+    }
+    if (!record) {
+      const { data } = await supabase
+        .from('training_records')
+        .select('contractor_id')
+        .eq('id', recordId)
+        .single();
+      record = data;
+    }
 
     // Extract file path from URL and delete from storage
     if (fileUrl) {
@@ -414,13 +454,18 @@ export async function deleteTrainingRecord(recordId, fileUrl) {
       }
     }
 
-    // Delete from database
-    const { error } = await supabase
-      .from('training_records')
-      .delete()
-      .eq('id', recordId);
-
-    if (error) throw error;
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        await trainingRecordsDataDelete(recordId);
+      } catch (edgeError) {
+        console.warn('deleteTrainingRecord edge delete failed, fallback:', edgeError?.message);
+        const { error } = await supabase.from('training_records').delete().eq('id', recordId);
+        if (error) throw error;
+      }
+    } else {
+      const { error } = await supabase.from('training_records').delete().eq('id', recordId);
+      if (error) throw error;
+    }
 
     console.log('✅ Training record deleted');
     
@@ -450,26 +495,41 @@ export async function approveTrainingRecord(recordId, approvedByName, businessUn
   try {
     console.log('✅ Approving training record:', recordId);
 
-    // Get the record to find contractor ID
-    const { data: recordData } = await supabase
-      .from('training_records')
-      .select('contractor_id')
-      .eq('id', recordId)
-      .single();
+    let recordData = null;
+    let data = null;
 
-    const { data, error } = await supabase
-      .from('training_records')
-      .update({
-        status: 'approved',
-        approved_by_name: approvedByName,
-        approved_by_business_unit: businessUnitName,
-        approved_at: new Date().toISOString()
-      })
-      .eq('id', recordId)
-      .select()
-      .single();
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        recordData = await trainingRecordsDataGet(recordId);
+        data = await trainingRecordsDataApprove(recordId, approvedByName, businessUnitName);
+      } catch (edgeError) {
+        console.warn('approveTrainingRecord edge failed, fallback:', edgeError?.message);
+      }
+    }
 
-    if (error) throw error;
+    if (!data) {
+      const { data: fetched } = await supabase
+        .from('training_records')
+        .select('contractor_id')
+        .eq('id', recordId)
+        .single();
+      recordData = fetched;
+
+      const { data: updated, error } = await supabase
+        .from('training_records')
+        .update({
+          status: 'approved',
+          approved_by_name: approvedByName,
+          approved_by_business_unit: businessUnitName,
+          approved_at: new Date().toISOString(),
+        })
+        .eq('id', recordId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      data = updated;
+    }
 
     console.log('✅ Training record approved');
     
@@ -627,27 +687,57 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
       return { success: true, message: 'No pending records to approve', approvedCount: 0 };
     }
 
-    // Approve each pending record
-    const approvalPromises = pendingRecords.map(record =>
-      supabase
-        .from('training_records')
-        .update({
-          status: 'approved',
-          approved_by_name: approvedByName,
-          approved_by_business_unit: businessUnitName,
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', record.id)
-    );
-
-    // Use safePromiseAll to handle partial successes
-    const { succeeded, failed } = await safePromiseAll(
-      approvalPromises,
-      `approving ${pendingRecords.length} training records`
-    );
-
-    if (failed.length > 0) {
-      console.warn(`⚠️  Partially approved: ${succeeded.length} succeeded, ${failed.length} failed`);
+    let approvedCount = pendingRecords.length;
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        const edgeResult = await trainingRecordsDataApproveAllPending(
+          companyId,
+          approvedByName,
+          businessUnitName,
+        );
+        approvedCount = edgeResult.approvedCount ?? pendingRecords.length;
+      } catch (edgeError) {
+        console.warn('approveAllCompanyTrainingRecords edge failed, fallback:', edgeError?.message);
+        const approvalPromises = pendingRecords.map((record) =>
+          supabase
+            .from('training_records')
+            .update({
+              status: 'approved',
+              approved_by_name: approvedByName,
+              approved_by_business_unit: businessUnitName,
+              approved_at: new Date().toISOString(),
+            })
+            .eq('id', record.id),
+        );
+        const { succeeded, failed } = await safePromiseAll(
+          approvalPromises,
+          `approving ${pendingRecords.length} training records`,
+        );
+        if (failed.length > 0) {
+          console.warn(`⚠️  Partially approved: ${succeeded.length} succeeded, ${failed.length} failed`);
+        }
+        approvedCount = succeeded.length;
+      }
+    } else {
+      const approvalPromises = pendingRecords.map((record) =>
+        supabase
+          .from('training_records')
+          .update({
+            status: 'approved',
+            approved_by_name: approvedByName,
+            approved_by_business_unit: businessUnitName,
+            approved_at: new Date().toISOString(),
+          })
+          .eq('id', record.id),
+      );
+      const { succeeded, failed } = await safePromiseAll(
+        approvalPromises,
+        `approving ${pendingRecords.length} training records`,
+      );
+      if (failed.length > 0) {
+        console.warn(`⚠️  Partially approved: ${succeeded.length} succeeded, ${failed.length} failed`);
+      }
+      approvedCount = succeeded.length;
     }
 
     // Update company-level status (use succeeded count)
@@ -666,11 +756,11 @@ export async function approveAllCompanyTrainingRecords(companyId, approvedByName
 
     await updateCompanyTrainingRecordsCounters(companyId);
 
-    console.log(`✅ Approved ${pendingRecords.length} training records for company`);
+    console.log(`✅ Approved ${approvedCount} training records for company`);
     return {
       success: true,
-      message: `Approved ${pendingRecords.length} training records`,
-      approvedCount: pendingRecords.length
+      message: `Approved ${approvedCount} training records`,
+      approvedCount,
     };
   } catch (error) {
     console.error('❌ Approve all training records error:', error);
@@ -690,14 +780,23 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
   try {
     console.log('🔄 Updating training record:', recordId);
 
-    // Get current record to get contractor ID and old file URL
-    const { data: record, error: fetchError } = await supabase
-      .from('training_records')
-      .select('*')
-      .eq('id', recordId)
-      .single();
-
-    if (fetchError) throw fetchError;
+    let record = null;
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      try {
+        record = await trainingRecordsDataGet(recordId);
+      } catch (edgeError) {
+        console.warn('updateTrainingRecord edge get failed, fallback:', edgeError?.message);
+      }
+    }
+    if (!record) {
+      const { data, error: fetchError } = await supabase
+        .from('training_records')
+        .select('*')
+        .eq('id', recordId)
+        .single();
+      if (fetchError) throw fetchError;
+      record = data;
+    }
 
     let updateData = {};
     let newFileUrl = record.file_url;
@@ -782,16 +881,25 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       updateData.expiry_date = formatDateForDb(expiryDate);
     }
 
-    // Update record in database
     console.log('💾 Updating training record in database');
-    const { data: updatedRecord, error: updateError } = await supabase
-      .from('training_records')
-      .update(updateData)
-      .eq('id', recordId)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
+    let updatedRecord = null;
+    if (preferTrainingRecordsEdgeForAdmin() && Object.keys(updateData).length > 0) {
+      try {
+        updatedRecord = await trainingRecordsDataUpdate(recordId, updateData);
+      } catch (edgeError) {
+        console.warn('updateTrainingRecord edge update failed, fallback:', edgeError?.message);
+      }
+    }
+    if (!updatedRecord) {
+      const { data, error: updateError } = await supabase
+        .from('training_records')
+        .update(updateData)
+        .eq('id', recordId)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      updatedRecord = data;
+    }
 
     console.log('✅ Training record updated:', recordId);
     
