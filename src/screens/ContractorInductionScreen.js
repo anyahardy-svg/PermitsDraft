@@ -192,6 +192,35 @@ export default function ContractorInductionScreen({
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
 
+  const mergeCompanyIntoList = (company) => {
+    if (!company?.id) return;
+    setCompanies((prev) => (prev.some((c) => c.id === company.id) ? prev : [...prev, company]));
+  };
+
+  const getCompanyFieldDisplayValue = () => {
+    if (!contractorInfo.companyId) {
+      return companySearchText;
+    }
+    const fromList = companies.find((c) => c.id === contractorInfo.companyId)?.name;
+    const fromResults = companySearchResults.find((c) => c.id === contractorInfo.companyId)?.name;
+    return fromList || fromResults || companySearchText;
+  };
+
+  const handleSelectSearchCompany = (company) => {
+    mergeCompanyIntoList(company);
+    setContractorInfo((prev) => ({ ...prev, companyId: company.id }));
+    setCompanySearchText(company.name || '');
+    setShowCompanyDropdown(false);
+    setValidationErrors((prev) => ({ ...prev, company: undefined }));
+  };
+
+  /** Web: keep focus on company input so ScrollView tap handling does not swallow the first click. */
+  const handleCompanyResultPointerDown = (event) => {
+    if (Platform.OS === 'web' && event?.preventDefault) {
+      event.preventDefault();
+    }
+  };
+
   const handleExitWithContractor = () => {
     if (onComplete) {
       onComplete({
@@ -828,11 +857,11 @@ export default function ContractorInductionScreen({
         name: newCompanyName,
         is_manually_created: true,
       });
-      setCompanies([...companies, newCompany]);
-      setContractorInfo({ ...contractorInfo, companyId: newCompany.id });
+      mergeCompanyIntoList(newCompany);
+      setContractorInfo((prev) => ({ ...prev, companyId: newCompany.id }));
       setShowAddCompanyModal(false);
       setNewCompanyName('');
-      setCompanySearchText('');
+      setCompanySearchText(newCompany.name || '');
       setShowCompanyDropdown(false);
       Alert.alert('Success', 'Company added successfully');
     } catch (err) {
@@ -2250,7 +2279,12 @@ export default function ContractorInductionScreen({
           if (onBackToSelection) onBackToSelection();
         })}
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {isNewContractor && (
             <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, fontStyle: 'italic' }}>
               Please fill in your details to get started
@@ -2308,28 +2342,39 @@ export default function ContractorInductionScreen({
           {validationErrors.phone && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.phone}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Company *</Text>
+          <View style={{ zIndex: 20, position: 'relative' }}>
           <TextInput
             style={[styles.input, { marginBottom: 0 }, validationErrors.company ? { borderColor: '#DC2626', borderWidth: 2 } : {}]}
             placeholder="Search or type company name..."
-            value={contractorInfo.companyId ? companies.find(c => c.id === contractorInfo.companyId)?.name || companySearchText : companySearchText}
+            value={getCompanyFieldDisplayValue()}
             onChangeText={(text) => {
               setCompanySearchText(text);
-              if (!text.trim()) setContractorInfo({ ...contractorInfo, companyId: '' });
+              setContractorInfo((prev) => ({ ...prev, companyId: '' }));
               setShowCompanyDropdown(true);
             }}
             onFocus={() => setShowCompanyDropdown(true)}
           />
           {showCompanyDropdown && (
-            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 0, marginTop: 0 }}>
+            <View
+              style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: 0,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 8,
+                marginBottom: 0,
+                marginTop: 0,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                zIndex: 30,
+                elevation: 8,
+                ...(Platform.OS === 'web' ? { position: 'relative' } : {}),
+              }}
+            >
               {companySearchResults.map(company => (
                   <TouchableOpacity
                     key={company.id}
-                    onPress={() => {
-                      setContractorInfo({ ...contractorInfo, companyId: company.id });
-                      setCompanySearchText('');
-                      setShowCompanyDropdown(false);
-                      setValidationErrors(prev => ({ ...prev, company: undefined }));
-                    }}
+                    onPress={() => handleSelectSearchCompany(company)}
+                    onMouseDown={handleCompanyResultPointerDown}
                     style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
                     <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{company.name}</Text>
@@ -2342,6 +2387,7 @@ export default function ContractorInductionScreen({
                     setShowCompanyDropdown(false);
                     setShowAddCompanyModal(true);
                   }}
+                  onMouseDown={handleCompanyResultPointerDown}
                   style={{ paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#E0E7FF' }}
                 >
                   <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '600' }}>+ Add "{companySearchText}"</Text>
@@ -2349,6 +2395,7 @@ export default function ContractorInductionScreen({
               )}
             </View>
           )}
+          </View>
           {validationErrors.company && <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{validationErrors.company}</Text>}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Business Units (select one or more) *</Text>
