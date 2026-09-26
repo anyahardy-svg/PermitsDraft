@@ -29,7 +29,9 @@ Ensure secrets match `admin-auth` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
 {"action":"ping"}
 ```
 
-Expect: `"version":"2026-09-26-v2"` (or newer), `"success":true`.
+Expect: `"version":"2026-09-26-v5"` (or newer), `"success":true`.
+
+**v5+** adds admin training-record actions: `listTrainingRecordsByCompany`, `approveAllPendingTrainingRecords`, etc. See `DEPLOY_TRAINING_RECORDS_DATA.md`.
 
 ## 2. Deploy frontend
 

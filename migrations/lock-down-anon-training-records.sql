@@ -1,7 +1,7 @@
 -- Step 2c: Stop anonymous (and direct PostgREST) reads of training_records (files metadata + URLs).
 -- Run in Supabase SQL Editor ONLY AFTER:
---   1) training-records-data Edge Function is deployed (ping returns 2026-09-26-v1+)
---   2) Production frontend uses src/api/trainingRecordsData.js for admin paths
+--   1) company-data Edge Function is deployed (ping returns 2026-09-26-v5+ with training record actions)
+--   2) Production frontend uses src/api/trainingRecordsData.js (invokes company-data) for admin paths
 --   3) Contractor hub still uses Supabase Auth JWT + RLS below for uploads/listing
 --
 -- Admins: CRUD via Edge (service role) + requestingAdminId.

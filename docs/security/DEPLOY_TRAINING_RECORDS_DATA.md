@@ -1,12 +1,16 @@
-# Deploy `training-records-data` (Step 2c Phase A — safe, no SQL yet)
+# Training records lock-down (Step 2c — uses existing `company-data`)
 
-Phase A wires **admin** paths to Edge **with PostgREST fallback**. Contractor hub keeps using **Supabase Auth JWT** + RLS on `training_records` after SQL. **Do not run** `migrations/lock-down-anon-training-records.sql` until Phase A is verified.
+There is **no** separate `training-records-data` Edge function. Admin training-record CRUD is on **`company-data`** (version **2026-09-26-v5+**).
 
-## 1. Deploy Edge Function
+Phase A wires the app to Edge **with PostgREST fallback**. Contractor hub keeps **Supabase Auth JWT** + RLS after SQL. **Do not run** `migrations/lock-down-anon-training-records.sql` until Phase A is verified.
 
-Supabase Dashboard → **Edge Functions** → create or open **`training-records-data`** → paste `supabase/functions/training-records-data/index.ts` → **Deploy**.
+## 1. Redeploy `company-data` (not a new function)
 
-Secrets: same as `company-data` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+Supabase Dashboard → **Edge Functions** → open **`company-data`** → paste the full file from:
+
+`https://raw.githubusercontent.com/anyahardy-svg/PermitsDraft/cursor/training-records-lock-down-8ffb/supabase/functions/company-data/index.ts`
+
+(or your merged branch raw URL) → **Deploy**.
 
 **Ping test:**
 
@@ -14,26 +18,26 @@ Secrets: same as `company-data` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
 {"action":"ping"}
 ```
 
-Expect: `"version":"2026-09-26-v1"`, `"success":true`.
+Expect: `"version":"2026-09-26-v5"` (or newer), `"success":true`.
 
 ## 2. Deploy frontend
 
-Merge branch and deploy **production** Vercel.
+Merge PR and deploy **production** Vercel.
 
 ## 3. Smoke tests (before SQL)
 
 | Flow | What to check |
 |------|----------------|
-| Admin → company training records approve all | Network: `training-records-data` `approveAllPending` |
-| Contractor HQ → Training Records tab | Upload + list (authenticated PostgREST) |
-| Admin dashboard training status counters | Still via `company-data` counters |
+| Admin → approve all training records | Network: **`company-data`** action `approveAllPendingTrainingRecords` |
+| Contractor HQ → Training Records | Upload + list (authenticated PostgREST) |
+| Admin dashboard counters | Still `company-data` `listTrainingCounters` |
 
 ## 4. Phase B (after smoke tests)
 
-1. Run `migrations/lock-down-anon-training-records.sql` in SQL Editor.
+1. Run `migrations/lock-down-anon-training-records.sql`.
 2. Run `scripts/security/probe-training-records-anon-evidence.ps1` — expect **42501** / no row leak.
 3. Re-smoke admin approve + contractor upload.
 
-## Storage note (uploaded files)
+## Storage note
 
-The `training-records` **storage bucket** may still expose files via **public URLs** if the bucket is public. Locking the `training_records` **table** stops metadata dumps; tightening **storage policies** (private bucket + signed URLs) is a recommended follow-up.
+Table lock-down does not make the **`training-records` storage bucket** private if URLs are public. Plan signed URLs / private bucket separately.
