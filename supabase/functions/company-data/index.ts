@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v7";
+const VERSION = "2026-09-26-v8";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -657,7 +657,8 @@ Deno.serve(async (req) => {
       action === "approveTrainingRecord" ||
       action === "approveAllPendingTrainingRecords" ||
       action === "createTrainingRecordsSignedUrl" ||
-      action === "createAccreditationsSignedUrl"
+      action === "createAccreditationsSignedUrl" ||
+      action === "listEvidenceLibrary"
     ) {
       const requester = await getRequestingAdmin(
         supabase,
@@ -666,6 +667,23 @@ Deno.serve(async (req) => {
       if (!requester) {
         return jsonResponse({ success: false, error: "Not signed in or session expired" });
       }
+    }
+
+    if (action === "listEvidenceLibrary") {
+      const companyId = String(body.companyId ?? "");
+      if (!companyId) {
+        return jsonResponse({ success: false, error: "Missing company id" }, 400);
+      }
+      const { data, error } = await supabase
+        .from("evidence_library_items")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({ success: true, data: data ?? [], version: VERSION });
     }
 
     if (action === "createAccreditationsSignedUrl") {

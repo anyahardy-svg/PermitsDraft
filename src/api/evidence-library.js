@@ -3,6 +3,26 @@
 
 import { supabase } from '../supabaseClient';
 import { getSignedAccreditationsUrl } from './accreditationsStorage';
+import { companyDataListEvidenceLibrary } from './companyData';
+import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
+
+function preferEvidenceLibraryEdgeForAdmin() {
+  return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
+
+async function fetchEvidenceLibraryDirect(companyId) {
+  const { data, error } = await supabase
+    .from('evidence_library_items')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+  return data || [];
+}
 
 // Add file to company's evidence library
 export const addToEvidenceLibrary = async (companyId, itemName, storagePath, fileName, fileSize) => {
@@ -33,15 +53,21 @@ export const addToEvidenceLibrary = async (companyId, itemName, storagePath, fil
 // Get all active evidence items for a company
 export const getEvidenceLibrary = async (companyId) => {
   try {
-    const { data, error } = await supabase
-      .from('evidence_library_items')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+    if (!companyId) {
+      return { data: [], error: null };
+    }
 
-    if (error) throw error;
-    return { data: data || [], error: null };
+    if (preferEvidenceLibraryEdgeForAdmin()) {
+      try {
+        const rows = await companyDataListEvidenceLibrary(companyId);
+        return { data: rows, error: null };
+      } catch (edgeError) {
+        console.warn('getEvidenceLibrary edge failed, trying direct PostgREST:', edgeError?.message);
+      }
+    }
+
+    const data = await fetchEvidenceLibraryDirect(companyId);
+    return { data, error: null };
   } catch (err) {
     console.error('Error fetching evidence library:', err);
     return { data: [], error: err.message };

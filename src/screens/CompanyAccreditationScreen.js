@@ -2286,41 +2286,117 @@ export default function CompanyAccreditationScreen({
         );
       }
       
-      // Show needs document warning
+      // Show needs document warning (still allow library pick when items exist)
       if (needsDocument) {
-        return (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
-            <TouchableOpacity
-              onPress={() => handleUploadFn()}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 5,
-                backgroundColor: '#FEE2E2',
-                borderWidth: 1,
-                borderColor: '#FCA5A5',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 2,
-                position: 'relative',
-                cursor: 'pointer'
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>📎</Text>
-            </TouchableOpacity>
-            
-            <View style={{ flex: 1 }}>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                backgroundColor: '#FEE2E2',
-                borderRadius: 4,
-                borderLeftWidth: 3,
-                borderLeftColor: '#EF4444'
-              }}>
-                <Text style={{ fontSize: 18, color: '#991B1B', fontWeight: '600' }}>Evidence Required - Click the clip to upload</Text>
+        if (!isSection || evidenceLibrary.length === 0) {
+          return (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+              <TouchableOpacity
+                onPress={() => handleUploadFn()}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 5,
+                  backgroundColor: '#FEE2E2',
+                  borderWidth: 1,
+                  borderColor: '#FCA5A5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 2,
+                  position: 'relative',
+                  cursor: 'pointer'
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>📎</Text>
+              </TouchableOpacity>
+
+              <View style={{ flex: 1 }}>
+                <View style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  backgroundColor: '#FEE2E2',
+                  borderRadius: 4,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#EF4444'
+                }}>
+                  <Text style={{ fontSize: 18, color: '#991B1B', fontWeight: '600' }}>Evidence Required - Click the clip to upload</Text>
+                </View>
               </View>
             </View>
+          );
+        }
+
+        return (
+          <View>
+            <View style={{
+              marginBottom: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              backgroundColor: '#FEE2E2',
+              borderRadius: 4,
+              borderLeftWidth: 3,
+              borderLeftColor: '#EF4444'
+            }}>
+              <Text style={{ fontSize: 15, color: '#991B1B', fontWeight: '600' }}>Evidence required for this score</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setExpandedEvidenceUI(isDocUIExpanded ? null : documentKey)}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 5,
+                  backgroundColor: '#DBEAFE',
+                  borderWidth: 1,
+                  borderColor: '#0284C7',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 2,
+                  cursor: 'pointer'
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>📎</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 15, color: '#0284C7', fontWeight: '600' }}>Click to {isDocUIExpanded ? 'close' : 'choose from library or upload'}</Text>
+            </View>
+            {isDocUIExpanded && isSection && evidenceLibrary.length > 0 && (
+              <View style={{ paddingTop: 8, paddingBottom: 0 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginLeft: 38 }}>📚 From Library:</Text>
+                <View style={{ marginLeft: 38 }}>
+                  {evidenceLibrary.map((item, idx) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        backgroundColor: '#DBEAFE',
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        borderColor: '#0284C7',
+                        marginBottom: idx < evidenceLibrary.length - 1 ? 6 : 12
+                      }}
+                      onPress={() => applyLibraryItem(documentKey, item)}
+                    >
+                      <Text style={{ fontSize: 18, color: '#0284C7', fontWeight: '600' }}>✓ {item.item_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleUploadFn()}
+                  style={{
+                    marginLeft: 38,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: '#3B82F6',
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    borderColor: '#1D4ED8'
+                  }}
+                >
+                  <Text style={{ fontSize: 18, color: 'white', fontWeight: '600', textAlign: 'center' }}>+ Upload New</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         );
       }
