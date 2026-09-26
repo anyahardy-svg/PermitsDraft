@@ -42,6 +42,37 @@ You hit **PostgREST** on the table (`/rest/v1/companies?...`) or SQL `select id 
    - https://raw.githubusercontent.com/anyahardy-svg/PermitsDraft/cursor/security-step-one-anon-audit-8ffb/supabase/functions/company-data/index.ts
 3. Re-run the PowerShell block above.
 
-## Script
+## Supabase Dashboard (if PowerShell “does nothing”)
 
-`scripts/security/ping-company-data.ps1` — same as `ping-contractor-data.ps1` but calls `company-data`.
+The ping is **not** SQL and **not** opening a URL in the browser (that is GET-only and will not send the JSON body).
+
+1. Dashboard → **Edge Functions** → click **`company-data`** (must exist in the list).
+2. Open **Invoke** / **Test** (wording varies).
+3. Method: **POST**.
+4. Request body (exactly):
+
+```json
+{"action":"ping"}
+```
+
+5. Run invoke. You should see JSON in the response panel within a few seconds.
+6. Optional: **Logs** tab → refresh after invoke. If logs stay empty, the request never reached this function (wrong project, wrong name, or invoke UI not actually sending POST).
+
+If **`company-data` is not in the Edge Functions list**, create it: **Deploy a new function** → name **`company-data`** → paste `index.ts` → Deploy. Until that exists, no ping can succeed.
+
+## “Ping not running” checklist
+
+| Symptom | Likely cause |
+|--------|----------------|
+| SQL Editor / `select id from companies` | Table REST/SQL — use Edge URL above |
+| Browser address bar on `/functions/v1/company-data` | GET with no body — use POST + JSON |
+| 404 / function not found | Function not deployed or wrong name (`companies` vs `company-data`) |
+| PowerShell returns instantly with no output | Forgot `-Method Post` or wrong `$uri` (missing `/functions/v1/`) |
+| `Unknown action` with no version | Body missing or empty — need `{"action":"ping"}` |
+| Hangs then timeout | Wrong host, firewall, or typo in project URL |
+| Works for `contractor-data` but not `company-data` | **`company-data` never deployed** — deploy paste separately |
+
+## Scripts
+
+- `scripts/security/ping-company-data.ps1` (PowerShell)
+- `scripts/security/ping-company-data.sh` (bash / Git Bash / macOS)
