@@ -1,5 +1,5 @@
 # Evidence script: prove anonymous REST cannot read training_records rows.
-# Usage:
+# Usage (same as probe-contractors / probe-companies):
 #   $env:VITE_SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
 #   $env:VITE_SUPABASE_ANON_KEY = "eyJ..."
 #   .\scripts\security\probe-training-records-anon-evidence.ps1
@@ -19,7 +19,7 @@ $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") + " UT
 $projectHost = ([Uri]$baseUrl).Host
 
 Write-Host "========================================"
-Write-Host "training_records — anonymous access probe"
+Write-Host "training_records table — anonymous access probe"
 Write-Host "Timestamp: $timestamp"
 Write-Host "Project host: $projectHost"
 Write-Host "Role tested: anon (public API key, no user login)"
@@ -58,27 +58,64 @@ function Test-AnonGet {
       }
     }
 
-    if ($leaked) {
-      Write-Host "RESULT: FAIL — anon received row data (HTTP $status)" -ForegroundColor Red
-    } else {
-      Write-Host "RESULT: PASS — no row payload (HTTP $status)" -ForegroundColor Green
-    }
+    Write-Host "HTTP status: $status"
     Write-Host "Body snippet: $snippet"
-  } catch {
-    $status = $_.Exception.Response.StatusCode.value__
-    $detail = $_.ErrorDetails.Message
-    if (-not $detail) { $detail = $_.Exception.Message }
 
-    if ($detail -match "42501" -or $detail -match "permission denied") {
-      Write-Host "RESULT: PASS — permission denied (expected after lock-down)" -ForegroundColor Green
-    } else {
-      Write-Host "RESULT: CHECK — HTTP $status / $detail" -ForegroundColor Yellow
+    if ($leaked) {
+      Write-Host "RESULT: FAIL — anonymous client received training_records row data." -ForegroundColor Red
+      return $false
     }
-  }
 
-  Write-Host ""
+    if ($status -eq 200 -and ($body -eq "[]" -or $body -eq "")) {
+      Write-Host "RESULT: PASS — HTTP 200 with empty array (no rows exposed)." -ForegroundColor Green
+      return $true
+    }
+
+    Write-Host "RESULT: PASS — no training_records rows in response (review status/body above)." -ForegroundColor Green
+    return $true
+  } catch {
+    $status = $null
+    $body = $null
+    if ($_.Exception.Response) {
+      $status = [int]$_.Exception.Response.StatusCode
+      try {
+        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+        $body = $reader.ReadToEnd()
+        $reader.Close()
+      } catch { }
+    }
+
+    $snippet = if ($body -and $body.Length -gt 500) { $body.Substring(0, 500) + "..." } else { $body }
+    Write-Host "HTTP status: $status"
+    Write-Host "Body snippet: $snippet"
+
+    $permissionDenied = $body -match "permission denied" -or $body -match "42501" -or $status -eq 401 -or $status -eq 403
+    if ($permissionDenied) {
+      Write-Host "RESULT: PASS — anonymous access denied (expected after lock-down)." -ForegroundColor Green
+      return $true
+    }
+
+    Write-Host "RESULT: REVIEW — unexpected error; confirm manually." -ForegroundColor Yellow
+    return $false
+  } finally {
+    Write-Host ""
+  }
 }
 
-Test-AnonGet -Label "List training_records (limit 1)" -RelativePath "/rest/v1/training_records?select=id,contractor_id,file_url&limit=1"
+$results = @()
+$results += Test-AnonGet -Label "Full row probe (limit 1)" -RelativePath "/rest/v1/training_records?select=*&limit=1"
+$results += Test-AnonGet -Label "Sensitive columns probe (limit 5)" -RelativePath "/rest/v1/training_records?select=id,contractor_id,file_url,file_name&limit=5"
+$results += Test-AnonGet -Label "Count-style probe (limit 10)" -RelativePath "/rest/v1/training_records?select=id&limit=10"
 
-Write-Host "Save this output for auditors (timestamp + PASS/FAIL)."
+$allPass = ($results | Where-Object { $_ -eq $false }).Count -eq 0
+
+Write-Host "========================================"
+if ($allPass) {
+  Write-Host "OVERALL: PASS for PostgREST anonymous reads on public.training_records" -ForegroundColor Green
+} else {
+  Write-Host "OVERALL: FAIL or needs review — do not claim lock-down until fixed." -ForegroundColor Red
+}
+Write-Host "========================================"
+
+if (-not $allPass) { exit 1 }
+exit 0
