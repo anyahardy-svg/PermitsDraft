@@ -215,6 +215,15 @@ export async function companyDataRejectAccreditation(companyId, reason, requesti
   return result.data || null;
 }
 
+export async function companyDataListEvidenceLibrary(companyId, requestingAdminId) {
+  const adminId = requestingAdminId || getRequestingAdminId();
+  const result = await invokeOrThrow(
+    { action: 'listEvidenceLibrary', companyId, requestingAdminId: adminId },
+    'Failed to load evidence library',
+  );
+  return result.data || [];
+}
+
 export async function companyDataCreateAccreditationsSignedUrl(
   storagePath,
   expiresInSeconds = 3600,
