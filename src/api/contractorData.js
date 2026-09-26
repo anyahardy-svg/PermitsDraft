@@ -9,6 +9,10 @@ export function getRequestingAdminId() {
   if (typeof window === 'undefined') {
     return null;
   }
+  // Orphan adminData (no active adminSession) must not route kiosk/contractor flows through admin Edge or PostgREST.
+  if (!isAdminSessionActive()) {
+    return null;
+  }
   try {
     const raw = localStorage.getItem('adminData');
     if (!raw) {
