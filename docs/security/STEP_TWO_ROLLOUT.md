@@ -59,6 +59,7 @@ Step 1 (`admin_users`) already taught this lesson: **SQL lock-down last**, after
 ## What Step 2 does *not* fix by itself
 
 - **`companies`** — see `docs/security/DEPLOY_COMPANY_DATA.md` and `migrations/lock-down-anon-companies.sql` (deploy Edge + frontend before SQL).
+- **`training_records`** — see `docs/security/DEPLOY_TRAINING_RECORDS_DATA.md` and `migrations/lock-down-anon-training-records.sql` (metadata + file URLs; storage bucket may need a separate pass).
 - **Kiosk Edge actions** (`listForKiosk`, `searchForKiosk`) are still invokable with the public anon key — they only remove **bulk table dump** via REST. Tightening kiosk (shared secret, rate limits) is optional Step 2b.
 
 ---
