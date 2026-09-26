@@ -63,13 +63,28 @@ If you copy a **sign** URL from the app (includes `?token=`) into incognito, it 
 
 ### Test 3 — App still works
 
-Contractor HQ → Training Records → open matrix or individual file. Network should show **`sign`** or `company-data` action `createTrainingRecordsSignedUrl`, then load via `object/sign/...?token=`.
+| Flow | Network check |
+|------|----------------|
+| Contractor HQ → **Training Records** → open file | **`sign`** or `company-data` `createTrainingRecordsSignedUrl` |
+| Contractor HQ or Admin → **Accreditation** → View/Download evidence or certificate | **`sign`** or `company-data` `createAccreditationsSignedUrl` |
+
+### Automated public-URL probe (accreditations)
+
+After storage SQL, from a machine with the repo (or copy script from GitHub `main`):
+
+```powershell
+$env:VITE_SUPABASE_URL = "https://<project>.supabase.co"
+$env:ACCREDITATIONS_SAMPLE_PATH = "<company>/<section>/<file>.pdf"
+.\scripts\security\probe-accreditations-storage-public-evidence.ps1
+```
+
+**PASS:** `OVERALL: PASS` (HTTP 400/403/404). **FAIL:** HTTP 200 with a large PDF body.
 
 ## Evidence C — Screenshots (optional)
 
-1. Supabase **Storage** → `training-records` → **Public = OFF**.
-2. SQL: `pg_policies` on `storage.objects` for training-records — **no `anon`** SELECT; **authenticated** only (after storage migration).
-3. Production **Network**: `company-data` `listTrainingRecordsByCompany` (metadata), not `rest/v1/training_records` for admin.
+1. Supabase **Storage** → `training-records` and **`accreditations`** → **Public = OFF**.
+2. SQL: `pg_policies` on `storage.objects` for those buckets — **no `anon`** SELECT; **authenticated** only (after storage migration).
+3. Production **Network**: `company-data` `listTrainingRecordsByCompany` (metadata), not `rest/v1/training_records` for admin; accreditation documents via signed URLs, not `/object/public/accreditations/`.
 
 ## Limitations to disclose
 
@@ -88,8 +103,13 @@ Contractor HQ → Training Records → open matrix or individual file. Network s
 
 > As of [date], the `training-records` storage bucket is private. Direct public object URLs no longer serve files. Authorized users receive time-limited signed URLs via the application or Edge Function.
 
+**Company accreditation files (storage):**
+
+> As of [date], the `accreditations` storage bucket is private. Direct public object URLs under `/object/public/accreditations/` no longer serve certificates or section evidence. Authorized contractors (Supabase Auth) and admins (`company-data` signed URLs) receive time-limited signed URLs via the application.
+
 ## Related docs
 
 - `CONTRACTOR_EXTERNAL_ACCESS_EVIDENCE.md` — contractors table + Edge model
 - `DEPLOY_TRAINING_RECORDS_STORAGE.md` — rollout order for private bucket
+- `DEPLOY_ACCREDITATIONS_STORAGE.md` — rollout order for accreditations bucket
 - `STEP_TWO_ROLLOUT.md` — sequencing (Edge before SQL)
