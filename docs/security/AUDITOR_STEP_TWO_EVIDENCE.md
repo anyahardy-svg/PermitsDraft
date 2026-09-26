@@ -15,6 +15,7 @@ The Supabase **anon key** is in the web client. Security is **RLS + REVOKE** on 
 | **Companies** | `company-data` Edge; REVOKE anon | `lock-down-anon-companies.sql` |
 | **Training record rows** | `company-data` (metadata); REVOKE anon | `lock-down-anon-training-records.sql` |
 | **Training record files** | Private bucket; signed URLs | `lock-down-training-records-storage.sql` + `company-data` v6+ |
+| **Company accreditation files** | Private `accreditations` bucket; signed URLs | `lock-down-accreditations-storage.sql` + `company-data` v7+ |
 
 Contractor HQ uses **Supabase Auth JWT** + RLS for their company’s training rows and storage uploads.
 
@@ -34,24 +35,25 @@ Run in PowerShell from a machine with the probe scripts (or copy script from Git
 
 Attach: dated `.txt` output (`Tee-Object`) per table after lock-down SQL is applied.
 
-## Evidence B — Training files (storage)
+## Evidence B — Training & accreditation files (storage)
 
 ### What we protect
 
-- **Before:** files under `training-records` were reachable at  
-  `.../storage/v1/object/public/training-records/<path>` with **no login**.
-- **After:** bucket **private**; app uses **signed URLs**:  
-  `.../storage/v1/object/sign/training-records/<path>?token=...`
+| Bucket | Before (public) | After |
+|--------|-----------------|--------|
+| `training-records` | `.../object/public/training-records/<path>` | `.../object/sign/training-records/<path>?token=...` |
+| `accreditations` | `.../object/public/accreditations/<path>` | `.../object/sign/accreditations/<path>?token=...` |
 
 ### Test 1 — Public URL must fail (incognito)
 
 Open in a **private/incognito** window **without** logging in:
 
 ```text
-https://<project>.supabase.co/storage/v1/object/public/training-records/<company>/matrices/<file>.pdf
+https://<project>.supabase.co/storage/v1/object/public/training-records/<path>
+https://<project>.supabase.co/storage/v1/object/public/accreditations/<company>/<section>/<file>.pdf
 ```
 
-Use a path you previously confirmed was world-readable. **PASS:** 404 / not found / access denied. **FAIL:** document still downloads.
+Use paths you previously confirmed were world-readable. **PASS:** 404 / not found / access denied. **FAIL:** document still downloads.
 
 ### Test 2 — Signed URL may still work in incognito (not a failure)
 
@@ -73,7 +75,7 @@ Contractor HQ → Training Records → open matrix or individual file. Network s
 
 1. **Signed URLs** — anyone with the full URL + valid token can download until expiry; mitigate with short TTL and user training not to share links.
 2. **Edge Functions** — invokable with the public anon key; they return **scoped** data per action, not full table dumps (see `CONTRACTOR_EXTERNAL_ACCESS_EVIDENCE.md`).
-3. **Other buckets** (e.g. permit-attachments, accreditations) may still need the same treatment as `training-records`.
+3. **Other buckets** (e.g. permit-attachments, suppliers) may still need the same treatment.
 4. **Legacy `file_url` values** may still store full HTTPS strings; the app resolves the object path for signing. New uploads store path-only.
 
 ## One-line statements (reports)

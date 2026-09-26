@@ -76,3 +76,28 @@ export function extractTrainingRecordsStoragePath(fileUrl) {
 
   return fileUrl.slice(markerIndex + marker.length).split('?')[0];
 }
+
+export function extractAccreditationsStoragePath(fileRef) {
+  if (!fileRef || typeof fileRef !== 'string') {
+    return null;
+  }
+  const trimmed = fileRef.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (!trimmed.includes('://') && !trimmed.startsWith('/')) {
+    return trimmed.split('?')[0];
+  }
+  const markers = [
+    '/object/public/accreditations/',
+    '/object/sign/accreditations/',
+    '/accreditations/',
+  ];
+  for (const marker of markers) {
+    const idx = trimmed.indexOf(marker);
+    if (idx !== -1) {
+      return trimmed.slice(idx + marker.length).split('?')[0];
+    }
+  }
+  return null;
+}

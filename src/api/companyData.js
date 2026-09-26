@@ -214,3 +214,21 @@ export async function companyDataRejectAccreditation(companyId, reason, requesti
   );
   return result.data || null;
 }
+
+export async function companyDataCreateAccreditationsSignedUrl(
+  storagePath,
+  expiresInSeconds = 3600,
+  requestingAdminId,
+) {
+  const adminId = requestingAdminId || getRequestingAdminId();
+  const result = await invokeOrThrow(
+    {
+      action: 'createAccreditationsSignedUrl',
+      storagePath,
+      expiresInSeconds,
+      requestingAdminId: adminId,
+    },
+    'Failed to create accreditation download link',
+  );
+  return result.signedUrl || null;
+}
