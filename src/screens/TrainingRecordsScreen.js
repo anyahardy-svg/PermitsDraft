@@ -33,6 +33,7 @@ import {
   defaultNameFromFile,
 } from '../api/companyTrainingMatrices';
 import { getContractorInductionsForCompany } from '../api/inductions';
+import { openTrainingRecordsFile } from '../api/trainingRecordsStorage';
 
 export default function TrainingRecordsScreen({
   loggedInCompanyId,
@@ -77,6 +78,14 @@ export default function TrainingRecordsScreen({
       loadAllData();
     }
   }, [loggedInCompanyId]);
+
+  const handleOpenTrainingFile = async (fileRef) => {
+    try {
+      await openTrainingRecordsFile(fileRef);
+    } catch (error) {
+      Alert.alert('Error', error?.message || 'Could not open file');
+    }
+  };
 
   const notifyStatusChanges = async () => {
     await updateCompanyTrainingRecordsStatus(loggedInCompanyId);
@@ -491,7 +500,7 @@ export default function TrainingRecordsScreen({
               >
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 180, paddingRight: 8 }}>{matrix.name}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{formatDateNZ(matrix.expiry_date)}</Text>
-                <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => window.open(matrix.file_url, '_blank')}>
+                <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => handleOpenTrainingFile(matrix.file_url)}>
                   <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>
                     {matrix.file_name?.split('/').pop()}
                   </Text>
@@ -579,7 +588,7 @@ export default function TrainingRecordsScreen({
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 150, paddingRight: 8 }}>{record.contractor_name}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 180, paddingRight: 8 }}>{record.training_type}</Text>
                 <Text style={{ fontSize: 11, color: '#1F2937', width: 120, paddingRight: 8 }}>{formatDateNZ(record.expiry_date)}</Text>
-                <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => window.open(record.file_url, '_blank')}>
+                <TouchableOpacity style={{ width: 100, paddingRight: 8 }} onPress={() => handleOpenTrainingFile(record.file_url)}>
                   <Text style={{ fontSize: 11, color: '#3B82F6', textDecorationLine: 'underline' }}>
                     {record.file_name?.split('/').pop()}
                   </Text>
