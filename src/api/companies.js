@@ -19,13 +19,13 @@ import {
   getRequestingAdminId,
   isAdminSessionActive,
 } from './companyData';
+import { contractorDataListByCompany } from './contractorData';
 
 async function withCompanyDataFallback(edgeFn, directFn, { label = 'company-data' } = {}) {
   try {
     return await edgeFn();
   } catch (edgeError) {
     console.warn(`⚠️ ${label} edge failed, using direct PostgREST fallback:`, edgeError?.message || edgeError);
-<<<<<<< HEAD
     try {
       return await directFn();
     } catch (directError) {
@@ -37,9 +37,6 @@ async function withCompanyDataFallback(edgeFn, directFn, { label = 'company-data
       }
       throw directError;
     }
-=======
-    return await directFn();
->>>>>>> origin/main
   }
 }
 
@@ -391,10 +388,22 @@ export const updateCompany = async (companyId, updates) => {
 // Get contractors linked to a company
 export const getContractorsByCompany = async (companyId) => {
   try {
-    // Handle null company_id
     if (!companyId) {
       console.warn('⚠️ getContractorsByCompany called with null/undefined companyId');
       return [];
+    }
+
+    if (shouldPreferCompanyEdgeForAdmin()) {
+      try {
+        const rows = await contractorDataListByCompany(companyId);
+        return (rows || []).map((row) => ({
+          id: row.id,
+          name: row.name,
+          email: row.email,
+        }));
+      } catch (edgeError) {
+        console.warn('⚠️ getContractorsByCompany edge failed, using PostgREST fallback:', edgeError?.message);
+      }
     }
 
     const data = await fetchAllPaginated((from, to) =>
@@ -402,7 +411,7 @@ export const getContractorsByCompany = async (companyId) => {
         .from('contractors')
         .select('id, name, email')
         .eq('company_id', companyId)
-        .range(from, to)
+        .range(from, to),
     );
 
     return data || [];
@@ -412,82 +421,66 @@ export const getContractorsByCompany = async (companyId) => {
   }
 };
 
+async function deleteCompanyDirect(companyId, options = {}) {
+  const { deleteContractors = false } = options;
+
+  const { data: companyContractors, error: fetchError } = await supabase
+    .from('contractors')
+    .select('id')
+    .eq('company_id', companyId);
+
+  if (fetchError) throw fetchError;
+
+  const contractorIds = (companyContractors || []).map((c) => c.id);
+
+  if (deleteContractors && contractorIds.length > 0) {
+    const { error: permitsError } = await supabase.from('permits').delete().in('contractor_id', contractorIds);
+    if (permitsError) throw permitsError;
+
+    const { error: inductionsError } = await supabase
+      .from('contractor_inductions')
+      .delete()
+      .in('contractor_id', contractorIds);
+    if (inductionsError) throw inductionsError;
+
+    const { error: contractorError } = await supabase.from('contractors').delete().eq('company_id', companyId);
+    if (contractorError) throw contractorError;
+  } else if (contractorIds.length > 0) {
+    const { error: permitsError } = await supabase
+      .from('permits')
+      .update({ contractor_id: null })
+      .in('contractor_id', contractorIds);
+    if (permitsError) throw permitsError;
+
+    const { error: updateError } = await supabase
+      .from('contractors')
+      .update({ company_id: null })
+      .eq('company_id', companyId);
+    if (updateError) throw updateError;
+  }
+
+  const { error } = await supabase.from('companies').delete().eq('id', companyId);
+  if (error) throw error;
+  return true;
+}
+
 // Delete a company with options for handling linked contractors
 export const deleteCompany = async (companyId, options = {}) => {
-  const { deleteContractors = false } = options;
-  
   try {
-    // Handle null company_id
     if (!companyId) {
       console.warn('⚠️ deleteCompany called with null/undefined companyId');
       return null;
     }
-    const { data: companyContractors, error: fetchError } = await supabase
-      .from('contractors')
-      .select('id')
-      .eq('company_id', companyId);
-    
-    if (fetchError) throw fetchError;
-    
-    const contractorIds = (companyContractors || []).map(c => c.id);
-    
-    // If deleteContractors is true, handle cascade deletion
-    if (deleteContractors && contractorIds.length > 0) {
-      // Delete permits linked to these contractors
-      const { error: permitsError } = await supabase
-        .from('permits')
-        .delete()
-        .in('contractor_id', contractorIds);
-      
-      if (permitsError) throw permitsError;
-      
-      // Delete contractor inductions (should cascade automatically, but be explicit)
-      const { error: inductionsError } = await supabase
-        .from('contractor_inductions')
-        .delete()
-        .in('contractor_id', contractorIds);
-      
-      if (inductionsError) throw inductionsError;
-      
-      // Finally delete the contractors
-      const { error: contractorError } = await supabase
-        .from('contractors')
-        .delete()
-        .eq('company_id', companyId);
-      
-      if (contractorError) throw contractorError;
-    } else if (contractorIds.length > 0) {
-      // Otherwise, orphan contractors and set their permits' contractor_id to null
-      const { error: permitsError } = await supabase
-        .from('permits')
-        .update({ contractor_id: null })
-        .in('contractor_id', contractorIds);
-      
-      if (permitsError) throw permitsError;
-      
-      // Orphan the contractors
-      const { error: updateError } = await supabase
-        .from('contractors')
-        .update({ company_id: null })
-        .eq('company_id', companyId);
-      
-      if (updateError) throw updateError;
-    }
-
-    const runDirectDelete = async () => {
-      const { error } = await supabase.from('companies').delete().eq('id', companyId);
-      if (error) throw error;
-      return true;
-    };
 
     if (shouldPreferCompanyEdgeForAdmin()) {
       return await withCompanyDataFallback(
         () => companyDataDelete(companyId, options),
-        () => runDirectDelete(),
+        () => deleteCompanyDirect(companyId, options),
         { label: 'deleteCompany' },
       );
     }
-    return await runDirectDelete();
+
+    return await deleteCompanyDirect(companyId, options);
   } catch (error) {
     console.error('Error deleting company:', error.message);
     throw error;
