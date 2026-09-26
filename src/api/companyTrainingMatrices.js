@@ -11,6 +11,13 @@ import {
   buildCompanyTrainingMatrixStoragePath,
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
+import {
+  fetchCompanyRowViaEdge,
+  fetchCompanyRowsByIdsViaEdge,
+  preferCompanyEdgeForAdmin,
+  trainingMatricesStatusFromRow,
+} from './companyTrainingCounters';
+import { updateCompany, getCompany } from './companies';
 
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
@@ -36,6 +43,11 @@ function defaultNameFromFile(file) {
 }
 
 async function getCompanyName(companyId) {
+  if (preferCompanyEdgeForAdmin()) {
+    const company = await getCompany(companyId);
+    return company?.name || 'unknown_company';
+  }
+
   const { data, error } = await supabase
     .from('companies')
     .select('name')
@@ -61,15 +73,17 @@ async function updateCompanyTrainingMatricesCounters(companyId) {
     const total = matrices?.length || 0;
     const approved = (matrices || []).filter(m => m.status === 'approved').length;
 
-    const { error: updateError } = await supabase
-      .from('companies')
-      .update({
-        training_matrices_total: total,
-        training_matrices_approved: approved
-      })
-      .eq('id', companyId);
+    const counterUpdates = {
+      training_matrices_total: total,
+      training_matrices_approved: approved,
+    };
 
-    if (updateError) throw updateError;
+    if (preferCompanyEdgeForAdmin()) {
+      await updateCompany(companyId, counterUpdates);
+    } else {
+      const { error: updateError } = await supabase.from('companies').update(counterUpdates).eq('id', companyId);
+      if (updateError) throw updateError;
+    }
 
     return { success: true, total, approved };
   } catch (error) {
@@ -489,23 +503,20 @@ export async function approveAllCompanyTrainingMatrices(companyId, approvedByNam
  */
 export async function getCompanyTrainingMatricesStatus(companyId) {
   try {
-    const { data: company, error } = await supabase
-      .from('companies')
-      .select('training_matrices_total, training_matrices_approved')
-      .eq('id', companyId)
-      .single();
-
-    if (error) throw error;
-
-    const total = company?.training_matrices_total || 0;
-    const approved = company?.training_matrices_approved || 0;
-
-    let status = 'none';
-    if (total > 0) {
-      status = approved === total ? 'approved' : 'added';
+    let company = null;
+    if (preferCompanyEdgeForAdmin()) {
+      company = await fetchCompanyRowViaEdge(companyId);
+    } else {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('training_matrices_total, training_matrices_approved')
+        .eq('id', companyId)
+        .single();
+      if (error) throw error;
+      company = data;
     }
 
-    return { success: true, status, total, approved, pending: total - approved };
+    return trainingMatricesStatusFromRow(company);
   } catch (error) {
     console.error('Get training matrices status error:', error);
     return { success: false, error: error.message, status: 'none' };
@@ -521,26 +532,22 @@ export async function getCompanyTrainingMatricesStatusBatch(companyIds) {
   }
 
   try {
-    const companies = await fetchAllBatchedByIds(companyIds, (batch) =>
-      supabase
-        .from('companies')
-        .select('id, training_matrices_total, training_matrices_approved')
-        .in('id', batch)
-    );
+    const companies = preferCompanyEdgeForAdmin()
+      ? await fetchCompanyRowsByIdsViaEdge(companyIds)
+      : await fetchAllBatchedByIds(companyIds, (batch) =>
+          supabase
+            .from('companies')
+            .select('id, training_matrices_total, training_matrices_approved')
+            .in('id', batch),
+        );
 
     const statusMap = {};
-    companyIds.forEach(id => {
+    companyIds.forEach((id) => {
       statusMap[id] = { success: true, status: 'none', total: 0, approved: 0, pending: 0 };
     });
 
-    (companies || []).forEach(company => {
-      const total = company?.training_matrices_total || 0;
-      const approved = company?.training_matrices_approved || 0;
-      let status = 'none';
-      if (total > 0) {
-        status = approved === total ? 'approved' : 'added';
-      }
-      statusMap[company.id] = { success: true, status, total, approved, pending: total - approved };
+    (companies || []).forEach((company) => {
+      statusMap[company.id] = trainingMatricesStatusFromRow(company);
     });
 
     return statusMap;

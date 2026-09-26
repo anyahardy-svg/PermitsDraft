@@ -10,6 +10,14 @@ import {
   buildTrainingRecordStoragePath,
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
+import {
+  fetchCompanyRowViaEdge,
+  fetchCompanyRowsByIdsViaEdge,
+  preferCompanyEdgeForAdmin,
+  trainingRecordsStatusFromRow,
+} from './companyTrainingCounters';
+import { updateCompany } from './companies';
+import { contractorDataGet } from './contractorData';
 
 // Allowed file types
 const ALLOWED_FILE_TYPES = [
@@ -37,16 +45,17 @@ async function updateCompanyTrainingRecordsCounters(companyId) {
     const total = records.length;
     const approved = records.filter(r => r.status === 'approved').length;
 
-    // Update counters in company table
-    const { error } = await supabase
-      .from('companies')
-      .update({
-        training_records_total: total,
-        training_records_approved: approved
-      })
-      .eq('id', companyId);
+    const counterUpdates = {
+      training_records_total: total,
+      training_records_approved: approved,
+    };
 
-    if (error) throw error;
+    if (preferCompanyEdgeForAdmin()) {
+      await updateCompany(companyId, counterUpdates);
+    } else {
+      const { error } = await supabase.from('companies').update(counterUpdates).eq('id', companyId);
+      if (error) throw error;
+    }
 
     console.log(`✅ Updated counters for company: total=${total}, approved=${approved}`);
     return { success: true, total, approved };
@@ -108,28 +117,49 @@ function getErrorMessage(error, fallback = 'Upload failed') {
 }
 
 async function getContractorStorageContext(contractorId, companyId = null) {
-  const { data: contractor, error: contractorError } = await supabase
-    .from('contractors')
-    .select('id, name, company_id')
-    .eq('id', contractorId)
-    .single();
-
-  if (contractorError) {
-    throw contractorError;
+  let contractor = null;
+  if (preferCompanyEdgeForAdmin()) {
+    try {
+      contractor = await contractorDataGet(contractorId);
+    } catch (edgeError) {
+      console.warn('getContractorStorageContext contractor edge failed:', edgeError?.message);
+    }
+  }
+  if (!contractor) {
+    const { data, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, name, company_id')
+      .eq('id', contractorId)
+      .single();
+    if (contractorError) {
+      throw contractorError;
+    }
+    contractor = data;
   }
 
   let companyName = 'unknown_company';
   const resolvedCompanyId = companyId || contractor?.company_id;
 
   if (resolvedCompanyId) {
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('name')
-      .eq('id', resolvedCompanyId)
-      .single();
+    if (preferCompanyEdgeForAdmin()) {
+      try {
+        const company = await fetchCompanyRowViaEdge(resolvedCompanyId);
+        if (company?.name) {
+          companyName = company.name;
+        }
+      } catch (edgeError) {
+        console.warn('getContractorStorageContext company edge failed:', edgeError?.message);
+      }
+    } else {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', resolvedCompanyId)
+        .single();
 
-    if (!companyError && company?.name) {
-      companyName = company.name;
+      if (!companyError && company?.name) {
+        companyName = company.name;
+      }
     }
   }
 
@@ -445,36 +475,24 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
   try {
     console.log('📊 Getting training records status for company:', companyId);
 
-    // Get company data with counter fields
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('training_records_total, training_records_approved')
-      .eq('id', companyId)
-      .single();
-
-    if (companyError) throw companyError;
-
-    const total = company?.training_records_total || 0;
-    const approved = company?.training_records_approved || 0;
-
-    // Calculate status from counters
-    let status = 'none';
-    if (total > 0) {
-      if (approved === total) {
-        status = 'approved';
-      } else {
-        status = 'added';
-      }
+    let company = null;
+    if (preferCompanyEdgeForAdmin()) {
+      company = await fetchCompanyRowViaEdge(companyId);
+    } else {
+      const { data, error: companyError } = await supabase
+        .from('companies')
+        .select('training_records_total, training_records_approved')
+        .eq('id', companyId)
+        .single();
+      if (companyError) throw companyError;
+      company = data;
     }
 
-    console.log(`✅ Training records status: ${status} (${approved}/${total} approved)`);
-    return {
-      success: true,
-      status,
-      total,
-      approved,
-      pending: total - approved
-    };
+    const result = trainingRecordsStatusFromRow(company);
+    console.log(
+      `✅ Training records status: ${result.status} (${result.approved}/${result.total} approved)`,
+    );
+    return result;
   } catch (error) {
     console.error('❌ Get training records status error:', error);
     return { success: false, error: error.message, status: 'none' };
@@ -505,12 +523,14 @@ export async function getCompanyTrainingRecordsStatusBatch(companyIds) {
   // Retry logic for transient network failures
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const companies = await fetchAllBatchedByIds(companyIds, (batch) =>
-        supabase
-          .from('companies')
-          .select('id, training_records_total, training_records_approved')
-          .in('id', batch)
-      );
+      const companies = preferCompanyEdgeForAdmin()
+        ? await fetchCompanyRowsByIdsViaEdge(companyIds)
+        : await fetchAllBatchedByIds(companyIds, (batch) =>
+            supabase
+              .from('companies')
+              .select('id, training_records_total, training_records_approved')
+              .in('id', batch),
+          );
 
       // Map results to status objects
       const statusMap = {};
@@ -527,26 +547,8 @@ export async function getCompanyTrainingRecordsStatusBatch(companyIds) {
       });
 
       // Update with actual data for companies that were found
-      (companies || []).forEach(company => {
-        const total = company?.training_records_total || 0;
-        const approved = company?.training_records_approved || 0;
-
-        let status = 'none';
-        if (total > 0) {
-          if (approved === total) {
-            status = 'approved';
-          } else {
-            status = 'added';
-          }
-        }
-
-        statusMap[company.id] = {
-          success: true,
-          status,
-          total,
-          approved,
-          pending: total - approved
-        };
+      (companies || []).forEach((company) => {
+        statusMap[company.id] = trainingRecordsStatusFromRow(company);
       });
 
       console.log(`✅ Batch query complete: fetched ${companies?.length || 0} companies`);

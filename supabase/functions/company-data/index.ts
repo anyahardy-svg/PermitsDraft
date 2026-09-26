@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v2";
+const VERSION = "2026-09-26-v3";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -136,6 +136,10 @@ function mapUpdatesToDb(updates: Record<string, unknown>) {
     "assigned_hs_person_id",
     "accreditation_status",
     "accreditation_rejection_reason",
+    "training_records_total",
+    "training_records_approved",
+    "training_matrices_total",
+    "training_matrices_approved",
   ];
   const validUpdates: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(updates)) {
